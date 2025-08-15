@@ -29,7 +29,7 @@ const datePageFilterProps: PickableDays = {
   }),
 };
 
-describe('LogsTabContent', function () {
+describe('LogsTabContent', () => {
   const {organization, project, setupPageFilters} = initializeLogsTest();
 
   let eventTableMock: jest.Mock;
@@ -66,7 +66,7 @@ describe('LogsTabContent', function () {
 
   setupPageFilters();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     // Default API mocks
@@ -162,7 +162,7 @@ describe('LogsTabContent', function () {
     });
   });
 
-  it('should call APIs as expected', async function () {
+  it('should call APIs as expected', async () => {
     render(
       <ProviderWrapper>
         <LogsTabContent {...datePageFilterProps} />
@@ -204,7 +204,7 @@ describe('LogsTabContent', function () {
     expect(table).toHaveTextContent(/some log message2/);
   });
 
-  it('should switch between modes', async function () {
+  it('should switch between modes', async () => {
     render(
       <ProviderWrapper>
         <LogsTabContent {...datePageFilterProps} />

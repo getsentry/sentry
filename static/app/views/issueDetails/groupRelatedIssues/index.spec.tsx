@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GroupRelatedIssues} from 'sentry/views/issueDetails/groupRelatedIssues';
 
-describe('Related Issues View', function () {
+describe('Related Issues View', () => {
   const organization = OrganizationFixture({features: ['global-views']});
   const groupId = '12345678';
   const group = GroupFixture({id: groupId});
@@ -53,7 +53,7 @@ describe('Related Issues View', function () {
     },
   ];
 
-  beforeEach(function () {
+  beforeEach(() => {
     // GroupList calls this but we don't need it for this test
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/users/`,
@@ -70,7 +70,7 @@ describe('Related Issues View', function () {
     jest.clearAllMocks();
   });
 
-  it('renders with same root issues', async function () {
+  it('renders with same root issues', async () => {
     const sameRootIssuesMock = MockApiClient.addMockResponse({
       url: `/issues/${groupId}/related-issues/`,
       match: [
@@ -112,7 +112,7 @@ describe('Related Issues View', function () {
     );
   });
 
-  it('renders with trace connected issues', async function () {
+  it('renders with trace connected issues', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${groupId}/related-issues/`,
       match: [
@@ -158,7 +158,7 @@ describe('Related Issues View', function () {
     );
   });
 
-  it('sets project id when global views is disabled', async function () {
+  it('sets project id when global views is disabled', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${groupId}/related-issues/`,
       match: [

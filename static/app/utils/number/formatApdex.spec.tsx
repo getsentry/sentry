@@ -1,6 +1,6 @@
 import {formatApdex} from 'sentry/utils/number/formatApdex';
 
-describe('formatApdex', function () {
+describe('formatApdex', () => {
   it.each([
     [0, '0'],
     [0.2, '0.200'],

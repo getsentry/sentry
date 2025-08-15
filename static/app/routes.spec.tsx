@@ -65,11 +65,11 @@ function extractRoutes(rootRoute: RouteObject[]): Set<string> {
   return routes;
 }
 
-describe('buildRoutes()', function () {
+describe('buildRoutes()', () => {
   // Until customer-domains is enabled for single-tenant, self-hosted and path
   // based slug routes are removed we need to ensure
   // that each orgId route also has slugless path.
-  test('orgId routes also have domain routes', function () {
+  test('orgId routes also have domain routes', () => {
     const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 
     // Get routes for with customer domains off.

@@ -5,17 +5,17 @@ import DataSecrecy from 'sentry/views/settings/components/dataSecrecy';
 
 jest.mock('sentry/actionCreators/indicator');
 
-describe('DataSecrecy', function () {
+describe('DataSecrecy', () => {
   const {organization} = initializeOrg({
     organization: {features: ['data-secrecy']},
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
 
-  it('renders with access disabled', function () {
+  it('renders with access disabled', () => {
     const orgWithoutAccess = {
       ...organization,
       allowSuperuserAccess: false,
@@ -34,7 +34,7 @@ describe('DataSecrecy', function () {
     expect(checkbox).not.toBeChecked();
   });
 
-  it('renders with access enabled', function () {
+  it('renders with access enabled', () => {
     const orgWithAccess = {
       ...organization,
       allowSuperuserAccess: true,
@@ -53,7 +53,7 @@ describe('DataSecrecy', function () {
     expect(checkbox).toBeChecked();
   });
 
-  it('can toggle access on', async function () {
+  it('can toggle access on', async () => {
     const mockUpdate = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -83,7 +83,7 @@ describe('DataSecrecy', function () {
     });
   });
 
-  it('can toggle access off', async function () {
+  it('can toggle access off', async () => {
     const mockUpdate = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -113,7 +113,7 @@ describe('DataSecrecy', function () {
     });
   });
 
-  it('disables checkbox when user lacks org:write permission', function () {
+  it('disables checkbox when user lacks org:write permission', () => {
     const orgWithoutWriteAccess = {
       ...organization,
       allowSuperuserAccess: false,

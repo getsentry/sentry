@@ -29,12 +29,12 @@ async function setQuery(query: string) {
   await userEvent.paste(query, {delay: null});
 }
 
-describe('Events > SearchBar', function () {
+describe('Events > SearchBar', () => {
   let tagValuesMock: any;
   let organization: TOrganization;
   let props: React.ComponentProps<typeof SearchBar>;
 
-  beforeEach(function () {
+  beforeEach(() => {
     organization = OrganizationFixture();
     props = {
       organization,
@@ -76,11 +76,11 @@ describe('Events > SearchBar', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('autocompletes measurement names', async function () {
+  it('autocompletes measurement names', async () => {
     const initializationObj = initializeOrg({
       organization: {
         features: ['performance-view'],
@@ -95,7 +95,7 @@ describe('Events > SearchBar', function () {
     expect(autocomplete).toHaveTextContent('measurements.fcp');
   });
 
-  it('autocompletes release semver queries', async function () {
+  it('autocompletes release semver queries', async () => {
     const initializationObj = initializeOrg();
     props.organization = initializationObj.organization;
     render(<SearchBar {...props} />);
@@ -107,7 +107,7 @@ describe('Events > SearchBar', function () {
     expect(autocomplete.at(1)).toHaveTextContent('.build');
   });
 
-  it('autocomplete has suggestions correctly', async function () {
+  it('autocomplete has suggestions correctly', async () => {
     render(<SearchBar {...props} />);
     await setQuery('has:');
 
@@ -124,7 +124,7 @@ describe('Events > SearchBar', function () {
     expect(screen.getByTestId('smart-search-input')).toHaveValue('has:gpu ');
   });
 
-  it('searches and selects an event field value', async function () {
+  it('searches and selects an event field value', async () => {
     render(<SearchBar {...props} />);
     await setQuery('gpu:');
 
@@ -142,7 +142,7 @@ describe('Events > SearchBar', function () {
     expect(screen.getByTestId('smart-search-input')).toHaveValue('gpu:"Nvidia 1080ti" ');
   });
 
-  it('if `useFormWrapper` is false, async pressing enter when there are no dropdown items selected should blur and call `onSearch` callback', async function () {
+  it('if `useFormWrapper` is false, async pressing enter when there are no dropdown items selected should blur and call `onSearch` callback', async () => {
     const onBlur = jest.fn();
     const onSearch = jest.fn();
     render(
@@ -167,7 +167,7 @@ describe('Events > SearchBar', function () {
     expect(onSearch).toHaveBeenCalledTimes(1);
   });
 
-  it('filters dropdown to accommodate for num characters left in query', async function () {
+  it('filters dropdown to accommodate for num characters left in query', async () => {
     render(<SearchBar {...props} maxQueryLength={5} />);
 
     await setQuery('g');
@@ -177,7 +177,7 @@ describe('Events > SearchBar', function () {
     expect(autocomplete).toHaveLength(2);
   });
 
-  it('returns zero dropdown suggestions if out of characters', async function () {
+  it('returns zero dropdown suggestions if out of characters', async () => {
     render(<SearchBar {...props} maxQueryLength={2} />);
 
     await setQuery('g');
@@ -185,12 +185,12 @@ describe('Events > SearchBar', function () {
     expect(await screen.findByText('No items found')).toBeInTheDocument();
   });
 
-  it('sets maxLength property', function () {
+  it('sets maxLength property', () => {
     render(<SearchBar {...props} maxQueryLength={10} />);
     expect(screen.getByTestId('smart-search-input')).toHaveAttribute('maxLength', '10');
   });
 
-  it('does not requery for event field values if query does not change', async function () {
+  it('does not requery for event field values if query does not change', async () => {
     render(<SearchBar {...props} />);
 
     await setQuery('gpu:');
@@ -201,7 +201,7 @@ describe('Events > SearchBar', function () {
     expect(tagValuesMock).toHaveBeenCalledTimes(1);
   });
 
-  it('removes highlight when query is empty', async function () {
+  it('removes highlight when query is empty', async () => {
     render(<SearchBar {...props} />);
 
     await setQuery('gpu');
@@ -216,7 +216,7 @@ describe('Events > SearchBar', function () {
     expect(await screen.findByText('Keys')).toBeInTheDocument();
   });
 
-  it('ignores negation ("!") at the beginning of search term', async function () {
+  it('ignores negation ("!") at the beginning of search term', async () => {
     render(<SearchBar {...props} />);
 
     await setQuery('!gp');
@@ -226,7 +226,7 @@ describe('Events > SearchBar', function () {
     expect(autocomplete).toHaveTextContent('gpu');
   });
 
-  it('ignores wildcard ("*") at the beginning of tag value query', async function () {
+  it('ignores wildcard ("*") at the beginning of tag value query', async () => {
     render(<SearchBar {...props} />);
 
     await setQuery('!gpu:*');
@@ -241,7 +241,7 @@ describe('Events > SearchBar', function () {
     expect(screen.getByTestId('smart-search-input')).toHaveValue('!gpu:"Nvidia 1080ti" ');
   });
 
-  it('stops searching after no values are returned', async function () {
+  it('stops searching after no values are returned', async () => {
     const emptyTagValuesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/browser/values/',
       body: [],
@@ -264,7 +264,7 @@ describe('Events > SearchBar', function () {
     expect(emptyTagValuesMock).not.toHaveBeenCalled();
   });
 
-  it('continues searching after no values if query changes', async function () {
+  it('continues searching after no values if query changes', async () => {
     const emptyTagValuesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/browser/values/',
       body: [],
@@ -283,7 +283,7 @@ describe('Events > SearchBar', function () {
     expect(emptyTagValuesMock).toHaveBeenCalled();
   });
 
-  it('searches for custom measurements', async function () {
+  it('searches for custom measurements', async () => {
     const initializationObj = initializeOrg({
       organization: {
         features: ['performance-view'],
@@ -365,7 +365,7 @@ describe('Events > SearchBar', function () {
     ).toBeInTheDocument();
   });
 
-  it('is query works for metric alert search bar', async function () {
+  it('is query works for metric alert search bar', async () => {
     const OrganizationIs = OrganizationFixture();
     render(
       <SearchBar
@@ -379,7 +379,7 @@ describe('Events > SearchBar', function () {
     expect(autocomplete.at(0)).toHaveTextContent('is:');
   });
 
-  it('handled query works for metric alert search bar', async function () {
+  it('handled query works for metric alert search bar', async () => {
     const OrganizationIs = OrganizationFixture();
     render(
       <SearchBar

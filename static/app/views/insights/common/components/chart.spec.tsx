@@ -9,8 +9,8 @@ jest.mock('sentry/components/charts/baseChart', () => {
   return jest.fn().mockImplementation(() => <div />);
 });
 
-describe('Chart', function () {
-  test('it shows an error panel if an error prop is supplied', function () {
+describe('Chart', () => {
+  test('it shows an error panel if an error prop is supplied', () => {
     const parsingError = new Error('Could not parse chart data');
 
     render(
@@ -20,7 +20,7 @@ describe('Chart', function () {
     expect(screen.getByTestId('chart-error-panel')).toBeInTheDocument();
   });
 
-  it('does not propagate mark line to the incomplete series', function () {
+  it('does not propagate mark line to the incomplete series', () => {
     const start = Date.now();
     const mockedSeries: Series[] = [
       {

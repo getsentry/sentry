@@ -13,15 +13,15 @@ jest.mock('sentry/utils/useNavigate', () => ({
 
 const mockUseNavigate = jest.mocked(useNavigate);
 
-describe('DatasetSelector', function () {
+describe('DatasetSelector', () => {
   let router!: ReturnType<typeof RouterFixture>;
   let organization!: ReturnType<typeof OrganizationFixture>;
-  beforeEach(function () {
+  beforeEach(() => {
     router = RouterFixture();
     organization = OrganizationFixture();
   });
 
-  it('changes the dataset', async function () {
+  it('changes the dataset', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -47,7 +47,7 @@ describe('DatasetSelector', function () {
     );
   });
 
-  it('disables transactions dataset when discover-saved-queries-deprecation feature is enabled', async function () {
+  it('disables transactions dataset when discover-saved-queries-deprecation feature is enabled', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -90,7 +90,7 @@ describe('DatasetSelector', function () {
     );
   });
 
-  it('enables transactions dataset when discover-saved-queries-deprecation feature is disabled', async function () {
+  it('enables transactions dataset when discover-saved-queries-deprecation feature is disabled', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 

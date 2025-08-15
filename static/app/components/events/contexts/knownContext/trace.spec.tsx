@@ -46,7 +46,7 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('TraceContext', function () {
+describe('TraceContext', () => {
   const location = LocationFixture();
   const organization = OrganizationFixture({
     features: ['performance-view'],
@@ -58,7 +58,7 @@ describe('TraceContext', function () {
     },
   });
 
-  it('returns values and according to the parameters', function () {
+  it('returns values and according to the parameters', () => {
     expect(
       getTraceContextData({
         data: MOCK_TRACE_CONTEXT,
@@ -142,7 +142,7 @@ describe('TraceContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {trace: MOCK_REDACTION}},
     });

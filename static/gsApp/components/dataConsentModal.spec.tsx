@@ -11,11 +11,11 @@ import {
 
 import DataConsentModal from 'getsentry/components/dataConsentModal';
 
-describe('Data Consent Modal', function () {
+describe('Data Consent Modal', () => {
   const closeModal = jest.fn();
   const organization = OrganizationFixture();
 
-  it('renders modal', async function () {
+  it('renders modal', async () => {
     render(
       <DataConsentModal
         closeModal={closeModal}
@@ -31,7 +31,7 @@ describe('Data Consent Modal', function () {
     ).toBeInTheDocument();
   });
 
-  it('agree button work correctly', async function () {
+  it('agree button work correctly', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-consent/`,
       method: 'PUT',
@@ -55,7 +55,7 @@ describe('Data Consent Modal', function () {
     expect(request).toHaveBeenCalledTimes(1);
   });
 
-  it('maybe later button work correctly', async function () {
+  it('maybe later button work correctly', async () => {
     render(
       <DataConsentModal
         closeModal={closeModal}

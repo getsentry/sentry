@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PolicyDetails from 'admin/views/policyDetails';
 
-describe('PolicyDetails', function () {
+describe('PolicyDetails', () => {
   const revisions = PolicyRevisionsFixture();
   const policies = PoliciesFixture();
   const policy = policies.terms!;
@@ -13,7 +13,7 @@ describe('PolicyDetails', function () {
     router: {params: {policySlug: policy.slug}},
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/policies/${policy.slug}/`,
@@ -25,7 +25,7 @@ describe('PolicyDetails', function () {
     });
   });
 
-  it('can update current version', async function () {
+  it('can update current version', async () => {
     const updateMock = MockApiClient.addMockResponse({
       url: `/policies/${policy.slug}/revisions/${revisions[0]!.version}/`,
       method: 'PUT',

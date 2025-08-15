@@ -76,7 +76,7 @@ jest.mock('@tanstack/react-virtual', () => {
   };
 });
 
-describe('LogsInfiniteTable', function () {
+describe('LogsInfiniteTable', () => {
   const organization = OrganizationFixture({
     features: ['ourlogs', 'ourlogs-enabled', 'ourlogs-infinite-scroll'],
   });
@@ -133,7 +133,7 @@ describe('LogsInfiniteTable', function () {
 
   const frozenColumnFields = [OurLogKnownFieldKey.TIMESTAMP, OurLogKnownFieldKey.MESSAGE];
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
 

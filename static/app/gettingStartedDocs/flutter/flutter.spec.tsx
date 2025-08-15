@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs, {InstallationMode} from './flutter';
 
-describe('flutter onboarding docs', function () {
-  it('renders manual installation docs correctly', async function () {
+describe('flutter onboarding docs', () => {
+  it('renders manual installation docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -30,7 +30,7 @@ describe('flutter onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders wizard docs correctly', async function () {
+  it('renders wizard docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -59,7 +59,7 @@ describe('flutter onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -87,7 +87,7 @@ describe('flutter onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders profiling onboarding docs correctly', async function () {
+  it('renders profiling onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -116,7 +116,7 @@ describe('flutter onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders replay onboarding docs correctly', async function () {
+  it('renders replay onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -145,7 +145,7 @@ describe('flutter onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders logs configuration for manual installation when logs are selected', async function () {
+  it('renders logs configuration for manual installation when logs are selected', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {
@@ -172,7 +172,7 @@ describe('flutter onboarding docs', function () {
     expect(await screen.findByText('Structured Logs')).toBeInTheDocument();
   });
 
-  it('renders logs configuration for auto installation when logs are selected', async function () {
+  it('renders logs configuration for auto installation when logs are selected', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart.flutter': {

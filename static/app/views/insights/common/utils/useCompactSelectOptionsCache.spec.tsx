@@ -2,8 +2,8 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
-describe('useCompactSelectOptionsCache', function () {
-  it('keeps a cache', function () {
+describe('useCompactSelectOptionsCache', () => {
+  it('keeps a cache', () => {
     const {result, rerender} = renderHook(
       (args: Parameters<typeof useCompactSelectOptionsCache>) => {
         return useCompactSelectOptionsCache(...args);
@@ -36,7 +36,7 @@ describe('useCompactSelectOptionsCache', function () {
     ]);
   });
 
-  it('sorts the output', function () {
+  it('sorts the output', () => {
     const {result} = renderHook(
       (args: Parameters<typeof useCompactSelectOptionsCache>) => {
         return useCompactSelectOptionsCache(...args);
@@ -63,7 +63,7 @@ describe('useCompactSelectOptionsCache', function () {
     ]);
   });
 
-  it('clears the cache', function () {
+  it('clears the cache', () => {
     const {result, rerender} = renderHook(
       (args: Parameters<typeof useCompactSelectOptionsCache>) => {
         return useCompactSelectOptionsCache(...args);

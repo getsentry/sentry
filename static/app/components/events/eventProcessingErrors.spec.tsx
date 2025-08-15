@@ -20,10 +20,10 @@ const {useActionableItemsWithProguardErrors} = jest.requireMock(
   'sentry/components/events/interfaces/crashContent/exception/useActionableItems'
 );
 
-describe('EventProcessingErrors', function () {
+describe('EventProcessingErrors', () => {
   it.each(['release', 'environment'])(
     'renders error card with documentation tooltip for known error type: %s',
-    async function (fieldName) {
+    async fieldName => {
       const mockErrors: ErrorMessage[] = [
         {
           title: 'Discarded invalid value',
@@ -58,7 +58,7 @@ describe('EventProcessingErrors', function () {
     }
   );
 
-  it('renders error card without documentation tooltip for unknown error types', function () {
+  it('renders error card without documentation tooltip for unknown error types', () => {
     const mockErrors: ErrorMessage[] = [
       {
         title: 'Discarded invalid value',
@@ -83,7 +83,7 @@ describe('EventProcessingErrors', function () {
     expect(screen.queryByTestId('more-information')).not.toBeInTheDocument();
   });
 
-  it('handles non-string values gracefully', function () {
+  it('handles non-string values gracefully', () => {
     const mockErrors: ErrorMessage[] = [
       {
         title: 'Discarded invalid value',

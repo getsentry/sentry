@@ -2,8 +2,8 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Slider} from 'sentry/components/slider';
 
-describe('Slider', function () {
-  it('renders', function () {
+describe('Slider', () => {
+  it('renders', () => {
     render(<Slider label="Test" min={0} max={10} step={1} defaultValue={5} />);
 
     expect(screen.getByRole('group', {name: 'Test'})).toBeInTheDocument();
@@ -16,12 +16,12 @@ describe('Slider', function () {
     expect(slider).toHaveAttribute('max', '10');
   });
 
-  it('renders without label/output', function () {
+  it('renders without label/output', () => {
     render(<Slider aria-label="Test" min={0} max={10} step={1} defaultValue={5} />);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('calls onChange/onChangeEnd', async function () {
+  it('calls onChange/onChangeEnd', async () => {
     const onChangeMock = jest.fn();
     const onChangeEndMock = jest.fn();
     render(
@@ -49,7 +49,7 @@ describe('Slider', function () {
     expect(onChangeEndMock).toHaveBeenCalledWith(6);
   });
 
-  it('works with larger step size', async function () {
+  it('works with larger step size', async () => {
     const onChangeEndMock = jest.fn();
     render(
       <Slider
@@ -73,7 +73,7 @@ describe('Slider', function () {
     expect(onChangeEndMock).toHaveBeenCalledWith(10);
   });
 
-  it('supports advanced keyboard navigation', async function () {
+  it('supports advanced keyboard navigation', async () => {
     const onChangeEndMock = jest.fn();
     render(
       <Slider
@@ -117,7 +117,7 @@ describe('Slider', function () {
     expect(onChangeEndMock).toHaveBeenCalledWith(100);
   });
 
-  it('works with two thumbs', async function () {
+  it('works with two thumbs', async () => {
     const onChangeEndMock = jest.fn();
     render(
       <Slider

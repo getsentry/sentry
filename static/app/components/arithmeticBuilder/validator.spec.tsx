@@ -5,7 +5,7 @@ import {
   validateTokens,
 } from 'sentry/components/arithmeticBuilder/validator';
 
-describe('vaidateTokens', function () {
+describe('vaidateTokens', () => {
   it.each([
     '',
     '(',
@@ -28,7 +28,7 @@ describe('vaidateTokens', function () {
     'avg(span.duration) avg(span.duration)',
     'avg(span.duration) + avg(span.duration))',
     'avg(span.duration) ( avg(span.duration) + avg(span.duration) )',
-  ])('fails %s', function (expression) {
+  ])('fails %s', expression => {
     const tokens = tokenizeExpression(expression);
     expect(validateTokens(tokens)).toBe(false);
   });
@@ -52,13 +52,13 @@ describe('vaidateTokens', function () {
     '(avg(span.duration) + 1)',
     '1 + avg(span.duration)',
     '(1 + avg(span.duration))',
-  ])('passes %s', function (expression) {
+  ])('passes %s', expression => {
     const tokens = tokenizeExpression(expression);
     expect(validateTokens(tokens)).toBe(true);
   });
 });
 
-describe('computeNextAllowedTokenKinds', function () {
+describe('computeNextAllowedTokenKinds', () => {
   it.each([
     ['', [[TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL]]],
     [
@@ -107,7 +107,7 @@ describe('computeNextAllowedTokenKinds', function () {
         [TokenKind.OPERATOR],
       ],
     ],
-  ])('suggests next token %s', function (expression, expected) {
+  ])('suggests next token %s', (expression, expected) => {
     const tokens = tokenizeExpression(expression);
     expect(computeNextAllowedTokenKinds(tokens)).toEqual(expected);
   });

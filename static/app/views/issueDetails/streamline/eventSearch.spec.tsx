@@ -58,7 +58,7 @@ describe('EventSearch', () => {
     });
   });
 
-  it('handles basic inputs for tags', async function () {
+  it('handles basic inputs for tags', async () => {
     render(<EventSearch {...defaultProps} />);
     const search = screen.getByRole('combobox', {name: 'Add a search term'});
     expect(search).toBeInTheDocument();
@@ -74,7 +74,7 @@ describe('EventSearch', () => {
     );
   }, 10_000);
 
-  it('filters issue tokens from event queries', function () {
+  it('filters issue tokens from event queries', () => {
     const validQuery = `${tagKey}:${tagValue} device.family:[iphone,pixel]`;
 
     const {result: onlyIssueTokens} = renderHook(

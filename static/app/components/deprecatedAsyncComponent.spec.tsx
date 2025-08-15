@@ -2,7 +2,7 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 
-describe('DeprecatedAsyncComponent', function () {
+describe('DeprecatedAsyncComponent', () => {
   class TestAsyncComponent extends DeprecatedAsyncComponent {
     shouldRenderBadRequests = true;
 
@@ -15,7 +15,7 @@ describe('DeprecatedAsyncComponent', function () {
     }
   }
 
-  it('renders on successful request', function () {
+  it('renders on successful request', () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/some/path/to/something/',
@@ -28,7 +28,7 @@ describe('DeprecatedAsyncComponent', function () {
     expect(screen.getByText('hi')).toBeInTheDocument();
   });
 
-  it('renders error message', function () {
+  it('renders error message', () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/some/path/to/something/',
@@ -42,7 +42,7 @@ describe('DeprecatedAsyncComponent', function () {
     expect(screen.getByText('oops there was a problem')).toBeInTheDocument();
   });
 
-  it('renders only unique error message', function () {
+  it('renders only unique error message', () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/first/path/',

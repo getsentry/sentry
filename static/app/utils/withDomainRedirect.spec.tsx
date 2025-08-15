@@ -23,7 +23,7 @@ const projectRoutes = [
   {name: 'Alerts', path: 'alerts/'},
 ];
 
-describe('withDomainRedirect', function () {
+describe('withDomainRedirect', () => {
   type Props = RouteComponentProps<{orgId: string}>;
   function MyComponent(props: Props) {
     const {params} = props;
@@ -31,7 +31,7 @@ describe('withDomainRedirect', function () {
   }
   let configState: Config;
 
-  beforeEach(function () {
+  beforeEach(() => {
     setWindowLocation(
       'http://localhost:3000/organizations/albertos-apples/issues/?q=123#hash'
     );
@@ -53,12 +53,12 @@ describe('withDomainRedirect', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
     ConfigStore.loadInitialData(configState);
   });
 
-  it('renders MyComponent in non-customer domain world', function () {
+  it('renders MyComponent in non-customer domain world', () => {
     ConfigStore.loadInitialData({
       ...configState,
       customerDomain: null,
@@ -92,7 +92,7 @@ describe('withDomainRedirect', function () {
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
   });
 
-  it('redirects to sentryUrl on org slug mistmatch', function () {
+  it('redirects to sentryUrl on org slug mistmatch', () => {
     const organization = OrganizationFixture({
       slug: 'bobs-bagels',
     });
@@ -128,7 +128,7 @@ describe('withDomainRedirect', function () {
     );
   });
 
-  it('redirects to sentryUrl on missing customer domain feature', function () {
+  it('redirects to sentryUrl on missing customer domain feature', () => {
     const organization = OrganizationFixture({slug: 'albertos-apples'});
 
     const params = {
@@ -162,7 +162,7 @@ describe('withDomainRedirect', function () {
     );
   });
 
-  it('redirect when :orgId is present in the routes', function () {
+  it('redirect when :orgId is present in the routes', () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
@@ -199,7 +199,7 @@ describe('withDomainRedirect', function () {
     expect(router.replace).toHaveBeenCalledWith('/settings/react/alerts/?q=123#hash');
   });
 
-  it('does not redirect when :orgId is not present in the routes', function () {
+  it('does not redirect when :orgId is not present in the routes', () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
@@ -241,7 +241,7 @@ describe('withDomainRedirect', function () {
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('updates path when :orgId is present in the routes and there is no subdomain', function () {
+  it('updates path when :orgId is present in the routes and there is no subdomain', () => {
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
     });

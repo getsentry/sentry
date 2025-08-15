@@ -6,8 +6,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
 import type {Event} from 'sentry/types/event';
 
-describe('EventCustomPerformanceMetrics', function () {
-  it('should not render anything', function () {
+describe('EventCustomPerformanceMetrics', () => {
+  it('should not render anything', () => {
     const {router, organization} = initializeOrg();
     render(
       <EventCustomPerformanceMetrics
@@ -19,7 +19,7 @@ describe('EventCustomPerformanceMetrics', function () {
     expect(screen.queryByText('Custom Performance Metrics')).not.toBeInTheDocument();
   });
 
-  it('should not render non custom performance metrics', function () {
+  it('should not render non custom performance metrics', () => {
     const {router, organization} = initializeOrg();
     const event = EventFixture({
       measurements: {lcp: {value: 10, unit: 'millisecond'}},
@@ -35,7 +35,7 @@ describe('EventCustomPerformanceMetrics', function () {
     expect(screen.queryByText('Largest Contentful Paint')).not.toBeInTheDocument();
   });
 
-  it('should render custom performance metrics', function () {
+  it('should render custom performance metrics', () => {
     const {router, organization} = initializeOrg();
     const event = EventFixture({
       measurements: {
@@ -66,7 +66,7 @@ describe('EventCustomPerformanceMetrics', function () {
     expect(screen.queryByText('Largest Contentful Paint')).not.toBeInTheDocument();
   });
 
-  it('should render custom performance metrics context menu', async function () {
+  it('should render custom performance metrics context menu', async () => {
     const {router, organization} = initializeOrg();
     const event = EventFixture({
       measurements: {
@@ -89,7 +89,7 @@ describe('EventCustomPerformanceMetrics', function () {
     expect(screen.getByText('Show events with values less than')).toBeInTheDocument();
   });
 
-  it('should render custom performance metrics custom unit', function () {
+  it('should render custom performance metrics custom unit', () => {
     const {router, organization} = initializeOrg();
     const event = EventFixture({
       measurements: {

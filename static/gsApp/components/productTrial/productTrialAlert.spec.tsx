@@ -11,12 +11,12 @@ import {getProductForPath} from 'getsentry/components/productTrial/productTrialP
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {ProductTrial} from 'getsentry/types';
 
-describe('ProductTrialAlert', function () {
+describe('ProductTrialAlert', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.clearMockResponses();
@@ -27,7 +27,7 @@ describe('ProductTrialAlert', function () {
     });
   });
 
-  it('loads available trial', function () {
+  it('loads available trial', () => {
     const trial: ProductTrial = {
       category: DataCategory.REPLAYS,
       isStarted: false,
@@ -53,7 +53,7 @@ describe('ProductTrialAlert', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays spans trial in progress', function () {
+  it('displays spans trial in progress', () => {
     const trial: ProductTrial = {
       category: DataCategory.SPANS,
       isStarted: true,
@@ -77,7 +77,7 @@ describe('ProductTrialAlert', function () {
     ).toBeInTheDocument();
   });
 
-  it('loads trial started', function () {
+  it('loads trial started', () => {
     const trial: ProductTrial = {
       category: DataCategory.ERRORS,
       isStarted: true,
@@ -104,7 +104,7 @@ describe('ProductTrialAlert', function () {
     ).toBeInTheDocument();
   });
 
-  it('loads trial ending', function () {
+  it('loads trial ending', () => {
     const trial: ProductTrial = {
       category: DataCategory.TRANSACTIONS,
       isStarted: true,
@@ -131,7 +131,7 @@ describe('ProductTrialAlert', function () {
     ).toBeInTheDocument();
   });
 
-  it('loads trial ended', function () {
+  it('loads trial ended', () => {
     const trial: ProductTrial = {
       category: DataCategory.PROFILES,
       isStarted: true,
@@ -159,11 +159,11 @@ describe('ProductTrialAlert', function () {
   });
 });
 
-describe('getProductForPath', function () {
+describe('getProductForPath', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
 
-  it('returns LOG_BYTE product for /explore/logs/ path', function () {
+  it('returns LOG_BYTE product for /explore/logs/ path', () => {
     const result = getProductForPath(subscription, '/explore/logs/');
     expect(result).toEqual({
       product: DataCategory.LOG_BYTE,
@@ -171,7 +171,7 @@ describe('getProductForPath', function () {
     });
   });
 
-  it('returns ERRORS product for /issues/ path', function () {
+  it('returns ERRORS product for /issues/ path', () => {
     const result = getProductForPath(subscription, '/issues/');
     expect(result).toEqual({
       product: DataCategory.ERRORS,
@@ -179,7 +179,7 @@ describe('getProductForPath', function () {
     });
   });
 
-  it('returns TRANSACTIONS product for /performance/ path', function () {
+  it('returns TRANSACTIONS product for /performance/ path', () => {
     const result = getProductForPath(subscription, '/performance/');
     expect(result).toEqual({
       product: DataCategory.TRANSACTIONS,
@@ -187,7 +187,7 @@ describe('getProductForPath', function () {
     });
   });
 
-  it('returns REPLAYS product for /replays/ path', function () {
+  it('returns REPLAYS product for /replays/ path', () => {
     const result = getProductForPath(subscription, '/replays/');
     expect(result).toEqual({
       product: DataCategory.REPLAYS,
@@ -195,7 +195,7 @@ describe('getProductForPath', function () {
     });
   });
 
-  it('returns PROFILES product for /profiling/ path', function () {
+  it('returns PROFILES product for /profiling/ path', () => {
     const result = getProductForPath(subscription, '/profiling/');
     expect(result).toEqual({
       product: DataCategory.PROFILES,
@@ -203,7 +203,7 @@ describe('getProductForPath', function () {
     });
   });
 
-  it('returns MONITOR_SEATS product for /insights/crons/ path', function () {
+  it('returns MONITOR_SEATS product for /insights/crons/ path', () => {
     const result = getProductForPath(subscription, '/insights/crons/');
     expect(result).toEqual({
       product: DataCategory.MONITOR_SEATS,
@@ -211,7 +211,7 @@ describe('getProductForPath', function () {
     });
   });
 
-  it('returns UPTIME product for /insights/uptime/ path', function () {
+  it('returns UPTIME product for /insights/uptime/ path', () => {
     const result = getProductForPath(subscription, '/insights/uptime/');
     expect(result).toEqual({
       product: DataCategory.UPTIME,
@@ -219,7 +219,7 @@ describe('getProductForPath', function () {
     });
   });
 
-  it('returns TRANSACTIONS product for /traces/ path', function () {
+  it('returns TRANSACTIONS product for /traces/ path', () => {
     const result = getProductForPath(subscription, '/traces/');
     expect(result).toEqual({
       product: DataCategory.TRANSACTIONS,
@@ -227,7 +227,7 @@ describe('getProductForPath', function () {
     });
   });
 
-  it('normalizes /explore/traces/ to /traces/', function () {
+  it('normalizes /explore/traces/ to /traces/', () => {
     const result = getProductForPath(subscription, '/explore/traces/');
     expect(result).toEqual({
       product: DataCategory.TRANSACTIONS,
@@ -235,7 +235,7 @@ describe('getProductForPath', function () {
     });
   });
 
-  it('normalizes /explore/profiling/ to /profiling/', function () {
+  it('normalizes /explore/profiling/ to /profiling/', () => {
     const result = getProductForPath(subscription, '/explore/profiling/');
     expect(result).toEqual({
       product: DataCategory.PROFILES,
@@ -243,7 +243,7 @@ describe('getProductForPath', function () {
     });
   });
 
-  it('normalizes /explore/replays/ to /replays/', function () {
+  it('normalizes /explore/replays/ to /replays/', () => {
     const result = getProductForPath(subscription, '/explore/replays/');
     expect(result).toEqual({
       product: DataCategory.REPLAYS,
@@ -251,7 +251,7 @@ describe('getProductForPath', function () {
     });
   });
 
-  it('returns null for unknown path', function () {
+  it('returns null for unknown path', () => {
     const result = getProductForPath(subscription, '/unknown/');
     expect(result).toBeNull();
   });

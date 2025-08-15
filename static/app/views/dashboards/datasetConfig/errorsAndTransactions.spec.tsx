@@ -16,8 +16,8 @@ import {
 
 const theme = ThemeFixture();
 
-describe('transformEventsResponseToTable', function () {
-  it('unsplats table meta field types', function () {
+describe('transformEventsResponseToTable', () => {
+  it('unsplats table meta field types', () => {
     const rawData = {
       data: [{'p75(measurements.inp)': null}],
       meta: {
@@ -48,7 +48,7 @@ describe('transformEventsResponseToTable', function () {
   });
 });
 
-describe('getCustomFieldRenderer', function () {
+describe('getCustomFieldRenderer', () => {
   const {organization, router} = initializeOrg();
 
   const baseEventViewOptions: EventViewOptions = {
@@ -69,7 +69,7 @@ describe('getCustomFieldRenderer', function () {
     topEvents: undefined,
   };
 
-  it('links trace ids to performance', async function () {
+  it('links trace ids to performance', async () => {
     const customFieldRenderer = getCustomEventsFieldRenderer('trace', {});
     render(
       customFieldRenderer(
@@ -100,7 +100,7 @@ describe('getCustomFieldRenderer', function () {
     });
   });
 
-  it('links event ids to event details', async function () {
+  it('links event ids to event details', async () => {
     const project = ProjectFixture();
     const customFieldRenderer = getCustomEventsFieldRenderer('id', {});
     render(
@@ -146,7 +146,7 @@ describe('getCustomFieldRenderer', function () {
     });
   });
 
-  it('links << unparameterized >> title/transaction columns to event details', async function () {
+  it('links << unparameterized >> title/transaction columns to event details', async () => {
     const project = ProjectFixture();
     const customFieldRenderer = getCustomEventsFieldRenderer('title', {});
     render(

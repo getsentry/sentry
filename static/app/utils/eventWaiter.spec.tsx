@@ -7,8 +7,8 @@ import EventWaiter from 'sentry/utils/eventWaiter';
 
 jest.useFakeTimers();
 
-describe('EventWaiter', function () {
-  it('waits for the first projet event', async function () {
+describe('EventWaiter', () => {
+  it('waits for the first projet event', async () => {
     const org = OrganizationFixture();
     const project = ProjectFixture({
       firstEvent: null,
@@ -74,7 +74,7 @@ describe('EventWaiter', function () {
     expect(projectApiMock).not.toHaveBeenCalled();
   });
 
-  it('receives a first event of `true` when first even has expired', async function () {
+  it('receives a first event of `true` when first even has expired', async () => {
     const org = OrganizationFixture();
     const project = ProjectFixture({
       firstEvent: '2019-05-01T00:00:00.000Z',
@@ -115,7 +115,7 @@ describe('EventWaiter', function () {
     expect(child).toHaveBeenCalledWith({firstIssue: true});
   });
 
-  it('does not poll when disabled', function () {
+  it('does not poll when disabled', () => {
     const org = OrganizationFixture();
     const project = ProjectFixture();
 

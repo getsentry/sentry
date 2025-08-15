@@ -19,7 +19,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 jest.mock('sentry/utils/useReleaseStats');
 
-describe('HTTPDomainSummaryPage', function () {
+describe('HTTPDomainSummaryPage', () => {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
   let throughputRequestMock!: jest.Mock;
@@ -63,7 +63,7 @@ describe('HTTPDomainSummaryPage', function () {
     releases: [],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
 
     regionFilterRequestMock = MockApiClient.addMockResponse({
@@ -199,11 +199,11 @@ describe('HTTPDomainSummaryPage', function () {
     });
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('fetches module data', async function () {
+  it('fetches module data', async () => {
     render(<HTTPDomainSummaryPage />, {organization});
 
     await waitFor(() => {
@@ -372,7 +372,7 @@ describe('HTTPDomainSummaryPage', function () {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 
-  it('renders a list of queries', async function () {
+  it('renders a list of queries', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',

@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './awslambda';
 
-describe('awslambda onboarding docs', function () {
-  it('renders errors onboarding docs correctly', async function () {
+describe('awslambda onboarding docs', () => {
+  it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dotnet.aspnetcore': {
@@ -29,7 +29,7 @@ describe('awslambda onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });

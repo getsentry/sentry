@@ -31,7 +31,7 @@ describe('Subscription > Overview', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
   const mockLocation = LocationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
@@ -147,7 +147,7 @@ describe('Subscription > Overview', () => {
     }
   }
 
-  it('renders for am3 DS plan without custom dynamic sampling toggled', async function () {
+  it('renders for am3 DS plan without custom dynamic sampling toggled', async () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -161,7 +161,7 @@ describe('Subscription > Overview', () => {
     assertUsageCards(subscription);
   });
 
-  it('renders for am3 DS plan with custom dynamic sampling toggled', async function () {
+  it('renders for am3 DS plan with custom dynamic sampling toggled', async () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({
       organization,
       hadCustomDynamicSampling: true,
@@ -178,7 +178,7 @@ describe('Subscription > Overview', () => {
     assertUsageCards(subscription);
   });
 
-  it('renders for am3 DS enterprise trial', async function () {
+  it('renders for am3 DS enterprise trial', async () => {
     const subscription = SubscriptionFixture({
       organization,
       isEnterpriseTrial: true,
@@ -198,7 +198,7 @@ describe('Subscription > Overview', () => {
     assertUsageCards(subscription);
   });
 
-  it('renders with Seer', async function () {
+  it('renders with Seer', async () => {
     const seerSubscription = SubscriptionWithSeerFixture({
       organization,
     });
@@ -214,7 +214,7 @@ describe('Subscription > Overview', () => {
     expect(screen.getByText('Issue Scans Included in Subscription')).toBeInTheDocument();
   });
 
-  it('renders Seer upsell on developer plan', async function () {
+  it('renders Seer upsell on developer plan', async () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -239,7 +239,7 @@ describe('Subscription > Overview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders for am3', async function () {
+  it('renders for am3', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am3_f',
       planTier: PlanTier.AM3,
@@ -255,7 +255,7 @@ describe('Subscription > Overview', () => {
     assertUsageCards(subscription);
   });
 
-  it('renders for am2', async function () {
+  it('renders for am2', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_f',
       planTier: PlanTier.AM2,
@@ -271,7 +271,7 @@ describe('Subscription > Overview', () => {
     assertUsageCards(subscription);
   });
 
-  it('renders for am1', async function () {
+  it('renders for am1', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
       planTier: PlanTier.AM1,
@@ -287,7 +287,7 @@ describe('Subscription > Overview', () => {
     assertUsageCards(subscription);
   });
 
-  it('renders for mm2', async function () {
+  it('renders for mm2', async () => {
     const subscription = SubscriptionFixture({
       plan: 'mm2_f',
       planTier: 'mm2',
@@ -303,7 +303,7 @@ describe('Subscription > Overview', () => {
     assertUsageCards(subscription);
   });
 
-  it('hides action button when subscription cannot self-serve', async function () {
+  it('hides action button when subscription cannot self-serve', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -320,7 +320,7 @@ describe('Subscription > Overview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('enables action button when user is a billing admin', async function () {
+  it('enables action button when user is a billing admin', async () => {
     const billingOrg = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -340,7 +340,7 @@ describe('Subscription > Overview', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders trial card for active trial', async function () {
+  it('renders trial card for active trial', async () => {
     const subscription = SubscriptionFixture({
       organization,
       isTrial: true,
@@ -352,7 +352,7 @@ describe('Subscription > Overview', () => {
     expect(await screen.findByTestId('trial-alert')).toBeInTheDocument();
   });
 
-  it('does not render trial card when not on trial', async function () {
+  it('does not render trial card when not on trial', async () => {
     const subscription = SubscriptionFixture({
       organization,
       isTrial: false,
@@ -365,7 +365,7 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByTestId('trial-alert')).not.toBeInTheDocument();
   });
 
-  it('renders credit card modal on the on-demand setting for account without a credit card', async function () {
+  it('renders credit card modal on the on-demand setting for account without a credit card', async () => {
     const am1BusinessPlan = PlanDetailsLookupFixture('am1_business')!;
     const subscription = SubscriptionFixture({
       organization,
@@ -394,7 +394,7 @@ describe('Subscription > Overview', () => {
     expect(await screen.findByLabelText('Card Details')).toBeInTheDocument();
   });
 
-  it('renders on-demand config for paid account', async function () {
+  it('renders on-demand config for paid account', async () => {
     const subscription = SubscriptionFixture({
       organization,
       isFree: false,
@@ -408,7 +408,7 @@ describe('Subscription > Overview', () => {
     expect(await screen.findByText('On-Demand Max Spend')).toBeInTheDocument();
   });
 
-  it('does not render on-demand config for invoiced account', async function () {
+  it('does not render on-demand config for invoiced account', async () => {
     const subscription = SubscriptionFixture({
       organization,
       isFree: false,
@@ -423,7 +423,7 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByText('On-Demand Max Spend')).not.toBeInTheDocument();
   });
 
-  it('does not render on-demand config for free account', async function () {
+  it('does not render on-demand config for free account', async () => {
     const subscription = SubscriptionFixture({
       organization,
       isFree: true,
@@ -438,7 +438,7 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByText('On-Demand Max Spend')).not.toBeInTheDocument();
   });
 
-  it('does not render on-demand config for subscription trial account', async function () {
+  it('does not render on-demand config for subscription trial account', async () => {
     const subscription = SubscriptionFixture({
       organization,
       isFree: false,
@@ -453,7 +453,7 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByText('On-Demand Max Spend')).not.toBeInTheDocument();
   });
 
-  describe('Plan Migrations', function () {
+  describe('Plan Migrations', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'mm2_b_100k',
@@ -466,7 +466,7 @@ describe('Subscription > Overview', () => {
       }),
     });
 
-    it('renders pending changes', async function () {
+    it('renders pending changes', async () => {
       SubscriptionStore.set(organization.slug, subscription);
       render(<Overview location={mockLocation} />, {organization});
 
@@ -477,7 +477,7 @@ describe('Subscription > Overview', () => {
       expect(screen.queryByText("We're updating our")).not.toBeInTheDocument();
     });
 
-    it('renders plan migration', async function () {
+    it('renders plan migration', async () => {
       SubscriptionStore.set(organization.slug, subscription);
       const planMigrations = [PlanMigrationFixture({cohortId: CohortId.SECOND})];
       const mockApi = MockApiClient.addMockResponse({
@@ -499,7 +499,7 @@ describe('Subscription > Overview', () => {
       expect(mockApi).toHaveBeenCalledTimes(1);
     });
 
-    it('does not render already applied plan migration', async function () {
+    it('does not render already applied plan migration', async () => {
       SubscriptionStore.set(organization.slug, subscription);
       const planMigrations = [
         PlanMigrationFixture({
@@ -526,13 +526,13 @@ describe('Subscription > Overview', () => {
     });
   });
 
-  describe('Recurring Credits', function () {
+  describe('Recurring Credits', () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'mm2_b_100k',
     });
 
-    it('renders empty', async function () {
+    it('renders empty', async () => {
       SubscriptionStore.set(organization.slug, subscription);
       render(<Overview location={mockLocation} />, {organization});
 
@@ -540,7 +540,7 @@ describe('Subscription > Overview', () => {
       expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
     });
 
-    it('renders recurring credits', async function () {
+    it('renders recurring credits', async () => {
       SubscriptionStore.set(organization.slug, subscription);
       const mockApi = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/recurring-credits/`,
@@ -556,7 +556,7 @@ describe('Subscription > Overview', () => {
     });
   });
 
-  it('does not render OnDemandBudgets for AM1 orgs without ondemand-budgets feature flag', async function () {
+  it('does not render OnDemandBudgets for AM1 orgs without ondemand-budgets feature flag', async () => {
     const billingOrg = OrganizationFixture({
       features: [],
       access: ['org:billing'],
@@ -582,7 +582,7 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByText('on-demand budget')).not.toBeInTheDocument();
   });
 
-  it('does not render OnDemandBudgets for MM2 orgs with ondemand-budgets feature flag', async function () {
+  it('does not render OnDemandBudgets for MM2 orgs with ondemand-budgets feature flag', async () => {
     const billingOrg = OrganizationFixture({
       features: ['ondemand-budgets'],
       access: ['org:billing'],
@@ -606,7 +606,7 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByText('on-demand budget')).not.toBeInTheDocument();
   });
 
-  it('does not render OnDemandBudgets for AM1 orgs without ondemand-budgets dictionary', async function () {
+  it('does not render OnDemandBudgets for AM1 orgs without ondemand-budgets dictionary', async () => {
     const billingOrg = OrganizationFixture({
       features: ['ondemand-budgets'],
       access: ['org:billing'],
@@ -632,7 +632,7 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByText('on-demand budget')).not.toBeInTheDocument();
   });
 
-  it('renders on-demand edit modal for AM3 orgs without ondemand-budgets dictionary', async function () {
+  it('renders on-demand edit modal for AM3 orgs without ondemand-budgets dictionary', async () => {
     const billingOrg = OrganizationFixture({
       features: ['ondemand-budgets'],
       access: ['org:billing'],
@@ -662,7 +662,7 @@ describe('Subscription > Overview', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders OnDemandBudgets for AM1 orgs with ondemand-budgets feature flag', async function () {
+  it('renders OnDemandBudgets for AM1 orgs with ondemand-budgets feature flag', async () => {
     const billingOrg = OrganizationFixture({
       features: ['ondemand-budgets'],
       access: ['org:billing'],
@@ -696,7 +696,7 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByText('On-Demand Max Spend')).not.toBeInTheDocument();
   });
 
-  it('renders OnDemandBudgets for invoiced orgs with ondemand-budgets feature flag and manually invoiced on-demand max spend', async function () {
+  it('renders OnDemandBudgets for invoiced orgs with ondemand-budgets feature flag and manually invoiced on-demand max spend', async () => {
     const billingOrg = OrganizationFixture({
       features: ['ondemand-budgets'],
       access: ['org:billing'],
@@ -728,7 +728,7 @@ describe('Subscription > Overview', () => {
     expect(await screen.findByText('Edit')).toBeInTheDocument();
   });
 
-  it('does not render OnDemandBudgets for invoiced orgs with ondemand-budgets feature flag and disabled manually invoiced on-demand max spend', async function () {
+  it('does not render OnDemandBudgets for invoiced orgs with ondemand-budgets feature flag and disabled manually invoiced on-demand max spend', async () => {
     const billingOrg = OrganizationFixture({
       features: ['ondemand-budgets'],
       access: ['org:billing'],
@@ -760,7 +760,7 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByText('On-Demand Max Spend')).not.toBeInTheDocument();
   });
 
-  it('displays limited context for members', async function () {
+  it('displays limited context for members', async () => {
     const billingOrg = OrganizationFixture({
       access: [],
     });
@@ -779,7 +779,7 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByTestId('permission-denied')).not.toBeInTheDocument();
   });
 
-  it('renders ContactBillingMembers for members on managed accounts', async function () {
+  it('renders ContactBillingMembers for members on managed accounts', async () => {
     const billingOrg = OrganizationFixture({
       access: [],
     });
@@ -799,7 +799,7 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByTestId('spike-protection-details')).not.toBeInTheDocument();
   });
 
-  it('opens codecov modal', async function () {
+  it('opens codecov modal', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/codecov-jwt/`,
       method: 'GET',
@@ -823,7 +823,7 @@ describe('Subscription > Overview', () => {
     expect(await screen.findByText('Try Code Coverage')).toBeInTheDocument();
   });
 
-  it('renders for am1 no product trial', async function () {
+  it('renders for am1 no product trial', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
       planTier: PlanTier.AM1,
@@ -838,8 +838,8 @@ describe('Subscription > Overview', () => {
     expect(screen.queryByText('Trial Available')).not.toBeInTheDocument();
   });
 
-  describe('OnDemandDisabled', function () {
-    it('renders alert when on-demand is disabled', async function () {
+  describe('OnDemandDisabled', () => {
+    it('renders alert when on-demand is disabled', async () => {
       const subscription = SubscriptionFixture({
         organization,
         onDemandDisabled: true,
@@ -859,7 +859,7 @@ describe('Subscription > Overview', () => {
       ).toBeInTheDocument();
     });
 
-    it('renders alert when on-demand is disabled with billing permissions', async function () {
+    it('renders alert when on-demand is disabled with billing permissions', async () => {
       const billingOrg = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({
         organization: billingOrg,
@@ -880,7 +880,7 @@ describe('Subscription > Overview', () => {
       ).toBeInTheDocument();
     });
 
-    it('renders alert when on-demand is disabled without billing permissions', async function () {
+    it('renders alert when on-demand is disabled without billing permissions', async () => {
       const nonBillingOrg = OrganizationFixture({access: []});
       const subscription = SubscriptionFixture({
         organization: nonBillingOrg,
@@ -902,7 +902,7 @@ describe('Subscription > Overview', () => {
       ).toBeInTheDocument();
     });
 
-    it('does not render alert when on-demand is not disabled', async function () {
+    it('does not render alert when on-demand is not disabled', async () => {
       const subscription = SubscriptionFixture({
         organization,
         onDemandDisabled: false,
@@ -916,7 +916,7 @@ describe('Subscription > Overview', () => {
       expect(screen.queryByTestId('ondemand-disabled-alert')).not.toBeInTheDocument();
     });
 
-    it('uses pay-as-you-go terminology for AM3 plans', async function () {
+    it('uses pay-as-you-go terminology for AM3 plans', async () => {
       const subscription = SubscriptionFixture({
         organization,
         onDemandDisabled: true,
@@ -938,7 +938,7 @@ describe('Subscription > Overview', () => {
     });
   });
 
-  it('renders breakdown for transactions only', async function () {
+  it('renders breakdown for transactions only', async () => {
     // Set up AM2 subscription with profiling-billing feature
     const subscription = SubscriptionFixture({
       plan: 'am2_f',

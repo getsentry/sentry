@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
-describe('MemberListHeader', function () {
+describe('MemberListHeader', () => {
   const organization = OrganizationFixture();
 
   const sub = SubscriptionFixture({
@@ -17,7 +17,7 @@ describe('MemberListHeader', function () {
   });
   SubscriptionStore.set(organization.slug, sub);
 
-  it('render basic', async function () {
+  it('render basic', async () => {
     render(<DisabledMemberTooltip>Inner text</DisabledMemberTooltip>);
 
     // Activate the tooltip, check its contents.

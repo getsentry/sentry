@@ -1,7 +1,7 @@
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
-describe('formatPercentage()', function () {
-  it('should format decimals', function () {
+describe('formatPercentage()', () => {
+  it('should format decimals', () => {
     expect(formatPercentage(0.0, 0)).toBe('0%');
     expect(formatPercentage(0.0, 2)).toBe('0%');
     expect(formatPercentage(0.10513434, 1)).toBe('10.5%');
@@ -17,14 +17,14 @@ describe('formatPercentage()', function () {
     expect(formatPercentage(0.00000234, 0, {minimumValue: 0.0001})).toBe('<0.01%');
   });
 
-  it('handles null and undefined inputs', function () {
+  it('handles null and undefined inputs', () => {
     // @ts-expect-error we are testing invalid inputs
     expect(formatPercentage(null)).toBe('0%');
     // @ts-expect-error we are testing invalid inputs
     expect(formatPercentage(undefined)).toBe('0%');
   });
 
-  it('handles null and undefined inputs with a custom null value', function () {
+  it('handles null and undefined inputs with a custom null value', () => {
     // @ts-expect-error we are testing invalid inputs
     expect(formatPercentage(null, 0, {nullValue: 'N/A'})).toBe('N/A');
     // @ts-expect-error we are testing invalid inputs

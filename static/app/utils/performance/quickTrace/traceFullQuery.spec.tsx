@@ -26,16 +26,16 @@ function renderTraceFull({isLoading, error, type}: any) {
   );
 }
 
-describe('TraceFullQuery', function () {
+describe('TraceFullQuery', () => {
   let location: any;
-  beforeEach(function () {
+  beforeEach(() => {
     location = {
       pathname: '/',
       query: {},
     };
   });
 
-  it('fetches data on mount', async function () {
+  it('fetches data on mount', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace/${traceId}/`,
       body: [],
@@ -56,7 +56,7 @@ describe('TraceFullQuery', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches data on mount with detailed param', async function () {
+  it('fetches data on mount with detailed param', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace/${traceId}/`,
       body: [],

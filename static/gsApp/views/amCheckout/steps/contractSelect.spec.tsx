@@ -10,7 +10,7 @@ import type {Subscription as SubscriptionType} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
-describe('ContractSelect', function () {
+describe('ContractSelect', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
@@ -31,7 +31,7 @@ describe('ContractSelect', function () {
     );
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
@@ -55,7 +55,7 @@ describe('ContractSelect', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     renderView();
 
     const header = await screen.findByTestId('header-contract-term-discounts');
@@ -77,7 +77,7 @@ describe('ContractSelect', function () {
     expect(screen.queryByText(/\ span/)).not.toBeInTheDocument();
   });
 
-  it('renders with correct default prices', async function () {
+  it('renders with correct default prices', async () => {
     renderView();
 
     // Open the section.
@@ -88,7 +88,7 @@ describe('ContractSelect', function () {
     expect(screen.getByRole('radio', {name: 'Annual Contract'})).toBeInTheDocument();
   });
 
-  it('can select contract term', async function () {
+  it('can select contract term', async () => {
     renderView();
 
     // Open the section.
@@ -102,7 +102,7 @@ describe('ContractSelect', function () {
     expect(screen.getByRole('radio', {name: 'Annual Contract'})).toBeChecked();
   });
 
-  it('can complete step', async function () {
+  it('can complete step', async () => {
     renderView();
 
     // Open the section.
@@ -120,7 +120,7 @@ describe('ContractSelect', function () {
     expect(within(header).getByText('Edit')).toBeInTheDocument();
   });
 
-  it('renders annual contract warning', async function () {
+  it('renders annual contract warning', async () => {
     const sub: SubscriptionType = {...subscription, contractInterval: 'annual'};
     SubscriptionStore.set(organization.slug, sub);
 
@@ -138,7 +138,7 @@ describe('ContractSelect', function () {
     expect(screen.getByText(warningText)).toBeInTheDocument();
   });
 
-  it('does not render annual contract warning for monthly plan', async function () {
+  it('does not render annual contract warning for monthly plan', async () => {
     renderView();
     // Open the section
     const header = await screen.findByTestId('header-contract-term-discounts');
@@ -153,7 +153,7 @@ describe('ContractSelect', function () {
     expect(screen.queryByText(warningText)).not.toBeInTheDocument();
   });
 
-  it('does not render annual contract warning for FL sponsored plan', async function () {
+  it('does not render annual contract warning for FL sponsored plan', async () => {
     const sub: SubscriptionType = {
       ...subscription,
       contractInterval: 'annual',

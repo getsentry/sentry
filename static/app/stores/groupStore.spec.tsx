@@ -13,20 +13,20 @@ const g = (id: string, params?: Partial<Group>): Group => {
   return GroupFixture({id, project: MOCK_PROJECT, ...params});
 };
 
-describe('GroupStore', function () {
-  beforeEach(function () {
+describe('GroupStore', () => {
+  beforeEach(() => {
     GroupStore.reset();
   });
 
-  describe('add()', function () {
-    it('should add new entries', function () {
+  describe('add()', () => {
+    it('should add new entries', () => {
       GroupStore.items = [];
       GroupStore.add([g('1'), g('2')]);
 
       expect(GroupStore.items).toEqual([g('1'), g('2')]);
     });
 
-    it('should update matching existing entries', function () {
+    it('should update matching existing entries', () => {
       GroupStore.items = [g('1'), g('2')];
 
       GroupStore.add([g('1', {count: '1337'}), g('3')]);
@@ -37,21 +37,21 @@ describe('GroupStore', function () {
       );
     });
 
-    it('should attempt to preserve order of ids', function () {
+    it('should attempt to preserve order of ids', () => {
       GroupStore.add([g('2'), g('1'), g('3')]);
       expect(GroupStore.getAllItemIds()).toEqual(['2', '1', '3']);
     });
   });
 
-  describe('addToFront()', function () {
-    it('should add new entries to beginning of the list', function () {
+  describe('addToFront()', () => {
+    it('should add new entries to beginning of the list', () => {
       GroupStore.items = [g('2')];
       GroupStore.addToFront([g('1'), g('3')]);
 
       expect(GroupStore.items).toEqual([g('1'), g('3'), g('2')]);
     });
 
-    it('should update matching existing entries', function () {
+    it('should update matching existing entries', () => {
       GroupStore.items = [g('1'), g('2')];
 
       GroupStore.addToFront([g('1', {count: '1337'}), g('3')]);
@@ -63,28 +63,28 @@ describe('GroupStore', function () {
       ]);
     });
 
-    it('should attempt to preserve order of ids', function () {
+    it('should attempt to preserve order of ids', () => {
       GroupStore.addToFront([g('2'), g('1'), g('3')]);
       expect(GroupStore.getAllItemIds()).toEqual(['2', '1', '3']);
     });
   });
 
-  describe('remove()', function () {
-    it('should remove entry', function () {
+  describe('remove()', () => {
+    it('should remove entry', () => {
       GroupStore.items = [g('1'), g('2')];
       GroupStore.remove(['1']);
 
       expect(GroupStore.items).toEqual([g('2')]);
     });
 
-    it('should remove multiple entries', function () {
+    it('should remove multiple entries', () => {
       GroupStore.items = [g('1'), g('2'), g('3')];
       GroupStore.remove(['1', '2']);
 
       expect(GroupStore.items).toEqual([g('3')]);
     });
 
-    it('should not remove already removed item', function () {
+    it('should not remove already removed item', () => {
       GroupStore.items = [g('1'), g('2')];
       GroupStore.remove(['0']);
 
@@ -92,8 +92,8 @@ describe('GroupStore', function () {
     });
   });
 
-  describe('onMergeSuccess()', function () {
-    it('should remove the non-parent merged ids', function () {
+  describe('onMergeSuccess()', () => {
+    it('should remove the non-parent merged ids', () => {
       GroupStore.items = [g('1'), g('2'), g('3'), g('4')];
 
       GroupStore.onMergeSuccess(
@@ -109,10 +109,10 @@ describe('GroupStore', function () {
     });
   });
 
-  describe('onPopulateStats()', function () {
+  describe('onPopulateStats()', () => {
     const stats: Record<string, TimeseriesValue[]> = {auto: [[1611576000, 10]]};
 
-    beforeEach(function () {
+    beforeEach(() => {
       jest.spyOn(GroupStore, 'trigger');
       GroupStore.items = [g('1'), g('2'), g('3')];
     });
@@ -120,7 +120,7 @@ describe('GroupStore', function () {
       jest.restoreAllMocks();
     });
 
-    it('should merge stats into existing groups', function () {
+    it('should merge stats into existing groups', () => {
       GroupStore.onPopulateStats(
         ['1', '2', '3'],
         [
@@ -136,7 +136,7 @@ describe('GroupStore', function () {
       expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
     });
 
-    it('should not change current item ids', function () {
+    it('should not change current item ids', () => {
       GroupStore.onPopulateStats(
         ['2', '3'],
         [{id: '2', stats} as GroupStats, {id: '3', stats} as GroupStats]
@@ -151,8 +151,8 @@ describe('GroupStore', function () {
     });
   });
 
-  describe('getAllItems()', function () {
-    it('Merges pending changes into items', function () {
+  describe('getAllItems()', () => {
+    it('Merges pending changes into items', () => {
       GroupStore.items = [];
       GroupStore.add([g('1'), g('2')]);
 
@@ -164,7 +164,7 @@ describe('GroupStore', function () {
     });
   });
 
-  describe('getState()', function () {
+  describe('getState()', () => {
     it('returns a stable reference', () => {
       GroupStore.add([g('1'), g('2')]);
       const state = GroupStore.getState();
@@ -172,8 +172,8 @@ describe('GroupStore', function () {
     });
   });
 
-  describe('update methods', function () {
-    beforeEach(function () {
+  describe('update methods', () => {
+    beforeEach(() => {
       jest.spyOn(GroupStore, 'trigger');
       GroupStore.items = [g('1'), g('2'), g('3')];
     });
@@ -181,14 +181,14 @@ describe('GroupStore', function () {
       jest.restoreAllMocks();
     });
 
-    describe('onUpdate()', function () {
-      it("should treat undefined itemIds argument as 'all'", function () {
+    describe('onUpdate()', () => {
+      it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onUpdate('1337', undefined, {});
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
         expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
       });
-      it('should apply optimistic updates', function () {
+      it('should apply optimistic updates', () => {
         GroupStore.items = [g('1'), g('2')];
         GroupStore.add([g('1'), g('2')]);
 
@@ -203,8 +203,8 @@ describe('GroupStore', function () {
       });
     });
 
-    describe('onUpdateSuccess()', function () {
-      it("should treat undefined itemIds argument as 'all'", function () {
+    describe('onUpdateSuccess()', () => {
+      it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onUpdateSuccess('1337', undefined, {});
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
@@ -212,8 +212,8 @@ describe('GroupStore', function () {
       });
     });
 
-    describe('onUpdateError()', function () {
-      it("should treat undefined itemIds argument as 'all'", function () {
+    describe('onUpdateError()', () => {
+      it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onUpdateError('1337', undefined, false);
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
@@ -221,8 +221,8 @@ describe('GroupStore', function () {
       });
     });
 
-    describe('onDeleteSuccess()', function () {
-      it("should treat undefined itemIds argument as 'all'", function () {
+    describe('onDeleteSuccess()', () => {
+      it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.onDeleteSuccess('1337', undefined, {});
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
@@ -230,8 +230,8 @@ describe('GroupStore', function () {
       });
     });
 
-    describe('onAssignToSuccess()', function () {
-      it("should treat undefined itemIds argument as 'all'", function () {
+    describe('onAssignToSuccess()', () => {
+      it("should treat undefined itemIds argument as 'all'", () => {
         GroupStore.items = [g('1')];
         const assignedGroup = g('1', {assignedTo: ActorFixture()});
         GroupStore.onAssignToSuccess('1337', '1', assignedGroup);
@@ -242,8 +242,8 @@ describe('GroupStore', function () {
       });
     });
 
-    describe('updateActivity()', function () {
-      it("should update activity data text'", function () {
+    describe('updateActivity()', () => {
+      it("should update activity data text'", () => {
         GroupStore.items = [
           g('1', {
             activity: [

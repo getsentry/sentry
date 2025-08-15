@@ -9,8 +9,8 @@ import {
   METRIC_DETECTOR_FORM_FIELDS,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 
-describe('PriorityControl', function () {
-  it('renders children', async function () {
+describe('PriorityControl', () => {
+  it('renders children', async () => {
     const formModel = new FormModel({
       initialData: {
         ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
@@ -27,7 +27,7 @@ describe('PriorityControl', function () {
     expect(screen.getByLabelText('High threshold')).toBeInTheDocument();
   });
 
-  it('allows configuring priority', async function () {
+  it('allows configuring priority', async () => {
     const formModel = new FormModel({
       initialData: {
         ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
@@ -52,7 +52,7 @@ describe('PriorityControl', function () {
     expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
-  it('allows configuring high thresholds', async function () {
+  it('allows configuring high thresholds', async () => {
     const formModel = new FormModel({
       initialData: {
         ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
@@ -71,7 +71,7 @@ describe('PriorityControl', function () {
     expect(formModel.getValue(METRIC_DETECTOR_FORM_FIELDS.highThreshold)).toBe('5');
   });
 
-  it('filters priority options based on minimumPriority prop', async function () {
+  it('filters priority options based on minimumPriority prop', async () => {
     const formModel = new FormModel({
       initialData: {
         ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,
@@ -94,7 +94,7 @@ describe('PriorityControl', function () {
     expect(screen.queryByRole('option', {name: 'Low'})).not.toBeInTheDocument();
   });
 
-  it('validates that medium threshold is lower than high threshold', async function () {
+  it('validates that medium threshold is lower than high threshold', async () => {
     const formModel = new FormModel({
       initialData: {
         ...DEFAULT_THRESHOLD_METRIC_FORM_DATA,

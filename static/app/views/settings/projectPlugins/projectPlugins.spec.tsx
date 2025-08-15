@@ -5,8 +5,8 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPlugins from 'sentry/views/settings/projectPlugins/projectPlugins';
 
-describe('ProjectPlugins', function () {
-  it('renders', async function () {
+describe('ProjectPlugins', () => {
+  it('renders', async () => {
     const {organization, routerProps, project} = initializeOrg();
 
     render(
@@ -29,7 +29,7 @@ describe('ProjectPlugins', function () {
     );
   });
 
-  it('has error state when plugins=[]', async function () {
+  it('has error state when plugins=[]', async () => {
     const {organization, routerProps, project} = initializeOrg();
 
     render(

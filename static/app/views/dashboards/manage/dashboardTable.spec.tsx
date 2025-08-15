@@ -16,7 +16,7 @@ import {
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {DisplayType, type DashboardListItem} from 'sentry/views/dashboards/types';
 
-describe('Dashboards - DashboardTable', function () {
+describe('Dashboards - DashboardTable', () => {
   let dashboards: DashboardListItem[];
   let deleteMock: jest.Mock;
   let dashboardUpdateMock: jest.Mock;
@@ -27,7 +27,7 @@ describe('Dashboards - DashboardTable', function () {
 
   const {router} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -105,7 +105,7 @@ describe('Dashboards - DashboardTable', function () {
     dashboardUpdateMock = jest.fn();
   });
 
-  it('renders an empty list', async function () {
+  it('renders an empty list', async () => {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -121,7 +121,7 @@ describe('Dashboards - DashboardTable', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders dashboard list', async function () {
+  it('renders dashboard list', async () => {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -135,7 +135,7 @@ describe('Dashboards - DashboardTable', function () {
     expect(await screen.findByText('Dashboard 2')).toBeInTheDocument();
   });
 
-  it('returns landing page url for dashboards', async function () {
+  it('returns landing page url for dashboards', async () => {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -155,7 +155,7 @@ describe('Dashboards - DashboardTable', function () {
     );
   });
 
-  it('persists global selection headers', async function () {
+  it('persists global selection headers', async () => {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -171,7 +171,7 @@ describe('Dashboards - DashboardTable', function () {
     );
   });
 
-  it('can delete dashboards', async function () {
+  it('can delete dashboards', async () => {
     render(
       <DashboardTable
         organization={organization}
@@ -196,7 +196,7 @@ describe('Dashboards - DashboardTable', function () {
     expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
-  it('cannot delete last dashboard', async function () {
+  it('cannot delete last dashboard', async () => {
     const singleDashboard = [
       DashboardListItemFixture({
         id: '1',
@@ -221,7 +221,7 @@ describe('Dashboards - DashboardTable', function () {
     );
   });
 
-  it('can duplicate dashboards', async function () {
+  it('can duplicate dashboards', async () => {
     render(
       <DashboardTable
         organization={organization}
@@ -246,7 +246,7 @@ describe('Dashboards - DashboardTable', function () {
     expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
-  it('does not throw an error if the POST fails during duplication', async function () {
+  it('does not throw an error if the POST fails during duplication', async () => {
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       method: 'POST',
@@ -278,7 +278,7 @@ describe('Dashboards - DashboardTable', function () {
     expect(dashboardUpdateMock).not.toHaveBeenCalled();
   });
 
-  it('renders access column', async function () {
+  it('renders access column', async () => {
     const organizationWithEditAccess = OrganizationFixture({
       features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
     });
@@ -298,7 +298,7 @@ describe('Dashboards - DashboardTable', function () {
     expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();
   });
 
-  it('renders favorite column', async function () {
+  it('renders favorite column', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/2/favorite/',
       method: 'PUT',

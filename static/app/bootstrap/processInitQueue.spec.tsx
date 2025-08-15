@@ -14,8 +14,8 @@ import AlertStore from 'sentry/stores/alertStore';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
 
-describe('processInitQueue', function () {
-  describe('renderReact', function () {
+describe('processInitQueue', () => {
+  describe('renderReact', () => {
     it('renders password strength input', async () => {
       window.__onSentryInit = [
         {
@@ -193,7 +193,7 @@ describe('processInitQueue', function () {
     });
   });
 
-  it('processes queued up items', function () {
+  it('processes queued up items', () => {
     const mock = jest.fn();
     const init = {
       name: 'onReady',
@@ -212,7 +212,7 @@ describe('processInitQueue', function () {
     expect(mock).toHaveBeenCalledTimes(2);
   });
 
-  it('is called after `processInitQueue` has already run', function () {
+  it('is called after `processInitQueue` has already run', () => {
     processInitQueue();
     const mock = jest.fn();
     const init = {

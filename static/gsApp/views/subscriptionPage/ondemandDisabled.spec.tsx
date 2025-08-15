@@ -8,10 +8,10 @@ import {PlanTier} from 'getsentry/types';
 
 import OnDemandDisabled from './ondemandDisabled';
 
-describe('OnDemandDisabled', function () {
+describe('OnDemandDisabled', () => {
   const organization = OrganizationFixture();
 
-  it('renders nothing when onDemandDisabled is false', function () {
+  it('renders nothing when onDemandDisabled is false', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: false,
@@ -23,7 +23,7 @@ describe('OnDemandDisabled', function () {
     expect(screen.queryByTestId('ondemand-disabled-alert')).not.toBeInTheDocument();
   });
 
-  it('renders nothing when onDemandMaxSpend is 0', function () {
+  it('renders nothing when onDemandMaxSpend is 0', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: true,
@@ -35,7 +35,7 @@ describe('OnDemandDisabled', function () {
     expect(screen.queryByTestId('ondemand-disabled-alert')).not.toBeInTheDocument();
   });
 
-  it('renders alert for AM1 plan with on-demand terminology', function () {
+  it('renders alert for AM1 plan with on-demand terminology', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: true,
@@ -55,7 +55,7 @@ describe('OnDemandDisabled', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders alert for AM2 plan with on-demand terminology', function () {
+  it('renders alert for AM2 plan with on-demand terminology', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: true,
@@ -75,7 +75,7 @@ describe('OnDemandDisabled', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders alert for AM3 plan with pay-as-you-go terminology', function () {
+  it('renders alert for AM3 plan with pay-as-you-go terminology', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: true,
@@ -95,7 +95,7 @@ describe('OnDemandDisabled', function () {
     ).toBeInTheDocument();
   });
 
-  it('includes links to receipts, support email and documentation', function () {
+  it('includes links to receipts, support email and documentation', () => {
     const subscription = SubscriptionFixture({
       organization,
       onDemandDisabled: true,

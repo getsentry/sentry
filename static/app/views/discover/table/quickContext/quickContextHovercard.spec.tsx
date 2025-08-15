@@ -33,8 +33,8 @@ const renderQuickContextContent = (
   );
 };
 
-describe('Quick Context', function () {
-  describe('Quick Context default behaviour', function () {
+describe('Quick Context', () => {
+  describe('Quick Context default behaviour', () => {
     afterEach(() => {
       MockApiClient.clearMockResponses();
     });

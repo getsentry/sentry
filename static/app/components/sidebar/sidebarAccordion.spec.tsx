@@ -5,8 +5,8 @@ import {SidebarAccordion} from 'sentry/components/sidebar/sidebarAccordion';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {IconStar} from 'sentry/icons';
 
-describe('SidebarAccordion', function () {
-  it('marks only the selected child as active', function () {
+describe('SidebarAccordion', () => {
+  it('marks only the selected child as active', () => {
     setWindowLocation('http://localhost/performance/queries?sort=tpm()');
 
     render(

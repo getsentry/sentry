@@ -8,11 +8,11 @@ import ModalStore from 'sentry/stores/modalStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import App from 'sentry/views/app';
 
-describe('Sudo Modal', function () {
+describe('Sudo Modal', () => {
   const setHasPasswordAuth = (hasPasswordAuth: boolean) =>
     ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth});
 
-  beforeEach(function () {
+  beforeEach(() => {
     window.__initialData = {
       ...window.__initialData,
       links: {
@@ -64,7 +64,7 @@ describe('Sudo Modal', function () {
     OrganizationStore.reset();
   });
 
-  it('can delete an org with sudo flow', async function () {
+  it('can delete an org with sudo flow', async () => {
     const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(true);
 
@@ -138,7 +138,7 @@ describe('Sudo Modal', function () {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('shows button to redirect if user does not have password auth', async function () {
+  it('shows button to redirect if user does not have password auth', async () => {
     const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(false);
 

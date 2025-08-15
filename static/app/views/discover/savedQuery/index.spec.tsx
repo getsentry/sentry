@@ -41,7 +41,7 @@ function mount(
   );
 }
 
-describe('Discover > SaveQueryButtonGroup', function () {
+describe('Discover > SaveQueryButtonGroup', () => {
   let organization: Organization;
   let errorsView: EventView;
   let savedQuery: SavedQuery;

@@ -7,8 +7,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
-describe('DisabledMemberView', function () {
-  it('click triggers request member', async function () {
+describe('DisabledMemberView', () => {
+  it('click triggers request member', async () => {
     const {routerProps} = initializeOrg();
     const organization = OrganizationFixture();
     const sub = SubscriptionFixture({organization});

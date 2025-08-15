@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TempestSettings from 'sentry/views/settings/project/tempest';
 
-describe('TempestSettings', function () {
+describe('TempestSettings', () => {
   const {organization, project} = initializeOrg();
 
   beforeEach(() => {
@@ -22,7 +22,7 @@ describe('TempestSettings', function () {
   });
 
   describe('Access Control', () => {
-    it('renders warning alert when user does not have tempest access', function () {
+    it('renders warning alert when user does not have tempest access', () => {
       const organizationWithoutAccess = OrganizationFixture({
         features: [],
         enabledConsolePlatforms: [],
@@ -40,7 +40,7 @@ describe('TempestSettings', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('renders settings when user has tempest-access feature', function () {
+    it('renders settings when user has tempest-access feature', () => {
       const organizationWithFeature = OrganizationFixture({
         features: ['tempest-access'],
         enabledConsolePlatforms: [],
@@ -56,7 +56,7 @@ describe('TempestSettings', function () {
       expect(screen.getByRole('heading', {name: 'DevKit Crashes'})).toBeInTheDocument();
     });
 
-    it('renders settings when user has playstation console platform enabled', function () {
+    it('renders settings when user has playstation console platform enabled', () => {
       const organizationWithPlatform = OrganizationFixture({
         features: [],
         enabledConsolePlatforms: ['playstation'],
@@ -72,7 +72,7 @@ describe('TempestSettings', function () {
       expect(screen.getByRole('heading', {name: 'DevKit Crashes'})).toBeInTheDocument();
     });
 
-    it('renders settings when user has both tempest-access feature and playstation platform', function () {
+    it('renders settings when user has both tempest-access feature and playstation platform', () => {
       const organizationWithBoth = OrganizationFixture({
         features: ['tempest-access'],
         enabledConsolePlatforms: ['playstation'],
@@ -86,7 +86,7 @@ describe('TempestSettings', function () {
       expect(screen.getByRole('heading', {name: 'DevKit Crashes'})).toBeInTheDocument();
     });
 
-    it('does not grant access with other console platforms', function () {
+    it('does not grant access with other console platforms', () => {
       const organizationWithOtherPlatform = OrganizationFixture({
         features: [],
         enabledConsolePlatforms: ['xbox', 'nintendo'],

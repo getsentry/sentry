@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
 import * as analytics from 'sentry/utils/analytics';
 
-describe('HighlightsSettingForm', function () {
+describe('HighlightsSettingForm', () => {
   const organization = OrganizationFixture();
   const highlightTags = ['environment', 'handled', 'release', 'url'];
   const highlightContext = {
@@ -16,14 +16,14 @@ describe('HighlightsSettingForm', function () {
   const project = ProjectFixture({highlightContext, highlightTags});
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: {...project, highlightTags, highlightContext},
     });
   });
 
-  it('should render with highlights from detailed project', async function () {
+  it('should render with highlights from detailed project', async () => {
     render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
     await screen.findByText('Highlights');
 
@@ -36,7 +36,7 @@ describe('HighlightsSettingForm', function () {
     expect(contextInput).toHaveValue(JSON.stringify(highlightContext, null, 2));
   });
 
-  it('should allow the Highlight Tags field to mutate highlights', async function () {
+  it('should allow the Highlight Tags field to mutate highlights', async () => {
     render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
     await screen.findByText('Highlights');
 
@@ -65,7 +65,7 @@ describe('HighlightsSettingForm', function () {
     );
   });
 
-  it('should allow the Highlight Context field to mutate highlights', async function () {
+  it('should allow the Highlight Context field to mutate highlights', async () => {
     render(<HighlightsSettingsForm projectSlug={project.slug} />, {organization});
     await screen.findByText('Highlights');
 

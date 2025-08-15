@@ -17,9 +17,9 @@ function Wrapper({children}: {children: ReactNode}) {
   );
 }
 
-describe('LogsToolbar', function () {
-  describe('visualize section', function () {
-    it('options disabled', async function () {
+describe('LogsToolbar', () => {
+  describe('visualize section', () => {
+    it('options disabled', async () => {
       render(
         <Wrapper>
           <LogsToolbar numberTags={{}} stringTags={{}} />
@@ -56,7 +56,7 @@ describe('LogsToolbar', function () {
       }
     });
 
-    it('uses the right default when switching aggregates', async function () {
+    it('uses the right default when switching aggregates', async () => {
       const {router} = render(
         <Wrapper>
           <LogsToolbar numberTags={{foo: {key: 'foo', name: 'foo'}}} stringTags={{}} />
@@ -88,7 +88,7 @@ describe('LogsToolbar', function () {
       );
     });
 
-    it('switches the parameter', async function () {
+    it('switches the parameter', async () => {
       const {router} = render(
         <Wrapper>
           <LogsToolbar
@@ -147,8 +147,8 @@ describe('LogsToolbar', function () {
     });
   });
 
-  describe('group by section', function () {
-    it('can switch group bys', async function () {
+  describe('group by section', () => {
+    it('can switch group bys', async () => {
       const {router} = render(
         <Wrapper>
           <LogsToolbar

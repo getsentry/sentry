@@ -77,17 +77,17 @@ class MockIntersectionObserver {
   }
 }
 
-describe('Dashboards > Detail', function () {
+describe('Dashboards > Detail', () => {
   const organization = OrganizationFixture({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
   const projects = [ProjectFixture()];
   window.IntersectionObserver = MockIntersectionObserver as any;
 
-  describe('prebuilt dashboards', function () {
+  describe('prebuilt dashboards', () => {
     let initialData!: ReturnType<typeof initializeOrg>;
 
-    beforeEach(function () {
+    beforeEach(() => {
       act(() => ProjectsStore.loadInitialData(projects));
       initialData = initializeOrg({organization});
 
@@ -153,13 +153,13 @@ describe('Dashboards > Detail', function () {
       });
     });
 
-    afterEach(function () {
+    afterEach(() => {
       MockApiClient.clearMockResponses();
     });
 
     // TODO(nar): Flaky test
     // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('assigns unique IDs to all widgets so grid keys are unique', async function () {
+    it.skip('assigns unique IDs to all widgets so grid keys are unique', async () => {
       const router = RouterFixture({
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: 'default-overview'},
@@ -279,14 +279,14 @@ describe('Dashboards > Detail', function () {
     });
   });
 
-  describe('custom dashboards', function () {
+  describe('custom dashboards', () => {
     let initialData!: ReturnType<typeof initializeOrg>;
     let widgets!: Array<ReturnType<typeof WidgetFixture>>;
     let mockVisit!: jest.Mock;
     let mockPut!: jest.Mock;
     let mockScrollIntoView!: jest.Mock;
 
-    beforeEach(function () {
+    beforeEach(() => {
       window.confirm = jest.fn();
       initialData = initializeOrg({
         organization,
@@ -453,12 +453,12 @@ describe('Dashboards > Detail', function () {
       window.HTMLElement.prototype.scrollIntoView = mockScrollIntoView;
     });
 
-    afterEach(function () {
+    afterEach(() => {
       MockApiClient.clearMockResponses();
       jest.clearAllMocks();
     });
 
-    it('can remove widgets', async function () {
+    it('can remove widgets', async () => {
       const router = RouterFixture({
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -516,7 +516,7 @@ describe('Dashboards > Detail', function () {
       expect(mockVisit).toHaveBeenCalledTimes(1);
     });
 
-    it('appends dashboard-level filters to series request', async function () {
+    it('appends dashboard-level filters to series request', async () => {
       const router = RouterFixture({
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -564,7 +564,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('shows add widget option', async function () {
+    it('shows add widget option', async () => {
       const router = RouterFixture({
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -591,7 +591,7 @@ describe('Dashboards > Detail', function () {
       expect(await screen.findByRole('button', {name: 'Add Widget'})).toBeInTheDocument();
     });
 
-    it('shows top level release filter', async function () {
+    it('shows top level release filter', async () => {
       const router = RouterFixture({
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -633,7 +633,7 @@ describe('Dashboards > Detail', function () {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
-    it('hides add widget option', async function () {
+    it('hides add widget option', async () => {
       const router = RouterFixture({
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -663,7 +663,7 @@ describe('Dashboards > Detail', function () {
       expect(screen.queryByRole('button', {name: 'Add widget'})).not.toBeInTheDocument();
     });
 
-    it('renders successfully if more widgets than stored layouts', async function () {
+    it('renders successfully if more widgets than stored layouts', async () => {
       const router = RouterFixture({
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -1619,7 +1619,7 @@ describe('Dashboards > Detail', function () {
       expect(screen.queryByTestId('filter-bar-cancel')).not.toBeInTheDocument();
     });
 
-    it('uses releases from the URL query params', async function () {
+    it('uses releases from the URL query params', async () => {
       const router = RouterFixture({
         location: {
           ...LocationFixture(),
@@ -1668,7 +1668,7 @@ describe('Dashboards > Detail', function () {
       screen.getByTestId('filter-bar-cancel');
     });
 
-    it('resets release in URL params', async function () {
+    it('resets release in URL params', async () => {
       const router = RouterFixture({
         location: {
           ...LocationFixture(),
@@ -1740,7 +1740,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('reflects selections in the release filter in the query params', async function () {
+    it('reflects selections in the release filter in the query params', async () => {
       const router = RouterFixture({
         location: LocationFixture(),
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -1798,7 +1798,7 @@ describe('Dashboards > Detail', function () {
       });
     });
 
-    it('persists release selections made during search requests that do not appear in default query', async function () {
+    it('persists release selections made during search requests that do not appear in default query', async () => {
       const router = RouterFixture({
         location: LocationFixture(),
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -1864,7 +1864,7 @@ describe('Dashboards > Detail', function () {
       expect(screen.getByRole('option', {name: 'search-result'})).toBeInTheDocument();
     });
 
-    it('renders edit access selector', async function () {
+    it('renders edit access selector', async () => {
       render(
         <EditAccessSelector
           dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
@@ -1882,7 +1882,7 @@ describe('Dashboards > Detail', function () {
       expect(screen.getByText('All users')).toBeInTheDocument();
     });
 
-    it('creates and updates new permissions for dashboard with no edit perms initialized', async function () {
+    it('creates and updates new permissions for dashboard with no edit perms initialized', async () => {
       const router = RouterFixture({
         location: LocationFixture(),
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -1937,7 +1937,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('creator can update permissions for dashboard', async function () {
+    it('creator can update permissions for dashboard', async () => {
       const router = RouterFixture({
         location: LocationFixture(),
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -2004,7 +2004,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('creator can update permissions with teams for dashboard', async function () {
+    it('creator can update permissions with teams for dashboard', async () => {
       const router = RouterFixture({
         location: LocationFixture(),
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -2087,7 +2087,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('disables edit dashboard and add widget button if user cannot edit dashboard', async function () {
+    it('disables edit dashboard and add widget button if user cannot edit dashboard', async () => {
       const router = RouterFixture({
         location: LocationFixture(),
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -2143,7 +2143,7 @@ describe('Dashboards > Detail', function () {
       expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
     });
 
-    it('disables widget edit, duplicate, and delete button when user does not have edit perms', async function () {
+    it('disables widget edit, duplicate, and delete button when user does not have edit perms', async () => {
       const router = RouterFixture({
         location: LocationFixture(),
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -2221,7 +2221,7 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('renders favorite button in unfavorited state', async function () {
+    it('renders favorite button in unfavorited state', async () => {
       const router = RouterFixture({
         location: LocationFixture(),
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -2255,7 +2255,7 @@ describe('Dashboards > Detail', function () {
       expect(await screen.findByLabelText('Favorite')).toBeInTheDocument();
     });
 
-    it('renders favorite button in favorited state', async function () {
+    it('renders favorite button in favorited state', async () => {
       const router = RouterFixture({
         location: LocationFixture(),
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -2289,7 +2289,7 @@ describe('Dashboards > Detail', function () {
       expect(await screen.findByLabelText('UnFavorite')).toBeInTheDocument();
     });
 
-    it('toggles favorite button', async function () {
+    it('toggles favorite button', async () => {
       const router = RouterFixture({
         location: LocationFixture(),
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -2332,9 +2332,9 @@ describe('Dashboards > Detail', function () {
       expect(await screen.findByLabelText('Favorite')).toBeInTheDocument();
     });
 
-    describe('widget builder redesign', function () {
+    describe('widget builder redesign', () => {
       let mockUpdateDashboard!: jest.SpyInstance;
-      beforeEach(function () {
+      beforeEach(() => {
         initialData = initializeOrg({
           organization: OrganizationFixture({
             features: [
@@ -2363,7 +2363,7 @@ describe('Dashboards > Detail', function () {
         mockUpdateDashboard.mockRestore();
       });
 
-      it('opens the widget builder slideout when clicking add widget', async function () {
+      it('opens the widget builder slideout when clicking add widget', async () => {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
@@ -2386,7 +2386,7 @@ describe('Dashboards > Detail', function () {
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
       });
 
-      it('opens the widget builder library slideout when clicking add widget from widget library', async function () {
+      it('opens the widget builder library slideout when clicking add widget from widget library', async () => {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
@@ -2409,7 +2409,7 @@ describe('Dashboards > Detail', function () {
         expect(await screen.findByText('Widget Library')).toBeInTheDocument();
       });
 
-      it('opens the widget builder slideout when clicking add widget in edit mode', async function () {
+      it('opens the widget builder slideout when clicking add widget in edit mode', async () => {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
@@ -2432,7 +2432,7 @@ describe('Dashboards > Detail', function () {
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
       });
 
-      it('opens the widget builder library slideout when clicking add widget from widget library in edit mode', async function () {
+      it('opens the widget builder library slideout when clicking add widget from widget library in edit mode', async () => {
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
@@ -2455,7 +2455,7 @@ describe('Dashboards > Detail', function () {
         expect(await screen.findByText('Widget Library')).toBeInTheDocument();
       });
 
-      it('allows for editing a widget in edit mode', async function () {
+      it('allows for editing a widget in edit mode', async () => {
         const mockWidget = WidgetFixture({id: '1', title: 'Custom Widget'});
         const mockDashboard = DashboardFixture([mockWidget], {
           id: '1',
@@ -2503,7 +2503,7 @@ describe('Dashboards > Detail', function () {
         expect(screen.getByText('Updated Widget')).toBeInTheDocument();
       });
 
-      it('allows for creating a widget in edit mode', async function () {
+      it('allows for creating a widget in edit mode', async () => {
         const mockDashboard = DashboardFixture([], {
           id: '1',
           title: 'Custom Errors',
@@ -2549,7 +2549,7 @@ describe('Dashboards > Detail', function () {
         expect(mockScrollIntoView).toHaveBeenCalled();
       });
 
-      it('allows for editing a widget in view mode', async function () {
+      it('allows for editing a widget in view mode', async () => {
         const mockWidget = WidgetFixture({id: '1', title: 'Custom Widget'});
         const mockDashboard = DashboardFixture([mockWidget], {
           id: '1',
@@ -2607,7 +2607,7 @@ describe('Dashboards > Detail', function () {
         expect(mockScrollIntoView).toHaveBeenCalled();
       });
 
-      it('allows for creating a widget in view mode', async function () {
+      it('allows for creating a widget in view mode', async () => {
         const mockDashboard = DashboardFixture([], {
           id: '1',
           title: 'Custom Errors',
@@ -2664,8 +2664,8 @@ describe('Dashboards > Detail', function () {
       });
     });
 
-    describe('discover split', function () {
-      it('calls the dashboard callbacks with the correct widgetType for discover split', function () {
+    describe('discover split', () => {
+      it('calls the dashboard callbacks with the correct widgetType for discover split', () => {
         const widget = {
           displayType: types.DisplayType.TABLE,
           interval: '1d',

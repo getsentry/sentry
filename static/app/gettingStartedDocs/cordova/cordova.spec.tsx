@@ -3,8 +3,8 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './cordova';
 
-describe('cordova onboarding docs', function () {
-  it('renders docs correctly', function () {
+describe('cordova onboarding docs', () => {
+  it('renders docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings

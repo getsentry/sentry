@@ -9,7 +9,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {ProjectContext} from 'sentry/views/projects/projectContext';
 
-describe('Feature', function () {
+describe('Feature', () => {
   const organization = OrganizationFixture({
     features: ['org-foo', 'org-bar', 'bar'],
   });
@@ -25,13 +25,13 @@ describe('Feature', function () {
     );
   }
 
-  describe('as render prop', function () {
+  describe('as render prop', () => {
     const childrenMock = jest.fn().mockReturnValue(null);
-    beforeEach(function () {
+    beforeEach(() => {
       childrenMock.mockClear();
     });
 
-    it('has features', function () {
+    it('has features', () => {
       const features = ['org-foo', 'project-foo'];
 
       render(<WrappedFeature features={features}>{childrenMock}</WrappedFeature>, {
@@ -47,7 +47,7 @@ describe('Feature', function () {
       });
     });
 
-    it('has features when requireAll is false', function () {
+    it('has features when requireAll is false', () => {
       const features = ['org-foo', 'project-foo', 'apple'];
 
       render(
@@ -66,7 +66,7 @@ describe('Feature', function () {
       });
     });
 
-    it('has no features', function () {
+    it('has no features', () => {
       render(<WrappedFeature features="org-baz">{childrenMock}</WrappedFeature>, {
         organization,
       });
@@ -80,7 +80,7 @@ describe('Feature', function () {
       });
     });
 
-    it('calls render function when no features', function () {
+    it('calls render function when no features', () => {
       const noFeatureRenderer = jest.fn(() => null);
       render(
         <WrappedFeature features="org-baz" renderDisabled={noFeatureRenderer}>
@@ -99,7 +99,7 @@ describe('Feature', function () {
       });
     });
 
-    it('can specify org from props', function () {
+    it('can specify org from props', () => {
       const customOrg = OrganizationFixture({features: ['org-bazar']});
       render(
         <WrappedFeature organization={customOrg} features="org-bazar">
@@ -117,7 +117,7 @@ describe('Feature', function () {
       });
     });
 
-    it('can specify project from props', function () {
+    it('can specify project from props', () => {
       const customProject = ProjectFixture({features: ['project-baz']});
       render(
         <WrappedFeature project={customProject} features="project-baz">
@@ -135,7 +135,7 @@ describe('Feature', function () {
       });
     });
 
-    it('handles no org/project', function () {
+    it('handles no org/project', () => {
       const features = ['org-foo', 'project-foo'];
       render(<WrappedFeature features={features}>{childrenMock}</WrappedFeature>, {
         organization,
@@ -152,7 +152,7 @@ describe('Feature', function () {
       );
     });
 
-    it('handles features prefixed with org/project', function () {
+    it('handles features prefixed with org/project', () => {
       render(
         <WrappedFeature features="organizations:org-bar">{childrenMock}</WrappedFeature>,
         {
@@ -181,7 +181,7 @@ describe('Feature', function () {
       });
     });
 
-    it('checks ConfigStore.config.features (e.g. `organizations:create`)', function () {
+    it('checks ConfigStore.config.features (e.g. `organizations:create`)', () => {
       ConfigStore.loadInitialData(
         ConfigFixture({
           features: new Set(['organizations:create']),
@@ -205,8 +205,8 @@ describe('Feature', function () {
     });
   });
 
-  describe('no children', function () {
-    it('should display renderDisabled with no feature', function () {
+  describe('no children', () => {
+    it('should display renderDisabled with no feature', () => {
       render(
         <WrappedFeature features="nope" renderDisabled={() => <span>disabled</span>}>
           <div>The Child</div>
@@ -216,7 +216,7 @@ describe('Feature', function () {
       expect(screen.getByText('disabled')).toBeInTheDocument();
     });
 
-    it('should display be empty when on', function () {
+    it('should display be empty when on', () => {
       render(
         <WrappedFeature features="org-bar" renderDisabled={() => <span>disabled</span>}>
           <div>The Child</div>
@@ -227,8 +227,8 @@ describe('Feature', function () {
     });
   });
 
-  describe('as React node', function () {
-    it('has features', function () {
+  describe('as React node', () => {
+    it('has features', () => {
       render(
         <WrappedFeature features="org-bar">
           <div>The Child</div>
@@ -239,7 +239,7 @@ describe('Feature', function () {
       expect(screen.getByText('The Child')).toBeInTheDocument();
     });
 
-    it('has no features', function () {
+    it('has no features', () => {
       render(
         <WrappedFeature features="org-baz">
           <div>The Child</div>
@@ -250,7 +250,7 @@ describe('Feature', function () {
       expect(screen.queryByText('The Child')).not.toBeInTheDocument();
     });
 
-    it('renders a default disabled component', function () {
+    it('renders a default disabled component', () => {
       render(
         <WrappedFeature features="org-baz" renderDisabled>
           <div>The Child</div>
@@ -262,7 +262,7 @@ describe('Feature', function () {
       expect(screen.queryByText('The Child')).not.toBeInTheDocument();
     });
 
-    it('calls renderDisabled function when no features', function () {
+    it('calls renderDisabled function when no features', () => {
       const noFeatureRenderer = jest.fn(() => null);
       const children = <div>The Child</div>;
       render(
@@ -284,19 +284,19 @@ describe('Feature', function () {
     });
   });
 
-  describe('using HookStore for renderDisabled', function () {
+  describe('using HookStore for renderDisabled', () => {
     let hookFn: jest.Mock;
 
-    beforeEach(function () {
+    beforeEach(() => {
       hookFn = jest.fn(() => null);
       HookStore.add('feature-disabled:sso-basic', hookFn);
     });
 
-    afterEach(function () {
+    afterEach(() => {
       HookStore.remove('feature-disabled:sso-basic', hookFn);
     });
 
-    it('uses hookName if provided', function () {
+    it('uses hookName if provided', () => {
       const children = <div>The Child</div>;
       render(
         <WrappedFeature features="org-bazar" hookName="feature-disabled:sso-basic">

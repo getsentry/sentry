@@ -11,7 +11,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
   openNavigateToExternalLinkModal: jest.fn(),
 }));
 
-describe('AttributesTreeValue', function () {
+describe('AttributesTreeValue', () => {
   const organization = OrganizationFixture();
   const location = LocationFixture();
   const theme = ThemeFixture();
@@ -38,7 +38,7 @@ describe('AttributesTreeValue', function () {
     jest.clearAllMocks();
   });
 
-  it('returns null when originalAttribute is missing', function () {
+  it('returns null when originalAttribute is missing', () => {
     const {container} = render(
       <AttributesTreeValue
         {...defaultProps}
@@ -53,7 +53,7 @@ describe('AttributesTreeValue', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders with custom renderer when available', function () {
+  it('renders with custom renderer when available', () => {
     const customRenderer = () => <div>Custom Rendered Content</div>;
     const renderers = {
       'test.key': customRenderer,
@@ -65,7 +65,7 @@ describe('AttributesTreeValue', function () {
     expect(screen.queryByText('test-value')).not.toBeInTheDocument();
   });
 
-  it('renders URL value as a link with correct destination', function () {
+  it('renders URL value as a link with correct destination', () => {
     const urlContent = {
       ...defaultProps.content,
       value: 'https://example.com',
@@ -79,7 +79,7 @@ describe('AttributesTreeValue', function () {
     expect(link).toHaveAttribute('rel', 'noreferrer noopener');
   });
 
-  it('renders URL value as plain string when rich values are disabled', function () {
+  it('renders URL value as plain string when rich values are disabled', () => {
     const urlContent = {
       ...defaultProps.content,
       value: 'https://example.com',
@@ -97,7 +97,7 @@ describe('AttributesTreeValue', function () {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
-  it('calls openNavigateToExternalLinkModal when URL link is clicked', function () {
+  it('calls openNavigateToExternalLinkModal when URL link is clicked', () => {
     const urlContent = {
       ...defaultProps.content,
       value: 'https://example.com',
@@ -113,13 +113,13 @@ describe('AttributesTreeValue', function () {
     });
   });
 
-  it('renders non-URL values as plain spans', function () {
+  it('renders non-URL values as plain spans', () => {
     render(<AttributesTreeValue {...defaultProps} />);
 
     expect(screen.getByText('test-value')).toBeInTheDocument();
   });
 
-  it('handles null values correctly', function () {
+  it('handles null values correctly', () => {
     const nullContent = {
       ...defaultProps.content,
       value: null,

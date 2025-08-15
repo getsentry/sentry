@@ -18,8 +18,8 @@ const usorg = OrganizationFixture({
   },
 });
 
-describe('AccountSecurityEnroll', function () {
-  describe('Totp', function () {
+describe('AccountSecurityEnroll', () => {
+  describe('Totp', () => {
     const authenticator = AuthenticatorsFixture().Totp({
       isEnrolled: false,
       qrcode: 'otpauth://totp/test%40sentry.io?issuer=Sentry&secret=secret',
@@ -37,7 +37,7 @@ describe('AccountSecurityEnroll', function () {
       params: {authId: authenticator.authId},
     });
 
-    beforeEach(function () {
+    beforeEach(() => {
       setWindowLocation('https://example.test');
       window.__initialData = {
         ...window.__initialData,
@@ -127,7 +127,7 @@ describe('AccountSecurityEnroll', function () {
       expect(testableWindowLocation.assign).not.toHaveBeenCalled();
     });
 
-    it('can enroll from main domain', async function () {
+    it('can enroll from main domain', async () => {
       OrganizationsStore.load([]);
       window.__initialData = {
         ...window.__initialData,

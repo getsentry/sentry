@@ -5,12 +5,12 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ConfigStore from 'sentry/stores/configStore';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
 
-describe('UserDropdown', function () {
+describe('UserDropdown', () => {
   beforeEach(() => {
     ConfigStore.set('user', UserFixture());
   });
 
-  it('displays user info and links', async function () {
+  it('displays user info and links', async () => {
     render(<UserDropdown />);
 
     await userEvent.click(screen.getByRole('button', {name: 'foo@example.com'}));
@@ -24,7 +24,7 @@ describe('UserDropdown', function () {
     );
   });
 
-  it('can sign out', async function () {
+  it('can sign out', async () => {
     const mockLogout = MockApiClient.addMockResponse({
       url: '/auth/',
       method: 'DELETE',
@@ -41,7 +41,7 @@ describe('UserDropdown', function () {
     });
   });
 
-  it('hides admin link if user is not admin', async function () {
+  it('hides admin link if user is not admin', async () => {
     render(<UserDropdown />);
 
     await userEvent.click(screen.getByRole('button', {name: 'foo@example.com'}));
@@ -49,7 +49,7 @@ describe('UserDropdown', function () {
     expect(screen.queryByRole('menuitemradio', {name: 'Admin'})).not.toBeInTheDocument();
   });
 
-  it('shows admin link if user is admin', async function () {
+  it('shows admin link if user is admin', async () => {
     ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
     render(<UserDropdown />);

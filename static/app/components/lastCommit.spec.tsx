@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import LastCommit from 'sentry/components/lastCommit';
 
-describe('LastCommit', function () {
+describe('LastCommit', () => {
   let mockedCommit!: ReturnType<typeof CommitFixture>;
   const mockedCommitTitle = '(improve) Add Links to Spike-Protection Email (#2408)';
 
@@ -12,11 +12,11 @@ describe('LastCommit', function () {
     mockedCommit = CommitFixture();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     render(<LastCommit commit={mockedCommit} />);
   });
 
-  it('links to the commit in GitHub', function () {
+  it('links to the commit in GitHub', () => {
     mockedCommit.repository!.provider = {id: 'github', name: 'GitHub'};
     const mockedCommitURL = `${mockedCommit.repository?.url}/commit/${mockedCommit.id}`;
 
@@ -25,7 +25,7 @@ describe('LastCommit', function () {
     expect(screen.getByText(mockedCommitTitle)).toHaveAttribute('href', mockedCommitURL);
   });
 
-  it('displays the commit with its shortened ID if it has no message', function () {
+  it('displays the commit with its shortened ID if it has no message', () => {
     mockedCommit.message = null;
 
     render(<LastCommit commit={mockedCommit} />);

@@ -13,15 +13,15 @@ jest.mock('sentry/utils/analytics', () => ({
 
 jest.mock('sentry/actionCreators/indicator');
 
-describe('OrganizationJoinRequest', function () {
+describe('OrganizationJoinRequest', () => {
   const org = OrganizationFixture({slug: 'test-org'});
   const endpoint = `/organizations/${org.slug}/join-request/`;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     render(
       <OrganizationJoinRequest
         {...RouteComponentPropsFixture()}
@@ -34,7 +34,7 @@ describe('OrganizationJoinRequest', function () {
     expect(screen.getByRole('button', {name: 'Request to Join'})).toBeInTheDocument();
   });
 
-  it('submits', async function () {
+  it('submits', async () => {
     const postMock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -63,7 +63,7 @@ describe('OrganizationJoinRequest', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('errors', async function () {
+  it('errors', async () => {
     const postMock = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -90,7 +90,7 @@ describe('OrganizationJoinRequest', function () {
     expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();
   });
 
-  it('cancels', async function () {
+  it('cancels', async () => {
     render(
       <OrganizationJoinRequest
         {...RouteComponentPropsFixture()}

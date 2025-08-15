@@ -12,7 +12,7 @@ import type {User as UserType} from 'sentry/types/user';
 
 import {ActorAvatar} from './actorAvatar';
 
-describe('ActorAvatar', function () {
+describe('ActorAvatar', () => {
   const user: UserType = {
     ...UserFixture(),
     id: '1',
@@ -26,12 +26,12 @@ describe('ActorAvatar', function () {
     name: 'COOL TEAM',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MemberListStore.loadInitialData([user]);
     TeamStore.loadInitialData([team1]);
   });
 
-  it('should show a gravatar when actor type is a user', function () {
+  it('should show a gravatar when actor type is a user', () => {
     render(
       <ActorAvatar
         actor={{
@@ -43,7 +43,7 @@ describe('ActorAvatar', function () {
     );
   });
 
-  it('should not show a gravatar when actor type is a team', function () {
+  it('should not show a gravatar when actor type is a team', () => {
     render(
       <ActorAvatar
         actor={{
@@ -57,7 +57,7 @@ describe('ActorAvatar', function () {
     expect(screen.getByText('CT')).toBeInTheDocument();
   });
 
-  it('should show an avatar even if the user is not in the memberlist', function () {
+  it('should show an avatar even if the user is not in the memberlist', () => {
     render(
       <ActorAvatar
         actor={{
@@ -71,7 +71,7 @@ describe('ActorAvatar', function () {
     expect(screen.getByText('JV')).toBeInTheDocument();
   });
 
-  it('should return null when actor type is a unknown', function () {
+  it('should return null when actor type is a unknown', () => {
     render(
       <ActorAvatar
         actor={{
@@ -86,7 +86,7 @@ describe('ActorAvatar', function () {
     expect(screen.queryByText('CT')).not.toBeInTheDocument();
   });
 
-  it('should fetch a team not in the store', async function () {
+  it('should fetch a team not in the store', async () => {
     const organization = OrganizationFixture();
 
     OrganizationStore.onUpdate(organization, {replace: true});
@@ -113,7 +113,7 @@ describe('ActorAvatar', function () {
     expect(mockRequest).toHaveBeenCalled();
   });
 
-  it('should fetch a user not in the store', async function () {
+  it('should fetch a user not in the store', async () => {
     const organization = OrganizationFixture();
 
     OrganizationStore.onUpdate(organization, {replace: true});

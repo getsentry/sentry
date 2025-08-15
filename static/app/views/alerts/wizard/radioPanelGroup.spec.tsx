@@ -2,8 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import RadioGroupPanel from 'sentry/views/alerts/wizard/radioPanelGroup';
 
-describe('RadioGroupPanel', function () {
-  it('calls onChange when clicked', async function () {
+describe('RadioGroupPanel', () => {
+  it('calls onChange when clicked', async () => {
     const mock = jest.fn();
 
     render(
@@ -24,7 +24,7 @@ describe('RadioGroupPanel', function () {
     expect(mock).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
   });
 
-  it('Renders extra content', function () {
+  it('Renders extra content', () => {
     const mock = jest.fn();
 
     render(

@@ -16,8 +16,8 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import CustomerOverview from 'admin/components/customers/customerOverview';
 import {PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
 
-describe('CustomerOverview', function () {
-  it('renders DetailLabels for SubscriptionSummary section', function () {
+describe('CustomerOverview', () => {
+  it('renders DetailLabels for SubscriptionSummary section', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization});
     render(
@@ -40,7 +40,7 @@ describe('CustomerOverview', function () {
     expect(screen.getByText('Soft Cap By Category:')).toBeInTheDocument();
   });
 
-  it('renders soft cap type details', function () {
+  it('renders soft cap type details', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -64,7 +64,7 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('Cron Monitors: On Demand')).not.toBeInTheDocument();
   });
 
-  it('renders soft cap type details all categories', function () {
+  it('renders soft cap type details all categories', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -106,7 +106,7 @@ describe('CustomerOverview', function () {
     expect(screen.getByText('Cron monitors: On Demand')).toBeInTheDocument();
   });
 
-  it('renders manually invoiced on-demand details', function () {
+  it('renders manually invoiced on-demand details', () => {
     const organization = OrganizationFixture();
     const subscription = InvoicedSubscriptionFixture({
       organization,
@@ -202,7 +202,7 @@ describe('CustomerOverview', function () {
     expect(screen.getByText('$0.07550000')).toBeInTheDocument();
   });
 
-  it('renders partner details for active partner account', function () {
+  it('renders partner details for active partner account', () => {
     const organization = OrganizationFixture();
     const partnerSubscription = SubscriptionFixture({
       organization,
@@ -234,7 +234,7 @@ describe('CustomerOverview', function () {
     expect(screen.getByText('Deactivate Partner')).toBeInTheDocument();
   });
 
-  it('render partner details for inactive partner account', function () {
+  it('render partner details for inactive partner account', () => {
     const organization = OrganizationFixture();
     const partnerSubscription = SubscriptionFixture({
       organization,
@@ -265,7 +265,7 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('Deactivate Partner')).not.toBeInTheDocument();
   });
 
-  it('deactivates partner account with right data', async function () {
+  it('deactivates partner account with right data', async () => {
     const organization = OrganizationFixture();
     const partnerSubscription = SubscriptionFixture({
       organization,
@@ -301,7 +301,7 @@ describe('CustomerOverview', function () {
     );
   });
 
-  it('renders reserved budget data', function () {
+  it('renders reserved budget data', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionWithSeerFixture({organization});
     subscription.reservedBudgets = [
@@ -344,7 +344,7 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('Reserved Cost-Per-Event Errors')).not.toBeInTheDocument();
   });
 
-  it('renders no product trials for pre-performance account', function () {
+  it('renders no product trials for pre-performance account', () => {
     const organization = OrganizationFixture();
     const mm2_subscription = SubscriptionFixture({
       organization,
@@ -368,7 +368,7 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('Seer:')).not.toBeInTheDocument();
   });
 
-  it('renders product trials for non-self-serve account', function () {
+  it('renders product trials for non-self-serve account', () => {
     const organization = OrganizationFixture();
     const enterprise_subscription = InvoicedSubscriptionFixture({
       organization,
@@ -392,7 +392,7 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
   });
 
-  it('renders product trials based on current subscription state', function () {
+  it('renders product trials based on current subscription state', () => {
     const organization = OrganizationFixture();
     const am3_subscription = SubscriptionFixture({
       organization,
@@ -550,7 +550,7 @@ describe('CustomerOverview', function () {
     });
   });
 
-  it('render dynamic sampling rate for am3 account', function () {
+  it('render dynamic sampling rate for am3 account', () => {
     const organization = OrganizationFixture({
       features: ['dynamic-sampling'],
       desiredSampleRate: 0.75,

@@ -5,8 +5,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {TagsTable} from 'sentry/components/tagsTable';
 
-describe('tags table', function () {
-  it('display redacted tag value', async function () {
+describe('tags table', () => {
+  it('display redacted tag value', async () => {
     const tags = [
       {key: 'gpu.name', value: null},
       {key: 'device.family', value: 'iOS'},
@@ -44,7 +44,7 @@ describe('tags table', function () {
     ).toBeInTheDocument(); // tooltip description
   });
 
-  it('display redacted tag key', async function () {
+  it('display redacted tag key', async () => {
     const tags = [
       {key: 'gpu.name', value: 'AMD Radeon Pro 560'},
       {key: null, value: 'iOS'},

@@ -11,7 +11,7 @@ async function doLogin() {
   await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 }
 
-describe('LoginForm', function () {
+describe('LoginForm', () => {
   const emptyAuthConfig = {
     canRegister: false,
     githubLoginLink: '',
@@ -21,7 +21,7 @@ describe('LoginForm', function () {
     vstsLoginLink: '',
   };
 
-  it('handles errors', async function () {
+  it('handles errors', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/login/',
       method: 'POST',
@@ -40,7 +40,7 @@ describe('LoginForm', function () {
     expect(await screen.findByText('Bad username password')).toBeInTheDocument();
   });
 
-  it('handles success', async function () {
+  it('handles success', async () => {
     const router = RouterFixture();
     const userObject = {
       id: 1,
@@ -74,7 +74,7 @@ describe('LoginForm', function () {
     expect(router.push).toHaveBeenCalledWith({pathname: '/next/'});
   });
 
-  it('renders login provider buttons', function () {
+  it('renders login provider buttons', () => {
     const authConfig = {
       ...emptyAuthConfig,
       vstsLoginLink: '/vstsLogin',

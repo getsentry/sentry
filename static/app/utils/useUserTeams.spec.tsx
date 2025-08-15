@@ -30,14 +30,14 @@ describe('useUserTeams', () => {
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 
-  beforeEach(function () {
+  beforeEach(() => {
     TeamStore.reset();
     OrganizationStore.onUpdate(org, {replace: true});
     MockApiClient.clearMockResponses();
     queryClient.clear();
   });
 
-  it('does not request user teams until the store has loaded', async function () {
+  it('does not request user teams until the store has loaded', async () => {
     const userTeams = [TeamFixture({id: '1', isMember: true})];
     const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     const mockapi = MockApiClient.addMockResponse({
@@ -60,7 +60,7 @@ describe('useUserTeams', () => {
     await waitFor(() => expect(result.current.teams).toEqual(userTeams));
   });
 
-  it('provides only the users teams', function () {
+  it('provides only the users teams', () => {
     const userTeams = [TeamFixture({id: '1', isMember: true})];
     const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     // User teams marked loaded because hasMore is false
@@ -74,7 +74,7 @@ describe('useUserTeams', () => {
     expect(teams).toEqual(userTeams);
   });
 
-  it('superuser loads all teams', function () {
+  it('superuser loads all teams', () => {
     jest.mocked(isActiveSuperuser).mockReturnValue(true);
 
     const userTeams = [TeamFixture({id: '1', isMember: true})];
@@ -90,7 +90,7 @@ describe('useUserTeams', () => {
     expect(teams).toEqual(userTeams.concat(nonUserTeams));
   });
 
-  it('org owner loads all teams', function () {
+  it('org owner loads all teams', () => {
     const userTeams = [TeamFixture({id: '1', isMember: true})];
     const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     // User teams marked loaded because hasMore is false

@@ -26,17 +26,17 @@ function getItemWithText(text: string) {
   );
 }
 
-describe('Subscription > PendingChanges', function () {
+describe('Subscription > PendingChanges', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
 
-  it('renders empty', function () {
+  it('renders empty', () => {
     render(<PendingChanges organization={organization} subscription={subscription} />);
 
     expect(screen.queryByTestId('pending-changes')).not.toBeInTheDocument();
   });
 
-  it('renders mm2 plan and ondemand changes', function () {
+  it('renders mm2 plan and ondemand changes', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_ac',
@@ -73,7 +73,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.getAllByRole('listitem')).toHaveLength(4);
   });
 
-  it('renders am1 plan and ondemand changes', function () {
+  it('renders am1 plan and ondemand changes', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
@@ -117,7 +117,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.getAllByRole('listitem')).toHaveLength(7);
   });
 
-  it('renders mmx to am2 plan and ondemand changes', function () {
+  it('renders mmx to am2 plan and ondemand changes', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
@@ -161,7 +161,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.getAllByRole('listitem')).toHaveLength(7);
   });
 
-  it('renders am1 to am2 plan and ondemand changes', function () {
+  it('renders am1 to am2 plan and ondemand changes', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_team_auf',
@@ -208,7 +208,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.getAllByRole('listitem')).toHaveLength(6);
   });
 
-  it('renders am1 plan and pending shared ondemand changes', function () {
+  it('renders am1 plan and pending shared ondemand changes', () => {
     const org = OrganizationFixture({
       features: ['ondemand-budgets'],
     });
@@ -259,7 +259,7 @@ describe('Subscription > PendingChanges', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders am1 plan and pending per-category ondemand changes', function () {
+  it('renders am1 plan and pending per-category ondemand changes', () => {
     const org = OrganizationFixture({
       features: ['ondemand-budgets'],
     });
@@ -312,7 +312,7 @@ describe('Subscription > PendingChanges', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders plan change only', function () {
+  it('renders plan change only', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
@@ -343,7 +343,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.getByRole('listitem')).toBeInTheDocument();
   });
 
-  it('renders plan and ondemand changes on different dates', function () {
+  it('renders plan and ondemand changes on different dates', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
@@ -380,7 +380,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
 
-  it('renders on-demand to pay-as-you go pending changes for am2 to am3', function () {
+  it('renders on-demand to pay-as-you go pending changes for am2 to am3', () => {
     organization.features.push('ondemand-budgets');
     const sub = SubscriptionFixture({
       organization,
@@ -425,7 +425,7 @@ describe('Subscription > PendingChanges', function () {
     ).toBeInTheDocument();
   });
 
-  it('handles missing subscription values', function () {
+  it('handles missing subscription values', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_500k_auf',
@@ -453,7 +453,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.getByText('Feb 1, 2021')).toBeInTheDocument();
   });
 
-  it('does not render reserved budget changes', function () {
+  it('does not render reserved budget changes', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_business',
@@ -479,7 +479,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText(/budget change/)).not.toBeInTheDocument();
   });
 
-  it('renders reserved budgets with existing budgets without dynamic sampling', function () {
+  it('renders reserved budgets with existing budgets without dynamic sampling', () => {
     const sub = Am3DsEnterpriseSubscriptionFixture({
       organization,
       pendingChanges: PendingChangesFixture({
@@ -514,7 +514,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
   });
 
-  it('renders reserved budgets with existing budgets and dynamic sampling', function () {
+  it('renders reserved budgets with existing budgets and dynamic sampling', () => {
     const sub = Am3DsEnterpriseSubscriptionFixture({
       organization,
       pendingChanges: PendingChangesFixture({
@@ -548,7 +548,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText(/Reserved spans/)).not.toBeInTheDocument();
   });
 
-  it('renders fixed reserved budget changes for disabling', function () {
+  it('renders fixed reserved budget changes for disabling', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_team',
@@ -575,7 +575,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText(/Reserved issue scans/)).not.toBeInTheDocument();
   });
 
-  it('renders fixed reserved budget changes for enabling', function () {
+  it('renders fixed reserved budget changes for enabling', () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_team',
@@ -615,7 +615,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText(/Reserved issue scans/)).not.toBeInTheDocument();
   });
 
-  it('renders multiple reserved budgets', function () {
+  it('renders multiple reserved budgets', () => {
     const sub = Am3DsEnterpriseSubscriptionFixture({
       organization,
       pendingChanges: PendingChangesFixture({
@@ -657,7 +657,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText(/Reserved errors/)).not.toBeInTheDocument();
   });
 
-  it('renders reserved budgets without existing budgets', function () {
+  it('renders reserved budgets without existing budgets', () => {
     const sub = SubscriptionFixture({
       organization: OrganizationFixture(),
       plan: 'am3_business',
@@ -691,7 +691,7 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });
 
-  it('renders reserved budgets to reserved volume', function () {
+  it('renders reserved budgets to reserved volume', () => {
     const sub = Am3DsEnterpriseSubscriptionFixture({
       organization: OrganizationFixture(),
       pendingChanges: PendingChangesFixture({

@@ -2,8 +2,8 @@ import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 
-describe('FeatureDisabled', function () {
-  it('renders', function () {
+describe('FeatureDisabled', () => {
+  it('renders', () => {
     render(
       <FeatureDisabled features="organization:my-features" featureName="Some Feature" />
     );
@@ -14,7 +14,7 @@ describe('FeatureDisabled', function () {
     expect(screen.getByText('Help')).toBeInTheDocument();
   });
 
-  it('supports a list of disabled features', function () {
+  it('supports a list of disabled features', () => {
     render(
       <FeatureDisabled
         features={['organization:my-features', 'organization:other-feature']}
@@ -28,7 +28,7 @@ describe('FeatureDisabled', function () {
     expect(screen.getByText('Help')).toBeInTheDocument();
   });
 
-  it('renders with custom message', function () {
+  it('renders with custom message', () => {
     const customMessage = 'custom message';
     render(
       <FeatureDisabled
@@ -41,7 +41,7 @@ describe('FeatureDisabled', function () {
     expect(screen.getByText(customMessage)).toBeInTheDocument();
   });
 
-  it('renders with custom alert component', function () {
+  it('renders with custom alert component', () => {
     const customAlert = jest.fn().mockReturnValue(null);
     render(
       <FeatureDisabled
@@ -53,7 +53,7 @@ describe('FeatureDisabled', function () {
     expect(customAlert).toHaveBeenCalled();
   });
 
-  it('displays instructions when help is clicked', function () {
+  it('displays instructions when help is clicked', () => {
     render(
       <FeatureDisabled
         alert

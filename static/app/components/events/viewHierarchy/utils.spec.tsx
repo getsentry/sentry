@@ -35,14 +35,14 @@ const DEFAULT_MOCK_HIERARCHY = [
   {x: 10, y: 0, width: 20, height: 20},
 ] as ViewHierarchyWindow[];
 
-describe('View Hierarchy Utils', function () {
+describe('View Hierarchy Utils', () => {
   let MOCK_HIERARCHY: ViewHierarchyWindow[];
-  beforeEach(function () {
+  beforeEach(() => {
     MOCK_HIERARCHY = [...DEFAULT_MOCK_HIERARCHY];
   });
 
-  describe('getHierarchyDimensions', function () {
-    it('properly calculates coordinates and shifts children by default', function () {
+  describe('getHierarchyDimensions', () => {
+    it('properly calculates coordinates and shifts children by default', () => {
       const actual = getHierarchyDimensions(MOCK_HIERARCHY);
 
       expect(actual).toEqual({
@@ -57,7 +57,7 @@ describe('View Hierarchy Utils', function () {
       });
     });
 
-    it('does not shift children when specified', function () {
+    it('does not shift children when specified', () => {
       const actual = getHierarchyDimensions(MOCK_HIERARCHY, true);
 
       // One array for each root
@@ -74,7 +74,7 @@ describe('View Hierarchy Utils', function () {
     });
   });
 
-  describe('calculateScale', function () {
+  describe('calculateScale', () => {
     let maxCoordinateDimensions: {height: number; width: number},
       actual: number,
       border: {x: number; y: number};
@@ -84,35 +84,35 @@ describe('View Hierarchy Utils', function () {
       width: 10,
     };
 
-    beforeEach(function () {
+    beforeEach(() => {
       border = {x: 0, y: 0};
     });
 
-    it('zooms in on small content', function () {
+    it('zooms in on small content', () => {
       maxCoordinateDimensions = {height: 2, width: 2};
       actual = calculateScale(bounds, maxCoordinateDimensions, border);
       expect(actual).toBe(5);
     });
 
-    it('shrinks larger content', function () {
+    it('shrinks larger content', () => {
       maxCoordinateDimensions = {height: 20, width: 20};
       actual = calculateScale(bounds, maxCoordinateDimensions, border);
       expect(actual).toBe(0.5);
     });
 
-    it('works with an irregular size where height is the dominant factor', function () {
+    it('works with an irregular size where height is the dominant factor', () => {
       maxCoordinateDimensions = {height: 20, width: 2};
       actual = calculateScale(bounds, maxCoordinateDimensions, border);
       expect(actual).toBe(0.5);
     });
 
-    it('works with an irregular size where width is the dominant factor', function () {
+    it('works with an irregular size where width is the dominant factor', () => {
       maxCoordinateDimensions = {height: 10, width: 32};
       actual = calculateScale(bounds, maxCoordinateDimensions, border);
       expect(actual).toBe(0.3125);
     });
 
-    it('factors in the border', function () {
+    it('factors in the border', () => {
       maxCoordinateDimensions = {height: 20, width: 20};
       border = {x: 2, y: 2};
       actual = calculateScale(bounds, maxCoordinateDimensions, border);
@@ -120,8 +120,8 @@ describe('View Hierarchy Utils', function () {
     });
   });
 
-  describe('getDeepestNodeAtPoint', function () {
-    beforeEach(function () {
+  describe('getDeepestNodeAtPoint', () => {
+    beforeEach(() => {
       MOCK_HIERARCHY = [
         {
           x: 0,
@@ -133,7 +133,7 @@ describe('View Hierarchy Utils', function () {
       ] as ViewHierarchyWindow[];
     });
 
-    it('returns the deepest node at a point', function () {
+    it('returns the deepest node at a point', () => {
       const hierarchyDimensions = getHierarchyDimensions(MOCK_HIERARCHY);
       const actual = getDeepestNodeAtPoint(
         hierarchyDimensions.nodes,
@@ -149,7 +149,7 @@ describe('View Hierarchy Utils', function () {
       expect(actual.node).toEqual(INTERMEDIATE_NODE);
     });
 
-    it('returns the deepest node at a point with a scale', function () {
+    it('returns the deepest node at a point with a scale', () => {
       const hierarchyDimensions = getHierarchyDimensions(MOCK_HIERARCHY);
       const actual = getDeepestNodeAtPoint(
         hierarchyDimensions.nodes,
@@ -165,7 +165,7 @@ describe('View Hierarchy Utils', function () {
       expect(actual.node).toEqual(LEAF_NODE);
     });
 
-    it('returns the deepest node at a point with a translation', function () {
+    it('returns the deepest node at a point with a translation', () => {
       const hierarchyDimensions = getHierarchyDimensions(MOCK_HIERARCHY);
       const actual = getDeepestNodeAtPoint(
         hierarchyDimensions.nodes,
@@ -181,7 +181,7 @@ describe('View Hierarchy Utils', function () {
       expect(actual.node).toEqual(LEAF_NODE);
     });
 
-    it('returns the root if the root is clicked', function () {
+    it('returns the root if the root is clicked', () => {
       const hierarchyDimensions = getHierarchyDimensions([...DEFAULT_MOCK_HIERARCHY]);
       const actual = getDeepestNodeAtPoint(
         hierarchyDimensions.nodes,
@@ -197,7 +197,7 @@ describe('View Hierarchy Utils', function () {
       expect(actual.node).toEqual(MOCK_HIERARCHY[0]);
     });
 
-    it('returns null if no node is found', function () {
+    it('returns null if no node is found', () => {
       const hierarchyDimensions = getHierarchyDimensions(MOCK_HIERARCHY);
       const actual = getDeepestNodeAtPoint(
         hierarchyDimensions.nodes,

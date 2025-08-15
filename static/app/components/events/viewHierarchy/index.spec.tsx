@@ -72,8 +72,8 @@ function getMockData(project?: Project) {
   };
 }
 
-describe('View Hierarchy', function () {
-  it('can continue make selections for inspecting data', async function () {
+describe('View Hierarchy', () => {
+  it('can continue make selections for inspecting data', async () => {
     const mockData = getMockData();
     render(
       <ViewHierarchy
@@ -103,7 +103,7 @@ describe('View Hierarchy', function () {
     expect(screen.getByText('Nested Container - nested')).toBeInTheDocument();
   });
 
-  it('can expand and collapse by clicking the icon', async function () {
+  it('can expand and collapse by clicking the icon', async () => {
     const mockData = getMockData();
     render(
       <ViewHierarchy
@@ -130,7 +130,7 @@ describe('View Hierarchy', function () {
     expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
-  it('can navigate with keyboard shortcuts after a selection', async function () {
+  it('can navigate with keyboard shortcuts after a selection', async () => {
     const mockData = getMockData();
     render(
       <ViewHierarchy
@@ -150,7 +150,7 @@ describe('View Hierarchy', function () {
     expect(screen.getAllByText('Nested Container - nested')).toHaveLength(2);
   });
 
-  it('can expand/collapse with the keyboard', async function () {
+  it('can expand/collapse with the keyboard', async () => {
     const mockData = getMockData();
     render(
       <ViewHierarchy
@@ -172,7 +172,7 @@ describe('View Hierarchy', function () {
     expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
-  it('can render multiple windows together', function () {
+  it('can render multiple windows together', () => {
     const mockData = getMockData();
     render(
       <ViewHierarchy
@@ -204,7 +204,7 @@ describe('View Hierarchy', function () {
     expect(screen.getByText('Second Window Child')).toBeInTheDocument();
   });
 
-  it('does not render the wireframe for the Unity platform', function () {
+  it('does not render the wireframe for the Unity platform', () => {
     const mockData = getMockData(ProjectFixture({platform: 'unity'}));
     render(
       <ViewHierarchy
@@ -219,7 +219,7 @@ describe('View Hierarchy', function () {
     expect(screen.queryByTestId('view-hierarchy-wireframe')).not.toBeInTheDocument();
   });
 
-  it('draws the selected node when a tree selection is made', async function () {
+  it('draws the selected node when a tree selection is made', async () => {
     const mockData = getMockData();
     render(
       <ViewHierarchy
@@ -248,7 +248,7 @@ describe('View Hierarchy', function () {
     expect(context.fillRect).toHaveBeenCalledWith(210, 11, 3, 4);
   });
 
-  it('does not render a wireframe selection initially', function () {
+  it('does not render a wireframe selection initially', () => {
     const mockData = getMockData();
     render(
       <ViewHierarchy
@@ -273,7 +273,7 @@ describe('View Hierarchy', function () {
     expect(context.fillRect).not.toHaveBeenCalled();
   });
 
-  it('renders an empty state if there is no data in windows to visualize', function () {
+  it('renders an empty state if there is no data in windows to visualize', () => {
     const mockData = getMockData();
     render(
       <ViewHierarchy
@@ -290,7 +290,7 @@ describe('View Hierarchy', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders with depth markers', function () {
+  it('renders with depth markers', () => {
     const mockData = getMockData();
     render(
       <ViewHierarchy
@@ -303,7 +303,7 @@ describe('View Hierarchy', function () {
     );
   });
 
-  it('renders an icon with a tooltip for the rendering system', async function () {
+  it('renders an icon with a tooltip for the rendering system', async () => {
     const mockData = getMockData();
     render(
       <ViewHierarchy
@@ -322,7 +322,7 @@ describe('View Hierarchy', function () {
     expect(await screen.findByText('Rendering System: flutter')).toBeInTheDocument();
   });
 
-  it('renders a custom ui for godot platform', async function () {
+  it('renders a custom ui for godot platform', async () => {
     const mockData = getMockData(ProjectFixture({platform: 'godot'}));
     render(
       <ViewHierarchy
@@ -375,7 +375,7 @@ describe('View Hierarchy', function () {
     );
   });
 
-  it('renders a custom empty message for godot platform', function () {
+  it('renders a custom empty message for godot platform', () => {
     const mockData = getMockData(ProjectFixture({platform: 'godot'}));
     render(
       <ViewHierarchy

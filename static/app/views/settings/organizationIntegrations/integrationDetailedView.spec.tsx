@@ -9,7 +9,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
-describe('IntegrationDetailedView', function () {
+describe('IntegrationDetailedView', () => {
   const ENDPOINT = '/organizations/org-slug/';
   const organization = OrganizationFixture({
     access: ['org:integrations', 'org:write'],
@@ -104,7 +104,7 @@ describe('IntegrationDetailedView', function () {
     });
   });
 
-  it('shows integration name, status, and install button', async function () {
+  it('shows integration name, status, and install button', async () => {
     const router = RouterFixture({params: {integrationSlug: 'bitbucket'}});
     render(<IntegrationDetailedView />, {
       organization,
@@ -117,7 +117,7 @@ describe('IntegrationDetailedView', function () {
     expect(screen.getByRole('button', {name: 'Add integration'})).toBeEnabled();
   });
 
-  it('view configurations', async function () {
+  it('view configurations', async () => {
     const router = RouterFixture({
       params: {integrationSlug: 'bitbucket'},
       location: {query: {tab: 'configurations'}},
@@ -135,7 +135,7 @@ describe('IntegrationDetailedView', function () {
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
   });
 
-  it('disables configure for members without access', async function () {
+  it('disables configure for members without access', async () => {
     const router = RouterFixture({
       params: {integrationSlug: 'bitbucket'},
       location: {query: {tab: 'configurations'}},
@@ -154,7 +154,7 @@ describe('IntegrationDetailedView', function () {
     );
   });
 
-  it('allows members to configure github/gitlab', async function () {
+  it('allows members to configure github/gitlab', async () => {
     const router = RouterFixture({
       params: {integrationSlug: 'github'},
       location: {query: {tab: 'configurations'}},
@@ -170,7 +170,7 @@ describe('IntegrationDetailedView', function () {
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
   });
 
-  it('shows features tab for github only', async function () {
+  it('shows features tab for github only', async () => {
     const router = RouterFixture({
       params: {integrationSlug: 'github'},
     });
@@ -183,7 +183,7 @@ describe('IntegrationDetailedView', function () {
     expect(screen.getByText('features')).toBeInTheDocument();
   });
 
-  it('cannot enable PR bot without GitHub integration', async function () {
+  it('cannot enable PR bot without GitHub integration', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       match: [MockApiClient.matchQuery({provider_key: 'github', includeConfig: 0})],
@@ -210,7 +210,7 @@ describe('IntegrationDetailedView', function () {
     ).toBeDisabled();
   });
 
-  it('can enable github features', async function () {
+  it('can enable github features', async () => {
     const router = RouterFixture({
       params: {integrationSlug: 'github'},
     });
@@ -268,7 +268,7 @@ describe('IntegrationDetailedView', function () {
     });
   });
 
-  it('can enable gitlab features', async function () {
+  it('can enable gitlab features', async () => {
     const router = RouterFixture({
       params: {integrationSlug: 'gitlab'},
     });

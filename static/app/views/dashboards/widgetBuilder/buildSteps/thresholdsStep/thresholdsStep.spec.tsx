@@ -11,8 +11,8 @@ const exampleThresholdsConfig: ThresholdsConfig = {
   unit: null,
 };
 
-describe('Widget Builder > ThresholdsStep', function () {
-  it('renders thresholds step', async function () {
+describe('Widget Builder > ThresholdsStep', () => {
+  it('renders thresholds step', async () => {
     const onChange = jest.fn();
     render(
       <ThresholdsStep

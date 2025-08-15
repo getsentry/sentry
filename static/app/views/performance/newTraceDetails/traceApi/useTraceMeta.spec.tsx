@@ -33,7 +33,7 @@ const mockedReplayTraces: ReplayTrace[] = [
 ];
 
 describe('useTraceMeta', () => {
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useSyncedLocalStorageState).mockReturnValue(['non-eap', jest.fn()]);
     queryClient.clear();
     jest.clearAllMocks();

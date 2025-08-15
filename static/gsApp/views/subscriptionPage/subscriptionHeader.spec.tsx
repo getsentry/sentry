@@ -11,7 +11,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import SubscriptionHeader from 'getsentry/views/subscriptionPage/subscriptionHeader';
 
-describe('SubscriptionHeader', function () {
+describe('SubscriptionHeader', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -40,7 +40,7 @@ describe('SubscriptionHeader', function () {
     });
   });
 
-  it('does not render editable sections for YY partnership', async function () {
+  it('does not render editable sections for YY partnership', async () => {
     const organization = OrganizationFixture({
       features: ['usage-log'],
       access: ['org:billing'],
@@ -73,7 +73,7 @@ describe('SubscriptionHeader', function () {
     expect(screen.queryByText('Billing Details')).not.toBeInTheDocument();
   });
 
-  it('renders partner plan ending banner for partner orgs with flag and ending contract', function () {
+  it('renders partner plan ending banner for partner orgs with flag and ending contract', () => {
     const organization = OrganizationFixture({
       features: ['usage-log', 'partner-billing-migration'],
       access: ['org:billing'],
@@ -105,7 +105,7 @@ describe('SubscriptionHeader', function () {
     expect(screen.getByTestId('partner-plan-ending-banner')).toBeInTheDocument();
   });
 
-  it('does not render partner plan ending banner for partner orgs with flag and ending contract greater than 30 days', function () {
+  it('does not render partner plan ending banner for partner orgs with flag and ending contract greater than 30 days', () => {
     const organization = OrganizationFixture({
       features: ['usage-log', 'partner-billing-migration'],
       access: ['org:billing'],
@@ -137,7 +137,7 @@ describe('SubscriptionHeader', function () {
     expect(screen.queryByTestId('partner-plan-ending-banner')).not.toBeInTheDocument();
   });
 
-  it('does not render partner plan ending banner for orgs with pending upgrade', function () {
+  it('does not render partner plan ending banner for orgs with pending upgrade', () => {
     const organization = OrganizationFixture({
       features: ['usage-log', 'partner-billing-migration'],
       access: ['org:billing'],
@@ -176,7 +176,7 @@ describe('SubscriptionHeader', function () {
     expect(screen.queryByTestId('partner-plan-ending-banner')).not.toBeInTheDocument();
   });
 
-  it('renders partner plan ending banner for orgs with pending downgrade', function () {
+  it('renders partner plan ending banner for orgs with pending downgrade', () => {
     const organization = OrganizationFixture({
       features: ['usage-log', 'partner-billing-migration'],
       access: ['org:billing'],
@@ -215,7 +215,7 @@ describe('SubscriptionHeader', function () {
     expect(screen.getByTestId('partner-plan-ending-banner')).toBeInTheDocument();
   });
 
-  it('renders usage log tab for owners and billing users', function () {
+  it('renders usage log tab for owners and billing users', () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -225,7 +225,7 @@ describe('SubscriptionHeader', function () {
     expect(screen.getByText(/Usage Log/i)).toBeInTheDocument();
   });
 
-  it('renders usage log tab for managers', function () {
+  it('renders usage log tab for managers', () => {
     const organization = OrganizationFixture({
       access: ['org:write'],
     });
@@ -235,7 +235,7 @@ describe('SubscriptionHeader', function () {
     expect(screen.getByText(/Usage Log/i)).toBeInTheDocument();
   });
 
-  it('renders usage tab for admin and member users', function () {
+  it('renders usage tab for admin and member users', () => {
     const organization = OrganizationFixture({access: ['org:read']});
     const sub = SubscriptionFixture({organization});
 
@@ -244,7 +244,7 @@ describe('SubscriptionHeader', function () {
     expect(screen.getByText(/Usage Log/i)).toBeInTheDocument();
   });
 
-  it('renders notifications tab for owners and billing users with flag', function () {
+  it('renders notifications tab for owners and billing users with flag', () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -255,7 +255,7 @@ describe('SubscriptionHeader', function () {
     expect(screen.getByText(/Notifications/i)).toBeInTheDocument();
   });
 
-  it('does not render notifications tab for owners and billing users without flag', function () {
+  it('does not render notifications tab for owners and billing users without flag', () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -265,7 +265,7 @@ describe('SubscriptionHeader', function () {
     expect(screen.queryByText(/Notifications/i)).not.toBeInTheDocument();
   });
 
-  it('does not render Billing Details tab for self serve partner', function () {
+  it('does not render Billing Details tab for self serve partner', () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -278,7 +278,7 @@ describe('SubscriptionHeader', function () {
     expect(screen.queryByText(/Billing Details/i)).not.toBeInTheDocument();
   });
 
-  it('renders managed note for non-self-serve subscriptions', function () {
+  it('renders managed note for non-self-serve subscriptions', () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -301,7 +301,7 @@ describe('SubscriptionHeader', function () {
     );
   });
 
-  it('does not render managed note for self-serve subscriptions', function () {
+  it('does not render managed note for self-serve subscriptions', () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });

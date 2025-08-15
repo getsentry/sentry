@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import SsoForm from 'sentry/views/auth/ssoForm';
 
-describe('SsoForm', function () {
+describe('SsoForm', () => {
   const emptyAuthConfig = {
     canRegister: false,
     githubLoginLink: '',
@@ -27,7 +27,7 @@ describe('SsoForm', function () {
     );
   }
 
-  it('renders', function () {
+  it('renders', () => {
     const authConfig = {
       ...emptyAuthConfig,
       serverHostname: 'testserver',
@@ -40,7 +40,7 @@ describe('SsoForm', function () {
     expect(screen.getByLabelText('Organization ID')).toBeInTheDocument();
   });
 
-  it('handles errors', async function () {
+  it('handles errors', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/sso-locate/',
       method: 'POST',
@@ -58,7 +58,7 @@ describe('SsoForm', function () {
     expect(await screen.findByText('Invalid org name')).toBeInTheDocument();
   });
 
-  it('handles success', async function () {
+  it('handles success', async () => {
     const router = RouterFixture();
     const mockRequest = MockApiClient.addMockResponse({
       url: '/auth/sso-locate/',

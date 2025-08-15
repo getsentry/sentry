@@ -19,7 +19,7 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   useIssueDetailsTour: () => mockTour(),
 }));
 
-describe('NewIssueExperienceButton', function () {
+describe('NewIssueExperienceButton', () => {
   const organization = OrganizationFixture({streamlineOnly: null});
 
   beforeEach(() => {
@@ -27,7 +27,7 @@ describe('NewIssueExperienceButton', function () {
     jest.clearAllMocks();
   });
 
-  it('appears correctly when organization has the single interface option', function () {
+  it('appears correctly when organization has the single interface option', () => {
     const {unmount: unmountOptionTrue} = render(
       <div data-test-id="test-id">
         <NewIssueExperienceButton />
@@ -57,7 +57,7 @@ describe('NewIssueExperienceButton', function () {
     unmountOptionFalse();
   });
 
-  it('appears when organization has flag', function () {
+  it('appears when organization has flag', () => {
     render(
       <div data-test-id="test-id">
         <NewIssueExperienceButton />
@@ -67,7 +67,7 @@ describe('NewIssueExperienceButton', function () {
     expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
   });
 
-  it('triggers changes to the user config and location', async function () {
+  it('triggers changes to the user config and location', async () => {
     const mockChangeUserSettings = MockApiClient.addMockResponse({
       url: '/users/me/',
       method: 'PUT',
@@ -122,7 +122,7 @@ describe('NewIssueExperienceButton', function () {
     expect(trackAnalytics).toHaveBeenCalledTimes(2);
   });
 
-  it('can switch back to the old UI via dropdown', async function () {
+  it('can switch back to the old UI via dropdown', async () => {
     const mockFormCallback = jest.fn();
     mockFeedbackForm.mockReturnValue(mockFormCallback);
     const mockChangeUserSettings = MockApiClient.addMockResponse({

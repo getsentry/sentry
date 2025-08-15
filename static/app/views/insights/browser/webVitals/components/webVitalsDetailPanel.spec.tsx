@@ -10,12 +10,12 @@ import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/comp
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('WebVitalsDetailPanel', function () {
+describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();
   let eventsMock: jest.Mock;
   let eventsStatsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -45,7 +45,7 @@ describe('WebVitalsDetailPanel', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 

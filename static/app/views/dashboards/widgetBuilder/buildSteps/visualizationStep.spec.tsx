@@ -94,7 +94,7 @@ function mockRequests(orgSlug: Organization['slug']) {
   return {eventsMock};
 }
 
-describe('VisualizationStep', function () {
+describe('VisualizationStep', () => {
   const {organization, projects, router} = initializeOrg({
     organization: {
       features: ['performance-view', 'dashboards-edit', 'global-views', 'dashboards-mep'],
@@ -115,11 +115,11 @@ describe('VisualizationStep', function () {
     navigate: jest.fn(),
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.loadInitialData(projects);
   });
 
-  it('debounce works as expected and requests are not triggered often', async function () {
+  it('debounce works as expected and requests are not triggered often', async () => {
     const {eventsMock} = mockRequests(organization.slug);
 
     render(
@@ -161,7 +161,7 @@ describe('VisualizationStep', function () {
     await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
   });
 
-  it('uses release from URL params when querying', async function () {
+  it('uses release from URL params when querying', async () => {
     const {eventsMock} = mockRequests(organization.slug);
     render(
       <WidgetBuilder
@@ -209,7 +209,7 @@ describe('VisualizationStep', function () {
     );
   });
 
-  it('does not trigger an extra events request when adding a column', async function () {
+  it('does not trigger an extra events request when adding a column', async () => {
     const {eventsMock} = mockRequests(organization.slug);
     render(
       <WidgetBuilder
@@ -253,7 +253,7 @@ describe('VisualizationStep', function () {
     await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
   });
 
-  it('makes a request to the spans dataset for a table widget', async function () {
+  it('makes a request to the spans dataset for a table widget', async () => {
     const {eventsMock} = mockRequests(organization.slug);
     const mockSpanWidget = {
       interval: '1d',

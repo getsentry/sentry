@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectHpkpReports from 'sentry/views/settings/projectSecurityHeaders/hpkp';
 
-describe('ProjectHpkpReports', function () {
+describe('ProjectHpkpReports', () => {
   const {organization, project} = initializeOrg();
   const keysUrl = `/projects/${organization.slug}/${project.slug}/keys/`;
 
@@ -14,7 +14,7 @@ describe('ProjectHpkpReports', function () {
     route: '/settings/:orgId/projects/:projectId/settings/security-headers/hpkp/',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: keysUrl,
@@ -23,7 +23,7 @@ describe('ProjectHpkpReports', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<ProjectHpkpReports />, {
       organization,
       initialRouterConfig,
@@ -35,7 +35,7 @@ describe('ProjectHpkpReports', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders loading error', async function () {
+  it('renders loading error', async () => {
     MockApiClient.addMockResponse({
       url: keysUrl,
       method: 'GET',

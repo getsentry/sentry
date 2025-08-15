@@ -15,8 +15,8 @@ function TestComponent({setRouteAnalyticsParams}: any) {
 
 const WrappedComponent = withRouteAnalytics(TestComponent);
 
-describe('withRouteAnalytics', function () {
-  it('passes context to children as props', function () {
+describe('withRouteAnalytics', () => {
+  it('passes context to children as props', () => {
     const setRouteAnalyticsParams = jest.fn();
     render(
       <RouteAnalyticsContext

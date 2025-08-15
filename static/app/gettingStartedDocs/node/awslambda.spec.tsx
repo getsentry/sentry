@@ -8,7 +8,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs, {ModuleFormat} from './awslambda';
 
-describe('awslambda onboarding docs', function () {
+describe('awslambda onboarding docs', () => {
   describe('CJS: Lambda Layer', () => {
     it('renders onboarding docs correctly', () => {
       renderWithOnboardingLayout(docs);

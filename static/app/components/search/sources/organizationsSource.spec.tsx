@@ -6,14 +6,14 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 
 import OrganizationsSource from './organizationsSource';
 
-describe('OrganizationsSource', function () {
+describe('OrganizationsSource', () => {
   const orgs = OrganizationsFixture();
 
   beforeEach(() => {
     OrganizationsStore.load(orgs);
   });
 
-  it('can find an org to switch to', async function () {
+  it('can find an org to switch to', async () => {
     const mock = jest.fn().mockReturnValue(null);
 
     render(<OrganizationsSource query="test-1">{mock}</OrganizationsSource>);
@@ -32,7 +32,7 @@ describe('OrganizationsSource', function () {
     });
   });
 
-  it('does not find any orgs', async function () {
+  it('does not find any orgs', async () => {
     const mock = jest.fn().mockReturnValue(null);
     render(<OrganizationsSource query="invalid">{mock}</OrganizationsSource>);
 

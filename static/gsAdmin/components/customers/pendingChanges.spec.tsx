@@ -18,8 +18,8 @@ import {ANNUAL, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import * as usePlanMigrations from 'getsentry/hooks/usePlanMigrations';
 import {CohortId, OnDemandBudgetMode} from 'getsentry/types';
 
-describe('PendingChanges', function () {
-  it('renders null pendingChanges)', function () {
+describe('PendingChanges', () => {
+  it('renders null pendingChanges)', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
     });
@@ -27,7 +27,7 @@ describe('PendingChanges', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders empty pendingChanges', function () {
+  it('renders empty pendingChanges', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       pendingChanges: null,
@@ -36,7 +36,7 @@ describe('PendingChanges', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders pending changes', function () {
+  it('renders pending changes', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       customPrice: 0,
@@ -90,7 +90,7 @@ describe('PendingChanges', function () {
     expect(container).toHaveTextContent('On-demand maximum — $0.00 → $500.00');
   });
 
-  it('renders pending changes with all categories', function () {
+  it('renders pending changes with all categories', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       customPrice: 0,
@@ -143,7 +143,7 @@ describe('PendingChanges', function () {
     expect(container).toHaveTextContent('On-demand maximum — $0.00 → $500.00');
   });
 
-  it('renders on-demand budgets', function () {
+  it('renders on-demand budgets', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       onDemandBudgets: {
@@ -193,7 +193,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('combines regular and on-demand changes', function () {
+  it('combines regular and on-demand changes', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       onDemandBudgets: {
@@ -241,7 +241,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('renders pending changes for plan migration', function () {
+  it('renders pending changes for plan migration', () => {
     const organization = OrganizationFixture();
     const am2BusinessPlan = PlanDetailsLookupFixture('am2_business_auf');
     const subscription = SubscriptionFixture({
@@ -311,7 +311,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('renders reserved budgets with existing budgets', function () {
+  it('renders reserved budgets with existing budgets', () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({
       organization: OrganizationFixture(),
       pendingChanges: PendingChangesFixture({
@@ -360,7 +360,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('does not render reserved budgets with mocked values', function () {
+  it('does not render reserved budgets with mocked values', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       reservedBudgets: [
@@ -393,7 +393,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('renders reserved budgets without existing budgets', function () {
+  it('renders reserved budgets without existing budgets', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
       plan: 'am3_business',
@@ -447,7 +447,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('renders reserved budgets to reserved volume', function () {
+  it('renders reserved budgets to reserved volume', () => {
     const subscription = Am3DsEnterpriseSubscriptionFixture({
       organization: OrganizationFixture(),
       pendingChanges: PendingChangesFixture({
@@ -494,7 +494,7 @@ describe('PendingChanges', function () {
     );
   });
 
-  it('does not render reserved budgets if there are no changes', function () {
+  it('does not render reserved budgets if there are no changes', () => {
     const subscription = SubscriptionFixture({
       organization: OrganizationFixture(),
     });

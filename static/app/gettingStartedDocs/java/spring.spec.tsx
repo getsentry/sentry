@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs, {PackageManager, SpringVersion} from './spring';
 
-describe('GettingStartedWithSpring', function () {
-  it('renders gradle docs correctly', async function () {
+describe('GettingStartedWithSpring', () => {
+  it('renders gradle docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {
@@ -29,7 +29,7 @@ describe('GettingStartedWithSpring', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders maven docs correctly', async function () {
+  it('renders maven docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.maven-plugin': {
@@ -56,7 +56,7 @@ describe('GettingStartedWithSpring', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders spring 5 doc correctly', async function () {
+  it('renders spring 5 doc correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {
@@ -75,7 +75,7 @@ describe('GettingStartedWithSpring', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders spring 6 doc correctly', async function () {
+  it('renders spring 6 doc correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.java.android.gradle-plugin': {
@@ -94,7 +94,7 @@ describe('GettingStartedWithSpring', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders logs configuration when logs are selected', async function () {
+  it('renders logs configuration when logs are selected', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,

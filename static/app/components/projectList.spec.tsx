@@ -2,8 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectList} from 'sentry/components/projectList';
 
-describe('ProjectList', function () {
-  beforeEach(function () {
+describe('ProjectList', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [
@@ -14,7 +14,7 @@ describe('ProjectList', function () {
     });
   });
 
-  it('renders all projects when there is no overflow', async function () {
+  it('renders all projects when there is no overflow', async () => {
     render(
       <ProjectList projectSlugs={['project1', 'project2']} maxVisibleProjects={2} />
     );
@@ -22,7 +22,7 @@ describe('ProjectList', function () {
     expect(await screen.findAllByRole('img')).toHaveLength(2);
   });
 
-  it('renders the collapsed projects when there is overflow', async function () {
+  it('renders the collapsed projects when there is overflow', async () => {
     render(
       <ProjectList
         projectSlugs={['project1', 'project2', 'project3']}

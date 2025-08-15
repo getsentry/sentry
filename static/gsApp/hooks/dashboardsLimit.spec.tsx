@@ -38,14 +38,14 @@ const mockOrganizationWithoutFeature = OrganizationFixture({
   features: [],
 });
 
-describe('useDashboardsLimit', function () {
-  beforeEach(function () {
+describe('useDashboardsLimit', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     queryClient.clear();
     SubscriptionStore.init();
   });
 
-  it('returns no limits when feature flag is disabled', function () {
+  it('returns no limits when feature flag is disabled', () => {
     const wrapper = createWrapper(mockOrganizationWithoutFeature);
 
     const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
@@ -58,7 +58,7 @@ describe('useDashboardsLimit', function () {
     });
   });
 
-  it('handles unlimited dashboards plan without making dashboards request', async function () {
+  it('handles unlimited dashboards plan without making dashboards request', async () => {
     const wrapper = createWrapper(mockOrganization);
 
     const subscription = SubscriptionFixture({
@@ -95,7 +95,7 @@ describe('useDashboardsLimit', function () {
     expect(dashboardsRequest).not.toHaveBeenCalled();
   });
 
-  it('handles no subscription data (defaults to 0)', function () {
+  it('handles no subscription data (defaults to 0)', () => {
     const wrapper = createWrapper(mockOrganization);
 
     SubscriptionStore.set(mockOrganization.slug, null as any);
@@ -124,7 +124,7 @@ describe('useDashboardsLimit', function () {
     expect(dashboardsRequest).not.toHaveBeenCalled();
   });
 
-  it('returns under limit when dashboards count is below limit', async function () {
+  it('returns under limit when dashboards count is below limit', async () => {
     const wrapper = createWrapper(mockOrganization);
 
     const subscription = SubscriptionFixture({
@@ -165,7 +165,7 @@ describe('useDashboardsLimit', function () {
     expect(dashboardsRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('returns at limit when dashboards count equals limit', async function () {
+  it('returns at limit when dashboards count equals limit', async () => {
     const wrapper = createWrapper(mockOrganization);
 
     const subscription = SubscriptionFixture({
@@ -212,7 +212,7 @@ describe('useDashboardsLimit', function () {
     ).toBeInTheDocument();
   });
 
-  it('returns over limit when dashboards count exceeds limit', async function () {
+  it('returns over limit when dashboards count exceeds limit', async () => {
     const wrapper = createWrapper(mockOrganization);
 
     const subscription = SubscriptionFixture({
@@ -258,7 +258,7 @@ describe('useDashboardsLimit', function () {
     ).toBeInTheDocument();
   });
 
-  it('returns loading state when dashboards request is in progress', async function () {
+  it('returns loading state when dashboards request is in progress', async () => {
     const wrapper = createWrapper(mockOrganization);
 
     const subscription = SubscriptionFixture({
@@ -292,7 +292,7 @@ describe('useDashboardsLimit', function () {
     expect(dashboardsRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('handles dashboards API error gracefully', async function () {
+  it('handles dashboards API error gracefully', async () => {
     const wrapper = createWrapper(mockOrganization);
 
     const subscription = SubscriptionFixture({
@@ -330,7 +330,7 @@ describe('useDashboardsLimit', function () {
     });
   });
 
-  it('handles missing subscription planDetails gracefully (defaults to 0)', function () {
+  it('handles missing subscription planDetails gracefully (defaults to 0)', () => {
     const wrapper = createWrapper(mockOrganization);
 
     const subscription = SubscriptionFixture({

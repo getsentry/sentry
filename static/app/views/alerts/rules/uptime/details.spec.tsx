@@ -6,10 +6,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UptimeAlertDetails from './details';
 
-describe('UptimeAlertDetails', function () {
+describe('UptimeAlertDetails', () => {
   const {organization, project, routerProps} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [project],
@@ -34,7 +34,7 @@ describe('UptimeAlertDetails', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/`,
       body: UptimeRuleFixture({name: 'Uptime Test Rule'}),
@@ -50,7 +50,7 @@ describe('UptimeAlertDetails', function () {
     expect(await screen.findByText('Uptime Test Rule')).toBeInTheDocument();
   });
 
-  it('shows a message for invalid uptime alert', async function () {
+  it('shows a message for invalid uptime alert', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/2/`,
       statusCode: 404,
@@ -68,7 +68,7 @@ describe('UptimeAlertDetails', function () {
     ).toBeInTheDocument();
   });
 
-  it('disables and enables the rule', async function () {
+  it('disables and enables the rule', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/2/`,
       statusCode: 404,

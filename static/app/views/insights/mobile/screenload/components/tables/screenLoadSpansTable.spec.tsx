@@ -4,13 +4,13 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {ScreenLoadSpansTable} from 'sentry/views/insights/mobile/screenload/components/tables/screenLoadSpansTable';
 
-describe('ScreenLoadSpansTable', function () {
+describe('ScreenLoadSpansTable', () => {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
   });
 
   let eventsMock: jest.Mock;
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
       body: [],
@@ -24,12 +24,12 @@ describe('ScreenLoadSpansTable', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
 
-  it('renders table with the right columns', async function () {
+  it('renders table with the right columns', async () => {
     render(
       <ScreenLoadSpansTable
         transaction="MainActivity"
@@ -109,7 +109,7 @@ describe('ScreenLoadSpansTable', function () {
     );
   });
 
-  it('sorts ttfd contribution', async function () {
+  it('sorts ttfd contribution', async () => {
     render(
       <ScreenLoadSpansTable
         transaction="MainActivity"

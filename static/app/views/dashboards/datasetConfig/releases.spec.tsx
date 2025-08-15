@@ -2,7 +2,7 @@ import {SessionUserCountByStatusByReleaseFixture} from 'sentry-fixture/sessions'
 
 import {transformSessionsResponseToTable} from 'sentry/views/dashboards/datasetConfig/releases';
 
-describe('transformSessionsResponseToTable', function () {
+describe('transformSessionsResponseToTable', () => {
   const widgetQuery = {
     name: '',
     fields: ['count_unique(user)', 'sum(session)', 'release', 'session.status'],

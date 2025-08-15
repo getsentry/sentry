@@ -16,7 +16,7 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
-describe('HTTPLandingPage', function () {
+describe('HTTPLandingPage', () => {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules', 'insights-entry-points'],
   });
@@ -52,7 +52,7 @@ describe('HTTPLandingPage', function () {
     releases: [],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
 
     useLocationMock.mockReturnValue({
@@ -252,11 +252,11 @@ describe('HTTPLandingPage', function () {
     });
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('fetches module data', async function () {
+  it('fetches module data', async () => {
     render(<HTTPLandingPage />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
@@ -395,7 +395,7 @@ describe('HTTPLandingPage', function () {
     );
   });
 
-  it('renders a list of domains', async function () {
+  it('renders a list of domains', async () => {
     render(<HTTPLandingPage />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
@@ -437,7 +437,7 @@ describe('HTTPLandingPage', function () {
     expect(screen.getByRole('cell', {name: '1.35wk'})).toBeInTheDocument();
   });
 
-  it('sorts with query params', async function () {
+  it('sorts with query params', async () => {
     useLocationMock.mockReturnValue({
       pathname: '/insights/backend/http/',
       search: '',

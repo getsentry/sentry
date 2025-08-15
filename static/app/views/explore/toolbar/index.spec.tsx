@@ -44,12 +44,12 @@ function Wrapper({children}: {children: ReactNode}) {
 
 jest.mock('sentry/actionCreators/modal');
 
-describe('ExploreToolbar', function () {
+describe('ExploreToolbar', () => {
   const organization = OrganizationFixture({
     features: ['dashboards-edit'],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     const project = ProjectFixture({
       id: '1',
       slug: 'proj-slug',
@@ -65,7 +65,7 @@ describe('ExploreToolbar', function () {
     });
   });
 
-  it('disables changing visualize fields for count', async function () {
+  it('disables changing visualize fields for count', async () => {
     let visualizes: any;
     function Component() {
       visualizes = useExploreVisualizes();
@@ -86,7 +86,7 @@ describe('ExploreToolbar', function () {
     expect(await within(section).findByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
-  it('changes to count(span.duration) when using count', async function () {
+  it('changes to count(span.duration) when using count', async () => {
     let visualizes: any;
     function Component() {
       visualizes = useExploreVisualizes();
@@ -120,7 +120,7 @@ describe('ExploreToolbar', function () {
     expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
   });
 
-  it('disables changing visualize fields for epm', async function () {
+  it('disables changing visualize fields for epm', async () => {
     let visualizes: any;
     function Component() {
       visualizes = useExploreVisualizes();
@@ -145,7 +145,7 @@ describe('ExploreToolbar', function () {
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
-  it('changes to epm() when using epm', async function () {
+  it('changes to epm() when using epm', async () => {
     let visualizes: any;
     function Component() {
       visualizes = useExploreVisualizes();
@@ -185,7 +185,7 @@ describe('ExploreToolbar', function () {
     expect(visualizes).toEqual([new Visualize('avg(span.duration)')]);
   });
 
-  it('defaults count_unique argument to span.op', async function () {
+  it('defaults count_unique argument to span.op', async () => {
     let visualizes: any;
     function Component() {
       visualizes = useExploreVisualizes();
@@ -226,7 +226,7 @@ describe('ExploreToolbar', function () {
     expect(visualizes).toEqual([new Visualize('count_unique(span.op)')]);
   });
 
-  it('allows changing visualizes', async function () {
+  it('allows changing visualizes', async () => {
     let fields!: string[];
     let visualizes: any;
     function Component() {
@@ -290,7 +290,7 @@ describe('ExploreToolbar', function () {
     expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
   });
 
-  it('allows changing group bys', async function () {
+  it('allows changing group bys', async () => {
     let groupBys: any;
 
     function Component() {
@@ -338,7 +338,7 @@ describe('ExploreToolbar', function () {
     expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
   });
 
-  it('switches to aggregates mode when modifying group bys', async function () {
+  it('switches to aggregates mode when modifying group bys', async () => {
     let groupBys: any;
     let mode: any;
 
@@ -365,7 +365,7 @@ describe('ExploreToolbar', function () {
     expect(groupBys).toEqual(['span.op']);
   });
 
-  it('switches to aggregates mode when adding group bys', async function () {
+  it('switches to aggregates mode when adding group bys', async () => {
     let groupBys: any;
     let mode: any;
 
@@ -391,7 +391,7 @@ describe('ExploreToolbar', function () {
     expect(groupBys).toEqual(['', '']);
   });
 
-  it('allows changing sort by in samples mode', async function () {
+  it('allows changing sort by in samples mode', async () => {
     let sortBys: any;
     function Component() {
       sortBys = useExploreSortBys();
@@ -446,7 +446,7 @@ describe('ExploreToolbar', function () {
     expect(sortBys).toEqual([{field: 'span.op', kind: 'asc'}]);
   });
 
-  it('allows changing sort by in aggregates mode', async function () {
+  it('allows changing sort by in aggregates mode', async () => {
     let sortBys: any;
     let setMode: any;
     function Component() {
@@ -520,7 +520,7 @@ describe('ExploreToolbar', function () {
     expect(kindOptions[1]).toHaveTextContent('Asc');
   });
 
-  it('allows for different sort bys on samples and aggregates mode', async function () {
+  it('allows for different sort bys on samples and aggregates mode', async () => {
     let sortBys: any;
     let setMode: any;
     function Component() {
@@ -560,7 +560,7 @@ describe('ExploreToolbar', function () {
     expect(sortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
   });
 
-  it('opens compare queries', async function () {
+  it('opens compare queries', async () => {
     const router = RouterFixture({
       location: {
         pathname: '/traces/',
@@ -598,7 +598,7 @@ describe('ExploreToolbar', function () {
     });
   });
 
-  it('opens the right alert', async function () {
+  it('opens the right alert', async () => {
     const router = RouterFixture({
       location: {
         pathname: '/traces/',
@@ -637,7 +637,7 @@ describe('ExploreToolbar', function () {
     });
   });
 
-  it('add to dashboard options correctly', async function () {
+  it('add to dashboard options correctly', async () => {
     const router = RouterFixture({
       location: {
         pathname: '/traces/',
@@ -690,7 +690,7 @@ describe('ExploreToolbar', function () {
     });
   });
 
-  it('highlights save button when saved query is changed', async function () {
+  it('highlights save button when saved query is changed', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/123/`,
       method: 'GET',

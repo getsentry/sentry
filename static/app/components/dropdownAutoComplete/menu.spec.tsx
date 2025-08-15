@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DropdownAutoCompleteMenu from 'sentry/components/dropdownAutoComplete/menu';
 
-describe('DropdownAutoCompleteMenu', function () {
+describe('DropdownAutoCompleteMenu', () => {
   const items = [
     {
       value: 'apple',
@@ -18,7 +18,7 @@ describe('DropdownAutoCompleteMenu', function () {
     },
   ];
 
-  it('renders without a group', function () {
+  it('renders without a group', () => {
     render(
       <DropdownAutoCompleteMenu isOpen items={items}>
         {() => 'Click Me!'}
@@ -26,7 +26,7 @@ describe('DropdownAutoCompleteMenu', function () {
     );
   });
 
-  it('renders with a group', function () {
+  it('renders with a group', () => {
     render(
       <DropdownAutoCompleteMenu
         isOpen
@@ -53,7 +53,7 @@ describe('DropdownAutoCompleteMenu', function () {
     );
   });
 
-  it('can select an item by clicking', async function () {
+  it('can select an item by clicking', async () => {
     const mock = jest.fn();
     const countries = [
       {
@@ -92,7 +92,7 @@ describe('DropdownAutoCompleteMenu', function () {
     );
   });
 
-  it('shows empty message when there are no items', function () {
+  it('shows empty message when there are no items', () => {
     render(
       <DropdownAutoCompleteMenu
         items={[]}
@@ -110,7 +110,7 @@ describe('DropdownAutoCompleteMenu', function () {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('shows default empty results message when there are no items found in search', async function () {
+  it('shows default empty results message when there are no items found in search', async () => {
     render(
       <DropdownAutoCompleteMenu isOpen items={items} emptyMessage="No items!">
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
@@ -122,7 +122,7 @@ describe('DropdownAutoCompleteMenu', function () {
     expect(screen.getByText('No items! found')).toBeInTheDocument();
   });
 
-  it('overrides default empty results message', async function () {
+  it('overrides default empty results message', async () => {
     render(
       <DropdownAutoCompleteMenu
         isOpen
@@ -140,7 +140,7 @@ describe('DropdownAutoCompleteMenu', function () {
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
   });
 
-  it('hides filter with `hideInput` prop', function () {
+  it('hides filter with `hideInput` prop', () => {
     render(
       <DropdownAutoCompleteMenu isOpen items={items} hideInput>
         {() => 'Click Me!'}
@@ -150,7 +150,7 @@ describe('DropdownAutoCompleteMenu', function () {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('filters using a value from prop instead of input', async function () {
+  it('filters using a value from prop instead of input', async () => {
     render(
       <DropdownAutoCompleteMenu isOpen items={items} filterValue="Apple">
         {() => 'Click Me!'}

@@ -11,7 +11,7 @@ jest.mock('sentry/utils/useLocation');
 
 const useLocationMock = jest.mocked(useLocation);
 
-describe('DomainViewHeader', function () {
+describe('DomainViewHeader', () => {
   const organization = OrganizationFixture({
     features: ['insights-entry-points'],
   });

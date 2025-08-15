@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import SubscriptionContext from 'getsentry/components/subscriptionContext';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
-describe('SubscriptionContext', function () {
+describe('SubscriptionContext', () => {
   beforeEach(() => {
     const organization = OrganizationFixture();
 
@@ -18,7 +18,7 @@ describe('SubscriptionContext', function () {
     });
   });
 
-  it('render children if billing user', function () {
+  it('render children if billing user', () => {
     const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, subscription);
@@ -26,7 +26,7 @@ describe('SubscriptionContext', function () {
     render(<SubscriptionContext>Hi</SubscriptionContext>, {organization});
     expect(screen.getByText('Hi')).toBeInTheDocument();
   });
-  it('renders contact billing members if not billing user', function () {
+  it('renders contact billing members if not billing user', () => {
     const organization = OrganizationFixture({access: []});
     const subscription = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, subscription);

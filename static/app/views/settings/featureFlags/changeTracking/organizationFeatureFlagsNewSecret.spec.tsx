@@ -6,19 +6,19 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationFeatureFlagsNewSecret from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsNewSecret';
 
-describe('OrganizationFeatureFlagsNewSecret', function () {
+describe('OrganizationFeatureFlagsNewSecret', () => {
   const ENDPOINT = '/organizations/org-slug/flags/signing-secrets/';
   const {organization} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     OrganizationsStore.addOrReplace(organization);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('can create secret', async function () {
+  it('can create secret', async () => {
     // Mock the GET request for existing secrets
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -56,7 +56,7 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
     );
   });
 
-  it('handles API errors when creating secret', async function () {
+  it('handles API errors when creating secret', async () => {
     // Mock the GET request for existing secrets
     MockApiClient.addMockResponse({
       url: ENDPOINT,

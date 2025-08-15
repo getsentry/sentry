@@ -2,8 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ArrayValue from 'sentry/utils/discover/arrayValue';
 
-describe('Discover > ArrayValue', function () {
-  it('renders an expand link', function () {
+describe('Discover > ArrayValue', () => {
+  it('renders an expand link', () => {
     render(<ArrayValue value={['one', 'two', 'three']} />);
 
     // Should have a button
@@ -14,7 +14,7 @@ describe('Discover > ArrayValue', function () {
     expect(screen.getByText('three')).toBeInTheDocument();
   });
 
-  it('renders all elements when expanded', async function () {
+  it('renders all elements when expanded', async () => {
     render(<ArrayValue value={['one', 'two', 'three', '', null]} />);
 
     // Should have a button
@@ -33,14 +33,14 @@ describe('Discover > ArrayValue', function () {
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
   });
 
-  it('hides toggle on 1 element', function () {
+  it('hides toggle on 1 element', () => {
     render(<ArrayValue value={['one']} />);
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.getByText('one')).toBeInTheDocument();
   });
 
-  it('hides toggle on 0 elements', function () {
+  it('hides toggle on 0 elements', () => {
     render(<ArrayValue value={[]} />);
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();

@@ -41,7 +41,7 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
   return initialData;
 }
 
-describe('Performance GridEditable Table', function () {
+describe('Performance GridEditable Table', () => {
   const transactionsListTitles = [
     'event id',
     'user',
@@ -58,7 +58,7 @@ describe('Performance GridEditable Table', function () {
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -128,13 +128,13 @@ describe('Performance GridEditable Table', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
   });
 
-  it('renders ops breakdown bar when querying for span_ops_breakdown.relative', async function () {
+  it('renders ops breakdown bar when querying for span_ops_breakdown.relative', async () => {
     const initialData = initializeData();
 
     const eventView = EventView.fromNewQueryWithLocation(
@@ -170,7 +170,7 @@ describe('Performance GridEditable Table', function () {
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
   });
 
-  it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', async function () {
+  it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', async () => {
     const initialData = initializeData();
 
     fields = [
@@ -214,7 +214,7 @@ describe('Performance GridEditable Table', function () {
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
   });
 
-  it('renders event id and trace id url', async function () {
+  it('renders event id and trace id url', async () => {
     const initialData = initializeData();
     const eventView = EventView.fromNewQueryWithLocation(
       {
@@ -253,7 +253,7 @@ describe('Performance GridEditable Table', function () {
     );
   });
 
-  it('renders replay id', async function () {
+  it('renders replay id', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
       body: {},
@@ -293,7 +293,7 @@ describe('Performance GridEditable Table', function () {
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
   });
 
-  it('renders profile id', async function () {
+  it('renders profile id', async () => {
     const initialData = initializeData();
 
     fields = [...fields, 'profile.id'];

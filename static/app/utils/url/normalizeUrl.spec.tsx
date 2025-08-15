@@ -4,11 +4,11 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
-describe('normalizeUrl', function () {
+describe('normalizeUrl', () => {
   let configState: Config;
   let result: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     configState = ConfigStore.getState();
     ConfigStore.loadInitialData({
       ...configState,
@@ -20,11 +20,11 @@ describe('normalizeUrl', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     ConfigStore.loadInitialData(configState);
   });
 
-  it('replaces paths in strings', function () {
+  it('replaces paths in strings', () => {
     const location = LocationFixture();
     const cases = [
       // input, expected
@@ -149,7 +149,7 @@ describe('normalizeUrl', function () {
     }
   });
 
-  it('replaces pathname in objects', function () {
+  it('replaces pathname in objects', () => {
     const location = LocationFixture();
     result = normalizeUrl({pathname: '/settings/acme/'}, location);
     expect(result.pathname).toBe('/settings/organization/');

@@ -55,9 +55,9 @@ function renderMockRequests({
   });
 }
 
-describe('ProductSelectionAvailability', function () {
-  describe('with no billing access', function () {
-    it('with performance and session replay', async function () {
+describe('ProductSelectionAvailability', () => {
+  describe('with no billing access', () => {
+    it('with performance and session replay', async () => {
       const organization = OrganizationFixture({
         features: ['performance-view', 'session-replay'],
       });
@@ -119,7 +119,7 @@ describe('ProductSelectionAvailability', function () {
       ).toBeInTheDocument();
     });
 
-    it('without performance and session replay', async function () {
+    it('without performance and session replay', async () => {
       const organization = OrganizationFixture();
 
       renderMockRequests({planTier: PlanTier.MM2, organization, canSelfServe: true});
@@ -162,7 +162,7 @@ describe('ProductSelectionAvailability', function () {
       ).toBeInTheDocument();
     });
 
-    it('without session replay', async function () {
+    it('without session replay', async () => {
       const organization = OrganizationFixture({
         features: ['performance-view'],
       });
@@ -208,8 +208,8 @@ describe('ProductSelectionAvailability', function () {
     });
   });
 
-  describe('with billing access', function () {
-    it('with performance and session replay', async function () {
+  describe('with billing access', () => {
+    it('with performance and session replay', async () => {
       const organization = OrganizationFixture({
         features: ['performance-view', 'session-replay'],
         access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
@@ -272,7 +272,7 @@ describe('ProductSelectionAvailability', function () {
       ).toBeInTheDocument();
     });
 
-    it('without performance, session replay and profiling', async function () {
+    it('without performance, session replay and profiling', async () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
       });
@@ -319,7 +319,7 @@ describe('ProductSelectionAvailability', function () {
       ).toBeInTheDocument();
     });
 
-    it('without session replay', async function () {
+    it('without session replay', async () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
         features: ['performance-view'],
@@ -420,7 +420,7 @@ describe('ProductSelectionAvailability', function () {
       expect(await screen.findByText(/Manage Subscription/i)).toBeInTheDocument();
     });
 
-    it('with profiling and without session replay', async function () {
+    it('with profiling and without session replay', async () => {
       const organization = OrganizationFixture({
         features: ['performance-view', 'profiling-view'],
       });
@@ -468,7 +468,7 @@ describe('ProductSelectionAvailability', function () {
       expect(screen.getByRole('presentation', {name: 'Profiling'})).toBeChecked();
     });
 
-    it('without profiling and without session replay', async function () {
+    it('without profiling and without session replay', async () => {
       const organization = OrganizationFixture({
         features: ['performance-view'],
       });
@@ -523,7 +523,7 @@ describe('ProductSelectionAvailability', function () {
       ).toBeInTheDocument();
     });
 
-    it('enabling Profiling, shall check and "disabled" Tracing', async function () {
+    it('enabling Profiling, shall check and "disabled" Tracing', async () => {
       const organization = OrganizationFixture({
         features: ['performance-view', 'profiling-view'],
       });
@@ -561,7 +561,7 @@ describe('ProductSelectionAvailability', function () {
       expect(screen.getByRole('button', {name: 'Tracing'})).toBeEnabled();
     });
 
-    it('with Profiling and Tracing', async function () {
+    it('with Profiling and Tracing', async () => {
       const organization = OrganizationFixture({
         features: ['performance-view', 'profiling-view'],
       });

@@ -55,10 +55,10 @@ const datePageFilterProps: PickableDays = {
   }),
 };
 
-describe('SpansTabContent', function () {
+describe('SpansTabContent', () => {
   const {organization, project} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     // without this the `CompactSelect` component errors with a bunch of async updates
@@ -115,7 +115,7 @@ describe('SpansTabContent', function () {
     });
   });
 
-  it('should fire analytics once per change', async function () {
+  it('should fire analytics once per change', async () => {
     render(
       <Wrapper>
         <SpansTabContent datePageFilterProps={datePageFilterProps} />
@@ -151,7 +151,7 @@ describe('SpansTabContent', function () {
     );
   });
 
-  it('inserts group bys from aggregate mode as fields in samples mode', async function () {
+  it('inserts group bys from aggregate mode as fields in samples mode', async () => {
     let fields: string[] = [];
     let groupBys: string[] = [];
     function Component() {
@@ -202,10 +202,10 @@ describe('SpansTabContent', function () {
     ]);
   }, 20_000);
 
-  describe('schema hints', function () {
+  describe('schema hints', () => {
     let spies: jest.SpyInstance[];
 
-    beforeEach(function () {
+    beforeEach(() => {
       const useSpanTagsSpy = jest
         .spyOn(spanTagsModule, 'useTraceItemTags')
         .mockImplementation(type => {
@@ -258,11 +258,11 @@ describe('SpansTabContent', function () {
       spies = [useSpanTagsSpy, getBoundingClientRectSpy, clientWidthGetSpy];
     });
 
-    afterEach(function () {
+    afterEach(() => {
       spies.forEach(spy => spy.mockRestore());
     });
 
-    it('should show hints', function () {
+    it('should show hints', () => {
       render(
         <Wrapper>
           <SpansTabContent datePageFilterProps={datePageFilterProps} />

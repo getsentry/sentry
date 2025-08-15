@@ -15,14 +15,14 @@ import ApiApplications from 'sentry/views/settings/account/apiApplications';
 
 jest.mock('sentry/utils/demoMode');
 
-describe('ApiApplications', function () {
+describe('ApiApplications', () => {
   const {routerProps, router} = initializeOrg({router: {params: {}}});
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: [],
@@ -36,7 +36,7 @@ describe('ApiApplications', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const requestMock = MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: [ApiApplicationFixture()],
@@ -50,7 +50,7 @@ describe('ApiApplications', function () {
     expect(screen.getByText('Adjusted Shrimp')).toBeInTheDocument();
   });
 
-  it('renders empty in demo mode even if there are applications', async function () {
+  it('renders empty in demo mode even if there are applications', async () => {
     (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
     MockApiClient.addMockResponse({
@@ -67,7 +67,7 @@ describe('ApiApplications', function () {
     (isDemoModeActive as jest.Mock).mockReset();
   });
 
-  it('creates application', async function () {
+  it('creates application', async () => {
     MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: [],
@@ -97,7 +97,7 @@ describe('ApiApplications', function () {
     });
   });
 
-  it('deletes application', async function () {
+  it('deletes application', async () => {
     const apiApp = ApiApplicationFixture({id: '123'});
     MockApiClient.addMockResponse({
       url: '/api-applications/',

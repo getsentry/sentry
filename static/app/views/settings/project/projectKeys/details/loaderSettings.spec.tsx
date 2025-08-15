@@ -36,8 +36,8 @@ function renderMockRequests(
   return {projectKeys};
 }
 
-describe('Loader Script Settings', function () {
-  it('renders Loader Script Settings', function () {
+describe('Loader Script Settings', () => {
+  it('renders Loader Script Settings', () => {
     const params = {
       projectId: '1',
       keyId: '1',
@@ -93,7 +93,7 @@ describe('Loader Script Settings', function () {
     expect(debugCheckbox).not.toBeChecked();
   });
 
-  it('allows to toggle options', async function () {
+  it('allows to toggle options', async () => {
     const {organization, project} = initializeOrg();
     const params = {
       projectSlug: project.slug,
@@ -159,7 +159,7 @@ describe('Loader Script Settings', function () {
     });
   });
 
-  it('resets performance & replay when selecting SDK version <7', async function () {
+  it('resets performance & replay when selecting SDK version <7', async () => {
     const {organization, project} = initializeOrg();
     const params = {
       projectSlug: project.slug,
@@ -207,7 +207,7 @@ describe('Loader Script Settings', function () {
     });
   });
 
-  it('disabled performance & replay when SDK version <7 is selected', function () {
+  it('disabled performance & replay when SDK version <7 is selected', () => {
     const {organization, project} = initializeOrg();
     const params = {
       projectSlug: project.slug,
@@ -254,7 +254,7 @@ describe('Loader Script Settings', function () {
     ).toHaveLength(2);
   });
 
-  it('shows replay message when it is enabled', function () {
+  it('shows replay message when it is enabled', () => {
     const {organization, project} = initializeOrg();
     const params = {
       projectSlug: project.slug,
@@ -303,7 +303,7 @@ describe('Loader Script Settings', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('shows performance message when it is enabled', function () {
+  it('shows performance message when it is enabled', () => {
     const {organization, project} = initializeOrg();
     const params = {
       projectSlug: project.slug,

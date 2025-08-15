@@ -10,11 +10,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal';
 
-describe('RecoveryOptionsModal', function () {
+describe('RecoveryOptionsModal', () => {
   const closeModal = jest.fn();
   const mockId = AuthenticatorsFixture().Recovery().authId;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',
@@ -38,7 +38,7 @@ describe('RecoveryOptionsModal', function () {
     );
   }
 
-  it('can redirect to recovery codes if user skips backup phone setup', async function () {
+  it('can redirect to recovery codes if user skips backup phone setup', async () => {
     renderComponent();
     const skipButton = await screen.findByRole('button', {name: 'Skip this step'});
 
@@ -61,7 +61,7 @@ describe('RecoveryOptionsModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('can redirect to backup phone setup', async function () {
+  it('can redirect to backup phone setup', async () => {
     renderComponent();
 
     const backupPhoneButton = await screen.findByRole('button', {
@@ -78,7 +78,7 @@ describe('RecoveryOptionsModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('skips backup phone setup if text message authenticator unavailable', async function () {
+  it('skips backup phone setup if text message authenticator unavailable', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',

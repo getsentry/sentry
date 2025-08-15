@@ -12,14 +12,14 @@ import EventView from 'sentry/utils/discover/eventView';
 import EventDetails from 'sentry/views/discover/eventDetails';
 import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/results/data';
 
-describe('Discover > EventDetails', function () {
+describe('Discover > EventDetails', () => {
   const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
   const org = OrganizationFixture();
   const errorsView = EventView.fromSavedQuery(
     getAllViews(org).find(view => view.name === 'Errors by Title')!
   );
 
-  beforeEach(function () {
+  beforeEach(() => {
     act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
 
     MockApiClient.addMockResponse({
@@ -115,7 +115,7 @@ describe('Discover > EventDetails', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <EventDetails
         {...RouteComponentPropsFixture()}
@@ -130,7 +130,7 @@ describe('Discover > EventDetails', function () {
     expect(await screen.findByText('Oh no something bad')).toBeInTheDocument();
   });
 
-  it('renders a 404', async function () {
+  it('renders a 404', async () => {
     render(
       <EventDetails
         {...RouteComponentPropsFixture()}
@@ -146,7 +146,7 @@ describe('Discover > EventDetails', function () {
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('renders a chart in grouped view', async function () {
+  it('renders a chart in grouped view', async () => {
     render(
       <EventDetails
         {...RouteComponentPropsFixture()}
@@ -161,7 +161,7 @@ describe('Discover > EventDetails', function () {
     expect(await screen.findByText('Oh no something bad')).toBeInTheDocument();
   });
 
-  it('renders an alert when linked issues are missing', async function () {
+  it('renders an alert when linked issues are missing', async () => {
     MockApiClient.addMockResponse({
       url: '/issues/123/',
       statusCode: 404,
@@ -186,7 +186,7 @@ describe('Discover > EventDetails', function () {
     ).toBeInTheDocument();
   });
 
-  it('navigates when tag values are clicked', async function () {
+  it('navigates when tag values are clicked', async () => {
     const {organization} = initializeOrg({
       organization: OrganizationFixture(),
       router: {
@@ -228,7 +228,7 @@ describe('Discover > EventDetails', function () {
     );
   });
 
-  it('navigates to homepage when tag values are clicked', async function () {
+  it('navigates to homepage when tag values are clicked', async () => {
     const {organization, router} = initializeOrg({
       organization: OrganizationFixture(),
       router: {
@@ -267,7 +267,7 @@ describe('Discover > EventDetails', function () {
     );
   });
 
-  it('appends tag value to existing query when clicked', async function () {
+  it('appends tag value to existing query when clicked', async () => {
     const {organization} = initializeOrg({
       organization: OrganizationFixture(),
       router: {

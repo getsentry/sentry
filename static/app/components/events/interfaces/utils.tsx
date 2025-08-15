@@ -130,7 +130,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
     data.headers
       ?.filter(defined)
       // sort headers
-      .sort(function (a, b) {
+      .sort((a, b) => {
         return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
       }) ?? [];
 
@@ -233,7 +233,7 @@ export function objectToSortedTupleArray(obj: Record<string, string | string[]>)
           : ([[k, val]] as Array<[string, string]>) // key has single value
       );
     }, [])
-    .sort(function ([keyA, valA], [keyB, valB]) {
+    .sort(([keyA, valA], [keyB, valB]) => {
       // if keys are identical, sort on value
       if (keyA === keyB) {
         return valA < valB ? -1 : 1;

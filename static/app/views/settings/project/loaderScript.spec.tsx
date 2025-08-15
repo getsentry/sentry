@@ -29,8 +29,8 @@ function mockApi({
   });
 }
 
-describe('LoaderScript', function () {
-  it('renders error', async function () {
+describe('LoaderScript', () => {
+  it('renders error', async () => {
     const {organization, project} = initializeOrg();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -48,7 +48,7 @@ describe('LoaderScript', function () {
     );
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     const {organization, project} = initializeOrg();
 
     mockApi({organization, project, projectKeys: []});
@@ -62,7 +62,7 @@ describe('LoaderScript', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders for single project', async function () {
+  it('renders for single project', async () => {
     const {organization, project} = initializeOrg();
     const projectKey = ProjectKeysFixture()[0]!;
     const projectKeys = [projectKey];
@@ -82,7 +82,7 @@ describe('LoaderScript', function () {
     expect(loaderScriptValue).toEqual(expect.stringContaining(projectKeys[0]!.dsn.cdn));
   });
 
-  it('renders multiple keys', async function () {
+  it('renders multiple keys', async () => {
     const {organization, project} = initializeOrg();
     const projectKeys = ProjectKeysFixture([
       {
@@ -145,7 +145,7 @@ describe('LoaderScript', function () {
     expect(allLoaderScripts).toHaveLength(2);
   });
 
-  it('allows to update key settings', async function () {
+  it('allows to update key settings', async () => {
     const {organization, project} = initializeOrg();
     const baseKey = ProjectKeysFixture()[0]!;
     const projectKey = {
@@ -223,7 +223,7 @@ describe('LoaderScript', function () {
     );
   });
 
-  it('allows to update one of multiple keys', async function () {
+  it('allows to update one of multiple keys', async () => {
     const {organization, project} = initializeOrg();
     const projectKeys = ProjectKeysFixture([
       {

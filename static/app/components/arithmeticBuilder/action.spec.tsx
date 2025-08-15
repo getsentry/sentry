@@ -4,8 +4,8 @@ import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/ac
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
 
-describe('useArithmeticBuilderAction', function () {
-  it('returns initial state', function () {
+describe('useArithmeticBuilderAction', () => {
+  it('returns initial state', () => {
     const {result} = renderHook(
       ({initialExpression}) =>
         useArithmeticBuilderAction({
@@ -26,7 +26,7 @@ describe('useArithmeticBuilderAction', function () {
     });
   });
 
-  it('resets focus override', function () {
+  it('resets focus override', () => {
     const expression = '( avg(span.duration) )';
 
     const tokens = tokenizeExpression(expression);
@@ -77,7 +77,7 @@ describe('useArithmeticBuilderAction', function () {
     });
   });
 
-  it('deletes token', function () {
+  it('deletes token', () => {
     const expression = '( avg(span.duration) )';
 
     const tokens = tokenizeExpression(expression);
@@ -110,7 +110,7 @@ describe('useArithmeticBuilderAction', function () {
     });
   });
 
-  it('replaces token', function () {
+  it('replaces token', () => {
     const expression = '( avg(span.duration) )';
 
     const tokens = tokenizeExpression(expression);

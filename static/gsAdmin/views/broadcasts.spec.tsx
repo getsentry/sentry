@@ -21,7 +21,7 @@ function renderMockRequests() {
   });
 }
 
-describe('Broadcasts', function () {
+describe('Broadcasts', () => {
   const mockUser = UserFixture({permissions: new Set(['broadcasts.admin'])});
 
   afterEach(() => {
@@ -29,7 +29,7 @@ describe('Broadcasts', function () {
     ModalStore.reset();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const {router} = initializeOrg();
 
     ConfigStore.loadInitialData(

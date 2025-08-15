@@ -8,7 +8,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
-describe('ProjectFilters', function () {
+describe('ProjectFilters', () => {
   const {organization, project, routerProps} = initializeOrg();
   const PROJECT_URL = `/projects/${organization.slug}/${project.slug}/`;
 
@@ -32,7 +32,7 @@ describe('ProjectFilters', function () {
     );
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: PROJECT_URL,
@@ -55,7 +55,7 @@ describe('ProjectFilters', function () {
     });
   });
 
-  it('has browser extensions enabled initially', async function () {
+  it('has browser extensions enabled initially', async () => {
     renderComponent();
 
     const filter = 'browser-extensions';
@@ -79,7 +79,7 @@ describe('ProjectFilters', function () {
     );
   });
 
-  it('can toggle filters: localhost, web crawlers', async function () {
+  it('can toggle filters: localhost, web crawlers', async () => {
     renderComponent();
 
     const FILTERS = {
@@ -107,7 +107,7 @@ describe('ProjectFilters', function () {
     }
   });
 
-  it('has correct legacy browsers selected', async function () {
+  it('has correct legacy browsers selected', async () => {
     renderComponent();
 
     expect(
@@ -127,7 +127,7 @@ describe('ProjectFilters', function () {
     ).not.toBeChecked();
   });
 
-  it('can toggle legacy browser', async function () {
+  it('can toggle legacy browser', async () => {
     renderComponent();
 
     const filter = 'legacy-browsers';
@@ -153,7 +153,7 @@ describe('ProjectFilters', function () {
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual(['ie', 'safari']);
   });
 
-  it('can toggle all/none for legacy browser', async function () {
+  it('can toggle all/none for legacy browser', async () => {
     renderComponent();
 
     const filter = 'legacy-browsers';
@@ -176,7 +176,7 @@ describe('ProjectFilters', function () {
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([]);
   });
 
-  it('can set ip address filter', async function () {
+  it('can set ip address filter', async () => {
     renderComponent();
 
     const mock = MockApiClient.addMockResponse({
@@ -196,14 +196,14 @@ describe('ProjectFilters', function () {
     );
   });
 
-  it('filter by release/error message are not enabled', async function () {
+  it('filter by release/error message are not enabled', async () => {
     renderComponent();
 
     expect(await screen.findByRole('textbox', {name: 'Releases'})).toBeDisabled();
     expect(screen.getByRole('textbox', {name: 'Error Message'})).toBeDisabled();
   });
 
-  it('has custom inbound filters with flag + can change', async function () {
+  it('has custom inbound filters with flag + can change', async () => {
     render(
       <ProjectFilters
         {...routerProps}
@@ -246,7 +246,7 @@ describe('ProjectFilters', function () {
     );
   });
 
-  it('disables configuration for non project:write users', async function () {
+  it('disables configuration for non project:write users', async () => {
     render(
       <ProjectFilters
         {...routerProps}
@@ -263,7 +263,7 @@ describe('ProjectFilters', function () {
     });
   });
 
-  it('shows disclaimer if error message filter is populated', async function () {
+  it('shows disclaimer if error message filter is populated', async () => {
     render(
       <ProjectFilters
         {...routerProps}

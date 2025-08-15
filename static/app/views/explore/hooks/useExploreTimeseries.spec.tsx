@@ -38,7 +38,7 @@ describe('useExploreTimeseries', () => {
     jest.clearAllMocks();
   });
 
-  it('triggers the high accuracy request when there is no data and a partial scan', async function () {
+  it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     mockNormalRequestUrl = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {

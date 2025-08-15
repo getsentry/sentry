@@ -230,14 +230,14 @@ function renderMockRequests() {
   };
 }
 
-describe('Results', function () {
-  afterEach(function () {
+describe('Results', () => {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
-  describe('Events', function () {
+  describe('Events', () => {
     const features = ['discover-basic'];
-    it('loads data when moving from an invalid to valid EventView', function () {
+    it('loads data when moving from an invalid to valid EventView', () => {
       const organization = OrganizationFixture({
         features,
       });
@@ -274,7 +274,7 @@ describe('Results', function () {
       );
     });
 
-    it('pagination cursor should be cleared when making a search', async function () {
+    it('pagination cursor should be cleared when making a search', async () => {
       const organization = OrganizationFixture({
         features,
       });
@@ -334,7 +334,7 @@ describe('Results', function () {
       });
     });
 
-    it('renders a y-axis selector', async function () {
+    it('renders a y-axis selector', async () => {
       const organization = OrganizationFixture({
         features,
       });
@@ -363,7 +363,7 @@ describe('Results', function () {
       );
     });
 
-    it('renders a display selector', async function () {
+    it('renders a display selector', async () => {
       const organization = OrganizationFixture({
         features,
       });
@@ -392,7 +392,7 @@ describe('Results', function () {
       );
     });
 
-    it('excludes top5 options when plan does not include discover-query', async function () {
+    it('excludes top5 options when plan does not include discover-query', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
@@ -420,7 +420,7 @@ describe('Results', function () {
       expect(screen.queryByText('Top 5 Period')).not.toBeInTheDocument();
     });
 
-    it('needs confirmation on long queries', async function () {
+    it('needs confirmation on long queries', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
@@ -448,7 +448,7 @@ describe('Results', function () {
       });
     });
 
-    it('needs confirmation on long query with explicit projects', async function () {
+    it('needs confirmation on long query with explicit projects', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
@@ -482,7 +482,7 @@ describe('Results', function () {
       });
     });
 
-    it('does not need confirmation on short queries', async function () {
+    it('does not need confirmation on short queries', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
@@ -510,7 +510,7 @@ describe('Results', function () {
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
     });
 
-    it('does not need confirmation with to few projects', async function () {
+    it('does not need confirmation with to few projects', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
@@ -544,7 +544,7 @@ describe('Results', function () {
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
     });
 
-    it('creates event view from saved query', async function () {
+    it('creates event view from saved query', async () => {
       const organization = OrganizationFixture({
         features,
         slug: 'org-slug',
@@ -596,7 +596,7 @@ describe('Results', function () {
       );
     });
 
-    it('overrides saved query params with location query params', async function () {
+    it('overrides saved query params with location query params', async () => {
       const organization = OrganizationFixture({
         features,
         slug: 'org-slug',
@@ -634,7 +634,7 @@ describe('Results', function () {
       );
     });
 
-    it('updates chart whenever yAxis parameter changes', async function () {
+    it('updates chart whenever yAxis parameter changes', async () => {
       const organization = OrganizationFixture({
         features,
       });
@@ -700,7 +700,7 @@ describe('Results', function () {
       });
     });
 
-    it('updates chart whenever display parameter changes', async function () {
+    it('updates chart whenever display parameter changes', async () => {
       const organization = OrganizationFixture({
         features,
       });
@@ -766,7 +766,7 @@ describe('Results', function () {
       });
     });
 
-    it('updates chart whenever display and yAxis parameters change', async function () {
+    it('updates chart whenever display and yAxis parameters change', async () => {
       const organization = OrganizationFixture({
         features,
       });
@@ -836,7 +836,7 @@ describe('Results', function () {
       });
     });
 
-    it('appends tag value to existing query when clicked', async function () {
+    it('appends tag value to existing query when clicked', async () => {
       const organization = OrganizationFixture({
         features,
       });
@@ -880,7 +880,7 @@ describe('Results', function () {
       ).toBeInTheDocument();
     });
 
-    it('respects pinned filters for prebuilt queries', async function () {
+    it('respects pinned filters for prebuilt queries', async () => {
       const organization = OrganizationFixture({
         features: [...features, 'global-views'],
       });
@@ -919,7 +919,7 @@ describe('Results', function () {
       expect(projectPageFilter).toHaveTextContent('All Projects');
     });
 
-    it('displays tip when events response contains a tip', async function () {
+    it('displays tip when events response contains a tip', async () => {
       renderMockRequests();
 
       MockApiClient.addMockResponse({
@@ -957,7 +957,7 @@ describe('Results', function () {
       });
     });
 
-    it('renders metric fallback alert', async function () {
+    it('renders metric fallback alert', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
@@ -986,7 +986,7 @@ describe('Results', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders unparameterized data banner', async function () {
+    it('renders unparameterized data banner', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
@@ -1275,7 +1275,7 @@ describe('Results', function () {
       expect(screen.getByTestId('set-as-default')).toBeEnabled();
     });
 
-    it("doesn't render sample data alert", async function () {
+    it("doesn't render sample data alert", async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });
@@ -1308,7 +1308,7 @@ describe('Results', function () {
       expect(screen.queryByText(/Based on your search criteria/)).not.toBeInTheDocument();
     });
 
-    it('uses split decision to populate dataset selector', async function () {
+    it('uses split decision to populate dataset selector', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });
@@ -1350,7 +1350,7 @@ describe('Results', function () {
       expect(screen.queryByText('Save Changes')).not.toBeInTheDocument();
     });
 
-    it('calls events endpoint with the right dataset', async function () {
+    it('calls events endpoint with the right dataset', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });
@@ -1434,7 +1434,7 @@ describe('Results', function () {
       );
     });
 
-    it('shows the search history for the error dataset', async function () {
+    it('shows the search history for the error dataset', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });
@@ -1520,7 +1520,7 @@ describe('Results', function () {
       ).toBeInTheDocument();
     });
 
-    it('shows the search history for the transaction dataset', async function () {
+    it('shows the search history for the transaction dataset', async () => {
       const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });

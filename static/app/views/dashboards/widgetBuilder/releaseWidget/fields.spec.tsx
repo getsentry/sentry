@@ -3,11 +3,11 @@ import {
   SESSIONS_FIELDS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
-describe('generateReleaseWidgetFieldOptions', function () {
+describe('generateReleaseWidgetFieldOptions', () => {
   const fields = Object.values(SESSIONS_FIELDS);
   const tagKeys = ['release', 'environment'];
 
-  it('generates correct field options', function () {
+  it('generates correct field options', () => {
     expect(generateReleaseWidgetFieldOptions(fields, tagKeys)).toEqual({
       'field:session': {
         label: 'session',

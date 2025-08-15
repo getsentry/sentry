@@ -15,7 +15,7 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
-describe('DatabaseLandingPage', function () {
+describe('DatabaseLandingPage', () => {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
   let spanListRequestMock: jest.Mock;
@@ -58,7 +58,7 @@ describe('DatabaseLandingPage', function () {
     releases: [],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -123,11 +123,11 @@ describe('DatabaseLandingPage', function () {
     });
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('fetches module data', async function () {
+  it('fetches module data', async () => {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
@@ -219,7 +219,7 @@ describe('DatabaseLandingPage', function () {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 
-  it('renders a list of queries', async function () {
+  it('renders a list of queries', async () => {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />, {organization, deprecatedRouterMocks: true});
@@ -232,7 +232,7 @@ describe('DatabaseLandingPage', function () {
     ).toBeInTheDocument();
   });
 
-  it('filters by category and action', async function () {
+  it('filters by category and action', async () => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -338,7 +338,7 @@ describe('DatabaseLandingPage', function () {
     );
   });
 
-  it('displays the correct domain label for SQL systems', async function () {
+  it('displays the correct domain label for SQL systems', async () => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -362,7 +362,7 @@ describe('DatabaseLandingPage', function () {
     expect(domainSelector).toHaveTextContent('Table');
   });
 
-  it('displays the correct domain label for NoSQL systems', async function () {
+  it('displays the correct domain label for NoSQL systems', async () => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
