@@ -10,7 +10,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
@@ -31,12 +31,21 @@ class ReplayViewedByResponse(TypedDict):
     data: ReplayViewedByResponsePayload
 
 
+class ReplayViewedByPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["event:read", "event:write", "event:admin"],
+        "POST": ["event:read", "event:write", "event:admin"],
+        "PUT": [],
+        "DELETE": [],
+    }
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplayViewedByEndpoint(ProjectEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE}
-    permission_classes = (ProjectEventPermission,)
+    permission_classes = (ReplayViewedByPermission,)
 
     @extend_schema(
         operation_id="List Users Who Have Viewed a Replay",
