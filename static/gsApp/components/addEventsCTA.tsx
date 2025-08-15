@@ -51,6 +51,7 @@ type Props = {
   source: string;
   subscription: Subscription;
   buttonProps?: Partial<ButtonProps | LinkButtonProps>;
+  buttonText?: string;
   eventTypes?: EventType[];
   handleRequestSent?: () => void;
   notificationType?: 'overage_warning' | 'overage_critical';
@@ -74,6 +75,7 @@ function AddEventsCTA(props: Props) {
     handleRequestSent,
     source,
     buttonProps,
+    buttonText = 'Upgrade Plan',
   } = props;
 
   const [busy, setBusy] = useState(false);
@@ -194,10 +196,9 @@ function AddEventsCTA(props: Props) {
           onClick={handleAnalytics}
           {...(commonProps as LinkButtonProps)}
         >
-          {t('Upgrade Plan')}
+          {tct('[buttonText]', {buttonText})}
         </LinkButton>
       );
   }
 }
-
 export default withApi(AddEventsCTA);
