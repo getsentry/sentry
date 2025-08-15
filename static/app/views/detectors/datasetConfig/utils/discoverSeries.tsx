@@ -69,6 +69,8 @@ export function getDiscoverSeriesQueryOptions({
   dataset,
   statsPeriod,
   comparisonDelta,
+  start,
+  end,
 }: DetectorSeriesQueryOptions): ApiQueryKey {
   return [
     `/organizations/${organization.slug}/events-stats/`,
@@ -79,9 +81,10 @@ export function getDiscoverSeriesQueryOptions({
         yAxis: aggregate,
         dataset,
         includePrevious: false,
-        partial: true,
         includeAllArgs: true,
         statsPeriod,
+        start,
+        end,
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
         ...(comparisonDelta && {comparisonDelta}),

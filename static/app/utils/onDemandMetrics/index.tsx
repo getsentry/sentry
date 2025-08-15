@@ -5,16 +5,16 @@ import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import type {Organization} from 'sentry/types/organization';
 import {
   AggregationKey,
-  type ErrorTags,
   FieldKey,
   getFieldDefinition,
+  type ErrorTags,
 } from 'sentry/utils/fields';
 import {
   ERROR_ONLY_TAGS,
   ON_DEMAND_METRICS_UNSUPPORTED_TAGS,
   STANDARD_SEARCH_FIELD_KEYS,
 } from 'sentry/utils/onDemandMetrics/constants';
-import {type WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType, type WidgetQuery} from 'sentry/views/dashboards/types';
 
 import {hasOnDemandMetricWidgetFeature} from './features';
 

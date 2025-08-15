@@ -12,8 +12,8 @@ import {
   type FeatureFlagEventParameters,
 } from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
 import {
-  type GamingAnalyticsEventParameters,
   gamingEventMap,
+  type GamingAnalyticsEventParameters,
 } from 'sentry/utils/analytics/gamingAnalyticsEvents';
 import {
   logsAnalyticsEventMap,

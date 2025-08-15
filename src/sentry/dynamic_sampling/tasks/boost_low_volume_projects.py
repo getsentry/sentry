@@ -251,9 +251,27 @@ def boost_low_volume_projects_of_org(
     organization ID. Transaction counts and rates have to be provided.
     """
 
-    rebalanced_projects = calculate_sample_rates_of_projects(
-        org_id, projects_with_tx_count_and_rates
-    )
+    org = Organization.objects.get_from_cache(id=org_id)
+    if features.has("organizations:log-project-config", org):
+        logger.info(
+            "log-project-config: Starting boost_low_volume_projects_of_org for org %s",
+            org_id,
+            extra={"org_id": org_id},
+        )
+
+    try:
+        rebalanced_projects = calculate_sample_rates_of_projects(
+            org_id, projects_with_tx_count_and_rates
+        )
+    except Exception as e:
+        if features.has("organizations:log-project-config", org):
+            logger.info(
+                "log-project-config: Error calculating sample rates of for org %s",
+                org_id,
+                extra={"org_id": org_id},
+            )
+        sentry_sdk.capture_exception(e)
+        raise
 
     logger.info(
         "boost_low_volume_projects_of_org",
@@ -265,6 +283,17 @@ def boost_low_volume_projects_of_org(
     )
     if rebalanced_projects is not None:
         store_rebalanced_projects(org_id, rebalanced_projects)
+        metrics.incr(
+            "dynamic_sampling.boost_low_volume_projects_of_org.success",
+            tags={"type": "rebalanced"},
+            sample_rate=1,
+        )
+    else:
+        metrics.incr(
+            "dynamic_sampling.boost_low_volume_projects_of_org.success",
+            tags={"type": "not_rebalanced"},
+            sample_rate=1,
+        )
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
@@ -326,7 +355,10 @@ def query_project_counts_by_org(
     if query_interval > timedelta(days=1):
         granularity = Granularity(24 * 3600)
     else:
-        granularity = Granularity(3600)
+        if options.get("dynamic-sampling.query-granularity-60s", None):
+            granularity = Granularity(60)
+        else:
+            granularity = Granularity(3600)
 
     org_ids = list(org_ids)
     project_ids = list(

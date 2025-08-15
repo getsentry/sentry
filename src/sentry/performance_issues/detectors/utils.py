@@ -1,4 +1,5 @@
 import re
+from typing import Any
 
 from sentry.performance_issues.base import get_span_duration
 
@@ -22,3 +23,12 @@ def escape_transaction(transaction: str) -> str:
     transaction = re.sub(r'"', r"\"", transaction)
     transaction = re.sub(r"\*", r"\*", transaction)
     return transaction
+
+
+def has_filtered_url(event: dict[str, Any], span: Span) -> bool:
+    event_spans = event.get("spans", [])
+    span_index = str(event_spans.index(span) if span in event_spans else -1)
+    meta = event.get("_meta", {}).get("spans", {})
+    if span_index in meta and meta[span_index].get("data", {}).get("url", {}):
+        return True
+    return False

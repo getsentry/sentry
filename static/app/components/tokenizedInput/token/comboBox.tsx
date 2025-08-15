@@ -228,6 +228,7 @@ export function ComboBox({
       listBoxRef,
       inputRef,
       popoverRef,
+      shouldFocusWrap: true,
       onFocus: handleComboBoxFocus,
       onBlur: handleComboBoxBlur,
       onKeyDown: handleComboBoxKeyDown,

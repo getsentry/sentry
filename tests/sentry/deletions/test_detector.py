@@ -127,7 +127,6 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         proj_sub = self.create_project_uptime_subscription()
         uptime_sub = proj_sub.uptime_subscription
         detector = get_detector(uptime_sub)
-        assert detector
         self.ScheduledDeletion.schedule(instance=detector, days=0)
 
         with self.tasks():

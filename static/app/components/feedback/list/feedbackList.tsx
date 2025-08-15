@@ -4,6 +4,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import type {ApiResult} from 'sentry/api';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
@@ -57,8 +58,13 @@ export default function FeedbackList() {
           backgroundUpdatingMessage={() => null}
           loadingMessage={() => <LoadingIndicator />}
         >
-          <InfiniteListItems<FeedbackIssueListItem>
-            deduplicateItems={items => uniqBy(items, 'id')}
+          <InfiniteListItems<FeedbackIssueListItem, ApiResult<FeedbackIssueListItem[]>>
+            deduplicateItems={pages =>
+              uniqBy(
+                pages.flatMap(page => page[0]),
+                'id'
+              )
+            }
             estimateSize={() => 24}
             queryResult={queryResult}
             itemRenderer={({item}) => (

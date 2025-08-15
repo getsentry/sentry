@@ -16,8 +16,8 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {
-  type DomainView,
   useDomainViewFilters,
+  type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
 import {ChartPlacementSlot} from 'sentry/views/insights/sessions/components/chartPlacement';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';

@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 from django.db.models import F
 
-from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,

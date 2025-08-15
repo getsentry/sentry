@@ -9,10 +9,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
-  type DashboardDetails,
-  type DashboardFilters,
   DisplayType,
   WidgetType,
+  type DashboardDetails,
+  type DashboardFilters,
 } from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -137,6 +137,7 @@ function WidgetPreview({
       showLoadingText
       onWidgetTableSort={handleWidgetTableSort}
       onWidgetTableResizeColumn={handleWidgetTableResizeColumn}
+      disableTableActions
     />
   );
 }

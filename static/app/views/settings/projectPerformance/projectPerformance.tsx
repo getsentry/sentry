@@ -31,11 +31,11 @@ import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';

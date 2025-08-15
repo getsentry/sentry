@@ -6,8 +6,8 @@ import {t} from 'sentry/locale';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {
-  type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
+  type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   Section,

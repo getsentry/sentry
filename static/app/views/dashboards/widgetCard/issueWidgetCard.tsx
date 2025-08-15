@@ -14,7 +14,7 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -31,6 +31,7 @@ type Props = {
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  disableTableActions?: boolean;
   errorMessage?: string;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   tableResults?: TableData[];
@@ -46,6 +47,7 @@ export function IssueWidgetCard({
   location,
   theme,
   onWidgetTableResizeColumn,
+  disableTableActions,
 }: Props) {
   const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
 
@@ -83,6 +85,7 @@ export function IssueWidgetCard({
     return datasetConfig.getCustomFieldRenderer?.(field, meta, widget, org) || null;
   };
 
+  const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
   return organization.features.includes('dashboards-use-widget-table-visualization') ? (
     <TableContainer>
       <TableWidgetVisualization
@@ -113,7 +116,7 @@ export function IssueWidgetCard({
           } satisfies RenderFunctionBaggage;
         }}
         onResizeColumn={onWidgetTableResizeColumn}
-        allowedCellActions={[]}
+        allowedCellActions={disableTableActions || !useCellActionsV2 ? [] : undefined}
       />
     </TableContainer>
   ) : (

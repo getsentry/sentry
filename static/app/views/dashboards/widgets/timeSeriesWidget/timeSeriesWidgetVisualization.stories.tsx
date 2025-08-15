@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
+import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
@@ -31,8 +32,6 @@ import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
 import {Samples} from './plottables/samples';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
-
-import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,

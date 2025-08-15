@@ -4,8 +4,8 @@ import type {TagCollection} from 'sentry/types/group';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
-  type TraceItemSearchQueryBuilderProps,
   useSearchQueryBuilderProps,
+  type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useLogsFields,

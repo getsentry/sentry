@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -102,6 +103,15 @@ describe('SpansTabContent', function () {
       url: `/organizations/${organization.slug}/traces/`,
       method: 'GET',
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+      }),
     });
   });
 

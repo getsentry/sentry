@@ -1,4 +1,4 @@
-import {type RefObject, useCallback, useLayoutEffect, useState} from 'react';
+import {useCallback, useLayoutEffect, useState, type RefObject} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
 
 import type {EventTag, EventTagWithMeta} from 'sentry/types/event';

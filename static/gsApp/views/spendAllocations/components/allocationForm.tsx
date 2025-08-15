@@ -210,7 +210,7 @@ function AllocationForm({
           end_timestamp: new Date(end).getTime() / 1000,
         },
       });
-    } catch (err) {
+    } catch (err: any) {
       addErrorMessage(err.responseJSON.detail);
       return;
     }

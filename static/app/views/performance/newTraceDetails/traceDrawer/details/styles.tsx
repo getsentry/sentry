@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -21,9 +21,9 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
   CardPanel,
   KeyValueData,
-  type KeyValueDataContentProps,
   Subject,
   ValueSection,
+  type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import Panel from 'sentry/components/panels/panel';

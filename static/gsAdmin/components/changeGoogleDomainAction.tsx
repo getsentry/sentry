@@ -67,7 +67,7 @@ class ChangeGoogleDomainModal extends Component<ModalProps, ModalState> {
       } else {
         this.onActionSuccess(result.new_domain);
       }
-    } catch (error) {
+    } catch (error: any) {
       this.onActionError(error);
     }
 

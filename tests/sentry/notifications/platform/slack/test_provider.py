@@ -17,7 +17,30 @@ class SlackRendererTest(TestCase):
         renderer = SlackNotificationProvider.get_renderer(
             data=data, category=NotificationCategory.DEBUG
         )
-        assert renderer.render(data=data, rendered_template=rendered_template) == {}
+
+        rendererable = renderer.render(data=data, rendered_template=rendered_template)
+        rendererable_dict = [block.to_dict() for block in rendererable.get("blocks", [])]
+
+        assert rendererable_dict == [
+            {"text": {"text": "Mock Notification", "type": "plain_text"}, "type": "header"},
+            {"text": {"text": "test", "type": "mrkdwn"}, "type": "section"},
+            {
+                "elements": [
+                    {
+                        "text": {"emoji": True, "text": "Visit Sentry", "type": "plain_text"},
+                        "type": "button",
+                        "url": "https://www.sentry.io",
+                    }
+                ],
+                "type": "actions",
+            },
+            {"text": {"text": "This is a mock footer", "type": "mrkdwn"}, "type": "section"},
+            {
+                "image_url": "https://raw.githubusercontent.com/knobiknows/all-the-bufo/main/all-the-bufo/bufo-pog.png",
+                "alt_text": "Bufo Pog",
+                "type": "image",
+            },
+        ]
 
 
 class SlackNotificationProviderTest(TestCase):

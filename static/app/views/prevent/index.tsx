@@ -14,17 +14,13 @@ export default function PreventPage({children}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
-  // Redirect to coverage page if the user lands on the codecov page
-  if (
-    location.pathname === `/${PREVENT_BASE_URL}/` ||
-    location.pathname === `/${PREVENT_BASE_URL}/coverage`
-  ) {
-    return <Redirect to={`/${PREVENT_BASE_URL}/coverage/commits/`} />;
+  if (location.pathname === `/${PREVENT_BASE_URL}/`) {
+    return <Redirect to={`/${PREVENT_BASE_URL}/prevent-ai/new/`} />;
   }
 
   return (
     <Feature
-      features={['codecov-ui']}
+      features={['prevent-ai']}
       organization={organization}
       renderDisabled={NoAccess}
     >

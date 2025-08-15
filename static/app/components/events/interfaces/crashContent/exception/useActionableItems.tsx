@@ -1,6 +1,6 @@
 import {
-  type ErrorMessage,
   getErrorMessage,
+  type ErrorMessage,
 } from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {
   shouldErrorBeShown,

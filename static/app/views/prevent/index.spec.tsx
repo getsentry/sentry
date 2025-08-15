@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PreventPage from 'sentry/views/prevent';
 
-const COVERAGE_FEATURE = 'codecov-ui';
+const PREVENT_FEATURE = 'prevent-ai';
 
 describe('PreventPage', () => {
   describe('when the user has access to the feature', () => {
@@ -13,7 +13,7 @@ describe('PreventPage', () => {
         <PreventPage>
           <p>Test content</p>
         </PreventPage>,
-        {organization: OrganizationFixture({features: [COVERAGE_FEATURE]})}
+        {organization: OrganizationFixture({features: [PREVENT_FEATURE]})}
       );
 
       const testContent = screen.getByText('Test content');

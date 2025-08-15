@@ -6,7 +6,7 @@ from hashlib import md5
 from typing import TYPE_CHECKING, TypedDict, Union
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import BaseEvent
+    from sentry.services.eventstore.models import BaseEvent
 
 
 class EventLinkKafkaMessage(TypedDict):

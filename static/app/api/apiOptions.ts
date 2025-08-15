@@ -1,10 +1,10 @@
-import {queryOptions, type SkipToken, skipToken} from '@tanstack/react-query';
+import {queryOptions, skipToken, type SkipToken} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
 import {fetchDataQuery, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 
 import type {MaybeApiPath} from './apiDefinition';
-import {type ExtractPathParams, getApiUrl, type OptionalPathParams} from './getApiUrl';
+import {getApiUrl, type ExtractPathParams, type OptionalPathParams} from './getApiUrl';
 
 type Options = QueryKeyEndpointOptions & {staleTime: number};
 

@@ -3,8 +3,8 @@ import {t, tct} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {
-  type CombinedAlerts,
   CombinedAlertType,
+  type CombinedAlerts,
   type CronRule,
   type IssueAlert,
   type MetricAlert,

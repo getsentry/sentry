@@ -21,7 +21,7 @@ from sentry.grouping.strategies.base import (
 from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple, Hpkp
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 
 @strategy(ids=["expect-ct:v1"], interface=ExpectCT, score=1000)

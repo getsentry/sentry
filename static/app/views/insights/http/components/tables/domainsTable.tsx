@@ -1,4 +1,4 @@
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';

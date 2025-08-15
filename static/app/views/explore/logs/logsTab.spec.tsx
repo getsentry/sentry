@@ -14,6 +14,7 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
 
@@ -82,7 +83,7 @@ describe('LogsTabContent', function () {
             severity_text: 'info',
             timestamp: '2025-04-10T19:21:12+00:00',
             message: 'some log message1',
-            'tags[sentry.timestamp_precise,number]': 1.7443128722090732e18,
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.7443128722090732e18,
           },
           {
             'sentry.item_id': '0196212624a17144aa392d01420256a2',
@@ -92,7 +93,7 @@ describe('LogsTabContent', function () {
             severity_text: 'info',
             timestamp: '2025-04-10T19:21:10+00:00',
             message: 'some log message2',
-            'tags[sentry.timestamp_precise,number]': 1.744312870049196e18,
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.744312870049196e18,
           },
         ],
         meta: {
@@ -104,7 +105,7 @@ describe('LogsTabContent', function () {
             severity_text: 'string',
             timestamp: 'string',
             message: 'string',
-            'tags[sentry.timestamp_precise,number]': 'number',
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
           },
           units: {
             'sentry.item_id': null,
@@ -114,7 +115,7 @@ describe('LogsTabContent', function () {
             severity_text: null,
             timestamp: null,
             message: null,
-            'tags[sentry.timestamp_precise,number]': null,
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: null,
           },
           isMetricsData: false,
           isMetricsExtractedData: false,
@@ -192,8 +193,7 @@ describe('LogsTabContent', function () {
           dataset: 'ourlogs',
           yAxis: 'count(message)',
           interval: '1h',
-          query:
-            'severity:error tags[sentry.timestamp_precise,number]:<=1508208040000000000',
+          query: 'severity:error timestamp_precise:<=1508208040000000000',
         }),
       })
     );

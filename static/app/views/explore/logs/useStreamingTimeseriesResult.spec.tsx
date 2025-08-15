@@ -6,8 +6,10 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {
@@ -19,6 +21,8 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
+jest.mock('sentry/utils/useNavigate');
+const mockUseNavigate = jest.mocked(useNavigate);
 
 function preciseTimestampFromMillis(timestamp: number) {
   return String(BigInt(timestamp) * 1_000_000n);
@@ -38,6 +42,7 @@ describe('useStreamingTimeseriesResult', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockUseLocation.mockReturnValue(LocationFixture());
+    mockUseNavigate.mockReturnValue(jest.fn());
   });
 
   const createWrapper = ({
@@ -52,23 +57,22 @@ describe('useStreamingTimeseriesResult', () => {
     const testContext: Record<string, any> = {
       autoRefresh,
     };
-    if (groupBy !== undefined) {
-      testContext.groupBy = groupBy;
-    }
     return function ({children}: {children: React.ReactNode}) {
       const mockLocation = LocationFixture({
-        query: groupBy ? {groupBy} : {},
+        query: groupBy ? {logsGroupBy: groupBy} : {},
       });
       mockUseLocation.mockReturnValue(mockLocation);
 
       return (
         <OrganizationContext.Provider value={organization ?? logsOrganization}>
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            _testContext={testContext}
-          >
-            {children}
-          </LogsPageParamsProvider>
+          <LogsQueryParamsProvider source="location">
+            <LogsPageParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+              _testContext={testContext}
+            >
+              {children}
+            </LogsPageParamsProvider>
+          </LogsQueryParamsProvider>
         </OrganizationContext.Provider>
       );
     };

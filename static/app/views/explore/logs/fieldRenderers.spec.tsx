@@ -10,7 +10,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
-import {type LogRowItem, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey, type LogRowItem} from 'sentry/views/explore/logs/types';
 
 const TimestampRenderer = LogAttributesRendererMap[OurLogKnownFieldKey.TIMESTAMP];
 
@@ -40,6 +40,7 @@ describe('Logs Field Renderers', function () {
       organization,
       location: {} as any,
       theme: ThemeFixture(),
+      attributeTypes: {},
       attributes,
       highlightTerms: [],
       logColors: {
@@ -107,7 +108,7 @@ describe('Logs Field Renderers', function () {
       expect(TimestampRenderer).toBeDefined();
       const preciseTimestamp = '1705329045123456789';
       const props = makeRendererProps(timestamp, {
-        'tags[sentry.timestamp_precise,number]': preciseTimestamp,
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestamp,
       });
       const result = TimestampRenderer!(props);
 

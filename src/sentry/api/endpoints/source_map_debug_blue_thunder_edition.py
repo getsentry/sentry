@@ -8,7 +8,6 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -33,6 +32,7 @@ from sentry.models.releasefile import (
     ReleaseFile,
 )
 from sentry.sdk_updates import get_sdk_index
+from sentry.services import eventstore
 from sentry.utils import json
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.safe import get_path

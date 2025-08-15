@@ -9,8 +9,8 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {
-  type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
+  type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   Section,

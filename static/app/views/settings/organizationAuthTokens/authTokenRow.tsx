@@ -13,7 +13,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {OrgAuthToken} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 function LastUsed({
@@ -29,14 +28,7 @@ function LastUsed({
     return (
       <Fragment>
         {tct('[date] in project [project]', {
-          date: (
-            <TimeSince
-              date={getDynamicText({
-                value: dateLastUsed,
-                fixed: new Date(1508208080000), // National Pasta Day
-              })}
-            />
-          ),
+          date: <TimeSince date={dateLastUsed} />,
           project: (
             <Link to={`/settings/${organization.slug}/projects/${projectLastUsed.slug}/`}>
               {projectLastUsed.name}
@@ -50,12 +42,7 @@ function LastUsed({
   if (dateLastUsed) {
     return (
       <Fragment>
-        <TimeSince
-          date={getDynamicText({
-            value: dateLastUsed,
-            fixed: new Date(1508208080000), // National Pasta Day
-          })}
-        />
+        <TimeSince date={dateLastUsed} />
       </Fragment>
     );
   }
@@ -103,13 +90,7 @@ export function OrganizationAuthTokensAuthTokenRow({
 
         {token.tokenLastCharacters && (
           <TokenPreview aria-label={t('Token preview')}>
-            {tokenPreview(
-              getDynamicText({
-                value: token.tokenLastCharacters,
-                fixed: 'ABCD',
-              }),
-              'sntrys_'
-            )}
+            {tokenPreview(token.tokenLastCharacters, 'sntrys_')}
           </TokenPreview>
         )}
       </div>
@@ -119,12 +100,7 @@ export function OrganizationAuthTokensAuthTokenRow({
           <Placeholder height="1.25em" />
         ) : (
           <Fragment>
-            <TimeSince
-              date={getDynamicText({
-                value: token.dateCreated,
-                fixed: new Date(1508208080000), // National Pasta Day
-              })}
-            />
+            <TimeSince date={token.dateCreated} />
           </Fragment>
         )}
       </DateTime>

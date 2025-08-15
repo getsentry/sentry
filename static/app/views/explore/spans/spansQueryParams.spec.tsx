@@ -6,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/spans/spansQueryParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -31,7 +31,7 @@ function readableQueryParamOptions(
     ],
     sortBys: [{field: 'timestamp', kind: 'desc'}],
     aggregateCursor: '',
-    aggregateFields: [{groupBy: ''}, new Visualize('count(span.duration)')],
+    aggregateFields: [{groupBy: ''}, new VisualizeFunction('count(span.duration)')],
     aggregateSortBys: [
       {
         field: 'count(span.duration)',
@@ -224,7 +224,7 @@ describe('getReadableQueryParamsFromLocation', function () {
           aggregateFields: [
             {groupBy: 'span.op'},
             {groupBy: 'transaction'},
-            new Visualize('count(span.duration)'),
+            new VisualizeFunction('count(span.duration)'),
           ],
         })
       )
@@ -238,15 +238,19 @@ describe('getReadableQueryParamsFromLocation', function () {
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams.aggregateFields).toHaveLength(3);
     expect(queryParams.aggregateFields[0]).toEqual({groupBy: ''});
-    expect(queryParams.aggregateFields[1]).toEqual(new Visualize('count(span.duration)'));
-    expect(queryParams.aggregateFields[2]).toEqual(new Visualize('avg(span.self_time)'));
+    expect(queryParams.aggregateFields[1]).toEqual(
+      new VisualizeFunction('count(span.duration)')
+    );
+    expect(queryParams.aggregateFields[2]).toEqual(
+      new VisualizeFunction('avg(span.self_time)')
+    );
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
           aggregateFields: [
             {groupBy: ''},
-            new Visualize('count(span.duration)'),
-            new Visualize('avg(span.self_time)'),
+            new VisualizeFunction('count(span.duration)'),
+            new VisualizeFunction('avg(span.self_time)'),
           ],
         })
       )
@@ -266,8 +270,8 @@ describe('getReadableQueryParamsFromLocation', function () {
         readableQueryParamOptions({
           aggregateFields: [
             {groupBy: ''},
-            new Visualize('count(span.duration)', {chartType: ChartType.LINE}),
-            new Visualize('avg(span.self_time)', {chartType: ChartType.LINE}),
+            new VisualizeFunction('count(span.duration)', {chartType: ChartType.LINE}),
+            new VisualizeFunction('avg(span.self_time)', {chartType: ChartType.LINE}),
           ],
         })
       )
@@ -287,10 +291,10 @@ describe('getReadableQueryParamsFromLocation', function () {
       new ReadableQueryParams(
         readableQueryParamOptions({
           aggregateFields: [
-            new Visualize('count(span.duration)', {chartType: ChartType.AREA}),
+            new VisualizeFunction('count(span.duration)', {chartType: ChartType.AREA}),
             {groupBy: 'span.op'},
-            new Visualize('p50(span.duration)'),
-            new Visualize('p75(span.duration)'),
+            new VisualizeFunction('p50(span.duration)'),
+            new VisualizeFunction('p75(span.duration)'),
           ],
         })
       )
@@ -308,7 +312,7 @@ describe('getReadableQueryParamsFromLocation', function () {
       new ReadableQueryParams(
         readableQueryParamOptions({
           aggregateFields: [
-            new Visualize('count(span.duration)', {chartType: ChartType.LINE}),
+            new VisualizeFunction('count(span.duration)', {chartType: ChartType.LINE}),
             {groupBy: ''},
           ],
         })
@@ -323,11 +327,16 @@ describe('getReadableQueryParamsFromLocation', function () {
     const queryParams = getReadableQueryParamsFromLocation(location, organization);
     expect(queryParams.aggregateFields).toHaveLength(2);
     expect(queryParams.aggregateFields[0]).toEqual({groupBy: 'span.op'});
-    expect(queryParams.aggregateFields[1]).toEqual(new Visualize('count(span.duration)'));
+    expect(queryParams.aggregateFields[1]).toEqual(
+      new VisualizeFunction('count(span.duration)')
+    );
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
-          aggregateFields: [{groupBy: 'span.op'}, new Visualize('count(span.duration)')],
+          aggregateFields: [
+            {groupBy: 'span.op'},
+            new VisualizeFunction('count(span.duration)'),
+          ],
         })
       )
     );
@@ -348,8 +357,8 @@ describe('getReadableQueryParamsFromLocation', function () {
         readableQueryParamOptions({
           aggregateFields: [
             {groupBy: 'span.op'},
-            new Visualize('p50(span.duration)'),
-            new Visualize('avg(span.duration)', {chartType: ChartType.AREA}),
+            new VisualizeFunction('p50(span.duration)'),
+            new VisualizeFunction('avg(span.duration)', {chartType: ChartType.AREA}),
           ],
           aggregateSortBys: [
             {field: 'span.op', kind: 'desc'},
@@ -371,7 +380,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
-          aggregateFields: [{groupBy: ''}, new Visualize('p50(span.duration)')],
+          aggregateFields: [{groupBy: ''}, new VisualizeFunction('p50(span.duration)')],
           aggregateSortBys: [{field: 'p50(span.duration)', kind: 'desc'}],
         })
       )

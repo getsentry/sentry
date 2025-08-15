@@ -121,7 +121,7 @@ export function parseArithmetic(query: string): ParseResult {
   try {
     const result = grammar.parse(query, {tc});
     return {result, error: tc.errors[0], tc};
-  } catch (error) {
+  } catch (error: any) {
     return {result: null, error: error.message, tc};
   }
 }

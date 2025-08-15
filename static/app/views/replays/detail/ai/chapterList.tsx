@@ -253,7 +253,6 @@ const ChapterIconArrow = styled(IconChevron)`
 
 const ChaptersList = styled('div')`
   flex: 1;
-  overflow: auto;
 `;
 
 const ChapterWrapper = styled('details')`

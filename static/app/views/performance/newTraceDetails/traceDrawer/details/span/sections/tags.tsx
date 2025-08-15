@@ -1,8 +1,8 @@
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
 import {
-  type SectionCardKeyValueList,
   TraceDrawerComponents,
+  type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';

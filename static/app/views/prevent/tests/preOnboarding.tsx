@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import testsAnalyticsSummary from 'sentry-images/features/test-analytics-summary.svg';
 import testsAnalyticsSummaryDark from 'sentry-images/features/test-analytics-summary-dark.svg';
+import testsAnalyticsSummary from 'sentry-images/features/test-analytics-summary.svg';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';

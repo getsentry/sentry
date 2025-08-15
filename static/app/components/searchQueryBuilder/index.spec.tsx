@@ -23,9 +23,9 @@ import {
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
 import {
+  QueryInterfaceType,
   type FieldDefinitionGetter,
   type FilterKeySection,
-  QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
@@ -1590,6 +1590,59 @@ describe('SearchQueryBuilder', function () {
       const updatedListBox = screen.getByRole('checkbox', {name: 'Toggle randomValue'});
       expect(updatedListBox).toBeChecked();
     });
+
+    describe('filter key combobox', function () {
+      it.each([
+        {
+          description: 'goes to first item when pressing arrow down',
+          arrow: '{ArrowDown}',
+          expected: 'option-age',
+        },
+        {
+          description: 'goes to last item when pressing arrow up',
+          arrow: '{ArrowUp}',
+          expected: 'option-custom_tag_name',
+        },
+        {
+          description: 'goes to first item when pressing arrow down on the last item',
+          arrow: '{ArrowDown}{ArrowUp}',
+          expected: 'option-custom_tag_name',
+        },
+        {
+          description: 'goes to last item when pressing arrow up on the first item',
+          arrow: '{ArrowUp}{ArrowDown}',
+          expected: 'option-age',
+        },
+        {
+          description: 'goes to the last item after going from second up to first',
+          arrow: '{ArrowDown}{ArrowDown}{ArrowUp}{ArrowUp}',
+          expected: 'option-custom_tag_name',
+        },
+        {
+          description:
+            'goes to the first item after going from second last item up to first',
+          arrow: '{ArrowUp}{ArrowUp}{ArrowDown}{ArrowDown}',
+          expected: 'option-age',
+        },
+      ])('$description', async function ({arrow, expected}) {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+        );
+
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
+
+        await userEvent.keyboard(arrow);
+        const input = await screen.findByRole('combobox', {name: 'Edit filter key'});
+        expect(input).toHaveAttribute(
+          'aria-activedescendant',
+          expect.stringContaining(expected)
+        );
+      });
+    });
   });
 
   describe('token values', function () {
@@ -1918,11 +1971,12 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
         );
-        // Should start with an empty input
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
-        });
 
+        // Should start with an input with the previous value
+        const combobox = screen.getByRole('combobox', {name: 'Edit filter key'});
+        await waitFor(() => expect(combobox).toHaveValue('browser.name'));
+
+        await userEvent.clear(combobox);
         await userEvent.click(screen.getByRole('option', {name: 'custom_tag_name'}));
 
         await waitFor(() => {
@@ -1955,11 +2009,11 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
         );
-        // Should start with an empty input
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
-        });
+        // Should start with an input with the previous value
+        const combobox = screen.getByRole('combobox', {name: 'Edit filter key'});
+        await waitFor(() => expect(combobox).toHaveValue('browser.name'));
 
+        await userEvent.clear(combobox);
         await userEvent.click(screen.getByRole('option', {name: 'age'}));
 
         await waitFor(() => {
@@ -3626,18 +3680,18 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...builderProps} initialQuery="tags[foo,string]:foo" />
       );
 
-      expect(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
-      ).toHaveTextContent('foo');
-
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
-      );
+      const editKeyButton = screen.getByRole('button', {
+        name: 'Edit key for filter: tags[foo,string]',
+      });
+      expect(editKeyButton).toHaveTextContent('foo');
+      await userEvent.click(editKeyButton);
 
       const input = screen.getByPlaceholderText('foo');
       expect(input).toBeInTheDocument();
       expect(input).toHaveFocus();
+      await userEvent.clear(input);
       await userEvent.keyboard('foo');
+
       expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
     });
 
@@ -3646,18 +3700,18 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...builderProps} initialQuery="tags[bar,number]:<=100" />
       );
 
-      expect(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
-      ).toHaveTextContent('bar');
+      const editKeyButton = screen.getByRole('button', {
+        name: 'Edit key for filter: tags[bar,number]',
+      });
+      expect(editKeyButton).toHaveTextContent('bar');
+      await userEvent.click(editKeyButton);
 
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
-      );
-
-      const input = screen.getByPlaceholderText('bar');
+      const input = screen.getByRole('combobox', {name: 'Edit filter key'});
       expect(input).toBeInTheDocument();
       expect(input).toHaveFocus();
+      await userEvent.clear(input);
       await userEvent.keyboard('bar');
+
       expect(screen.getByRole('option', {name: 'bar'})).toBeInTheDocument();
     });
 
@@ -3793,6 +3847,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
       );
+      await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
       await userEvent.keyboard('foo{Enter}{Escape}');
 
       expect(
@@ -3808,6 +3863,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
       );
+      await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
       await userEvent.keyboard('bar{Enter}{Escape}');
 
       expect(

@@ -84,7 +84,7 @@ async function fetchReplayList({
       // (which doesn't make sense as we want to show no replays),
       // we essentially want to hardcode no replays being returned.
     };
-  } catch (error) {
+  } catch (error: any) {
     if (error.responseJSON?.detail) {
       return {
         fetchError: error.responseJSON.detail,

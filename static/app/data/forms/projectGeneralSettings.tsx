@@ -2,8 +2,11 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Button} from 'sentry/components/core/button';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {Field} from 'sentry/components/forms/types';
+import {Hovercard} from 'sentry/components/hovercard';
 import platforms from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -140,9 +143,21 @@ export const fields = {
     rows: 1,
     placeholder: t('https://example.com or example.com'),
     label: t('Allowed Domains'),
-    help: t(
-      'Examples: https://example.com, *, *.example.com, *:80. Separate multiple entries with a newline'
-    ),
+    help: tct('Separate multiple entries with a newline. [examples]', {
+      examples: (
+        <Hovercard
+          body={
+            <CodeSnippet hideCopyButton>
+              {`https://example.com\n*.example.com\n*:80\n*`}
+            </CodeSnippet>
+          }
+        >
+          <Button priority="link" size="xs">
+            {t('View Examples')}
+          </Button>
+        </Hovercard>
+      ),
+    }),
     getValue: val => extractMultilineFields(val),
     setValue: val => convertMultilineFieldValue(val),
   },

@@ -4,8 +4,8 @@ from typing import Any
 
 from sentry import ratelimits, tsdb
 from sentry.api.serializers import serialize
-from sentry.eventstore.models import Event
 from sentry.plugins.base import Plugin
+from sentry.services.eventstore.models import Event
 from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger(__name__)

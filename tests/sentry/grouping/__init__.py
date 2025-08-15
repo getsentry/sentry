@@ -10,10 +10,8 @@ import orjson
 import pytest
 from django.utils.functional import cached_property
 
-from sentry import eventstore
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.eventstore.models import Event
 from sentry.grouping.api import (
     GroupingConfig,
     apply_server_side_fingerprinting,
@@ -29,6 +27,8 @@ from sentry.grouping.strategies.configurations import (
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json

@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {type TraceResult, useTraces} from './useTraces';
+import {useTraces, type TraceResult} from './useTraces';
 
 function createTraceResult(trace?: Partial<TraceResult>): TraceResult {
   return {

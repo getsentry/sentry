@@ -575,6 +575,36 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    def test_run_automation_handles_none_fixability_score(
+        self,
+        mock_generate_fixability_score,
+        mock_get_autofix_state,
+        mock_trigger_autofix_task,
+    ):
+        """Test that _run_automation returns early when _generate_fixability_score returns None (GPU failure case)."""
+        self.group.project.update_option("sentry:autofix_automation_tuning", "high")
+        mock_event = Mock(event_id="test_event_id")
+        mock_user = self.user
+
+        mock_generate_fixability_score.return_value = None
+        mock_get_autofix_state.return_value = None
+
+        self.group.refresh_from_db()
+        initial_fixability_score = self.group.seer_fixability_score
+
+        _run_automation(self.group, mock_user, mock_event, source=SeerAutomationSource.POST_PROCESS)
+
+        mock_generate_fixability_score.assert_called_once_with(self.group)
+        mock_trigger_autofix_task.assert_not_called()
+
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score == initial_fixability_score
+
+        mock_get_autofix_state.assert_not_called()
+
+    @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
+    @patch("sentry.seer.autofix.issue_summary.get_autofix_state")
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_is_issue_fixable_triggers_autofix(
         self,
         mock_generate_fixability_score,

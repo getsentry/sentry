@@ -42,7 +42,6 @@ import {
   traceNodeAdjacentAnalyticsProperties,
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
-import TraceTypeWarnings from './traceTypeWarnings';
 import type {TraceWaterfallProps} from './traceWaterfall';
 import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
@@ -353,11 +352,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
   return (
     <Fragment>
-      <TraceTypeWarnings
-        tree={props.tree}
-        traceSlug={props.traceSlug}
-        organization={organization}
-      />
       <IssuesTraceGrid
         layout={traceState.preferences.layout}
         rowCount={

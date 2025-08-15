@@ -229,7 +229,7 @@ class ModalManager extends Component<Props, State> {
       const data = await submitRules(api, endpoint, newRules);
       onSubmitSuccess(data);
       closeModal();
-    } catch (error) {
+    } catch (error: any) {
       this.convertRequestError(handleError(error));
     }
   };

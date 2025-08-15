@@ -1,17 +1,18 @@
-import {Fragment, type ReactNode, useEffect} from 'react';
+import {Fragment, useEffect, type ReactNode} from 'react';
 
 import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
-  type AutoRefreshState,
   useLogsAutoRefresh,
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
+  type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
@@ -21,8 +22,14 @@ import {
 import {AutoRefreshLabel} from 'sentry/views/explore/logs/styles';
 import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
 import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
-import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsMode,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+
+import {OurLogKnownFieldKey} from './types';
 
 const MAX_LOGS_PER_SECOND = 100; // Rate limit for initial check
 
@@ -30,6 +37,7 @@ type PreFlightDisableReason =
   | 'sort' // Wrong sort order
   | 'absolute_time' // Using absolute date range
   | 'aggregates' // In aggregates view
+  | 'unsupported_aggregation' // using an aggregate that's not `count(message)`
   | 'rate_limit_initial' // Too many logs per second
   | 'initial_error'; // Initial table query errored
 
@@ -55,6 +63,7 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
   const setAutorefresh = useSetLogsAutoRefresh();
   const sortBys = useLogsSortBys();
   const mode = useQueryParamsMode();
+  const visualizes = useQueryParamsVisualizes();
   const {selection} = usePageFilters();
   const selectionString = JSON.stringify(selection);
   const previousSelection = usePrevious(selectionString);
@@ -79,6 +88,7 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
     sortBys,
     hasAbsoluteDates,
     mode,
+    visualizes,
     averageLogsPerSecond,
     initialIsError: isError,
   });
@@ -127,17 +137,27 @@ function getPreFlightDisableReason({
   sortBys,
   hasAbsoluteDates,
   mode,
+  visualizes,
   averageLogsPerSecond,
   initialIsError,
 }: {
   hasAbsoluteDates: boolean;
   mode: Mode;
   sortBys: ReturnType<typeof useLogsSortBys>;
+  visualizes: readonly Visualize[];
   averageLogsPerSecond?: number | null;
   initialIsError?: boolean;
 }): PreFlightDisableReason | null {
   if (mode === Mode.AGGREGATE) {
     return 'aggregates';
+  }
+  if (
+    visualizes.some(
+      visualize =>
+        visualize.yAxis !== `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`
+    )
+  ) {
+    return 'unsupported_aggregation';
   }
   if (!checkSortIsTimeBasedDescending(sortBys)) {
     return 'sort';
@@ -185,6 +205,8 @@ function getTooltipMessage(
       );
     case 'aggregates':
       return t('Auto-refresh is not available in the aggregates view.');
+    case 'unsupported_aggregation':
+      return t('Auto-refresh is only available when visualizing `count(logs)`.');
     case 'initial_error':
       return t(
         'Auto-refresh is not available due to an error fetching logs. If the issue persists, please contact support.'

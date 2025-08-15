@@ -274,7 +274,7 @@ class BaseProjects extends Component<Props, State> {
       projects = results;
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
-      fetchError = err;
+      fetchError = err as RequestError;
     }
 
     const projectsMap = this.getProjectsMap(projects);
@@ -340,7 +340,7 @@ class BaseProjects extends Component<Props, State> {
         fetching: false,
         fetchedProjects: [],
         initiallyLoaded: true,
-        fetchError: err,
+        fetchError: err as RequestError,
       });
     }
   };
@@ -393,7 +393,7 @@ class BaseProjects extends Component<Props, State> {
 
       this.setState({
         fetching: false,
-        fetchError: err,
+        fetchError: err as RequestError,
       });
     }
   };

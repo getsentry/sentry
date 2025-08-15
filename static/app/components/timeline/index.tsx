@@ -1,5 +1,5 @@
 import type {CSSProperties} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';

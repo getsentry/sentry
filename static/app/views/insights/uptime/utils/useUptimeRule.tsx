@@ -1,8 +1,8 @@
 import {
-  type ApiQueryKey,
-  type QueryClient,
   setApiQueryData,
   useApiQuery,
+  type ApiQueryKey,
+  type QueryClient,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

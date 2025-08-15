@@ -10,7 +10,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
-import {type CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
+import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 describe('CheckoutOverview', function () {
   const api = new MockApiClient();

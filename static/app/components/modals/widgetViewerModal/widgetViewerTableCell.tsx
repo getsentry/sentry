@@ -37,6 +37,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {getTargetForTransactionSummaryLink} from 'sentry/views/discover/utils';
 
 import {WidgetViewerQueryField} from './utils';
+
 // Dashboards only supports top 5 for now
 const DEFAULT_NUM_TOP_EVENTS = 5;
 

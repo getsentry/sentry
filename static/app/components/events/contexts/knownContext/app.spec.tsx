@@ -4,8 +4,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {
-  type AppContext,
   getAppContextData,
+  type AppContext,
 } from 'sentry/components/events/contexts/knownContext/app';
 
 const MOCK_APP_CONTEXT: AppContext = {

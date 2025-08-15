@@ -622,7 +622,8 @@ class SearchResolver:
         proto_definition = resolved_column.proto_definition
 
         if not isinstance(
-            proto_definition, (AttributeAggregation, AttributeConditionalAggregation)
+            proto_definition,
+            (AttributeAggregation, AttributeConditionalAggregation, Column.BinaryFormula),
         ):
             raise ValueError(f"{term.key.name} is not valid search term")
 
@@ -635,11 +636,15 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
         kwargs = {"op": operator, "val": value}
-        aggregation_key = (
-            "conditional_aggregation"
-            if isinstance(proto_definition, AttributeConditionalAggregation)
-            else "aggregation"
-        )
+        if isinstance(proto_definition, AttributeAggregation):
+            aggregation_key = "aggregation"
+        elif isinstance(proto_definition, AttributeConditionalAggregation):
+            aggregation_key = "conditional_aggregation"
+        elif isinstance(proto_definition, Column.BinaryFormula):
+            aggregation_key = "formula"
+        else:
+            raise InvalidSearchQuery(f"{term.key.name} is not a valid search")
+
         kwargs[aggregation_key] = proto_definition
         return (
             AggregationFilter(

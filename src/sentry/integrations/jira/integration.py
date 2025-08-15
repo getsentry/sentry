@@ -14,7 +14,6 @@ from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
 
 from sentry import features
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -40,6 +39,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline.views.base import PipelineView
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,

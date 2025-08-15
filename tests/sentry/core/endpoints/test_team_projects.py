@@ -8,9 +8,9 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import alert_rule_created, project_created
-from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 class TeamProjectsListTest(APITestCase):

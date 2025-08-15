@@ -76,7 +76,7 @@ describe('DatabaseLandingPage', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      match: [MockApiClient.matchQuery({referrer: 'api.starfish.get-span-actions'})],
+      match: [MockApiClient.matchQuery({referrer: 'api.insights.get-span-actions'})],
       body: {
         data: [{'span.action': 'SELECT', count: 1}],
       },
@@ -85,7 +85,7 @@ describe('DatabaseLandingPage', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      match: [MockApiClient.matchQuery({referrer: 'api.starfish.get-span-domains'})],
+      match: [MockApiClient.matchQuery({referrer: 'api.insights.get-span-domains'})],
       body: {
         data: [{'span.domain': ['sentry_users'], count: 1}],
       },
@@ -94,7 +94,7 @@ describe('DatabaseLandingPage', function () {
     spanListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      match: [MockApiClient.matchQuery({referrer: 'api.starfish.use-span-list'})],
+      match: [MockApiClient.matchQuery({referrer: 'api.insights.use-span-list'})],
       body: {
         data: [
           {
@@ -209,7 +209,7 @@ describe('DatabaseLandingPage', function () {
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description',
-          referrer: 'api.starfish.use-span-list',
+          referrer: 'api.insights.use-span-list',
           sort: '-sum(span.self_time)',
           statsPeriod: '10d',
         },
@@ -330,7 +330,7 @@ describe('DatabaseLandingPage', function () {
           project: [],
           query:
             'span.category:db !span.op:[db.sql.room,db.redis] has:sentry.normalized_description span.action:SELECT span.domain:organizations',
-          referrer: 'api.starfish.use-span-list',
+          referrer: 'api.insights.use-span-list',
           sort: '-sum(span.self_time)',
           statsPeriod: '10d',
         },

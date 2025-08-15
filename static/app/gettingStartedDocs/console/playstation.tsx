@@ -2,9 +2,9 @@ import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
+  StepType,
   type Docs,
   type OnboardingConfig,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconLock} from 'sentry/icons/iconLock';
 import {t, tct} from 'sentry/locale';

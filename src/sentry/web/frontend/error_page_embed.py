@@ -11,13 +11,13 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
-from sentry import eventstore
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.signals import user_feedback_received
 from sentry.types.region import get_local_region
 from sentry.utils import json

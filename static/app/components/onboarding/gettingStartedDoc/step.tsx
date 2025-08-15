@@ -9,9 +9,9 @@ import {
   TabbedCodeSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {
+  StepType,
   type Configuration,
   type OnboardingStep,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -35,7 +35,7 @@ def mock_get_symbolication_function_for_platform():
 
 @pytest.fixture
 def mock_event_processing_store():
-    with mock.patch("sentry.eventstore.processing.event_processing_store") as m:
+    with mock.patch("sentry.services.eventstore.processing.event_processing_store") as m:
         yield m
 
 

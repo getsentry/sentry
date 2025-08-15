@@ -9,7 +9,7 @@ import type {EntryRequest, EntryThreads, Event, Frame, Thread} from 'sentry/type
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {type AvatarUser, StacktraceOrder} from 'sentry/types/user';
+import {StacktraceOrder, type AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 

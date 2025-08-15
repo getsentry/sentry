@@ -16,11 +16,11 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
-from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.users.models.authenticator import Authenticator
+from sentry.utils.slug import ORG_SLUG_PATTERN
 
 
 class OrganizationIndexTest(APITestCase):

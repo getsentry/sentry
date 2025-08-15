@@ -52,8 +52,7 @@ const overlayAnimation: MotionProps = {
     opacity: 1,
     scale: 1,
     transition: testableTransition({
-      type: 'linear',
-      ease: [0.5, 1, 0.89, 1],
+      type: 'spring',
       duration: 0.2,
     }),
   },

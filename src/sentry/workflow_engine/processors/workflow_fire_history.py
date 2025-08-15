@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.models import (

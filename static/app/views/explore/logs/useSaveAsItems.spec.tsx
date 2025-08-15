@@ -16,7 +16,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
@@ -44,22 +46,24 @@ describe('useSaveAsItems', () => {
       return (
         <OrganizationContext.Provider value={organization}>
           <QueryClientProvider client={queryClient}>
-            <LogsPageParamsProvider
-              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-              _testContext={{
-                fields: ['timestamp', 'message', 'user.email'],
-                search: new MutableSearch('message:"test error"'),
-                sortBys: [{field: 'timestamp', kind: 'desc'}],
-                groupBy: 'message.template',
-                aggregateFn: 'count',
-                aggregateParam: undefined,
-                mode: Mode.AGGREGATE,
-                id: undefined,
-                title: undefined,
-              }}
-            >
-              {children}
-            </LogsPageParamsProvider>
+            <LogsQueryParamsProvider source="location">
+              <LogsPageParamsProvider
+                analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+                _testContext={{
+                  fields: ['timestamp', 'message', 'user.email'],
+                  search: new MutableSearch('message:"test error"'),
+                  sortBys: [{field: 'timestamp', kind: 'desc'}],
+                  groupBy: 'message.template',
+                  aggregateFn: 'count',
+                  aggregateParam: undefined,
+                  mode: Mode.AGGREGATE,
+                  id: undefined,
+                  title: undefined,
+                }}
+              >
+                {children}
+              </LogsPageParamsProvider>
+            </LogsQueryParamsProvider>
           </QueryClientProvider>
         </OrganizationContext.Provider>
       );
@@ -71,7 +75,22 @@ describe('useSaveAsItems', () => {
     MockApiClient.clearMockResponses();
     queryClient.clear();
 
-    mockedUseLocation.mockReturnValue(LocationFixture());
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({
+        query: {
+          logsFields: ['timestamp', 'message', 'user.email'],
+          logsQuery: 'message:"test error"',
+          logsSortBys: ['-timestamp'],
+          aggregateField: [
+            {groupBy: 'message.template'},
+            {
+              yAxes: ['count(message)'],
+            },
+          ].map(aggregateField => JSON.stringify(aggregateField)),
+          mode: 'aggregate',
+        },
+      })
+    );
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUsePageFilters.mockReturnValue({
       isReady: true,
@@ -101,8 +120,8 @@ describe('useSaveAsItems', () => {
     const {result} = renderHook(
       () =>
         useSaveAsItems({
-          aggregate: 'count()',
-          groupBy: 'message.template',
+          visualizes: [new VisualizeFunction('count()')],
+          groupBys: ['message.template'],
           interval: '5m',
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test error"'),
@@ -130,8 +149,8 @@ describe('useSaveAsItems', () => {
     const {result} = renderHook(
       () =>
         useSaveAsItems({
-          aggregate: 'count()',
-          groupBy: 'message.template',
+          visualizes: [new VisualizeFunction('count()')],
+          groupBys: ['message.template'],
           interval: '5m',
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test error"'),
@@ -176,7 +195,10 @@ describe('useSaveAsItems', () => {
                 fields: ['timestamp', 'message', 'user.email'],
                 orderby: '-timestamp',
                 query: 'message:"test error"',
-                groupby: ['message.template'],
+                aggregateField: [
+                  {groupBy: 'message.template'},
+                  {yAxes: ['count(message)']},
+                ],
                 mode: Mode.AGGREGATE,
               },
             ],

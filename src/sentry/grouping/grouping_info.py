@@ -1,10 +1,10 @@
 import logging
 from typing import Any
 
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

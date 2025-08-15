@@ -12,7 +12,7 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
 } from 'sentry/views/alerts/rules/metric/types';
-import {type CombinedMetricIssueAlerts, IncidentStatus} from 'sentry/views/alerts/types';
+import {IncidentStatus, type CombinedMetricIssueAlerts} from 'sentry/views/alerts/types';
 import {isIssueAlert} from 'sentry/views/alerts/utils';
 
 interface Props {

@@ -155,7 +155,7 @@ function StacktraceLinkModal({
       });
       closeModal();
       onSubmit();
-    } catch (err) {
+    } catch (err: any) {
       const errorJson = err?.responseJSON || {};
       setError(
         errorJson.sourceUrl?.[0] ??

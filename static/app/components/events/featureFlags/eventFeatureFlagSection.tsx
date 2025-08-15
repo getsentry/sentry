@@ -32,7 +32,7 @@ import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
-import {type Group, IssueCategory} from 'sentry/types/group';
+import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

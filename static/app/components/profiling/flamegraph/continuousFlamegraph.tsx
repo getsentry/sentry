@@ -60,10 +60,10 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import type {UIFrameMeasurements} from 'sentry/utils/profiling/uiFrames';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 import {
+  formatTo,
   fromNanoJoulesToWatts,
   type ProfilingFormatterUnit,
 } from 'sentry/utils/profiling/units/units';
-import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';

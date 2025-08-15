@@ -129,7 +129,7 @@ describe('Screens Landing Page', function () {
           },
         },
         match: [
-          MockApiClient.matchQuery({referrer: 'api.starfish.mobile-screens-metrics'}),
+          MockApiClient.matchQuery({referrer: 'api.insights.mobile-screens-metrics'}),
         ],
       });
 
@@ -163,7 +163,7 @@ describe('Screens Landing Page', function () {
         },
         match: [
           MockApiClient.matchQuery({
-            referrer: 'api.starfish.mobile-screens-span-metrics',
+            referrer: 'api.insights.mobile-screens-span-metrics',
           }),
         ],
       });

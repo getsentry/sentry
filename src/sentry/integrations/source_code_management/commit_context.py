@@ -249,7 +249,7 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
             provider_key=self.integration_name,
-            organization=project.organization,
+            organization_id=project.organization_id,
             project=project,
             commit=commit,
         ).capture() as lifecycle:

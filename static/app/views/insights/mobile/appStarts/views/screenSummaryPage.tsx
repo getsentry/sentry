@@ -181,7 +181,7 @@ export function ScreenSummaryContentPage() {
               dataKey: `count_if(release,equals,${secondaryRelease})`,
             },
           ]}
-          referrer="api.starfish.mobile-startup-totals"
+          referrer="api.insights.mobile-startup-totals"
         />
       </HeaderContainer>
       <ErrorBoundary mini>

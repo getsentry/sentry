@@ -7,9 +7,9 @@ from unittest.mock import MagicMock, patch
 
 from snuba_sdk import Column, Condition, Op
 
-from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models.group import Group
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data

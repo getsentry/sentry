@@ -590,6 +590,60 @@ describe('TraceSearchEvaluator', () => {
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
       expect(cb.mock.calls[0][0][2]).toBeNull();
     });
+
+    it('name filter', async () => {
+      const tree = TraceTree.FromTrace(
+        [makeEAPSpan({name: 'authentication'}), makeEAPSpan({name: 'database'})],
+        {
+          meta: null,
+          replay: null,
+        }
+      );
+
+      const cb = jest.fn();
+      search('name:authentication', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('name filter with prefix', async () => {
+      const tree = TraceTree.FromTrace(
+        [makeEAPSpan({name: 'authentication'}), makeEAPSpan({name: 'database'})],
+        {
+          meta: null,
+          replay: null,
+        }
+      );
+
+      const cb = jest.fn();
+      search('span.name:authentication', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('name free text search', async () => {
+      const tree = TraceTree.FromTrace(
+        [
+          makeEAPSpan({name: 'user_authentication_service', op: 'http'}),
+          makeEAPSpan({name: 'database_query', op: 'db'}),
+        ],
+        {
+          meta: null,
+          replay: null,
+        }
+      );
+
+      const cb = jest.fn();
+      search('authentication', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
   });
 
   describe('synthetic keys', () => {

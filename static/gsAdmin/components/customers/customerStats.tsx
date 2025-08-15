@@ -9,7 +9,7 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import Legend from 'sentry/components/charts/components/legend';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
-import {type DateTimeObject, getInterval} from 'sentry/components/charts/utils';
+import {getInterval, type DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';

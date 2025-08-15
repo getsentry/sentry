@@ -1,4 +1,4 @@
-import {type Reducer, useCallback, useReducer} from 'react';
+import {useCallback, useReducer, type Reducer} from 'react';
 
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {
@@ -7,11 +7,11 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
+  isWildcardOperator,
+  WildcardOperators,
   type FieldDefinitionGetter,
   type FocusOverride,
-  isWildcardOperator,
   type SearchQueryBuilderOperators,
-  WildcardOperators,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
@@ -19,11 +19,11 @@ import {
   parseQueryBuilderValue,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
-  type AggregateFilter,
   FilterType,
-  type ParseResultToken,
   TermOperator,
   Token,
+  type AggregateFilter,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';

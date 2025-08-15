@@ -1,4 +1,3 @@
-// eslint-disable-next-line simple-import-sort/imports
 import type {TokenResult} from 'sentry/components/searchSyntax/parser';
 import {
   filterTypeConfig,
@@ -17,11 +16,11 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-
-import type {AutocompleteGroup, SearchGroup, SearchItem, Shortcut} from './types';
-import {ItemType, ShortcutType, invalidTypes} from './types';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+
+import type {AutocompleteGroup, SearchGroup, SearchItem, Shortcut} from './types';
+import {invalidTypes, ItemType, ShortcutType} from './types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {

@@ -33,8 +33,8 @@ import useProjects from 'sentry/utils/useProjects';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {
-  type DomainView,
   useDomainViewFilters,
+  type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';

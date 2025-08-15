@@ -35,7 +35,7 @@ class PluginSerializer(Serializer):
         self.project = project
 
     def serialize(self, obj, attrs, user, **kwargs):
-        from sentry.api.endpoints.project_releases_token import _get_webhook_url
+        from sentry.releases.endpoints.project_releases_token import _get_webhook_url
 
         doc = ""
 

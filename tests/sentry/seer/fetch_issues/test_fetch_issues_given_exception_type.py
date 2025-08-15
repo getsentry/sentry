@@ -47,7 +47,15 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert group_ids == {"issues": [group.id]}
+        assert group_ids == {
+            "issues": [group.id],
+            "issues_with_message": [
+                {
+                    "id": group.id,
+                    "message": "KeyError: This a bad error",
+                }
+            ],
+        }
 
         # Assert that ValueError did not match the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -56,7 +64,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="ValueError",
         )
-        assert group_ids == {"issues": []}
+        assert group_ids == {"issues": [], "issues_with_message": []}
 
         # Assert latest event is returned
         results = get_latest_issue_event(group.id)
@@ -149,7 +157,8 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             exception_type="KeyError",
         )
         assert {group_1.id, group_2.id} == set(group_ids["issues"])
-        assert group_3.id not in group_ids
+        assert group_3.id not in group_ids["issues"]
+        assert group_3.id not in [issue["id"] for issue in group_ids["issues_with_message"]]
 
         # Assert latest event is returned
         results = get_latest_issue_event(group_1.id)
@@ -196,7 +205,15 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert group_ids == {"issues": [group.id]}
+        assert group_ids == {
+            "issues": [group.id],
+            "issues_with_message": [
+                {
+                    "id": group.id,
+                    "message": "KeyError: This a bad error",
+                }
+            ],
+        }
 
         # Assert that KeyError matched the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -206,7 +223,7 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             exception_type="KeyError",
             num_days_ago=9,
         )
-        assert group_ids == {"issues": []}
+        assert group_ids == {"issues": [], "issues_with_message": []}
 
         # Assert latest event is returned
         results = get_latest_issue_event(group.id)
@@ -230,7 +247,11 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             data={
                 **data,
                 "release": release.version,
-                "exception": {"values": [{"type": "KeyError", "data": {"values": []}}]},
+                "exception": {
+                    "values": [
+                        {"type": "KeyError", "value": "voodoo curse", "data": {"values": []}}
+                    ]
+                },
             },
             project_id=self.project.id,
         )
@@ -265,7 +286,15 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="KeyError",
         )
-        assert group_ids == {"issues": [group_1.id]}
+        assert group_ids == {
+            "issues": [group_1.id],
+            "issues_with_message": [
+                {
+                    "id": group_1.id,
+                    "message": "KeyError: voodoo curse",
+                }
+            ],
+        }
 
         # Assert that ValueError matched the exception type
         group_ids = get_issues_related_to_exception_type(
@@ -274,7 +303,15 @@ class TestGetIssuesGivenExceptionTypes(APITestCase, SnubaTestCase):
             external_id="1",
             exception_type="ValueError",
         )
-        assert group_ids == {"issues": [group_2.id]}
+        assert group_ids == {
+            "issues": [group_2.id],
+            "issues_with_message": [
+                {
+                    "id": group_2.id,
+                    "message": "ValueError: This a bad error",
+                }
+            ],
+        }
 
         # Assert latest event is returned
         results = get_latest_issue_event(group_2.id)

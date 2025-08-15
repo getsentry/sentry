@@ -15,9 +15,9 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
 from sentry.api.serializers.models.event import IssueEventSerializerResponse
 from sentry.api.utils import get_date_range_from_params
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 

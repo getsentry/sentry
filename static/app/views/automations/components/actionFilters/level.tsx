@@ -3,9 +3,9 @@ import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
-  type Level,
   LEVEL_CHOICES,
   LEVEL_MATCH_CHOICES,
+  type Level,
   type MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';

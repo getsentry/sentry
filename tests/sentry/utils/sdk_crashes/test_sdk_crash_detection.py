@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 
 from fixtures.sdk_crash_detection.crash_event_cocoa import get_crash_event
-from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import BaseTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.performance_issues.store_transaction import store_transaction

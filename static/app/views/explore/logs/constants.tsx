@@ -4,7 +4,7 @@ import {
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/logs/types';
 
 export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = {
   [OurLogKnownFieldKey.TIMESTAMP]: t('Timestamp'),
@@ -57,6 +57,10 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   'sentry.observed_timestamp_nanos',
   'tags[sentry.trace_flags,number]',
   'span_id',
+];
+
+export const DeprecatedLogDetailFields: OurLogFieldKey[] = [
+  OurLogKnownFieldKey.TIMESTAMP_NANOS,
 ];
 
 export const HiddenColumnEditorLogFields: OurLogFieldKey[] = [...AlwaysHiddenLogFields];

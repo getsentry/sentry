@@ -4,7 +4,9 @@ from typing import Any
 
 from celery import Task
 
+import sentry.workflow_engine.buffer as buffer
 from sentry import options
+from sentry.buffer.base import Buffer
 from sentry.rules.processing.buffer_processing import (
     BufferHashKeys,
     DelayedProcessingBase,
@@ -16,8 +18,8 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils.lazy_service_wrapper import LazyServiceWrapper
 from sentry.workflow_engine.models import Workflow
-from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger("sentry.workflow_engine.tasks.delayed_workflows")
@@ -52,7 +54,8 @@ def process_delayed_workflows_shim(
 
 @delayed_processing_registry.register("delayed_workflow")
 class DelayedWorkflow(DelayedProcessingBase):
-    buffer_key = WORKFLOW_ENGINE_BUFFER_LIST_KEY
+    buffer_key = "workflow_engine_delayed_processing_buffer"
+    buffer_shards = 8
     option = "delayed_workflow.rollout"
 
     @property
@@ -66,3 +69,7 @@ class DelayedWorkflow(DelayedProcessingBase):
         if options.get("delayed_workflow.use_workflow_engine_pool"):
             return process_delayed_workflows_shim
         return process_delayed_workflows
+
+    @staticmethod
+    def buffer_backend() -> LazyServiceWrapper[Buffer]:
+        return buffer.get_backend()

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from sentry import features, tagstore
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.component.action_row import DiscordActionRow
@@ -25,6 +24,7 @@ from sentry.models.rule import Rule
 from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.services.eventstore.models import GroupEvent
 
 from ..message_builder.base.component import DiscordComponentCustomIds as CustomIds
 

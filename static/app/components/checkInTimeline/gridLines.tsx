@@ -9,7 +9,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
-import {type CursorOffsets, useTimelineCursor} from './timelineCursor';
+import {useTimelineCursor, type CursorOffsets} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
 import type {TimeWindowConfig} from './types';
 

@@ -3,7 +3,10 @@ import type {Location} from 'history';
 import {decodeList} from 'sentry/utils/queryString';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
 import {parseVisualize, Visualize} from 'sentry/views/explore/queryParams/visualize';
+
+export type WritableAggregateField = GroupBy | BaseVisualize;
 
 export type AggregateField = GroupBy | Visualize;
 

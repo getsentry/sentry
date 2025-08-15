@@ -88,6 +88,7 @@ import {
   VersionContainer,
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
+
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
@@ -190,6 +191,7 @@ export const SIZE_UNITS = {
 };
 
 export const ABYTE_UNITS = [
+  'byte',
   'kilobyte',
   'megabyte',
   'gigabyte',

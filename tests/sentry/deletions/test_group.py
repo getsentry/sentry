@@ -10,7 +10,6 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from sentry import nodestore
 from sentry.deletions.defaults.group import ErrorEventsDeletionTask, IssuePlatformEventsDeletionTask
 from sentry.deletions.tasks.groups import delete_groups_for_project
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.eventattachment import EventAttachment
@@ -21,6 +20,7 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -159,7 +159,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
             self.test_grouphistory_relation()
 
-    @mock.patch("sentry.nodestore.delete_multi")
+    @mock.patch("sentry.services.nodestore.delete_multi")
     def test_cleanup(self, nodestore_delete_multi: mock.Mock) -> None:
         os.environ["_SENTRY_CLEANUP"] = "1"
         try:

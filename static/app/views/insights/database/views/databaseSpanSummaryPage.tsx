@@ -81,7 +81,7 @@ export function DatabaseSpanSummaryPage() {
           SpanFields.PLATFORM,
         ],
       },
-      'api.starfish.span-description'
+      'api.insights.span-description'
     );
 
   const {data, isPending: areSpanMetricsLoading} = useSpans(
@@ -95,7 +95,7 @@ export function DatabaseSpanSummaryPage() {
       ],
       enabled: Boolean(groupId),
     },
-    'api.starfish.span-summary-page-metrics'
+    'api.insights.span-summary-page-metrics'
   );
 
   const spanMetrics = data[0];
@@ -121,7 +121,7 @@ export function DatabaseSpanSummaryPage() {
       limit: TRANSACTIONS_TABLE_ROW_COUNT,
       cursor,
     },
-    'api.starfish.span-transaction-metrics'
+    'api.insights.span-transaction-metrics'
   );
 
   useSamplesDrawer({

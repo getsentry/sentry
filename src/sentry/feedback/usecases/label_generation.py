@@ -26,7 +26,7 @@ MAX_AI_LABELS_JSON_LENGTH = 200
 SEER_GENERATE_LABELS_URL = f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/labels"
 
 
-@metrics.wraps("feedback.generate_labels", sample_rate=1.0)
+@metrics.wraps("feedback.generate_labels")
 def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     """
     Generate labels for a feedback message.

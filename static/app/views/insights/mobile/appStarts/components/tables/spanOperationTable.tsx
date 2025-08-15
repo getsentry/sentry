@@ -125,7 +125,7 @@ export function SpanOperationTable({
       sorts: [sort],
       search: queryStringPrimary,
     },
-    'api.starfish.mobile-spartup-span-table'
+    'api.insights.mobile-spartup-span-table'
   );
 
   const columnNameMap = {

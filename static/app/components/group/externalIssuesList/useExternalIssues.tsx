@@ -4,10 +4,10 @@ import type {Group} from 'sentry/types/group';
 import type {PlatformExternalIssue} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 
 interface UseExternalIssuesOptions {

@@ -42,7 +42,7 @@ export function FullSpanDescription({
         SpanFields.DB_SYSTEM,
       ],
     },
-    'api.starfish.span-description'
+    'api.insights.span-description'
   );
 
   const indexedSpan = indexedSpans?.[0];

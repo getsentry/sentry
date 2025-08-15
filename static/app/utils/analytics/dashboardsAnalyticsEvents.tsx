@@ -7,6 +7,12 @@ export enum WidgetBuilderVersion {
 
 // Used in the full-page widget builder
 type DashboardsEventParametersWidgetBuilder = {
+  'dashboards_views.engagement.load': {
+    issuesRatio: number;
+    logRatio: number;
+    title: string;
+    tracingRatio: number;
+  };
   'dashboards_views.widget_builder.change': {
     builder_version: WidgetBuilderVersion;
     field: string;
@@ -54,6 +60,7 @@ const dashboardsEventMapWidgetBuilder: Record<
     'Widget Builder: Template added to dashboard',
   'dashboards_views.widget_builder.templates.add_to_dashboard.customize':
     'Widget Builder: Template added to dashboard and customized',
+  'dashboards_views.engagement.load': 'Dashboard Load: Engagement by Product',
 };
 
 export type DashboardsEventParameters = {

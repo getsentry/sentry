@@ -20,7 +20,7 @@ import {
   useExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
-import {type Field, FIELDS, SORTS} from 'sentry/views/explore/tables/tracesTable/data';
+import {FIELDS, SORTS, type Field} from 'sentry/views/explore/tables/tracesTable/data';
 import {
   SpanBreakdownSliceRenderer,
   SpanDescriptionRenderer,

@@ -1,4 +1,4 @@
-import {type ReactNode, useMemo} from 'react';
+import {useMemo, type ReactNode} from 'react';
 import type Fuse from 'fuse.js';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -202,6 +202,13 @@ export function useSortedFilterKeyItems({
         return createItem(filterKeys[item.key]!, getFieldDefinition(item.key));
       });
 
+    const askSeerItem = [];
+    if (enableAISearch) {
+      askSeerItem.push(
+        gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
+      );
+    }
+
     if (includeSuggestions) {
       const rawSearchSection: KeySectionItem = {
         key: 'raw-search',
@@ -281,13 +288,6 @@ export function useSortedFilterKeyItems({
         type: 'section',
       };
 
-      const askSeerItem = [];
-      if (enableAISearch) {
-        askSeerItem.push(
-          gaveSeerConsent ? createAskSeerItem() : createAskSeerConsentItem()
-        );
-      }
-
       const {shouldShowAtTop, suggestedFiltersSection} =
         getValueSuggestionsFromSearchResult(searched);
 
@@ -302,7 +302,7 @@ export function useSortedFilterKeyItems({
       ];
     }
 
-    return keyItems;
+    return [...keyItems, ...askSeerItem];
   }, [
     disallowFreeText,
     enableAISearch,

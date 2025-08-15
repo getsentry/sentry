@@ -1,7 +1,7 @@
 import type {Repository} from 'sentry/types/integrations';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 

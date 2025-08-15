@@ -11,7 +11,6 @@ import sentry_sdk
 from sentry import analytics, features
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.db.models import Model
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
 from sentry.integrations.types import (
     ExternalProviderEnum,
@@ -52,6 +51,7 @@ from sentry.notifications.utils.links import (
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.plugins.base.structs import Notification
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.users.services.user_option import user_option_service

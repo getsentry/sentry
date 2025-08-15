@@ -71,6 +71,7 @@ def _get_snuba_uptime_checks_producer() -> KafkaProducer:
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
+    producer_config["client.id"] = "sentry.uptime.consumers.results_consumer"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
@@ -309,10 +310,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if should_run_region_checks(subscription, result):
             try_check_and_update_regions(subscription, subscription_regions)
 
-        detector = get_detector(subscription, prefetch_workflow_data=True)
-
-        # Nothing to do if there's an orphaned project subscription
-        if not detector:
+        try:
+            detector = get_detector(subscription, prefetch_workflow_data=True)
+        except Detector.DoesNotExist:
+            # Nothing to do if there's an orphaned project subscription
             remove_uptime_subscription_if_unused(subscription)
             return
 

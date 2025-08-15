@@ -2,8 +2,6 @@ import {useEffect, useMemo} from 'react';
 
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
@@ -61,7 +59,9 @@ function PerformanceSetupBanner({
 }: PerformanceSetupBannerProps) {
   const location = useLocation();
   const LOCAL_STORAGE_KEY = `${traceSlug}:performance-orphan-error-onboarding-banner-hide`;
-  const hideBanner = projectsWithNoPerformance.length === 0;
+  const hideBanner =
+    projectsWithNoPerformance.length === 0 ||
+    projectsWithOnboardingChecklist.length === 0;
 
   useEffect(() => {
     if (hideBanner) {
@@ -77,25 +77,6 @@ function PerformanceSetupBanner({
 
   if (hideBanner) {
     return null;
-  }
-
-  if (projectsWithOnboardingChecklist.length === 0) {
-    return (
-      <Alert.Container>
-        <Alert type="info">
-          {tct(
-            "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
-            {
-              documentationLink: (
-                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
-                  {t('documentation')}
-                </ExternalLink>
-              ),
-            }
-          )}
-        </Alert>
-      </Alert.Container>
-    );
   }
 
   return (

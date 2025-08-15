@@ -8,6 +8,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -58,7 +59,10 @@ export function useBackActions({
         project_id: recentCreatedProject.id,
       });
     } catch (error) {
-      handleXhrErrorResponse('Unable to delete project in onboarding', error);
+      handleXhrErrorResponse(
+        'Unable to delete project in onboarding',
+        error as RequestError
+      );
       // we don't give the user any feedback regarding this error as this shall be silent
     }
   }, [api, organization, onboardingContext, recentCreatedProject]);

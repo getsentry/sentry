@@ -1,6 +1,6 @@
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';

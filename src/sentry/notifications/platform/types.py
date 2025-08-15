@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Protocol, TypedDict
+from typing import Any, Protocol
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -80,7 +80,8 @@ class NotificationData(Protocol):
     """
 
 
-class NotificationRenderedAction(TypedDict):
+@dataclass(frozen=True)
+class NotificationRenderedAction:
     """
     A rendered action for an integration.
     """
@@ -93,6 +94,22 @@ class NotificationRenderedAction(TypedDict):
     link: str
     """
     The underlying link of the action.
+    """
+
+
+@dataclass(frozen=True)
+class NotificationRenderedImage:
+    """
+    An image that will be displayed in the notification.
+    """
+
+    url: str
+    """
+    The URL of the image.
+    """
+    alt_text: str
+    """
+    The alt text of the image.
     """
 
 
@@ -110,13 +127,13 @@ class NotificationRenderedTemplate:
     keeping it concise and useful to the receiver. This string should not contain any formatting,
     and will be displayed as is.
     """
-    actions: list[NotificationRenderedAction]
+    actions: list[NotificationRenderedAction] = field(default_factory=list)
     """
     The list of actions that a receiver may take after having received the notification.
     """
-    chart: str | None = None
+    chart: NotificationRenderedImage | None = None
     """
-    The accessible URL of a chart that will be displayed in the notification.
+    The image that will be displayed in the notification.
     """
     footer: str | None = None
     """

@@ -67,6 +67,7 @@ from .org_auth_token_created import *  # noqa: F401,F403
 from .org_auth_token_deleted import *  # noqa: F401,F403
 from .organization_created import *  # noqa: F401,F403
 from .organization_joined import *  # noqa: F401,F403
+from .organization_removed import *  # noqa: F401,F403
 from .plugin_enabled import *  # noqa: F401,F403
 from .project_created import *  # noqa: F401,F403
 from .project_issue_searched import *  # noqa: F401,F403

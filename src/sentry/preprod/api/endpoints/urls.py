@@ -13,6 +13,7 @@ from .project_preprod_artifact_size_analysis_download import (
 from .project_preprod_artifact_update import ProjectPreprodArtifactUpdateEndpoint
 from .project_preprod_build_details import ProjectPreprodBuildDetailsEndpoint
 from .project_preprod_check_for_updates import ProjectPreprodArtifactCheckForUpdatesEndpoint
+from .project_preprod_list_builds import ProjectPreprodListBuildsEndpoint
 
 preprod_urlpatterns = [
     re_path(
@@ -24,6 +25,11 @@ preprod_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/check-for-updates/$",
         ProjectPreprodArtifactCheckForUpdatesEndpoint.as_view(),
         name="sentry-api-0-project-preprod-check-for-updates",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/preprodartifacts/list-builds/$",
+        ProjectPreprodListBuildsEndpoint.as_view(),
+        name="sentry-api-0-project-preprod-list-builds",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/preprodartifacts/(?P<artifact_id>[^/]+)/size-analysis/$",

@@ -8,11 +8,11 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
+  useTourReducer,
   type TourContextType,
   type TourEnumType,
   type TourState,
   type TourStep,
-  useTourReducer,
 } from 'sentry/components/tours/tourContext';
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconClose} from 'sentry/icons/iconClose';

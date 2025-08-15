@@ -373,7 +373,7 @@ describe('Performance > Table', function () {
             per_page: 50,
             project: ['1', '2'],
             query: 'event.type:transaction transaction:/api*',
-            referrer: 'api.performance.landing-table',
+            referrer: 'api.insights.landing-table',
             sort: '-team_key_transaction',
             statsPeriod: '14d',
           }),

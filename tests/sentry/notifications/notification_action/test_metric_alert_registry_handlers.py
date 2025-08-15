@@ -9,7 +9,6 @@ import pytest
 from django.utils import timezone
 
 from sentry.db.models import NodeData
-from sentry.eventstore.models import GroupEvent
 from sentry.incidents.grouptype import MetricIssue, MetricIssueEvidenceData
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -37,6 +36,7 @@ from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSensitivity,
     AnomalyDetectionThresholdType,
 )
+from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription

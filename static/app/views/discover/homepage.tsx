@@ -14,7 +14,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';

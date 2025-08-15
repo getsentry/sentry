@@ -28,8 +28,8 @@ import {MODULE_TITLES} from 'sentry/views/insights/settings';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {
-  type InsightSidebarId,
   InsightsItemAccessRule,
+  type InsightSidebarId,
 } from 'getsentry/components/sidebarNavigationItem';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import {SidebarFooter} from 'getsentry/components/upsellModal/footer';

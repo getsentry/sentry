@@ -2,10 +2,10 @@ import responses
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode

@@ -3,8 +3,8 @@ import {createContext, useContext, useLayoutEffect, useMemo} from 'react';
 import * as qs from 'query-string';
 
 import {
-  type DispatchingReducerEmitter,
   useDispatchingReducer,
+  type DispatchingReducerEmitter,
 } from 'sentry/utils/useDispatchingReducer';
 
 import {TraceReducer, type TraceReducerAction, type TraceReducerState} from './index';

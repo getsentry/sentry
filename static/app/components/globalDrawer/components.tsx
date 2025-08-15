@@ -1,7 +1,7 @@
 import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
-import type {AnimationProps} from 'framer-motion';
+import type {Transition} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
@@ -43,7 +43,7 @@ interface DrawerPanelProps {
   drawerWidth?: DrawerOptions['drawerWidth'];
   ref?: React.Ref<HTMLDivElement>;
   resizable?: DrawerOptions['resizable'];
-  transitionProps?: AnimationProps['transition'];
+  transitionProps?: Transition;
 }
 
 function DrawerPanel({

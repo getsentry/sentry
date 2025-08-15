@@ -8,7 +8,6 @@ import sentry_sdk
 
 from sentry import analytics
 from sentry.analytics.events.alert_sent import AlertSentEvent
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.services.integration import (
     RpcIntegration,
     RpcOrganizationIntegration,
@@ -18,6 +17,7 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.rule import Rule
 from sentry.rules.actions import EventAction
 from sentry.rules.base import CallbackFuture
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
 
 INTEGRATION_KEY = "integration"

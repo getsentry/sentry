@@ -146,7 +146,11 @@ export function useReplayTraces({
           indexComplete,
         }));
       } catch (indexError) {
-        setState(prev => ({...prev, indexError, indexComplete: true}));
+        setState(prev => ({
+          ...prev,
+          indexError: indexError as Error,
+          indexComplete: true,
+        }));
         cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
       }
     }

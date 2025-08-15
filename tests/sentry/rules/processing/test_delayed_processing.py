@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from sentry import buffer
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -36,6 +35,7 @@ from sentry.rules.processing.delayed_processing import (
     parse_rulegroup_to_event_data,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -1532,7 +1532,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups[self.rule.id].add(group_two.id)
         rules_to_groups[self.rule.id].add(group_three.id)
 
-        process_in_batches(self.project.id, "delayed_processing")
+        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
         batch_one_key = mock_apply_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_two_key = mock_apply_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 

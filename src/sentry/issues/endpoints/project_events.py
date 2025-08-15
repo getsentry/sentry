@@ -5,7 +5,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -19,6 +18,7 @@ from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParam
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
+from sentry.services import eventstore
 from sentry.snuba.events import Columns
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 

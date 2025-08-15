@@ -17,10 +17,11 @@ import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {getSortBysFromLocation} from 'sentry/views/explore/queryParams/sortBy';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {
   getVisualizesFromLocation,
   isVisualize,
-  Visualize,
+  VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -117,7 +118,7 @@ function defaultGroupBys(): [GroupBy] {
 }
 
 function defaultVisualizes(): [Visualize] {
-  return [new Visualize(DEFAULT_VISUALIZATION)];
+  return [new VisualizeFunction(DEFAULT_VISUALIZATION)];
 }
 
 function getSpansAggregateFieldsFromLocation(location: Location): AggregateField[] {

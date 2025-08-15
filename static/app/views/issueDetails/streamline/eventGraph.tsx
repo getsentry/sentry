@@ -1,11 +1,11 @@
 import type React from 'react';
 import {
-  type CSSProperties,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';

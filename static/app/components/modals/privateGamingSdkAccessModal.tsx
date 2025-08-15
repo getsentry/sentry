@@ -123,7 +123,7 @@ export function PrivateGamingSdkAccessModal({
         })
       );
       closeModal();
-    } catch (error) {
+    } catch (error: any) {
       handleXhrErrorResponse(t('Unable to submit SDK access request'), error);
 
       setRequestError(

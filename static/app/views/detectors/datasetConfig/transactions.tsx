@@ -30,4 +30,5 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     },
     fromApiAggregate: aggregate => aggregate,
     toApiAggregate: aggregate => aggregate,
+    supportedDetectionTypes: ['static', 'percent', 'dynamic'],
   };

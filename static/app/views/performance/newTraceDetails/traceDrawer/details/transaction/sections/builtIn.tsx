@@ -5,8 +5,8 @@ import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {SpanResponse} from 'sentry/views/insights/types';
 import {
-  type SectionCardKeyValueList,
   TraceDrawerComponents,
+  type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 import {hasSDKContext} from './sdk';

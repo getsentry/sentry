@@ -70,7 +70,7 @@ export function DatabaseSpanDescription({
       ],
       sorts: [{field: SpanFields.CODE_FILEPATH, kind: 'desc'}],
     },
-    'api.starfish.span-description'
+    'api.insights.span-description'
   );
   const indexedSpan = indexedSpans?.[0];
 

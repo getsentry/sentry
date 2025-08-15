@@ -24,7 +24,7 @@ import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

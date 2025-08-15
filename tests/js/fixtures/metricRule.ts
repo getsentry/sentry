@@ -1,6 +1,6 @@
 import {IncidentTriggerFixture} from 'sentry-fixture/incidentTrigger';
 
-import type {SavedMetricRule as SavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {SavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleComparisonType, Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 export function MetricRuleFixture(

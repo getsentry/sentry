@@ -1,10 +1,10 @@
 from collections.abc import Sequence
 from datetime import datetime
 
-from sentry.eventstore.models import GroupEvent
 from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 
 

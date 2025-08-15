@@ -206,7 +206,7 @@ function BillingDetailsFormContainer({organization}: {organization: Organization
         billingDetails: response,
         useExisting: response.addressType === AddressType.STRUCTURED,
       }));
-    } catch (error) {
+    } catch (error: any) {
       setState(prevState => ({...prevState, loadError: error, isLoading: false}));
       if (error.status !== 401 && error.status !== 403) {
         Sentry.captureException(error);

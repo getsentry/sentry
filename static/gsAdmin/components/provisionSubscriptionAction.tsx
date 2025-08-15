@@ -25,9 +25,9 @@ import withApi from 'sentry/utils/withApi';
 import {prettyDate} from 'admin/utils';
 import {CPE_MULTIPLIER_TO_CENTS, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {
+  ReservedBudgetCategoryType,
   type BillingConfig,
   type Plan,
-  ReservedBudgetCategoryType,
   type ReservedBudgetMetricHistory,
   type Subscription,
 } from 'getsentry/types';

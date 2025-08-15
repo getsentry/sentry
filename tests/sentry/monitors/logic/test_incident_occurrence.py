@@ -8,7 +8,7 @@ from django.test import override_settings
 from django.utils import timezone
 from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
 
-from sentry.issues.grouptype import MonitorIncidentType
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.logic.incident_occurrence import (
     MONITORS_INCIDENT_OCCURRENCES,
     dispatch_incident_occurrence,

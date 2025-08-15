@@ -1,5 +1,5 @@
 import type {PropsWithChildren} from 'react';
-import {type Theme, ThemeProvider, useTheme} from '@emotion/react';
+import {ThemeProvider, useTheme, type Theme} from '@emotion/react';
 
 // these utils are for stories that have forced dark mode
 // which is a very specific sanctioned use case

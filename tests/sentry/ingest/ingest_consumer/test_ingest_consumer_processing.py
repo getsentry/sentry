@@ -16,7 +16,6 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
     collect_span_metrics,
@@ -29,6 +28,7 @@ from sentry.ingest.types import ConsumerType
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend

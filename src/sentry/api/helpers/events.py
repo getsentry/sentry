@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.serializers import serialize
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.utils.validators import normalize_event_id
 

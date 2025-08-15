@@ -20,10 +20,10 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {
-  type ApiQueryKey,
   useApiQuery,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';

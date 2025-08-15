@@ -24,8 +24,8 @@ import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuil
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   FilterType,
-  type ParseResultToken,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';

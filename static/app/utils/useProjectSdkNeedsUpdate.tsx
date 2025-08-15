@@ -1,4 +1,6 @@
-import {useOrganizationSDKUpdates} from 'sentry/utils/useOrganizationSDKUpdates';
+import type {ProjectSdkUpdates} from 'sentry/types/project';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
 type Opts = {
@@ -13,10 +15,12 @@ export default function useProjectSdkNeedsUpdate({
   | {isError: false; isFetching: true; needsUpdate: undefined}
   | {isError: true; isFetching: false; needsUpdate: undefined}
   | {isError: false; isFetching: false; needsUpdate: boolean} {
-  const {data, isError, isPending} = useOrganizationSDKUpdates({
-    projectId,
-    enabled: true,
-  });
+  const organization = useOrganization();
+
+  const {data, isError, isPending} = useApiQuery<ProjectSdkUpdates[]>(
+    [`/organizations/${organization.slug}/sdk-updates/`, {query: {project: projectId}}],
+    {staleTime: Infinity, refetchOnMount: true}
+  );
 
   if (isPending) {
     return {isError: false, isFetching: true, needsUpdate: undefined};

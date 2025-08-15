@@ -16,7 +16,7 @@ import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/u
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
-import {type ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields, type ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
   domainAlias: string;
@@ -76,7 +76,7 @@ export function DomainSelector({
       sorts: [{field: 'count()', kind: 'desc'}],
       fields: [SpanFields.SPAN_DOMAIN, 'count()'],
     },
-    'api.starfish.get-span-domains'
+    'api.insights.get-span-domains'
   );
 
   const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({

@@ -7,13 +7,14 @@ from unittest.mock import MagicMock, call
 import pytest
 from django.utils import timezone
 
-from sentry.eventstore.models import GroupEvent
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -919,6 +920,33 @@ class TestGetDetectorByEvent(TestCase):
 
         with pytest.raises(Detector.DoesNotExist):
             get_detector_by_event(event_data)
+
+    def test_defaults_to_error_detector(self) -> None:
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=self.project.id,
+            event_id="asdf",
+            fingerprint=["asdf"],
+            issue_title="title",
+            subtitle="subtitle",
+            resource_id=None,
+            evidence_data={},
+            evidence_display=[],
+            type=PerformanceNPlusOneAPICallsGroupType,
+            detection_time=timezone.now(),
+            level="error",
+            culprit="",
+        )
+
+        group_event = GroupEvent.from_event(self.event, self.group)
+        self.group.update(type=PerformanceNPlusOneAPICallsGroupType.type_id)
+        group_event.occurrence = occurrence
+
+        event_data = WorkflowEventData(event=group_event, group=self.group)
+
+        result = get_detector_by_event(event_data)
+
+        assert result == self.error_detector
 
 
 class TestGetDetectorsByGroupEventsBulk(TestCase):

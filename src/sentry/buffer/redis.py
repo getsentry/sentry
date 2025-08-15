@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import pickle
+from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -54,32 +55,6 @@ def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -
                 logger.error("buffer.corrupted_value", extra={"value": value, "model": model})
         except Exception:
             logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
-
-
-class BufferHookEvent(Enum):
-    FLUSH = "flush"
-
-
-class BufferHookRegistry:
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self._registry: dict[BufferHookEvent, Callable[..., Any]] = {}
-
-    def add_handler(self, key: BufferHookEvent, func: Callable[..., Any]) -> None:
-        self._registry[key] = func
-
-    def has(self, key: BufferHookEvent) -> bool:
-        return self._registry.get(key) is not None
-
-    def callback(self, buffer_hook_event: BufferHookEvent) -> bool:
-        try:
-            callback = self._registry[buffer_hook_event]
-        except KeyError:
-            logger.exception("buffer_hook_event.missing")
-
-        return callback()
-
-
-redis_buffer_registry = BufferHookRegistry()
 
 
 # Callable to get the queue name for the given model_key.
@@ -368,6 +343,26 @@ class RedisBuffer(Buffer):
             pipe.expire(key, self.key_expire)
         return pipe.execute()[0]
 
+    def _execute_sharded_redis_operation(
+        self,
+        keys: list[str],
+        operation: RedisOperation,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        """
+        Execute a Redis operation on a list of keys, using the same args and kwargs for each key.
+        """
+
+        metrics_str = f"redis_buffer.{operation.value}"
+        metrics.incr(metrics_str, amount=len(keys))
+        pipe = self.get_redis_connection(self.pending_key)
+        for key in keys:
+            getattr(pipe, operation.value)(key, *args, **kwargs)
+            if args:
+                pipe.expire(key, self.key_expire)
+        return pipe.execute()
+
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         now = time()
         if isinstance(value, list):
@@ -376,7 +371,7 @@ class RedisBuffer(Buffer):
             value_dict = {value: now}
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, value_dict)
 
-    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, float]]:
         redis_set = self._execute_redis_operation(
             key,
             RedisOperation.SORTED_SET_GET_RANGE,
@@ -393,8 +388,37 @@ class RedisBuffer(Buffer):
             decoded_set.append(data_and_timestamp)
         return decoded_set
 
+    def bulk_get_sorted_set(
+        self, keys: list[str], min: float, max: float
+    ) -> dict[int, list[float]]:
+        data_to_timestamps: dict[int, list[float]] = defaultdict(list)
+
+        redis_set = self._execute_sharded_redis_operation(
+            keys,
+            RedisOperation.SORTED_SET_GET_RANGE,
+            min=min,
+            max=max,
+            withscores=True,
+        )
+        for result in redis_set:
+            for items in result:
+                item = items[0]
+                if isinstance(item, bytes):
+                    item = item.decode("utf-8")
+                data_to_timestamps[int(item)].append(items[1])
+
+        return data_to_timestamps
+
     def delete_key(self, key: str, min: float, max: float) -> None:
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
+
+    def delete_keys(self, keys: list[str], min: float, max: float) -> None:
+        self._execute_sharded_redis_operation(
+            keys,
+            RedisOperation.SORTED_SET_DELETE_RANGE,
+            min=min,
+            max=max,
+        )
 
     def delete_hash(
         self,
@@ -444,12 +468,6 @@ class RedisBuffer(Buffer):
     def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
         key = self._make_key(model, field)
         return self._execute_redis_operation(key, RedisOperation.HASH_LENGTH)
-
-    def process_batch(self) -> None:
-        try:
-            redis_buffer_registry.callback(BufferHookEvent.FLUSH)
-        except Exception:
-            logger.exception("process_batch.error")
 
     def incr(
         self,

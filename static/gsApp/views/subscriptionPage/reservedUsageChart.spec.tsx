@@ -10,7 +10,7 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {DataCategory} from 'sentry/types/core';
 import {ChartDataTransform} from 'sentry/views/organizationStats/usageChart';
 
-import {type BillingStats, PlanTier} from 'getsentry/types';
+import {PlanTier, type BillingStats} from 'getsentry/types';
 
 import ReservedUsageChart, {
   getCategoryOptions,

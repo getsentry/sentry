@@ -45,7 +45,7 @@ export default function OverviewTimeConsumingRequestsWidget(
   const search = new MutableSearch(`${SpanFields.SPAN_CATEGORY}:http ${query}`);
   const referrer = Referrer.TIME_CONSUMING_REQUESTS;
   const groupBy = SpanFields.SPAN_DOMAIN;
-  const yAxes = `avg(${SpanFields.SPAN_SELF_TIME})`;
+  const yAxes = `p75(${SpanFields.SPAN_DURATION})`;
   const totalTimeField = `sum(${SpanFields.SPAN_SELF_TIME})`;
   const title = t('Network Requests by Time Spent');
 

@@ -87,4 +87,23 @@ describe('StepHeader', () => {
     expect(onEdit).not.toHaveBeenCalled();
     await userEvent.click(screen.getByText(mockTitle));
   });
+
+  it('renders for new checkout', function () {
+    render(
+      <StepHeader
+        isNewCheckout
+        title={mockTitle}
+        stepNumber={stepNumber}
+        onEdit={onEdit}
+        isActive={false}
+        isCompleted={false}
+      />
+    );
+
+    expect(screen.getByText(mockTitle)).toBeInTheDocument();
+    expect(screen.queryByText(`${stepNumber}.`)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('icon-check-mark')).not.toBeInTheDocument();
+    expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Expand section')).not.toBeInTheDocument();
+  });
 });

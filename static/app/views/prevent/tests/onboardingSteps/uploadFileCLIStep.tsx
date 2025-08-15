@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
@@ -21,27 +22,29 @@ export function UploadFileCLIStep({previousStep, step}: UploadFileCLIStepProps) 
 
   return (
     <OnboardingStep.Container>
-      <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
-      <OnboardingStep.Content>
-        <StyledP>
-          {t(
-            'The following snippet instructs the CLI to upload this report to Sentry Prevent.'
-          )}
-        </StyledP>
-        <StyledCodeSnippet dark language="bash">
-          {SNIPPET}
-        </StyledCodeSnippet>
-        <StyledP>
-          {tct(
-            'Be sure to specify [reportType] as [testResults] and include the file you created in Step [previousStep]. This will not necessarily upload coverage reports to Sentry.',
-            {
-              reportType: <PinkText>--report-type</PinkText>,
-              testResults: <PinkText>test_results</PinkText>,
-              previousStep,
-            }
-          )}
-        </StyledP>
-      </OnboardingStep.Content>
+      <OnboardingStep.Body>
+        <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
+        <OnboardingStep.Content>
+          <StyledP>
+            {t(
+              'The following snippet instructs the CLI to upload this report to Sentry Prevent.'
+            )}
+          </StyledP>
+          <StyledCodeSnippet dark language="bash">
+            {SNIPPET}
+          </StyledCodeSnippet>
+          <StyledP>
+            {tct(
+              'Be sure to specify [reportType] as [testResults] and include the file you created in Step [previousStep]. This will not necessarily upload coverage reports to Sentry.',
+              {
+                reportType: <Text variant="promotion">--report-type</Text>,
+                testResults: <Text variant="promotion">test_results</Text>,
+                previousStep,
+              }
+            )}
+          </StyledP>
+        </OnboardingStep.Content>
+      </OnboardingStep.Body>
     </OnboardingStep.Container>
   );
 }
@@ -53,8 +56,8 @@ const StyledP = styled('p')`
 const StyledCodeSnippet = styled(CodeSnippet)`
   margin-top: ${p => p.theme.space.md};
   margin-bottom: ${p => p.theme.space.md};
-`;
 
-const PinkText = styled('span')`
-  color: ${p => p.theme.pink400};
+  code {
+    text-wrap: wrap;
+  }
 `;

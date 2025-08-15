@@ -41,7 +41,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
             "http_status_code": ProtoAttributeValue(val_int=200),
             "request_url": ProtoAttributeValue(val_str="https://example.com"),
             "original_url": ProtoAttributeValue(val_str="https://example.com"),
-            "scheduled_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
+            "actual_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
             "check_duration_us": ProtoAttributeValue(val_int=500000),
             "subscription_id": ProtoAttributeValue(val_str="sub-456"),
             "region": ProtoAttributeValue(val_str="us-east-1"),
@@ -86,7 +86,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
             "http_status_code": ProtoAttributeValue(val_int=301),
             "request_url": ProtoAttributeValue(val_str="https://www.example.com"),
             "original_url": ProtoAttributeValue(val_str="https://example.com"),
-            "scheduled_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
+            "actual_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
             "check_duration_us": ProtoAttributeValue(val_int=300000),
             "request_sequence": ProtoAttributeValue(val_int=1),
         }
@@ -109,7 +109,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
             "check_status": ProtoAttributeValue(val_str="failure"),
             "http_status_code": ProtoAttributeValue(is_null=True),
             "request_url": ProtoAttributeValue(val_str="https://test.com"),
-            "scheduled_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
+            "actual_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
             "dns_lookup_duration_us": ProtoAttributeValue(val_int=50000),
             "tcp_connection_duration_us": ProtoAttributeValue(is_null=True),
         }

@@ -13,8 +13,8 @@ import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCrea
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
-  type GroupSearchView,
   GroupSearchViewCreatedBy,
+  type GroupSearchView,
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 

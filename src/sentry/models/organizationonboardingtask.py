@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from django.conf import settings
 from django.core.cache import cache
@@ -13,12 +13,12 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 
 
@@ -111,7 +111,7 @@ class AbstractOnboardingTask(Model):
         "sentry.Project", db_constraint=False, null=True, on_delete=SET_NULL
     )
     # INVITE_MEMBER { invited_member: user.id }
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    data = LegacyTextJSONField(default=dict)
 
     # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]

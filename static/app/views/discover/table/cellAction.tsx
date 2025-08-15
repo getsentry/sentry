@@ -34,6 +34,7 @@ export enum Actions {
   COPY_TO_CLIPBOARD = 'copy_to_clipboard',
   OPEN_EXTERNAL_LINK = 'open_external_link',
   OPEN_INTERNAL_LINK = 'open_internal_link',
+  OPEN_ROW_IN_EXPLORE = 'open_row_in_explore',
 }
 
 export function updateQuery(
@@ -234,6 +235,10 @@ function makeCellActions({
 
   if (isUrl(value)) {
     addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
+  }
+
+  if (allowActions) {
+    addMenuItem(Actions.OPEN_ROW_IN_EXPLORE, t('View span samples'));
   }
 
   if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));

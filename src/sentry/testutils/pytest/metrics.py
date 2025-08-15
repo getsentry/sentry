@@ -4,7 +4,7 @@ import functools
 from unittest import mock
 
 import pytest
-from snuba_sdk import Entity, Join
+from snuba_sdk import Entity, Join, Query
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
@@ -70,7 +70,11 @@ def control_metrics_access(request, set_sentry_option):
                 query = args[0][0].request.query
                 is_performance_metrics = False
                 is_metrics = False
-                if not isinstance(query, MetricsQuery) and not isinstance(query.match, Join):
+                if (
+                    not isinstance(query, MetricsQuery)
+                    and not isinstance(query.match, Join)
+                    and not isinstance(query.match, Query)
+                ):
                     is_performance_metrics = query.match.name.startswith("generic")
                     is_metrics = "metrics" in query.match.name
 
@@ -93,7 +97,7 @@ def control_metrics_access(request, set_sentry_option):
                 query = snql_query.query
                 is_performance_metrics = False
                 is_metrics = False
-                if isinstance(query.match, Entity):
+                if isinstance(query.match, Entity) and not isinstance(query.match, Query):
                     is_performance_metrics = query.match.name.startswith("generic")
                     is_metrics = "metrics" in query.match.name
 

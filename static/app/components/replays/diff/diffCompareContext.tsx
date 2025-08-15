@@ -1,10 +1,10 @@
 import {
   createContext,
+  useContext,
+  useState,
   type Dispatch,
   type ReactNode,
   type SetStateAction,
-  useContext,
-  useState,
 } from 'react';
 
 import type {Event} from 'sentry/types/event';

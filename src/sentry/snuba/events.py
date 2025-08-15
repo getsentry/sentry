@@ -863,3 +863,12 @@ class Columns(Enum):
         issue_platform_name=None,
         alias="timestamp_ms",
     )
+
+    GROUP_FIRST_SEEN = Column(
+        group_name="events.group_first_seen",
+        event_name="group_first_seen",
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name="group_first_seen",
+        alias="group_first_seen",
+    )

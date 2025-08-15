@@ -5,7 +5,8 @@ import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/logs/logs
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function locationFixture(query: Location['query']): Location {
   return LocationFixture({query});
@@ -21,7 +22,7 @@ function readableQueryParamOptions(
     fields: ['timestamp', 'message'],
     sortBys: [{field: 'timestamp', kind: 'desc'}],
     aggregateCursor: '',
-    aggregateFields: [{groupBy: ''}, new Visualize('count(message)')],
+    aggregateFields: [{groupBy: ''}, new VisualizeFunction('count(message)')],
     aggregateSortBys: [
       {
         field: 'count(message)',
@@ -179,7 +180,10 @@ describe('getReadableQueryParamsFromLocation', function () {
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
-          aggregateFields: [{groupBy: 'severity'}, new Visualize('count(message)')],
+          aggregateFields: [
+            {groupBy: 'severity'},
+            new VisualizeFunction('count(message)'),
+          ],
         })
       )
     );
@@ -191,8 +195,72 @@ describe('getReadableQueryParamsFromLocation', function () {
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
-          aggregateFields: [{groupBy: ''}, new Visualize('avg(foo)')],
+          aggregateFields: [{groupBy: ''}, new VisualizeFunction('avg(foo)')],
           aggregateSortBys: [{field: 'avg(foo)', kind: 'desc'}],
+        })
+      )
+    );
+  });
+
+  it('decodes aggregate fields correctly', function () {
+    const location = locationFixture({
+      aggregateField: [
+        {yAxes: ['count(message)'], chartType: ChartType.AREA},
+        {groupBy: 'message.template'},
+        {yAxes: ['p50(foo)', 'p75(bar)']},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          aggregateFields: [
+            new VisualizeFunction('count(message)', {chartType: ChartType.AREA}),
+            {groupBy: 'message.template'},
+            new VisualizeFunction('p50(foo)'),
+            new VisualizeFunction('p75(bar)'),
+          ],
+        })
+      )
+    );
+  });
+
+  it('decodes custom aggregatefields and inserts default group bys', function () {
+    const location = locationFixture({
+      aggregateField: [
+        JSON.stringify({yAxes: ['count(message)'], chartType: ChartType.LINE}),
+      ],
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          aggregateFields: [
+            new VisualizeFunction('count(message)', {chartType: ChartType.LINE}),
+            {groupBy: ''},
+          ],
+        })
+      )
+    );
+  });
+
+  it('decodes custom aggregatefields and inserts default visualizes', function () {
+    const location = locationFixture({
+      aggregateField: [JSON.stringify({groupBy: 'message.template'})],
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams.aggregateFields).toHaveLength(2);
+    expect(queryParams.aggregateFields[0]).toEqual({groupBy: 'message.template'});
+    expect(queryParams.aggregateFields[1]).toEqual(
+      new VisualizeFunction('count(message)')
+    );
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          aggregateFields: [
+            {groupBy: 'message.template'},
+            new VisualizeFunction('count(message)'),
+          ],
         })
       )
     );
@@ -209,7 +277,25 @@ describe('getReadableQueryParamsFromLocation', function () {
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
-          aggregateFields: [{groupBy: 'severity'}, new Visualize('avg(foo)')],
+          aggregateFields: [{groupBy: 'severity'}, new VisualizeFunction('avg(foo)')],
+          aggregateSortBys: [{field: 'severity', kind: 'desc'}],
+        })
+      )
+    );
+  });
+
+  it('decodes custom aggregate sort bys correctly with aggregate fields', function () {
+    const location = locationFixture({
+      logsAggregateSortBys: '-severity',
+      aggregateField: [{groupBy: 'severity'}, {yAxes: ['avg(foo)']}].map(aggregateField =>
+        JSON.stringify(aggregateField)
+      ),
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          aggregateFields: [{groupBy: 'severity'}, new VisualizeFunction('avg(foo)')],
           aggregateSortBys: [{field: 'severity', kind: 'desc'}],
         })
       )

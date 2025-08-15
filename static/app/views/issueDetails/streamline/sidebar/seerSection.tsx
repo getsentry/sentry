@@ -2,7 +2,10 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
+
 import {Button} from 'sentry/components/core/button';
+import {Text} from 'sentry/components/core/text';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
 import Placeholder from 'sentry/components/placeholder';
@@ -20,6 +23,26 @@ import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {SeerSectionCtaButton} from './seerSectionCtaButton';
+
+function SeerWelcomeEntrypoint() {
+  return (
+    <WelcomeContainer>
+      <WelcomeTextContainer>
+        <Text>{t('Meet Seer, the AI debugging agent.')}</Text>
+      </WelcomeTextContainer>
+      <WelcomeImageContainer>
+        <img src={autofixSetupImg} alt="Seer AI debugging agent" />
+      </WelcomeImageContainer>
+      <WelcomeTextContainer>
+        <Text>
+          {t(
+            'Find the root cause of the issue, and even open a PR to fix it, in minutes.'
+          )}
+        </Text>
+      </WelcomeTextContainer>
+    </WelcomeContainer>
+  );
+}
 
 function SeerSectionContent({
   group,
@@ -117,8 +140,9 @@ export default function SeerSection({
       preventCollapse={!hasStreamlinedUI}
     >
       <SeerSectionContainer>
-        {aiConfig.orgNeedsGenAiAcknowledgement && !aiConfig.isAutofixSetupLoading ? (
-          <Summary>{t('Explore potential root causes and solutions with Seer.')}</Summary>
+        {(aiConfig.orgNeedsGenAiAcknowledgement || !aiConfig.hasAutofixQuota) &&
+        !aiConfig.isAutofixSetupLoading ? (
+          <SeerWelcomeEntrypoint />
         ) : aiConfig.hasAutofix || aiConfig.hasSummary ? (
           <SeerSectionContent group={group} project={project} event={event} />
         ) : issueTypeConfig.resources ? (
@@ -210,4 +234,24 @@ const HeaderContainer = styled('div')`
 
 const StyledP = styled('p')`
   margin-bottom: ${p => p.theme.space.md};
+`;
+
+const WelcomeContainer = styled('div')`
+  margin-bottom: ${p => p.theme.space.lg};
+`;
+
+const WelcomeImageContainer = styled('div')`
+  margin-bottom: ${p => p.theme.space.lg};
+  margin-top: ${p => p.theme.space.lg};
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+`;
+
+const WelcomeTextContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.sm};
 `;
