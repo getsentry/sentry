@@ -104,7 +104,7 @@ export function SpanDescription({
     : SpanFields.SPAN_DESCRIPTION;
   const exploreAttributeValue = shouldUseOTelFriendlyUI ? span.name : span.description;
 
-  const actions = span.description ? (
+  const actions = exploreAttributeValue ? (
     <BodyContentWrapper
       padding={
         resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
@@ -125,7 +125,7 @@ export function SpanDescription({
                 location,
                 node.event?.projectID,
                 exploreAttributeName,
-                exploreAttributeValue!,
+                exploreAttributeValue,
                 TraceDrawerActionKind.INCLUDE
               )
             : spanDetailsRouteWithQuery({
@@ -141,7 +141,7 @@ export function SpanDescription({
             traceAnalytics.trackExploreSearch(
               organization,
               exploreAttributeName,
-              exploreAttributeValue!,
+              exploreAttributeValue,
               TraceDrawerActionKind.INCLUDE,
               'drawer'
             );
