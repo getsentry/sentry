@@ -1746,6 +1746,16 @@ def aliased_query_params(
                 new_aggs.append(aggregation)
         aggregations = new_aggs
 
+    # Apply error upsampling conversion for Events dataset when project_ids are present.
+    # This mirrors the behavior in query(), ensuring aliased_query paths also convert count()
+    # to sum(sample_weight) for allowlisted projects.
+    if dataset == Dataset.Events and filter_keys and filter_keys.get("project_id") and aggregations:
+        project_filter = filter_keys.get("project_id")
+        project_ids = (
+            project_filter if isinstance(project_filter, (list, tuple)) else [project_filter]
+        )
+        _convert_count_aggregations_for_error_upsampling(aggregations, project_ids)
+
     if conditions:
         if condition_resolver:
             column_resolver: Callable = functools.partial(condition_resolver, dataset=dataset)
