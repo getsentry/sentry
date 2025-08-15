@@ -13,7 +13,7 @@ type DefaultProps = {
 };
 
 type CustomComponentRenderProps = {
-  error: Error | string | null;
+  error: Error | null;
 };
 
 type Props = DefaultProps & {
@@ -37,7 +37,7 @@ type Props = DefaultProps & {
 };
 
 type State = {
-  error: Error | string | null;
+  error: Error | null;
 };
 
 const exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'] as const;
@@ -66,8 +66,10 @@ class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  componentDidCatch(error: Error | string, errorInfo: React.ErrorInfo) {
+  componentDidCatch(_error: Error | string, errorInfo: React.ErrorInfo) {
     const {errorTag} = this.props;
+
+    const error = typeof _error === 'string' ? new Error(_error) : _error;
 
     this.setState({error});
     Sentry.withScope(scope => {
@@ -77,17 +79,11 @@ class ErrorBoundary extends Component<Props, State> {
 
       try {
         // Based on https://github.com/getsentry/sentry-javascript/blob/6f4ad562c469f546f1098136b65583309d03487b/packages/react/src/errorboundary.tsx#L75-L85
-        const isErrorAnErrorObject = error instanceof Error;
-
-        const errorBoundaryError = new Error(
-          isErrorAnErrorObject ? error.message : error
-        );
+        const errorBoundaryError = new Error(error.message);
         errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
         errorBoundaryError.stack = errorInfo.componentStack!;
 
-        if (isErrorAnErrorObject) {
-          error.cause = errorBoundaryError;
-        }
+        error.cause = errorBoundaryError;
       } catch {
         // Some browsers won't let you write to Error instance
         scope.setExtra('errorInfo', errorInfo);
