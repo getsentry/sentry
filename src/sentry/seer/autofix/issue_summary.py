@@ -162,11 +162,10 @@ def _call_seer(
     )
 
     # Route to summarization URL based on rollout rate
+    url = settings.SEER_AUTOFIX_URL
     use_summarization_url = in_random_rollout("issues.summary.summarization-url-rollout-rate")
     if use_summarization_url:
         url = settings.SEER_SUMMARIZATION_URL
-    else:
-        url = settings.SEER_AUTOFIX_URL
 
     try:
         response = requests.post(
@@ -178,10 +177,8 @@ def _call_seer(
             },
         )
     except Exception:
-        if not use_summarization_url:
-            raise
-        else:
-            # If the new pod connection fails, fall back to the old pod
+        if use_summarization_url:
+            # If the new pod fails, fall back to the old pod
             logger.warning("New Summarization pod connection failed", exc_info=True)
             response = requests.post(
                 f"{settings.SEER_AUTOFIX_URL}{path}",
@@ -191,6 +188,9 @@ def _call_seer(
                     **sign_with_seer_secret(body),
                 },
             )
+        else:
+            # Primary (autofix) request failed; propagate error
+            raise
 
     response.raise_for_status()
 
