@@ -81,7 +81,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 # Processing Task
 
 
-def _get_replay_profiling_project_key():
+def _get_replay_profiling_project_key() -> ProjectKey | None:
     """Get or create a project key specifically for replay consumer profiling data."""
     try:
         internal_project = Project.objects.get(slug="sentry-replay-consumer-profiling")

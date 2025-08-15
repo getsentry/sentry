@@ -533,14 +533,14 @@ def make_processed_event_message(processed_event: ProcessedEvent) -> Message[Pro
     return Message(Value(processed_event, {}))
 
 
-def make_valid_message() -> dict:
+def make_valid_message() -> Message[KafkaPayload]:
     original_payload = b'[{"type": "test", "data": "some event data"}]'
     compressed_payload = zlib.compress(original_payload)
     segment_id = 42
     headers = json.dumps({"segment_id": segment_id}).encode()
     recording_payload = headers + b"\n" + compressed_payload
 
-    return {
+    raw_message = {
         "type": "replay_recording_not_chunked",
         "org_id": 3,
         "project_id": 4,
@@ -553,6 +553,8 @@ def make_valid_message() -> dict:
         "replay_video": b"",
         "version": 0,
     }
+
+    return Message(Value(KafkaPayload(b"key", msgpack.packb(raw_message), []), {}))
 
 
 def make_valid_processed_event() -> ProcessedEvent:
@@ -601,7 +603,7 @@ def test_get_replay_profiling_project_key_success():
 
     assert result is not None
     assert result.project == project
-    assert result.use_case == UseCase.REPLAY_PROFILING.value
+    assert result.use_case == UseCase.PROFILING.value
     assert result.label == "Replay Consumer Profiling"
 
     # Test that subsequent calls return the same key
@@ -703,7 +705,8 @@ def test_commit_message_with_profiling(
     mock_options_get.return_value = profiling_enabled
     mock_get_project_key.return_value = mock_project_key
 
-    message = make_valid_processed_event()
+    processed_event = make_valid_processed_event()
+    message = make_processed_event_message(processed_event)
     commit_message_with_profiling(message)
 
     mock_commit_message.assert_called_once_with(message)
