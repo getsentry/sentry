@@ -4,7 +4,7 @@ from typing import Any
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.culprit import generate_culprit
-from sentry.grouping.utils import hash_from_values
+from sentry.issues.grouping.utils import hash_from_values
 
 
 def test_with_exception_interface() -> None:

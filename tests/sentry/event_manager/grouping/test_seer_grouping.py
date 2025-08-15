@@ -4,8 +4,13 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
-from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
+from sentry.issues.grouping.ingest.grouphash_metadata import (
+    create_or_update_grouphash_metadata_if_needed,
+)
+from sentry.issues.grouping.ingest.seer import (
+    get_seer_similar_issues,
+    should_call_seer_for_grouping,
+)
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase
@@ -56,21 +61,21 @@ class SeerEventManagerGroupingTest(TestCase):
 
         with (
             patch(
-                "sentry.grouping.ingest.seer.should_call_seer_for_grouping",
+                "sentry.issues.grouping.ingest.seer.should_call_seer_for_grouping",
                 wraps=should_call_seer_for_grouping,
             ) as should_call_seer_spy,
             patch(
-                "sentry.grouping.ingest.seer.get_seer_similar_issues",
+                "sentry.issues.grouping.ingest.seer.get_seer_similar_issues",
                 wraps=capture_results(
                     get_seer_similar_issues, get_seer_similar_issues_return_values
                 ),
             ) as get_seer_similar_issues_spy,
             patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+                "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
                 return_value=[seer_result_data],
             ),
             patch(
-                "sentry.grouping.ingest.seer._event_content_is_seer_eligible",
+                "sentry.issues.grouping.ingest.seer._event_content_is_seer_eligible",
                 return_value=True,
             ),
         ):
@@ -115,14 +120,20 @@ class SeerEventManagerGroupingTest(TestCase):
             assert get_seer_similar_issues_return_values[0][1] == expected_grouphash
             assert new_event.group_id == existing_event.group_id
 
-    @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
-    @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=EMPTY_SEER_RESULTS)
+    @patch("sentry.issues.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
+    @patch(
+        "sentry.issues.grouping.ingest.seer.get_seer_similar_issues",
+        return_value=EMPTY_SEER_RESULTS,
+    )
     def test_calls_seer_if_no_group_found(self, mock_get_seer_similar_issues: MagicMock, _) -> None:
         save_new_event({"message": "Dogs are great!"}, self.project)
         assert mock_get_seer_similar_issues.call_count == 1
 
-    @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
-    @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=EMPTY_SEER_RESULTS)
+    @patch("sentry.issues.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
+    @patch(
+        "sentry.issues.grouping.ingest.seer.get_seer_similar_issues",
+        return_value=EMPTY_SEER_RESULTS,
+    )
     def test_bypasses_seer_if_group_found(self, mock_get_seer_similar_issues: MagicMock, _) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         assert mock_get_seer_similar_issues.call_count == 1
@@ -131,7 +142,7 @@ class SeerEventManagerGroupingTest(TestCase):
         assert existing_event.group_id == new_event.group_id
         assert mock_get_seer_similar_issues.call_count == 1  # didn't get called again
 
-    @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
+    @patch("sentry.issues.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_assigns_event_to_neighbor_group_if_found(self, _: MagicMock) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
@@ -144,7 +155,7 @@ class SeerEventManagerGroupingTest(TestCase):
         )
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
         ) as mock_get_similarity_data:
             new_event = save_new_event(get_event_data(), self.project)
@@ -152,12 +163,12 @@ class SeerEventManagerGroupingTest(TestCase):
             assert mock_get_similarity_data.call_count == 1
             assert existing_event.group_id == new_event.group_id
 
-    @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
+    @patch("sentry.issues.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_creates_new_group_if_no_neighbor_found(self, _: MagicMock) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[]
         ) as mock_get_similarity_data:
             new_event = save_new_event(get_event_data(), self.project)
 
@@ -184,10 +195,10 @@ class StoredSeerMetadataTest(TestCase):
         assert metadata.seer_matched_grouphash == expected_seer_matched_grouphash
         assert metadata.seer_match_distance == expected_seer_match_distance
 
-    @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
+    @patch("sentry.issues.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_group_with_no_seer_match(self, _: MagicMock) -> None:
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ) as mock_get_similarity_data_from_seer:
             event = save_new_event(get_event_data(), self.project)
@@ -210,7 +221,7 @@ class StoredSeerMetadataTest(TestCase):
                 None,
             )
 
-    @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
+    @patch("sentry.issues.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_group_with_seer_match(self, _: MagicMock) -> None:
         existing_event = save_new_event(get_event_data(), self.project)
         existing_event_grouphash = GroupHash.objects.filter(
@@ -226,7 +237,7 @@ class StoredSeerMetadataTest(TestCase):
         )
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
         ) as mock_get_similarity_data_from_seer:
             new_event = save_new_event(get_event_data(dog="Maisey"), self.project)
@@ -254,7 +265,9 @@ class StoredSeerMetadataTest(TestCase):
             )
 
     def test_event_not_sent_to_seer(self) -> None:
-        with patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=False):
+        with patch(
+            "sentry.issues.grouping.ingest.seer.should_call_seer_for_grouping", return_value=False
+        ):
             event = save_new_event({"message": "Sit! Stay! Good dog!"}, self.project)
             event_grouphash = GroupHash.objects.filter(
                 hash=event.get_primary_hash(), project_id=self.project.id
@@ -263,7 +276,7 @@ class StoredSeerMetadataTest(TestCase):
             assert event_grouphash and event_grouphash.metadata
             self.assert_correct_seer_metadata(event_grouphash, None, None, None, None, None)
 
-    @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
+    @patch("sentry.issues.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_fills_in_missing_date_added(self, _: MagicMock) -> None:
 
         # Mimic the effects of the race condition wherein two events with the same new hash race to
@@ -281,11 +294,11 @@ class StoredSeerMetadataTest(TestCase):
 
         with (
             patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+                "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
                 return_value=[],
             ),
             patch(
-                "sentry.grouping.ingest.hashing.create_or_update_grouphash_metadata_if_needed",
+                "sentry.issues.grouping.ingest.hashing.create_or_update_grouphash_metadata_if_needed",
                 wraps=race_condition_create_or_update_grouphash_metadata,
             ) as mock_create_or_update_grouphash_metadata,
         ):

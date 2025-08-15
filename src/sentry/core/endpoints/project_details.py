@@ -37,10 +37,10 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
-from sentry.grouping.enhancer import Enhancements
-from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
+from sentry.issues.grouping.enhancer import Enhancements
+from sentry.issues.grouping.enhancer.exceptions import InvalidEnhancerConfig
+from sentry.issues.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
     InvalidSourcesError,

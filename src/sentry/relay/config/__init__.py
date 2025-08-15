@@ -20,7 +20,6 @@ from sentry.dynamic_sampling import generate_rules
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
-from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
     FilterTypes,
@@ -37,6 +36,7 @@ from sentry.ingest.transaction_clusterer.rules import (
     get_sorted_rules,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
+from sentry.issues.grouping.api import get_grouping_config_dict_for_project
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey

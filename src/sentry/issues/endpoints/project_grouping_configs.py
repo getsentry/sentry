@@ -6,7 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
+from sentry.issues.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 
 
 @region_silo_endpoint

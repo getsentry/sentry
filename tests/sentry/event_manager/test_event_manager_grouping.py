@@ -11,8 +11,8 @@ from sentry import audit_log
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG, SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
-from sentry.grouping.api import get_grouping_config_dict_for_project
-from sentry.grouping.ingest.config import update_or_set_grouping_config_if_needed
+from sentry.issues.grouping.api import get_grouping_config_dict_for_project
+from sentry.issues.grouping.ingest.config import update_or_set_grouping_config_if_needed
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
@@ -22,7 +22,7 @@ from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
+from tests.sentry.issues.grouping import NO_MSG_PARAM_CONFIG
 
 pytestmark = [requires_snuba]
 
@@ -545,11 +545,11 @@ def test_records_hash_comparison_metric(
     project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
     with mock.patch(
-        "sentry.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
+        "sentry.issues.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
         return_value=(primary_hashes, {}),
     ):
         with mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
+            "sentry.issues.grouping.ingest.hashing._calculate_secondary_hashes",
             return_value=secondary_hashes,
         ):
             save_new_event({"message": "Dogs are great!"}, project)
