@@ -15,9 +15,9 @@ export default function BuildComparison() {
   const organization = useOrganization();
   const theme = useTheme();
   const params = useParams<{
-    headArtifactId: string | undefined;
+    headArtifactId: string;
     // eslint-disable-next-line typescript-sort-keys/interface
-    baseArtifactId: string;
+    baseArtifactId: string | undefined;
     projectId: string;
   }>();
 
