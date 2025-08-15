@@ -146,8 +146,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
     @patch("sentry.analytics.record")
     def test_codeowners_max_raw_length(self, mock_record: MagicMock) -> None:
         with mock.patch(
-            "sentry.issues.endpoints.serializers.MAX_RAW_LENGTH",
-            len(self.data["raw"]) + 1,
+            "sentry.issues.endpoints.serializers.MAX_RAW_LENGTH", len(self.data["raw"]) + 1
         ):
             data = {
                 "raw": f"#                cool stuff     comment\n*.js {self.user.email}\n# good comment"
