@@ -9,7 +9,6 @@ import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import DiscoverButton from 'sentry/components/discoverButton';
 import EventVitals from 'sentry/components/events/eventVitals';
-import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -69,9 +68,7 @@ export type EventDetail = {
 
 function NewTraceDetailsContent(props: Props) {
   const navigate = useNavigate();
-  const [detail, setDetail] = useState<EventDetail | SpanDetailProps | undefined>(
-    undefined
-  );
+  const [detail, setDetail] = useState<EventDetail | undefined>(undefined);
   const traceInfo = useMemo(
     () => getTraceInfo(props.traces ?? [], props.orphanErrors),
     [props.traces, props.orphanErrors]
@@ -389,7 +386,6 @@ function NewTraceDetailsContent(props: Props) {
         <Margin>
           <VisuallyCompleteWithData id="PerformanceDetails-TraceView" hasData={hasData}>
             <NewTraceView
-              traceType={getTraceType()}
               rootEvent={rootEvent}
               traceInfo={traceInfo}
               location={location}

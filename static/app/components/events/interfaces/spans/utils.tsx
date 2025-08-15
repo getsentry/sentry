@@ -1,5 +1,4 @@
 import type {Theme} from '@emotion/react';
-import type {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
@@ -13,10 +12,7 @@ import type {
   EventTransaction,
 } from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import type {
   TraceError,
@@ -24,21 +20,19 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
-import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import type SpanTreeModel from './spanTreeModel';
 import type {
   AggregateSpanType,
-  EnhancedSpan,
   GapSpanType,
   OrphanSpanType,
-  OrphanTreeDepth,
   ParsedTraceType,
   ProcessedSpanType,
   RawSpanType,
   SpanType,
   TraceContextType,
-  TreeDepthType,
 } from './types';
+
+const MERGE_LABELS_THRESHOLD_PERCENT = 10;
 
 const isValidSpanID = (maybeSpanID: any) =>
   typeof maybeSpanID === 'string' && maybeSpanID.length > 0;
@@ -65,13 +59,6 @@ export type SpanGeneratedBoundsType =
       start: number;
       type: 'TIMESTAMPS_STABLE';
     };
-
-export type SpanViewBoundsType = {
-  isSpanVisibleInView: boolean;
-  left: undefined | number;
-  warning: undefined | string;
-  width: undefined | number;
-};
 
 const normalizeTimestamps = (spanBounds: SpanBoundsType): SpanBoundsType => {
   const {startTimestamp, endTimestamp} = spanBounds;
@@ -119,14 +106,6 @@ const HIDDEN_DATA_KEYS = [...HTTP_DATA_KEYS, ...INTERNAL_DATA_KEYS];
 
 export const isHiddenDataKey = (key: string) => {
   return HIDDEN_DATA_KEYS.includes(key);
-};
-
-/**
- * Affected spans (hatching when spans have errors) may only apply to a sub timing,
- * as is the case for http overhead issues (only time before the request start matters)..
- */
-export const shouldLimitAffectedToTiming = (timing: SubTimingInfo) => {
-  return timing.endMark === SpanSubTimingMark.HTTP_REQUEST_START; // Sub timing spanning between start and request start.
 };
 
 const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
@@ -286,7 +265,7 @@ export function getTraceDateTimeRange(input: {end: number; start: number}): {
   };
 }
 
-export function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
+function isGapSpan(span: ProcessedSpanType): span is GapSpanType {
   if ('type' in span) {
     return span.type === 'gap';
   }
@@ -443,7 +422,7 @@ export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined
   return label;
 }
 
-export function getTraceContext(
+function getTraceContext(
   event: Readonly<EventTransaction | AggregateEventTransaction>
 ): TraceContextType | undefined {
   return event?.contexts?.trace;
@@ -621,23 +600,6 @@ function sortSpans(firstSpan: SpanType, secondSpan: SpanType) {
   return 1;
 }
 
-export function isOrphanTreeDepth(
-  treeDepth: TreeDepthType
-): treeDepth is OrphanTreeDepth {
-  if (typeof treeDepth === 'number') {
-    return false;
-  }
-  return treeDepth?.type === 'orphan';
-}
-
-export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
-  if (isOrphanTreeDepth(treeDepth)) {
-    return treeDepth.depth;
-  }
-
-  return treeDepth;
-}
-
 export function isEventFromBrowserJavaScriptSDK(
   event: EventTransaction | AggregateEventTransaction
 ): boolean {
@@ -662,11 +624,6 @@ export function isEventFromBrowserJavaScriptSDK(
     'sentry.javascript.astro',
   ].includes(sdkName.toLowerCase());
 }
-
-// Durationless ops from: https://github.com/getsentry/sentry-javascript/blob/0defcdcc2dfe719343efc359d58c3f90743da2cd/packages/apm/src/integrations/tracing.ts#L629-L688
-// PerformanceMark: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformanceMark
-// PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
-export const durationlessBrowserOps = ['mark', 'paint'];
 
 type Measurements = Record<
   string,
@@ -799,194 +756,12 @@ export function getMeasurements(
   return mergedMeasurements;
 }
 
-export function getMeasurementBounds(
-  timestamp: number,
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
-): SpanViewBoundsType {
-  const bounds = generateBounds({
-    startTimestamp: timestamp,
-    endTimestamp: timestamp,
-  });
-
-  switch (bounds.type) {
-    case 'TRACE_TIMESTAMPS_EQUAL':
-    case 'INVALID_VIEW_WINDOW': {
-      return {
-        warning: undefined,
-        left: undefined,
-        width: undefined,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_EQUAL': {
-      return {
-        warning: undefined,
-        left: bounds.start,
-        width: 0.00001,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_REVERSED': {
-      return {
-        warning: undefined,
-        left: bounds.start,
-        width: bounds.end - bounds.start,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_STABLE': {
-      return {
-        warning: void 0,
-        left: bounds.start,
-        width: bounds.end - bounds.start,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    default: {
-      const _exhaustiveCheck: never = bounds;
-      return _exhaustiveCheck;
-    }
-  }
-}
-
-export function scrollToSpan(
-  spanId: string,
-  scrollToHash: (hash: string) => void,
-  location: Location,
-  organization: Organization
-) {
-  return (e: React.MouseEvent<Element>) => {
-    // do not use the default anchor behaviour
-    // because it will be hidden behind the minimap
-    e.preventDefault();
-
-    const hash = spanTargetHash(spanId);
-
-    scrollToHash(hash);
-
-    // TODO(txiao): This is causing a rerender of the whole page,
-    // which can be slow.
-    //
-    // make sure to update the location
-    browserHistory.push({
-      ...location,
-      hash,
-    });
-
-    trackAnalytics('performance_views.event_details.anchor_span', {
-      organization,
-      span_id: spanId,
-    });
-  };
-}
-
-type TraceDetailsHashIds = {
-  eventId: string | undefined;
-  spanId: string | undefined;
-};
-
-export function parseTraceDetailsURLHash(hash: string): TraceDetailsHashIds | null {
-  if (!hash) {
-    return null;
-  }
-
-  const values = hash.split('#').slice(1);
-  const eventId = values.find(value => value.includes('txn'))?.split('-')[1];
-  const spanId = values.find(value => value.includes('span'))?.split('-')[1];
-
-  return {
-    eventId,
-    spanId,
-  };
-}
-
-export function spanTargetHash(spanId: string): string {
-  return `#span-${spanId}`;
-}
-
-export function transactionTargetHash(spanId: string): string {
-  return `#txn-${spanId}`;
-}
-
 export function getSiblingGroupKey(span: SpanType, occurrence?: number): string {
   if (occurrence !== undefined) {
     return `${span.op}.${span.description}.${occurrence}`;
   }
 
   return `${span.op}.${span.description}`;
-}
-
-export function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
-  return spanGroup.reduce(
-    (acc, spanGroupItem) => {
-      const {start_timestamp, timestamp} = spanGroupItem.span;
-
-      let newStartTimestamp = acc.startTimestamp;
-      let newEndTimestamp = acc.endTimestamp;
-
-      if (start_timestamp < newStartTimestamp) {
-        newStartTimestamp = start_timestamp;
-      }
-
-      if (newEndTimestamp < timestamp) {
-        newEndTimestamp = timestamp;
-      }
-
-      return {
-        startTimestamp: newStartTimestamp,
-        endTimestamp: newEndTimestamp,
-      };
-    },
-    {
-      startTimestamp: spanGroup[0]!.span.start_timestamp,
-      endTimestamp: spanGroup[0]!.span.timestamp,
-    }
-  );
-}
-
-export function getSpanGroupBounds(
-  spanGroup: EnhancedSpan[],
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
-): SpanViewBoundsType {
-  const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGroup);
-
-  const bounds = generateBounds({
-    startTimestamp,
-    endTimestamp,
-  });
-
-  switch (bounds.type) {
-    case 'TRACE_TIMESTAMPS_EQUAL':
-    case 'INVALID_VIEW_WINDOW': {
-      return {
-        warning: void 0,
-        left: void 0,
-        width: void 0,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_EQUAL': {
-      return {
-        warning: void 0,
-        left: bounds.start,
-        width: 0.00001,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    case 'TIMESTAMPS_REVERSED':
-    case 'TIMESTAMPS_STABLE': {
-      return {
-        warning: void 0,
-        left: bounds.start,
-        width: bounds.end - bounds.start,
-        isSpanVisibleInView: bounds.isSpanVisibleInView,
-      };
-    }
-    default: {
-      const _exhaustiveCheck: never = bounds;
-      return _exhaustiveCheck;
-    }
-  }
 }
 
 export function getCumulativeAlertLevelFromErrors(
@@ -1008,7 +783,7 @@ export function getCumulativeAlertLevelFromErrors(
   return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
 }
 
-export function isErrorPerformanceError(error: {type?: number}): boolean {
+function isErrorPerformanceError(error: {type?: number}): boolean {
   return !!error.type && error.type >= 1000 && error.type < 2000;
 }
 
