@@ -13,11 +13,11 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.utils.groupreference import find_referenced_groups
 
@@ -135,7 +135,7 @@ class PullRequestComment(Model):
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
     group_ids = ArrayField(BoundedBigIntegerField())
-    reactions = JSONField(null=True)
+    reactions = LegacyTextJSONField(null=True)
     comment_type = BoundedPositiveIntegerField(
         default=CommentType.MERGED_PR,
         db_default=CommentType.MERGED_PR,

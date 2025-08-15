@@ -4,8 +4,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs from './dart';
 
-describe('dart onboarding docs', function () {
-  it('renders docs correctly', async function () {
+describe('dart onboarding docs', () => {
+  it('renders docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dart': {

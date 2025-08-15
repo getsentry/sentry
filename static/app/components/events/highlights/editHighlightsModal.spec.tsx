@@ -20,7 +20,7 @@ import * as analytics from 'sentry/utils/analytics';
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
-describe('EditHighlightsModal', function () {
+describe('EditHighlightsModal', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const event = EventFixture({
@@ -74,13 +74,13 @@ describe('EditHighlightsModal', function () {
     });
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
     ModalStore.reset();
   });
 
-  it('should renders with basic functions', async function () {
+  it('should renders with basic functions', async () => {
     renderModal({highlightContext: {}, highlightTags: []});
     renderGlobalModal();
     expect(screen.getByText('Edit Event Highlights')).toBeInTheDocument();
@@ -125,7 +125,7 @@ describe('EditHighlightsModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('should update preview section from user selection', async function () {
+  it('should update preview section from user selection', async () => {
     const updateProjectMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
@@ -195,7 +195,7 @@ describe('EditHighlightsModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('should update tag section from user selection', async function () {
+  it('should update tag section from user selection', async () => {
     const updateProjectMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
@@ -256,7 +256,7 @@ describe('EditHighlightsModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('should update context section from user selection', async function () {
+  it('should update context section from user selection', async () => {
     const updateProjectMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
@@ -343,7 +343,7 @@ describe('EditHighlightsModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('should update sections from search input', async function () {
+  it('should update sections from search input', async () => {
     renderModal();
     renderGlobalModal();
     const tagCount = TEST_EVENT_TAGS.length;

@@ -82,7 +82,6 @@ export function WidgetCardChartContainer({
   onZoom,
   onLegendSelectChanged,
   legendOptions,
-  expandNumbers,
   onDataFetched,
   noPadding,
   onWidgetSplitDecision,
@@ -196,13 +195,10 @@ export function WidgetCardChartContainer({
               tableResults={tableResults}
               errorMessage={errorOrEmptyMessage}
               loading={loading}
-              location={location}
               widget={widget}
               selection={selection}
-              organization={organization}
               isMobile={isMobile}
               windowWidth={windowWidth}
-              expandNumbers={expandNumbers}
               onZoom={onZoom}
               timeseriesResultsTypes={timeseriesResultsTypes}
               noPadding={noPadding}
@@ -223,10 +219,10 @@ export function WidgetCardChartContainer({
               minTableColumnWidth={minTableColumnWidth}
               isSampled={isSampled}
               showLoadingText={showLoadingText}
-              theme={theme}
               onWidgetTableSort={onWidgetTableSort}
               onWidgetTableResizeColumn={onWidgetTableResizeColumn}
               disableTableActions={disableTableActions}
+              dashboardFilters={dashboardFilters}
             />
           </Fragment>
         );

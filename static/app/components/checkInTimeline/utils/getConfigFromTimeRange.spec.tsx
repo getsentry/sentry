@@ -4,10 +4,10 @@ import {getFormat} from 'sentry/utils/dates';
 
 import {getConfigFromTimeRange} from './getConfigFromTimeRange';
 
-describe('getConfigFromTimeRange', function () {
+describe('getConfigFromTimeRange', () => {
   const timelineWidth = 800;
 
-  it('divides into minutes for small intervals', function () {
+  it('divides into minutes for small intervals', () => {
     const start = new Date('2023-06-15T11:00:00Z');
     const end = new Date('2023-06-15T11:05:00Z');
     const config = getConfigFromTimeRange(start, end, timelineWidth);
@@ -35,7 +35,7 @@ describe('getConfigFromTimeRange', function () {
     });
   });
 
-  it('displays dates when more than 1 day window size', function () {
+  it('displays dates when more than 1 day window size', () => {
     const start = new Date('2023-06-15T11:00:00Z');
     const end = new Date('2023-06-16T11:05:00Z');
     const config = getConfigFromTimeRange(start, end, timelineWidth);
@@ -65,7 +65,7 @@ describe('getConfigFromTimeRange', function () {
     });
   });
 
-  it('divides into minutes without showing seconds for medium intervals', function () {
+  it('divides into minutes without showing seconds for medium intervals', () => {
     const start = new Date('2023-06-15T08:00:00Z');
     const end = new Date('2023-06-15T23:00:00Z');
     const config = getConfigFromTimeRange(start, end, timelineWidth);
@@ -95,7 +95,7 @@ describe('getConfigFromTimeRange', function () {
     });
   });
 
-  it('divides into days for larger intervals', function () {
+  it('divides into days for larger intervals', () => {
     const start = new Date('2023-05-15T11:00:00Z');
     const end = new Date('2023-06-15T11:00:00Z');
     const config = getConfigFromTimeRange(start, end, timelineWidth);
@@ -127,7 +127,7 @@ describe('getConfigFromTimeRange', function () {
     });
   });
 
-  it('Includes dates when the window spans days', function () {
+  it('Includes dates when the window spans days', () => {
     const start = new Date('2023-05-14T20:00:00Z');
     const end = new Date('2023-05-15T10:00:00Z');
     const config = getConfigFromTimeRange(start, end, timelineWidth);

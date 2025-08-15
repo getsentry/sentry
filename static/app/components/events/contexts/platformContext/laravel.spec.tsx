@@ -24,8 +24,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('LaravelContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('LaravelContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getLaravelContextData({data: MOCK_LARAVEL_CONTEXT})).toEqual([
       {
         key: 'extra_data',
@@ -42,7 +42,7 @@ describe('LaravelContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {laravel: MOCK_REDACTION}},
     });
