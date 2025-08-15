@@ -3,6 +3,7 @@ import {useCallback, useEffect, useReducer, type Reducer} from 'react';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {
   convertTokenTypeToValueType,
+  escapeTagValue,
   getArgsToken,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -590,8 +591,8 @@ export function replaceFreeTextTokens(
   if (!valueText) {
     return undefined;
   }
-  const values = valueText.includes(' ') ? `"*${valueText}*"` : `*${valueText}*`;
 
+  const values = escapeTagValue(`*${valueText}*`);
   // Combine both action and current tokens, and filter out the free text tokens
   const filteredTokens = new Set<string>();
   actionTokens.forEach(token => {
@@ -608,7 +609,7 @@ export function replaceFreeTextTokens(
   // case when there is a replace key and value present
   if (replaceToken) {
     const previousValue =
-      replaceToken.value.text.startsWith('[') && replaceToken.value.text.endsWith(']')
+      replaceToken.value.type === Token.VALUE_TEXT_LIST
         ? replaceToken.value.text.slice(1, -1)
         : replaceToken.value.text;
 
