@@ -10,7 +10,7 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import eventstore, features, options, quotas
+from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory, ObjectStatus
@@ -162,8 +162,8 @@ def _call_seer(
     )
 
     url = settings.SEER_AUTOFIX_URL
-    # route to summarization URL if option is true
-    if options.get("seer.issue-summary.use-summarization-url"):
+    # Route to summarization URL based on rollout rate
+    if in_random_rollout("issues.summary.summarization-url-rollout-rate"):
         url = settings.SEER_SUMMARIZATION_URL
 
     response = requests.post(
