@@ -2,8 +2,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {HighlightComponent} from 'sentry/components/highlight';
 
-describe('Highlight', function () {
-  it('highlights text', function () {
+describe('Highlight', () => {
+  it('highlights text', () => {
     const wrapper = render(
       <HighlightComponent text="ILL">billy@sentry.io</HighlightComponent>
     );
@@ -13,19 +13,19 @@ describe('Highlight', function () {
     expect(wrapper.container.childNodes[2]).toHaveTextContent('y@sentry.io');
   });
 
-  it('does not have highlighted text if `text` prop is not found in main text', function () {
+  it('does not have highlighted text if `text` prop is not found in main text', () => {
     render(<HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>);
 
     expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
   });
 
-  it('does not have highlighted text if `text` prop is empty', function () {
+  it('does not have highlighted text if `text` prop is empty', () => {
     render(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
 
     expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
   });
 
-  it('does not have highlighted text if `disabled` prop is true', function () {
+  it('does not have highlighted text if `disabled` prop is true', () => {
     render(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
 
     expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();

@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {PageFilters} from 'sentry/types/core';
 import {ProjectAnrScoreCard} from 'sentry/views/projectDetail/projectScoreCards/projectAnrScoreCard';
 
-describe('ProjectDetail > ProjectAnr', function () {
+describe('ProjectDetail > ProjectAnr', () => {
   let endpointMock: jest.Mock;
   let endpointMockPreviousPeriod: jest.Mock;
 
@@ -27,7 +27,7 @@ describe('ProjectDetail > ProjectAnr', function () {
     },
   } as PageFilters;
 
-  beforeEach(function () {
+  beforeEach(() => {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
       match: [MockApiClient.matchQuery({statsPeriod: '7d'})],
@@ -61,11 +61,11 @@ describe('ProjectDetail > ProjectAnr', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('calls api with anr rate', async function () {
+  it('calls api with anr rate', async () => {
     render(
       <ProjectAnrScoreCard
         organization={{...organization}}
@@ -113,7 +113,7 @@ describe('ProjectDetail > ProjectAnr', function () {
     await screen.findByText('3%');
   });
 
-  it('renders open in issues CTA', async function () {
+  it('renders open in issues CTA', async () => {
     organization.features = ['discover-basic'];
     render(
       <ProjectAnrScoreCard

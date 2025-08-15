@@ -9,7 +9,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 const slug = 'my-org';
 
-describe('ForcedTrialModal', function () {
+describe('ForcedTrialModal', () => {
   let org: any, sub: any;
   const populateOrgAndSub = (orgParams = {}, subParams = {}) => {
     const now = moment();
@@ -25,8 +25,8 @@ describe('ForcedTrialModal', function () {
     });
     SubscriptionStore.set(org.slug, sub);
   };
-  describe('member limit', function () {
-    beforeEach(function () {
+  describe('member limit', () => {
+    beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${slug}/integrations/`,
         method: 'GET',
@@ -43,7 +43,7 @@ describe('ForcedTrialModal', function () {
         ],
       });
     });
-    it('shows request upgrade when user does not have billing permissions', async function () {
+    it('shows request upgrade when user does not have billing permissions', async () => {
       populateOrgAndSub({access: []});
 
       render(<ForcedTrialModal closeModal={jest.fn()} organization={org} />);
@@ -52,7 +52,7 @@ describe('ForcedTrialModal', function () {
         screen.getByText('You may lose access to Sentry in 14 days')
       ).toBeInTheDocument();
     });
-    it('shows upgrade now when user has billing permissions', async function () {
+    it('shows upgrade now when user has billing permissions', async () => {
       populateOrgAndSub();
 
       render(<ForcedTrialModal closeModal={jest.fn()} organization={org} />);
@@ -62,8 +62,8 @@ describe('ForcedTrialModal', function () {
       ).toBeInTheDocument();
     });
   });
-  describe('disallowed integration', function () {
-    beforeEach(function () {
+  describe('disallowed integration', () => {
+    beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${slug}/integrations/`,
         method: 'GET',
@@ -80,7 +80,7 @@ describe('ForcedTrialModal', function () {
         ],
       });
     });
-    it('shows upgrade button if has slack', async function () {
+    it('shows upgrade button if has slack', async () => {
       populateOrgAndSub();
 
       render(<ForcedTrialModal closeModal={jest.fn()} organization={org} />);

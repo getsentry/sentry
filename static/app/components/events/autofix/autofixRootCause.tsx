@@ -14,9 +14,11 @@ import {
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
 import {IconArrow, IconChat, IconClose, IconCopy, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -70,6 +72,7 @@ type AutofixRootCauseProps = {
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
   agentCommentThread?: CommentThread;
+  event?: Event;
   isRootCauseFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -191,7 +194,7 @@ export function formatRootCauseText(
           }
 
           if (event.relevant_code_file) {
-            eventParts.push(`(See ${event.relevant_code_file.file_path})`);
+            eventParts.push(`(See @${event.relevant_code_file.file_path})`);
           }
 
           return eventParts.join('\n');
@@ -206,11 +209,13 @@ export function formatRootCauseText(
 function CopyRootCauseButton({
   cause,
   customRootCause,
+  event,
 }: {
   cause?: AutofixRootCauseData;
   customRootCause?: string;
+  event?: Event;
 }) {
-  const text = formatRootCauseText(cause, customRootCause);
+  const text = formatRootCauseWithEvent(cause, customRootCause, event);
   const {onClick, label} = useCopyToClipboard({
     text,
   });
@@ -238,6 +243,7 @@ function AutofixRootCauseDisplay({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
+  event,
 }: AutofixRootCauseProps) {
   const cause = causes[0];
   const iconFocusRef = useRef<HTMLDivElement>(null);
@@ -324,7 +330,10 @@ function AutofixRootCauseDisplay({
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
           <BottomDivider />
           <BottomButtonContainer>
-            <CopyRootCauseButton customRootCause={rootCauseSelection.custom_root_cause} />
+            <CopyRootCauseButton
+              customRootCause={rootCauseSelection.custom_root_cause}
+              event={event}
+            />
           </BottomButtonContainer>
         </CustomRootCausePadding>
       </CausesContainer>
@@ -424,7 +433,7 @@ function AutofixRootCauseDisplay({
           </SolutionInputContainer>
         ) : (
           <ButtonBar>
-            <CopyRootCauseButton cause={cause} />
+            <CopyRootCauseButton cause={cause} event={event} />
             <Button
               size="sm"
               onClick={handleMySolution}

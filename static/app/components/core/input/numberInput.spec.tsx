@@ -2,14 +2,14 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 
-describe('NumberInput', function () {
-  it('renders input', function () {
+describe('NumberInput', () => {
+  it('renders input', () => {
     render(<NumberInput value={5} aria-label="Test" />);
 
     expect(screen.getByRole('textbox')).toHaveValue('5');
   });
 
-  it('responds to key presses', async function () {
+  it('responds to key presses', async () => {
     render(<NumberInput defaultValue={5} aria-label="Test" />);
 
     const input = screen.getByRole('textbox');
@@ -20,7 +20,7 @@ describe('NumberInput', function () {
     expect(input).toHaveValue('6');
   });
 
-  it('responds to increment/decrement button clicks', async function () {
+  it('responds to increment/decrement button clicks', async () => {
     render(<NumberInput defaultValue={5} aria-label="Test" />);
 
     const input = screen.getByRole('textbox');
@@ -31,7 +31,7 @@ describe('NumberInput', function () {
     expect(input).toHaveValue('5');
   });
 
-  it('forces min/max values', async function () {
+  it('forces min/max values', async () => {
     render(<NumberInput min={0} max={10} defaultValue={5} aria-label="Test" />);
 
     const input = screen.getByRole('textbox');

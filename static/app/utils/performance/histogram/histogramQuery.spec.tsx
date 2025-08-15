@@ -28,9 +28,9 @@ function renderHistogram({isLoading, error, histograms}: any) {
   );
 }
 
-describe('HistogramQuery', function () {
+describe('HistogramQuery', () => {
   let eventView: any, location: any;
-  beforeEach(function () {
+  beforeEach(() => {
     location = {
       pathname: '/',
       query: {},
@@ -45,7 +45,7 @@ describe('HistogramQuery', function () {
     });
   });
 
-  it('fetches data on mount', async function () {
+  it('fetches data on mount', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-histogram/',
       body: {
