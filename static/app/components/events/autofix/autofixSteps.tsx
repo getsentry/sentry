@@ -19,6 +19,7 @@ import {
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -35,6 +36,7 @@ interface StepProps {
   hasStepBelow: boolean;
   runId: string;
   step: AutofixStep;
+  event?: Event;
   isAutoTriggeredRun?: boolean;
   isChangesFirstAppearance?: boolean;
   isRootCauseFirstAppearance?: boolean;
@@ -48,6 +50,7 @@ interface AutofixStepsProps {
   data: AutofixData;
   groupId: string;
   runId: string;
+  event?: Event;
 }
 
 function isProgressLog(
@@ -69,6 +72,7 @@ function Step({
   isSolutionFirstAppearance,
   isChangesFirstAppearance,
   isAutoTriggeredRun,
+  event,
 }: StepProps) {
   return (
     <StepCard id={`autofix-step-${step.id}`} data-step-type={step.type}>
@@ -103,6 +107,7 @@ function Step({
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   isRootCauseFirstAppearance={isRootCauseFirstAppearance}
+                  event={event}
                 />
               )}
               {step.type === AutofixStepType.SOLUTION && (
@@ -117,6 +122,7 @@ function Step({
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
                   isSolutionFirstAppearance={isSolutionFirstAppearance}
+                  event={event}
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
@@ -138,7 +144,7 @@ function Step({
   );
 }
 
-export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
+export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
   const organization = useOrganization();
   const codingDisabled =
     organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
@@ -245,6 +251,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
                 step.type === AutofixStepType.CHANGES && !isInitialMount
               }
               isAutoTriggeredRun={isAutoTriggeredRun}
+              event={event}
             />
           </div>
         );
