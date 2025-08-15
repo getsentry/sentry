@@ -211,7 +211,7 @@ describe('PlanFeature', () => {
     });
   });
 
-  it('returns dashboards-basic in team plan even if response does not include it', async function () {
+  it('returns dashboards-basic in team plan even if response does not include it', async () => {
     const mockFn = jest.fn(() => null);
 
     const sub = SubscriptionFixture({
@@ -235,7 +235,7 @@ describe('PlanFeature', () => {
     });
   });
 
-  it('returns dashboards-edit in business plan even if response does not include it', async function () {
+  it('returns dashboards-edit in business plan even if response does not include it', async () => {
     const mockFn = jest.fn(() => null);
 
     const sub = SubscriptionFixture({
