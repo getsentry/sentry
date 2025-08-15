@@ -19,13 +19,16 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
+  useAutofixData,
   useAutofixRepos,
   type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
+import {formatSolutionWithEvent} from 'sentry/components/events/autofix/utils';
 import {Timeline} from 'sentry/components/timeline';
 import {IconAdd, IconChat, IconCopy, IconFix} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
@@ -119,6 +122,7 @@ type AutofixSolutionProps = {
   changesDisabled?: boolean;
   customSolution?: string;
   description?: string;
+  event?: Event;
   isSolutionFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -264,27 +268,27 @@ export function formatSolutionText(
   }
 
   if (customSolution) {
-    return `# Proposed Changes\n\n${customSolution}`;
+    return `# Solution Plan\n\n${customSolution}`;
   }
 
   if (!solution || solution.length === 0) {
     return '';
   }
 
-  const parts = ['# Proposed Changes'];
+  const parts = ['# Solution Plan'];
 
   parts.push(
     solution
       .filter(event => event.is_active)
-      .map(event => {
-        const eventParts = [`### ${event.title}`];
+      .map((event, index) => {
+        const eventParts = [`### ${index + 1}. ${event.title}`];
 
         if (event.code_snippet_and_analysis) {
           eventParts.push(event.code_snippet_and_analysis);
         }
 
         if (event.relevant_code_file) {
-          eventParts.push(`(See ${event.relevant_code_file.file_path})`);
+          eventParts.push(`(See @${event.relevant_code_file.file_path})`);
         }
 
         return eventParts.join('\n');
@@ -298,13 +302,17 @@ export function formatSolutionText(
 function CopySolutionButton({
   solution,
   customSolution,
+  event,
   isEditing,
+  rootCause,
 }: {
   solution: AutofixSolutionTimelineEvent[];
   customSolution?: string;
+  event?: Event;
   isEditing?: boolean;
+  rootCause?: any;
 }) {
-  const text = formatSolutionText(solution, customSolution);
+  const text = formatSolutionWithEvent(solution, customSolution, event, rootCause);
   const {onClick, label} = useCopyToClipboard({
     text,
   });
@@ -338,12 +346,20 @@ function AutofixSolutionDisplay({
   customSolution,
   solutionSelected,
   agentCommentThread,
+  event,
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const organization = useOrganization();
   const {data: group} = useGroup({groupId});
   const project = group?.project;
 
   const {repos} = useAutofixRepos(groupId);
+  const {data: autofixData} = useAutofixData({groupId});
+
+  // Get root cause data from autofix data
+  const rootCauseStep = autofixData?.steps?.find(
+    step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
+  );
+  const rootCause = rootCauseStep?.causes?.[0];
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [instructions, setInstructions] = useState('');
   const [solutionItems, setSolutionItems] = useState<AutofixSolutionTimelineEvent[]>( // This will become outdated if multiple people use it, but we can ignore this for now.
@@ -474,7 +490,12 @@ function AutofixSolutionDisplay({
           <BottomDivider />
           <BottomFooter>
             <div style={{flex: 1}} />
-            <CopySolutionButton solution={solution} customSolution={customSolution} />
+            <CopySolutionButton
+              solution={solution}
+              customSolution={customSolution}
+              event={event}
+              rootCause={rootCause}
+            />
           </BottomFooter>
         </CustomSolutionPadding>
       </SolutionContainer>
@@ -558,7 +579,7 @@ function AutofixSolutionDisplay({
           </InstructionsInputWrapper>
         </AddInstructionWrapper>
         <ButtonBar>
-          <CopySolutionButton solution={solution} />
+          <CopySolutionButton solution={solution} event={event} rootCause={rootCause} />
           <Tooltip
             isHoverable
             title={
