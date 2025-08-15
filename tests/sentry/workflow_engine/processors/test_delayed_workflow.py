@@ -6,7 +6,6 @@ import pytest
 from django.utils import timezone
 
 from sentry import buffer
-from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -972,35 +971,6 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             group_id=self.group1.id,
             event_id=self.event1.event_id,
         ).exists()
-
-    @patch("sentry.workflow_engine.processors.delayed_workflow.fire_actions")
-    def test_fire_actions_for_groups__filters_inactive_actions(
-        self, mock_fire_actions: MagicMock
-    ) -> None:
-        dcg_active, active_action = self.create_workflow_action(workflow=self.workflow1)
-        dcg_inactive, inactive_action = self.create_workflow_action(workflow=self.workflow1)
-
-        inactive_action.update(status=ObjectStatus.DISABLED)
-
-        test_groups_to_dcgs = {
-            self.group1.id: {dcg_active, dcg_inactive},
-        }
-        test_group_to_groupevent = {
-            self.group1: self.event1.for_group(self.group1),
-        }
-
-        fire_actions_for_groups(
-            self.project.organization,
-            test_groups_to_dcgs,
-            test_group_to_groupevent,
-        )
-
-        mock_fire_actions.assert_called_once()
-        called_actions = mock_fire_actions.call_args[0][0]
-
-        action_ids = list(called_actions.values_list("id", flat=True))
-        assert active_action.id in action_ids
-        assert inactive_action.id not in action_ids
 
 
 class TestCleanupRedisBuffer(TestDelayedWorkflowBase):

@@ -10,7 +10,6 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry import features
-from sentry.constants import ObjectStatus
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
@@ -466,9 +465,6 @@ def process_workflows(
     create_workflow_fire_histories(
         detector, actions, event_data, should_trigger_actions, is_delayed=False
     )
-
-    # We only want to fire active actions
-    actions = actions.filter(status=ObjectStatus.ACTIVE)
 
     fire_actions(actions, detector, event_data)
 

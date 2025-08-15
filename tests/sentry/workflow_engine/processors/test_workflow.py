@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry.constants import ObjectStatus
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
@@ -313,23 +312,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow}
-
-    @patch("sentry.workflow_engine.processors.workflow.fire_actions")
-    def test_filters_inactive_actions(self, mock_fire_actions: MagicMock) -> None:
-        _, active_action = self.create_workflow_action(workflow=self.error_workflow)
-        _, inactive_action = self.create_workflow_action(workflow=self.error_workflow)
-
-        # Set the inactive action to disabled status
-        inactive_action.update(status=ObjectStatus.DISABLED)
-
-        process_workflows(self.event_data)
-
-        mock_fire_actions.assert_called_once()
-        called_actions = mock_fire_actions.call_args[0][0]
-
-        action_ids = list(called_actions.values_list("id", flat=True))
-        assert active_action.id in action_ids
-        assert inactive_action.id not in action_ids
 
 
 @mock_redis_buffer()
