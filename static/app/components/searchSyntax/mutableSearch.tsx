@@ -9,7 +9,8 @@ import {
 } from './parser';
 import {getKeyName} from './utils';
 
-export const EMPTY_OPTION_VALUE = '(empty)';
+// TODO: Export when being used
+const EMPTY_OPTION_VALUE = '(empty)';
 
 // Hoisted regular expressions to avoid recompilation in hot paths
 const TRIMMABLE_ENDS_RE = /^["\(]+|["\)]+$/g;
@@ -28,7 +29,8 @@ const ALLOWED_WILDCARD_FIELDS = new Set<string>([
   'transaction',
 ]);
 
-export enum TokenType {
+// TODO: Export when being used
+enum TokenType {
   OPERATOR = 0,
   FILTER = 1,
   FREE_TEXT = 2,
