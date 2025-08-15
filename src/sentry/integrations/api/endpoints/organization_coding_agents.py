@@ -21,7 +21,12 @@ from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.services.integration import integration_service
-from sentry.seer.autofix.utils import AutofixState, CodingAgentState, get_autofix_state
+from sentry.seer.autofix.utils import (
+    AutofixState,
+    CodingAgentState,
+    get_autofix_state,
+    get_coding_agent_prompt,
+)
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import metrics
 
@@ -99,91 +104,6 @@ def store_coding_agent_state_to_seer(run_id: int, coding_agent_state: CodingAgen
             },
         )
         return False
-
-
-def make_coding_agent_prompt(
-    autofix_state: AutofixState, repos_in_solution: set[str], current_repo_name: str
-) -> str:
-    """Create a markdown prompt from autofix state similar to frontend formatting."""
-    if not autofix_state:
-        return ""
-
-    # Check if autofix_state has the expected structure
-    if not hasattr(autofix_state, "steps"):
-        return ""
-
-    steps = autofix_state.steps
-    if not steps:
-        return ""
-
-    parts = []
-
-    # Find root cause analysis step
-    root_cause_step = None
-    for step in steps:
-        if step.get("key") == "root_cause_analysis":
-            root_cause_step = step
-            break
-
-    if root_cause_step and root_cause_step.get("causes"):
-        cause = root_cause_step["causes"][0]  # Take first cause
-
-        parts.append("# Root Cause of the Issue")
-
-        if cause.get("description"):
-            parts.append(cause["description"])
-
-        if cause.get("root_cause_reproduction"):
-            reproduction_parts = []
-            for event in cause["root_cause_reproduction"]:
-                event_parts = [f"### {event.get('title', 'Event')}"]
-
-                if event.get("code_snippet_and_analysis"):
-                    event_parts.append(event["code_snippet_and_analysis"])
-
-                if event.get("relevant_code_file"):
-                    file_path = event["relevant_code_file"].get("file_path")
-                    if file_path:
-                        event_parts.append(f"(See {file_path})")
-
-                reproduction_parts.append("\n".join(event_parts))
-
-            if reproduction_parts:
-                parts.append("\n\n".join(reproduction_parts))
-
-    # Find solution step
-    solution_step = None
-    for step in steps:
-        if step.get("key") == "solution":
-            solution_step = step
-            break
-
-    if solution_step:
-        parts.append("# Proposed Solution")
-
-        if solution_step.get("description"):
-            parts.append(solution_step["description"])
-
-        if solution_step.get("solution"):
-            solution_parts = []
-            for solution_event in solution_step["solution"]:
-                solution_event_parts = [f"### {solution_event.get('title', 'Solution Step')}"]
-
-                if solution_event.get("description"):
-                    solution_event_parts.append(solution_event["description"])
-
-                solution_parts.append("\n".join(solution_event_parts))
-
-            if solution_parts:
-                parts.append("\n\n".join(solution_parts))
-
-    state_md_dump = "\n\n".join(parts) if parts else ""
-
-    multi_repo_prompt = ""
-    if len(repos_in_solution) > 1:
-        multi_repo_prompt = f"NOTE: There are multiple repos included in the proposed solution, you're working in repo {current_repo_name}. Consider only the fix needed for this repo.\n\n"
-
-    return f"Fix the below issue:\n\n{multi_repo_prompt}{state_md_dump}"
 
 
 @region_silo_endpoint
@@ -354,6 +274,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         autofix_state: AutofixState,
         run_id: int,
         organization,
+        trigger_source: str,
     ) -> list[dict]:
         """Launch coding agents for all repositories in the solution."""
         repos = self._extract_repos_from_solution(autofix_state)
@@ -367,7 +288,19 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                     for repo in autofix_state.request["repos"]
                     if f"{repo['owner']}/{repo['name']}" == repo_name
                 )
-                prompt = make_coding_agent_prompt(autofix_state, repos, repo_name)
+                prompt = get_coding_agent_prompt(run_id, trigger_source)
+
+                if not prompt:
+                    logger.warning(
+                        "coding_agent.prompt_not_available",
+                        extra={
+                            "organization_id": organization.id,
+                            "run_id": run_id,
+                            "repo_name": repo_name,
+                            "trigger_source": trigger_source,
+                        },
+                    )
+                    continue
 
                 launch_request = CodingAgentLaunchRequest(
                     prompt=prompt,
@@ -435,6 +368,14 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             if autofix_state is None:
                 return Response({"error": "Autofix state not found"}, status=400)
 
+            # Get and validate trigger_source
+            trigger_source = request.data.get("trigger_source", "solution")
+            if trigger_source not in ["root_cause", "solution"]:
+                return Response(
+                    {"error": "Invalid trigger_source. Must be 'root_cause' or 'solution'"},
+                    status=400,
+                )
+
             logger.info(
                 "coding_agent.launch_request",
                 extra={
@@ -446,7 +387,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
             # Launch agents for all repos
             results = self._launch_agents_for_repos(
-                installation, autofix_state, run_id, organization
+                installation, autofix_state, run_id, organization, trigger_source
             )
 
             if not results:

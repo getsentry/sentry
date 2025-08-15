@@ -146,6 +146,7 @@ class OrganizationCodingAgentsTest(APITestCase):
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_prompt")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -154,12 +155,16 @@ class OrganizationCodingAgentsTest(APITestCase):
         self,
         mock_get_integration,
         mock_get_org_integration,
+        mock_get_prompt,
         mock_get_autofix_state,
         mock_get_providers,
     ):
         """Test POST endpoint launches coding agent."""
         # Mock coding agent providers to include github
         mock_get_providers.return_value = ["github"]
+
+        # Mock prompt function
+        mock_get_prompt.return_value = "Test coding agent prompt"
 
         # Create mock RPC integration with get_installation method
         mock_rpc_integration = MagicMock()
@@ -196,6 +201,9 @@ class OrganizationCodingAgentsTest(APITestCase):
         with self.feature("organizations:seer-coding-agent-integrations"):
             response = self.get_success_response(self.organization.slug, method="post", **data)
             assert response.data["success"] is True
+
+            # Verify prompt was called with default trigger_source
+            mock_get_prompt.assert_called_with(123, "solution")
 
     def test_post_missing_integration_id(self):
         """Test POST endpoint with missing integration_id."""
@@ -237,6 +245,7 @@ class OrganizationCodingAgentsTest(APITestCase):
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_prompt")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -245,12 +254,14 @@ class OrganizationCodingAgentsTest(APITestCase):
         self,
         mock_get_integration,
         mock_get_org_integration,
+        mock_get_prompt,
         mock_get_autofix_state,
         mock_get_providers,
     ):
         """Test POST endpoint with all launch parameters."""
         # Mock coding agent providers to include github
         mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Test prompt for all parameters"
 
         # Create mock RPC integration with get_installation method
         mock_rpc_integration = MagicMock()
@@ -567,6 +578,7 @@ class OrganizationCodingAgentsTest(APITestCase):
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_prompt")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -575,11 +587,13 @@ class OrganizationCodingAgentsTest(APITestCase):
         self,
         mock_get_integration,
         mock_get_org_integration,
+        mock_get_prompt,
         mock_get_autofix_state,
         mock_get_providers,
     ):
         """Test POST endpoint launches agents for multiple repositories."""
         mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Multi-repo test prompt"
 
         # Create mock RPC integration
         mock_rpc_integration = MagicMock()
@@ -622,6 +636,7 @@ class OrganizationCodingAgentsTest(APITestCase):
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_prompt")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -630,11 +645,13 @@ class OrganizationCodingAgentsTest(APITestCase):
         self,
         mock_get_integration,
         mock_get_org_integration,
+        mock_get_prompt,
         mock_get_autofix_state,
         mock_get_providers,
     ):
         """Test POST endpoint continues with other repos when one repo fails."""
         mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Test prompt for repo launch error"
 
         # Create mock installation that fails for first repo
         failing_installation = MagicMock(spec=MockCodingAgentInstallation)
@@ -749,6 +766,7 @@ class OrganizationCodingAgentsTest(APITestCase):
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_prompt")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -761,11 +779,13 @@ class OrganizationCodingAgentsTest(APITestCase):
         mock_store_to_seer,
         mock_get_integration,
         mock_get_org_integration,
+        mock_get_prompt,
         mock_get_autofix_state,
         mock_get_providers,
     ):
         """Test POST endpoint continues when Seer storage fails."""
         mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Test prompt for seer storage failure"
         mock_store_to_seer.return_value = False  # Simulate Seer storage failure
 
         mock_rpc_integration = MagicMock()
@@ -799,3 +819,231 @@ class OrganizationCodingAgentsTest(APITestCase):
             assert response.data["success"] is True
             # Verify Seer storage was attempted
             mock_store_to_seer.assert_called_once()
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
+    )
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_prompt")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_post_with_root_cause_trigger_source(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_prompt,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint with root_cause trigger_source."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Root cause prompt"
+
+        # Create mock RPC integration
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.name = self.integration.name
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.metadata = self.integration.metadata
+        mock_rpc_integration.get_installation = MagicMock(return_value=self.mock_installation)
+
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        # Mock autofix state
+        mock_autofix_state = MagicMock()
+        mock_autofix_state.steps = [
+            {"key": "solution", "solution": [{"relevant_code_file": {"repo_name": "test/repo"}}]}
+        ]
+        mock_autofix_state.request = {
+            "repos": [
+                {"owner": "test", "name": "repo", "external_id": "123", "provider": "github"}
+            ],
+            "issue": {"title": "Test Issue"},
+        }
+        mock_get_autofix_state.return_value = mock_autofix_state
+
+        data = {
+            "integration_id": str(self.integration.id),
+            "run_id": 123,
+            "trigger_source": "root_cause",
+        }
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            assert response.data["success"] is True
+
+            # Verify prompt was called with root_cause trigger_source
+            mock_get_prompt.assert_called_with(123, "root_cause")
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
+    )
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_prompt")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_post_with_solution_trigger_source(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_prompt,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint with solution trigger_source."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Solution prompt"
+
+        # Create mock RPC integration
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.name = self.integration.name
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.metadata = self.integration.metadata
+        mock_rpc_integration.get_installation = MagicMock(return_value=self.mock_installation)
+
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        # Mock autofix state
+        mock_autofix_state = MagicMock()
+        mock_autofix_state.steps = [
+            {"key": "solution", "solution": [{"relevant_code_file": {"repo_name": "test/repo"}}]}
+        ]
+        mock_autofix_state.request = {
+            "repos": [
+                {"owner": "test", "name": "repo", "external_id": "123", "provider": "github"}
+            ],
+            "issue": {"title": "Test Issue"},
+        }
+        mock_get_autofix_state.return_value = mock_autofix_state
+
+        data = {
+            "integration_id": str(self.integration.id),
+            "run_id": 123,
+            "trigger_source": "solution",
+        }
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            assert response.data["success"] is True
+
+            # Verify prompt was called with solution trigger_source
+            mock_get_prompt.assert_called_with(123, "solution")
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
+    )
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_post_invalid_trigger_source(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint with invalid trigger_source."""
+        mock_get_providers.return_value = ["github"]
+
+        # Create mock RPC integration
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.get_installation = MagicMock(return_value=self.mock_installation)
+
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        # Mock autofix state
+        mock_autofix_state = MagicMock()
+        mock_autofix_state.steps = [
+            {"key": "solution", "solution": [{"relevant_code_file": {"repo_name": "test/repo"}}]}
+        ]
+        mock_autofix_state.request = {
+            "repos": [
+                {"owner": "test", "name": "repo", "external_id": "123", "provider": "github"}
+            ],
+            "issue": {"title": "Test Issue"},
+        }
+        mock_get_autofix_state.return_value = mock_autofix_state
+
+        data = {
+            "integration_id": str(self.integration.id),
+            "run_id": 123,
+            "trigger_source": "invalid_source",
+        }
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_error_response(
+                self.organization.slug, method="post", status_code=400, **data
+            )
+            assert (
+                response.data["error"]
+                == "Invalid trigger_source. Must be 'root_cause' or 'solution'"
+            )
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
+    )
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_prompt")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_post_prompt_not_available(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_prompt,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint when prompt is not available."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = None  # Prompt not available
+
+        # Create mock RPC integration
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.name = self.integration.name
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.metadata = self.integration.metadata
+        mock_rpc_integration.get_installation = MagicMock(return_value=self.mock_installation)
+
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        # Mock autofix state
+        mock_autofix_state = MagicMock()
+        mock_autofix_state.steps = [
+            {"key": "solution", "solution": [{"relevant_code_file": {"repo_name": "test/repo"}}]}
+        ]
+        mock_autofix_state.request = {
+            "repos": [
+                {"owner": "test", "name": "repo", "external_id": "123", "provider": "github"}
+            ],
+            "issue": {"title": "Test Issue"},
+        }
+        mock_get_autofix_state.return_value = mock_autofix_state
+
+        data = {
+            "integration_id": str(self.integration.id),
+            "run_id": 123,
+            "trigger_source": "solution",
+        }
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_error_response(
+                self.organization.slug, method="post", status_code=500, **data
+            )
+            assert response.data["error"] == "No agents were successfully launched"
