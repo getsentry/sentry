@@ -31,7 +31,7 @@ class JiraSearchEndpointTest(APITestCase):
     def test_issue_search_text(self) -> None:
         responses.add(
             responses.GET,
-            "https://example.atlassian.net/rest/api/2/search/",
+            "https://example.atlassian.net/rest/api/2/search/jql/",
             body=StubService.get_stub_json("jira", "search_response.json"),
             content_type="json",
         )
@@ -54,7 +54,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         responses.add_callback(
             responses.GET,
-            "https://example.atlassian.net/rest/api/2/search/",
+            "https://example.atlassian.net/rest/api/2/search/jql/",
             callback=responder,
         )
         org = self.organization
@@ -74,7 +74,7 @@ class JiraSearchEndpointTest(APITestCase):
     def test_issue_search_error(self) -> None:
         responses.add(
             responses.GET,
-            "https://example.atlassian.net/rest/api/2/search/",
+            "https://example.atlassian.net/rest/api/2/search/jql/",
             status=500,
             body="Totally broken",
         )
