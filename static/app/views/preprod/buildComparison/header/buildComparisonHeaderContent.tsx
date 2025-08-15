@@ -34,7 +34,7 @@ export function BuildComparisonHeaderContent(props: BuildComparisonHeaderContent
       label: buildDetails.app_info.version,
     },
     {
-      label: 'Build Details',
+      label: 'Compare',
     },
   ];
 
