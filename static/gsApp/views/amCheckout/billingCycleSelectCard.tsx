@@ -47,6 +47,7 @@ function BillingCycleSelectCard({
     onUpdate(data);
   };
 
+  // TODO(checkout v3): confirm copy
   let cycleInfo: ReactNode;
   if (isPartnerMigration) {
     if (isAnnual) {
