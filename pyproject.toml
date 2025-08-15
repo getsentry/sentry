@@ -668,7 +668,6 @@ module = [
     "tests.sentry.auth.services.*",
     "tests.sentry.celery.*",
     "tests.sentry.charts.*",
-    "tests.sentry.coreapi.*",
     "tests.sentry.data_export.processors.*",
     "tests.sentry.data_secrecy.*",
     "tests.sentry.debug.*",
