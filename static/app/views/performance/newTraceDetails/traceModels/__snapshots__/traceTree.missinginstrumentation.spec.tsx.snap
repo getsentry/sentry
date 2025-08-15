@@ -40,6 +40,32 @@ trace root
 "
 `;
 
+exports[`missing instrumentation eap traces adds missing instrumentation between eap children spans 1`] = `
+"
+eap trace root
+  db - redis
+    missing_instrumentation
+    http - request
+"
+`;
+
+exports[`missing instrumentation eap traces adds missing instrumentation between sibling eap spans 1`] = `
+"
+eap trace root
+  db - redis
+  missing_instrumentation
+  db - redis
+"
+`;
+
+exports[`missing instrumentation eap traces removes missing instrumentation nodes 1`] = `
+"
+eap trace root
+  db - redis
+  db - redis
+"
+`;
+
 exports[`missing instrumentation idempotent - children 1`] = `
 "
 trace root

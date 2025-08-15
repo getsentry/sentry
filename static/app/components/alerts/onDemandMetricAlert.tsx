@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Color} from 'sentry/utils/theme';
@@ -55,7 +55,7 @@ export function OnDemandMetricAlert({
 
   return (
     <Alert.Container>
-      <InfoAlert type="info" showIcon>
+      <InfoAlert type="info">
         {message}
         {dismissable && (
           <DismissButton

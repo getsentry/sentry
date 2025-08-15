@@ -1,20 +1,22 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import GridEditable, {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
-} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
+} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -37,10 +39,10 @@ import {
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import {
-  type DiscoverDatasets,
   DisplayModes,
   SavedQueryDatasets,
   TOP_N,
+  type DiscoverDatasets,
 } from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
@@ -53,26 +55,25 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-
 import {
   getExpandedResults,
   getTargetForTransactionSummaryLink,
   pushEventViewToLocation,
-} from '../utils';
+} from 'sentry/views/discover/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';
 import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
-import TopResultsIndicator from './topResultsIndicator';
+import {TopResultsIndicator} from './topResultsIndicator';
 import type {TableColumn} from './types';
 
-export type TableViewProps = {
+type TableViewProps = {
   error: string | null;
   eventView: EventView;
   isFirstPage: boolean;
@@ -109,6 +110,7 @@ export type TableViewProps = {
  * object. The new EventView object is pushed to the location object.
  */
 function TableView(props: TableViewProps) {
+  const theme = useTheme();
   const {projects} = useProjects();
   const routes = useRoutes();
   const navigate = useNavigate();
@@ -142,8 +144,7 @@ function TableView(props: TableViewProps) {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] {
-    const {organization, eventView, tableData, location, isHomepage, queryDataset} =
-      props;
+    const {organization, eventView, tableData, location, queryDataset} = props;
     const hasAggregates = eventView.hasAggregateField();
     const hasIdField = eventView.hasIdField();
 
@@ -207,7 +208,7 @@ function TableView(props: TableViewProps) {
 
       if (tableData?.meta) {
         const fieldRenderer = getFieldRenderer('id', tableData.meta);
-        value = fieldRenderer(dataRow, {organization, location});
+        value = fieldRenderer(dataRow, {organization, location, theme});
       }
 
       let target: any;
@@ -232,13 +233,10 @@ function TableView(props: TableViewProps) {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace,
           eventId: dataRow.id,
-          projectSlug: dataRow.project || dataRow['project.name'],
           timestamp: dataRow.timestamp,
           organization,
-          isHomepage,
           location,
           eventView,
-          type: 'discover',
           source: TraceViewSources.DISCOVER,
         });
       }
@@ -324,17 +322,10 @@ function TableView(props: TableViewProps) {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode {
-    const {
-      isFirstPage,
-      eventView,
-      location,
-      organization,
-      tableData,
-      isHomepage,
-      queryDataset,
-    } = props;
+    const {isFirstPage, eventView, location, organization, tableData, queryDataset} =
+      props;
 
-    if (!tableData || !tableData.meta) {
+    if (!tableData?.meta) {
       return dataRow[column.key];
     }
 
@@ -349,7 +340,7 @@ function TableView(props: TableViewProps) {
     const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
     const unit = tableData.meta.units?.[columnKey];
-    let cell = fieldRenderer(dataRow, {organization, location, unit});
+    let cell = fieldRenderer(dataRow, {organization, location, unit, theme});
 
     const isTransactionsDataset =
       hasDatasetSelector(organization) &&
@@ -379,13 +370,10 @@ function TableView(props: TableViewProps) {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace?.toString(),
           eventId: dataRow.id,
-          projectSlug: (dataRow.project || dataRow['project.name']!).toString(),
           timestamp: dataRow.timestamp!,
           organization,
-          isHomepage,
           location,
           eventView,
-          type: 'discover',
           source: TraceViewSources.DISCOVER,
         });
       }
@@ -477,7 +465,7 @@ function TableView(props: TableViewProps) {
               onClick={() =>
                 trackAnalytics('profiling_views.go_to_flamegraph', {
                   organization,
-                  source: 'discover.table',
+                  source: 'discover.transactions_table',
                 })
               }
             >
@@ -543,6 +531,10 @@ function TableView(props: TableViewProps) {
       dataset,
     } = props;
 
+    const selectedProjects = eventView
+      .getFullSelectedProjects(projects)
+      .filter((project): project is Project => project !== undefined);
+
     openModal(
       modalProps => (
         <ColumnEditModal
@@ -554,9 +546,10 @@ function TableView(props: TableViewProps) {
           onApply={handleUpdateColumns}
           customMeasurements={customMeasurements}
           dataset={dataset}
+          selectedProjects={selectedProjects}
         />
       ),
-      {modalCss, closeEvents: 'escape-key'}
+      {modalCss: modalCss(theme), closeEvents: 'escape-key'}
     );
   }
 
@@ -746,7 +739,7 @@ const StyledTooltip = styled(Tooltip)`
   max-width: max-content;
 `;
 
-export const StyledLink = styled(Link)`
+const StyledLink = styled(Link)`
   & div {
     display: inline;
   }

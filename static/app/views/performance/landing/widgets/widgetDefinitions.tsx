@@ -1,11 +1,12 @@
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import type {Theme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import {DATA_TYPE_PLURAL as RESOURCES_DATA_TYPE_PLURAL} from 'sentry/views/insights/browser/resources/settings';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {DATA_TYPE_PLURAL as QUERIES_DATA_TYPE_PLURAL} from 'sentry/views/insights/database/settings';
-
-import {getTermHelp, PerformanceTerm} from '../../data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import {GenericPerformanceWidgetDataType} from './types';
 
@@ -75,44 +76,52 @@ export enum PerformanceWidgetSetting {
   HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = 'highest_cache__miss_rate_transactions',
 }
 
-const WIDGET_PALETTE = CHART_PALETTE[5];
 export const WIDGET_DEFINITIONS: ({
   organization,
+  theme,
 }: {
   organization: Organization;
+  theme: Theme;
 }) => Record<PerformanceWidgetSetting, ChartDefinition> = ({
   organization,
+  theme,
 }: {
   organization: Organization;
+  theme: Theme;
 }) => {
+  const useEap = useInsightsEap();
+  const WIDGET_PALETTE = theme.chart.getColorPalette(10);
+
+  const durationField = useEap ? 'span.duration' : 'transaction.duration';
+
   return {
     [PerformanceWidgetSetting.DURATION_HISTOGRAM]: {
       title: t('Duration Distribution'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
-      fields: ['transaction.duration'],
+      fields: [durationField],
       dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: WIDGET_PALETTE[5],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[5],
     },
     [PerformanceWidgetSetting.LCP_HISTOGRAM]: {
       title: t('LCP Distribution'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       fields: ['measurements.lcp'],
       dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: WIDGET_PALETTE[5],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[5],
     },
     [PerformanceWidgetSetting.FCP_HISTOGRAM]: {
       title: t('FCP Distribution'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       fields: ['measurements.fcp'],
       dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: WIDGET_PALETTE[5],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[5],
     },
     [PerformanceWidgetSetting.FID_HISTOGRAM]: {
       title: t('FID Distribution'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       fields: ['measurements.fid'],
       dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: WIDGET_PALETTE[5],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[5],
     },
     [PerformanceWidgetSetting.WORST_LCP_VITALS]: {
       title: t('Worst LCP Web Vitals'),
@@ -157,9 +166,9 @@ export const WIDGET_DEFINITIONS: ({
     [PerformanceWidgetSetting.TPM_AREA]: {
       title: t('Transactions Per Minute'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.TPM),
-      fields: ['tpm()'],
+      fields: ['epm()'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[1],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[1],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.APDEX_AREA]: {
@@ -167,39 +176,39 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.APDEX),
       fields: ['apdex()'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[4],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(4)[4] : WIDGET_PALETTE[4],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.P50_DURATION_AREA]: {
       title: t('p50 Duration'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.P50),
-      fields: ['p50(transaction.duration)'],
+      fields: [`p50(${durationField})`],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[3],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(3)[1] : WIDGET_PALETTE[3],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.P75_DURATION_AREA]: {
       title: t('p75 Duration'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.P75),
-      fields: ['p75(transaction.duration)'],
+      fields: [`p75(${durationField})`],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[3],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(3)[1] : WIDGET_PALETTE[3],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.P95_DURATION_AREA]: {
       title: t('p95 Duration'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.P95),
-      fields: ['p95(transaction.duration)'],
+      fields: [`p95(${durationField})`],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[3],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(3)[1] : WIDGET_PALETTE[3],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.P99_DURATION_AREA]: {
       title: t('p99 Duration'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.P99),
-      fields: ['p99(transaction.duration)'],
+      fields: [`p99(${durationField})`],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[3],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(3)[1] : WIDGET_PALETTE[3],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.P75_LCP_AREA]: {
@@ -207,7 +216,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.P75),
       fields: ['p75(measurements.lcp)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[1],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[1],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.FAILURE_RATE_AREA]: {
@@ -215,7 +224,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.FAILURE_RATE),
       fields: ['failure_rate()'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[2],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(2)[2] : WIDGET_PALETTE[2],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.USER_MISERY_AREA]: {
@@ -223,7 +232,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.USER_MISERY),
       fields: [`user_misery()`],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.COLD_STARTUP_AREA]: {
@@ -231,7 +240,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
       fields: ['p75(measurements.app_start_cold)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[4],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(4)[4] : WIDGET_PALETTE[4],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.WARM_STARTUP_AREA]: {
@@ -239,7 +248,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
       fields: ['p75(measurements.app_start_warm)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[3],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(3)[3] : WIDGET_PALETTE[3],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.SLOW_FRAMES_AREA]: {
@@ -247,7 +256,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_FRAMES),
       fields: ['p75(measurements.frames_slow_rate)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.FROZEN_FRAMES_AREA]: {
@@ -255,7 +264,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.FROZEN_FRAMES),
       fields: ['p75(measurements.frames_frozen_rate)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[5],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(5)[5] : WIDGET_PALETTE[5],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: {
@@ -263,14 +272,14 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.MOST_ERRORS),
       fields: [`failure_count()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: {
       title: t('Most Related Issues'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.MOST_ISSUES),
       fields: [`count()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: {
       title: `${t('Most Time-Consuming')} ${QUERIES_DATA_TYPE_PLURAL}`,
@@ -278,7 +287,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.MOST_TIME_SPENT_DB_QUERIES),
       fields: [`time_spent_percentage()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]: {
       title: `${t('Most Time-Consuming')} ${RESOURCES_DATA_TYPE_PLURAL}`,
@@ -289,7 +298,7 @@ export const WIDGET_DEFINITIONS: ({
       ),
       fields: [`time_spent_percentage()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]: {
       title: t('Highest Cache Miss Rates'),
@@ -300,7 +309,7 @@ export const WIDGET_DEFINITIONS: ({
       ),
       fields: [`cache_miss_rate()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: {
       title: t('Most Time-Consuming Domains'),
@@ -311,7 +320,7 @@ export const WIDGET_DEFINITIONS: ({
       ),
       fields: [`time_spent_percentage()`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES]: {
       title: t('Best Page Opportunities'),
@@ -332,35 +341,35 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
       fields: [`p75(spans.http)`, 'p75(spans.db)'],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.SLOW_BROWSER_OPS]: {
       title: t('Slow Browser Ops'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
       fields: [`p75(spans.browser)`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.SLOW_RESOURCE_OPS]: {
       title: t('Slow Resource Ops'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
       fields: [`p75(spans.resource)`],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.SLOW_DB_OPS]: {
       title: t('Slow DB Ops'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_HTTP_SPANS),
       fields: [`p75(spans.db)`, 'p75(spans.http)'],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY]: {
       title: t('Time to Initial Display'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.TIME_TO_INITIAL_DISPLAY),
       fields: ['p75(measurements.time_to_initial_display)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[4],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(4)[4] : WIDGET_PALETTE[4],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.TIME_TO_FULL_DISPLAY]: {
@@ -368,7 +377,7 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.TIME_TO_FULL_DISPLAY),
       fields: ['p75(measurements.time_to_full_display)'],
       dataType: GenericPerformanceWidgetDataType.AREA,
-      chartColor: WIDGET_PALETTE[4],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(4)[4] : WIDGET_PALETTE[4],
       allowsOpenInDiscover: true,
     },
     [PerformanceWidgetSetting.MOST_SLOW_FRAMES]: {
@@ -376,14 +385,14 @@ export const WIDGET_DEFINITIONS: ({
       titleTooltip: getTermHelp(organization, PerformanceTerm.SLOW_FRAMES),
       fields: ['avg(measurements.frames_slow)'],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.MOST_FROZEN_FRAMES]: {
       title: t('Most Frozen Frames'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.FROZEN_FRAMES),
       fields: ['avg(measurements.frames_frozen)'],
       dataType: GenericPerformanceWidgetDataType.LINE_LIST,
-      chartColor: WIDGET_PALETTE[0],
+      chartColor: theme.isChonk ? theme.chart.getColorPalette(0)[0] : WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.MOST_IMPROVED]: {
       title: t('Most Improved (P95)'),

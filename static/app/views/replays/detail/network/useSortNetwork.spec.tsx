@@ -12,7 +12,7 @@ import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
 import useSortNetwork from './useSortNetwork';
 
-jest.mock('sentry/utils/useUrlParams', () => {
+jest.mock('sentry/utils/url/useUrlParams', () => {
   const map = new Map();
   return (name: string, dflt: string) => {
     if (!map.has(name)) {

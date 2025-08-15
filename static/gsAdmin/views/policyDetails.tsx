@@ -2,12 +2,13 @@ import moment from 'moment-timezone';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 
 import DetailLabel from 'admin/components/detailLabel';
@@ -49,7 +50,7 @@ function PolicyDetails({params}: PolicyDetailsProps) {
         method: 'PUT',
         data,
       });
-      window.location.reload();
+      testableWindowLocation.reload();
     } catch {
       addErrorMessage('There was an error when updating the current policy version.');
     }

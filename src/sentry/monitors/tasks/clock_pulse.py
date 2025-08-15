@@ -17,6 +17,8 @@ from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import crons_tasks
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import (
     get_kafka_admin_cluster_options,
@@ -34,6 +36,7 @@ def _get_producer() -> KafkaProducer:
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
+    producer_config["client.id"] = "sentry.monitors.tasks.clock_pulse"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
@@ -54,7 +57,11 @@ def _get_partitions() -> Mapping[int, PartitionMetadata]:
     return topic_metadata.partitions
 
 
-@instrumented_task(name="sentry.monitors.tasks.clock_pulse", silo_mode=SiloMode.REGION)
+@instrumented_task(
+    name="sentry.monitors.tasks.clock_pulse",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=crons_tasks),
+)
 def clock_pulse(current_datetime=None):
     """
     This task is run once a minute when to produce 'clock pulses' into the

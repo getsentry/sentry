@@ -8,8 +8,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {FrameVariables} from 'sentry/components/events/interfaces/frame/frameVariables';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-describe('Frame Variables', function () {
-  it('renders', async function () {
+describe('Frame Variables', () => {
+  it('renders', async () => {
     const project = ProjectFixture({id: '0'});
     const projectDetails = ProjectFixture({
       ...project,
@@ -70,7 +70,11 @@ describe('Frame Variables', function () {
           },
         }}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
@@ -100,7 +104,7 @@ describe('Frame Variables', function () {
     );
   });
 
-  it('renders python variables correctly', function () {
+  it('renders python variables correctly', () => {
     render(
       <FrameVariables
         data={{
@@ -111,7 +115,10 @@ describe('Frame Variables', function () {
           other: '<Class at 0x12345>',
         }}
         platform="python"
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(
@@ -131,7 +138,7 @@ describe('Frame Variables', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders node variables correctly', function () {
+  it('renders node variables correctly', () => {
     render(
       <FrameVariables
         data={{
@@ -142,7 +149,10 @@ describe('Frame Variables', function () {
           str: 'string',
         }}
         platform="node"
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const nullValues = screen.getAllByTestId('value-null');
@@ -160,7 +170,7 @@ describe('Frame Variables', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders ruby variables correctly', function () {
+  it('renders ruby variables correctly', () => {
     render(
       <FrameVariables
         data={{
@@ -169,7 +179,10 @@ describe('Frame Variables', function () {
           str: 'string',
         }}
         platform="ruby"
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(within(screen.getByTestId('value-null')).getByText('nil')).toBeInTheDocument();
@@ -181,7 +194,7 @@ describe('Frame Variables', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders php variables correctly', function () {
+  it('renders php variables correctly', () => {
     render(
       <FrameVariables
         data={{
@@ -190,7 +203,10 @@ describe('Frame Variables', function () {
           str: 'string',
         }}
         platform="php"
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(

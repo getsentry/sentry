@@ -3,14 +3,14 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Login from 'sentry/views/auth/login';
 
-describe('Login', function () {
+describe('Login', () => {
   const {routerProps} = initializeOrg();
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a loading indicator', async function () {
+  it('renders a loading indicator', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {},
@@ -22,7 +22,7 @@ describe('Login', function () {
     expect(await screen.findByText('Lost your password?')).toBeInTheDocument();
   });
 
-  it('renders an error if auth config cannot be loaded', async function () {
+  it('renders an error if auth config cannot be loaded', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       statusCode: 500,
@@ -35,7 +35,7 @@ describe('Login', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not show register when disabled', async function () {
+  it('does not show register when disabled', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {canRegister: false},
@@ -44,10 +44,10 @@ describe('Login', function () {
     render(<Login {...routerProps} />);
 
     expect(await screen.findByText('Lost your password?')).toBeInTheDocument();
-    expect(screen.queryByText('Register')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Register'})).not.toBeInTheDocument();
   });
 
-  it('shows register when canRegister is enabled', async function () {
+  it('shows register when canRegister is enabled', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {canRegister: true},
@@ -55,10 +55,10 @@ describe('Login', function () {
 
     render(<Login {...routerProps} />);
 
-    expect(await screen.findByRole('link', {name: 'Register'})).toBeInTheDocument();
+    expect(await screen.findByRole('tab', {name: 'Register'})).toBeInTheDocument();
   });
 
-  it('toggles between tabs', async function () {
+  it('toggles between tabs', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {canRegister: true},
@@ -69,10 +69,10 @@ describe('Login', function () {
     // Default tab is login
     expect(await screen.findByPlaceholderText('username or email')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('link', {name: 'Single Sign-On'}));
+    await userEvent.click(screen.getByText('Single Sign-On'));
     expect(screen.getByRole('textbox', {name: 'Organization ID'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('link', {name: 'Register'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'Register'}));
     expect(screen.getByRole('textbox', {name: 'Name'})).toBeInTheDocument();
   });
 });

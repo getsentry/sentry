@@ -1,13 +1,11 @@
 from datetime import timedelta
-from unittest.mock import patch
 
 import pytest
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.search.events.types import EventsResponse, SnubaParams
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
-from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -16,7 +14,7 @@ ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
 class TimeseriesBase(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.one_min_ago = before_now(minutes=1)
@@ -56,7 +54,7 @@ class TimeseriesBase(SnubaTestCase, TestCase):
 
 
 class DiscoverTimeseriesQueryTest(TimeseriesBase):
-    def test_invalid_field_in_function(self):
+    def test_invalid_field_in_function(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             discover.timeseries_query(
                 selected_columns=["min(transaction)"],
@@ -70,7 +68,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
                 rollup=1800,
             )
 
-    def test_missing_start_and_end(self):
+    def test_missing_start_and_end(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             discover.timeseries_query(
                 selected_columns=["count()"],
@@ -80,7 +78,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
                 rollup=1800,
             )
 
-    def test_no_aggregations(self):
+    def test_no_aggregations(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             discover.timeseries_query(
                 selected_columns=["transaction", "title"],
@@ -94,7 +92,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
                 rollup=1800,
             )
 
-    def test_field_alias(self):
+    def test_field_alias(self) -> None:
         result = discover.timeseries_query(
             selected_columns=["p95()"],
             query="event.type:transaction transaction:api.issue.delete",
@@ -106,7 +104,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         )
         assert len(result.data["data"]) == 3
 
-    def test_failure_rate_field_alias(self):
+    def test_failure_rate_field_alias(self) -> None:
         result = discover.timeseries_query(
             selected_columns=["failure_rate()"],
             query="event.type:transaction transaction:api.issue.delete",
@@ -118,7 +116,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         )
         assert len(result.data["data"]) == 3
 
-    def test_aggregate_function(self):
+    def test_aggregate_function(self) -> None:
         result = discover.timeseries_query(
             selected_columns=["count()"],
             query="",
@@ -147,7 +145,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         assert "count_unique_user" in keys
         assert "time" in keys
 
-    def test_comparison_aggregate_function_invalid(self):
+    def test_comparison_aggregate_function_invalid(self) -> None:
         with pytest.raises(
             InvalidSearchQuery, match="Only one column can be selected for comparison queries"
         ):
@@ -164,7 +162,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
                 comparison_delta=timedelta(days=1),
             )
 
-    def test_comparison_aggregate_function(self):
+    def test_comparison_aggregate_function(self) -> None:
         self.store_event(
             data={
                 "timestamp": (self.day_ago + timedelta(hours=1)).isoformat(),
@@ -249,7 +247,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             for val in result.data["data"]
         ]
 
-    def test_count_miserable(self):
+    def test_count_miserable(self) -> None:
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
@@ -290,7 +288,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             if "count_miserable_user" in val
         ]
 
-    def test_count_miserable_with_arithmetic(self):
+    def test_count_miserable_with_arithmetic(self) -> None:
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
@@ -329,7 +327,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             val["equation[0]"] for val in result.data["data"] if "equation[0]" in val
         ]
 
-    def test_equation_function(self):
+    def test_equation_function(self) -> None:
         result = discover.timeseries_query(
             selected_columns=["equation|count() / 100"],
             query="",
@@ -358,7 +356,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         assert "equation[0]" in keys
         assert "time" in keys
 
-    def test_zerofilling(self):
+    def test_zerofilling(self) -> None:
         result = discover.timeseries_query(
             selected_columns=["count()"],
             query="",
@@ -373,7 +371,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             val["count"] for val in result.data["data"] if "count" in val
         ], result.data["data"]
 
-    def test_conditional_filter(self):
+    def test_conditional_filter(self) -> None:
         project2 = self.create_project(organization=self.organization)
         project3 = self.create_project(organization=self.organization)
 
@@ -404,7 +402,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             if "count" in d:
                 assert d["count"] == 1
 
-    def test_nested_conditional_filter(self):
+    def test_nested_conditional_filter(self) -> None:
         project2 = self.create_project(organization=self.organization)
         self.store_event(
             data={"release": "a" * 32, "timestamp": self.one_min_ago.isoformat()},
@@ -443,165 +441,3 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         for d in data:
             if "count" in d:
                 assert d["count"] == 2
-
-
-@pytest.mark.skip("These tests are specific to json which we no longer use")
-class TopEventsTimeseriesQueryTest(TimeseriesBase):
-    @patch("sentry.snuba.discover.raw_query")
-    def test_project_filter_adjusts_filter(self, mock_query):
-        """While the function is called with 2 project_ids, we should limit it down to the 1 in top_events"""
-        project2 = self.create_project(organization=self.organization)
-        top_events: EventsResponse = {
-            "data": [
-                {
-                    "project": self.project.slug,
-                    "project.id": self.project.id,
-                }
-            ],
-            "meta": {"fields": {}, "tips": {}},
-        }
-        start = before_now(minutes=5)
-        end = before_now(seconds=1)
-        discover.top_events_timeseries(
-            selected_columns=["project", "count()"],
-            snuba_params=SnubaParams(start=start, end=end, projects=[self.project, project2]),
-            rollup=3600,
-            top_events=top_events,
-            timeseries_columns=["count()"],
-            user_query="",
-            orderby=["count()"],
-            limit=10000,
-            organization=self.organization,
-        )
-        mock_query.assert_called_with(
-            aggregations=[["count", None, "count"]],
-            conditions=[],
-            # Should be limited to the project in top_events
-            filter_keys={"project_id": [self.project.id]},
-            selected_columns=[
-                "project_id",
-                [
-                    "transform",
-                    [
-                        ["toString", ["project_id"]],
-                        ["array", [f"'{project.id}'" for project in [self.project, project2]]],
-                        ["array", [f"'{project.slug}'" for project in [self.project, project2]]],
-                        "''",
-                    ],
-                    "project",
-                ],
-            ],
-            start=start,
-            end=end,
-            rollup=3600,
-            orderby=["time", "project_id"],
-            groupby=["time", "project_id"],
-            dataset=Dataset.Discover,
-            limit=10000,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_timestamp_fields(self, mock_query):
-        timestamp1 = before_now(days=2, minutes=5)
-        timestamp2 = before_now(minutes=2)
-        top_events: EventsResponse = {
-            "data": [
-                {
-                    "timestamp": timestamp1,
-                    "timestamp.to_hour": timestamp1.replace(minute=0, second=0),
-                    "timestamp.to_day": timestamp1.replace(hour=0, minute=0, second=0),
-                },
-                {
-                    "timestamp": timestamp2,
-                    "timestamp.to_hour": timestamp2.replace(minute=0, second=0),
-                    "timestamp.to_day": timestamp2.replace(hour=0, minute=0, second=0),
-                },
-            ],
-            "meta": {"fields": {}, "tips": {}},
-        }
-        start = before_now(days=3, minutes=10)
-        end = before_now(minutes=1)
-        discover.top_events_timeseries(
-            selected_columns=["timestamp", "timestamp.to_day", "timestamp.to_hour", "count()"],
-            snuba_params=SnubaParams(start=start, end=end, projects=[self.project]),
-            rollup=3600,
-            top_events=top_events,
-            timeseries_columns=["count()"],
-            user_query="",
-            orderby=["count()"],
-            limit=10000,
-            organization=self.organization,
-        )
-        to_hour = ["toStartOfHour", ["timestamp"], "timestamp.to_hour"]
-        to_day = ["toStartOfDay", ["timestamp"], "timestamp.to_day"]
-        mock_query.assert_called_with(
-            aggregations=[["count", None, "count"]],
-            conditions=[
-                # Each timestamp field should generated a nested condition.
-                # Within each, the conditions will be ORed together.
-                [
-                    ["timestamp", "=", timestamp1],
-                    ["timestamp", "=", timestamp2],
-                ],
-                [
-                    [
-                        to_day,
-                        "=",
-                        timestamp1.replace(hour=0, minute=0, second=0),
-                    ],
-                    [
-                        to_day,
-                        "=",
-                        timestamp2.replace(hour=0, minute=0, second=0),
-                    ],
-                ],
-                [
-                    [to_hour, "=", timestamp1.replace(minute=0, second=0)],
-                    [to_hour, "=", timestamp2.replace(minute=0, second=0)],
-                ],
-            ],
-            filter_keys={"project_id": [self.project.id]},
-            selected_columns=[
-                "timestamp",
-                to_day,
-                to_hour,
-            ],
-            start=start,
-            end=end,
-            rollup=3600,
-            orderby=["time", "timestamp", "timestamp.to_day", "timestamp.to_hour"],
-            groupby=["time", "timestamp", "timestamp.to_day", "timestamp.to_hour"],
-            dataset=Dataset.Discover,
-            limit=10000,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.query")
-    def test_equation_fields_are_auto_added(self, mock_query):
-        start = before_now(minutes=5)
-        end = before_now(seconds=1)
-        discover.top_events_timeseries(
-            selected_columns=["count()"],
-            equations=["equation|count_unique(user) * 2"],
-            snuba_params=SnubaParams(start=start, end=end, projects=[self.project]),
-            rollup=3600,
-            timeseries_columns=[],
-            user_query="",
-            orderby=["equation[0]"],
-            limit=10000,
-            organization=self.organization,
-        )
-
-        mock_query.assert_called_with(
-            ["count()"],
-            query="",
-            snuba_params=SnubaParams(start=start, end=end, projects=[self.project]),
-            equations=["equation|count_unique(user) * 2"],
-            orderby=["equation[0]"],
-            referrer=None,
-            limit=10000,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
-            include_equation_fields=True,
-        )

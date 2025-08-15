@@ -102,7 +102,7 @@ export type SearchEventParameters = {
   'sidebar_help.select': SelectEvent;
 };
 
-export type SearchEventKey = keyof SearchEventParameters;
+type SearchEventKey = keyof SearchEventParameters;
 
 export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.searched': 'Search: Performed search',

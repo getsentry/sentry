@@ -6,20 +6,24 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './ember';
 
-describe('javascript-ember onboarding docs', function () {
+describe('javascript-ember onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: /Upload Source Maps/i})
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-    // Includes import statement
+    // Includes import statement in multiple places
     expect(
-      screen.getByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/ember"/))
-    ).toBeInTheDocument();
+      screen.getAllByText(
+        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/ember"/)
+      )
+    ).toHaveLength(2); // Appears in configure and verify steps
   });
 
   it('displays sample rates by default', () => {
@@ -82,5 +86,74 @@ describe('javascript-ember onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
+  });
+
+  it('enables logs by setting enableLogs to true', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
+    ).toBeInTheDocument();
+  });
+
+  it('shows Configure Ember Options in next steps', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(screen.getByText('Configure Ember Options')).toBeInTheDocument();
+  });
+
+  it('shows Logging Integrations in next steps when logs is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.LOGS,
+      ],
+    });
+
+    expect(screen.getByText('Configure Ember Options')).toBeInTheDocument();
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+  });
+
+  it('does not show Logging Integrations in next steps when logs is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(screen.getByText('Configure Ember Options')).toBeInTheDocument();
+    expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
+  });
+
+  it('includes logging code in verify snippet when logs is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/Sentry\.logger\.info/))
+    ).toBeInTheDocument();
+    // Import appears in configure and verify steps when logs are selected
+    expect(
+      screen.getAllByText(
+        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/ember"/)
+      )
+    ).toHaveLength(2);
+  });
+
+  it('excludes logging code in verify snippet when logs is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Sentry\.logger\.info/))
+    ).not.toBeInTheDocument();
   });
 });

@@ -3,14 +3,14 @@ from typing import Any
 
 from django import forms
 
-from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.condition_activity import ConditionActivity
 
-CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).title()) for gc in GroupCategory])
+CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).lower()) for gc in GroupCategory])
 
 
 class IssueCategoryForm(forms.Form):
@@ -30,8 +30,8 @@ class IssueCategoryFilter(EventFilter):
         except (TypeError, ValueError):
             return False
 
-        if group and group.issue_category:
-            return bool(value == group.issue_category)
+        if group:
+            return value == group.issue_category or value == group.issue_category_v2
 
         return False
 

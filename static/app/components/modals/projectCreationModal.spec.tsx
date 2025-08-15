@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
-import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -15,11 +14,11 @@ import ProjectCreationModal from 'sentry/components/modals/projectCreationModal'
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 
-describe('Project Creation Modal', function () {
+describe('Project Creation Modal', () => {
   const closeModal = jest.fn();
   const organization = OrganizationFixture();
 
-  it('renders modal', async function () {
+  it('renders modal', async () => {
     render(
       <ProjectCreationModal
         defaultCategory="browser"
@@ -34,7 +33,7 @@ describe('Project Creation Modal', function () {
     expect(await screen.findByText('Create a Project')).toBeInTheDocument();
   });
 
-  it('closes modal when closed', async function () {
+  it('closes modal when closed', async () => {
     render(
       <ProjectCreationModal
         defaultCategory="browser"
@@ -50,7 +49,7 @@ describe('Project Creation Modal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('creates project', async function () {
+  it('creates project', async () => {
     const team = TeamFixture({
       access: ['team:admin', 'team:write', 'team:read'],
     });
@@ -60,11 +59,6 @@ describe('Project Creation Modal', function () {
         status: 'active',
       }),
     ];
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/rule-conditions/`,
-      body: MOCK_RESP_VERBOSE,
-    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,

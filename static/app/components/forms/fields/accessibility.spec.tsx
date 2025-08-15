@@ -8,8 +8,7 @@ import {
 import selectEvent from 'sentry-test/selectEvent';
 
 import Form from 'sentry/components/forms/form';
-
-import FormModel from '../model';
+import FormModel from 'sentry/components/forms/model';
 
 import BooleanField from './booleanField';
 import CheckboxField from './checkboxField';
@@ -24,8 +23,8 @@ import SeparatorField from './separatorField';
 import TextareaField from './textareaField';
 import TextField from './textField';
 
-describe('Field accessibility', function () {
-  it('has appropriate aria attributes on all fields', async function () {
+describe('Field accessibility', () => {
+  it('has appropriate aria attributes on all fields', async () => {
     // TODO(epurkhiser): The following fields are sill missing accessibility
     // check tests:
     //

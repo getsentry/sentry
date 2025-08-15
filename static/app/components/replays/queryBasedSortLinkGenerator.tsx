@@ -1,6 +1,6 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import type {Sort} from 'sentry/utils/discover/fields';
 
 export default function queryBasedSortLinkGenerator<Key extends string | number>(

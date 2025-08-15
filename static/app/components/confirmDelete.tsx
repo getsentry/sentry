@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useId} from 'react';
 
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
@@ -15,19 +15,26 @@ interface Props
 }
 
 function ConfirmDelete({message, confirmInput, ...props}: Props) {
+  const id = useId();
+
   return (
     <Confirm
       {...props}
       bypass={false}
       disableConfirmButton
-      renderMessage={({disableConfirmButton}) => (
+      priority="danger"
+      renderMessage={({disableConfirmButton, confirm: triggerConfirm}) => (
         <Fragment>
           <Alert.Container>
-            <Alert type="error">{message}</Alert>
+            <Alert type="error" showIcon={false}>
+              {message}
+            </Alert>
           </Alert.Container>
           <FieldGroup
             flexibleControlStateSize
             inline={false}
+            stacked
+            id={id}
             label={t(
               'Please enter %s to confirm the deletion',
               <code>{confirmInput}</code>
@@ -35,8 +42,16 @@ function ConfirmDelete({message, confirmInput, ...props}: Props) {
           >
             <Input
               type="text"
+              id={id}
+              name="confirm-text"
               placeholder={confirmInput}
               onChange={e => disableConfirmButton(e.target.value !== confirmInput)}
+              onKeyDown={({target, key}) =>
+                target instanceof HTMLInputElement &&
+                target.value === confirmInput &&
+                key === 'Enter' &&
+                triggerConfirm()
+              }
             />
           </FieldGroup>
         </Fragment>

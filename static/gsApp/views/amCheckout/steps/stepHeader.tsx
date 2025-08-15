@@ -1,7 +1,8 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,6 +23,7 @@ type Props = {
    */
   canSkip?: boolean;
   checkoutTier?: PlanTier;
+  isNewCheckout?: boolean;
   onToggleLegacy?: (tier: string) => void;
   organization?: Organization;
   trailingItems?: React.ReactNode;
@@ -38,19 +40,32 @@ function StepHeader({
   onToggleLegacy,
   checkoutTier,
   organization,
+  isNewCheckout,
 }: Props) {
   const canEdit = !isActive && (isCompleted || canSkip);
-
   const toggleTier = getToggleTier(checkoutTier);
+  const onEditClick = canEdit ? () => onEdit(stepNumber) : undefined;
+  const dataTestId = `header-${kebabCase(title)}`;
+
+  if (isNewCheckout) {
+    return (
+      <Flex justify="between">
+        <NewCheckoutStepTitle id={`step-${stepNumber}`} data-test-id={dataTestId}>
+          {title}
+        </NewCheckoutStepTitle>
+        {trailingItems && <div>{trailingItems}</div>}
+      </Flex>
+    );
+  }
 
   return (
     <Header
       isActive={isActive}
       canEdit={canEdit}
-      onClick={() => canEdit && onEdit(stepNumber)}
-      data-test-id={`header-${kebabCase(title)}`}
+      onClick={onEditClick}
+      data-test-id={dataTestId}
     >
-      <StepTitleWrapper>
+      <Flex justify="between">
         <StepTitle>
           {isCompleted ? (
             <IconCheckmark isCircled color="green300" />
@@ -60,7 +75,7 @@ function StepHeader({
           {title}
         </StepTitle>
         {trailingItems && <div>{trailingItems}</div>}
-      </StepTitleWrapper>
+      </Flex>
       <div>
         {isActive && toggleTier ? (
           typeof onToggleLegacy === 'function' && (
@@ -73,8 +88,16 @@ function StepHeader({
           )
         ) : (
           <EditStep>
-            {isCompleted && <a onClick={() => onEdit(stepNumber)}>{t('Edit')}</a>}
-            {canEdit && <Chevron direction="down" aria-label={t('Expand section')} />}
+            {canEdit && (
+              <Button
+                size="sm"
+                aria-label={t('Expand section')}
+                icon={<IconChevron direction="down" />}
+                onClick={onEditClick}
+              >
+                {t('Edit')}
+              </Button>
+            )}
           </EditStep>
         )}
       </div>
@@ -90,18 +113,8 @@ const Header = styled('div')<{canEdit?: boolean; isActive?: boolean}>`
   gap: ${space(1)};
   align-items: center;
   padding: ${space(3)} ${space(2)};
-
-  ${p =>
-    p.isActive &&
-    css`
-      border-bottom: 1px solid ${p.theme.border};
-    `};
-
-  ${p =>
-    p.canEdit &&
-    css`
-      cursor: pointer;
-    `};
+  cursor: ${p => (p.canEdit ? 'pointer' : undefined)};
+  border-bottom: 1px solid ${p => (p.isActive ? p.theme.border : 'transparent')};
 `;
 
 const StepTitle = styled('div')`
@@ -110,7 +123,7 @@ const StepTitle = styled('div')`
   justify-content: start;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.subText};
 `;
 
@@ -121,12 +134,7 @@ const EditStep = styled('div')`
   align-items: center;
 `;
 
-const Chevron = styled(IconChevron)`
-  color: ${p => p.theme.border};
-  justify-self: end;
-`;
-
-const StepTitleWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
+const NewCheckoutStepTitle = styled('div')`
+  font-size: ${p => p.theme.fontSize['2xl']};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

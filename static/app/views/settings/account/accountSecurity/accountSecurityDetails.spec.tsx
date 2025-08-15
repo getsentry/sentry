@@ -20,12 +20,12 @@ const ENDPOINT = '/users/me/authenticators/';
 const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';
 const ORG_ENDPOINT = '/organizations/';
 
-describe('AccountSecurityDetails', function () {
+describe('AccountSecurityDetails', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
-  describe('Totp', function () {
-    beforeEach(function () {
+  describe('Totp', () => {
+    beforeEach(() => {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
         body: AllAuthenticatorsFixture(),
@@ -47,7 +47,7 @@ describe('AccountSecurityDetails', function () {
       });
     });
 
-    it('has enrolled circle indicator', async function () {
+    it('has enrolled circle indicator', async () => {
       const params = {
         authId: '15',
       };
@@ -64,17 +64,22 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
-      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('status', {name: 'Authentication Method Active'})
+      ).toBeInTheDocument();
 
       // has created and last used dates
       expect(screen.getByText('Created at')).toBeInTheDocument();
       expect(screen.getByText('Last used')).toBeInTheDocument();
     });
 
-    it('can remove method', async function () {
+    it('can remove method', async () => {
       const deleteMock = MockApiClient.addMockResponse({
         url: `${ENDPOINT}15/`,
         method: 'DELETE',
@@ -96,7 +101,10 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
@@ -108,7 +116,7 @@ describe('AccountSecurityDetails', function () {
       expect(deleteMock).toHaveBeenCalled();
     });
 
-    it('can remove one of multiple 2fa methods when org requires 2fa', async function () {
+    it('can remove one of multiple 2fa methods when org requires 2fa', async () => {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
         body: OrganizationsFixture({require2FA: true}),
@@ -135,7 +143,10 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
@@ -147,7 +158,7 @@ describe('AccountSecurityDetails', function () {
       expect(deleteMock).toHaveBeenCalled();
     });
 
-    it('can not remove last 2fa method when org requires 2fa', async function () {
+    it('can not remove last 2fa method when org requires 2fa', async () => {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
         body: OrganizationsFixture({require2FA: true}),
@@ -175,15 +186,18 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
     });
   });
 
-  describe('Recovery', function () {
-    beforeEach(function () {
+  describe('Recovery', () => {
+    beforeEach(() => {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
         body: AllAuthenticatorsFixture(),
@@ -205,7 +219,7 @@ describe('AccountSecurityDetails', function () {
       });
     });
 
-    it('has enrolled circle indicator', async function () {
+    it('has enrolled circle indicator', async () => {
       const params = {
         authId: '16',
       };
@@ -223,15 +237,21 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
-      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('status', {name: 'Authentication Method Active'})
+      ).toBeInTheDocument();
+
       // does not have remove button
       expect(screen.queryByRole('button', {name: 'Remove'})).not.toBeInTheDocument();
     });
 
-    it('regenerates codes', async function () {
+    it('regenerates codes', async () => {
       const deleteMock = MockApiClient.addMockResponse({
         url: `${ENDPOINT}16/`,
         method: 'PUT',
@@ -254,7 +274,10 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(
@@ -274,7 +297,7 @@ describe('AccountSecurityDetails', function () {
       expect(deleteMock).toHaveBeenCalled();
     });
 
-    it('has copy, print and download buttons', async function () {
+    it('has copy, print and download buttons', async () => {
       const params = {
         authId: '16',
       };
@@ -296,7 +319,10 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByRole('button', {name: 'print'})).toBeInTheDocument();

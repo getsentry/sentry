@@ -42,7 +42,13 @@ export interface UptimeCheck {
   timestamp: string;
   traceId: string;
   uptimeCheckId: string;
-  uptimeSubscriptionId: number;
+}
+
+export interface UptimeSummary {
+  downtimeChecks: number;
+  failedChecks: number;
+  missedWindowChecks: number;
+  totalChecks: number;
 }
 
 export enum CheckStatusReason {

@@ -11,10 +11,9 @@ interface FetchIssueCountsParameters {
   sort?: string;
   start?: string | null;
   statsPeriod?: string | null;
-  useGroupSnubaDataset?: boolean;
 }
 
-export const makeFetchIssueCounts = ({
+const makeFetchIssueCounts = ({
   orgSlug,
   ...requestParams
 }: FetchIssueCountsParameters): ApiQueryKey => [

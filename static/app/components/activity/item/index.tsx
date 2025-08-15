@@ -123,7 +123,7 @@ const ActivityHeader = styled('div')`
   align-items: center;
   padding: 6px ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   &:last-child {
     border-bottom: none;
@@ -144,15 +144,15 @@ const StyledActivityAvatar = styled(ActivityAvatar)`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledDateTimeWindow = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledActivityBubble = styled(ActivityBubble)`

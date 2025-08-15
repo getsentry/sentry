@@ -96,7 +96,7 @@ class DummyNotificationWithMoreFields(DummyNotification):
     def get_title_link(self, *args):
         from sentry.integrations.messaging.message_builder import get_title_link
 
-        return get_title_link(self.group, None, False, True, self)
+        return get_title_link(self.group, None, False, True, self, ExternalProviders.SLACK)
 
 
 TEST_ISSUE_OCCURRENCE = IssueOccurrence(
@@ -198,7 +198,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         uuid.uuid4().hex,
         1,
         uuid.uuid4().hex,
-        ["e714d718cb4e7d3ce1ad800f7f33d223"],
+        ["fed5919bb4cbfc1883a7284fb5946e17"],
         "N+1 API Call",
         "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
         None,

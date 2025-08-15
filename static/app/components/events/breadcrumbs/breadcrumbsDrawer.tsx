@@ -2,18 +2,18 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BREADCRUMB_TIME_DISPLAY_OPTIONS,
   BreadcrumbTimeDisplay,
-  type EnhancedCrumb,
   useBreadcrumbFilters,
+  type EnhancedCrumb,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {
   CrumbContainer,
@@ -100,7 +100,7 @@ export function BreadcrumbsDrawer({
   );
 
   const actions = (
-    <ButtonBar gap={1}>
+    <ButtonBar>
       <InputGroup>
         <SearchInput
           size="xs"

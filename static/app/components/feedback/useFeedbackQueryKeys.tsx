@@ -4,20 +4,23 @@ import {createContext, useCallback, useContext, useRef, useState} from 'react';
 import getFeedbackItemQueryKey from 'sentry/components/feedback/getFeedbackItemQueryKey';
 import useFeedbackListQueryKey from 'sentry/components/feedback/useFeedbackListQueryKey';
 import type {Organization} from 'sentry/types/organization';
+import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
   children: ReactNode;
   organization: Organization;
 }
 
-type ListQueryKey = ReturnType<typeof useFeedbackListQueryKey>;
-type ItemQueryKeys = ReturnType<typeof getFeedbackItemQueryKey>;
+type ItemQueryKeys = {
+  eventQueryKey: ApiQueryKey | undefined;
+  issueQueryKey: ApiQueryKey | undefined;
+};
 
 interface TContext {
   getItemQueryKeys: (id: string) => ItemQueryKeys;
   listHeadTime: number;
-  listPrefetchQueryKey: ListQueryKey;
-  listQueryKey: ListQueryKey;
+  listPrefetchQueryKey: ApiQueryKey | undefined;
+  listQueryKey: InfiniteApiQueryKey | undefined;
   resetListHeadTime: () => void;
 }
 
@@ -75,7 +78,7 @@ export function FeedbackQueryKeys({children, organization}: Props) {
         getItemQueryKeys,
         listHeadTime,
         listPrefetchQueryKey,
-        listQueryKey,
+        listQueryKey: listQueryKey ? ['infinite', ...listQueryKey] : undefined,
         resetListHeadTime,
       }}
     >

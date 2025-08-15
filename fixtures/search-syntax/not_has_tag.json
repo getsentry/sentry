@@ -10,7 +10,12 @@
         "negated": true,
         "key": {"type": "keySimple", "value": "has", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "release", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "release",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -26,7 +31,12 @@
         "negated": true,
         "key": {"type": "keySimple", "value": "has", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "hi:there", "quoted": true}
+        "value": {
+          "type": "valueText",
+          "value": "hi:there",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

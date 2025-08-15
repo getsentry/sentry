@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {GroupTagsTab} from './groupTagsTab';
 
-describe('GroupTagsTab', function () {
+describe('GroupTagsTab', () => {
   const group = GroupFixture();
   const {router, organization} = initializeOrg({
     router: {
@@ -23,7 +23,7 @@ describe('GroupTagsTab', function () {
   });
   let tagsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
@@ -35,8 +35,12 @@ describe('GroupTagsTab', function () {
     });
   });
 
-  it('navigates to issue details events tab with correct query params', async function () {
-    render(<GroupTagsTab />, {router, organization});
+  it('navigates to issue details events tab with correct query params', async () => {
+    render(<GroupTagsTab />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     const headers = await screen.findAllByTestId('tag-title');
 
@@ -63,13 +67,17 @@ describe('GroupTagsTab', function () {
     });
   });
 
-  it('shows an error message when the request fails', async function () {
+  it('shows an error message when the request fails', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/',
       statusCode: 500,
     });
 
-    render(<GroupTagsTab />, {router, organization});
+    render(<GroupTagsTab />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByText('There was an error loading issue tags.')

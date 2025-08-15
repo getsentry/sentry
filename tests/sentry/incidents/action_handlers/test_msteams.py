@@ -1,11 +1,12 @@
 import time
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
 from urllib3.response import HTTPResponse
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
@@ -14,7 +15,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.messaging.spec import MessagingActionHandler
 from sentry.integrations.msteams.card_builder.block import (
     Block,
@@ -28,6 +29,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -39,7 +41,7 @@ from . import FireTest
 @freeze_time()
 class MsTeamsActionHandlerTest(FireTest):
     @responses.activate
-    def setUp(self):
+    def setUp(self) -> None:
         self.spec = MsTeamsMessagingSpec()
         self.handler = MessagingActionHandler(self.spec)
 
@@ -100,18 +102,17 @@ class MsTeamsActionHandlerTest(FireTest):
 
         assert data["attachments"][0]["content"] == build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_identifier=incident.identifier,
-            snuba_query=incident.alert_rule.snuba_query,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus(incident.status), metric_value
+            ),
             organization=incident.organization,
             date_started=incident.date_started,
-            new_status=IncidentStatus(incident.status),
-            metric_value=metric_value,
         )
 
         assert_slo_metric(mock_record)
 
     @responses.activate
-    def test_build_incident_attachment(self):
+    def test_build_incident_attachment(self) -> None:
         from sentry.integrations.msteams.card_builder.incident_attachment import (
             build_incident_attachment,
         )
@@ -130,12 +131,11 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         data = build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
-            snuba_query=alert_rule.snuba_query,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus(incident.status), metric_value
+            ),
             organization=incident.organization,
             date_started=incident.date_started,
-            new_status=IncidentStatus(incident.status),
-            metric_value=metric_value,
         )
         body: list[Block] = data["body"]
         column_set_block = cast(ColumnSetBlock, body[0])
@@ -153,11 +153,10 @@ class MsTeamsActionHandlerTest(FireTest):
 
     @responses.activate
     @with_feature("organizations:anomaly-detection-alerts")
-    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_build_incident_attachment_dynamic_alert(self, mock_seer_request):
+    def test_build_incident_attachment_dynamic_alert(self, mock_seer_request: MagicMock) -> None:
         from sentry.integrations.msteams.card_builder.incident_attachment import (
             build_incident_attachment,
         )
@@ -181,12 +180,11 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         data = build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
-            snuba_query=alert_rule.snuba_query,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus(incident.status), metric_value
+            ),
             organization=incident.organization,
             date_started=incident.date_started,
-            new_status=IncidentStatus(incident.status),
-            metric_value=metric_value,
         )
         body: list[Block] = data["body"]
         column_set_block = cast(ColumnSetBlock, body[0])
@@ -205,28 +203,30 @@ class MsTeamsActionHandlerTest(FireTest):
             in text_block2["text"]
         )
 
-    def test_fire_metric_alert(self):
+    def test_fire_metric_alert(self) -> None:
         self.run_fire_test()
 
-    def test_resolve_metric_alert(self):
+    def test_resolve_metric_alert(self) -> None:
         self.run_fire_test("resolve")
 
     @patch("sentry.analytics.record")
-    def test_alert_sent_recorded(self, mock_record):
+    def test_alert_sent_recorded(self, mock_record: MagicMock) -> None:
         self.run_fire_test()
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="msteams",
-            alert_id=self.alert_rule.id,
-            alert_type="metric_alert",
-            external_id=str(self.action.target_identifier),
-            notification_uuid="",
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="msteams",
+                alert_id=str(self.alert_rule.id),
+                alert_type="metric_alert",
+                external_id=str(self.action.target_identifier),
+                notification_uuid="",
+            ),
         )
 
     @responses.activate
-    def test_rule_snoozed(self):
+    def test_rule_snoozed(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         self.snooze_rule(alert_rule=alert_rule)
@@ -251,7 +251,7 @@ class MsTeamsActionHandlerTest(FireTest):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_fire_metric_alert_failure(self, mock_record):
+    def test_fire_metric_alert_failure(self, mock_record: MagicMock) -> None:
         self.alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
@@ -278,7 +278,7 @@ class MsTeamsActionHandlerTest(FireTest):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_fire_metric_alert_halt(self, mock_record):
+    def test_fire_metric_alert_halt(self, mock_record: MagicMock) -> None:
         self.alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value

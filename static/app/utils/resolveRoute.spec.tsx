@@ -1,5 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {setWindowLocation} from 'sentry-test/utils';
+
 import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 
@@ -18,7 +20,7 @@ jest.mock('sentry/constants', () => {
 });
 
 describe('resolveRoute', () => {
-  let devUi: any, host: any;
+  let devUi: any;
   let configState: Config;
 
   const organization = OrganizationFixture();
@@ -28,13 +30,11 @@ describe('resolveRoute', () => {
 
   beforeEach(() => {
     devUi = window.__SENTRY_DEV_UI;
-    host = window.location.host;
     configState = ConfigStore.getState();
     ConfigStore.set('features', new Set(['system:multi-region']));
   });
   afterEach(() => {
     window.__SENTRY_DEV_UI = devUi;
-    window.location.host = host;
     ConfigStore.loadInitialData(configState);
 
     mockDeployPreviewConfig.mockReset();
@@ -42,7 +42,7 @@ describe('resolveRoute', () => {
 
   it('should replace domains with dev-ui mode on localhost', () => {
     window.__SENTRY_DEV_UI = true;
-    window.location.host = 'acme.localhost:7999';
+    setWindowLocation('http://acme.localhost:7999');
 
     const result = resolveRoute('/issues/', organization, otherOrg);
     expect(result).toBe('https://other-org.localhost:7999/issues/');
@@ -50,7 +50,7 @@ describe('resolveRoute', () => {
 
   it('should replace domains with dev-ui mode on dev.getsentry.net', () => {
     window.__SENTRY_DEV_UI = true;
-    window.location.host = 'acme.dev.getsentry.net:7999';
+    setWindowLocation('http://acme.dev.getsentry.net:7999');
 
     const result = resolveRoute('/issues/', organization, otherOrg);
     expect(result).toBe('https://other-org.dev.getsentry.net:7999/issues/');
@@ -59,7 +59,7 @@ describe('resolveRoute', () => {
   it('should use path slugs on sentry.dev', () => {
     // Vercel previews don't let us have additional subdomains.
     window.__SENTRY_DEV_UI = true;
-    window.location.host = 'sentry-abc123.sentry.dev';
+    setWindowLocation('http://sentry-abc123.sentry.dev');
 
     mockDeployPreviewConfig.mockReturnValue({
       branch: 'test',
@@ -80,7 +80,7 @@ describe('resolveRoute', () => {
 
   it('will not replace domains with dev-ui mode and an unsafe host', () => {
     window.__SENTRY_DEV_UI = true;
-    window.location.host = 'bad-domain.com';
+    setWindowLocation('http://bad-domain.com');
 
     const result = resolveRoute('/issues/', organization, otherOrg);
     expect(result).toBe('https://other-org.sentry.io/issues/');

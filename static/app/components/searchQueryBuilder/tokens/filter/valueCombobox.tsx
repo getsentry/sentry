@@ -4,18 +4,21 @@ import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {getItemsWithKeys} from 'sentry/components/core/compactSelect/utils';
 import {
   ItemType,
   type SearchGroup,
   type SearchItem,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
+import {DeviceName} from 'sentry/components/deviceName';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
-  type CustomComboboxMenu,
   SearchQueryBuilderCombobox,
+  type CustomComboboxMenu,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
@@ -50,11 +53,15 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
+import {
+  FieldKey,
+  FieldValueType,
+  prettifyTagKey,
+  type FieldDefinition,
+} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -132,9 +139,17 @@ function getSelectedValuesFromText(
   return parsed.items
     .filter(item => item.value?.value)
     .map(item => {
-      return (
-        (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? ''
-      );
+      const value =
+        (escaped ? item.value?.text : unescapeTagValue(item.value?.value ?? '')) ?? '';
+
+      // Check if this value is selected by looking at the character after the value in
+      // the text. If there's a comma after the value, it means this value is selected.
+      // We need to check the text content to ensure that we account for any quotes the
+      // user may have added.
+      const valueText = item.value?.text ?? '';
+      const selected = text.charAt(text.indexOf(valueText) + valueText.length) === ',';
+
+      return {value, selected};
     });
 }
 
@@ -193,7 +208,15 @@ function getPredefinedValues({
   }
 
   if (isStringFilterValues(definedValues)) {
-    return [{sectionText: '', suggestions: definedValues.map(value => ({value}))}];
+    return [
+      {
+        sectionText: '',
+        suggestions: definedValues.map(value => ({
+          label: token.filter === FilterType.HAS ? prettifyTagKey(value) : undefined,
+          value,
+        })),
+      },
+    ];
   }
 
   const valuesWithoutSection = definedValues
@@ -303,7 +326,7 @@ function useFilterSuggestions({
 }: {
   ctrlKeyPressed: boolean;
   filterValue: string;
-  selectedValues: string[];
+  selectedValues: Array<{selected: boolean; value: string}>;
   token: TokenResult<Token.FILTER>;
 }) {
   const keyName = getKeyName(token.key);
@@ -320,7 +343,11 @@ function useFilterSuggestions({
       }),
     [key, filterValue, token, fieldDefinition]
   );
-  const shouldFetchValues = key && !key.predefined && predefinedValues === null;
+  // Only keys that explicitly have predefined values should skip the fetch.
+  // This is because the way keys are fetched doesn't guarantee that we have
+  // every key loaded. So we should try to fetch values for it even if it
+  // doesn't exist in the list of available keys.
+  const shouldFetchValues = key ? !key.predefined && predefinedValues === null : true;
   const canSelectMultipleValues = tokenSupportsMultipleValues(
     token,
     filterKeys,
@@ -328,15 +355,26 @@ function useFilterSuggestions({
   );
 
   const queryParams = useMemo(
-    () => [key ? key : {key: keyName, name: keyName}, filterValue] as const,
+    () =>
+      [
+        key ? {key: key.key, name: key.name} : {key: keyName, name: keyName},
+        filterValue,
+      ] as const,
     [filterValue, key, keyName]
   );
 
+  const baseQueryKey = useMemo(
+    () => ['search-query-builder-tag-values', queryParams],
+    [queryParams]
+  );
+  const queryKey = useDebouncedValue(baseQueryKey);
+  const isDebouncing = baseQueryKey !== queryKey;
+
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
-    queryKey: useDebouncedValue(
-      useMemo(() => ['search-query-builder-tag-values', queryParams], [queryParams])
-    ),
+    // disable exhaustive deps because we want to debounce the query key above
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    queryKey,
     queryFn: () => getTagValues(...queryParams),
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
@@ -373,24 +411,50 @@ function useFilterSuggestions({
   );
 
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
-    return shouldFetchValues
-      ? [{sectionText: '', suggestions: data?.map(value => ({value})) ?? []}]
-      : (predefinedValues ?? []);
-  }, [data, predefinedValues, shouldFetchValues]);
+    if (!shouldFetchValues) {
+      return predefinedValues ?? [];
+    }
+
+    const suggestions = data?.map(value => {
+      return {
+        value,
+        description:
+          // When the key is device, we can help users by displaying the readable name
+          key?.key === FieldKey.DEVICE ? (
+            <DeviceName value={value}>
+              {/* Prevent the same value from being displayed twice */}
+              {name => (name === value ? null : name)}
+            </DeviceName>
+          ) : undefined,
+      };
+    });
+
+    return [{sectionText: '', suggestions: suggestions ?? []}];
+  }, [data, predefinedValues, shouldFetchValues, key?.key]);
 
   // Grouped sections for rendering purposes
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
     const itemsWithoutSection = suggestionGroups
       .filter(group => group.sectionText === '')
       .flatMap(group => group.suggestions)
-      .filter(suggestion => !selectedValues.includes(suggestion.value));
+      .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value));
     const sections = suggestionGroups.filter(group => group.sectionText !== '');
 
     return [
       {
         sectionText: '',
         items: getItemsWithKeys([
-          ...selectedValues.map(value => createItem({value}, true)),
+          ...selectedValues.map(value => {
+            const matchingSuggestion = suggestionGroups
+              .flatMap(group => group.suggestions)
+              .find(suggestion => suggestion.value === value.value);
+
+            if (matchingSuggestion) {
+              return createItem(matchingSuggestion, value.selected);
+            }
+
+            return createItem({value: value.value}, value.selected);
+          }),
           ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
         ]),
       },
@@ -398,7 +462,7 @@ function useFilterSuggestions({
         sectionText: group.sectionText,
         items: getItemsWithKeys(
           group.suggestions
-            .filter(suggestion => !selectedValues.includes(suggestion.value))
+            .filter(suggestion => !selectedValues.some(v => v.value === suggestion.value))
             .map(suggestion => createItem(suggestion))
         ),
       })),
@@ -413,7 +477,7 @@ function useFilterSuggestions({
   return {
     items,
     suggestionSectionItems,
-    isFetching,
+    isFetching: isFetching || isDebouncing,
   };
 }
 
@@ -484,6 +548,7 @@ export function SearchQueryBuilderValueCombobox({
   const organization = useOrganization();
   const {
     getFieldDefinition,
+    getSuggestedFilterKey,
     filterKeys,
     dispatch,
     searchSource,
@@ -498,7 +563,7 @@ export function SearchQueryBuilderValueCombobox({
     filterKeys,
     fieldDefinition
   );
-  const canUseWildard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
+  const canUseWildcard = disallowWildcard ? false : keySupportsWildcard(fieldDefinition);
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
@@ -569,6 +634,19 @@ export function SearchQueryBuilderValueCombobox({
 
   const updateFilterValue = useCallback(
     (value: string) => {
+      if (token.filter === FilterType.HAS) {
+        const suggested = getSuggestedFilterKey(value);
+        if (suggested) {
+          dispatch({
+            type: 'UPDATE_TOKEN_VALUE',
+            token,
+            value: suggested,
+          });
+          onCommit();
+          return true;
+        }
+      }
+
       const cleanedValue = cleanFilterValue({
         valueType: getFilterValueType(token, fieldDefinition),
         value,
@@ -586,12 +664,12 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (canSelectMultipleValues) {
-        if (selectedValuesUnescaped.includes(value)) {
+        if (selectedValuesUnescaped.map(v => v.value).includes(value)) {
           const newValue = prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
             selectedValuesUnescaped
-              .filter(v => v !== value)
-              .map(escapeTagValue)
+              .filter(v => (v.selected ? v.value !== value : true))
+              .map(v => escapeTagValue(v.value))
               .join(',')
           );
 
@@ -634,6 +712,7 @@ export function SearchQueryBuilderValueCombobox({
     [
       token,
       fieldDefinition,
+      getSuggestedFilterKey,
       canSelectMultipleValues,
       analyticsData,
       selectedValuesUnescaped,
@@ -764,13 +843,21 @@ export function SearchQueryBuilderValueCombobox({
     useMemo(() => {
       if (!showDatePicker) {
         return function (props) {
+          // Removing the ask seer options from the value list box props as we don't
+          // display and ask seer option in this list box.
+          const hiddenOptions = new Set(props.hiddenOptions);
+          hiddenOptions.delete(ASK_SEER_ITEM_KEY);
+          hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
+
           return (
             <ValueListBox
               {...props}
+              hiddenOptions={hiddenOptions}
+              wrapperRef={topLevelWrapperRef}
               isMultiSelect={canSelectMultipleValues}
               items={items}
               isLoading={isFetching}
-              canUseWildcard={canUseWildard}
+              canUseWildcard={canUseWildcard}
             />
           );
         };
@@ -808,16 +895,26 @@ export function SearchQueryBuilderValueCombobox({
       };
     }, [
       showDatePicker,
+      topLevelWrapperRef,
       canSelectMultipleValues,
       items,
       isFetching,
-      canUseWildard,
+      canUseWildcard,
       inputValue,
       token,
       analyticsData,
       dispatch,
       onCommit,
     ]);
+
+  const placeholder =
+    token.filter === FilterType.HAS
+      ? prettifyTagKey(token.value.text)
+      : canSelectMultipleValues
+        ? ''
+        : formatFilterValue({
+            token: token.value,
+          });
 
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">
@@ -830,7 +927,7 @@ export function SearchQueryBuilderValueCombobox({
         onExit={onCommit}
         inputValue={inputValue}
         filterValue={filterValue}
-        placeholder={canSelectMultipleValues ? '' : formatFilterValue(token.value)}
+        placeholder={placeholder}
         token={token}
         inputLabel={t('Edit filter value')}
         onInputChange={e => setInputValue(e.target.value)}
@@ -868,7 +965,7 @@ const TrailingWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const CheckWrap = styled('div')<{visible: boolean}>`
@@ -876,5 +973,8 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   justify-content: center;
   align-items: center;
   opacity: ${p => (p.visible ? 1 : 0)};
-  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+  padding-top: ${p => p.theme.space['2xs']};
+  padding-right: 0;
+  padding-bottom: ${p => p.theme.space['2xs']};
+  padding-left: ${p => p.theme.space['2xs']};
 `;

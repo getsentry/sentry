@@ -8,7 +8,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class SendRequestEmailTest(TestCase):
-    def test_sends_email_to_everyone(self):
+    def test_sends_email_to_everyone(self) -> None:
         owner = self.create_user("owner@example.com")
         team_admin = self.create_user("team-admin@example.com")
         non_team_admin = self.create_user("non-team-admin@example.com")
@@ -42,7 +42,7 @@ class SendRequestEmailTest(TestCase):
         assert sorted(m.to[0] for m in mail.outbox) == sorted([owner.email, team_admin.email])
 
     @with_feature("system:multi-region")
-    def test_sends_no_email_to_invited_member(self):
+    def test_sends_no_email_to_invited_member(self) -> None:
         owner = self.create_user("owner@example.com")
 
         org = self.create_organization(owner=owner)
@@ -60,7 +60,7 @@ class SendRequestEmailTest(TestCase):
         assert len(mail.outbox) == 0
 
     @with_feature("system:multi-region")
-    def test_sends_email_with_link(self):
+    def test_sends_email_with_link(self) -> None:
         owner = self.create_user("owner@example.com")
         requesting_user = self.create_user("requesting@example.com")
 

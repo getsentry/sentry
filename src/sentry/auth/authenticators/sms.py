@@ -21,7 +21,7 @@ logger = logging.getLogger("sentry.auth")
 
 
 class SMSRateLimitExceeded(Exception):
-    def __init__(self, phone_number, user_id, remote_ip):
+    def __init__(self, phone_number: str, user_id: int | None, remote_ip) -> None:
         super().__init__()
         self.phone_number = phone_number
         self.user_id = user_id

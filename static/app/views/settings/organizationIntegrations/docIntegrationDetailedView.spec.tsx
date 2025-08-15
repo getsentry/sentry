@@ -6,18 +6,18 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DocIntegrationDetailedView from 'sentry/views/settings/organizationIntegrations/docIntegrationDetailedView';
 
-describe('DocIntegrationDetailedView', function () {
+describe('DocIntegrationDetailedView', () => {
   const organization = OrganizationFixture();
   const doc = DocIntegrationFixture();
   const router = RouterFixture({
     params: {orgId: organization.slug, integrationSlug: doc.slug},
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: `/doc-integrations/${doc.slug}/`,
       body: doc,
@@ -25,6 +25,7 @@ describe('DocIntegrationDetailedView', function () {
     render(<DocIntegrationDetailedView />, {
       organization,
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();

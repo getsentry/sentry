@@ -50,15 +50,18 @@ const mockReplay = ReplayReader.factory({
 
 mockUseLoadReplayReader.mockImplementation(() => {
   return {
+    attachmentError: undefined,
     attachments: [],
     errors: [],
     fetchError: undefined,
-    fetching: false,
+    isError: false,
+    isPending: false,
     onRetry: jest.fn(),
     projectSlug: ProjectFixture().slug,
     replay: mockReplay,
     replayId: mockReplayId,
     replayRecord: ReplayRecordFixture(),
+    status: 'success' as const,
   };
 });
 
@@ -81,6 +84,7 @@ const render = (children: React.ReactElement, orgParams: Partial<Organization> =
   return baseRender(children, {
     router,
     organization,
+    deprecatedRouterMocks: true,
   });
 };
 
@@ -116,21 +120,25 @@ describe('ReplayClipPreview', () => {
       durationAfterMs: 5_000,
       durationBeforeMs: 5_000,
     },
+    fullReplayButtonProps: {},
   };
 
   it('Should render a placeholder when is fetching the replay data', () => {
     // Change the mocked hook to return a loading state
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
+        attachmentError: undefined,
         attachments: [],
         errors: [],
         fetchError: undefined,
-        fetching: true,
+        isError: false,
+        isPending: true,
         onRetry: jest.fn(),
         projectSlug: ProjectFixture().slug,
         replay: mockReplay,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
+        status: 'pending' as const,
       };
     });
 
@@ -143,21 +151,70 @@ describe('ReplayClipPreview', () => {
     // Change the mocked hook to return a fetch error
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
+        attachmentError: undefined,
         attachments: [],
         errors: [],
         fetchError: {status: 400} as RequestError,
-        fetching: false,
+        isError: true,
+        isPending: false,
         onRetry: jest.fn(),
         projectSlug: ProjectFixture().slug,
         replay: null,
         replayId: mockReplayId,
         replayRecord: ReplayRecordFixture(),
+        status: 'error' as const,
       };
     });
 
     render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-error')).toBeVisible();
+  });
+
+  it('Should throw throttled error when fetch returns 429', () => {
+    mockUseLoadReplayReader.mockImplementationOnce(() => {
+      return {
+        attachments: [],
+        errors: [],
+        fetchError: {status: 429} as RequestError,
+        attachmentError: undefined,
+        isError: true,
+        isPending: false,
+        onRetry: jest.fn(),
+        projectSlug: ProjectFixture().slug,
+        replay: null,
+        replayId: mockReplayId,
+        replayRecord: ReplayRecordFixture(),
+        status: 'error' as const,
+      };
+    });
+
+    render(<ReplayClipPreview {...defaultProps} />);
+
+    expect(screen.getByTestId('replay-throttled')).toBeVisible();
+  });
+
+  it('Should throw throttled error when fetching an attachment returns 429', () => {
+    mockUseLoadReplayReader.mockImplementationOnce(() => {
+      return {
+        attachments: [],
+        errors: [],
+        fetchError: undefined,
+        attachmentError: [{status: 429} as RequestError],
+        isError: true,
+        isPending: false,
+        onRetry: jest.fn(),
+        projectSlug: ProjectFixture().slug,
+        replay: null,
+        replayId: mockReplayId,
+        replayRecord: ReplayRecordFixture(),
+        status: 'error' as const,
+      };
+    });
+
+    render(<ReplayClipPreview {...defaultProps} />);
+
+    expect(screen.getByTestId('replay-throttled')).toBeVisible();
   });
 
   it('Should have the correct time range', () => {
@@ -199,22 +256,5 @@ describe('ReplayClipPreview', () => {
     expect(
       screen.queryByTestId('replay-details-breadcrumbs-tab')
     ).not.toBeInTheDocument();
-  });
-  it('Render the back and forward buttons when we pass in showNextAndPrevious', async () => {
-    const handleBackClick = jest.fn();
-    const handleForwardClick = jest.fn();
-    render(
-      <ReplayClipPreview
-        {...defaultProps}
-        handleBackClick={handleBackClick}
-        handleForwardClick={handleForwardClick}
-        showNextAndPrevious
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Previous Clip'}));
-    expect(handleBackClick).toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', {name: 'Next Clip'}));
-    expect(handleForwardClick).toHaveBeenCalled();
   });
 });

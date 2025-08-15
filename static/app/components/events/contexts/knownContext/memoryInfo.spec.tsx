@@ -15,6 +15,7 @@ const MOCK_MEMORY_INFO_CONTEXT = {
   memory_load_bytes: 1048576 * 6,
   total_committed_bytes: 1048576 * 7,
   promoted_bytes: 1048576 * 8,
+  total_allocated_bytes: 1048576 * 9,
   pinned_objects_count: 150,
   pause_time_percentage: 25.5,
   index: 12,
@@ -36,8 +37,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('MemoryInfoContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('MemoryInfoContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getMemoryInfoContext({data: MOCK_MEMORY_INFO_CONTEXT})).toEqual([
       {key: 'allocated_bytes', subject: 'Allocated Bytes', value: '1.0 MiB'},
       {key: 'fragmented_bytes', subject: 'Fragmented Bytes', value: '2.0 MiB'},
@@ -55,6 +56,7 @@ describe('MemoryInfoContext', function () {
       {key: 'memory_load_bytes', subject: 'Memory Load Bytes', value: '6.0 MiB'},
       {key: 'total_committed_bytes', subject: 'Total Committed Bytes', value: '7.0 MiB'},
       {key: 'promoted_bytes', subject: 'Promoted Bytes', value: '8.0 MiB'},
+      {key: 'total_allocated_bytes', subject: 'Total Allocated Bytes', value: '9.0 MiB'},
       {key: 'pinned_objects_count', subject: 'Pinned Objects Count', value: 150},
       {key: 'pause_time_percentage', subject: 'Pause Time Percentage', value: 25.5},
       {key: 'index', subject: 'Index', value: 12},
@@ -81,7 +83,7 @@ describe('MemoryInfoContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {memory_info: MOCK_REDACTION}},
     });

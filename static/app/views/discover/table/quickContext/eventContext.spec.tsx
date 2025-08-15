@@ -50,7 +50,7 @@ const renderEventContext = (location?: Location, eventView?: EventView) => {
   );
 };
 
-describe('Quick Context Content: Event ID Column', function () {
+describe('Quick Context Content: Event ID Column', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -141,7 +141,7 @@ describe('Quick Context Content: Event ID Column', function () {
       stacktrace: {
         hasSystemFrames: false,
         registers: {},
-        framesOmitted: 0,
+        framesOmitted: null,
         frames: [frame],
       },
       mechanism: null,

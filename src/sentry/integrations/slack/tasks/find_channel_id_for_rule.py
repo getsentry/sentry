@@ -10,6 +10,7 @@ from sentry.integrations.slack.utils.channel import (
 )
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.creator import ProjectRuleCreator
@@ -17,6 +18,8 @@ from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 
@@ -25,19 +28,22 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     name="sentry.integrations.slack.tasks.search_channel_id_for_rule",
     queue="integrations",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+    ),
 )
 def find_channel_id_for_rule(
-    project: Project,
     actions: Sequence[dict[str, Any]],
     uuid: str,
     rule_id: int | None = None,
     user_id: int | None = None,
+    project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
     redis_rule_status = RedisRuleStatus(uuid)
 
     try:
-        project = Project.objects.get(id=project.id)
+        project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
         redis_rule_status.set_value("failed")
         return
@@ -55,7 +61,9 @@ def find_channel_id_for_rule(
             break
 
     integrations = integration_service.get_integrations(
-        organization_id=organization.id, providers=["slack"], integration_ids=[integration_id]
+        organization_id=organization.id,
+        providers=[IntegrationProviderSlug.SLACK.value],
+        integration_ids=[integration_id],
     )
     if not integrations:
         redis_rule_status.set_value("failed")

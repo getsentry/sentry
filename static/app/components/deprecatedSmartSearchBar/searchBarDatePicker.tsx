@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import format from 'date-fns/format';
 
 import {DatePicker} from 'sentry/components/calendar';
@@ -185,7 +186,7 @@ const Input = styled('input')`
   padding: 0 ${space(1)};
   background: ${p => p.theme.backgroundSecondary};
   border: 1px solid ${p => p.theme.border};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   box-shadow: none;
 `;
 
@@ -197,13 +198,13 @@ const DatePickerFooter = styled('div')`
 `;
 
 const UtcPickerLabel = styled('label')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   margin: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   user-select: none;
   cursor: pointer;
   gap: ${space(1)};

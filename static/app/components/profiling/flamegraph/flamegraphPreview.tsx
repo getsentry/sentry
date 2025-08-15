@@ -1,7 +1,7 @@
 import type {CSSProperties} from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {type mat3, vec2} from 'gl-matrix';
+import {vec2, type mat3} from 'gl-matrix';
 
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
 import {useCanvasScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasScroll';
@@ -217,7 +217,7 @@ export function FlamegraphPreview({
     setConfigSpaceCursor(null);
   }, []);
 
-  const canvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     canvasPoolManager,
     flamegraphCanvas,
@@ -257,7 +257,6 @@ export function FlamegraphPreview({
           flamegraphCanvas={flamegraphCanvas}
           flamegraphRenderer={flamegraphRenderer}
           flamegraphView={flamegraphView}
-          canvasBounds={canvasBounds}
           platform={undefined}
         />
       ) : null}

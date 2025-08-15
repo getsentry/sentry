@@ -10,7 +10,7 @@ R = TypeVar("R")
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "FATAL")
 
 
-class CaseInsensitiveChoice(click.Choice):
+class CaseInsensitiveChoice(click.Choice[str]):
     def convert(self, value: str, param: click.Parameter | None, ctx: click.Context | None) -> str:
         self.choices = [choice.upper() for choice in self.choices]
         return super().convert(value.upper(), param, ctx)

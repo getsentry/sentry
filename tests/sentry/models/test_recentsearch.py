@@ -9,7 +9,7 @@ from sentry.utils.hashlib import md5_text
 
 
 class RecentSearchTest(TestCase):
-    def test_query_hash(self):
+    def test_query_hash(self) -> None:
         recent_search = RecentSearch.objects.create(
             organization=self.organization, user_id=self.user.id, type=0, query="hello"
         )
@@ -18,7 +18,7 @@ class RecentSearchTest(TestCase):
 
 
 class RemoveExcessRecentSearchesTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         with patch("sentry.models.recentsearch.MAX_RECENT_SEARCHES", new=1):
             RecentSearch.objects.create(
                 organization=self.organization,

@@ -1,5 +1,4 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import type {RenderResult} from 'sentry-test/reactTestingLibrary';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TransactionsList from 'sentry/components/discover/transactionsList';
@@ -9,15 +8,15 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function WrapperComponent(props: any) {
   return (
-    <OrganizationContext.Provider value={props.organization}>
+    <OrganizationContext value={props.organization}>
       <MEPSettingProvider>
         <TransactionsList {...props} />
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 
-describe('TransactionsList', function () {
+describe('TransactionsList', () => {
   let api: any;
   let location: any;
   let context: any;
@@ -25,7 +24,7 @@ describe('TransactionsList', function () {
   let project: any;
   let eventView: any;
   let options: any;
-  let handleDropdownChange: any;
+  const handleDropdownChange = jest.fn();
 
   const initialize = (config = {}) => {
     context = initializeOrg(config);
@@ -33,20 +32,17 @@ describe('TransactionsList', function () {
     project = context.project;
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     location = {
       pathname: '/',
       query: {},
     };
-    handleDropdownChange = () => {
-      //
-    };
   });
 
-  describe('Basic', function () {
+  describe('Basic', () => {
     let generateLink: any;
 
-    beforeEach(function () {
+    beforeEach(() => {
       initialize();
       eventView = EventView.fromSavedQuery({
         id: '',
@@ -149,7 +145,7 @@ describe('TransactionsList', function () {
       });
     });
 
-    it('renders basic UI components', async function () {
+    it('renders basic UI components', async () => {
       render(
         <WrapperComponent
           api={api}
@@ -180,7 +176,7 @@ describe('TransactionsList', function () {
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1000']);
     });
 
-    it('renders a trend view', async function () {
+    it('renders a trend view', async () => {
       options.push({
         sort: {kind: 'desc', field: 'trend_percentage()'},
         value: 'regression',
@@ -243,7 +239,7 @@ describe('TransactionsList', function () {
       ]);
     });
 
-    it('renders default titles', async function () {
+    it('renders default titles', async () => {
       render(
         <WrapperComponent
           api={api}
@@ -262,7 +258,7 @@ describe('TransactionsList', function () {
       expect(tableHeadings.map(e => e.textContent)).toEqual(['transaction', 'count()']);
     });
 
-    it('renders custom titles', async function () {
+    it('renders custom titles', async () => {
       render(
         <WrapperComponent
           api={api}
@@ -282,26 +278,8 @@ describe('TransactionsList', function () {
       expect(tableHeadings.map(e => e.textContent)).toEqual(['foo', 'bar']);
     });
 
-    it('allows users to change the sort in the dropdown', async function () {
-      let component: RenderResult | null = null;
-
-      const handleDropdown = (value: any) => {
-        const selected = options.find((option: any) => option.value === value);
-        if (selected && component) {
-          component.rerender(
-            <WrapperComponent
-              selected={selected}
-              api={api}
-              location={location}
-              organization={organization}
-              eventView={eventView}
-              options={options}
-            />
-          );
-        }
-      };
-
-      component = render(
+    it('allows users to change the sort in the dropdown', async () => {
+      const {rerender} = render(
         <WrapperComponent
           api={api}
           location={location}
@@ -309,7 +287,7 @@ describe('TransactionsList', function () {
           eventView={eventView}
           selected={options[0]}
           options={options}
-          handleDropdownChange={handleDropdown}
+          handleDropdownChange={handleDropdownChange}
         />
       );
 
@@ -333,6 +311,20 @@ describe('TransactionsList', function () {
       // Failing transactions is 'count' as per the test options
       await userEvent.click(screen.getByRole('option', {name: 'Failing Transactions'}));
 
+      // Simulate the dropdown change
+      const newSelected = options.find((option: any) => option.value === 'count');
+      rerender(
+        <WrapperComponent
+          selected={newSelected}
+          api={api}
+          location={location}
+          organization={organization}
+          eventView={eventView}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+        />
+      );
+
       await waitFor(() => {
         // now the sort is descending by count
         expect(
@@ -341,7 +333,7 @@ describe('TransactionsList', function () {
       });
     });
 
-    it('generates link for the transaction cell', async function () {
+    it('generates link for the transaction cell', async () => {
       render(
         <WrapperComponent
           api={api}
@@ -369,7 +361,7 @@ describe('TransactionsList', function () {
       );
     });
 
-    it('handles forceLoading correctly', async function () {
+    it('handles forceLoading correctly', async () => {
       const component = render(
         <WrapperComponent
           api={null}

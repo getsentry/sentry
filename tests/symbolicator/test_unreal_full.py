@@ -85,25 +85,30 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
             with open(filename, "rb") as f:
                 event = self.post_and_retrieve_unreal(f.read())
 
-        self.insta_snapshot(
-            {
-                "contexts": event.data.get("contexts"),
-                "exception": {
-                    "values": [
-                        normalize_native_exception(x)
-                        for x in get_path(event.data, "exception", "values") or ()
-                    ]
+        def make_snapshot(subname=None):
+            self.insta_snapshot(
+                {
+                    "contexts": event.data.get("contexts"),
+                    "exception": {
+                        "values": [
+                            normalize_native_exception(x)
+                            for x in get_path(event.data, "exception", "values") or ()
+                        ]
+                    },
+                    "stacktrace": event.data.get("stacktrace"),
+                    "threads": event.data.get("threads"),
+                    "extra": event.data.get("extra"),
+                    "sdk": event.data.get("sdk"),
                 },
-                "stacktrace": event.data.get("stacktrace"),
-                "threads": event.data.get("threads"),
-                "extra": event.data.get("extra"),
-                "sdk": event.data.get("sdk"),
-            }
-        )
+                subname=subname,
+            )
+
+        make_snapshot()
 
         return sorted(EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name)
 
-    def test_unreal_crash_with_attachments(self):
+    @pytest.mark.skip(reason="temporary because of Relay change")
+    def test_unreal_crash_with_attachments(self) -> None:
         attachments = self.unreal_crash_test_impl(get_unreal_crash_file())
         assert len(attachments) == 4
         context, config, minidump, log = attachments
@@ -120,7 +125,8 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert log.name == "YetAnother.log"  # Log file is named after the project
         assert log.sha1 == "24d1c5f75334cd0912cc2670168d593d5fe6c081"
 
-    def test_unreal_apple_crash_with_attachments(self):
+    @pytest.mark.skip(reason="temporary because of Relay change")
+    def test_unreal_apple_crash_with_attachments(self) -> None:
         attachments = self.unreal_crash_test_impl(get_unreal_crash_apple_file())
 
         assert len(attachments) == 6

@@ -7,10 +7,11 @@ import * as Sentry from '@sentry/react';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
@@ -21,14 +22,13 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 
+import PlanTable from 'getsentry/components/upgradeNowModal/planTable';
+import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData';
+import useUpgradeNowParams from 'getsentry/components/upgradeNowModal/useUpgradeNowParams';
+import {redirectToManage} from 'getsentry/components/upgradeNowModal/utils';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-
-import PlanTable from '../upgradeNowModal/planTable';
-import usePreviewData from '../upgradeNowModal/usePreviewData';
-import useUpgradeNowParams from '../upgradeNowModal/useUpgradeNowParams';
-import {redirectToManage} from '../upgradeNowModal/utils';
 
 type Props = ModalRenderProps &
   Omit<ComponentProps<typeof ActionButtons>, 'hasPriceChange'> & {
@@ -122,7 +122,7 @@ const Subheader = styled('h2')`
   text-transform: uppercase;
   font-weight: bold;
 
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-bottom: ${space(1)};
 `;
 
@@ -138,10 +138,10 @@ const Header = styled('h1')`
 
 const ModalLayout = styled('div')`
   display: grid;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr auto;
     gap: ${space(3)};
   }
@@ -150,12 +150,12 @@ const ModalLayout = styled('div')`
 const UpsellContent = styled('div')`
   grid-column: 1;
   grid-row: 1;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const Note = styled('p')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 export const modalCss = css`

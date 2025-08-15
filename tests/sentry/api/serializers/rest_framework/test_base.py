@@ -1,3 +1,4 @@
+import pytest
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
@@ -17,18 +18,25 @@ class PersonSerializer(CamelSnakeSerializer):
 
 
 class CamelSnakeSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         serializer = PersonSerializer(data={"name": "Rick", "worksAt": "Sentry"})
         assert serializer.is_valid()
         assert serializer.data == {"name": "Rick", "works_at": "Sentry"}
 
-    def test_error(self):
+    def test_error(self) -> None:
         serializer = PersonSerializer(data={"worksAt": None})
         assert not serializer.is_valid()
         assert serializer.errors == {
             "worksAt": ["This field may not be null."],
             "name": ["This field is required."],
         }
+
+    def test_smuggling(self) -> None:
+        with pytest.raises(
+            serializers.ValidationError,
+            match=r"_name collides with name, please pass only one value",
+        ):
+            PersonSerializer(data={"name": "Rick", "worksAt": "Sentry", "_name": "Chuck"})
 
 
 class ContentTypeSerializer(CamelSnakeModelSerializer):
@@ -38,12 +46,12 @@ class ContentTypeSerializer(CamelSnakeModelSerializer):
 
 
 class CamelSnakeModelSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         serializer = ContentTypeSerializer(data={"appLabel": "hello", "model": "Something"})
         assert serializer.is_valid()
         assert serializer.data == {"model": "Something", "app_label": "hello"}
 
-    def test_error(self):
+    def test_error(self) -> None:
         serializer = ContentTypeSerializer(data={"appLabel": None})
         assert not serializer.is_valid()
         assert serializer.errors == {
@@ -52,7 +60,7 @@ class CamelSnakeModelSerializerTest(TestCase):
         }
 
 
-def test_convert_dict_key_case():
+def test_convert_dict_key_case() -> None:
     camelData = {
         "appLabel": "hello",
         "model": "Something",

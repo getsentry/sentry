@@ -1,0 +1,938 @@
+{
+  "_generated": "This file is generated. Do not modify it directly. See scripts/generate_deprecated_attributes_json.ts in (sentry/sentry-conventions)[https://github.com/getsentry/sentry-conventions]",
+  "attributes": [
+    {
+      "key": "environment",
+      "brief": "The sentry environment.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "production",
+      "deprecation": {
+        "_status": null,
+        "replacement": "sentry.environment"
+      },
+      "alias": ["sentry.environment"]
+    },
+    {
+      "key": "fs_error",
+      "brief": "The error message of a file system error.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "deprecation": {
+        "_status": null,
+        "replacement": "error.type",
+        "reason": "This attribute is not part of the OpenTelemetry specification and error.type fits much better."
+      },
+      "example": "ENOENT: no such file or directory",
+      "sdks": ["javascript-node"]
+    },
+    {
+      "key": "method",
+      "brief": "The HTTP method used.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "GET",
+      "deprecation": {
+        "_status": null,
+        "replacement": "http.request.method"
+      },
+      "alias": ["http.request.method"],
+      "sdks": ["javascript-browser", "javascript-node"]
+    },
+    {
+      "key": "profile_id",
+      "brief": "The id of the sentry profile.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "123e4567e89b12d3a456426614174000",
+      "deprecation": {
+        "_status": null,
+        "replacement": "sentry.profile_id"
+      },
+      "alias": ["sentry.profile_id"]
+    },
+    {
+      "key": "release",
+      "brief": "The sentry release.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "production",
+      "deprecation": {
+        "_status": null,
+        "replacement": "sentry.release"
+      },
+      "alias": ["sentry.release"]
+    },
+    {
+      "key": "replay_id",
+      "brief": "The id of the sentry replay.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "123e4567e89b12d3a456426614174000",
+      "deprecation": {
+        "_status": null,
+        "replacement": "sentry.replay_id"
+      },
+      "alias": ["sentry.replay_id"]
+    },
+    {
+      "key": "route",
+      "brief": "The matched route, that is, the path template in the format used by the respective server framework. Also used by mobile SDKs to indicate the current route in the application.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "App\\Controller::indexAction",
+      "deprecation": {
+        "_status": null,
+        "replacement": "http.route"
+      },
+      "alias": ["http.route"],
+      "sdks": ["php-laravel", "javascript-reactnative"]
+    },
+    {
+      "key": "transaction",
+      "brief": "The sentry transaction (segment name).",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "GET /",
+      "deprecation": {
+        "_status": null,
+        "replacement": "sentry.transaction"
+      },
+      "alias": ["sentry.transaction"]
+    },
+    {
+      "key": "url",
+      "brief": "The URL of the resource that was fetched.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "example": "https://example.com/test?foo=bar#buzz",
+      "deprecation": {
+        "_status": null,
+        "replacement": "url.full"
+      },
+      "alias": ["url.full", "http.url"],
+      "sdks": ["javascript-browser", "javascript-node"]
+    },
+    {
+      "key": "ai.completion_tokens.used",
+      "brief": "The number of tokens used to respond to the message.",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": 10,
+      "alias": ["gen_ai.usage.output_tokens", "gen_ai.usage.completion_tokens"],
+      "sdks": ["python"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.usage.output_tokens"
+      }
+    },
+    {
+      "key": "ai.finish_reason",
+      "brief": "The reason why the model stopped generating.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "COMPLETE",
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.response.finish_reason"
+      }
+    },
+    {
+      "key": "ai.frequency_penalty",
+      "brief": "Used to reduce repetitiveness of generated tokens. The higher the value, the stronger a penalty is applied to previously present tokens, proportional to how many times they have already appeared in the prompt or prior generation.",
+      "type": "double",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": 0.5,
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.request.frequency_penalty"
+      }
+    },
+    {
+      "key": "ai.function_call",
+      "brief": "For an AI model call, the function that was called. This is deprecated for OpenAI, and replaced by tool_calls",
+      "type": "string",
+      "pii": {
+        "key": "true"
+      },
+      "is_in_otel": false,
+      "example": "function_name",
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.tool.name"
+      }
+    },
+    {
+      "key": "ai.generation_id",
+      "brief": "Unique identifier for the completion.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "gen_123abc",
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.response.id"
+      }
+    },
+    {
+      "key": "ai.model.provider",
+      "brief": "The provider of the model.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "openai",
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.system"
+      }
+    },
+    {
+      "key": "ai.model_id",
+      "brief": "The vendor-specific ID of the model used.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "gpt-4",
+      "alias": ["gen_ai.response.model"],
+      "sdks": ["python"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.response.model"
+      }
+    },
+    {
+      "key": "ai.presence_penalty",
+      "brief": "Used to reduce repetitiveness of generated tokens. Similar to frequency_penalty, except that this penalty is applied equally to all tokens that have already appeared, regardless of their exact frequencies.",
+      "type": "double",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": 0.5,
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.request.presence_penalty"
+      }
+    },
+    {
+      "key": "ai.prompt_tokens.used",
+      "brief": "The number of tokens used to process just the prompt.",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": 20,
+      "alias": ["gen_ai.usage.prompt_tokens", "gen_ai.usage.input_tokens"],
+      "sdks": ["python"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.usage.input_tokens"
+      }
+    },
+    {
+      "key": "ai.seed",
+      "brief": "The seed, ideally models given the same seed and same other parameters will produce the exact same output.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": "1234567890",
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.request.seed"
+      }
+    },
+    {
+      "key": "ai.temperature",
+      "brief": "For an AI model call, the temperature parameter. Temperature essentially means how random the output will be.",
+      "type": "double",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": 0.1,
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.request.temperature"
+      }
+    },
+    {
+      "key": "ai.top_k",
+      "brief": "Limits the model to only consider the K most likely next tokens, where K is an integer (e.g., top_k=20 means only the 20 highest probability tokens are considered).",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": 35,
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.request.top_k"
+      }
+    },
+    {
+      "key": "ai.top_p",
+      "brief": "Limits the model to only consider tokens whose cumulative probability mass adds up to p, where p is a float between 0 and 1 (e.g., top_p=0.7 means only tokens that sum up to 70% of the probability mass are considered).",
+      "type": "double",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": 0.7,
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.request.top_p"
+      }
+    },
+    {
+      "key": "ai.total_tokens.used",
+      "brief": "The total number of tokens used to process the prompt.",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": 30,
+      "sdks": ["python"],
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.usage.total_tokens"
+      }
+    },
+    {
+      "key": "code.filepath",
+      "brief": "The source code file name that identifies the code unit as uniquely as possible (preferably an absolute file path).",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": true,
+      "example": "/app/myapplication/http/handler/server.py",
+      "deprecation": {
+        "_status": null,
+        "replacement": "code.file.path"
+      },
+      "alias": ["code.file.path"]
+    },
+    {
+      "key": "code.function",
+      "brief": "The method or function name, or equivalent (usually rightmost part of the code unit's name).",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "server_request",
+      "deprecation": {
+        "_status": null,
+        "replacement": "code.function.name"
+      },
+      "alias": ["code.function.name"]
+    },
+    {
+      "key": "code.lineno",
+      "brief": "The line number in code.filepath best representing the operation. It SHOULD point within the code unit named in code.function",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": 42,
+      "deprecation": {
+        "_status": null,
+        "replacement": "code.line.number"
+      },
+      "alias": ["code.lineno"]
+    },
+    {
+      "key": "code.namespace",
+      "brief": "The 'namespace' within which code.function is defined. Usually the qualified class or module name, such that code.namespace + some separator + code.function form a unique identifier for the code unit.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "http.handler",
+      "deprecation": {
+        "_status": null,
+        "replacement": "code.function.name",
+        "reason": "code.function.name should include the namespace."
+      }
+    },
+    {
+      "key": "db.name",
+      "brief": "The name of the database being accessed.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "customers",
+      "deprecation": {
+        "_status": null,
+        "replacement": "db.namespace"
+      },
+      "alias": ["db.namespace"]
+    },
+    {
+      "key": "db.operation",
+      "brief": "The name of the operation being executed.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "SELECT",
+      "deprecation": {
+        "_status": null,
+        "replacement": "db.operation.name"
+      },
+      "alias": ["db.operation.name"]
+    },
+    {
+      "key": "db.sql.bindings",
+      "brief": "The array of query bindings.",
+      "type": "string[]",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "deprecation": {
+        "_status": null,
+        "replacement": "db.query.parameter.<key>",
+        "reason": "Instead of adding every binding in the db.sql.bindings attribute, add them as individual entires with db.query.parameter.<key>."
+      },
+      "example": ["1", "foo"],
+      "sdks": ["php-laravel"]
+    },
+    {
+      "key": "db.statement",
+      "brief": "The database statement being executed.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "SELECT * FROM users",
+      "deprecation": {
+        "_status": null,
+        "replacement": "db.query.text"
+      },
+      "alias": ["db.query.text"]
+    },
+    {
+      "key": "db.system",
+      "brief": "An identifier for the database management system (DBMS) product being used. See [OpenTelemetry docs](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md#notes-and-well-known-identifiers-for-dbsystem) for a list of well-known identifiers.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "postgresql",
+      "deprecation": {
+        "_status": null,
+        "replacement": "db.system.name"
+      },
+      "alias": ["db.system.name"]
+    },
+    {
+      "key": "gen_ai.usage.completion_tokens",
+      "brief": "The number of tokens used in the GenAI response (completion).",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": 10,
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.usage.output_tokens"
+      },
+      "alias": ["ai.completion_tokens.used", "gen_ai.usage.output_tokens"]
+    },
+    {
+      "key": "gen_ai.usage.prompt_tokens",
+      "brief": "The number of tokens used in the GenAI input (prompt).",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": 20,
+      "deprecation": {
+        "_status": null,
+        "replacement": "gen_ai.usage.input_tokens"
+      },
+      "alias": ["ai.prompt_tokens.used", "gen_ai.usage.input_tokens"]
+    },
+    {
+      "key": "http.client_ip",
+      "brief": "Client address - domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "example.com",
+      "deprecation": {
+        "_status": null,
+        "replacement": "http.client_ip"
+      },
+      "alias": ["client.address"]
+    },
+    {
+      "key": "http.flavor",
+      "brief": "The actual version of the protocol used for network communication.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "1.1",
+      "deprecation": {
+        "_status": null,
+        "replacement": "network.protocol.version"
+      },
+      "alias": ["network.protocol.version"]
+    },
+    {
+      "key": "http.host",
+      "brief": "The domain name.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "example.com",
+      "deprecation": {
+        "_status": null,
+        "replacement": "server.address",
+        "reason": "Deprecated, use one of `server.address` or `client.address`, depending on the usage"
+      },
+      "alias": ["server.address", "client.address"]
+    },
+    {
+      "key": "http.method",
+      "brief": "The HTTP method used.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "GET",
+      "deprecation": {
+        "_status": null,
+        "replacement": "http.request.method"
+      },
+      "alias": ["http.request.method"]
+    },
+    {
+      "key": "http.response_content_length",
+      "brief": "The encoded body size of the response (in bytes).",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": 123,
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "http.response.body.size"
+      },
+      "alias": [
+        "http.response.body.size",
+        "http.response.header.content-length",
+        "http.response.header['content-length']"
+      ]
+    },
+    {
+      "key": "http.response_transfer_size",
+      "brief": "The transfer size of the response (in bytes).",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": false,
+      "example": 456,
+      "deprecation": {
+        "_status": "backfill",
+        "replacement": "http.response.size"
+      },
+      "alias": ["http.response.size"]
+    },
+    {
+      "key": "http.scheme",
+      "brief": "The URI scheme component identifying the used protocol.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "https",
+      "deprecation": {
+        "_status": null,
+        "replacement": "url.scheme"
+      },
+      "alias": ["url.scheme"]
+    },
+    {
+      "key": "http.server_name",
+      "brief": "The server domain name",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "example.com",
+      "deprecation": {
+        "_status": null,
+        "replacement": "server.address"
+      },
+      "alias": ["server.address"]
+    },
+    {
+      "key": "http.status_code",
+      "brief": "The status code of the HTTP response.",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": 404,
+      "deprecation": {
+        "_status": null,
+        "replacement": "http.response.status_code"
+      },
+      "alias": ["http.response.status_code"]
+    },
+    {
+      "key": "http.target",
+      "brief": "The pathname and query string of the URL.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": true,
+      "example": "/test?foo=bar#buzz",
+      "deprecation": {
+        "_status": null,
+        "replacement": "url.path",
+        "reason": "This attribute is being deprecated in favor of url.path and url.query"
+      }
+    },
+    {
+      "key": "http.url",
+      "brief": "The URL of the resource that was fetched.",
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": true,
+      "example": "https://example.com/test?foo=bar#buzz",
+      "deprecation": {
+        "_status": null,
+        "replacement": "url.full"
+      },
+      "alias": ["url.full", "http.url"]
+    },
+    {
+      "key": "http.user_agent",
+      "brief": "Value of the HTTP User-Agent header sent by the client.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1",
+      "deprecation": {
+        "_status": null,
+        "replacement": "user_agent.original"
+      },
+      "alias": ["user_agent.original"]
+    },
+    {
+      "key": "net.host.ip",
+      "brief": "Local address of the network connection - IP address or Unix domain socket name.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "192.168.0.1",
+      "deprecation": {
+        "_status": null,
+        "replacement": "network.local.address"
+      },
+      "alias": ["network.local.address"]
+    },
+    {
+      "key": "net.host.name",
+      "brief": "Server domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "example.com",
+      "deprecation": {
+        "_status": null,
+        "replacement": "server.address"
+      },
+      "alias": ["server.address"]
+    },
+    {
+      "key": "net.host.port",
+      "brief": "Server port number.",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": 1337,
+      "deprecation": {
+        "_status": null,
+        "replacement": "server.port"
+      },
+      "alias": ["server.port"]
+    },
+    {
+      "key": "net.peer.ip",
+      "brief": "Peer address of the network connection - IP address or Unix domain socket name.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "192.168.0.1",
+      "deprecation": {
+        "_status": null,
+        "replacement": "network.peer.address"
+      },
+      "alias": ["network.peer.address"]
+    },
+    {
+      "key": "net.peer.name",
+      "brief": "Server domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "example.com",
+      "deprecation": {
+        "_status": null,
+        "replacement": "server.address",
+        "reason": "Deprecated, use server.address on client spans and client.address on server spans."
+      }
+    },
+    {
+      "key": "net.peer.port",
+      "brief": "Peer port number.",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": 1337,
+      "deprecation": {
+        "_status": null,
+        "replacement": "server.port",
+        "reason": "Deprecated, use server.port on client spans and client.port on server spans."
+      }
+    },
+    {
+      "key": "net.protocol.name",
+      "brief": "OSI application layer or non-OSI equivalent.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "http",
+      "deprecation": {
+        "_status": null,
+        "replacement": "network.protocol.name"
+      },
+      "alias": ["network.protocol.name"]
+    },
+    {
+      "key": "net.protocol.version",
+      "brief": "The actual version of the protocol used for network communication.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "1.1",
+      "deprecation": {
+        "_status": null,
+        "replacement": "network.protocol.version"
+      },
+      "alias": ["network.protocol.version"]
+    },
+    {
+      "key": "net.sock.family",
+      "brief": "OSI transport and network layer",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "inet",
+      "deprecation": {
+        "_status": null,
+        "replacement": "network.transport",
+        "reason": "Deprecated, use network.transport and network.type."
+      }
+    },
+    {
+      "key": "net.sock.host.addr",
+      "brief": "Local address of the network connection mapping to Unix domain socket name.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "/var/my.sock",
+      "deprecation": {
+        "_status": null,
+        "replacement": "network.local.address"
+      },
+      "alias": ["network.local.address"]
+    },
+    {
+      "key": "net.sock.host.port",
+      "brief": "Local port number of the network connection.",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": 8080,
+      "deprecation": {
+        "_status": null,
+        "replacement": "network.local.port"
+      },
+      "alias": ["network.local.port"]
+    },
+    {
+      "key": "net.sock.peer.addr",
+      "brief": "Peer address of the network connection - IP address",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "192.168.0.1",
+      "deprecation": {
+        "_status": null,
+        "replacement": "network.peer.address"
+      },
+      "alias": ["network.peer.address"]
+    },
+    {
+      "key": "net.sock.peer.name",
+      "brief": "Peer address of the network connection - Unix domain socket name",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "/var/my.sock",
+      "deprecation": {
+        "_status": null,
+        "replacement": "",
+        "reason": "Deprecated, no replacement at this time"
+      }
+    },
+    {
+      "key": "net.sock.peer.port",
+      "brief": "Peer port number of the network connection.",
+      "type": "integer",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": 8080,
+      "deprecation": {
+        "_status": null,
+        "replacement": "network.peer.port"
+      }
+    },
+    {
+      "key": "net.transport",
+      "brief": "OSI transport layer or inter-process communication method.",
+      "type": "string",
+      "pii": {
+        "key": "false"
+      },
+      "is_in_otel": true,
+      "example": "tcp",
+      "deprecation": {
+        "_status": null,
+        "replacement": "network.transport"
+      },
+      "alias": ["network.transport"]
+    },
+    {
+      "key": "query.<key>",
+      "brief": "An item in a query string. Usually added by client-side routing frameworks like vue-router.",
+      "has_dynamic_suffix": true,
+      "type": "string",
+      "pii": {
+        "key": "maybe"
+      },
+      "is_in_otel": false,
+      "deprecation": {
+        "_status": null,
+        "replacement": "url.query",
+        "reason": "Instead of sending items individually in query.<key>, they should be sent all together with url.query."
+      },
+      "example": "query.id='123'"
+    }
+  ]
+}

@@ -158,7 +158,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
   const organization = useOrganization({allowNull: true});
   const store = useLegacyStore(ProjectsStore);
 
-  const orgId = propOrgId ?? organization?.slug ?? organization?.slug;
+  const orgId = propOrgId ?? organization?.slug;
 
   const storeSlugs = new Set(store.projects.map(t => t.slug));
   const slugsToLoad = slugs?.filter(slug => !storeSlugs.has(slug)) ?? [];
@@ -222,7 +222,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
         ...prev,
         fetching: false,
         initiallyLoaded: !store.loading,
-        fetchError: err,
+        fetchError: err as RequestError,
       }));
     }
   }
@@ -269,7 +269,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState(prev => ({...prev, fetching: false, fetchError: err}));
+      setState(prev => ({...prev, fetching: false, fetchError: err as RequestError}));
     }
   }
 

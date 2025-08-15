@@ -26,12 +26,12 @@ function renderModal({
       organization={initialData.organization}
       widget={widget}
       api={api}
-    />,
-    {router: initialData.router}
+      dashboardFilters={undefined}
+    />
   );
 }
 
-describe('Modals -> AddDashboardWidgetModal', function () {
+describe('Modals -> AddDashboardWidgetModal', () => {
   const initialData = initializeOrg({
     organization: {
       features: ['performance-view', 'discover-query'],
@@ -42,9 +42,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   let mockQuery!: Widget['queries'][number];
   let mockWidget!: Widget;
 
-  beforeEach(function () {
+  beforeEach(() => {
     mockQuery = {
-      conditions: 'title:/organizations/:orgId/performance/summary/',
+      conditions: 'title:/organizations/:orgId/insights/summary/',
       fields: ['count()', 'failure_count()'],
       aggregates: ['count()', 'failure_count()'],
       columns: [],
@@ -86,16 +86,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a single query selection when the widget only has one query', function () {
+  it('renders a single query selection when the widget only has one query', () => {
     renderModal({initialData, widget: mockWidget});
 
     expect(
-      screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/')
+      screen.getByDisplayValue('title:/organizations/:orgId/insights/summary/')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
   });
 
-  it('renders a multiple query selections when the widget only has multiple queries', function () {
+  it('renders a multiple query selections when the widget only has multiple queries', () => {
     mockWidget.queries.push({
       ...mockQuery,
       conditions: 'title:/organizations/:orgId/performance/',
@@ -109,7 +109,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(queryFields).toHaveLength(3);
 
     expect(
-      screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/')
+      screen.getByDisplayValue('title:/organizations/:orgId/insights/summary/')
     ).toBeInTheDocument();
     expect(
       screen.getByDisplayValue('title:/organizations/:orgId/performance/')
@@ -117,11 +117,11 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(screen.getByDisplayValue('title:/organizations/:orgId/')).toBeInTheDocument();
   });
 
-  it('links user to the query in discover when a query is selected from the modal', function () {
+  it('links user to the query in discover when a query is selected from the modal', () => {
     renderModal({initialData, widget: mockWidget});
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
+      '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
 });

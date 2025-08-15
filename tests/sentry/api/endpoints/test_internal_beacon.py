@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -7,7 +7,7 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class InternalBeaconTest(APITestCase):
     @patch("sentry.tasks.beacon.send_beacon_metric.delay")
-    def test_simple(self, mock_send_beacon_metric):
+    def test_simple(self, mock_send_beacon_metric: MagicMock) -> None:
         self.login_as(self.user, superuser=False)
         url = "/api/0/internal/beacon/"
 
@@ -43,7 +43,7 @@ class InternalBeaconTest(APITestCase):
         assert response.status_code == 204
 
     @patch("sentry.tasks.beacon.send_beacon_metric.delay")
-    def test_payload_validation(self, mock_send_beacon_metric):
+    def test_payload_validation(self, mock_send_beacon_metric: MagicMock) -> None:
         self.login_as(self.user, superuser=False)
         url = "/api/0/internal/beacon/"
 

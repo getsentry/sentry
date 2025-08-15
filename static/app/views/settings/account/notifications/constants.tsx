@@ -1,23 +1,23 @@
 export const SUPPORTED_PROVIDERS = ['email', 'slack', 'msteams'] as const;
 export type SupportedProviders = (typeof SUPPORTED_PROVIDERS)[number];
 
-export type ProviderValue = 'always' | 'never';
+type ProviderValue = 'always' | 'never';
 
-interface NotificationBaseObject {
+type NotificationBaseObject = {
   id: string;
   scopeIdentifier: string;
   scopeType: string;
   type: string;
-}
+};
 
-export interface NotificationOptionsObject extends NotificationBaseObject {
+export type NotificationOptionsObject = NotificationBaseObject & {
   value: ProviderValue | 'subscribe_only' | 'committed_only';
-}
+};
 
-export interface NotificationProvidersObject extends NotificationBaseObject {
+export type NotificationProvidersObject = NotificationBaseObject & {
   provider: SupportedProviders;
   value: ProviderValue;
-}
+};
 
 export interface DefaultSettings {
   providerDefaults: SupportedProviders[];
@@ -39,10 +39,10 @@ export const NOTIFICATION_SETTINGS_TYPES = [
 export const SELF_NOTIFICATION_SETTINGS_TYPES = [
   'personalActivityNotifications',
   'selfAssignOnResolve',
-];
+] as const;
 
 // 'alerts' | 'workflow' ...
-type NotificationSettingsType = (typeof NOTIFICATION_SETTINGS_TYPES)[number];
+export type NotificationSettingsType = (typeof NOTIFICATION_SETTINGS_TYPES)[number];
 
 export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, string> = {
   alerts: 'alerts',

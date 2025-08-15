@@ -3,11 +3,18 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectHpkpReports from 'sentry/views/settings/projectSecurityHeaders/hpkp';
 
-describe('ProjectHpkpReports', function () {
+describe('ProjectHpkpReports', () => {
   const {organization, project} = initializeOrg();
   const keysUrl = `/projects/${organization.slug}/${project.slug}/keys/`;
 
-  beforeEach(function () {
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/security-headers/hpkp/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/settings/security-headers/hpkp/',
+  };
+
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: keysUrl,
@@ -16,13 +23,11 @@ describe('ProjectHpkpReports', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<ProjectHpkpReports />, {
       organization,
+      initialRouterConfig,
     });
-
-    // Renders the loading indication initially
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     // Heading
     expect(
@@ -30,7 +35,7 @@ describe('ProjectHpkpReports', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders loading error', async function () {
+  it('renders loading error', async () => {
     MockApiClient.addMockResponse({
       url: keysUrl,
       method: 'GET',
@@ -39,6 +44,7 @@ describe('ProjectHpkpReports', function () {
     });
     render(<ProjectHpkpReports />, {
       organization,
+      initialRouterConfig,
     });
 
     expect(

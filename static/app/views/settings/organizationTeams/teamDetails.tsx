@@ -5,25 +5,26 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {joinTeam} from 'sentry/actionCreators/teams';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import IdBadge from 'sentry/components/idBadge';
-import ListLink from 'sentry/components/links/listLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
 type Props = {
   children: React.ReactNode;
-} & RouteComponentProps<{teamId: string}>;
+};
 
 function TeamDetails({children}: Props) {
   const api = useApi();
-  const params = useParams();
+  const params = useParams<{teamId: string}>();
+  const location = useLocation();
   const orgSlug = useOrganization().slug;
   const [requesting, setRequesting] = useState(false);
   const {teams, isLoading, isError} = useTeamsById({slugs: [params.teamId]});
@@ -59,22 +60,6 @@ function TeamDetails({children}: Props) {
     );
   }
 
-  const routePrefix = `/settings/${orgSlug}/teams/${params.teamId}/`;
-  const navigationTabs = [
-    <ListLink key={0} to={`${routePrefix}members/`}>
-      {t('Members')}
-    </ListLink>,
-    <ListLink key={1} to={`${routePrefix}projects/`}>
-      {t('Projects')}
-    </ListLink>,
-    <ListLink key={2} to={`${routePrefix}notifications/`}>
-      {t('Notifications')}
-    </ListLink>,
-    <ListLink key={3} to={`${routePrefix}settings/`}>
-      {t('Settings')}
-    </ListLink>,
-  ];
-
   if (isLoading) {
     return <LoadingIndicator />;
   }
@@ -82,12 +67,20 @@ function TeamDetails({children}: Props) {
   if (!team || isError) {
     return (
       <Alert.Container>
-        <Alert type="warning">
+        <Alert type="warning" showIcon={false}>
           <div>{t('This team does not exist, or you do not have access to it.')}</div>
         </Alert>
       </Alert.Container>
     );
   }
+  const routePrefix = `/settings/${orgSlug}/teams/${params.teamId}/`;
+  const tab = location.pathname.split('/').at(-2);
+
+  const activeTab = ['members', 'projects', 'notifications', 'settings'].includes(
+    tab ?? ''
+  )
+    ? tab
+    : 'members';
 
   return (
     <div>
@@ -98,7 +91,24 @@ function TeamDetails({children}: Props) {
             <IdBadge hideAvatar hideOverflow={false} team={team} avatarSize={36} />
           </h3>
 
-          <NavTabs underlined>{navigationTabs}</NavTabs>
+          <TabsContainer>
+            <Tabs value={activeTab}>
+              <TabList>
+                <TabList.Item key="members" to={`${routePrefix}members/`}>
+                  {t('Members')}
+                </TabList.Item>
+                <TabList.Item key="projects" to={`${routePrefix}projects/`}>
+                  {t('Projects')}
+                </TabList.Item>
+                <TabList.Item key="notifications" to={`${routePrefix}notifications/`}>
+                  {t('Notifications')}
+                </TabList.Item>
+                <TabList.Item key="settings" to={`${routePrefix}settings/`}>
+                  {t('Settings')}
+                </TabList.Item>
+              </TabList>
+            </Tabs>
+          </TabsContainer>
 
           {isValidElement(children) ? cloneElement<any>(children, {team}) : null}
         </div>
@@ -125,6 +135,10 @@ function TeamDetails({children}: Props) {
     </div>
   );
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default TeamDetails;
 

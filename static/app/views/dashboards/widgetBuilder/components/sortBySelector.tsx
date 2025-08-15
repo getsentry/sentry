@@ -2,8 +2,8 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -25,7 +25,7 @@ import {
   SortDirection,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 function WidgetBuilderSortBySelector() {
   const {state, dispatch} = useWidgetBuilderContext();
@@ -37,8 +37,8 @@ function WidgetBuilderSortBySelector() {
   const datasetConfig = getDatasetConfig(state.dataset);
 
   let tags: TagCollection = useTags();
-  const {tags: numericSpanTags} = useSpanTags('number');
-  const {tags: stringSpanTags} = useSpanTags('string');
+  const {tags: numericSpanTags} = useTraceItemTags('number');
+  const {tags: stringSpanTags} = useTraceItemTags('string');
   if (state.dataset === WidgetType.SPANS) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }

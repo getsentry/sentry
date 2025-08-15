@@ -1,9 +1,8 @@
-import type {ForwardedRef} from 'react';
-import {forwardRef, useEffect} from 'react';
+import {useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {type AnimationProps, motion} from 'framer-motion';
+import {motion, type Transition} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 
@@ -20,7 +19,7 @@ const OPEN_STYLES = {
 const COLLAPSED_STYLES = {
   bottom: {opacity: 0, x: 0, y: PANEL_HEIGHT},
   right: {opacity: 0, x: PANEL_WIDTH, y: 0},
-  left: {opacity: 0, x: -200, y: 0},
+  left: {opacity: 0, x: '-100%', y: 0},
 };
 
 type SlideOverPanelProps = {
@@ -31,26 +30,25 @@ type SlideOverPanelProps = {
   'data-test-id'?: string;
   onOpen?: () => void;
   panelWidth?: string;
+  ref?: React.Ref<HTMLDivElement>;
   slidePosition?: 'right' | 'bottom' | 'left';
-  transitionProps?: AnimationProps['transition'];
+  transitionProps?: Transition;
 };
 
-export default forwardRef(SlideOverPanel);
+export default SlideOverPanel;
 
-function SlideOverPanel(
-  {
-    'data-test-id': testId,
-    ariaLabel,
-    collapsed,
-    children,
-    className,
-    onOpen,
-    slidePosition,
-    transitionProps = {},
-    panelWidth,
-  }: SlideOverPanelProps,
-  ref: ForwardedRef<HTMLDivElement>
-) {
+function SlideOverPanel({
+  'data-test-id': testId,
+  ariaLabel,
+  collapsed,
+  children,
+  className,
+  onOpen,
+  slidePosition,
+  transitionProps = {},
+  panelWidth,
+  ref,
+}: SlideOverPanelProps) {
   useEffect(() => {
     if (!collapsed && onOpen) {
       onOpen();
@@ -109,13 +107,13 @@ const _SlideOverPanel = styled(motion.div, {
 
   z-index: ${p => p.theme.zIndex.modal - 1};
 
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => (p.theme.isChonk ? undefined : p.theme.dropShadowHeavy)};
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
 
   text-align: left;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     ${p =>
       p.slidePosition === 'bottom'
         ? css`

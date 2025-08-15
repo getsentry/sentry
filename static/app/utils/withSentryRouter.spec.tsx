@@ -25,14 +25,14 @@ jest.mock('sentry/constants', () => {
   };
 });
 
-describe('withSentryRouter', function () {
+describe('withSentryRouter', () => {
   type Props = WithRouterProps<{orgId: string}>;
   function MyComponent(props: Props) {
     const {params} = props;
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
   }
 
-  it('injects orgId when a customer domain is being used', function () {
+  it('injects orgId when a customer domain is being used', () => {
     mockUsingCustomerDomain.mockReturnValue(true);
     mockCustomerDomain.mockReturnValue('albertos-apples');
 
@@ -48,12 +48,13 @@ describe('withSentryRouter', function () {
     const WrappedComponent = withSentryRouter(MyComponent);
     render(<WrappedComponent />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
   });
 
-  it('does not inject orgId when a customer domain is not being used', function () {
+  it('does not inject orgId when a customer domain is not being used', () => {
     mockUsingCustomerDomain.mockReturnValue(false);
     mockCustomerDomain.mockReturnValue(undefined);
 
@@ -75,6 +76,7 @@ describe('withSentryRouter', function () {
     const WrappedComponent = withSentryRouter(MyComponent);
     render(<WrappedComponent />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByText('Org slug: something-else')).toBeInTheDocument();

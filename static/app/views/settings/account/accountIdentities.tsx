@@ -21,7 +21,7 @@ import {space} from 'sentry/styles/space';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import IdentityIcon from 'sentry/views/settings/components/identityIcon';
+import {IdentityIcon} from 'sentry/views/settings/components/identityIcon';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -84,7 +84,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
             message={
               <Fragment>
                 <Alert.Container>
-                  <Alert type="error" showIcon>
+                  <Alert type="error">
                     {tct('Disconnect Your [provider] Identity?', {
                       provider: identity.provider.name,
                     })}
@@ -247,7 +247,7 @@ const IdentityText = styled('div')<{isSingleLine?: boolean}>`
   margin-left: ${space(1.5)};
 `;
 const IdentityName = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 const IdentityDateTime = styled(DateTime)`
   font-size: ${p => p.theme.fontSizeRelativeSmall};

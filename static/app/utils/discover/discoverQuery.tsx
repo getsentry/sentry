@@ -2,7 +2,7 @@ import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
 import type {DiscoverQueryProps, GenericChildrenProps} from './genericDiscoverQuery';
-import GenericDiscoverQuery, {useGenericDiscoverQuery} from './genericDiscoverQuery';
+import {GenericDiscoverQuery, useGenericDiscoverQuery} from './genericDiscoverQuery';
 
 /**
  * An individual row in a DiscoverQuery result
@@ -30,13 +30,13 @@ export type EventsTableData = {
 
 export type TableDataWithTitle = TableData & {title: string};
 
-export type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
+type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
   transactionName?: string;
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
 };
 
-export type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
+type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
   children: (props: GenericChildrenProps<TableData>) => React.ReactNode;
 };
 

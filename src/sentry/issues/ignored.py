@@ -9,7 +9,7 @@ from typing import Any, TypedDict
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.issues.escalating.forecasts import generate_and_save_forecasts
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.groupsnooze import GroupSnooze

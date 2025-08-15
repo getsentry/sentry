@@ -46,17 +46,17 @@ function initializeData(options: {
       },
     },
   });
-  act(() => void ProjectsStore.loadInitialData(initialData.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 
-describe('Performance > Transaction Spans', function () {
+describe('Performance > Transaction Spans', () => {
   let eventsMock: jest.Mock;
   let eventsSpanOpsMock: jest.Mock;
   let eventsSpansPerformanceMock: jest.Mock;
-  beforeEach(function () {
+  beforeEach(() => {
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -96,25 +96,24 @@ describe('Performance > Transaction Spans', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  describe('Without Span Data', function () {
-    beforeEach(function () {
+  describe('Without Span Data', () => {
+    beforeEach(() => {
       eventsSpansPerformanceMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: [],
       });
     });
 
-    it('renders empty state', async function () {
+    it('renders empty state', async () => {
       const initialData = initializeData({
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
       render(<TransactionSpans location={initialData.router.location} />, {
-        router: initialData.router,
         organization: initialData.organization,
       });
 
@@ -124,20 +123,19 @@ describe('Performance > Transaction Spans', function () {
     });
   });
 
-  describe('With Span Data', function () {
-    beforeEach(function () {
+  describe('With Span Data', () => {
+    beforeEach(() => {
       eventsSpansPerformanceMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-spans-performance/',
         body: generateSuspectSpansResponse({examples: 0}),
       });
     });
 
-    it('renders basic UI elements', async function () {
+    it('renders basic UI elements', async () => {
       const initialData = initializeData({
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
       render(<TransactionSpans location={initialData.router.location} />, {
-        router: initialData.router,
         organization: initialData.organization,
       });
 
@@ -164,10 +162,9 @@ describe('Performance > Transaction Spans', function () {
       {sort: SpanSortPercentiles.P95_EXCLUSIVE_TIME, label: 'P95 Self Time'},
       {sort: SpanSortPercentiles.P99_EXCLUSIVE_TIME, label: 'P99 Self Time'},
     ].forEach(({sort, label}) => {
-      it('renders the right percentile header', async function () {
+      it('renders the right percentile header', async () => {
         const initialData = initializeData({query: {sort}});
         render(<TransactionSpans location={initialData.router.location} />, {
-          router: initialData.router,
           organization: initialData.organization,
         });
 
@@ -180,10 +177,9 @@ describe('Performance > Transaction Spans', function () {
       });
     });
 
-    it('renders the right avg occurrence header', async function () {
+    it('renders the right avg occurrence header', async () => {
       const initialData = initializeData({query: {sort: SpanSortOthers.AVG_OCCURRENCE}});
       render(<TransactionSpans location={initialData.router.location} />, {
-        router: initialData.router,
         organization: initialData.organization,
       });
 
@@ -197,8 +193,8 @@ describe('Performance > Transaction Spans', function () {
     });
   });
 
-  describe('Spans Tab V2', function () {
-    it('does not propagate transaction search query and properly tokenizes span query', async function () {
+  describe('Spans Tab V2', () => {
+    it('does not propagate transaction search query and properly tokenizes span query', async () => {
       const initialData = initializeData({
         query: {query: 'http.method:POST', spansQuery: 'span.op:db span.action:SELECT'},
         additionalFeatures: [
@@ -209,7 +205,6 @@ describe('Performance > Transaction Spans', function () {
       });
 
       render(<TransactionSpans location={initialData.router.location} />, {
-        router: initialData.router,
         organization: initialData.organization,
       });
 

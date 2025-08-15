@@ -2,16 +2,16 @@ import styled from '@emotion/styled';
 import asana from 'sentry-logos/logo-asana.svg';
 import aws from 'sentry-logos/logo-aws.svg';
 import vsts from 'sentry-logos/logo-azure.svg';
-import bitbucket from 'sentry-logos/logo-bitbucket.svg';
 import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
+import bitbucket from 'sentry-logos/logo-bitbucket.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
 import discord from 'sentry-logos/logo-discord.svg';
-import github from 'sentry-logos/logo-github.svg';
 import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
+import github from 'sentry-logos/logo-github.svg';
 import gitlab from 'sentry-logos/logo-gitlab.svg';
 import heroku from 'sentry-logos/logo-heroku.svg';
-import jira from 'sentry-logos/logo-jira.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
+import jira from 'sentry-logos/logo-jira.svg';
 import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
@@ -29,9 +29,8 @@ import victorops from 'sentry-logos/logo-victorops.svg';
 import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 
 // Map of plugin id -> logo filename
-export const DEFAULT_ICON = placeholder;
-export const ICON_PATHS = {
-  _default: DEFAULT_ICON,
+const PLUGIN_ICONS = {
+  placeholder,
   sentry,
   browsers: sentry,
   device: sentry,
@@ -67,33 +66,65 @@ export const ICON_PATHS = {
   vsts,
   vercel,
   victorops,
-};
+} satisfies Record<string, string>;
 
-type Props = {
-  /**
-   * @default '_default'
-   */
-  pluginId?: string;
+export interface PluginIconProps extends React.RefAttributes<HTMLDivElement> {
+  pluginId: keyof typeof PLUGIN_ICONS | (string & {});
+  className?: string;
   /**
    * @default 20
    */
   size?: number;
-};
+}
 
-const PluginIcon = styled('div')<Props>`
+export function PluginIcon({pluginId, size = 20, ref, className}: PluginIconProps) {
+  return (
+    <StyledPluginIconContainer size={size} className={className}>
+      <StyledPluginIcon size={size} pluginSrc={getPluginIconSource(pluginId)} ref={ref} />
+    </StyledPluginIconContainer>
+  );
+}
+
+const StyledPluginIconContainer = styled('div')<{
+  size: number;
+}>`
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
+  min-width: ${p => p.size}px;
+  background-color: ${p => p.theme.white};
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const StyledPluginIcon = styled('div')<{
+  pluginSrc: string;
+  size: number;
+}>`
   position: relative;
-  height: ${p => p.size ?? 20}px;
-  width: ${p => p.size ?? 20}px;
-  min-width: ${p => p.size ?? 20}px;
+  height: ${p => p.size - p.size * 0.2}px;
+  width: ${p => p.size - p.size * 0.2}px;
+  min-width: ${p => p.size - p.size * 0.2}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${({pluginId = '_default'}) =>
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
+  background-image: url(${p => p.pluginSrc});
 `;
 
-export default PluginIcon;
+function getPluginIconSource(
+  pluginId: PluginIconProps['pluginId']
+): (typeof PLUGIN_ICONS)[keyof typeof PLUGIN_ICONS] {
+  if (!pluginId) {
+    return PLUGIN_ICONS.placeholder;
+  }
+
+  if (pluginId in PLUGIN_ICONS) {
+    return PLUGIN_ICONS[pluginId as keyof typeof PLUGIN_ICONS];
+  }
+
+  return PLUGIN_ICONS.placeholder;
+}

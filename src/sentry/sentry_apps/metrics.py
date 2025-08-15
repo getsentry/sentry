@@ -17,6 +17,12 @@ class SentryAppInteractionType(StrEnum):
     # External Requests
     EXTERNAL_REQUEST = "external_request"
 
+    # Authorizations
+    AUTHORIZATIONS = "authorizations"
+
+    # Managing Sentry Apps
+    MANAGEMENT = "management"
+
 
 @dataclass
 class SentryAppInteractionEvent(EventLifecycleMetric):
@@ -62,6 +68,8 @@ class SentryAppWebhookHaltReason(StrEnum):
     GOT_CLIENT_ERROR = "got_client_error"
     INTEGRATOR_ERROR = "integrator_error"
     MISSING_INSTALLATION = "missing_installation"
+    RESTRICTED_IP = "restricted_ip"
+    CONNECTION_RESET = "connection_reset"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):
@@ -116,3 +124,24 @@ class SentryAppEventType(StrEnum):
     ISSUE_UNRESOLVED = "issue.unresolved"
     ISSUE_RESOLVED = "issue.resolved"
     ISSUE_ASSIGNED = "issue.assigned"
+
+    # authorizations
+    GRANT_EXCHANGER = "grant_exchanger"
+    REFRESHER = "refresher"
+
+    # management
+    APP_CREATE = "app_create"
+    APP_UPDATE = "app_update"
+    REQUESTS = "requests"
+    WEBHOOK_UPDATE = "webhook_update"
+    INSTALLATION_CREATE = "install_create"
+    INSTALLATION_WEBHOOK_UPDATE = "installation_webhook_update"
+
+    # seer webhooks
+    SEER_ROOT_CAUSE_STARTED = "seer.root_cause_started"
+    SEER_ROOT_CAUSE_COMPLETED = "seer.root_cause_completed"
+    SEER_SOLUTION_STARTED = "seer.solution_started"
+    SEER_SOLUTION_COMPLETED = "seer.solution_completed"
+    SEER_CODING_STARTED = "seer.coding_started"
+    SEER_CODING_COMPLETED = "seer.coding_completed"
+    SEER_PR_CREATED = "seer.pr_created"

@@ -3,52 +3,62 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import {ELLIPSIS} from 'sentry/utils/string/unicode';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
 }));
 
-const {organization, router} = initializeOrg({
-  organization: {features: ['global-views', 'open-membership', 'dashboards-eap']},
-  projects: [],
-  router: {
-    location: {
-      pathname: '/organizations/org-slug/dashboard/1/',
-      query: {
-        displayType: 'line',
-        fields: ['transaction.duration', 'count()', 'id'],
-        yAxis: ['count()', 'count_unique(transaction.duration)'],
-      },
-    },
-    params: {},
-  },
-});
-
 const mockUseNavigate = jest.mocked(useNavigate);
 
-describe('WidgetBuilderSortBySelector', function () {
-  beforeEach(function () {
+describe('WidgetBuilderSortBySelector', () => {
+  let organization: Organization;
+  let router: InjectedRouter<Record<string, string | undefined>, any>;
+  beforeEach(() => {
+    const setupOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+      },
+      projects: [],
+      router: {
+        location: {
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: {
+            displayType: 'line',
+            fields: ['transaction.duration', 'count()', 'id'],
+            yAxis: ['count()', 'count_unique(transaction.duration)'],
+          },
+        },
+        params: {},
+      },
+    });
+    organization = setupOrg.organization;
+    router = setupOrg.router;
+
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/spans/fields/',
+      url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
   });
 
-  it('renders', async function () {
+  it('renders for spans', async () => {
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -58,7 +68,27 @@ describe('WidgetBuilderSortBySelector', function () {
     expect(await screen.findByText('(Required)')).toBeInTheDocument();
   });
 
-  it('renders correct fields for table widgets', async function () {
+  it('renders for logs', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(await screen.findByText('Sort by')).toBeInTheDocument();
+    expect(await screen.findByText('Limit to 5 results')).toBeInTheDocument();
+    expect(await screen.findByText('High to low')).toBeInTheDocument();
+    expect(await screen.findByText('(Required)')).toBeInTheDocument();
+  });
+
+  it('renders correct fields for table widgets', async () => {
     const tableRouter = RouterFixture({
       ...router,
       location: {
@@ -69,13 +99,14 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
       {
         router: tableRouter,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -84,17 +115,21 @@ describe('WidgetBuilderSortBySelector', function () {
     expect(await screen.findByText(`Select a column\u{2026}`)).toBeInTheDocument();
   });
 
-  it('renders and functions correctly', async function () {
+  it('renders and functions correctly', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const sortDirectionSelector = await screen.findByText('High to low');
@@ -110,7 +145,7 @@ describe('WidgetBuilderSortBySelector', function () {
         ...router.location,
         query: expect.objectContaining({sort: ['-count()']}),
       }),
-      {replace: true}
+      expect.anything()
     );
 
     await userEvent.click(sortDirectionSelector);
@@ -120,18 +155,22 @@ describe('WidgetBuilderSortBySelector', function () {
         ...router.location,
         query: expect.objectContaining({sort: ['count()']}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
-  it('renders the correct limit options', async function () {
+  it('renders the correct limit options', async () => {
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     // default limit is 5
@@ -150,28 +189,36 @@ describe('WidgetBuilderSortBySelector', function () {
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
-      {router: moreAggregatesRouter, organization}
+      {
+        router: moreAggregatesRouter,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     // default limit changes to 3 since its the max limit for 3 aggregates
     expect(await screen.findByText('Limit to 3 results')).toBeInTheDocument();
   });
 
-  it('correctly handles limit changes', async function () {
+  it('correctly handles limit changes', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(
       <WidgetBuilderProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
           <WidgetBuilderSortBySelector />
-        </SpanTagsProvider>
+        </TraceItemAttributeProvider>
       </WidgetBuilderProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const limitSelector = await screen.findByText('Limit to 5 results');
@@ -182,7 +229,69 @@ describe('WidgetBuilderSortBySelector', function () {
       expect.objectContaining({
         query: expect.objectContaining({limit: 3}),
       }),
-      {replace: true}
+      expect.anything()
+    );
+  });
+
+  it('switches the default value for count_unique functions', async () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/trace-items/attributes/`,
+      body: [{key: 'span.duration', name: 'span.duration'}],
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.attributeType === 'number';
+        },
+      ],
+    });
+
+    const setupOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'open-membership', 'visibility-explore-view'],
+      },
+      projects: [],
+      router: {
+        location: {
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: {
+            displayType: 'line',
+            fields: ['transaction.duration', 'count()', 'id'],
+            yAxis: ['count()', 'count_unique(span.op)'],
+            sort: ['-count(span.duration)'],
+            dataset: 'spans',
+          },
+        },
+        params: {},
+      },
+    });
+    organization = setupOrg.organization;
+    router = setupOrg.router;
+
+    render(
+      <WidgetBuilderProvider>
+        <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
+          <WidgetBuilderSortBySelector />
+        </TraceItemAttributeProvider>
+      </WidgetBuilderProvider>,
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    expect(await screen.findByText(`count(${ELLIPSIS})`)).toBeInTheDocument();
+    expect(screen.getByText('spans')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText(`count(${ELLIPSIS})`));
+    await userEvent.click(screen.getByText(`count_unique(${ELLIPSIS})`));
+
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({sort: ['-count_unique(span.op)']}),
+      }),
+      expect.anything()
     );
   });
 });

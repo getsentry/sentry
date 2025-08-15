@@ -7,7 +7,8 @@ from django.utils import timezone
 from sentry import audit_log, buffer, tsdb
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.issues.grouptype import MetricIssuePOC, PerformanceSlowDBQueryGroupType
+from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
@@ -17,6 +18,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupmeta import GroupMeta
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsnooze import GroupSnooze
@@ -317,7 +319,37 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
 
         # test a new group has an open period
-        group.type = MetricIssuePOC.type_id
+        group.type = MetricIssue.type_id
+        group.save()
+
+        GroupOpenPeriod.objects.all().delete()
+
+        alert_rule = self.create_alert_rule(
+            organization=self.organization,
+            projects=[self.project],
+            name="Test Alert Rule",
+        )
+        time = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        open_periods = response.data["openPeriods"]
+        assert len(open_periods) == 1
+        open_period = open_periods[0]
+        assert open_period["start"] == group.first_seen
+        assert open_period["end"] is None
+        assert open_period["duration"] is None
+        assert open_period["isOpen"] is True
+        assert open_period["lastChecked"] > time
+
+    @with_feature("organizations:issue-open-periods")
+    def test_group_open_periods(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        # test a new group has an open period
+        group.type = MetricIssue.type_id
         group.save()
 
         alert_rule = self.create_alert_rule(
@@ -880,7 +912,7 @@ class GroupDeleteTest(APITestCase):
             )
 
     def test_delete_performance_issue(self) -> None:
-        """Test that a performance issue cannot be deleted"""
+        """Test that a performance issue can be deleted"""
         self.login_as(user=self.user)
 
         group = self.create_group(type=PerformanceSlowDBQueryGroupType.type_id)
@@ -888,12 +920,12 @@ class GroupDeleteTest(APITestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        response = self.client.delete(url, format="json")
-        assert response.status_code == 400, response.content
+        with self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 202, response.content
 
-        # Ensure it's still there
-        assert Group.objects.filter(id=group.id).exists()
-        assert GroupHash.objects.filter(group_id=group.id).exists()
+        assert not Group.objects.filter(id=group.id).exists()
+        assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self) -> None:

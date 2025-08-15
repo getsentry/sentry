@@ -19,7 +19,6 @@ export function AggregateParameterField({
 }) {
   if (parameter.kind === 'value') {
     const inputProps = {
-      required: parameter.required,
       value:
         currentValue ?? ('defaultValue' in parameter && parameter?.defaultValue) ?? '',
       onUpdate: (value: any) => {
@@ -86,5 +85,5 @@ export function AggregateParameterField({
       />
     );
   }
-  throw new Error(`Unknown parameter type encountered for ${fieldValue}`);
+  throw new Error(`Unknown parameter type encountered for ${JSON.stringify(fieldValue)}`);
 }

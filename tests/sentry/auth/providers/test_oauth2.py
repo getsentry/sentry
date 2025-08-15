@@ -16,10 +16,10 @@ class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
     key = "oauth2_dummy"
 
-    def get_client_id(self):
+    def get_client_id(self) -> str:
         raise NotImplementedError
 
-    def get_client_secret(self):
+    def get_client_secret(self) -> str:
         raise NotImplementedError
 
     def get_refresh_token_url(self) -> str:
@@ -38,7 +38,7 @@ class OAuth2ProviderTest(TestCase):
     def auth_provider(self):
         return AuthProvider.objects.create(provider="oauth2", organization_id=self.organization.id)
 
-    def test_refresh_identity_without_refresh_token(self):
+    def test_refresh_identity_without_refresh_token(self) -> None:
         auth_identity = AuthIdentity.objects.create(
             auth_provider=self.auth_provider,
             user=self.user,

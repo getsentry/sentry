@@ -3,11 +3,16 @@ import styled from '@emotion/styled';
 import {PlatformIcon, platforms} from 'platformicons';
 
 import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
+import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
+import {
+  IdentityIcon,
+  type IdentityIconProps,
+} from 'sentry/views/settings/components/identityIcon';
 
 type TIcon = {
   id: string;
@@ -89,7 +94,20 @@ const SECTIONS: TSection[] = [
         groups: ['product'],
         keywords: ['experiment', 'test'],
         name: 'Lab',
-        defaultProps: {},
+        additionalProps: ['isSolid'],
+        defaultProps: {
+          isSolid: false,
+        },
+      },
+      {
+        id: 'lab-isSolid',
+        groups: ['product'],
+        keywords: ['experiment', 'test'],
+        name: 'Lab',
+        additionalProps: ['isSolid'],
+        defaultProps: {
+          isSolid: true,
+        },
       },
       {
         id: 'broadcast',
@@ -145,6 +163,49 @@ const SECTIONS: TSection[] = [
         groups: ['product', 'action'],
         keywords: ['cron', 'monitors', 'clock', 'cycle'],
         name: 'Timer',
+        defaultProps: {},
+      },
+      {
+        id: 'seer',
+        groups: ['product', 'seer'],
+        keywords: ['seer', 'ai', 'eye'],
+        name: 'Seer',
+        defaultProps: {},
+      },
+      {
+        id: 'seer-waiting',
+        groups: ['product', 'seer'],
+        keywords: ['seer', 'ai', 'eye'],
+        name: 'Seer',
+        defaultProps: {variant: 'waiting'},
+      },
+      {
+        id: 'seer-loading',
+        groups: ['product', 'seer'],
+        keywords: ['seer', 'ai', 'eye'],
+        name: 'Seer',
+        defaultProps: {variant: 'loading'},
+      },
+      {
+        id: 'my-projects',
+        groups: ['product'],
+        keywords: ['starred', 'sidebar'],
+        name: 'MyProjects',
+        defaultProps: {},
+      },
+      {
+        id: 'all-projects',
+        groups: ['product'],
+        keywords: ['starred', 'sidebar'],
+        name: 'AllProjects',
+        defaultProps: {},
+      },
+
+      {
+        id: 'building',
+        groups: ['product'],
+        keywords: ['business'],
+        name: 'Building',
         defaultProps: {},
       },
     ],
@@ -438,6 +499,13 @@ const SECTIONS: TSection[] = [
     label: 'Status',
     icons: [
       {
+        id: 'angry',
+        groups: ['status'],
+        keywords: ['angry', 'rage', 'face'],
+        name: 'Angry',
+        defaultProps: {},
+      },
+      {
         id: 'lock',
         groups: ['action', 'status'],
         keywords: ['secure'],
@@ -501,6 +569,13 @@ const SECTIONS: TSection[] = [
         groups: ['status'],
         keywords: ['shape', 'round'],
         name: 'CircleFill',
+        defaultProps: {},
+      },
+      {
+        id: 'dead',
+        groups: ['status'],
+        keywords: ['dead', 'face'],
+        name: 'Dead',
         defaultProps: {},
       },
       {
@@ -634,10 +709,31 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'ruler',
+        groups: ['ruler'],
+        keywords: ['ruler', 'measure'],
+        name: 'Ruler',
+        defaultProps: {},
+      },
+      {
         id: 'download',
         groups: ['action'],
         keywords: ['file', 'image', 'down'],
         name: 'Download',
+        defaultProps: {},
+      },
+      {
+        id: 'scrollHorizontally',
+        groups: ['action'],
+        keywords: ['scroll', 'swipe'],
+        name: 'ScrollHorizontally',
+        defaultProps: {},
+      },
+      {
+        id: 'scrollVertically',
+        groups: ['action'],
+        keywords: ['scroll', 'swipe'],
+        name: 'ScrollVertically',
         defaultProps: {},
       },
       {
@@ -1285,9 +1381,11 @@ export default function IconsStories() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const definedWithPrefix = new Set<string>();
+
   SECTIONS.forEach(section =>
     section.icons.forEach(icon => definedWithPrefix.add(`Icon${icon.name}`))
   );
+
   const unclassifiedSection = {
     id: 'other',
     label: 'Unclassified',
@@ -1327,6 +1425,8 @@ export default function IconsStories() {
         <Section key={section.id} section={section} />
       ))}
 
+      <PluginIconsSection searchTerm={searchTerm} />
+      <IdentityIconsSection searchTerm={searchTerm} />
       <PlatformIconsSection searchTerm={searchTerm} />
     </Fragment>
   );
@@ -1362,7 +1462,7 @@ function Section({section}: {section: TSection}) {
               key={icon.id}
               isHoverable
               overlayStyle={{maxWidth: 440}}
-              title={<JSXNode name={name} props={props} />}
+              title={<Storybook.JSXNode name={name} props={props} />}
             >
               <Cell>
                 <Component {...props} />
@@ -1398,12 +1498,165 @@ function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
             overlayStyle={{maxWidth: 440}}
             title={
               <Fragment>
-                <JSXNode name="PlatformIcon" props={{platform}} />
+                <Storybook.JSXNode name="PlatformIcon" props={{platform}} />
               </Fragment>
             }
           >
             <Cell>
               <PlatformIcon platform={platform} /> {platform}
+            </Cell>
+          </Tooltip>
+        ))}
+      </Grid>
+    </section>
+  );
+}
+
+const PLUGIN_ICON_KEYS: Array<PluginIconProps['pluginId']> = [
+  'placeholder',
+  'sentry',
+  'browsers',
+  'device',
+  'interface_types',
+  'os',
+  'urls',
+  'webhooks',
+  'amazon-sqs',
+  'aws_lambda',
+  'asana',
+  'bitbucket',
+  'bitbucket_pipelines',
+  'bitbucket_server',
+  'discord',
+  'github',
+  'github_enterprise',
+  'gitlab',
+  'heroku',
+  'jira',
+  'jira_server',
+  'jumpcloud',
+  'msteams',
+  'opsgenie',
+  'pagerduty',
+  'pivotal',
+  'pushover',
+  'redmine',
+  'segment',
+  'slack',
+  'trello',
+  'twilio',
+  'visualstudio',
+  'vsts',
+  'vercel',
+  'victorops',
+];
+
+const PLUGIN_ICONS = PLUGIN_ICON_KEYS.map(key => ({
+  id: key,
+  name: key,
+  keywords: [key],
+  icons: [{id: key, name: key}],
+}));
+
+function PluginIconsSection({searchTerm}: {searchTerm: string}) {
+  const filteredPlatforms = PLUGIN_ICONS.filter(icon => icon.name.includes(searchTerm));
+
+  return (
+    <section>
+      <SectionHeader>PluginIcons</SectionHeader>
+      <p>
+        <code>{"import {PluginIcon} from 'sentry/plugins/components/pluginIcon';"}</code>
+      </p>
+      <Grid
+        style={{
+          gridAutoFlow: 'column',
+          gridTemplateRows: `repeat(${Math.ceil(filteredPlatforms.length / 4)}, 1fr)`,
+        }}
+      >
+        {filteredPlatforms.map(platform => (
+          <Tooltip
+            key={platform.id}
+            isHoverable
+            overlayStyle={{maxWidth: 440}}
+            title={
+              <Fragment>
+                <Storybook.JSXNode name="PluginIcon" props={{pluginId: platform.id}} />
+              </Fragment>
+            }
+          >
+            <Cell>
+              <PluginIcon pluginId={platform.id} /> {platform.name}
+            </Cell>
+          </Tooltip>
+        ))}
+      </Grid>
+    </section>
+  );
+}
+
+const IDENTITY_ICON_KEYS: Array<IdentityIconProps['providerId']> = [
+  'placeholder',
+  'active-directory',
+  'asana',
+  'auth0',
+  'bitbucket',
+  'bitbucket_server',
+  'github',
+  'github_enterprise',
+  'gitlab',
+  'google',
+  'jira_server',
+  'jumpcloud',
+  'msteams',
+  'okta',
+  'onelogin',
+  'rippling',
+  'saml2',
+  'slack',
+  'visualstudio',
+  'vsts',
+];
+
+const IDENTITY_ICONS = IDENTITY_ICON_KEYS.map(key => ({
+  id: key,
+  name: key,
+  keywords: [key],
+  icons: [{id: key, name: key}],
+}));
+
+function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
+  const filteredPlatforms = IDENTITY_ICONS.filter(icon => icon.name.includes(searchTerm));
+
+  return (
+    <section>
+      <SectionHeader>IdentityIcons</SectionHeader>
+      <p>
+        <code>
+          {"import {IdentityIcon} from 'sentry/views/settings/components/identityIcon';"}
+        </code>
+      </p>
+      <Grid
+        style={{
+          gridAutoFlow: 'column',
+          gridTemplateRows: `repeat(${Math.ceil(filteredPlatforms.length / 4)}, 1fr)`,
+        }}
+      >
+        {filteredPlatforms.map(platform => (
+          <Tooltip
+            key={platform.id}
+            isHoverable
+            overlayStyle={{maxWidth: 440}}
+            title={
+              <Fragment>
+                <Storybook.JSXNode
+                  name="IdentityIcon"
+                  props={{providerId: platform.id}}
+                />
+              </Fragment>
+            }
+          >
+            <Cell>
+              <IdentityIcon providerId={platform.id} /> {platform.name}
             </Cell>
           </Tooltip>
         ))}

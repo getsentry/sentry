@@ -106,7 +106,13 @@ class _Field(Protocol):
 class SessionsField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
-            return ["sessions", "sessions_abnormal", "sessions_crashed", "sessions_errored"]
+            return [
+                "sessions",
+                "sessions_abnormal",
+                "sessions_crashed",
+                "sessions_errored",
+                "sessions_unhandled",
+            ]
         return ["sessions"]
 
     def extract_from_row(self, row, group):
@@ -116,15 +122,20 @@ class SessionsField:
         if status is None:
             return row["sessions"]
         if status == "healthy":
-            healthy_sessions = row["sessions"] - row["sessions_errored"]
+            healthy_sessions = row["sessions"] - row["sessions_errored"] - row["sessions_unhandled"]
             return max(healthy_sessions, 0)
         if status == "abnormal":
             return row["sessions_abnormal"]
+        if status == "unhandled":
+            return row["sessions_unhandled"]
         if status == "crashed":
             return row["sessions_crashed"]
         if status == "errored":
             errored_sessions = (
-                row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"]
+                row["sessions_errored"]
+                - row["sessions_unhandled"]
+                - row["sessions_crashed"]
+                - row["sessions_abnormal"]
             )
             return max(errored_sessions, 0)
         return 0
@@ -133,7 +144,7 @@ class SessionsField:
 class UsersField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
-            return ["users", "users_abnormal", "users_crashed", "users_errored"]
+            return ["users", "users_abnormal", "users_crashed", "users_errored", "users_unhandled"]
         return ["users"]
 
     def extract_from_row(self, row, group):
@@ -143,14 +154,21 @@ class UsersField:
         if status is None:
             return row["users"]
         if status == "healthy":
-            healthy_users = row["users"] - row["users_errored"]
+            healthy_users = row["users"] - row["users_errored"] - row["users_unhandled"]
             return max(healthy_users, 0)
         if status == "abnormal":
             return row["users_abnormal"]
+        if status == "unhandled":
+            return row["users_unhandled"]
         if status == "crashed":
             return row["users_crashed"]
         if status == "errored":
-            errored_users = row["users_errored"] - row["users_crashed"] - row["users_abnormal"]
+            errored_users = (
+                row["users_errored"]
+                - row["users_crashed"]
+                - row["users_abnormal"]
+                - row["users_unhandled"]
+            )
             return max(errored_users, 0)
         return 0
 
@@ -232,7 +250,10 @@ class SessionStatusGroupBy:
         return []
 
     def get_keys_for_row(self, row):
-        return [("session.status", key) for key in ["healthy", "abnormal", "crashed", "errored"]]
+        return [
+            ("session.status", key)
+            for key in ["healthy", "abnormal", "crashed", "errored", "unhandled"]
+        ]
 
 
 # NOTE: in the future we might add new `user_agent` and `os` fields
@@ -392,7 +413,7 @@ class QueryDefinition:
                 if condition.lhs.function == "match":
                     raise InvalidField("Invalid condition: wildcard search is not supported")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({repr(self.__dict__)})"
 
 
@@ -568,9 +589,21 @@ class _CategoryStats(TypedDict):
     reason: NotRequired[str]
 
 
+class _Project(TypedDict):
+    id: int
+    slug: str
+    stats: list[_CategoryStats]
+
+
+class _Period(TypedDict):
+    start: str
+    end: str
+    projects: list[_Project]
+
+
 def massage_sessions_result_summary(
     query, result_totals, outcome_query=None
-) -> tuple[dict[int, dict[str, dict[str, _CategoryStats]]], dict[str, list[Any]]]:
+) -> tuple[dict[int, dict[str, dict[str, _CategoryStats]]], _Period]:
     """
     Post-processes the query result.
 
@@ -679,7 +712,7 @@ def massage_sessions_result_summary(
     # format stats for each project
     for key, values in projects.items():
         categories = values["categories"]
-        project_dict = {"id": key, "slug": project_id_to_slug[key], "stats": []}
+        project_dict: _Project = {"id": key, "slug": project_id_to_slug[key], "stats": []}
 
         for key, stats in categories.items():
             project_dict["stats"].append(stats)

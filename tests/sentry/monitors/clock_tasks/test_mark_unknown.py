@@ -13,7 +13,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
-    MonitorType,
     ScheduleType,
 )
 from sentry.testutils.cases import TestCase
@@ -21,7 +20,7 @@ from sentry.testutils.cases import TestCase
 
 class MonitorClockTasksMarkUnknownTest(TestCase):
     @mock.patch("sentry.monitors.clock_tasks.mark_unknown.produce_task")
-    def test_mark_unknown(self, mock_produce_task):
+    def test_mark_unknown(self, mock_produce_task: mock.MagicMock) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -31,7 +30,6 @@ class MonitorClockTasksMarkUnknownTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "0 0 * * *",

@@ -46,8 +46,12 @@ import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+import {
+  getReleaseParams,
+  isReleaseArchived,
+  searchReleaseVersion,
+} from 'sentry/views/releases/utils';
 
-import {getReleaseParams, isReleaseArchived, searchReleaseVersion} from '../../utils';
 import {ReleaseContext} from '..';
 
 import CommitAuthorBreakdown from './sidebar/commitAuthorBreakdown';
@@ -653,15 +657,14 @@ const ReleaseDetailsPageFilters = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
 `;
 
 const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => (p.primary ? p.theme.activeText : p.theme.subText)};
 `;
 
-ReleaseOverview.contextType = ReleaseContext;
 export default ReleaseOverview;

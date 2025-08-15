@@ -10,11 +10,11 @@ import {DataCategory} from 'sentry/types/core';
 import {CreditType, type Plan} from 'getsentry/types';
 import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits';
 
-describe('Recurring Credits', function () {
+describe('Recurring Credits', () => {
   const organization = OrganizationFixture({features: [], access: ['org:billing']});
   const subscription = SubscriptionFixture({organization});
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
@@ -23,7 +23,7 @@ describe('Recurring Credits', function () {
     });
   });
 
-  it('renders error recurring credits', async function () {
+  it('renders error recurring credits', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
       method: 'GET',
@@ -51,7 +51,7 @@ describe('Recurring Credits', function () {
     expect(screen.getByTestId('amount')).toHaveTextContent('+50K/mo');
   });
 
-  it('renders transaction recurring credits', async function () {
+  it('renders transaction recurring credits', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
       method: 'GET',
@@ -78,7 +78,7 @@ describe('Recurring Credits', function () {
     expect(screen.getByTestId('amount')).toHaveTextContent('+100K/mo');
   });
 
-  it('renders profile duration recurring credits', async function () {
+  it('renders profile duration recurring credits', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
       method: 'GET',
@@ -99,8 +99,8 @@ describe('Recurring Credits', function () {
       categoryDisplayNames: {
         ...subscription.planDetails.categoryDisplayNames,
         [DataCategory.PROFILE_DURATION]: {
-          singular: 'profile hour',
-          plural: 'profile hours',
+          singular: 'continuous profile hour',
+          plural: 'continuous profile hours',
         },
       },
     };
@@ -111,11 +111,48 @@ describe('Recurring Credits', function () {
 
     await screen.findByRole('heading', {name: /recurring credits/i});
 
-    expect(screen.getByText('profile hours')).toBeInTheDocument();
+    expect(screen.getByText('continuous profile hours')).toBeInTheDocument();
     expect(screen.getByTestId('amount')).toHaveTextContent('+10/mo');
   });
 
-  it('renders attachment recurring credits', async function () {
+  it('renders profile duration ui recurring credits', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/recurring-credits/`,
+      method: 'GET',
+      body: [
+        RecurringCreditFixture({
+          id: 1,
+          periodStart: moment().format(),
+          periodEnd: moment().utc().add(3, 'months').format(),
+          amount: 10,
+          type: CreditType.PROFILE_DURATION_UI,
+          totalAmountRemaining: null,
+        }),
+      ],
+    });
+
+    const planDetails: Plan = {
+      ...subscription.planDetails,
+      categoryDisplayNames: {
+        ...subscription.planDetails.categoryDisplayNames,
+        [DataCategory.PROFILE_DURATION_UI]: {
+          singular: 'ui profile hour',
+          plural: 'ui profile hours',
+        },
+      },
+    };
+
+    render(<RecurringCredits displayType="data" planDetails={planDetails} />, {
+      organization,
+    });
+
+    await screen.findByRole('heading', {name: /recurring credits/i});
+
+    expect(screen.getByText('ui profile hours')).toBeInTheDocument();
+    expect(screen.getByTestId('amount')).toHaveTextContent('+10/mo');
+  });
+
+  it('renders attachment recurring credits', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
       method: 'GET',
@@ -142,7 +179,7 @@ describe('Recurring Credits', function () {
     expect(screen.getByTestId('amount')).toHaveTextContent('+1.5 GB/mo');
   });
 
-  it('renders replay recurring credits', async function () {
+  it('renders replay recurring credits', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
       method: 'GET',
@@ -169,7 +206,34 @@ describe('Recurring Credits', function () {
     expect(screen.getByTestId('amount')).toHaveTextContent('+3M/mo');
   });
 
-  it('renders multiple recurring credits', async function () {
+  it('renders log byte recurring credits', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/recurring-credits/`,
+      method: 'GET',
+      body: [
+        RecurringCreditFixture({
+          id: 1,
+          periodStart: moment().format(),
+          periodEnd: moment().utc().add(3, 'months').format(),
+          amount: 2.5,
+          type: CreditType.LOG_BYTE,
+          totalAmountRemaining: null,
+        }),
+      ],
+    });
+
+    render(
+      <RecurringCredits displayType="data" planDetails={subscription.planDetails} />,
+      {organization}
+    );
+
+    await screen.findByRole('heading', {name: /recurring credits/i});
+
+    expect(screen.getByText('logs')).toBeInTheDocument();
+    expect(screen.getByTestId('amount')).toHaveTextContent('+2.5 GB/mo');
+  });
+
+  it('renders multiple recurring credits', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
       method: 'GET',
@@ -212,7 +276,7 @@ describe('Recurring Credits', function () {
     expect(endDates[1]).toHaveTextContent('Jan 1, 2022');
   });
 
-  it('renders discount', async function () {
+  it('renders discount', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
       method: 'GET',

@@ -1,4 +1,5 @@
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
@@ -13,8 +14,10 @@ import {
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 
-describe('transformEventsResponseToTable', function () {
-  it('unsplats table meta field types', function () {
+const theme = ThemeFixture();
+
+describe('transformEventsResponseToTable', () => {
+  it('unsplats table meta field types', () => {
     const rawData = {
       data: [{'p75(measurements.inp)': null}],
       meta: {
@@ -45,7 +48,7 @@ describe('transformEventsResponseToTable', function () {
   });
 });
 
-describe('getCustomFieldRenderer', function () {
+describe('getCustomFieldRenderer', () => {
   const {organization, router} = initializeOrg();
 
   const baseEventViewOptions: EventViewOptions = {
@@ -66,7 +69,7 @@ describe('getCustomFieldRenderer', function () {
     topEvents: undefined,
   };
 
-  it('links trace ids to performance', async function () {
+  it('links trace ids to performance', async () => {
     const customFieldRenderer = getCustomEventsFieldRenderer('trace', {});
     render(
       customFieldRenderer(
@@ -74,13 +77,17 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'trace'}],
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.click(await screen.findByText('abcd'));
     expect(router.push).toHaveBeenCalledWith({
@@ -93,7 +100,7 @@ describe('getCustomFieldRenderer', function () {
     });
   });
 
-  it('links event ids to event details', async function () {
+  it('links event ids to event details', async () => {
     const project = ProjectFixture();
     const customFieldRenderer = getCustomEventsFieldRenderer('id', {});
     render(
@@ -102,6 +109,7 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
@@ -109,7 +117,10 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('defg'));
@@ -135,7 +146,7 @@ describe('getCustomFieldRenderer', function () {
     });
   });
 
-  it('links << unparameterized >> title/transaction columns to event details', async function () {
+  it('links << unparameterized >> title/transaction columns to event details', async () => {
     const project = ProjectFixture();
     const customFieldRenderer = getCustomEventsFieldRenderer('title', {});
     render(
@@ -144,6 +155,7 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
@@ -151,7 +163,10 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('<< unparameterized >>'));

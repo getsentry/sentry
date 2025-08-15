@@ -14,7 +14,12 @@
         },
         "key": {"quoted": false, "type": "keySimple", "value": "transaction.duration"},
         "type": "filter",
-        "value": {"quoted": false, "type": "valueText", "value": ">..500s"}
+        "value": {
+          "quoted": false,
+          "type": "valueText",
+          "value": ">..500s",
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

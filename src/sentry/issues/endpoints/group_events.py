@@ -10,10 +10,9 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
@@ -31,10 +30,11 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.eventstore.models import Event
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.search.events.types import ParamsType
 from sentry.search.utils import InvalidQuery, parse_query
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 
 if TYPE_CHECKING:
     from sentry.models.environment import Environment
@@ -51,7 +51,7 @@ class GroupEventsError(Exception):
 
 @extend_schema(tags=["Events"])
 @region_silo_endpoint
-class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
+class GroupEventsEndpoint(GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

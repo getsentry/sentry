@@ -50,7 +50,7 @@ def saml2_configure_view(
 
 
 class SelectIdP(AuthView):
-    def handle(self, request: HttpRequest, helper) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, pipeline) -> HttpResponseBase:
         op = "url"
 
         forms = {"url": URLMetadataForm(), "xml": XMLMetadataForm(), "idp": SAMLForm()}
@@ -58,24 +58,24 @@ class SelectIdP(AuthView):
         if "action_save" in request.POST:
             op = request.POST["action_save"]
             form_cls = forms[op].__class__
-            forms[op] = process_metadata(form_cls, request, helper)
+            forms[op] = process_metadata(form_cls, request, pipeline)
 
         # process_metadata will return None when the action was successful and
-        # data was bound to the helper.
+        # data was bound to the pipeline.
         if not forms[op]:
-            return helper.next_step()
+            return pipeline.next_step()
 
         return self.respond("sentry_auth_saml2/select-idp.html", {"op": op, "forms": forms})
 
 
 class MapAttributes(AuthView):
-    def handle(self, request: HttpRequest, helper) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, pipeline) -> HttpResponseBase:
         if "save_mappings" not in request.POST:
             form = AttributeMappingForm()
         else:
             form = AttributeMappingForm(request.POST)
             if form.is_valid():
-                helper.bind_state("attribute_mapping", form.cleaned_data)
-                return helper.next_step()
+                pipeline.bind_state("attribute_mapping", form.cleaned_data)
+                return pipeline.next_step()
 
         return self.respond("sentry_auth_saml2/map-attributes.html", {"form": form})

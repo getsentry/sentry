@@ -10,7 +10,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 jest.mock('sentry/utils/analytics');
 
@@ -43,7 +43,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders', async () => {
-    const {organization, routerProps, router} = initializeOrg();
+    const {organization, routerProps} = initializeOrg();
     const incident = IncidentFixture();
     const rule = MetricRuleFixture({
       projects: [project.slug],
@@ -72,7 +72,9 @@ describe('MetricAlertDetails', () => {
         {...routerProps}
         params={{ruleId: rule.id}}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
@@ -127,7 +129,9 @@ describe('MetricAlertDetails', () => {
         location={{...router.location, query: {alert: incident.id}}}
         params={{ruleId: rule.id}}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
@@ -145,7 +149,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders mute button for metric alert', async () => {
-    const {organization, routerProps, router} = initializeOrg();
+    const {organization, routerProps} = initializeOrg();
     const incident = IncidentFixture();
     const rule = MetricRuleFixture({
       projects: [project.slug],
@@ -182,7 +186,9 @@ describe('MetricAlertDetails', () => {
         organization={organization}
         params={{ruleId: rule.id}}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     expect(await screen.findByText('Mute for me')).toBeInTheDocument();
@@ -197,7 +203,7 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders open in discover button with dataset=errors for is:unresolved query', async () => {
-    const {organization, routerProps, router} = initializeOrg({
+    const {organization, routerProps} = initializeOrg({
       organization: {features: ['discover-basic']},
     });
     const rule = MetricRuleFixture({
@@ -225,13 +231,63 @@ describe('MetricAlertDetails', () => {
         {...routerProps}
         params={{ruleId: rule.id}}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     expect(await screen.findByText(rule.name)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('dataset=errors')
+
+    const button = screen.getByRole('button', {name: 'Open in Discover'});
+    expect(button).toBeInTheDocument();
+    expect(button).toBeEnabled();
+    expect(button).toHaveAttribute('href', expect.stringContaining('dataset=errors'));
+  });
+
+  it('disables duplicate button if deprecation flag is on', async () => {
+    const {organization, routerProps} = initializeOrg({
+      organization: {
+        features: ['discover-basic', 'performance-transaction-deprecation-alerts'],
+      },
+    });
+    const rule = MetricRuleFixture({
+      projects: [project.slug],
+      dataset: Dataset.TRANSACTIONS,
+      eventTypes: [EventTypes.TRANSACTION],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/alert-rules/${rule.id}/`,
+      body: rule,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/incidents/`,
+      body: [],
+    });
+
+    render(
+      <MetricAlertDetails
+        organization={organization}
+        {...routerProps}
+        params={{ruleId: rule.id}}
+      />,
+      {
+        organization,
+      }
+    );
+
+    expect(await screen.findByText(rule.name)).toBeInTheDocument();
+
+    expect(await screen.findByRole('button', {name: 'Duplicate'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
     );
   });
 });

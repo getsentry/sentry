@@ -7,7 +7,7 @@ import type {Data} from 'sentry/components/forms/types';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-export type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
+type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
   buttonProps?: Partial<ButtonProps>;
   secondaryAction?: React.ReactNode;
 };

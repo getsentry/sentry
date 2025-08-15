@@ -42,3 +42,12 @@ export function resetMockDate() {
   const constantDate = new Date(1508208080000);
   MockDate.set(constantDate);
 }
+
+/**
+ * Set the window.location to a given URL
+ * see {@link https://github.com/jsdom/jsdom#reconfiguring-the-jsdom-with-reconfiguresettings}
+ */
+export function setWindowLocation(url: string) {
+  // global jsdom is coming from `@sentry/jest-environment`
+  (global as any).jsdom.reconfigure({url});
+}

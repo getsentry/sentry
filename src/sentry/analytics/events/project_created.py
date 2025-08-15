@@ -11,7 +11,6 @@ class ProjectCreatedEvent(analytics.Event):
         analytics.Attribute("origin", required=False),
         analytics.Attribute("project_id"),
         analytics.Attribute("platform", required=False),
-        analytics.Attribute("updated_empty_state", required=False),
     )
 
 

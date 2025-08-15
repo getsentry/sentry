@@ -1,44 +1,48 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
+import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
+  AutofixStatus,
   type AutofixChangesStep,
   type AutofixCodebaseChange,
-  AutofixStatus,
-  type AutofixUpdateEndpointResponse,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
   useAutofixData,
+  useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
-import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
+import {IconChat, IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type AutofixChangesProps = {
   groupId: string;
   runId: string;
   step: AutofixChangesStep;
   agentCommentThread?: CommentThread;
+  isChangesFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -49,37 +53,42 @@ function AutofixRepoChange({
   runId,
   previousDefaultStepIndex,
   previousInsightCount,
+  ref,
 }: {
   change: AutofixCodebaseChange;
   groupId: string;
   runId: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
+  ref?: React.RefObject<HTMLDivElement | null>;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const selection = useTextSelection(containerRef);
+  const changeDescriptionHtml = useMemo(() => {
+    return {
+      __html: singleLineRenderer(change.description),
+    };
+  }, [change.description]);
 
   return (
     <Content>
-      {selection && (
-        <AutofixHighlightPopup
-          selectedText={selection.selectedText}
-          referenceElement={selection.referenceElement}
-          groupId={groupId}
-          runId={runId}
-          stepIndex={previousDefaultStepIndex ?? 0}
-          retainInsightCardIndex={
-            previousInsightCount !== undefined && previousInsightCount >= 0
-              ? previousInsightCount
-              : null
-          }
-        />
-      )}
       <RepoChangesHeader>
-        <div ref={containerRef}>
-          <PullRequestTitle>{change.repo_name}</PullRequestTitle>
-          <Title>{change.title}</Title>
-          <p dangerouslySetInnerHTML={{__html: singleLineRenderer(change.description)}} />
+        <div>
+          <AutofixHighlightWrapper
+            ref={ref}
+            groupId={groupId}
+            runId={runId}
+            stepIndex={previousDefaultStepIndex ?? 0}
+            retainInsightCardIndex={
+              previousInsightCount !== undefined && previousInsightCount >= 0
+                ? previousInsightCount
+                : null
+            }
+          >
+            <div>
+              <PullRequestTitle>{change.repo_name}</PullRequestTitle>
+              <Title>{change.title}</Title>
+              <p dangerouslySetInnerHTML={changeDescriptionHtml} />
+            </div>
+          </AutofixHighlightWrapper>
         </div>
       </RepoChangesHeader>
       <AutofixDiff
@@ -95,7 +104,7 @@ function AutofixRepoChange({
   );
 }
 
-const cardAnimationProps: AnimationProps = {
+const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
@@ -159,7 +168,7 @@ const CopyButton = styled(Button)`
 const CodeText = styled('code')`
   font-family: ${p => p.theme.text.familyMono};
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   display: block;
   min-width: 0;
   width: 100%;
@@ -168,73 +177,415 @@ const CodeText = styled('code')`
   white-space: nowrap;
 `;
 
+export function AutofixChanges({
+  step,
+  groupId,
+  runId,
+  previousDefaultStepIndex,
+  previousInsightCount,
+  agentCommentThread,
+  isChangesFirstAppearance,
+}: AutofixChangesProps) {
+  const {data} = useAutofixData({groupId});
+  const isBusy = step.status === AutofixStatus.PROCESSING;
+  const iconCodeRef = useRef<HTMLDivElement>(null);
+  const firstChangeRef = useRef<HTMLDivElement | null>(null);
+  const [isPrProcessing, setIsPrProcessing] = useState(false);
+  const [isBranchProcessing, setIsBranchProcessing] = useState(false);
+
+  const handleSelectFirstChange = () => {
+    if (firstChangeRef.current) {
+      // Simulate a click on the first change to trigger the text selection
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+      firstChangeRef.current.dispatchEvent(clickEvent);
+    }
+  };
+
+  useEffect(() => {
+    if (step.status === AutofixStatus.COMPLETED) {
+      const prsNowExist =
+        step.changes.length > 0 && step.changes.every(c => c.pull_request);
+      const branchesNowExist =
+        step.changes.length > 0 && step.changes.every(c => c.branch_name);
+
+      if (prsNowExist) {
+        setIsPrProcessing(false);
+      }
+      if (branchesNowExist) {
+        setIsBranchProcessing(false);
+      }
+    }
+  }, [step.status, step.changes]);
+
+  if (step.status === 'ERROR' || data?.status === 'ERROR') {
+    return (
+      <Content>
+        <PreviewContent>
+          {data?.error_message ? (
+            <Fragment>
+              <PrefixText>{t('Something went wrong')}</PrefixText>
+              <span>{data.error_message}</span>
+            </Fragment>
+          ) : (
+            <span>{t('Something went wrong.')}</span>
+          )}
+        </PreviewContent>
+      </Content>
+    );
+  }
+
+  if (!step.changes.length) {
+    return (
+      <AnimatePresence initial={isChangesFirstAppearance}>
+        <AnimationWrapper key="card" {...cardAnimationProps}>
+          <NoChangesPadding>
+            <Alert.Container>
+              <MarkdownAlert
+                text={
+                  step.termination_reason ||
+                  t('Seer had trouble applying its code changes.')
+                }
+              />
+            </Alert.Container>
+          </NoChangesPadding>
+        </AnimationWrapper>
+      </AnimatePresence>
+    );
+  }
+
+  const prsMade =
+    step.status === AutofixStatus.COMPLETED &&
+    step.changes.length >= 1 &&
+    step.changes.every(change => change.pull_request);
+
+  const branchesMade =
+    step.status === AutofixStatus.COMPLETED &&
+    step.changes.length >= 1 &&
+    step.changes.every(change => change.branch_name);
+
+  return (
+    <AnimatePresence initial={isChangesFirstAppearance}>
+      <AnimationWrapper key="card" {...cardAnimationProps}>
+        <ChangesContainer>
+          <HeaderWrapper>
+            <HeaderText>
+              <HeaderIconWrapper ref={iconCodeRef}>
+                <IconCode size="md" color="blue400" />
+              </HeaderIconWrapper>
+              {t('Code Changes')}
+              <Button
+                size="zero"
+                borderless
+                title={t('Chat with Seer')}
+                onClick={handleSelectFirstChange}
+                analyticsEventName="Autofix: Changes Chat"
+                analyticsEventKey="autofix.changes.chat"
+              >
+                <IconChat />
+              </Button>
+            </HeaderText>
+          </HeaderWrapper>
+          <AnimatePresence>
+            {agentCommentThread && iconCodeRef.current && (
+              <AutofixHighlightPopup
+                selectedText=""
+                referenceElement={iconCodeRef.current}
+                groupId={groupId}
+                runId={runId}
+                stepIndex={previousDefaultStepIndex ?? 0}
+                retainInsightCardIndex={
+                  previousInsightCount !== undefined && previousInsightCount >= 0
+                    ? previousInsightCount
+                    : null
+                }
+                isAgentComment
+                blockName={t('Seer is uncertain of the code changes...')}
+              />
+            )}
+          </AnimatePresence>
+          <ClippedBox clipHeight={408}>
+            {step.changes.map((change, i) => (
+              <Fragment key={change.repo_external_id}>
+                {i > 0 && <Separator />}
+                <AutofixRepoChange
+                  change={change}
+                  groupId={groupId}
+                  runId={runId}
+                  previousDefaultStepIndex={previousDefaultStepIndex}
+                  previousInsightCount={previousInsightCount}
+                  ref={i === 0 ? firstChangeRef : undefined}
+                />
+              </Fragment>
+            ))}
+          </ClippedBox>
+          <BottomDivider />
+          <BottomButtonContainer hasTerminationReason={!!step.termination_reason}>
+            {step.termination_reason && (
+              <TerminationReasonText>{step.termination_reason}</TerminationReasonText>
+            )}
+            <ButtonContainer>
+              {!prsMade && (
+                <ButtonBar>
+                  {branchesMade ? (
+                    step.changes.length === 1 && step.changes[0] ? (
+                      <BranchButton change={step.changes[0]} />
+                    ) : (
+                      <ScrollCarousel aria-label={t('Check out branches')}>
+                        {step.changes.map(
+                          (change, idx) =>
+                            change.branch_name && (
+                              <BranchButton
+                                key={`${change.repo_external_id}-${idx}`}
+                                change={change}
+                              />
+                            )
+                        )}
+                      </ScrollCarousel>
+                    )
+                  ) : (
+                    <SetupAndCreateBranchButton
+                      changes={step.changes}
+                      groupId={groupId}
+                      runId={runId}
+                      isBusy={isBusy || isPrProcessing}
+                      onProcessingChange={setIsBranchProcessing}
+                    />
+                  )}
+                  <SetupAndCreatePRsButton
+                    changes={step.changes}
+                    groupId={groupId}
+                    runId={runId}
+                    isBusy={isBusy || isBranchProcessing}
+                    onProcessingChange={setIsPrProcessing}
+                  />
+                </ButtonBar>
+              )}
+              {prsMade &&
+                (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
+                  <LinkButton
+                    size="xs"
+                    priority="primary"
+                    icon={<IconOpen size="xs" />}
+                    href={step.changes[0].pull_request.pr_url}
+                    external
+                  >
+                    View PR in {step.changes[0].repo_name}
+                  </LinkButton>
+                ) : (
+                  <ScrollCarousel aria-label={t('View pull requests')}>
+                    {step.changes.map(
+                      (change, idx) =>
+                        change.pull_request?.pr_url && (
+                          <LinkButton
+                            key={`${change.repo_external_id}-${idx}`}
+                            size="xs"
+                            priority="primary"
+                            icon={<IconOpen size="xs" />}
+                            href={change.pull_request.pr_url}
+                            external
+                          >
+                            View PR in {change.repo_name}
+                          </LinkButton>
+                        )
+                    )}
+                  </ScrollCarousel>
+                ))}
+            </ButtonContainer>
+          </BottomButtonContainer>
+        </ChangesContainer>
+      </AnimationWrapper>
+    </AnimatePresence>
+  );
+}
+
+const PreviewContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  color: ${p => p.theme.textColor};
+  margin-top: ${space(2)};
+`;
+
+const AnimationWrapper = styled(motion.div)`
+  transform-origin: top center;
+`;
+
+const PrefixText = styled('span')``;
+
+const ChangesContainer = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowMedium};
+  padding: ${p => p.theme.space.xl};
+`;
+
+const Content = styled('div')`
+  padding: 0 0 ${space(1)};
+`;
+
+const Title = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+  text-decoration: underline dashed;
+  text-decoration-color: ${p => p.theme.blue300};
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+`;
+
+const PullRequestTitle = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const RepoChangesHeader = styled('div')`
+  display: grid;
+  align-items: center;
+  grid-template-columns: 1fr auto;
+`;
+
+const MarkdownAlert = styled(MarkedText)`
+  border: 1px solid ${p => p.theme.alert.warning.border};
+  background-color: ${p => p.theme.alert.warning.backgroundLight};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.alert.warning.color};
+`;
+
+const NoChangesPadding = styled('div')`
+  padding: 0 ${space(2)};
+`;
+
+const Separator = styled('hr')`
+  border: none;
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  margin: ${space(2)} -${space(2)} 0 -${space(2)};
+`;
+
+const HeaderText = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.lg};
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  margin-right: ${space(2)};
+`;
+
+const HeaderWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: ${space(1)};
+`;
+
+const HeaderIconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const BottomDivider = styled('div')`
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
+`;
+
+const BottomButtonContainer = styled('div')<{hasTerminationReason?: boolean}>`
+  display: flex;
+  justify-content: ${p => (p.hasTerminationReason ? 'space-between' : 'flex-end')};
+  align-items: center;
+  gap: ${p => p.theme.space.xl};
+`;
+
+const TerminationReasonText = styled('div')`
+  color: ${p => p.theme.errorText};
+  font-size: ${p => p.theme.fontSize.sm};
+  flex: 1;
+  min-width: 0;
+`;
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+`;
+
 function CreatePRsButton({
   changes,
   groupId,
   runId,
   isBusy,
-  onBusyStateChange,
+  onProcessingChange,
 }: {
   changes: AutofixCodebaseChange[];
   groupId: string;
   isBusy: boolean;
-  onBusyStateChange: (busy: boolean) => void;
+  onProcessingChange: (processing: boolean) => void;
   runId: string;
 }) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const [hasClickedCreatePr, setHasClickedCreatePr] = useState(false);
+  const [hasClicked, setHasClicked] = useState(false);
+  const orgSlug = useOrganization().slug;
+
+  // Reset hasClicked state and notify parent when isBusy goes from true to false
+  useEffect(() => {
+    if (!isBusy) {
+      setHasClicked(false);
+      onProcessingChange(false);
+    }
+  }, [isBusy, onProcessingChange]);
+
+  const {mutate: createPr} = useMutation({
+    mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'create_pr',
+              repo_external_id: change.repo_external_id,
+            },
+          },
+        }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
+      setHasClicked(true);
+    },
+    onError: () => {
+      addErrorMessage(t('Failed to create a pull request'));
+      setHasClicked(false);
+      onProcessingChange(false);
+    },
+  });
 
   const createPRs = () => {
-    setHasClickedCreatePr(true);
-    onBusyStateChange(true);
+    setHasClicked(true);
+    onProcessingChange(true);
     for (const change of changes) {
       createPr({change});
     }
   };
 
-  const {mutate: createPr} = useMutation({
-    mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'create_pr',
-            repo_external_id: change.repo_external_id,
-          },
-        },
-      });
-    },
-    onSuccess: (data: AutofixUpdateEndpointResponse) => {
-      if (data.status === 'error') {
-        addErrorMessage(data.message ?? t('Failed to create a pull request'));
-        setHasClickedCreatePr(false);
-        onBusyStateChange(false);
-      } else {
-        addSuccessMessage(t('Created pull requests.'));
-        queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
-        setHasClickedCreatePr(false);
-        onBusyStateChange(false);
-      }
-    },
-    onError: () => {
-      setHasClickedCreatePr(false);
-      onBusyStateChange(false);
-      addErrorMessage(t('Failed to create a pull request'));
-    },
-  });
-
   return (
     <Button
       priority="primary"
       onClick={createPRs}
-      icon={
-        hasClickedCreatePr && <ProcessingStatusIndicator size={14} mini hideMessage />
-      }
+      icon={hasClicked && <LoadingIndicator size={14} />}
       size="sm"
-      busy={hasClickedCreatePr}
-      disabled={isBusy}
+      busy={isBusy || hasClicked}
+      disabled={isBusy || hasClicked}
       analyticsEventName="Autofix: Create PR Clicked"
       analyticsEventKey="autofix.create_pr_clicked"
       analyticsParams={{group_id: groupId}}
@@ -249,71 +600,78 @@ function CreateBranchButton({
   groupId,
   runId,
   isBusy,
-  onBusyStateChange,
+  onProcessingChange,
 }: {
   changes: AutofixCodebaseChange[];
   groupId: string;
   isBusy: boolean;
-  onBusyStateChange: (busy: boolean) => void;
+  onProcessingChange: (processing: boolean) => void;
   runId: string;
 }) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const [hasClickedPushToBranch, setHasClickedPushToBranch] = useState(false);
+  const [hasClicked, setHasClicked] = useState(false);
+  const orgSlug = useOrganization().slug;
+
+  // Reset hasClicked state and notify parent when isBusy goes from true to false
+  useEffect(() => {
+    if (!isBusy) {
+      setHasClicked(false);
+      onProcessingChange(false);
+    }
+  }, [isBusy, onProcessingChange]);
+
+  const {mutate: createBranch} = useMutation({
+    mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'create_branch',
+              repo_external_id: change.repo_external_id,
+            },
+          },
+        }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+      });
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+      });
+    },
+    onError: () => {
+      addErrorMessage(t('Failed to push to branches.'));
+      setHasClicked(false);
+      onProcessingChange(false);
+    },
+  });
 
   const pushToBranch = () => {
-    setHasClickedPushToBranch(true);
-    onBusyStateChange(true);
+    setHasClicked(true);
+    onProcessingChange(true);
     for (const change of changes) {
       createBranch({change});
     }
   };
 
-  const {mutate: createBranch} = useMutation({
-    mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'create_branch',
-            repo_external_id: change.repo_external_id,
-          },
-        },
-      });
-    },
-    onSuccess: (data: AutofixUpdateEndpointResponse) => {
-      if (data.status === 'error') {
-        addErrorMessage(data.message ?? t('Failed to create a pull request'));
-        setHasClickedPushToBranch(false);
-        onBusyStateChange(false);
-      }
-      addSuccessMessage(t('Pushed to branches.'));
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
-      setHasClickedPushToBranch(false);
-      onBusyStateChange(false);
-    },
-    onError: () => {
-      setHasClickedPushToBranch(false);
-      onBusyStateChange(false);
-      addErrorMessage(t('Failed to push to branches.'));
-    },
-  });
-
   return (
     <Button
       onClick={pushToBranch}
-      icon={
-        hasClickedPushToBranch && <ProcessingStatusIndicator size={14} mini hideMessage />
-      }
+      icon={hasClicked && <LoadingIndicator size={14} />}
       size="sm"
-      busy={hasClickedPushToBranch}
-      disabled={isBusy}
+      busy={isBusy || hasClicked}
+      disabled={isBusy || hasClicked}
       analyticsEventName="Autofix: Push to Branch Clicked"
       analyticsEventKey="autofix.push_to_branch_clicked"
       analyticsParams={{group_id: groupId}}
     >
-      Check Out Locally
+      {t('Check Out Locally')}
     </Button>
   );
 }
@@ -323,22 +681,20 @@ function SetupAndCreateBranchButton({
   groupId,
   runId,
   isBusy,
-  onBusyStateChange,
+  onProcessingChange,
 }: {
   changes: AutofixCodebaseChange[];
   groupId: string;
   isBusy: boolean;
-  onBusyStateChange: (busy: boolean) => void;
+  onProcessingChange: (processing: boolean) => void;
   runId: string;
 }) {
-  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
+  const {codebases} = useAutofixRepos(groupId);
 
   if (
     !changes.every(
       change =>
-        setupData?.githubWriteIntegration?.repos?.find(
-          repo => `${repo.owner}/${repo.name}` === change.repo_name
-        )?.ok
+        change.repo_external_id && codebases[change.repo_external_id]?.is_writeable
     )
   ) {
     return (
@@ -363,7 +719,7 @@ function SetupAndCreateBranchButton({
       groupId={groupId}
       runId={runId}
       isBusy={isBusy}
-      onBusyStateChange={onBusyStateChange}
+      onProcessingChange={onProcessingChange}
     />
   );
 }
@@ -373,22 +729,19 @@ function SetupAndCreatePRsButton({
   groupId,
   runId,
   isBusy,
-  onBusyStateChange,
+  onProcessingChange,
 }: {
   changes: AutofixCodebaseChange[];
   groupId: string;
   isBusy: boolean;
-  onBusyStateChange: (busy: boolean) => void;
+  onProcessingChange: (processing: boolean) => void;
   runId: string;
 }) {
-  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
-
+  const {codebases} = useAutofixRepos(groupId);
   if (
     !changes.every(
       change =>
-        setupData?.githubWriteIntegration?.repos?.find(
-          repo => `${repo.owner}/${repo.name}` === change.repo_name
-        )?.ok
+        change.repo_external_id && codebases[change.repo_external_id]?.is_writeable
     )
   ) {
     return (
@@ -414,254 +767,7 @@ function SetupAndCreatePRsButton({
       groupId={groupId}
       runId={runId}
       isBusy={isBusy}
-      onBusyStateChange={onBusyStateChange}
+      onProcessingChange={onProcessingChange}
     />
   );
 }
-
-export function AutofixChanges({
-  step,
-  groupId,
-  runId,
-  previousDefaultStepIndex,
-  previousInsightCount,
-  agentCommentThread,
-}: AutofixChangesProps) {
-  const {data} = useAutofixData({groupId});
-  const [isBusy, setIsBusy] = useState(false);
-  const iconCodeRef = useRef<HTMLDivElement>(null);
-
-  if (step.status === 'ERROR' || data?.status === 'ERROR') {
-    return (
-      <Content>
-        <PreviewContent>
-          {data?.error_message ? (
-            <Fragment>
-              <PrefixText>{t('Something went wrong')}</PrefixText>
-              <span>{data.error_message}</span>
-            </Fragment>
-          ) : (
-            <span>{t('Something went wrong.')}</span>
-          )}
-        </PreviewContent>
-      </Content>
-    );
-  }
-
-  if (!step.changes.length) {
-    return (
-      <Content>
-        <PreviewContent>
-          <span>{t('Could not find a fix.')}</span>
-        </PreviewContent>
-      </Content>
-    );
-  }
-
-  const prsMade =
-    step.status === AutofixStatus.COMPLETED &&
-    step.changes.length >= 1 &&
-    step.changes.every(change => change.pull_request);
-
-  const branchesMade =
-    step.status === AutofixStatus.COMPLETED &&
-    step.changes.length >= 1 &&
-    step.changes.every(change => change.branch_name);
-
-  return (
-    <AnimatePresence initial>
-      <AnimationWrapper key="card" {...cardAnimationProps}>
-        <ChangesContainer>
-          <ClippedBox clipHeight={408}>
-            <HeaderWrapper>
-              <HeaderText>
-                <HeaderIconWrapper ref={iconCodeRef}>
-                  <IconCode size="sm" color="blue400" />
-                </HeaderIconWrapper>
-                {t('Code Changes')}
-              </HeaderText>
-              {!prsMade && (
-                <ButtonBar gap={1}>
-                  {branchesMade ? (
-                    step.changes.length === 1 && step.changes[0] ? (
-                      <BranchButton change={step.changes[0]} />
-                    ) : (
-                      <ScrollCarousel aria-label={t('Check out branches')}>
-                        {step.changes.map(
-                          change =>
-                            change.branch_name && (
-                              <BranchButton
-                                key={`${change.repo_external_id}-${Math.random()}`}
-                                change={change}
-                              />
-                            )
-                        )}
-                      </ScrollCarousel>
-                    )
-                  ) : (
-                    <SetupAndCreateBranchButton
-                      changes={step.changes}
-                      groupId={groupId}
-                      runId={runId}
-                      isBusy={isBusy}
-                      onBusyStateChange={setIsBusy}
-                    />
-                  )}
-                  <SetupAndCreatePRsButton
-                    changes={step.changes}
-                    groupId={groupId}
-                    runId={runId}
-                    isBusy={isBusy}
-                    onBusyStateChange={setIsBusy}
-                  />
-                </ButtonBar>
-              )}
-              {prsMade &&
-                (step.changes.length === 1 &&
-                step.changes[0] &&
-                step.changes[0].pull_request?.pr_url ? (
-                  <LinkButton
-                    size="xs"
-                    priority="primary"
-                    icon={<IconOpen size="xs" />}
-                    href={step.changes[0].pull_request.pr_url}
-                    external
-                  >
-                    View PR in {step.changes[0].repo_name}
-                  </LinkButton>
-                ) : (
-                  <ScrollCarousel aria-label={t('View pull requests')}>
-                    {step.changes.map(
-                      change =>
-                        change.pull_request?.pr_url && (
-                          <LinkButton
-                            key={`${change.repo_external_id}-${Math.random()}`}
-                            size="xs"
-                            priority="primary"
-                            icon={<IconOpen size="xs" />}
-                            href={change.pull_request.pr_url}
-                            external
-                          >
-                            View PR in {change.repo_name}
-                          </LinkButton>
-                        )
-                    )}
-                  </ScrollCarousel>
-                ))}
-            </HeaderWrapper>
-            <AnimatePresence>
-              {agentCommentThread && iconCodeRef.current && (
-                <AutofixHighlightPopup
-                  selectedText=""
-                  referenceElement={iconCodeRef.current}
-                  groupId={groupId}
-                  runId={runId}
-                  stepIndex={previousDefaultStepIndex ?? 0}
-                  retainInsightCardIndex={
-                    previousInsightCount !== undefined && previousInsightCount >= 0
-                      ? previousInsightCount
-                      : null
-                  }
-                  isAgentComment
-                />
-              )}
-            </AnimatePresence>
-            {step.changes.map((change, i) => (
-              <Fragment key={change.repo_external_id}>
-                {i > 0 && <Separator />}
-                <AutofixRepoChange
-                  change={change}
-                  groupId={groupId}
-                  runId={runId}
-                  previousDefaultStepIndex={previousDefaultStepIndex}
-                  previousInsightCount={previousInsightCount}
-                />
-              </Fragment>
-            ))}
-          </ClippedBox>
-        </ChangesContainer>
-      </AnimationWrapper>
-    </AnimatePresence>
-  );
-}
-
-const PreviewContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  color: ${p => p.theme.textColor};
-  margin-top: ${space(2)};
-`;
-
-const AnimationWrapper = styled(motion.div)`
-  transform-origin: top center;
-`;
-
-const PrefixText = styled('span')``;
-
-const ChangesContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowMedium};
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-`;
-
-const Content = styled('div')`
-  padding: 0 ${space(1)} ${space(1)} ${space(1)};
-`;
-
-const Title = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
-const PullRequestTitle = styled('div')`
-  color: ${p => p.theme.subText};
-`;
-
-const RepoChangesHeader = styled('div')`
-  padding-top: ${space(2)};
-  padding-bottom: 0;
-  display: grid;
-  align-items: center;
-  grid-template-columns: 1fr auto;
-`;
-
-const Separator = styled('hr')`
-  border: none;
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  margin: ${space(2)} -${space(2)} 0 -${space(2)};
-`;
-
-const HeaderText = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  margin-right: ${space(2)};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-left: ${space(0.5)};
-  padding-bottom: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const HeaderIconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ProcessingStatusIndicator = styled(LoadingIndicator)`
-  && {
-    margin: 0;
-    height: 14px;
-    width: 14px;
-  }
-`;

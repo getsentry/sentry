@@ -14,27 +14,25 @@ const {organization} = initializeOrg();
 function TestContext({children}: {children?: ReactNode}) {
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
+      <OrganizationContext value={organization}>{children}</OrganizationContext>
     </QueryClientProvider>
   );
 }
 
-describe('useProfileEvents', function () {
-  afterEach(function () {
+describe('useProfileEvents', () => {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('handles querying the api using discover', async function () {
+  it('handles querying the api using discover', async () => {
     const {organization: organizationUsingTransactions} = initializeOrg();
 
     function TestContextUsingTransactions({children}: {children?: ReactNode}) {
       return (
         <QueryClientProvider client={makeTestQueryClient()}>
-          <OrganizationContext.Provider value={organizationUsingTransactions}>
+          <OrganizationContext value={organizationUsingTransactions}>
             {children}
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         </QueryClientProvider>
       );
     }
@@ -71,7 +69,7 @@ describe('useProfileEvents', function () {
     expect(result.current.data).toEqual(body);
   });
 
-  it('handles api errors', async function () {
+  it('handles api errors', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
     MockApiClient.addMockResponse({
@@ -95,8 +93,8 @@ describe('useProfileEvents', function () {
   });
 });
 
-describe('formatSort', function () {
-  it('uses the desc fallback', function () {
+describe('formatSort', () => {
+  it('uses the desc fallback', () => {
     const sort = formatSort(undefined, ['count()'], {
       key: 'count()',
       order: 'desc' as const,
@@ -107,7 +105,7 @@ describe('formatSort', function () {
     });
   });
 
-  it('uses the asc fallback', function () {
+  it('uses the asc fallback', () => {
     const sort = formatSort(undefined, ['count()'], {
       key: 'count()',
       order: 'asc' as const,
@@ -118,7 +116,7 @@ describe('formatSort', function () {
     });
   });
 
-  it('uses the desc value', function () {
+  it('uses the desc value', () => {
     const sort = formatSort('-p95()', ['p95()', 'count()'], {
       key: 'count()',
       order: 'asc' as const,
@@ -129,7 +127,7 @@ describe('formatSort', function () {
     });
   });
 
-  it('uses the asc value', function () {
+  it('uses the asc value', () => {
     const sort = formatSort('p95()', ['p95()', 'count()'], {
       key: 'count()',
       order: 'desc' as const,

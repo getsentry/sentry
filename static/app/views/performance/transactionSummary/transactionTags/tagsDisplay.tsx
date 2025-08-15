@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import type {Location} from 'history';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';

@@ -6,7 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import TagFacets, {TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 
 const mockProject = ProjectFixture();
-const {router, organization} = initializeOrg({
+const {organization} = initializeOrg({
   organization: {},
   projects: [mockProject],
   router: {
@@ -18,12 +18,12 @@ const {router, organization} = initializeOrg({
   },
 });
 
-describe('Tag Facets', function () {
+describe('Tag Facets', () => {
   const project = ProjectFixture();
   project.platform = 'android';
   const tags = ['os', 'device', 'release'];
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/1/tags/`,
       body: {
@@ -94,12 +94,12 @@ describe('Tag Facets', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  describe('Tag Distributions', function () {
-    it('does not display anything if no tag values recieved', async function () {
+  describe('Tag Distributions', () => {
+    it('does not display anything if no tag values recieved', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues/1/tags/`,
         body: {},
@@ -124,7 +124,7 @@ describe('Tag Facets', function () {
       expect(screen.queryByText('release')).not.toBeInTheDocument();
     });
 
-    it('displays os, device, async and release tags', async function () {
+    it('displays os, device, async and release tags', async () => {
       render(
         <TagFacets
           environments={[]}
@@ -144,7 +144,7 @@ describe('Tag Facets', function () {
       expect(screen.getByRole('listitem', {name: 'release'})).toBeInTheDocument();
     });
 
-    it('expands first tag distribution by default', async function () {
+    it('expands first tag distribution by default', async () => {
       render(
         <TagFacets
           environments={[]}
@@ -162,7 +162,7 @@ describe('Tag Facets', function () {
       ).toBeInTheDocument();
     });
 
-    it('closes and expands tag distribution when tag header is clicked', async function () {
+    it('closes and expands tag distribution when tag header is clicked', async () => {
       render(
         <TagFacets
           environments={[]}
@@ -189,7 +189,7 @@ describe('Tag Facets', function () {
       ).toBeInTheDocument();
     });
 
-    it('links to events with selected tag value', async function () {
+    it('links to events with selected tag value', async () => {
       render(
         <TagFacets
           environments={[]}
@@ -199,7 +199,6 @@ describe('Tag Facets', function () {
           tagFormatter={TAGS_FORMATTER}
         />,
         {
-          router,
           organization,
         }
       );
@@ -219,7 +218,7 @@ describe('Tag Facets', function () {
       );
     });
 
-    it('links to tags tab', async function () {
+    it('links to tags tab', async () => {
       render(
         <TagFacets
           environments={[]}
@@ -229,7 +228,6 @@ describe('Tag Facets', function () {
           tagFormatter={TAGS_FORMATTER}
         />,
         {
-          router,
           organization,
         }
       );

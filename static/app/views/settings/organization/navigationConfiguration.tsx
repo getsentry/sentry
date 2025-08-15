@@ -1,8 +1,8 @@
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -16,12 +16,13 @@ type ConfigParams = {
 export function getOrganizationNavigationConfiguration({
   organization: incomingOrganization,
 }: ConfigParams): NavigationSection[] {
-  if (incomingOrganization && prefersStackedNav()) {
-    return getUserOrgNavigationConfiguration({organization: incomingOrganization});
+  if (incomingOrganization && prefersStackedNav(incomingOrganization)) {
+    return getUserOrgNavigationConfiguration();
   }
 
   return [
     {
+      id: 'settings-user',
       name: t('User Settings'),
       items: [
         {
@@ -33,6 +34,7 @@ export function getOrganizationNavigationConfiguration({
       ],
     },
     {
+      id: 'settings-organization',
       name: t('Organization'),
       items: [
         {
@@ -88,13 +90,6 @@ export function getOrganizationNavigationConfiguration({
           id: 'audit-log',
         },
         {
-          path: `${organizationSettingsPathPrefix}/rate-limits/`,
-          title: t('Rate Limits'),
-          show: ({features}) => features!.has('legacy-rate-limits'),
-          description: t('Configure rate limits for all projects in the organization'),
-          id: 'rate-limits',
-        },
-        {
           path: `${organizationSettingsPathPrefix}/relay/`,
           title: t('Relay'),
           description: t('Manage relays connected to the organization'),
@@ -136,33 +131,33 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           title: t('Feature Flags'),
           description: t('Set up feature flag integrations'),
-          badge: () => (
-            <FeatureBadge
-              type="beta"
-              tooltipProps={{
-                title: t('This feature is currently in open beta and may change'),
-              }}
-            />
+        },
+        {
+          path: `${organizationSettingsPathPrefix}/seer/`,
+          title: t('Seer Automation'),
+          description: t(
+            "Manage settings for Seer's automated analysis across your organization"
           ),
-          show: ({organization}) =>
-            !!organization && organization.features.includes('feature-flag-ui'),
+          show: ({organization}) => !!organization && !organization.hideAiFeatures,
+          id: 'seer',
         },
         {
           path: `${organizationSettingsPathPrefix}/stats/`,
           title: t('Stats & Usage'),
           description: t('View organization stats and usage'),
           id: 'stats',
-          show: () => prefersStackedNav(),
+          show: ({organization}) => !!organization && prefersStackedNav(organization),
         },
       ],
     },
     {
+      id: 'settings-developer',
       name: t('Developer Settings'),
       items: [
         {
           path: `${organizationSettingsPathPrefix}/auth-tokens/`,
-          title: t('Auth Tokens'),
-          description: t('Manage organization auth tokens'),
+          title: t('Organization Tokens'),
+          description: t('Manage organization tokens'),
           id: 'auth-tokens',
         },
         {

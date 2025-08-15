@@ -1,11 +1,11 @@
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
@@ -31,6 +31,12 @@ const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
       ? `
   // Set a sampling rate for profiling - this is relative to traces_sample_rate
   'profiles_sample_rate' => 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  // Enable logs to be sent to Sentry
+  'enable_logs' => true,`
       : ''
   }
 ]);`;
@@ -105,7 +111,7 @@ const onboarding: OnboardingConfig = {
         {
           description: (
             <Alert.Container>
-              <Alert type="warning">
+              <Alert type="warning" showIcon={false}>
                 {tct(
                   'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
                   {
@@ -160,15 +166,22 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'To capture all errors and transactions, even the one during the startup of your application, you should initialize the Sentry PHP SDK as soon as possible.'
-      ),
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: t(
+            'To capture all errors and transactions, even the one during the startup of your application, you should initialize the Sentry PHP SDK as soon as possible.'
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs] and make sure to import it in your apps entrypoint before anything else.',
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
           language: 'php',
           code: `
 \\Sentry\\init([
@@ -179,7 +192,10 @@ const performanceOnboarding: OnboardingConfig = {
   'traces_sample_rate' => 1.0,
 ]);
 `,
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
@@ -201,14 +217,102 @@ const performanceOnboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Node application.',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/automatic-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Node application.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/automatic-instrumentation/" />
+              ),
+            }
           ),
+        },
+      ],
+    },
+  ],
+  nextSteps: () => [],
+};
+
+const getProfilingConfigureSnippet = (params: DocsParams) => `\\Sentry\\init([
+  'dsn' => '${params.dsn.public}',
+  // Specify a fixed sample rate
+  'traces_sample_rate' => 1.0,
+  // Set a sampling rate for profiling - this is relative to traces_sample_rate
+  'profiles_sample_rate' => 1.0
+]);`;
+
+const profilingOnboarding: OnboardingConfig = {
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'To install the PHP SDK, you need to be using Composer in your project. For more details about Composer, see the [composerDocumentationLink:Composer documentation].',
+        {
+          composerDocumentationLink: <ExternalLink href="https://getcomposer.org/doc/" />,
         }
       ),
+      configurations: [
+        {
+          language: 'bash',
+          code: 'composer require sentry/sentry',
+        },
+        ...(params.isProfilingSelected
+          ? [
+              {
+                description: t('Install the Excimer extension via PECL:'),
+                language: 'bash',
+                code: 'pecl install excimer',
+              },
+              {
+                description: tct(
+                  "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
+                  {
+                    sentryPhpDocumentationLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/php/profiling/#installation" />
+                    ),
+                  }
+                ),
+              },
+            ]
+          : []),
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'To capture profiling data, you should initialize the Sentry PHP SDK as soon as possible.'
+      ),
+      configurations: [
+        {
+          language: 'php',
+          code: getProfilingConfigureSnippet(params),
+          additionalInfo: (
+            <p>
+              {tct(
+                'To instrument certain regions of your code, you can [instrumentationLink:create transactions to capture them].',
+                {
+                  instrumentationLink: (
+                    <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/custom-instrumentation/" />
+                  ),
+                }
+              )}
+            </p>
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+      configurations: [],
     },
   ],
   nextSteps: () => [],
@@ -218,6 +322,7 @@ const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,
+  profilingOnboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
 };

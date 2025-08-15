@@ -2,8 +2,8 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconMute, IconSound} from 'sentry/icons';
@@ -79,7 +79,7 @@ function SnoozeAlert({
           snoozeCreatedBy: 'You',
           snoozeForEveryone: target === 'me' ? false : true,
         });
-      } catch (err) {
+      } catch (err: any) {
         if (err.status === 403) {
           addErrorMessage(t('You do not have permission to mute this alert'));
         } else if (err.status === 410) {
@@ -117,7 +117,7 @@ function SnoozeAlert({
       setDisabled(false);
       addSuccessMessage(t('Alert unmuted'));
       onSnooze({snooze: !isSnoozed});
-    } catch (err) {
+    } catch (err: any) {
       if (err.status === 403) {
         addErrorMessage(t('You do not have permission to unmute this alert'));
       } else {
@@ -152,7 +152,7 @@ function SnoozeAlert({
     },
   ];
 
-  const hasDropdown = dropdownItems.filter(item => !item.hidden).length > 0;
+  const hasDropdown = dropdownItems.some(item => !item.hidden);
 
   if (isSnoozed) {
     return (
@@ -167,7 +167,7 @@ function SnoozeAlert({
     );
   }
   return (
-    <ButtonBar>
+    <ButtonBar gap="0">
       <MuteButton
         size="sm"
         icon={<IconSound />}

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {PullRequest, Repository} from 'sentry/types/integrations';
@@ -60,6 +60,10 @@ const ExternalPullLink = styled(ExternalLink)`
   display: inline-flex;
   align-items: center;
   gap: ${space(0.5)};
+
+  svg {
+    flex-shrink: 0;
+  }
 `;
 
 export default PullRequestLink;

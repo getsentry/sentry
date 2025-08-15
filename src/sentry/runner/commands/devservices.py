@@ -374,18 +374,18 @@ def up(
     # in case there are dependencies needed for the health
     # check (for example: kafka's healthcheck requires zookeeper)
     with ThreadPoolExecutor(max_workers=len(selected_services)) as executor:
-        futures = []
+        health_futures = []
         for name in selected_services:
-            futures.append(
+            health_futures.append(
                 executor.submit(
                     check_health,
                     name,
                     containers[name],
                 )
             )
-        for future in as_completed(futures):
+        for health_future in as_completed(health_futures):
             try:
-                future.result()
+                health_future.result()
             except Exception as e:
                 click.secho(f"> Failed to check health: {e}", err=True, fg="red")
                 raise

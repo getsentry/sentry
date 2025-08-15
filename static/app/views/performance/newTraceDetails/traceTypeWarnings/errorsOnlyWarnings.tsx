@@ -2,8 +2,6 @@ import {useEffect, useMemo} from 'react';
 
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
-import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
@@ -14,11 +12,10 @@ import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
-
-import {traceAnalytics} from '../traceAnalytics';
-import type {TraceTree} from '../traceModels/traceTree';
-import {TraceShape} from '../traceModels/traceTree';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {TraceWarningComponents} from './styles';
 import {usePerformanceSubscriptionDetails} from './usePerformanceSubscriptionDetails';
@@ -62,7 +59,9 @@ function PerformanceSetupBanner({
 }: PerformanceSetupBannerProps) {
   const location = useLocation();
   const LOCAL_STORAGE_KEY = `${traceSlug}:performance-orphan-error-onboarding-banner-hide`;
-  const hideBanner = projectsWithNoPerformance.length === 0;
+  const hideBanner =
+    projectsWithNoPerformance.length === 0 ||
+    projectsWithOnboardingChecklist.length === 0;
 
   useEffect(() => {
     if (hideBanner) {
@@ -78,25 +77,6 @@ function PerformanceSetupBanner({
 
   if (hideBanner) {
     return null;
-  }
-
-  if (projectsWithOnboardingChecklist.length === 0) {
-    return (
-      <Alert.Container>
-        <Alert type="info" showIcon>
-          {tct(
-            "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
-            {
-              documentationLink: (
-                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
-                  {t('documentation')}
-                </ExternalLink>
-              ),
-            }
-          )}
-        </Alert>
-      </Alert.Container>
-    );
   }
 
   return (
@@ -161,9 +141,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
 
   const title = tct("You've exceeded your [billingType]", {
     billingType: subscription?.onDemandBudgets?.enabled
-      ? ['am1', 'am2'].includes(subscription.planTier)
-        ? t('on-demand budget')
-        : t('pay-as-you-go budget')
+      ? subscription.planDetails.budgetTerm
       : t('quota'),
   });
 
@@ -201,7 +179,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
           },
         });
       }}
-      docsRoute={getDocsLinkForEventType(
+      docsRoute={getPricingDocsLinkForEventType(
         subscription?.categories && 'spans' in subscription.categories
           ? DataCategoryExact.SPAN
           : DataCategoryExact.TRANSACTION

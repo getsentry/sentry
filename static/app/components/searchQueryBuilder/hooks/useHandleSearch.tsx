@@ -1,5 +1,6 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
+import debounce from 'lodash/debounce';
 
 import {saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
@@ -9,7 +10,7 @@ import {
   recentSearchTypeToLabel,
   tokenIsInvalid,
 } from 'sentry/components/searchQueryBuilder/utils';
-import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
+import {Token, type ParseResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -97,6 +98,10 @@ export function useHandleSearch({
 }: UseHandleSearchProps) {
   const api = useApi();
   const organization = useOrganization();
+  const debouncedSaveAsRecentSearch = useMemo(
+    () => debounce(saveAsRecentSearch, 3000),
+    []
+  );
 
   return useCallback(
     (query: string) => {
@@ -120,7 +125,6 @@ export function useHandleSearch({
         query,
         search_type: searchType,
         search_source: searchSource,
-        new_experience: true,
       });
 
       trackIndividualSearchFilters({
@@ -131,8 +135,16 @@ export function useHandleSearch({
         organization,
       });
 
-      saveAsRecentSearch({api, organization, query, recentSearches});
+      debouncedSaveAsRecentSearch({api, organization, query, recentSearches});
     },
-    [api, onSearch, organization, parsedQuery, recentSearches, searchSource]
+    [
+      api,
+      debouncedSaveAsRecentSearch,
+      onSearch,
+      organization,
+      parsedQuery,
+      recentSearches,
+      searchSource,
+    ]
   );
 }

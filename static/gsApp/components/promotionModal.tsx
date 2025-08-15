@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -158,7 +158,7 @@ const PromotionModal = withPromotions(
       <HighlightModalContainer topWidth="200px" bottomWidth="150px">
         <Subheader>{t('Limited Time Offer')}</Subheader>
         {modalBody}
-        <StyledButtonBar gap={1}>
+        <StyledButtonBar>
           <Button size="md" priority="primary" onClick={() => handleClick()}>
             {acceptText}
           </Button>
@@ -195,9 +195,9 @@ const PromotionModal = withPromotions(
 function PromotionModalWrapper(props: Omit<PromotionModalProps, 'promotionData'>) {
   // provide org context so we can use withPromotions
   return (
-    <OrganizationContext.Provider value={props.organization}>
+    <OrganizationContext value={props.organization}>
       <PromotionModal {...props} />
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 
@@ -207,12 +207,12 @@ const Subheader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
   color: ${p => p.theme.purple300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(1)};
 `;
 
 const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.gray400};
   margin-top: ${space(1)};
 `;

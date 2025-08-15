@@ -1,11 +1,14 @@
+import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -21,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import {
   useExploreQuery,
   useSetExploreQuery,
@@ -32,12 +36,10 @@ import {
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {ALLOWED_CELL_ACTIONS} from '../components/table';
-
 interface FieldProps {
-  column: TableColumn<keyof TableDataRow>;
   data: EventData;
   meta: MetaType;
+  column?: TableColumn<keyof TableDataRow>;
   unit?: string;
 }
 
@@ -57,7 +59,7 @@ export function FieldRenderer({data, meta, unit, column}: FieldProps) {
   );
 }
 
-export interface MultiQueryFieldProps extends FieldProps {
+interface MultiQueryFieldProps extends FieldProps {
   index: number;
 }
 
@@ -99,15 +101,32 @@ function BaseExploreFieldRenderer({
 }: BaseFieldProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
-  const field = column.name;
+  const {projects} = useProjects();
+  const projectsMap = useMemo(() => {
+    return projects.reduce(
+      (acc, project) => {
+        acc[project.slug] = project;
+        return acc;
+      },
+      {} as Record<string, Project>
+    );
+  }, [projects]);
 
-  const renderer = getExploreFieldRenderer(field, meta);
+  if (!defined(column)) {
+    return nullableValue(null);
+  }
+
+  const field = String(column.key);
+
+  const renderer = getExploreFieldRenderer(field, meta, projectsMap);
 
   let rendered = renderer(data, {
     location,
     organization,
+    theme,
     unit,
   });
 
@@ -132,7 +151,6 @@ function BaseExploreFieldRenderer({
   if (['id', 'span_id', 'transaction.id'].includes(field)) {
     const spanId = field === 'transaction.id' ? undefined : (data.span_id ?? data.id);
     const target = generateLinkToEventInTraceView({
-      projectSlug: data.project,
       traceSlug: data.trace,
       timestamp: data.timestamp,
       targetId: data['transaction.span_id'],
@@ -144,6 +162,10 @@ function BaseExploreFieldRenderer({
     });
 
     rendered = <Link to={target}>{rendered}</Link>;
+
+    if (organization.features.includes('discover-cell-actions-v2') && field === 'id') {
+      return rendered;
+    }
   }
 
   if (field === 'profile.id') {
@@ -172,13 +194,14 @@ function BaseExploreFieldRenderer({
 
 function getExploreFieldRenderer(
   field: string,
-  meta: MetaType
+  meta: MetaType,
+  projects: Record<string, Project>
 ): ReturnType<typeof getFieldRenderer> {
   if (field === 'id' || field === 'span_id') {
     return eventIdRenderFunc(field);
   }
   if (field === 'span.description') {
-    return SpanDescriptionRenderer;
+    return spanDescriptionRenderFunc(projects);
   }
   return getFieldRenderer(field, meta, false);
 }
@@ -195,40 +218,42 @@ function eventIdRenderFunc(field: string) {
   return renderer;
 }
 
-function SpanDescriptionRenderer(data: EventData) {
-  const {projects} = useProjects();
-  const project = projects.find(p => p.slug === data.project);
+function spanDescriptionRenderFunc(projects: Record<string, Project>) {
+  function renderer(data: EventData) {
+    const project = projects[data.project];
 
-  const value = data['span.description'];
+    const value = data['span.description'];
 
-  return (
-    <span>
-      <Tooltip
-        title={value}
-        containerDisplayMode="block"
-        showOnlyOnOverflow
-        maxWidth={400}
-      >
-        <Description>
-          {project && (
-            <ProjectBadge
-              project={project ? project : {slug: data.project}}
-              avatarSize={16}
-              avatarProps={{hasTooltip: true, tooltip: project.slug}}
-              hideName
-            />
-          )}
-          <WrappingText>
-            {isUrl(value) ? (
-              <ExternalLink href={value}>{value}</ExternalLink>
-            ) : (
-              nullableValue(value)
+    return (
+      <span>
+        <Tooltip
+          title={value}
+          containerDisplayMode="block"
+          showOnlyOnOverflow
+          maxWidth={400}
+        >
+          <Description>
+            {project && (
+              <ProjectBadge
+                project={project ? project : {slug: data.project}}
+                avatarSize={16}
+                avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                hideName
+              />
             )}
-          </WrappingText>
-        </Description>
-      </Tooltip>
-    </span>
-  );
+            <WrappingText>
+              {isUrl(value) ? (
+                <ExternalLink href={value}>{value}</ExternalLink>
+              ) : (
+                nullableValue(value)
+              )}
+            </WrappingText>
+          </Description>
+        </Tooltip>
+      </span>
+    );
+  }
+  return renderer;
 }
 
 const StyledTimeSince = styled(TimeSince)`

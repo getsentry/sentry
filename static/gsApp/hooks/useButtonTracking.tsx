@@ -1,8 +1,8 @@
-import {useCallback, useContext} from 'react';
+import {useCallback} from 'react';
 
 import type {ButtonProps} from 'sentry/components/core/button';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {convertToReloadPath, getEventPath} from 'getsentry/utils/routeAnalytics';
@@ -15,7 +15,7 @@ export default function useButtonTracking({
   analyticsParams,
   'aria-label': ariaLabel,
 }: Props) {
-  const organization = useContext(OrganizationContext);
+  const organization = useOrganization({allowNull: true});
   const routes = useRoutes();
 
   const trackButton = useCallback(() => {

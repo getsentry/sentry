@@ -1,45 +1,66 @@
 import {Fragment, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 
+import {Input} from 'sentry/components/core/input';
 import Providers from 'sentry/components/replays/player/__stories__/providers';
+import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
-export default function ReplaySlugChooser({children}: {children: ReactNode}) {
+type Props =
+  | {render: (replaySlug: string) => ReactNode; children?: never}
+  | {children: ReactNode; render?: never};
+
+export default function ReplaySlugChooser(props: Props) {
+  const {children, render} = props;
+
   const [replaySlug, setReplaySlug] = useSessionStorage('stories:replaySlug', '');
 
-  return (
-    <Fragment>
-      <input
-        defaultValue={replaySlug}
-        onChange={event => {
-          setReplaySlug(event.target.value);
-        }}
-        placeholder="Paste a replaySlug"
-        css={css`
-          font-variant-numeric: tabular-nums;
-        `}
-        size={34}
-      />
-      {replaySlug ? <LoadReplay replaySlug={replaySlug}>{children}</LoadReplay> : null}
-    </Fragment>
+  const input = (
+    <Input
+      defaultValue={replaySlug}
+      onChange={event => {
+        setReplaySlug(event.target.value);
+      }}
+      placeholder="Paste a replaySlug"
+      css={css`
+        font-variant-numeric: tabular-nums;
+      `}
+      size="sm"
+    />
   );
-}
 
-function LoadReplay({children, replaySlug}: {children: ReactNode; replaySlug: string}) {
-  const organization = useOrganization();
-  const {fetchError, fetching, replay} = useLoadReplayReader({
-    orgSlug: organization.slug,
-    replaySlug,
-  });
-
-  if (fetchError) {
-    return fetchError.message;
+  if (replaySlug && children) {
+    function Content() {
+      const organization = useOrganization();
+      const readerResult = useLoadReplayReader({
+        orgSlug: organization.slug,
+        replaySlug,
+        clipWindow: undefined,
+      });
+      return (
+        <ReplayLoadingState readerResult={readerResult}>
+          {({replay}) => <Providers replay={replay}>{children}</Providers>}
+        </ReplayLoadingState>
+      );
+    }
+    return (
+      <Fragment>
+        {input}
+        <Content />
+      </Fragment>
+    );
   }
-  if (!replay || fetching) {
-    return 'Loading...';
+
+  if (replaySlug && render) {
+    return (
+      <Fragment>
+        {input}
+        {render(replaySlug)}
+      </Fragment>
+    );
   }
 
-  return <Providers replay={replay}>{children}</Providers>;
+  return input;
 }

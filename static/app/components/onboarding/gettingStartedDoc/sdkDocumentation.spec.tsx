@@ -4,12 +4,12 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
-
-const PROJECT_KEY = ProjectKeysFixture()[0];
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
 import {SdkDocumentation} from './sdkDocumentation';
+
+const PROJECT_KEY = ProjectKeysFixture()[0];
 
 function renderMockRequests({
   project,
@@ -38,8 +38,8 @@ function renderMockRequests({
   });
 }
 
-describe('Renders SDK Documentation corretly based on platform id and language', function () {
-  it('Native QT', async function () {
+describe('Renders SDK Documentation corretly based on platform id and language', () => {
+  it('Native QT', async () => {
     const {organization, project} = initializeOrg({
       projects: [
         {
@@ -62,12 +62,14 @@ describe('Renders SDK Documentation corretly based on platform id and language',
             language: 'native',
             link: 'https://docs.sentry.io/platforms/native/guides/qt/',
           }}
-          projectSlug={project.slug}
-          projectId={project.id}
+          project={project}
           organization={organization}
           activeProductSelection={[]}
         />
-      </OnboardingContextProvider>
+      </OnboardingContextProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     // Renders main headings
@@ -76,7 +78,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 
-  it('JavaScript', async function () {
+  it('JavaScript', async () => {
     const {organization, project, router} = initializeOrg({
       projects: [
         {
@@ -106,14 +108,14 @@ describe('Renders SDK Documentation corretly based on platform id and language',
             language: 'javascript',
             link: 'https://docs.sentry.io/platforms/javascript/',
           }}
-          projectSlug={project.slug}
-          projectId={project.id}
+          project={project}
           organization={organization}
           activeProductSelection={[]}
         />
       </OnboardingContextProvider>,
       {
         router,
+        deprecatedRouterMocks: true,
       }
     );
 

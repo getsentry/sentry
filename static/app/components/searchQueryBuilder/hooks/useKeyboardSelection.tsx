@@ -1,16 +1,16 @@
 import {
   createContext,
-  type ReactNode,
   useCallback,
   useContext,
   useMemo,
   useRef,
+  type ReactNode,
 } from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Key} from '@react-types/shared';
 
 import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
-import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
+import {Token, type ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
 type SelectFunc = (params: {
   direction: 'left' | 'right';
@@ -19,7 +19,7 @@ type SelectFunc = (params: {
   toEnd?: boolean;
 }) => void;
 
-export interface KeyboardSelectionData {
+interface KeyboardSelectionData {
   selectInDirection: SelectFunc;
 }
 
@@ -55,7 +55,7 @@ function combineSelection(state: ListState<ParseResultToken>, newSelection: Key[
 }
 
 function useKeyboardSelectionState() {
-  const cursorKeyPositionRef = useRef<Key | null>();
+  const cursorKeyPositionRef = useRef<Key | null>(null);
 
   const selectInDirection = useCallback<SelectFunc>(
     ({state, beginNewSelectionFromKey, direction}) => {
@@ -118,9 +118,5 @@ const KeyboardSelectionContext = createContext<KeyboardSelectionData>({
 export function KeyboardSelection({children}: {children: ReactNode}) {
   const state = useKeyboardSelectionState();
 
-  return (
-    <KeyboardSelectionContext.Provider value={state}>
-      {children}
-    </KeyboardSelectionContext.Provider>
-  );
+  return <KeyboardSelectionContext value={state}>{children}</KeyboardSelectionContext>;
 }

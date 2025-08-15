@@ -1,9 +1,11 @@
+from collections.abc import Callable
+
 from django import VERSION
 
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.new_migrations.monkey.fields import deconstruct
 
-LAST_VERIFIED_DJANGO_VERSION = (5, 1)
+LAST_VERIFIED_DJANGO_VERSION = (5, 2)
 CHECK_MESSAGE = """Looks like you're trying to upgrade Django! Since we monkeypatch
 Django in several places, please verify that we have the latest code, and that the
 monkeypatching still works as expected. Currently the main things to check are:
@@ -79,15 +81,28 @@ else:
 """
 
 
+def _ensure_patched[**P](f: Callable[P, None]) -> Callable[P, None]:
+    def _ensure_patched_impl(*args: P.args, **kwargs: P.kwargs) -> None:
+        module = type(args[0]).__module__
+        if not module.startswith("sentry."):
+            raise AssertionError(f"unexpectedly unpatched: {module}")
+        return f(*args, **kwargs)
+
+    return _ensure_patched_impl
+
+
 def monkey_migrations():
+    from django.core.management.commands import migrate
     from django.db import models
 
     # This import needs to be below the other imports for `executor` and `writer` so
     # that we can successfully monkeypatch them.
     from django.db.migrations import executor, migration, writer
 
+    executor.MigrationExecutor.__init__ = _ensure_patched(executor.MigrationExecutor.__init__)  # type: ignore[method-assign]
+
     # monkeypatch Django's migration executor and template.
-    executor.MigrationExecutor = SentryMigrationExecutor  # type: ignore[misc]
+    migrate.MigrationExecutor = executor.MigrationExecutor = SentryMigrationExecutor  # type: ignore[attr-defined, misc]
     migration.Migration.initial = None
     writer.MIGRATION_TEMPLATE = SENTRY_MIGRATION_TEMPLATE
     models.Field.deconstruct = deconstruct  # type: ignore[method-assign]
@@ -95,6 +110,9 @@ def monkey_migrations():
     from django.db.migrations import graph, state
 
     from sentry.new_migrations.monkey.state import SentryProjectState
+
+    # XXX: our patched ProjectState isn't being used in a lot of places!
+    # state.ProjectState.__init__ = _ensure_patched(state.ProjectState.__init__)  # type: ignore[method-assign]
 
     state.ProjectState = SentryProjectState  # type: ignore[misc]
     graph.ProjectState = SentryProjectState  # type: ignore[attr-defined]

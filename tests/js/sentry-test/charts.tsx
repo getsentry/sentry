@@ -24,7 +24,7 @@ const model = {
   ],
 };
 
-export const chart = {
+const chart = {
   getModel: jest.fn(() => ({...model})),
 };
 

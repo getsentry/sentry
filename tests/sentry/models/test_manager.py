@@ -12,7 +12,7 @@ class GetFromCacheTest(TestCase):
         cache.clear()
         flush_manager_local_cache()
 
-    def test_get_cacheable_kv_from_kwargs(self):
+    def test_get_cacheable_kv_from_kwargs(self) -> None:
         org = self.create_organization()
         assert Organization.objects._get_cacheable_kv_from_kwargs(dict(id=14)) == ("id", "id", 14)
         assert Organization.objects._get_cacheable_kv_from_kwargs(dict(house=org)) == (
@@ -21,7 +21,7 @@ class GetFromCacheTest(TestCase):
             org.id,
         )
 
-    def test_cache_pk(self):
+    def test_cache_pk(self) -> None:
         org = self.create_organization()
 
         self.clear()

@@ -1,4 +1,3 @@
-from copy import deepcopy
 from enum import Enum
 
 from django.db import IntegrityError
@@ -66,14 +65,18 @@ class AssistantEndpoint(Endpoint):
 
     def get(self, request: Request) -> Response:
         """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
-        guide_map = deepcopy(manager.all())
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         seen_ids = set(
             AssistantActivity.objects.filter(user_id=request.user.id).values_list(
                 "guide_id", flat=True
             )
         )
 
-        return Response([{"guide": key, "seen": id in seen_ids} for key, id in guide_map.items()])
+        return Response(
+            [{"guide": key, "seen": id in seen_ids} for key, id in manager.all().items()]
+        )
 
     def put(self, request: Request):
         """Mark a guide as viewed or dismissed.
@@ -85,6 +88,9 @@ class AssistantEndpoint(Endpoint):
             'useful' (optional): true / false,
         }
         """
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         serializer = AssistantSerializer(data=request.data)
 
         if not serializer.is_valid():

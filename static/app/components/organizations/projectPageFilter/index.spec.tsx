@@ -30,7 +30,7 @@ const {organization, projects, router} = initializeOrg({
   },
 });
 
-describe('ProjectPageFilter', function () {
+describe('ProjectPageFilter', () => {
   beforeEach(() => {
     OrganizationStore.init();
 
@@ -50,10 +50,11 @@ describe('ProjectPageFilter', function () {
 
   afterEach(() => PageFiltersStore.reset());
 
-  it('renders & handles single selection', async function () {
+  it('renders & handles single selection', async () => {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
@@ -73,10 +74,11 @@ describe('ProjectPageFilter', function () {
     );
   });
 
-  it('handles multiple selection', async function () {
+  it('handles multiple selection', async () => {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
@@ -99,7 +101,7 @@ describe('ProjectPageFilter', function () {
     );
   });
 
-  it('renders keyboard-accessible trailing items', async function () {
+  it('renders keyboard-accessible trailing items', async () => {
     const mockApi = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/projects/${organization.slug}/project-1/`,
@@ -108,6 +110,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open the menu, search input has focus
@@ -164,11 +167,12 @@ describe('ProjectPageFilter', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('handles reset', async function () {
+  it('handles reset', async () => {
     const onReset = jest.fn();
     render(<ProjectPageFilter onReset={onReset} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open the menu, select project-1
@@ -189,10 +193,11 @@ describe('ProjectPageFilter', function () {
     expect(onReset).toHaveBeenCalled();
   });
 
-  it('responds to page filter changes, async e.g. from back button nav', async function () {
+  it('responds to page filter changes, async e.g. from back button nav', async () => {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Confirm initial selection
@@ -206,7 +211,7 @@ describe('ProjectPageFilter', function () {
     expect(await screen.findByRole('button', {name: 'project-2'})).toBeInTheDocument();
   });
 
-  it('displays a desynced state message', async function () {
+  it('displays a desynced state message', async () => {
     const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       organization: {features: ['global-views', 'open-membership']},
       projects: [
@@ -237,6 +242,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router: desyncRouter,
       organization: desyncOrganization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu

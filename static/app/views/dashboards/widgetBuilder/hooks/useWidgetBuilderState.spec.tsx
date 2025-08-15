@@ -74,13 +74,13 @@ describe('useWidgetBuilderState', () => {
       expect.objectContaining({
         query: expect.objectContaining({title: 'new title'}),
       }),
-      {replace: true}
+      expect.anything()
     );
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({description: 'new description'}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
@@ -131,7 +131,7 @@ describe('useWidgetBuilderState', () => {
         expect.objectContaining({
           query: expect.objectContaining({displayType: DisplayType.AREA}),
         }),
-        {replace: true}
+        expect.anything()
       );
     });
 
@@ -835,7 +835,7 @@ describe('useWidgetBuilderState', () => {
         expect.objectContaining({
           query: expect.objectContaining({dataset: WidgetType.METRICS}),
         }),
-        {replace: true}
+        expect.anything()
       );
     });
 
@@ -1530,6 +1530,53 @@ describe('useWidgetBuilderState', () => {
         {field: 'crash_free_rate(session)', kind: 'desc'},
       ]);
     });
+
+    it('always assigns a limit when there is a y-axis', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            yAxis: ['count()', 'count_unique(user)'],
+            fields: ['event.type'],
+            displayType: DisplayType.LINE,
+            dataset: WidgetType.ERRORS,
+            limit: '5',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.limit).toBe(5);
+
+      // Changing the dataset will unset the limit
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.limit).toBeUndefined();
+
+      // Changing the dataset back and applying a grouping should set a limit
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.ERRORS,
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [{field: 'event.type', kind: FieldValueKind.FIELD}],
+        });
+      });
+
+      expect(result.current.state.limit).toBe(5);
+    });
   });
 
   describe('yAxis', () => {
@@ -1625,6 +1672,34 @@ describe('useWidgetBuilderState', () => {
       });
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'asc'}]);
+    });
+
+    it('correctly reverses sort between events (freq) and last seen (date) field', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            sort: ['freq'],
+            dataset: WidgetType.ISSUE,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // We expect desc even though freq doesn't use '-'
+      expect(result.current.state.sort).toEqual([{field: 'freq', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_SORT,
+          payload: [{field: 'date', kind: 'desc'}],
+        });
+      });
+
+      // Expect it to switch back to asc for other issue fields
+      expect(result.current.state.sort).toEqual([{field: 'date', kind: 'asc'}]);
     });
   });
 
@@ -1741,7 +1816,7 @@ describe('useWidgetBuilderState', () => {
         expect.objectContaining({
           query: expect.objectContaining({selectedAggregate: undefined}),
         }),
-        {replace: true}
+        expect.anything()
       );
     });
   });

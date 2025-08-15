@@ -3,7 +3,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -31,11 +30,6 @@ class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
         """
         Update the last_visited timestamp for a GroupSearchView for the current organization member.
         """
-        if not features.has(
-            "organizations:issue-stream-custom-views", organization, actor=request.user
-        ):
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
         try:
             view = GroupSearchView.objects.get(id=view_id, organization=organization)
         except GroupSearchView.DoesNotExist:

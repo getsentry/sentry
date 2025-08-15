@@ -24,12 +24,24 @@ export default function errorHandler<P>(WrappedComponent: React.ComponentType<P>
       error: undefined,
     };
 
-    componentDidCatch(_error: Error, info: React.ErrorInfo) {
+    componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
       // eslint-disable-next-line no-console
       console.error(
         'Component stack trace caught in <ErrorHandler />:',
-        info.componentStack
+        errorInfo.componentStack
       );
+
+      try {
+        // Based on https://github.com/getsentry/sentry-javascript/blob/6f4ad562c469f546f1098136b65583309d03487b/packages/react/src/errorboundary.tsx#L75-L85
+        const errorBoundaryError = new Error(error.message);
+        errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
+        errorBoundaryError.stack = errorInfo.componentStack!;
+
+        // This will mutate `error` and get captured to Sentry in `RouteError`
+        error.cause = errorBoundaryError;
+      } catch {
+        // Some browsers won't let you write to Error instance
+      }
     }
 
     render() {

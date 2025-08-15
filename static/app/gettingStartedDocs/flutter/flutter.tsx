@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
@@ -38,10 +38,7 @@ const platformOptions = {
         value: InstallationMode.MANUAL,
       },
     ],
-    defaultValue:
-      navigator.userAgent.indexOf('Win') === -1
-        ? InstallationMode.AUTO
-        : InstallationMode.MANUAL,
+    defaultValue: InstallationMode.AUTO,
   },
 } satisfies BasePlatformOptions;
 
@@ -52,7 +49,7 @@ const isAutoInstall = (params: Params) =>
   params.platformOptions?.installationMode === InstallationMode.AUTO;
 
 const getManualInstallSnippet = (params: Params) => {
-  const version = getPackageVersion(params, 'sentry.dart.flutter', '8.13.2');
+  const version = getPackageVersion(params, 'sentry.dart.flutter', '9.6.0');
   return `dependencies:
   sentry_flutter: ^${version}`;
 };
@@ -67,6 +64,19 @@ Future<void> main() async {
       // Adds request headers and IP for users,
       // visit: https://docs.sentry.io/platforms/dart/data-management/data-collected/ for more info
       options.sendDefaultPii = true;${
+        params.isLogsSelected
+          ? `
+      // Enable logs to be sent to Sentry
+      options.enableLogs = true;`
+          : ''
+      }${
+        params.isReplaySelected
+          ? `
+      // Set sessionSampleRate to 0.1 to capture 10% of sessions and onErrorSampleRate to 1.0 to capture 100% of errors.
+      options.replay.sessionSampleRate = 0.1;
+      options.replay.onErrorSampleRate = 1.0;`
+          : ''
+      }${
         params.isPerformanceSelected
           ? `
       // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
@@ -99,13 +109,53 @@ const configureAdditionalInfo = tct(
   }
 );
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) => {
+  const logsCode = params.isLogsSelected
+    ? `
+    // Send a log before throwing the error
+    Sentry.logger.info("User triggered test error button", {
+      'action': SentryLogAttribute.string('test_error_button_click'),
+    });`
+    : '';
+  return `
+import 'package:sentry/sentry.dart';
+
 child: ElevatedButton(
-  onPressed: () {
+  onPressed: () {${logsCode}
     throw StateError('This is test exception');
   },
   child: const Text('Verify Sentry Setup'),
 )
+`;
+};
+
+const getFeedbackConfigureSnippet = () => `
+// The example uses the NavigatorState to present the widget. Adapt as needed to your navigation stack.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+...
+
+await SentryFlutter.init((options) {
+  options.beforeSend = (event, hint) async {
+    // Filter here what kind of events you want users to give you feedback.
+
+    final screenshot = await SentryFlutter.captureScreenshot();
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SentryFeedbackWidget(
+            associatedEventId: event.eventId,
+            screenshot: screenshot,
+          ),
+          fullscreenDialog: true,
+        ),
+      );
+    }
+  };
+});
 `;
 
 const getPerformanceSnippet = () => `
@@ -142,8 +192,8 @@ const getInstallReplaySnippet = () => `
 await SentryFlutter.init(
   (options) {
     ...
-    options.experimental.replay.sessionSampleRate = 1.0;
-    options.experimental.replay.onErrorSampleRate = 1.0;
+    options.replay.sessionSampleRate = 1.0;
+    options.replay.onErrorSampleRate = 1.0;
   },
   appRunner: () => runApp(
       SentryWidget(
@@ -154,8 +204,8 @@ await SentryFlutter.init(
 `;
 
 const getConfigureReplaySnippet = () => `
-options.experimental.replay.maskAllText = true;
-options.experimental.replay.maskAllImages = true;`;
+options.replay.maskAllText = true;
+options.replay.maskAllImages = true;`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -274,7 +324,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                 additionalInfo: params.isPerformanceSelected ? (
                   <Fragment>
                     <p>{configureAdditionalInfo}</p>
-                    <Alert type="info">
+                    <Alert type="info" showIcon={false}>
                       {t(
                         'To monitor performance, you need to add extra instrumentation as described in the Tracing section below.'
                       )}
@@ -303,7 +353,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     label: 'Dart',
                     value: 'dart',
                     language: 'dart',
-                    code: getVerifySnippet(),
+                    code: getVerifySnippet(params),
                   },
                 ],
               },
@@ -340,29 +390,43 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               ]
             : []),
         ],
-  nextSteps: () => [
-    {
-      name: t('Upload Debug Symbols'),
-      description: t(
-        'We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and find the cause of your errors faster.'
-      ),
-      link: 'https://docs.sentry.io/platforms/flutter/upload-debug/',
-    },
-    {
-      name: t('Distributed Tracing'),
-      description: t(
-        'Connect all your services by configuring your endpoints in the Sentry init.'
-      ),
-      link: 'https://docs.sentry.io/platforms/flutter/tracing/trace-propagation/limiting-trace-propagation/',
-    },
-    {
-      name: t('Connect your Git Repo'),
-      description: t(
-        'Adding our Git integrations will allow us determine suspect commits, comment on PRs, and create links directly to your source code from Sentry issues.'
-      ),
-      link: 'https://docs.sentry.io/organization/integrations/source-code-mgmt/',
-    },
-  ],
+  nextSteps: params => {
+    const steps = [
+      {
+        name: t('Upload Debug Symbols'),
+        description: t(
+          'We offer a range of methods to provide Sentry with debug symbols so that you can see symbolicated stack traces and find the cause of your errors faster.'
+        ),
+        link: 'https://docs.sentry.io/platforms/flutter/upload-debug/',
+      },
+      {
+        name: t('Distributed Tracing'),
+        description: t(
+          'Connect all your services by configuring your endpoints in the Sentry init.'
+        ),
+        link: 'https://docs.sentry.io/platforms/flutter/tracing/trace-propagation/limiting-trace-propagation/',
+      },
+      {
+        name: t('Connect your Git Repo'),
+        description: t(
+          'Adding our Git integrations will allow us determine suspect commits, comment on PRs, and create links directly to your source code from Sentry issues.'
+        ),
+        link: 'https://docs.sentry.io/organization/integrations/source-code-mgmt/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        name: t('Structured Logs'),
+        description: t(
+          'Learn how to send structured logs to Sentry and view them alongside your errors.'
+        ),
+        link: 'https://docs.sentry.io/platforms/dart/guides/flutter/logs/',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
@@ -426,17 +490,58 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     },
   ],
   verify: getReplayVerifyStep({
-    replayOnErrorSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
-    replaySessionSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
+    replayOnErrorSampleRateName: 'options\u200b.replay\u200b.onErrorSampleRate',
+    replaySessionSampleRateName: 'options\u200b.replay\u200b.sessionSampleRate',
   }),
+  nextSteps: () => [],
+};
+
+const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        "Use the [code:SentryFeedbackWidget] to let users send feedback data to Sentry. [break] [break] The widget requests and collects the user's name, email address, and a description of what occurred. When an event identifier is provided, Sentry pairs the feedback with the original event, giving you additional insights into issues. Additionally, you can provide a screenshot that will be sent to Sentry. Learn more about how to enable screenshots in our [screenshotsDocs:screenshots documentation].",
+        {
+          screenshotsDocs: (
+            <ExternalLink href="https://docs.sentry.io/platforms/dart/guides/flutter/enriching-events/screenshots/" />
+          ),
+          break: <br />,
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          description: tct(
+            'One possible use for the [code:SentryFeedbackWidget] is to listen for specific Sentry events in the [code:beforeSend] callback and show the widget to users.',
+            {
+              code: <code />,
+            }
+          ),
+          configurations: [
+            {
+              code: [
+                {
+                  label: 'Dart',
+                  value: 'dart',
+                  language: 'dart',
+                  code: getFeedbackConfigureSnippet(),
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
   nextSteps: () => [],
 };
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
-  feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
+  feedbackOnboardingNpm: feedbackOnboarding,
   crashReportOnboarding: feedbackOnboardingCrashApiDart,
   platformOptions,
   replayOnboarding,

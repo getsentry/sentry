@@ -102,7 +102,8 @@ event_received = BetterSignal()  # ["ip", "project"]
 event_accepted = BetterSignal()  # ["ip", "data", "project"]
 
 # Organization Onboarding Signals
-project_created = BetterSignal()  # ["project", "user", "user_id", "default_rules"]
+project_created = BetterSignal()  # ["project", "user", "default_rules"]
+project_transferred = BetterSignal()  # ["old_org_id", "project"]
 
 first_event_received = BetterSignal()  # ["project", "event"]
 # We use signal for consistency with other places but
@@ -118,6 +119,7 @@ first_cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"
 cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"]
 first_cron_checkin_received = BetterSignal()  # ["project", "monitor_id"]
 first_insight_span_received = BetterSignal()  # ["project", "module"]
+first_log_received = BetterSignal()  # ["project"]
 member_invited = BetterSignal()  # ["member", "user"]
 member_joined = BetterSignal()  # ["organization_member_id", "organization_id", "user_id"]
 plugin_enabled = BetterSignal()  # ["plugin", "project", "user"]

@@ -35,7 +35,7 @@ export type SuspectSpan = SpanExample & {
 
 export type SuspectSpans = SuspectSpan[];
 
-export type SpanOp = {
+type SpanOp = {
   op: string;
 };
 

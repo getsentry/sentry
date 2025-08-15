@@ -1,11 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 
-import {SINGULAR_DATA_CATEGORY} from 'getsentry/utils/dataCategory';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
 import AllocationRow from './components/allocationRow';
 import {Centered, Divider, HalvedWithDivider} from './components/styles';
@@ -15,14 +16,14 @@ import {midPeriod} from './utils';
 
 type Props = {
   deleteSpendAllocation: (
-    selectedMetric: string,
+    selectedMetric: DataCategory | null,
     targetId: number,
     targetType: string,
     timestamp: number
   ) => (e: React.MouseEvent) => void;
   metricUnit: BigNumUnits;
   openForm: (formData?: SpendAllocation) => (e: React.MouseEvent) => void;
-  selectedMetric: string;
+  selectedMetric: DataCategory;
   spendAllocations?: SpendAllocation[];
 };
 
@@ -36,8 +37,7 @@ function ProjectAllocationsTable({
   const filteredMetrics: SpendAllocation[] = useMemo(() => {
     const filtered = spendAllocations.filter(
       allocation =>
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        allocation.billingMetric === SINGULAR_DATA_CATEGORY[selectedMetric] &&
+        allocation.billingMetric === getCategoryInfoFromPlural(selectedMetric)?.name &&
         allocation.targetType === 'Project'
     );
     // NOTE: This will NOT work once we include multiple layers. We'll need to construct a tree
@@ -93,8 +93,7 @@ function ProjectAllocationsTable({
               key={a.id}
               allocation={a}
               deleteAction={deleteSpendAllocation(
-                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                SINGULAR_DATA_CATEGORY[selectedMetric],
+                selectedMetric,
                 a.targetId,
                 a.targetType,
                 midPeriod(a.period)
@@ -134,7 +133,7 @@ const Table = styled('table')`
 
 const HeaderCell = styled('th')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-weight: 600;
   text-transform: uppercase;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;

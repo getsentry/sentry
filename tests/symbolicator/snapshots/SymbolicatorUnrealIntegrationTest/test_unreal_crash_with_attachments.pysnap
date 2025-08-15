@@ -12,9 +12,11 @@ contexts:
     name: Parallels Display Adapter (WDDM)
     type: gpu
   os:
-    name: Windows 10
+    name: Windows
+    os: Windows 10
+    raw_description: Windows 10
     type: os
-    version: 10.0.17134
+    version: 10
   unreal:
     app_default_locate: en-US
     base_dir: //Mac/Home/Desktop/WindowsNoEditor/YetAnother/Binaries/Win64/

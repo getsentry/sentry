@@ -1,10 +1,10 @@
 from collections.abc import Generator, Sequence
 
-from sentry.eventstore.models import GroupEvent
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import LegacyPluginService
 from sentry.rules.base import CallbackFuture
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
@@ -38,5 +38,12 @@ class NotifyEventAction(EventAction):
             if not safe_execute(plugin.should_notify, group=group, event=event):
                 continue
 
-            metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
+            metrics.incr(
+                "notifications.sent",
+                instance=plugin.slug,
+                tags={
+                    "issue_type": event.group.issue_type.slug,
+                },
+                skip_internal=False,
+            )
             yield self.future(plugin.rule_notify)

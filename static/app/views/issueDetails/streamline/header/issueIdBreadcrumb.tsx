@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import ShortId from 'sentry/components/shortId';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy, IconGlobe} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,8 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
-import PublishIssueModal from 'sentry/views/issueDetails/actions/publishModal';
-import {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
+import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
 
 interface ShortIdBreadcrumbProps {
   group: Group;
@@ -83,30 +82,27 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           size="zero"
           borderless
           aria-label={t('View issue share settings')}
+          icon={<IconGlobe size="xs" color="subText" />}
           title={tct('This issue has been shared [link:with a public link].', {
             link: <ExternalLink href={shareUrl} />,
           })}
           tooltipProps={{isHoverable: true}}
-          icon={
-            <IconGlobe
-              size="xs"
-              color="subText"
-              onClick={() =>
-                openModal(modalProps => (
-                  <PublishIssueModal
-                    {...modalProps}
-                    organization={organization}
-                    projectSlug={group.project.slug}
-                    groupId={group.id}
-                    onToggle={() =>
-                      trackAnalytics('issue.shared_publicly', {
-                        organization,
-                      })
-                    }
-                  />
-                ))
-              }
-            />
+          onClick={() =>
+            openModal(modalProps => (
+              <ShareIssueModal
+                {...modalProps}
+                organization={organization}
+                projectSlug={group.project.slug}
+                groupId={group.id}
+                onToggle={() =>
+                  trackAnalytics('issue.shared_publicly', {
+                    organization,
+                  })
+                }
+                event={null}
+                hasIssueShare
+              />
+            ))
           }
         />
       )}
@@ -116,6 +112,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
 
 const BreadcrumbContainer = styled('div')`
   display: flex;
+  align-items: center;
   gap: ${space(0.5)};
 `;
 
@@ -127,7 +124,7 @@ const Wrapper = styled('div')`
 
 const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
 `;
 
@@ -135,6 +132,8 @@ const ShortIdCopyable = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
+  /* hardcoded height avoids layout shift on button hover */
+  height: 36px;
   button[aria-haspopup] {
     display: block;
     opacity: 0;

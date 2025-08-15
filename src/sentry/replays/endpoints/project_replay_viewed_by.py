@@ -95,6 +95,9 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Create a replay-viewed event."""
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):

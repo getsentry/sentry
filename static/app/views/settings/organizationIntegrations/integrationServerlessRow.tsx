@@ -71,7 +71,7 @@ export function IntegrationServerlessRow({
       // update remaining after response
       onUpdate(resp);
       addSuccessMessage(t('Success'));
-    } catch (err) {
+    } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
       addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
@@ -98,7 +98,7 @@ export function IntegrationServerlessRow({
       // update remaining after response
       onUpdate(resp);
       addSuccessMessage(t('Success'));
-    } catch (err) {
+    } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
       addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
@@ -186,7 +186,7 @@ const Name = styled(`span`)`
 const RuntimeAndVersion = styled('div')`
   display: flex;
   flex-direction: row;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const DetailWrapper = styled('div')`

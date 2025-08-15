@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:34:05.247773+00:00'
+created: '2025-04-25T21:22:03.909577+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,7 +17,7 @@ app:
               "cron.go"
             function*
               "FuncJob.Run"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "main"
             filename (module takes precedence)

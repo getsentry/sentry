@@ -43,7 +43,7 @@ class CorePluginMixin:
     def error_message_from_json(self, data: Mapping[str, Any]) -> str:
         return data.get("message", "unknown error")
 
-    def message_from_error(self, exc: BaseException) -> str:
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiUnauthorized):
             return ERR_UNAUTHORIZED
         elif isinstance(exc, ApiHostError):
@@ -59,7 +59,7 @@ class CorePluginMixin:
         else:
             return ERR_INTERNAL
 
-    def raise_error(self, exc: BaseException, identity: Any = None) -> NoReturn:
+    def raise_error(self, exc: Exception, identity: Any = None) -> NoReturn:
         if isinstance(exc, ApiUnauthorized):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]

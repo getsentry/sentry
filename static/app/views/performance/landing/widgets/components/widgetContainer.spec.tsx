@@ -9,10 +9,9 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
+import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
-
-import {QUERY_LIMIT_PARAM} from '../utils';
 
 const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   const data = _initializeData({
@@ -27,7 +26,7 @@ const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
 
 function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
   return (
-    <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext value={data.organization}>
       <MetricsCardinalityProvider
         location={data.router.location}
         organization={data.organization}
@@ -53,14 +52,14 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
           </PerformanceDisplayProvider>
         </MEPSettingProvider>
       </MetricsCardinalityProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 
 const issuesPredicate = (url: string, options: any) =>
   url.includes('events') && options.query?.query.includes('error');
 
-describe('Performance > Widgets > WidgetContainer', function () {
+describe('Performance > Widgets > WidgetContainer', () => {
   let wrapper: ReturnType<typeof render> | undefined;
 
   let eventStatsMock: jest.Mock;
@@ -69,7 +68,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
 
   let issuesListMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     ConfigStore.init();
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
@@ -122,14 +121,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     if (wrapper) {
       wrapper.unmount();
       wrapper = undefined;
     }
   });
 
-  it('Check requests when changing widget props', async function () {
+  it('Check requests when changing widget props', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -182,13 +181,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
           partial: '1',
           query: 'transaction.op:pageload',
           statsPeriod: '28d',
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
   });
 
-  it('Check requests when changing widget props for GenericDiscoverQuery based widget', async function () {
+  it('Check requests when changing widget props for GenericDiscoverQuery based widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -262,7 +261,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('should call PageError Provider when errors are present', async function () {
+  it('should call PageError Provider when errors are present', async () => {
     const data = initializeData();
 
     eventStatsMock = MockApiClient.addMockResponse({
@@ -295,7 +294,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('TPM Widget', async function () {
+  it('TPM Widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -318,13 +317,13 @@ describe('Performance > Widgets > WidgetContainer', function () {
           partial: '1',
           query: 'transaction.op:pageload',
           statsPeriod: '14d',
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
   });
 
-  it('Failure Rate Widget', async function () {
+  it('Failure Rate Widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -353,7 +352,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Widget with MEP enabled and metric meta set to true', async function () {
+  it('Widget with MEP enabled and metric meta set to true', async () => {
     const data = initializeData(
       {},
       {
@@ -408,7 +407,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Widget with MEP enabled and metric meta set to undefined', async function () {
+  it('Widget with MEP enabled and metric meta set to undefined', async () => {
     const data = initializeData(
       {},
       {
@@ -443,7 +442,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Widget with MEP enabled and metric meta set to false', async function () {
+  it('Widget with MEP enabled and metric meta set to false', async () => {
     const data = initializeData(
       {},
       {
@@ -498,7 +497,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('User misery Widget', async function () {
+  it('User misery Widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -527,7 +526,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Worst LCP widget', async function () {
+  it('Worst LCP widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -567,7 +566,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Worst LCP widget - MEP', async function () {
+  it('Worst LCP widget - MEP', async () => {
     const data = initializeData(
       {},
       {
@@ -612,7 +611,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Worst FCP widget', async function () {
+  it('Worst FCP widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -652,7 +651,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Worst FID widget', async function () {
+  it('Worst FID widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -691,7 +690,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('LCP Histogram Widget', async function () {
+  it('LCP Histogram Widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -708,7 +707,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     // TODO(k-fish): Add histogram mock
   });
 
-  it('FCP Histogram Widget', async function () {
+  it('FCP Histogram Widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -725,7 +724,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     // TODO(k-fish): Add histogram mock
   });
 
-  it('Most errors widget', async function () {
+  it('Most errors widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -756,7 +755,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most related issues widget', async function () {
+  it('Most related issues widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -787,7 +786,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Switching from issues to errors widget', async function () {
+  it('Switching from issues to errors widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -816,7 +815,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
   });
 
-  it('Most improved trends widget', async function () {
+  it('Most improved trends widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -854,7 +853,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most time spent in db queries widget', async function () {
+  it('Most time spent in db queries widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -879,20 +878,21 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'span.op',
             'span.group',
             'project.id',
-            'span.description',
+            'sentry.normalized_description',
             'sum(span.self_time)',
             'avg(span.self_time)',
             'time_spent_percentage()',
           ],
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'has:span.description span.module:db transaction.op:pageload',
+          query:
+            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis] transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -900,7 +900,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most time consuming domains widget', async function () {
+  it('Most time consuming domains widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -925,7 +925,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
             'project.id',
@@ -936,7 +936,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           ],
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'span.module:http',
+          query: 'span.category:http',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -944,7 +944,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most time consuming resources widget', async function () {
+  it('Most time consuming resources widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -969,10 +969,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: [
-            'span.description',
+            'sentry.normalized_description',
             'span.op',
             'project.id',
             'span.group',
@@ -983,7 +983,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            '!span.description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) transaction.op:pageload',
+            '!sentry.normalized_description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -991,7 +991,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('should not contain org in link with customer domain', async function () {
+  it('should not contain org in link with customer domain', async () => {
     const data = initializeData();
     ConfigStore.set('customerDomain', {
       subdomain: 'sentry',
@@ -1012,7 +1012,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Highest cache miss rate transactions widget', async function () {
+  it('Highest cache miss rate transactions widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -1040,7 +1040,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           cursor: '0:0:1',
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           environment: ['prod'],
           field: ['transaction', 'project.id', 'cache_miss_rate()'],
           noPagination: true,
@@ -1049,14 +1049,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: 'span.op:[cache.get_item,cache.get]',
           statsPeriod: '7d',
           referrer:
-            'api.performance.generic-widget-chart.highest-cache--miss-rate-transactions',
+            'api.insights.generic-widget-chart.highest-cache--miss-rate-transactions',
           sort: '-cache_miss_rate()',
         }),
       })
     );
   });
 
-  it('Best Page Opportunities widget', async function () {
+  it('Best Page Opportunities widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -1071,13 +1071,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Best Page Opportunities'
     );
+
     expect(eventsMock).toHaveBeenCalledTimes(2);
     expect(eventsMock).toHaveBeenNthCalledWith(
       2,
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'project.id',
             'project',
@@ -1095,16 +1096,16 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
-            'total_opportunity_score()',
+            'count_scores(measurements.score.total)',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
         }),
       })
     );
   });
 
-  it('Most regressed trends widget', async function () {
+  it('Most regressed trends widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -1140,7 +1141,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most slow frames widget', async function () {
+  it('Most slow frames widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -1166,7 +1167,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
         }),
@@ -1176,7 +1177,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('Most slow frames widget - MEP', async function () {
+  it('Most slow frames widget - MEP', async () => {
     const data = initializeData(
       {},
       {
@@ -1207,7 +1208,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_slow):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_slow):>0',
           sort: '-avg(measurements.frames_slow)',
           statsPeriod: '7d',
         }),
@@ -1217,7 +1218,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('Most frozen frames widget', async function () {
+  it('Most frozen frames widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -1248,7 +1249,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'transaction.op:pageload epm():>0.01 avg(measurements.frames_frozen):>0',
+          query: 'transaction.op:pageload count():>1 avg(measurements.frames_frozen):>0',
           sort: '-avg(measurements.frames_frozen)',
           statsPeriod: '7d',
         }),
@@ -1258,7 +1259,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('Able to change widget type from menu', async function () {
+  it('Able to change widget type from menu', async () => {
     const data = initializeData();
 
     const setRowChartSettings = jest.fn(() => {});
@@ -1288,7 +1289,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(setRowChartSettings).toHaveBeenCalledTimes(1);
   });
 
-  it('Chart settings passed from the row are disabled in the menu', async function () {
+  it('Chart settings passed from the row are disabled in the menu', async () => {
     const data = initializeData();
 
     const setRowChartSettings = jest.fn(() => {});

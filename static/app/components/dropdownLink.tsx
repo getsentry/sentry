@@ -2,6 +2,7 @@ import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import classNames from 'classnames';
 
+import type {DeprecatedDropdownMenuProps} from 'sentry/components/deprecatedDropdownMenu';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import {IconChevron} from 'sentry/icons';
 
@@ -36,34 +37,30 @@ const getRootCss = (theme: Theme) => css`
 // the extra container because dropdown-menu alignment is off if
 // `dropdown-actor` is a flexbox
 
-type Props = Omit<
-  Omit<DeprecatedDropdownMenu['props'], 'children'>,
-  keyof typeof DeprecatedDropdownMenu.defaultProps
-> &
-  Partial<typeof DeprecatedDropdownMenu.defaultProps> & {
-    children: React.ReactNode;
-    /**
-     * Always render children of dropdown menu, this is included to support menu
-     * items that open a confirm modal. Otherwise when dropdown menu hides, the
-     * modal also gets unmounted
-     */
-    alwaysRenderMenu?: boolean;
-    anchorMiddle?: boolean;
-    /**
-     * Anchors menu to the right
-     */
-    anchorRight?: boolean;
-    /**
-     * display dropdown caret
-     */
-    caret?: boolean;
-    className?: string;
-    customTitle?: React.ReactNode;
-    disabled?: boolean;
-    menuClasses?: string;
-    title?: React.ReactNode;
-    topLevelClasses?: string;
-  };
+type Props = Omit<DeprecatedDropdownMenuProps, 'children'> & {
+  children: React.ReactNode;
+  /**
+   * Always render children of dropdown menu, this is included to support menu
+   * items that open a confirm modal. Otherwise when dropdown menu hides, the
+   * modal also gets unmounted
+   */
+  alwaysRenderMenu?: boolean;
+  anchorMiddle?: boolean;
+  /**
+   * Anchors menu to the right
+   */
+  anchorRight?: boolean;
+  /**
+   * display dropdown caret
+   */
+  caret?: boolean;
+  className?: string;
+  customTitle?: React.ReactNode;
+  disabled?: boolean;
+  menuClasses?: string;
+  title?: React.ReactNode;
+  topLevelClasses?: string;
+};
 
 function DropdownLink({
   anchorMiddle,

@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 __all__ = (
     "create_or_update",
     "update",
-    "update_or_create",
 )
 
 COMBINED_EXPRESSION_CALLBACKS = {
@@ -77,14 +76,6 @@ def _handle_value(instance: BaseModel, value: Any) -> Any:
     return value
 
 
-def _handle_key(model: type[BaseModel], key: str, value: Any) -> str:
-    # XXX(dcramer): we want to support column shortcut on create so we can do
-    #  create_or_update(..., {'project': 1})
-    if not isinstance(value, Model):
-        return _get_field(model, key).attname
-    return key
-
-
 def update(instance: BaseModel, using: str | None = None, **kwargs: Any) -> int:
     """
     Updates specified attributes on the current instance.
@@ -107,7 +98,7 @@ def update(instance: BaseModel, using: str | None = None, **kwargs: Any) -> int:
     for k, v in kwargs.items():
         setattr(instance, k, _handle_value(instance, v))
     if affected == 1:
-        post_save.send(
+        post_save.send_robust(
             sender=instance.__class__,
             instance=instance,
             created=False,
@@ -125,56 +116,6 @@ def update(instance: BaseModel, using: str | None = None, **kwargs: Any) -> int:
 
 
 update.alters_data = True  # type: ignore[attr-defined]
-
-
-def update_or_create(
-    model: type[BaseModel],
-    using: str | None = None,
-    **kwargs: Any,
-) -> tuple[int, Literal[False]] | tuple[BaseModel, Literal[True]]:
-    """
-    Similar to `get_or_create()`, either updates a row or creates it.
-
-    In order to determine if the row exists, this searches on all of the kwargs
-    besides `defaults`. If the row exists, it is updated with the data in
-    `defaults`. If it doesn't, it is created with the data in `defaults` and the
-    remaining kwargs.
-
-    Returns a tuple of (object, created), where object is the created or updated
-    object and created is a boolean specifying whether a new object was created.
-    """
-
-    defaults = kwargs.pop("defaults", {})
-
-    if not using:
-        using = router.db_for_write(model)
-
-    objects = model.objects.using(using)
-
-    affected = objects.filter(**kwargs).update(**defaults)
-    if affected:
-        return affected, False
-
-    instance = objects.model()
-
-    create_kwargs = kwargs.copy()
-    create_kwargs.update(
-        {_handle_key(model, k, v): _handle_value(instance, v) for k, v in defaults.items()}
-    )
-
-    try:
-        with transaction.atomic(using=using):
-            return objects.create(**create_kwargs), True
-    except IntegrityError:
-        metrics.incr(
-            "db.models.query.update_or_create.integrity_error",
-            tags={"model": model.__name__},
-            sample_rate=1,
-        )
-        pass
-
-    # Retrying the update() here to preserve behavior in a race condition with a concurrent create().
-    return objects.filter(**kwargs).update(**defaults), False
 
 
 def create_or_update(

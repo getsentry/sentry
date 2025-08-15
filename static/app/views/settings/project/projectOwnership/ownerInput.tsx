@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TextArea} from 'sentry/components/core/textarea';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -111,8 +111,7 @@ class OwnerInput extends Component<Props, State> {
           );
         } else if (
           error.status === 400 &&
-          error.responseJSON.raw &&
-          error.responseJSON.raw[0].startsWith('Invalid rule owners:')
+          error.responseJSON.raw?.[0].startsWith('Invalid rule owners:')
         ) {
           addErrorMessage(
             t(
@@ -213,7 +212,7 @@ class OwnerInput extends Component<Props, State> {
           </Panel>
           <ActionBar>
             <div>{this.parseError(error)}</div>
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <Button type="button" size="sm" onClick={this.props.onCancel}>
                 {t('Cancel')}
               </Button>
@@ -272,12 +271,12 @@ const StyledTextArea = styled(TextArea)`
 
 const InvalidOwners = styled('div')`
   color: ${p => p.theme.error};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: 12px;
 `;
 
 const SyncDate = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;
 `;
 

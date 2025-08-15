@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconInfo, IconQuestion} from 'sentry/icons';
 import type {IconSize} from 'sentry/utils/theme';
 
@@ -40,7 +40,7 @@ function QuestionTooltip({
 }: QuestionProps) {
   return (
     <QuestionIconContainer size={size} className={className}>
-      <Tooltip title={title} {...tooltipProps}>
+      <Tooltip skipWrapper title={title} {...tooltipProps}>
         {icon === 'info' ? (
           <IconInfo size={size} color="subText" data-test-id="more-information" />
         ) : (

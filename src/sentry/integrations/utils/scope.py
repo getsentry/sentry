@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 def clear_tags_and_context() -> None:
     """Clear certain tags and context since it should not be set."""
     reset_values = False
-    scope = sentry_sdk.Scope.get_isolation_scope()
+    scope = sentry_sdk.get_isolation_scope()
 
     for tag in ["organization", "organization.slug"]:
         if tag in scope._tags:

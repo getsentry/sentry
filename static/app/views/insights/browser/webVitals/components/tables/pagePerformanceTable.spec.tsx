@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -9,58 +10,33 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
 
 jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('PagePerformanceTable', function () {
+describe('PagePerformanceTable', () => {
   const organization = OrganizationFixture();
   const router = RouterFixture();
 
   let eventsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue(router.location);
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
-    jest.mocked(useProjects).mockReturnValue({
-      projects: [
-        ProjectFixture({
-          id: '11276',
-          name: 'frontend',
-          slug: 'frontend',
-          platform: 'python',
-        }),
-      ],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '11276',
+        name: 'frontend',
+        slug: 'frontend',
+        platform: 'python',
+      }),
+    ]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
@@ -78,9 +54,8 @@ describe('PagePerformanceTable', function () {
             'count()': 492,
             'count_scores(measurements.score.inp)': 985,
             'count_scores(measurements.score.total)': 985,
-            'avg(measurements.score.total)': 0.847767385770207,
-            'total_opportunity_score()': 6.956683571915815e-5,
-            'opportunity_score(measurements.score.total)': 179.76662400002692,
+            'performance_score(measurements.score.total)': 0.847767385770207,
+            'opportunity_score(measurements.score.total)': 0.0001,
             'p75(measurements.inp)': 144.0,
             'p75(measurements.ttfb)': 783.125,
             'p75(measurements.lcp)': 700.2999782562256,
@@ -103,7 +78,7 @@ describe('PagePerformanceTable', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
@@ -112,7 +87,9 @@ describe('PagePerformanceTable', function () {
       ...router.location,
       query: {query: '/issues/*'},
     });
-    render(<PagePerformanceTable />, {router, organization});
+    render(<PagePerformanceTable />, {
+      organization,
+    });
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledTimes(1);
     });
@@ -126,8 +103,10 @@ describe('PagePerformanceTable', function () {
     );
   });
 
-  it('renders a list of pages', async function () {
-    render(<PagePerformanceTable />, {router, organization});
+  it('renders a list of pages', async () => {
+    render(<PagePerformanceTable />, {
+      organization,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

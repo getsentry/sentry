@@ -5,6 +5,8 @@ from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -16,6 +18,9 @@ logger = logging.getLogger(__name__)
     queue="auto_enable_codecov",
     max_retries=0,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+    ),
 )
 def enable_for_org(dry_run: bool = False) -> None:
     """
@@ -28,7 +33,7 @@ def enable_for_org(dry_run: bool = False) -> None:
         integration_enabled = features.has("organizations:codecov-integration", organization)
         task_enabled = features.has("organizations:auto-enable-codecov", organization)
         if not integration_enabled or not task_enabled:
-            if organization.flags.codecov_access.is_set:
+            if organization.flags.codecov_access:
                 disable_codecov_access(organization, integration_enabled, task_enabled)
             continue
 
@@ -41,7 +46,7 @@ def enable_for_org(dry_run: bool = False) -> None:
             },
         )
         try:
-            if organization.flags.codecov_access.is_set:
+            if organization.flags.codecov_access:
                 logger.info(
                     "Codecov Access flag already set",
                     extra={

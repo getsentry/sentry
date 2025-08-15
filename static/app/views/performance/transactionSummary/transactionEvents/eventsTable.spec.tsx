@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -11,6 +12,8 @@ import {
   EVENTS_TABLE_RESPONSE_FIELDS,
   MOCK_EVENTS_TABLE_DATA,
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
+
+const theme = ThemeFixture();
 
 type Data = {
   features?: string[];
@@ -38,7 +41,7 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
   return initialData;
 }
 
-describe('Performance GridEditable Table', function () {
+describe('Performance GridEditable Table', () => {
   const transactionsListTitles = [
     'event id',
     'user',
@@ -55,7 +58,7 @@ describe('Performance GridEditable Table', function () {
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -125,13 +128,13 @@ describe('Performance GridEditable Table', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
   });
 
-  it('renders ops breakdown bar when querying for span_ops_breakdown.relative', async function () {
+  it('renders ops breakdown bar when querying for span_ops_breakdown.relative', async () => {
     const initialData = initializeData();
 
     const eventView = EventView.fromNewQueryWithLocation(
@@ -149,6 +152,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -156,8 +160,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(await screen.findAllByTestId('relative-ops-breakdown')).toHaveLength(2);
@@ -167,7 +170,7 @@ describe('Performance GridEditable Table', function () {
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
   });
 
-  it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', async function () {
+  it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', async () => {
     const initialData = initializeData();
 
     fields = [
@@ -194,6 +197,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -201,8 +205,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(await screen.findAllByRole('columnheader')).toHaveLength(6);
@@ -211,7 +214,7 @@ describe('Performance GridEditable Table', function () {
     expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
   });
 
-  it('renders event id and trace id url', async function () {
+  it('renders event id and trace id url', async () => {
     const initialData = initializeData();
     const eventView = EventView.fromNewQueryWithLocation(
       {
@@ -228,6 +231,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -235,22 +239,21 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(await screen.findByRole('link', {name: 'deadbeef'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/undefined:deadbeef/?project=1&tab=events&transaction=transactionName&transactionCursor=1%3A0%3A0'
+      '/organizations/org-slug/insights/summary/trace/1234/?eventId=deadbeef&project=1&source=performance_transaction_summary&statsPeriod=14d&tab=events&timestamp=1590075078&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
     );
 
     expect(screen.getByRole('link', {name: '1234'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/traces/trace/1234/?project=1&tab=events&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
+      '/organizations/org-slug/insights/summary/trace/1234/?project=1&source=performance_transaction_summary&tab=events&timestamp=1590075078&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
     );
   });
 
-  it('renders replay id', async function () {
+  it('renders replay id', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
       body: {},
@@ -275,6 +278,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -282,15 +286,14 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
   });
 
-  it('renders profile id', async function () {
+  it('renders profile id', async () => {
     const initialData = initializeData();
 
     fields = [...fields, 'profile.id'];
@@ -310,6 +313,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -317,8 +321,7 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-      />,
-      {router: initialData.router}
+      />
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));

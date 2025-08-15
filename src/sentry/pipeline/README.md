@@ -45,16 +45,6 @@ which may use a slightly different process to do identity lookup on the
 external service, however the end of the process (and what is done in the
 final `finish_pipeline` call) all result in an Identity object being created.
 
-### Provider Manager
-
-The pipeline is not directly given a provider, but instead it is given a key
-that is used to lookup the provider within the provided `provider_manager`
-instance.
-
-There is no explicit interface for the manager object other than that it should
-have a `get` method that takes the `provider_key` and returns an instance of
-the provider.
-
 ## Pipeline Provider Model
 
 While not explicitly required, a pipeline supports lookup of a model that is
@@ -184,7 +174,7 @@ def get_pipeline_views(self):
     identity_pipeline_view = NestedPipelineView(
         bind_key='identity',
         provider_key='slack',
-        pipeline_cls=IdentityProviderPipeline,
+        pipeline_cls=IdentityPipeline,
         config=identity_pipeline_config,
     )
 

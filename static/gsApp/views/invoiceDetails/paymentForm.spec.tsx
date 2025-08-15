@@ -2,13 +2,7 @@ import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
-import {
-  cleanup,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ModalBody} from 'sentry/components/globalModal/components';
 
@@ -38,7 +32,7 @@ jest.mock('getsentry/utils/stripe', () => ({
   },
 }));
 
-describe('InvoiceDetails > Payment Form', function () {
+describe('InvoiceDetails > Payment Form', () => {
   const organization = OrganizationFixture();
   const invoice = InvoiceFixture(
     {
@@ -62,16 +56,14 @@ describe('InvoiceDetails > Payment Form', function () {
     returnUrl: 'https://example.com/',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, {});
-    // This should happen automatically, but isn't.
-    cleanup();
   });
 
   const modalDummy = ({children}: {children?: ReactNode}) => <div>{children}</div>;
 
-  it('renders basic a card form', async function () {
+  it('renders basic a card form', async () => {
     const mockget = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
       method: 'GET',
@@ -96,9 +88,14 @@ describe('InvoiceDetails > Payment Form', function () {
     expect(
       screen.getByRole('button', {name: 'Pay Now', hidden: true})
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
+      )
+    ).not.toBeInTheDocument();
   });
 
-  it('renders an error when intent creation fails', async function () {
+  it('renders an error when intent creation fails', async () => {
     const reloadInvoice = jest.fn();
     const mockget = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
@@ -133,7 +130,7 @@ describe('InvoiceDetails > Payment Form', function () {
     expect(error).toBeInTheDocument();
   });
 
-  it('can submit the form', async function () {
+  it('can submit the form', async () => {
     const reloadInvoice = jest.fn();
     const mockget = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,

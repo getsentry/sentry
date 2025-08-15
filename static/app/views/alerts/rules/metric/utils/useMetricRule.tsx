@@ -1,6 +1,6 @@
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -13,11 +13,7 @@ interface MetricRuleParams {
   };
 }
 
-export function makeMetricRuleQueryKey({
-  orgSlug,
-  ruleId,
-  query,
-}: MetricRuleParams): ApiQueryKey {
+function makeMetricRuleQueryKey({orgSlug, ruleId, query}: MetricRuleParams): ApiQueryKey {
   return [`/organizations/${orgSlug}/alert-rules/${ruleId}/`, {query}];
 }
 

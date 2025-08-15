@@ -45,13 +45,13 @@ class OrganizationReleasesDocsTest(APIDocsTestCase):
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
         )
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
 
-    def test_post(self):
+    def test_post(self) -> None:
         data = {"version": "1.2.1", "projects": [self.project3.slug]}
         response = self.client.post(self.url, data)
         request = RequestFactory().post(self.url, data)

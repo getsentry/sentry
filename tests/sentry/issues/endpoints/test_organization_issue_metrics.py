@@ -2,42 +2,57 @@ from datetime import datetime, timedelta, timezone
 
 from django.urls import reverse
 
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class OrganizationIssueMetricsTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-issue-metrics"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
-    def test_get_errors(self):
+    @freeze_time(datetime.now(tz=timezone.utc).replace(microsecond=100))
+    def test_get_errors(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
         one = self.create_release(project1, version="1.0.0")
         two = self.create_release(project2, version="1.2.0")
 
         curr = datetime.now(tz=timezone.utc)
-        prev = curr - timedelta(hours=1)
+        before_curr = curr - timedelta(microseconds=100)
+        prev = before_curr - timedelta(hours=1)
+        after_prev = prev + timedelta(microseconds=100)
 
         # Release issues.
         self.create_group(project=project1, status=0, first_seen=curr, first_release=one, type=1)
         self.create_group(project=project1, status=1, first_seen=prev, first_release=one, type=2)
         self.create_group(project=project2, status=1, first_seen=curr, first_release=two, type=3)
         self.create_group(project=project2, status=2, first_seen=curr, first_release=two, type=4)
-        self.create_group(project=project2, status=2, first_seen=curr, first_release=two, type=6)
+        self.create_group(
+            project=project2,
+            status=2,
+            first_seen=curr,
+            first_release=two,
+            type=FeedbackGroup.type_id,
+        )
 
         # Time based issues.
         self.create_group(project=project1, status=0, first_seen=curr, type=1)
-        self.create_group(project=project1, status=1, first_seen=curr, resolved_at=curr, type=2)
-        self.create_group(project=project2, status=1, first_seen=prev, resolved_at=prev, type=3)
+        self.create_group(
+            project=project1, status=1, first_seen=before_curr, resolved_at=curr, type=2
+        )
+        self.create_group(
+            project=project2, status=1, first_seen=prev, resolved_at=after_prev, type=3
+        )
         self.create_group(project=project2, status=2, first_seen=prev, type=4)
-        self.create_group(project=project2, status=2, first_seen=prev, type=6)
+        self.create_group(project=project2, status=2, first_seen=prev, type=FeedbackGroup.type_id)
 
         response = self.client.get(
-            self.url + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=error"
+            self.url + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=issue"
         )
         response_json = response.json()
         assert response_json["timeseries"] == [
@@ -103,7 +118,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
         ]
 
-    def test_get_errors_by_project(self):
+    def test_get_issues_by_project(self) -> None:
         """Assert the project filter works."""
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
@@ -115,7 +130,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
 
         response = self.client.get(
             self.url
-            + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=error&project={project1.id}"
+            + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=issue&project={project1.id}"
         )
         response_json = response.json()
         assert response_json["timeseries"] == [
@@ -133,27 +148,78 @@ class OrganizationIssueMetricsTestCase(APITestCase):
                     {"timestamp": int(prev.timestamp()), "value": 0},
                     {"timestamp": int(curr.timestamp()), "value": 1},
                 ],
-            }
+            },
+            {
+                "axis": "resolved_issues_count",
+                "groupBy": [],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 0},
+                ],
+            },
+            {
+                "axis": "new_issues_count_by_release",
+                "groupBy": [],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 0},
+                ],
+            },
         ]
 
-    def test_get_feedback(self):
+    @freeze_time(datetime.now(tz=timezone.utc).replace(microsecond=100))
+    def test_get_feedback(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
 
         curr = datetime.now(tz=timezone.utc)
-        prev = curr - timedelta(hours=1)
+        before_curr = curr - timedelta(microseconds=100)
+        prev = before_curr - timedelta(hours=1)
+        after_prev = prev + timedelta(microseconds=100)
         # New cohort
         self.create_group(project=project1, status=0, first_seen=curr, type=1)
         self.create_group(project=project1, status=1, first_seen=curr, type=2)
         self.create_group(project=project2, status=1, first_seen=curr, type=3)
-        self.create_group(project=project2, status=2, first_seen=prev, type=6)
-        self.create_group(project=project2, status=2, first_seen=curr, type=6)
+        self.create_group(project=project2, status=2, first_seen=prev, type=FeedbackGroup.type_id)
+        self.create_group(project=project2, status=2, first_seen=curr, type=FeedbackGroup.type_id)
         # Resolved cohort
-        self.create_group(project=project1, status=0, resolved_at=curr, type=2)
-        self.create_group(project=project1, status=1, resolved_at=curr, type=3)
-        self.create_group(project=project2, status=1, resolved_at=prev, type=6)
-        self.create_group(project=project2, status=1, resolved_at=curr, type=6)
-        self.create_group(project=project2, status=2, resolved_at=curr, type=5)
+        self.create_group(
+            project=project1, status=0, first_seen=before_curr, resolved_at=curr, type=2
+        )
+        self.create_group(
+            project=project1, status=1, first_seen=before_curr, resolved_at=curr, type=3
+        )
+        self.create_group(
+            project=project2,
+            status=1,
+            first_seen=prev,
+            resolved_at=after_prev,
+            type=FeedbackGroup.type_id,
+        )
+        self.create_group(
+            project=project2,
+            status=1,
+            first_seen=before_curr,
+            resolved_at=curr,
+            type=FeedbackGroup.type_id,
+        )
+        self.create_group(
+            project=project2, status=2, first_seen=before_curr, resolved_at=curr, type=5
+        )
 
         response = self.client.get(
             self.url
@@ -172,8 +238,8 @@ class OrganizationIssueMetricsTestCase(APITestCase):
                     "valueUnit": None,
                 },
                 "values": [
-                    {"timestamp": int(prev.timestamp()), "value": 1},
-                    {"timestamp": int(curr.timestamp()), "value": 1},
+                    {"timestamp": int(prev.timestamp()), "value": 2},
+                    {"timestamp": int(curr.timestamp()), "value": 2},
                 ],
             },
             {
@@ -191,26 +257,48 @@ class OrganizationIssueMetricsTestCase(APITestCase):
                     {"timestamp": int(curr.timestamp()), "value": 1},
                 ],
             },
+            {
+                "axis": "new_issues_count_by_release",
+                "groupBy": [],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 0},
+                ],
+            },
         ]
 
-    def test_get_too_much_granularity(self):
+    def test_get_too_much_granularity(self) -> None:
         response = self.client.get(self.url + "?statsPeriod=14d&interval=1001")
         assert response.status_code == 400
         assert response.json() == {
             "detail": "The specified granularity is too precise. Increase your interval."
         }
 
-    def test_get_invalid_interval(self):
+    def test_get_invalid_interval(self) -> None:
         response = self.client.get(self.url + "?interval=foo")
         assert response.status_code == 400
         assert response.json() == {"detail": "Could not parse interval value."}
 
-    def test_get_zero_interval(self):
+    def test_get_zero_interval(self) -> None:
         response = self.client.get(self.url + "?interval=0")
         assert response.status_code == 400
         assert response.json() == {"detail": "Interval must be greater than 1000 milliseconds."}
 
-    def test_other_grouping(self):
+    def test_get_invalid_category(self) -> None:
+        response = self.client.get(self.url + "?category=foo")
+        assert response.status_code == 400
+        assert response.json() == {
+            "detail": "Invalid issue category. Valid options are 'issue' and 'feedback'."
+        }
+
+    def test_other_grouping(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
         one = self.create_release(project1, version="1.0.0")
@@ -232,7 +320,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         self.create_group(project=project1, status=0, first_seen=curr, first_release=sixth, type=1)
 
         response = self.client.get(
-            self.url + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=error"
+            self.url + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=issue"
         )
         response_json = response.json()
         assert response_json["timeseries"] == [
@@ -249,6 +337,21 @@ class OrganizationIssueMetricsTestCase(APITestCase):
                 "values": [
                     {"timestamp": int(prev.timestamp()), "value": 0},
                     {"timestamp": int(curr.timestamp()), "value": 6},
+                ],
+            },
+            {
+                "axis": "resolved_issues_count",
+                "groupBy": [],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 0},
                 ],
             },
             {

@@ -4,14 +4,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {Sql} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/sql';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
-describe('Breadcrumb Data SQL', function () {
-  const {organization, router} = initializeOrg({
+describe('Breadcrumb Data SQL', () => {
+  const {organization} = initializeOrg({
     router: {
       location: {query: {project: '0'}},
     },
   });
 
-  it('displays formatted SQL message', function () {
+  it('displays formatted SQL message', () => {
     render(
       <Sql
         breadcrumb={{
@@ -32,7 +32,9 @@ UPDATE NOWAIT`,
         }}
         searchTerm=""
       />,
-      {organization, router}
+      {
+        organization,
+      }
     );
 
     expect(screen.getByText('SELECT db.id, db.project_id,')).toBeInTheDocument();

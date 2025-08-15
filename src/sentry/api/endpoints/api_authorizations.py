@@ -27,6 +27,9 @@ class ApiAuthorizationsEndpoint(Endpoint):
     permission_classes = (SentryIsAuthenticated,)
 
     def get(self, request: Request) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         queryset = ApiAuthorization.objects.filter(
             user_id=request.user.id, application__status=ApiApplicationStatus.active
         ).select_related("application")
@@ -40,6 +43,9 @@ class ApiAuthorizationsEndpoint(Endpoint):
         )
 
     def delete(self, request: Request) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         authorization = request.data.get("authorization")
         if not authorization:
             return Response({"authorization": ""}, status=400)

@@ -3,6 +3,7 @@ from jwt import ExpiredSignatureError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
     get_integration_from_request,
@@ -26,7 +27,7 @@ class JiraSentryInstallationView(JiraSentryUIBaseView):
 
     def get(self, request: Request, *args, **kwargs) -> Response:
         try:
-            integration = get_integration_from_request(request, "jira")
+            integration = get_integration_from_request(request, IntegrationProviderSlug.JIRA.value)
         except AtlassianConnectValidationError:
             return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
         except ExpiredSignatureError:

@@ -41,7 +41,6 @@ export const EmptyStreamWrapper = styled('div')`
   }
 
   > svg {
-    fill: ${p => p.theme.gray300};
     margin-bottom: ${space(2)};
   }
 `;
@@ -49,8 +48,8 @@ export const EmptyStreamWrapper = styled('div')`
 const SmallMessage = styled('div')`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.xl};
   line-height: 1em;
 `;
 

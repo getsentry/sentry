@@ -4,5 +4,5 @@ const OTHER = 'Other';
 const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
 
 export function isTimeSeriesOther(timeSeries: TimeSeries): boolean {
-  return Boolean(timeSeries.field.match(otherRegex));
+  return Boolean(timeSeries.yAxis.match(otherRegex));
 }

@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -18,13 +19,13 @@ import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 
 import GroupSidebar from './groupSidebar';
 
-describe('GroupSidebar', function () {
+describe('GroupSidebar', () => {
   let group = GroupFixture();
   const {organization, project} = initializeOrg();
   const environment = 'production';
   let tagsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MemberListStore.loadInitialData([]);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/1/committers/',
@@ -85,16 +86,19 @@ describe('GroupSidebar', function () {
       method: 'GET',
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/autofix/setup/`,
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
@@ -115,8 +119,8 @@ describe('GroupSidebar', function () {
     });
   });
 
-  describe('renders with tags', function () {
-    it('renders', async function () {
+  describe('renders with tags', () => {
+    it('renders', async () => {
       render(
         <GroupSidebar
           group={group}
@@ -134,8 +138,8 @@ describe('GroupSidebar', function () {
     });
   });
 
-  describe('environment toggle', function () {
-    it('re-requests tags with correct environment', async function () {
+  describe('environment toggle', () => {
+    it('re-requests tags with correct environment', async () => {
       const stagingEnv = 'staging';
       const {rerender} = render(
         <GroupSidebar
@@ -170,8 +174,8 @@ describe('GroupSidebar', function () {
     });
   });
 
-  describe('renders without tags', function () {
-    beforeEach(function () {
+  describe('renders without tags', () => {
+    beforeEach(() => {
       group = GroupFixture();
 
       MockApiClient.addMockResponse({
@@ -184,7 +188,7 @@ describe('GroupSidebar', function () {
       });
     });
 
-    it('renders empty text', async function () {
+    it('renders empty text', async () => {
       render(
         <GroupSidebar
           group={group}
@@ -252,8 +256,8 @@ describe('GroupSidebar', function () {
     await waitFor(() => expect(screen.getByText('#team-slug')).toBeVisible());
   });
 
-  describe('displays mobile tags when issue platform is mobile', function () {
-    beforeEach(function () {
+  describe('displays mobile tags when issue platform is mobile', () => {
+    beforeEach(() => {
       group = GroupFixture();
 
       MockApiClient.addMockResponse({
@@ -262,7 +266,7 @@ describe('GroupSidebar', function () {
       });
     });
 
-    it('renders mobile tags on top of tag summary for mobile platforms', async function () {
+    it('renders mobile tags on top of tag summary for mobile platforms', async () => {
       render(
         <GroupSidebar
           group={group}
@@ -278,7 +282,7 @@ describe('GroupSidebar', function () {
       ).toBeInTheDocument();
     });
 
-    it('does not render mobile tags on top of tag summary for non mobile platforms', async function () {
+    it('does not render mobile tags on top of tag summary for non mobile platforms', async () => {
       render(
         <GroupSidebar
           group={group}

@@ -1,19 +1,21 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {
-  type AutofixData,
   AutofixStatus,
   AutofixStepType,
+  type AutofixData,
 } from 'sentry/components/events/autofix/types';
 import * as autofixHooks from 'sentry/components/events/autofix/useAutofix';
 import type {GroupSummaryData} from 'sentry/components/group/groupSummary';
 import * as groupSummaryHooks from 'sentry/components/group/groupSummary';
 import {EntryType} from 'sentry/types/event';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
+import * as useOrganization from 'sentry/utils/useOrganization';
 import {
   issueAndEventToMarkdown,
   useCopyIssueDetails,
@@ -22,6 +24,7 @@ import {
 jest.mock('sentry/utils/useCopyToClipboard');
 
 describe('useCopyIssueDetails', () => {
+  const organization = OrganizationFixture();
   const group = GroupFixture();
   const event = EventFixture({
     id: '123456',
@@ -38,8 +41,11 @@ describe('useCopyIssueDetails', () => {
 
   // Create a mock AutofixData with steps that includes root cause and solution steps
   const mockAutofixData: AutofixData = {
-    created_at: '2023-01-01T00:00:00Z',
-    repositories: [],
+    last_triggered_at: '2023-01-01T00:00:00Z',
+    request: {
+      repos: [],
+    },
+    codebases: {},
     run_id: '123',
     status: AutofixStatus.COMPLETED,
     steps: [
@@ -219,6 +225,7 @@ describe('useCopyIssueDetails', () => {
 
       jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
       jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
+      jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
     });
 
     it('sets up useCopyToClipboard with the correct parameters', () => {
@@ -229,6 +236,7 @@ describe('useCopyIssueDetails', () => {
         text: expect.any(String),
         successMessage: 'Copied issue to clipboard as Markdown',
         errorMessage: 'Could not copy issue to clipboard',
+        onCopy: expect.any(Function),
       });
     });
 
@@ -241,10 +249,12 @@ describe('useCopyIssueDetails', () => {
         {
           match: 'command+alt+c',
           callback: expect.any(Function),
+          skipPreventDefault: expect.any(Boolean),
         },
         {
           match: 'ctrl+alt+c',
           callback: expect.any(Function),
+          skipPreventDefault: expect.any(Boolean),
         },
       ]);
     });

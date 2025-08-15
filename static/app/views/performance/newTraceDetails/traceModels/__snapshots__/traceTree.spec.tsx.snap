@@ -51,6 +51,15 @@ trace root
 "
 `;
 
+exports[`TraceTree FromTrace swaps only pageload transaction child with parent http.server transaction 1`] = `
+"
+trace root
+  / - pageload
+    /api-1/ - http.server
+    /api-2/ - http.server
+"
+`;
+
 exports[`TraceTree appendTree appends tree to end of current tree 1`] = `
 "
 trace root
@@ -69,19 +78,38 @@ eap trace root
 "
 `;
 
-exports[`TraceTree eap trace correctly renders eap-transactions collapsed state 1`] = `
+exports[`TraceTree eap trace assembles tree from eap trace with only errors 1`] = `
+"
+eap trace root
+  eap-error-1
+  eap-error-2
+"
+`;
+
+exports[`TraceTree eap trace correctly renders eap-transactions toggle state 1`] = `
 "
 eap trace root
   span.op - span.description (eap-transaction)
     span.op - span.description (eap-transaction)
+      span.op - span.description (eap-transaction)
 "
 `;
 
-exports[`TraceTree eap trace correctly renders eap-transactions expanded state 1`] = `
+exports[`TraceTree eap trace correctly renders eap-transactions toggle state 2`] = `
 "
 eap trace root
   span.op - span.description (eap-transaction)
     span.op - span.description
+      span.op - span.description (eap-transaction)
+        span.op - span.description (eap-transaction)
+"
+`;
+
+exports[`TraceTree eap trace correctly renders eap-transactions toggle state 3`] = `
+"
+eap trace root
+  span.op - span.description (eap-transaction)
+    span.op - span.description (eap-transaction)
       span.op - span.description (eap-transaction)
 "
 `;
@@ -137,6 +165,25 @@ trace root
       db - redis
       db - redis
       db - redis
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree printTraceTreeNode adds prefetch prefix to spans with http.request.prefetch attribute 1`] = `
+"
+trace root
+  transaction - transaction.op
+    http - (prefetch) GET /api/users
+    http - GET /api/users
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree printTraceTreeNode handles falsy prefetch attribute 1`] = `
+"
+trace root
+  transaction - transaction.op
+    http - GET /api/users
     transaction - transaction.op
 "
 `;

@@ -1,15 +1,14 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Truncate from 'sentry/components/truncate';
-import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import DebounceSearch from 'admin/components/debounceSearch';
 import Overview from 'admin/views/overview';
@@ -17,28 +16,30 @@ import Overview from 'admin/views/overview';
 type Props = RouteComponentProps<unknown, unknown>;
 
 function HomePage(props: Props) {
+  const navigate = useNavigate();
   const regions = ConfigStore.get('regions');
   const [oldSplash, setOldSplash] = useState(false);
   const [regionUrl, setRegionUrl] = useState(regions[0]!.url);
 
   const buildOrgPath = (org: any) => `/_admin/customers/${org.slug}/`;
   const orgSelect = (org: any) => {
-    browserHistory.push(buildOrgPath(org));
+    navigate(buildOrgPath(org));
   };
   const orgSubmit = (query: string) => {
-    browserHistory.push({
+    navigate({
       pathname: '/_admin/customers/',
       query: {
         query,
+        regionUrl,
       },
     });
   };
   const buildUserPath = (user: any) => `/_admin/users/${user.id}/`;
   const userSelect = (user: any) => {
-    browserHistory.push(buildUserPath(user));
+    navigate(buildUserPath(user));
   };
   const userSubmit = (query: string) => {
-    browserHistory.push({
+    navigate({
       pathname: '/_admin/users/',
       query: {
         query,
@@ -48,7 +49,7 @@ function HomePage(props: Props) {
   const buildProjPath = (proj: any) =>
     `/_admin/customers/${proj.organization.slug}/projects/${proj.slug}/`;
   const projSelect = (proj: any) => {
-    browserHistory.push(buildProjPath(proj));
+    navigate(buildProjPath(proj));
   };
 
   const renderOrgSuggestion = (org: any) => {
@@ -110,13 +111,15 @@ function HomePage(props: Props) {
       </div>
       <RegionPanel>
         <CompactSelect
-          triggerProps={{prefix: t('Region')}}
+          triggerProps={{prefix: 'Region'}}
           value={regionUrl}
           options={regions.map((r: any) => ({
             label: r.name,
             value: r.url,
           }))}
-          onChange={opt => setRegionUrl(opt.value)}
+          onChange={opt => {
+            setRegionUrl(opt.value);
+          }}
         />
 
         <SearchLabel>Organizations</SearchLabel>
@@ -172,7 +175,7 @@ const Header = styled('div')`
 `;
 const HeaderTitle = styled('h3')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: normal;
   color: ${p => p.theme.textColor};
 `;

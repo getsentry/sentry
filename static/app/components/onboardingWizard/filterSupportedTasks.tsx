@@ -2,7 +2,7 @@ import {
   replayOnboardingPlatforms,
   withoutPerformanceSupport,
 } from 'sentry/data/platformCategories';
-import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
 
 const replayRelatedTasks = [OnboardingTaskKey.SESSION_REPLAY];
@@ -36,7 +36,7 @@ export function shouldShowPerformanceTasks(projects: Project[]): boolean {
   );
 }
 
-export function shouldShowReplayTasks(projects: Project[]): boolean {
+function shouldShowReplayTasks(projects: Project[]): boolean {
   return projects?.some(
     project => project.platform && replayOnboardingPlatforms.includes(project.platform)
   );

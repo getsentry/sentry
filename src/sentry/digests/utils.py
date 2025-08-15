@@ -9,7 +9,6 @@ from django.db.models import Q
 
 from sentry.digests.notifications import Digest
 from sentry.digests.types import Record
-from sentry.eventstore.models import Event
 from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -18,6 +17,7 @@ from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.participants import get_send_to
+from sentry.services.eventstore.models import Event
 from sentry.types.actor import Actor
 
 
@@ -78,7 +78,7 @@ def get_digest_as_context(digest: Digest) -> _DigestContext:
 
 
 def get_events_by_participant(
-    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]]
+    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]],
 ) -> Mapping[Actor, set[Event]]:
     """Invert a mapping of events to participants to a mapping of participants to events."""
     output = defaultdict(set)

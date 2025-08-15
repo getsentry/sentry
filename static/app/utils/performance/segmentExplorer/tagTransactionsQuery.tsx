@@ -3,14 +3,14 @@ import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 
-export type TableDataRow = {
+type TableDataRow = {
   [key: string]: string | number;
   id: string;
 };
 
-export type TableData = {
+type TableData = {
   data: TableDataRow[];
   meta?: MetaType;
 };

@@ -2,6 +2,7 @@ from time import time
 
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -15,7 +16,7 @@ WEBHOOK_TOKEN = f"{EXTERNAL_ID}:{WEBHOOK_SECRET}"
 
 
 class GitLabTestCase(APITestCase):
-    provider = "gitlab"
+    provider = IntegrationProviderSlug.GITLAB.value
 
     def setUp(self):
         self.login_as(self.user)
@@ -49,7 +50,13 @@ class GitLabTestCase(APITestCase):
         )
 
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_repo(self, name, external_id=15, url=None, organization_id=None):
+    def create_gitlab_repo(
+        self,
+        name: str,
+        external_id: int = 15,
+        url: str | None = None,
+        organization_id: int | None = None,
+    ) -> Repository:
         instance = self.integration.metadata["instance"]
         organization_id = organization_id or self.organization.id
         return Repository.objects.create(
@@ -168,7 +175,8 @@ MERGE_REQUEST_OPENED_EVENT = b"""{
     "work_in_progress": false,
     "total_time_spent": 0,
     "human_total_time_spent": null,
-    "human_time_estimate": null
+    "human_time_estimate": null,
+    "action": "open"
   },
   "labels": null,
   "repository": {

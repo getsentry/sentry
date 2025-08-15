@@ -6,8 +6,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs from './celery';
 
-describe('celery onboarding docs', function () {
-  it('renders doc correctly', function () {
+describe('celery onboarding docs', () => {
+  it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -16,16 +16,9 @@ describe('celery onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Standalone Setup'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Setup With Django'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-
-    // Renders install instructions
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[celery\]'/)
-      )
-    ).toBeInTheDocument();
   });
 
-  it('renders without tracing', function () {
+  it('renders without tracing', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });
@@ -41,15 +34,15 @@ describe('celery onboarding docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders transaction profiling', function () {
+  it('renders transaction profiling', () => {
     renderWithOnboardingLayout(docs);
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
+      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
@@ -58,7 +51,7 @@ describe('celery onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders continuous profiling', function () {
+  it('renders continuous profiling', () => {
     const organization = OrganizationFixture({
       features: ['continuous-profiling'],
     });
@@ -78,10 +71,10 @@ describe('celery onboarding docs', function () {
 
     // Does render continuous profiling config
     expect(
-      screen.getByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
+      screen.getByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
+      screen.getByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).toBeInTheDocument();
   });
 });

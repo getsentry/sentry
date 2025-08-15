@@ -9,12 +9,13 @@ from urllib.parse import urlparse, urlunparse
 from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
+from sentry import features
 from sentry.db.models import Model
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingEnum, UnsubscribeContext
-from sentry.notifications.utils import send_activity_notification
+from sentry.notifications.utils import get_suspect_commits_by_group_id, send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_group
 from sentry.types.actor import Actor
@@ -119,20 +120,34 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
             **self.get_group_context(),
         }
 
-    def get_context(self) -> MutableMapping[str, Any]:
+    def get_context(self, provider: ExternalProviders | None = None) -> MutableMapping[str, Any]:
         """
         Context shared by every recipient of this notification. This may contain
         expensive computation so it should only be called once. Override this
         method if the notification does not need HTML/text descriptions.
         """
         text_template, html_template, params = self.get_description()
-        text_description = self.description_as_text(text_template, params)
+        should_add_url = provider is not None
+        text_description = self.description_as_text(text_template, params, should_add_url, provider)
         html_description = self.description_as_html(html_template or text_template, params)
-        return {
+        enhanced_privacy = self.group.organization.flags.enhanced_privacy
+
+        context = {
             **self.get_base_context(),
             "text_description": text_description,
             "html_description": html_description,
+            "enhanced_privacy": enhanced_privacy,
         }
+
+        if (
+            features.has("organizations:suspect-commits-in-emails", self.group.organization)
+            and self.group
+        ):
+            context["commits"] = get_suspect_commits_by_group_id(
+                project=self.project, group_id=self.group.id
+            )
+
+        return context
 
     def get_group_context(self) -> MutableMapping[str, Any]:
         group_link = self.get_group_link()
@@ -170,7 +185,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
             name = "Sentry"
 
         issue_name = self.group.qualified_short_id or "an issue"
-        if url and self.group.qualified_short_id:
+        if provider and url and self.group.qualified_short_id:
             group_url = self.group.get_absolute_url(
                 params={
                     "referrer": "activity_notification",

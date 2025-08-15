@@ -23,7 +23,7 @@ import type {Project} from 'sentry/types/project';
 
 import GroupEventAttachments from './groupEventAttachments';
 
-describe('GroupEventAttachments', function () {
+describe('GroupEventAttachments', () => {
   const groupId = 'group-id';
   const group = GroupFixture({id: groupId});
   const {organization, router} = initializeOrg({
@@ -42,7 +42,7 @@ describe('GroupEventAttachments', function () {
   let project: Project;
   let getAttachmentsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     project = ProjectFixture({platform: 'apple-ios'});
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
@@ -67,35 +67,42 @@ describe('GroupEventAttachments', function () {
     ModalStore.reset();
   });
 
-  it('calls attachments api with screenshot filter', async function () {
+  it('calls attachments api with screenshot filter', async () => {
     render(<GroupEventAttachments project={project} group={group} />, {
       router: screenshotRouter,
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(screen.getByRole('radio', {name: 'Screenshots'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('radio', {name: 'Screenshots'}));
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',
       expect.objectContaining({
-        query: {screenshot: '1'},
+        query: {
+          screenshot: '1',
+          environment: [],
+          statsPeriod: '14d',
+        },
       })
     );
   });
 
-  it('calls opens modal when clicking on panel body', async function () {
+  it('calls opens modal when clicking on panel body', async () => {
     render(<GroupEventAttachments project={project} group={group} />, {
       router: screenshotRouter,
       organization,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
     await userEvent.click(await screen.findByTestId('screenshot-1'));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
-  it('links event id to event detail', async function () {
+  it('links event id to event detail', async () => {
     render(<GroupEventAttachments project={project} group={group} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByRole('link', {name: '12345678'})).toHaveAttribute(
       'href',
@@ -103,10 +110,11 @@ describe('GroupEventAttachments', function () {
     );
   });
 
-  it('links to the download URL', async function () {
+  it('links to the download URL', async () => {
     render(<GroupEventAttachments project={project} group={group} />, {
       router: screenshotRouter,
       organization,
+      deprecatedRouterMocks: true,
     });
     await userEvent.click(await screen.findByLabelText('Actions'));
     expect(
@@ -114,7 +122,7 @@ describe('GroupEventAttachments', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays error message when request fails', async function () {
+  it('displays error message when request fails', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/group-id/attachments/',
       statusCode: 500,
@@ -122,11 +130,12 @@ describe('GroupEventAttachments', function () {
     render(<GroupEventAttachments project={project} group={group} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText(/error loading/i)).toBeInTheDocument();
   });
 
-  it('can delete an attachment', async function () {
+  it('can delete an attachment', async () => {
     const deleteMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/events/12345678901234567890123456789012/attachments/1/',
       method: 'DELETE',
@@ -134,6 +143,7 @@ describe('GroupEventAttachments', function () {
     render(<GroupEventAttachments project={project} group={group} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
 
@@ -152,14 +162,13 @@ describe('GroupEventAttachments', function () {
     expect(screen.queryByText('12345678')).not.toBeInTheDocument();
   });
 
-  it('filters by date/query when using Streamlined UI', function () {
+  it('filters by date/query when using Streamlined UI', () => {
     ConfigStore.init();
     const user = UserFixture();
     user.options.prefersIssueDetailsStreamlinedUI = true;
     act(() => ConfigStore.set('user', user));
 
     render(<GroupEventAttachments project={project} group={group} />, {
-      disableRouterMocks: true,
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',

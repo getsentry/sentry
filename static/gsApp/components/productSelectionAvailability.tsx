@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {
   DisabledProducts,
@@ -87,6 +87,7 @@ function getDisabledProducts({
 
     disabledProducts[ProductSolution.SESSION_REPLAY] = {
       reason,
+      requiresUpgrade: shouldShowUpsellModals,
       onClick: shouldShowUpsellModals ? showSessionReplayModal : undefined,
     };
   }
@@ -124,6 +125,7 @@ function getDisabledProducts({
 
     disabledProducts[ProductSolution.PROFILING] = {
       reason,
+      requiresUpgrade: shouldShowUpsellModals,
       onClick: shouldShowUpsellModals ? showProfilingModal : undefined,
     };
   }

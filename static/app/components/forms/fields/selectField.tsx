@@ -4,6 +4,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {ControlProps} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
 import {SelectOption} from 'sentry/components/core/select/option';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {
   OptionsType,
   OptionTypeBase,
@@ -12,14 +13,13 @@ import type {
 import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 
-const NONE_SELECTED_LABEL = t('None selected');
-
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
+
+const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
   extends InputFieldProps,
@@ -207,7 +207,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                       onConfirm: () => this.handleChange(onBlur, onChange, val),
                       message: confirm[val?.value] ?? t('Continue with these changes?'),
                     });
-                  } catch (e) {
+                  } catch (e: any) {
                     // Swallow expected error to prevent bubbling up.
                     if (e.message === 'Invalid selection. Field cannot be empty.') {
                       return;

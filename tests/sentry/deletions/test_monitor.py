@@ -6,7 +6,6 @@ from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
-    MonitorType,
     ScheduleType,
 )
 from sentry.testutils.cases import APITestCase, TransactionTestCase
@@ -14,14 +13,13 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteMonitorTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="test")
         env = Environment.objects.create(organization_id=project.organization_id, name="foo")
 
         monitor = Monitor.objects.create(
             organization_id=project.organization.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
         monitor_env = MonitorEnvironment.objects.create(

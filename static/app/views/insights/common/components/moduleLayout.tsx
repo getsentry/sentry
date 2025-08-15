@@ -8,24 +8,20 @@ export const Layout = styled('div')`
   gap: ${space(2)};
 `;
 
-export const Quarter = styled('div')`
-  grid-column: span 3;
-`;
-
 export const Third = styled('div')`
   grid-column: span 4;
+`;
+
+export const TwoThirds = styled('div')`
+  grid-column: span 8;
 `;
 
 export const Half = styled('div')`
   grid-column: span 12;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-column: span 6;
   }
-`;
-
-export const ThreeQuarters = styled('div')`
-  grid-column: span 8;
 `;
 
 export const Full = styled('div')`

@@ -39,6 +39,6 @@ const Wrapper = styled('div')`
   grid-template-columns: max-content 1fr;
   grid-column-gap: ${space(0.5)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;

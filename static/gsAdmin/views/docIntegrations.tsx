@@ -4,7 +4,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
 import type {DocIntegration} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';

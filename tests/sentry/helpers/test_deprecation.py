@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-import isodate
 from cronsim import CronSim
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
@@ -22,7 +21,7 @@ timeiter = CronSim("0 12 * * *", test_date)
 default_duration = timedelta(minutes=1)
 
 custom_cron = "30 1 * * *"
-custom_duration = "PT1M1S"
+custom_duration = 61
 
 
 class DummyEndpoint(Endpoint):
@@ -76,12 +75,12 @@ class TestDeprecationDecorator(APITestCase):
         assert resp.data == {"message": "This API no longer exists."}
         self.assert_deprecation_metadata(request, resp)
 
-    def test_before_deprecation_date(self):
+    def test_before_deprecation_date(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with freeze_time(test_date - timedelta(seconds=1)):
                 self.assert_allowed_request("GET")
 
-    def test_after_deprecation_date(self):
+    def test_after_deprecation_date(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             with freeze_time(test_date):
                 self.assert_allowed_request("GET")
@@ -98,29 +97,29 @@ class TestDeprecationDecorator(APITestCase):
             with freeze_time(brownout_end):
                 self.assert_allowed_request("GET")
 
-    def test_self_hosted(self):
+    def test_self_hosted(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=True):
             self.assert_not_deprecated("GET")
 
-    def test_no_decorator(self):
+    def test_no_decorator(self) -> None:
         with self.settings(SENTRY_SELF_HOSTED=False):
             self.assert_not_deprecated("HEAD")
 
-    def test_default_key(self):
+    def test_default_key(self) -> None:
         with (
             self.settings(SENTRY_SELF_HOSTED=False),
             override_options(
                 {
-                    "api.deprecation.brownout-duration": custom_duration,
+                    "api.deprecation.brownout-duration-seconds": custom_duration,
                     "api.deprecation.brownout-cron": custom_cron,
                 }
             ),
         ):
             options.delete("api.deprecation.brownout-cron")
-            options.delete("api.deprecation.brownout-duration")
+            options.delete("api.deprecation.brownout-duration-seconds")
 
             custom_time_iter = CronSim(custom_cron, test_date)
-            custom_duration_timedelta = isodate.parse_duration(custom_duration)
+            custom_duration_timedelta = timedelta(seconds=custom_duration)
             old_brownout_start = next(timeiter)
             with freeze_time(old_brownout_start):
                 self.assert_allowed_request("GET")
@@ -137,7 +136,7 @@ class TestDeprecationDecorator(APITestCase):
             with freeze_time(new_brownout_end):
                 self.assert_allowed_request("GET")
 
-    def test_custom_key(self):
+    def test_custom_key(self) -> None:
         with self.settings(
             SENTRY_SELF_HOSTED=False,
         ):
@@ -148,7 +147,7 @@ class TestDeprecationDecorator(APITestCase):
             register("override-cron", default=custom_cron)
             register("override-duration", default=custom_duration)
             custom_time_iter = CronSim(custom_cron, test_date)
-            custom_duration_timedelta = isodate.parse_duration(custom_duration)
+            custom_duration_timedelta = timedelta(seconds=custom_duration)
 
             with freeze_time(old_brownout_start):
                 self.assert_allowed_request("POST")
@@ -161,29 +160,29 @@ class TestDeprecationDecorator(APITestCase):
             with freeze_time(new_brownout_end):
                 self.assert_allowed_request("POST")
 
-    def test_bad_schedule_format(self):
+    def test_bad_schedule_format(self) -> None:
         brownout_start = next(timeiter)
         with freeze_time(brownout_start):
             with (
                 self.settings(SENTRY_SELF_HOSTED=False),
                 override_options(
                     {
-                        "api.deprecation.brownout-duration": "bad duration",
+                        "api.deprecation.brownout-duration-seconds": "bad duration",
                     },
                 ),
             ):
-                options.delete("api.deprecation.brownout-duration")
+                options.delete("api.deprecation.brownout-duration-seconds")
                 self.assert_allowed_request("GET")
 
             with (
                 self.settings(SENTRY_SELF_HOSTED=False),
                 override_options(
                     {
-                        "api.deprecation.brownout-duration": "PT1M",
+                        "api.deprecation.brownout-duration-seconds": 60,
                     },
                 ),
             ):
-                options.delete("api.deprecation.brownout-duration")
+                options.delete("api.deprecation.brownout-duration-seconds")
                 self.assert_denied_request("GET")
 
             with (

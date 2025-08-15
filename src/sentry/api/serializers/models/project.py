@@ -27,7 +27,6 @@ from sentry.dynamic_sampling.utils import (
     has_dynamic_sampling,
     is_project_mode_sampling,
 )
-from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
@@ -45,6 +44,7 @@ from sentry.models.userreport import UserReport
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.search.events.types import SnubaParams
+from sentry.services.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.snuba import discover
 from sentry.tempest.utils import has_tempest_access
 from sentry.users.models.user import User
@@ -283,6 +283,9 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasInsightsCaches: bool
     hasInsightsQueues: bool
     hasInsightsLlmMonitoring: bool
+    hasInsightsAgentMonitoring: bool
+    hasInsightsMCP: bool
+    hasLogs: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -550,6 +553,9 @@ class ProjectSerializer(Serializer):
             "hasInsightsCaches": bool(obj.flags.has_insights_caches),
             "hasInsightsQueues": bool(obj.flags.has_insights_queues),
             "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
+            "hasInsightsAgentMonitoring": bool(obj.flags.has_insights_agent_monitoring),
+            "hasInsightsMCP": bool(obj.flags.has_insights_mcp),
+            "hasLogs": bool(obj.flags.has_logs),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -640,10 +646,6 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         return {**base, **extra, "teams": attrs["teams"]}
 
 
-class EventProcessingDict(TypedDict):
-    symbolicationDegraded: bool
-
-
 class LatestReleaseDict(TypedDict):
     version: str
 
@@ -658,7 +660,6 @@ class OrganizationProjectResponse(
 ):
     team: TeamResponseDict | None
     teams: list[TeamResponseDict]
-    eventProcessing: EventProcessingDict
     platforms: list[str]
     hasUserReports: bool
     environments: list[str]
@@ -747,11 +748,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
-            # TODO: remove this attribute and evenrything connected with it
-            # check if the project is in LPQ for any platform
-            # XXX(joshferge): determine if the frontend needs this flag at all
-            # removing redis call as was causing problematic latency issues
-            attrs[item]["symbolication_degraded"] = False
 
         return attrs
 
@@ -774,9 +770,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasAccess=attrs["has_access"],
             dateCreated=obj.date_added,
             environments=attrs["environments"],
-            eventProcessing={
-                "symbolicationDegraded": attrs["symbolication_degraded"],
-            },
             features=attrs["features"],
             firstEvent=obj.first_event,
             firstTransactionEvent=bool(obj.flags.has_transactions),
@@ -797,6 +790,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasInsightsCaches=bool(obj.flags.has_insights_caches),
             hasInsightsQueues=bool(obj.flags.has_insights_queues),
             hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
+            hasInsightsAgentMonitoring=bool(obj.flags.has_insights_agent_monitoring),
+            hasInsightsMCP=bool(obj.flags.has_insights_mcp),
+            hasLogs=bool(obj.flags.has_logs),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
@@ -932,8 +928,8 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     highlightContext: dict[str, Any]
     highlightPreset: HighlightPreset
     groupingConfig: str
+    derivedGroupingEnhancements: str
     groupingEnhancements: str
-    groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
     fingerprintingRules: str
@@ -945,12 +941,12 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
     dynamicSamplingBiases: list[dict[str, str | bool]]
-    eventProcessing: dict[str, bool]
     symbolSources: str
-    uptimeAutodetection: NotRequired[bool]
     isDynamicallySampled: bool
     tempestFetchScreenshots: NotRequired[bool]
     tempestFetchDumps: NotRequired[bool]
+    autofixAutomationTuning: NotRequired[str]
+    seerScannerAutomation: NotRequired[bool]
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1005,6 +1001,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
         sample_rate = None
+
         if has_custom_dynamic_sampling(obj.organization):
             if is_project_mode_sampling(obj.organization):
                 sample_rate = obj.get_option("sentry:target_sample_rate")
@@ -1016,7 +1013,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=obj.organization.id
             )
-
         data: DetailedProjectResponse = {
             **base,
             "latestRelease": attrs["latest_release"],
@@ -1059,8 +1055,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "groupingEnhancements": self.get_value_with_default(
                 attrs, "sentry:grouping_enhancements"
             ),
-            "groupingEnhancementsBase": self.get_value_with_default(
-                attrs, "sentry:grouping_enhancements_base"
+            "derivedGroupingEnhancements": self.get_value_with_default(
+                attrs, "sentry:derived_grouping_enhancements"
             ),
             "secondaryGroupingExpiry": self.get_value_with_default(
                 attrs, "sentry:secondary_grouping_expiry"
@@ -1091,17 +1087,15 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"
             ),
-            "eventProcessing": {
-                "symbolicationDegraded": False,
-            },
             "symbolSources": serialized_sources,
             "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
+            "autofixAutomationTuning": self.get_value_with_default(
+                attrs, "sentry:autofix_automation_tuning"
+            ),
+            "seerScannerAutomation": self.get_value_with_default(
+                attrs, "sentry:seer_scanner_automation"
+            ),
         }
-
-        if features.has("organizations:uptime-settings", obj.organization):
-            data["uptimeAutodetection"] = bool(
-                attrs["options"].get("sentry:uptime_autodetection", True)
-            )
 
         if has_tempest_access(obj.organization, user):
             data["tempestFetchScreenshots"] = attrs["options"].get(
@@ -1133,6 +1127,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
                 options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
+            ),
+            f"filters:{FilterTypes.LOG_MESSAGES}": "\n".join(
+                options.get(f"sentry:{FilterTypes.LOG_MESSAGES}", [])
             ),
             "feedback:branding": options.get("feedback:branding", "1") == "1",
             "sentry:feedback_user_report_notifications": bool(

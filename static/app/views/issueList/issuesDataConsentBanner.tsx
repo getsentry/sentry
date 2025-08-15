@@ -1,7 +1,4 @@
-import {useContext} from 'react';
-
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 const DataConsentBanner = HookOrDefault({
   hookName: 'component:data-consent-banner',
@@ -9,7 +6,5 @@ const DataConsentBanner = HookOrDefault({
 });
 
 export function IssuesDataConsentBanner({source}: {source: string}) {
-  const {newViewActive} = useContext(NewTabContext);
-
-  return newViewActive ? null : <DataConsentBanner source={source} />;
+  return <DataConsentBanner source={source} />;
 }

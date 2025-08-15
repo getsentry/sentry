@@ -2,35 +2,26 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {
-  cleanup,
-  render,
-  screen,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {CohortId} from 'getsentry/types';
 import LegacyPlanToggle from 'getsentry/views/amCheckout/legacyPlanToggle';
 
-describe('LegacyPlanToggle', function () {
+describe('LegacyPlanToggle', () => {
   const organization = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
+    SubscriptionStore.set(organization.slug, {});
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
       body: [],
     });
   });
 
-  afterEach(function () {
-    cleanup();
-    SubscriptionStore.set(organization.slug, {});
-    MockApiClient.clearMockResponses();
-  });
-
-  describe('AMCheckout', function () {
-    it('renders for am1 paid plan', async function () {
+  describe('AMCheckout', () => {
+    it('renders for am1 paid plan', async () => {
       const org = OrganizationFixture();
       const subscription = SubscriptionFixture({
         organization: org,
@@ -49,7 +40,7 @@ describe('LegacyPlanToggle', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders for am1 paid plan in previous checkout', async function () {
+    it('renders for am1 paid plan in previous checkout', async () => {
       const org = OrganizationFixture();
       const subscription = SubscriptionFixture({
         organization: org,
@@ -66,7 +57,7 @@ describe('LegacyPlanToggle', function () {
       expect(screen.getByRole('button', {name: 'Show latest plans'})).toBeInTheDocument();
     });
 
-    it('does not render for am1 free plan', async function () {
+    it('does not render for am1 free plan', async () => {
       const org = OrganizationFixture();
       const subscription = SubscriptionFixture({
         organization: org,
@@ -84,7 +75,7 @@ describe('LegacyPlanToggle', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render for am2 free plan', async function () {
+    it('does not render for am2 free plan', async () => {
       const org = OrganizationFixture();
       const subscription = SubscriptionFixture({
         organization: org,
@@ -101,7 +92,7 @@ describe('LegacyPlanToggle', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render for am2 paid plan', async function () {
+    it('does not render for am2 paid plan', async () => {
       const org = OrganizationFixture();
       const subscription = SubscriptionFixture({
         organization: org,
@@ -118,7 +109,7 @@ describe('LegacyPlanToggle', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render for am3 free plan', function () {
+    it('does not render for am3 free plan', () => {
       const org = OrganizationFixture();
       const subscription = SubscriptionFixture({
         organization: org,
@@ -134,7 +125,7 @@ describe('LegacyPlanToggle', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render for am3 paid plan', function () {
+    it('does not render for am3 paid plan', () => {
       const org = OrganizationFixture();
       const subscription = SubscriptionFixture({
         organization: org,
@@ -150,7 +141,7 @@ describe('LegacyPlanToggle', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render with mm2 paid plan', async function () {
+    it('does not render with mm2 paid plan', async () => {
       const subscription = SubscriptionFixture({
         organization,
         planTier: 'mm2',
@@ -171,7 +162,7 @@ describe('LegacyPlanToggle', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render with mm2 paid plan and pending plan migration', async function () {
+    it('does not render with mm2 paid plan and pending plan migration', async () => {
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
         body: PlanMigrationFixture({cohortId: CohortId.SECOND}),
@@ -197,7 +188,7 @@ describe('LegacyPlanToggle', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render with mm2 free plan', async function () {
+    it('does not render with mm2 free plan', async () => {
       const subscription = SubscriptionFixture({
         organization,
         planTier: 'mm2',
@@ -217,7 +208,7 @@ describe('LegacyPlanToggle', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render with mm1 free plan', async function () {
+    it('does not render with mm1 free plan', async () => {
       const subscription = SubscriptionFixture({
         organization,
         planTier: 'mm1',
@@ -237,7 +228,7 @@ describe('LegacyPlanToggle', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('does not render with mm1 paid plan', async function () {
+    it('does not render with mm1 paid plan', async () => {
       const subscription = SubscriptionFixture({
         organization,
         planTier: 'mm1',

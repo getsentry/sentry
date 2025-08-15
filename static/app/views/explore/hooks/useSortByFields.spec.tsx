@@ -5,13 +5,13 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
@@ -21,13 +21,13 @@ function createWrapper(organization: Organization) {
   return function ({children}: {children?: React.ReactNode}) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext value={organization}>
           <PageParamsProvider>
-            <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+            <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
               {children}
-            </SpanTagsProvider>
+            </TraceItemAttributeProvider>
           </PageParamsProvider>
-        </OrganizationContext.Provider>
+        </OrganizationContext>
       </QueryClientProvider>
     );
   };
@@ -36,11 +36,11 @@ function createWrapper(organization: Organization) {
 describe('useSortByFields', () => {
   const organization = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/spans/fields/`,
+      url: `/organizations/org-slug/trace-items/attributes/`,
       body: [],
     });
 

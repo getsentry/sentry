@@ -10,7 +10,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Team} from 'sentry/types/organization';
@@ -22,7 +21,7 @@ import useApi from 'sentry/utils/useApi';
 type UpdateParams = {
   orgId: string;
   projectId: string;
-  data?: {[key: string]: any};
+  data?: Record<string, any>;
   query?: Query;
 };
 
@@ -87,7 +86,7 @@ const _queryForStats = (
 
 export const _debouncedLoadStats = debounce(
   (api: Client, projectSet: Set<string>, params: UpdateParams) => {
-    const storedProjects: {[key: string]: Project} = ProjectsStatsStore.getAll();
+    const storedProjects: Record<string, Project> = ProjectsStatsStore.getAll();
     const existingProjectStats = Object.values(storedProjects).map(({id}) => id);
     const projects = Array.from(projectSet).filter(
       project => !existingProjectStats.includes(project)
@@ -125,10 +124,6 @@ export function loadStatsForProject(api: Client, project: string, params: Update
   // and call a debounced function to fetch stats for list of projects
   _projectStatsToFetch.add(project);
   _debouncedLoadStats(api, _projectStatsToFetch, params);
-}
-
-export function setActiveProject(project: Project | null) {
-  LatestContextStore.onSetActiveProject(project);
 }
 
 export function transferProject(
@@ -182,16 +177,7 @@ export function transferProject(
 }
 
 /**
- * Associate a team with a project
- */
-
-/**
  *  Adds a team to a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
- * @param team Team data object
  */
 export function addTeamToProject(
   api: Client,
@@ -232,13 +218,8 @@ export function addTeamToProject(
 
 /**
  * Removes a team from a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
- * @param teamSlug Team Slug
  */
-export function removeTeamFromProject(
+function removeTeamFromProject(
   api: Client,
   orgSlug: string,
   projectSlug: string,
@@ -277,68 +258,15 @@ export function removeTeamFromProject(
 
 /**
  * Change a project's slug
- *
- * @param prev Previous slug
- * @param next New slug
  */
 export function changeProjectSlug(prev: string, next: string) {
   ProjectsStore.onChangeSlug(prev, next);
 }
 
 /**
- * Send a sample event
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
- */
-export function sendSampleEvent(api: Client, orgSlug: string, projectSlug: string) {
-  const endpoint = `/projects/${orgSlug}/${projectSlug}/create-sample/`;
-
-  return api.requestPromise(endpoint, {
-    method: 'POST',
-  });
-}
-
-/**
- * Creates a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param team The team slug to assign the project to
- * @param name Name of the project
- * @param platform The platform key of the project
- * @param options Additional options such as creating default alert rules
- */
-export function createProject({
-  api,
-  name,
-  options = {},
-  orgSlug,
-  platform,
-  team,
-}: {
-  api: Client;
-  name: string;
-  options: {defaultRules?: boolean};
-  orgSlug: string;
-  platform: string;
-  team: string;
-}) {
-  return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
-    method: 'POST',
-    data: {name, platform, default_rules: options.defaultRules, origin: 'ui'},
-  });
-}
-
-/**
  * Deletes a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
  */
-export function removeProject({
+export async function removeProject({
   api,
   orgSlug,
   projectSlug,
@@ -349,65 +277,44 @@ export function removeProject({
   origin: 'onboarding' | 'settings' | 'getting_started';
   projectSlug: Project['slug'];
 }) {
-  return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
+  const response = await api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
     method: 'DELETE',
     data: {origin},
   });
+  ProjectsStore.onDeleteProject(projectSlug);
+
+  return response;
 }
 
 /**
  * Load the counts of my projects and all projects for the current user
- *
- * @param api API Client
- * @param orgSlug Organization Slug
  */
 export function fetchProjectsCount(api: Client, orgSlug: string) {
   return api.requestPromise(`/organizations/${orgSlug}/projects-count/`);
 }
 
-/**
- * Check if there are any releases in the last 90 days.
- * Used for checking if project is using releases.
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectId Project Id
- */
-export async function fetchAnyReleaseExistence(
-  api: Client,
-  orgSlug: string,
-  projectId: number | string
-) {
-  const data = await api.requestPromise(`/organizations/${orgSlug}/releases/stats/`, {
-    method: 'GET',
-    query: {
-      statsPeriod: '90d',
-      project: projectId,
-      per_page: 1,
-    },
-  });
-
-  return data.length > 0;
-}
-
 function makeProjectTeamsQueryKey({
   orgSlug,
   projectSlug,
+  cursor,
 }: {
   orgSlug: string;
   projectSlug: string;
+  cursor?: string;
 }): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/teams/`];
+  return [`/projects/${orgSlug}/${projectSlug}/teams/`, {query: {cursor}}];
 }
 
 export function useFetchProjectTeams({
   orgSlug,
   projectSlug,
+  cursor,
 }: {
   orgSlug: string;
   projectSlug: string;
+  cursor?: string;
 }) {
-  return useApiQuery<Team[]>(makeProjectTeamsQueryKey({orgSlug, projectSlug}), {
+  return useApiQuery<Team[]>(makeProjectTeamsQueryKey({orgSlug, projectSlug, cursor}), {
     staleTime: 0,
     retry: false,
     enabled: Boolean(orgSlug && projectSlug),
@@ -417,9 +324,11 @@ export function useFetchProjectTeams({
 export function useAddTeamToProject({
   orgSlug,
   projectSlug,
+  cursor,
 }: {
   orgSlug: string;
   projectSlug: string;
+  cursor?: string;
 }) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -430,20 +339,22 @@ export function useAddTeamToProject({
 
       setApiQueryData<Team[]>(
         queryClient,
-        makeProjectTeamsQueryKey({orgSlug, projectSlug}),
-        prevData => (Array.isArray(prevData) ? [...prevData, team] : [team])
+        makeProjectTeamsQueryKey({orgSlug, projectSlug, cursor}),
+        prevData => (Array.isArray(prevData) ? [team, ...prevData] : [team])
       );
     },
-    [api, orgSlug, projectSlug, queryClient]
+    [api, orgSlug, projectSlug, cursor, queryClient]
   );
 }
 
 export function useRemoveTeamFromProject({
   orgSlug,
   projectSlug,
+  cursor,
 }: {
   orgSlug: string;
   projectSlug: string;
+  cursor?: string;
 }) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -454,11 +365,11 @@ export function useRemoveTeamFromProject({
 
       setApiQueryData<Team[]>(
         queryClient,
-        makeProjectTeamsQueryKey({orgSlug, projectSlug}),
+        makeProjectTeamsQueryKey({orgSlug, projectSlug, cursor}),
         prevData =>
           Array.isArray(prevData) ? prevData.filter(team => team?.slug !== teamSlug) : []
       );
     },
-    [api, orgSlug, projectSlug, queryClient]
+    [api, orgSlug, projectSlug, cursor, queryClient]
   );
 }

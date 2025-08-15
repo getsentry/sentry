@@ -5,11 +5,12 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationCreate, {
   DATA_STORAGE_DOCS_LINK,
 } from 'sentry/views/organizationCreate';
 
-describe('OrganizationCreate', function () {
+describe('OrganizationCreate', () => {
   let configstate: Config;
 
   beforeEach(() => {
@@ -28,17 +29,17 @@ describe('OrganizationCreate', function () {
     ConfigStore.loadInitialData(configstate);
   });
 
-  it('renders without terms', function () {
+  it('renders without terms', () => {
     render(<OrganizationCreate />);
   });
 
-  it('renders with terms', function () {
+  it('renders with terms', () => {
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
     render(<OrganizationCreate />);
   });
 
-  it('does not render relocation url for self-hosted', function () {
+  it('does not render relocation url for self-hosted', () => {
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
     ConfigStore.set('isSelfHosted', true);
@@ -49,7 +50,7 @@ describe('OrganizationCreate', function () {
     ).toThrow();
   });
 
-  it('creates a new org', async function () {
+  it('creates a new org', async () => {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
@@ -86,13 +87,13 @@ describe('OrganizationCreate', function () {
         host: undefined,
       });
     });
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       '/organizations/org-slug/projects/new/'
     );
   });
 
-  it('creates a new org with customer domain feature', async function () {
+  it('creates a new org with customer domain feature', async () => {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
@@ -122,8 +123,8 @@ describe('OrganizationCreate', function () {
       });
     });
 
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       'https://org-slug.sentry.io/projects/new/'
     );
   });
@@ -146,7 +147,7 @@ describe('OrganizationCreate', function () {
     return orgCreateMock;
   }
 
-  it('renders without region data and submits without host when only a single region is defined', async function () {
+  it('renders without region data and submits without host when only a single region is defined', async () => {
     const orgCreateMock = multiRegionSetup();
     // Set only a single region in the config store
     ConfigStore.set('regions', [{name: '--monolith--', url: 'https://example.com'}]);
@@ -167,13 +168,13 @@ describe('OrganizationCreate', function () {
       });
     });
 
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       'https://org-slug.sentry.io/projects/new/'
     );
   });
 
-  it('renders without a pre-selected region, and does not submit until one is selected', async function () {
+  it('renders without a pre-selected region, and does not submit until one is selected', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
 
     const orgCreateMock = multiRegionSetup();
@@ -186,7 +187,7 @@ describe('OrganizationCreate', function () {
     await userEvent.click(screen.getByText('Create Organization'));
 
     expect(orgCreateMock).not.toHaveBeenCalled();
-    expect(window.location.assign).not.toHaveBeenCalled();
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Data Storage Location'}),
@@ -205,13 +206,13 @@ describe('OrganizationCreate', function () {
       });
     });
 
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       'https://org-slug.sentry.io/projects/new/'
     );
   });
 
-  it('uses the host of the selected region when submitting', async function () {
+  it('uses the host of the selected region when submitting', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
 
     const orgCreateMock = multiRegionSetup();
@@ -238,8 +239,8 @@ describe('OrganizationCreate', function () {
       });
     });
 
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       'https://org-slug.sentry.io/projects/new/'
     );
   });

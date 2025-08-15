@@ -19,7 +19,7 @@ pytestmark = [requires_kafka]
 class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
     @pytest.mark.skip("breaks in Relay for unknown reasons")
     @override_options({"relay.transaction-names-client-based": 1.0})
-    def test_all_transaction_metrics_emitted(self):
+    def test_all_transaction_metrics_emitted(self) -> None:
         with Feature(
             {
                 "organizations:transaction-metrics-extraction": True,
@@ -108,7 +108,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             non_common_strings = strings_emitted - SHARED_STRINGS.keys()
             assert non_common_strings == known_non_common_strings
 
-    def test_histogram_outliers(self):
+    def test_histogram_outliers(self) -> None:
         with Feature(
             {
                 "organizations:transaction-metrics-extraction": True,

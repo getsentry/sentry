@@ -8,14 +8,18 @@ export function getWizardInstallSnippet({
   params: DocsParams;
   platform: 'ios' | 'android' | 'flutter' | 'reactNative';
 }) {
-  const {isSelfHosted, organization, projectSlug} = params;
+  const {isSelfHosted, organization, project} = params;
   const urlParam = isSelfHosted ? '' : '--saas';
-  const platformWithFlags = `${platform} ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+  const platformWithFlags = `${platform} ${urlParam} --org ${organization.slug} --project ${project.slug}`;
 
   // Get version from registry if available, or use fallback
   const version = getPackageVersion(params, 'sentry.wizard', '4.0.1');
 
-  return [
+  const isWindows =
+    typeof navigator !== 'undefined' && navigator.userAgent.includes('Win');
+
+  // Define all installation options
+  const installOptions = [
     {
       label: 'brew',
       value: 'brew',
@@ -23,25 +27,19 @@ export function getWizardInstallSnippet({
       code: `brew install getsentry/tools/sentry-wizard && sentry-wizard -i ${platformWithFlags}`,
     },
     {
-      label: 'npx',
-      value: 'npx',
+      label: 'macOS (Apple Silicon/arm64)',
+      value: 'macos-arm64',
       language: 'bash',
-      code: `npx @sentry/wizard@latest -i ${platformWithFlags}`,
+      code: `downloadUrl="https://github.com/getsentry/sentry-wizard/releases/download/v${version}/sentry-wizard-darwin-arm64"
+curl -L $downloadUrl -o sentry-wizard
+chmod +x sentry-wizard
+./sentry-wizard -i ${platformWithFlags}`,
     },
     {
       label: 'macOS (Intel/x64)',
       value: 'macos-x64',
       language: 'bash',
       code: `downloadUrl="https://github.com/getsentry/sentry-wizard/releases/download/v${version}/sentry-wizard-darwin-x64"
-curl -L $downloadUrl -o sentry-wizard
-chmod +x sentry-wizard
-./sentry-wizard -i ${platformWithFlags}`,
-    },
-    {
-      label: 'macOS (Apple Silicon/arm64)',
-      value: 'macos-arm64',
-      language: 'bash',
-      code: `downloadUrl="https://github.com/getsentry/sentry-wizard/releases/download/v${version}/sentry-wizard-darwin-arm64"
 curl -L $downloadUrl -o sentry-wizard
 chmod +x sentry-wizard
 ./sentry-wizard -i ${platformWithFlags}`,
@@ -65,6 +63,12 @@ chmod +x sentry-wizard
 ./sentry-wizard -i ${platformWithFlags}`,
     },
     {
+      label: 'npx',
+      value: 'npx',
+      language: 'bash',
+      code: `npx @sentry/wizard@latest -i ${platformWithFlags}`,
+    },
+    {
       label: 'Windows',
       value: 'windows',
       language: 'powershell',
@@ -73,4 +77,12 @@ Invoke-WebRequest $downloadUrl -OutFile sentry-wizard.exe
 ./sentry-wizard.exe -i ${platformWithFlags}`,
     },
   ];
+
+  // If user is on Windows, move the Windows option to the beginning
+  if (isWindows) {
+    const windowsOption = installOptions.pop()!;
+    installOptions.unshift(windowsOption);
+  }
+
+  return installOptions;
 }

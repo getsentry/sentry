@@ -7,6 +7,10 @@ TIMEOUT = 30
 # current limit is 28 days
 MAX_TIMEOUT = 40_320
 
+# hard maximum miss margin for a monitor, in minutes
+# current limit is 28 days
+MAX_MARGIN = 40_320
+
 # maximum value for incident + recovery thresholds to be set
 # affects the performance of recent check-ins query
 # lowering this may invalidate monitors + block check-ins

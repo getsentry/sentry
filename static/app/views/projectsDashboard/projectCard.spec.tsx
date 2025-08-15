@@ -3,16 +3,15 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
+import ProjectCard from 'sentry/views/projectsDashboard/projectCard';
 
 // NOTE: Unmocking debounce so that the actionCreator never fires
 jest.unmock('lodash/debounce');
 
-describe('ProjectCard', function () {
+describe('ProjectCard', () => {
   const createWrapper = () =>
     render(
       <ProjectCard
-        organization={OrganizationFixture()}
         project={ProjectFixture({
           stats: [
             [1525042800, 1],
@@ -25,19 +24,18 @@ describe('ProjectCard', function () {
           platform: 'javascript',
         })}
         hasProjectAccess={false}
-        api={new MockApiClient()}
       />
     );
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     createWrapper();
   });
 
-  it('renders latest 2 deploys', function () {
+  it('renders latest 2 deploys', () => {
     const latestDeploys = {
       beta: {
         dateFinished: '2018-05-10T20:56:40.092Z',
@@ -55,7 +53,6 @@ describe('ProjectCard', function () {
 
     render(
       <ProjectCard
-        organization={OrganizationFixture()}
         project={ProjectFixture({
           stats: [
             [1525042800, 1],
@@ -65,7 +62,6 @@ describe('ProjectCard', function () {
           latestDeploys,
         })}
         hasProjectAccess={false}
-        api={new MockApiClient()}
       />
     );
 
@@ -75,13 +71,13 @@ describe('ProjectCard', function () {
     expect(screen.queryByText('staging')).not.toBeInTheDocument();
   });
 
-  it('renders empty state if no deploys', function () {
+  it('renders empty state if no deploys', () => {
     createWrapper();
 
     expect(screen.getByRole('button', {name: 'Track Deploys'})).toBeInTheDocument();
   });
 
-  it('renders with platform', function () {
+  it('renders with platform', () => {
     createWrapper();
 
     // @TODO(jonasbadalic): is testing for image and the platform icon both required?
@@ -89,10 +85,9 @@ describe('ProjectCard', function () {
     expect(screen.getByTestId('platform-icon-javascript')).toBeInTheDocument();
   });
 
-  it('renders header link for errors', function () {
+  it('renders header link for errors', () => {
     render(
       <ProjectCard
-        organization={OrganizationFixture()}
         project={ProjectFixture({
           stats: [
             [1525042800, 3],
@@ -101,21 +96,21 @@ describe('ProjectCard', function () {
           platform: 'javascript',
         })}
         hasProjectAccess={false}
-        api={new MockApiClient()}
       />
     );
 
     expect(screen.getByTestId('project-errors')).toBeInTheDocument();
     expect(screen.getByText('Errors: 6')).toBeInTheDocument();
 
-    // No transacions as the feature isn't set.
+    // No transactions as the feature isn't set.
     expect(screen.queryByTestId('project-transactions')).not.toBeInTheDocument();
   });
 
-  it('renders header link for transactions', function () {
+  it('renders header link for transactions', () => {
+    const organization = OrganizationFixture({features: ['performance-view']});
+
     render(
       <ProjectCard
-        organization={OrganizationFixture({features: ['performance-view']})}
         project={ProjectFixture({
           stats: [
             [1525042800, 3],
@@ -128,8 +123,8 @@ describe('ProjectCard', function () {
           platform: 'javascript',
         })}
         hasProjectAccess={false}
-        api={new MockApiClient()}
-      />
+      />,
+      {organization}
     );
 
     expect(screen.getByTestId('project-errors')).toBeInTheDocument();
@@ -137,15 +132,8 @@ describe('ProjectCard', function () {
     expect(screen.getByText('Transactions: 8')).toBeInTheDocument();
   });
 
-  it('renders loading placeholder card if there are no stats', function () {
-    render(
-      <ProjectCard
-        organization={OrganizationFixture()}
-        project={ProjectFixture()}
-        hasProjectAccess={false}
-        api={new MockApiClient()}
-      />
-    );
+  it('renders loading placeholder card if there are no stats', () => {
+    render(<ProjectCard project={ProjectFixture()} hasProjectAccess={false} />);
 
     const chartContainer = screen.getByTestId('chart-container');
     expect(within(chartContainer).getByTestId('loading-placeholder')).toBeInTheDocument();

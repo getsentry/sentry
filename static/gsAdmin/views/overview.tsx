@@ -7,8 +7,9 @@ import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvat
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconSync} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {DocIntegration} from 'sentry/types/integrations';
@@ -120,7 +121,7 @@ function DocIntegrationList(props: Props) {
 const getCustomerRow = (row: any) => [
   <td key="customer">
     <CustomerName>
-      <OrganizationAvatar size={36} organization={row as any} />
+      <OrganizationAvatar size={36} organization={row} />
       <div>
         <strong>
           <Link to={`/_admin/customers/${row.slug}/`}>{row.name}</Link>
@@ -242,18 +243,18 @@ function Overview(props: Props) {
       <div>
         <SectionHeading>
           Integration Platform Apps{' '}
-          <Button size="xs" to="/_admin/sentry-apps/">
+          <LinkButton size="xs" to="/_admin/sentry-apps/">
             More
-          </Button>
+          </LinkButton>
         </SectionHeading>
         <SentryAppList {...props} />
       </div>
       <div>
         <SectionHeading>
           Document Integrations{' '}
-          <Button size="xs" to="/_admin/doc-integrations/">
+          <LinkButton size="xs" to="/_admin/doc-integrations/">
             More
-          </Button>
+          </LinkButton>
         </SectionHeading>
         <DocIntegrationList {...props} />
       </div>

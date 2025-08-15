@@ -17,7 +17,7 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
     def now(self):
         return BaseMetricsLayerTestCase.MOCK_DATETIME
 
-    def test_get_tag_values_with_mri(self):
+    def test_get_tag_values_with_mri(self) -> None:
         releases = ["1.0", "2.0"]
         for release in ("1.0", "2.0"):
             self.store_performance_metric(
@@ -32,7 +32,7 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
         for release in releases:
             assert {"key": "release", "value": release} in values
 
-    def test_get_tag_values_with_public_name(self):
+    def test_get_tag_values_with_public_name(self) -> None:
         satisfactions = ["miserable", "satisfied", "tolerable"]
         for satisfaction in satisfactions:
             self.store_performance_metric(

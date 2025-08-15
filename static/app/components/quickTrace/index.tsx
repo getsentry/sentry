@@ -1,41 +1,34 @@
 import {Component, Fragment} from 'react';
 import type {Location, LocationDescriptor} from 'history';
 
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownLink from 'sentry/components/dropdownLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import type {
-  ErrorDestination,
-  TransactionDestination,
-} from 'sentry/components/quickTrace/utils';
+import type {ErrorDestination} from 'sentry/components/quickTrace/utils';
 import {
   generateSingleErrorTarget,
   generateTraceTarget,
   isQuickTraceEvent,
 } from 'sentry/components/quickTrace/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getDocsPlatform} from 'sentry/utils/docs';
 import getDuration from 'sentry/utils/duration/getDuration';
 import localStorage from 'sentry/utils/localStorage';
 import type {
-  QuickTrace as QuickTraceType,
   QuickTraceEvent,
+  QuickTrace as QuickTraceType,
   TraceError,
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceError, parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
-
-const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
-const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
-
-import Link from 'sentry/components/links/link';
-import type {Organization} from 'sentry/types/organization';
-import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 
 import {
   DropdownContainer,
@@ -45,13 +38,16 @@ import {
   ErrorNodeContent,
   EventNode,
   ExternalDropdownLink,
-  type NodeType,
   QuickTraceContainer,
   QuickTraceValue,
   SectionSubtext,
   SingleEventHoverText,
   TraceConnector,
+  type NodeType,
 } from './styles';
+
+const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
+const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
 
 const TOOLTIP_PREFIX = {
   root: 'root',
@@ -62,10 +58,7 @@ const TOOLTIP_PREFIX = {
   descendants: 'descendant',
 };
 
-type QuickTraceProps = Pick<
-  EventNodeSelectorProps,
-  'anchor' | 'errorDest' | 'transactionDest'
-> & {
+type QuickTraceProps = Pick<EventNodeSelectorProps, 'anchor' | 'errorDest'> & {
   event: Event;
   location: Location;
   organization: Organization;
@@ -79,7 +72,6 @@ export default function QuickTrace({
   organization,
   anchor,
   errorDest,
-  transactionDest,
 }: QuickTraceProps) {
   let parsedQuickTrace: any;
   const traceSlug = event.contexts?.trace?.trace_id ?? '';
@@ -121,7 +113,6 @@ export default function QuickTrace({
       nodeKey="current"
       errorDest={errorDest}
       isOrphanErrorNode={isOrphanErrorNode}
-      transactionDest={transactionDest}
     />
   );
 
@@ -138,7 +129,6 @@ export default function QuickTrace({
         anchor={anchor}
         nodeKey="root"
         errorDest={errorDest}
-        transactionDest={transactionDest}
       />
     );
     nodes.push(<TraceConnector key="root-connector" dashed={isOrphanErrorNode} />);
@@ -157,7 +147,6 @@ export default function QuickTrace({
         anchor={anchor}
         nodeKey="root"
         errorDest={errorDest}
-        transactionDest={transactionDest}
       />
     );
     nodes.push(<TraceConnector key="root-connector" dashed />);
@@ -178,7 +167,6 @@ export default function QuickTrace({
         anchor={anchor}
         nodeKey="ancestors"
         errorDest={errorDest}
-        transactionDest={transactionDest}
       />
     );
     nodes.push(<TraceConnector key="ancestors-connector" />);
@@ -197,7 +185,6 @@ export default function QuickTrace({
         anchor={anchor}
         nodeKey="parent"
         errorDest={errorDest}
-        transactionDest={transactionDest}
       />
     );
     nodes.push(<TraceConnector key="parent-connector" />);
@@ -262,7 +249,6 @@ export default function QuickTrace({
         anchor={anchor}
         nodeKey="children"
         errorDest={errorDest}
-        transactionDest={transactionDest}
       />
     );
   }
@@ -281,7 +267,6 @@ export default function QuickTrace({
         anchor={anchor}
         nodeKey="descendants"
         errorDest={errorDest}
-        transactionDest={transactionDest}
       />
     );
   }
@@ -316,7 +301,6 @@ type EventNodeSelectorProps = {
   organization: Organization;
   text: React.ReactNode;
   traceSlug: string;
-  transactionDest: TransactionDestination;
   isOrphanErrorNode?: boolean;
   numEvents?: number;
 };
@@ -331,7 +315,6 @@ function EventNodeSelector({
   nodeKey,
   anchor,
   errorDest,
-  transactionDest,
   isOrphanErrorNode,
   numEvents = 5,
 }: EventNodeSelectorProps) {
@@ -404,12 +387,9 @@ function EventNodeSelector({
         : generateLinkToEventInTraceView({
             traceSlug,
             eventId: events[0]!.event_id,
-            projectSlug: events[0]!.project_slug,
             timestamp: events[0]!.timestamp,
             location,
             organization,
-            transactionName: events[0]!.transaction,
-            type: transactionDest,
           });
     return (
       <StyledEventNode
@@ -475,12 +455,9 @@ function EventNodeSelector({
           const target = generateLinkToEventInTraceView({
             traceSlug,
             timestamp: event.timestamp,
-            projectSlug: event.project_slug,
             eventId: event.event_id,
             location,
             organization,
-            type: transactionDest,
-            transactionName: event.transaction,
           });
           return (
             <DropdownNodeItem
@@ -620,7 +597,7 @@ function readHideMissingServiceState() {
     return false;
   }
   const expires = parseInt(value, 10);
-  const now = new Date().getTime();
+  const now = Date.now();
   return expires > now;
 }
 
@@ -631,7 +608,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
 
   dismissMissingService = () => {
     const {organization, platform} = this.props;
-    const now = new Date().getTime();
+    const now = Date.now();
     localStorage.setItem(
       HIDE_MISSING_SERVICE_KEY,
       (now + HIDE_MISSING_EXPIRES).toString()

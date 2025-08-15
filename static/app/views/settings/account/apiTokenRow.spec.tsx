@@ -10,7 +10,7 @@ import {
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 
 describe('ApiTokenRow', () => {
-  it('renders link when can edit', () => {
+  it('renders', () => {
     render(
       <ApiTokenRow
         onRemove={() => {}}
@@ -18,30 +18,32 @@ describe('ApiTokenRow', () => {
         canEdit
       />
     );
-    screen.getByRole('link', {name: /token1/i});
+
+    screen.getByText(/token1/);
+    expect(screen.getByRole('button', {name: 'Edit'})).toBeInTheDocument();
   });
 
-  it('renders text when cannot edit', () => {
+  it('no button when not editable', () => {
     render(
       <ApiTokenRow
         onRemove={() => {}}
         token={ApiTokenFixture({id: '1', name: 'token1'})}
       />
     );
-    screen.getByText(/token1/);
+    expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
   });
 
-  it('calls onRemove callback when trash can is clicked', async () => {
+  it('calls onRemove callback when remove is clicked', async () => {
     const cb = jest.fn();
     render(<ApiTokenRow onRemove={cb} token={ApiTokenFixture()} canEdit />);
     renderGlobalModal();
 
-    await userEvent.click(screen.getByLabelText('Remove'));
-    await userEvent.click(screen.getByLabelText('Confirm'));
+    await userEvent.click(screen.getByRole('button', {name: 'Revoke'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
     expect(cb).toHaveBeenCalled();
   });
 
-  it('uses NewTokenHandler when lastTokenCharacters field is found', () => {
+  it('displays token preview lastTokenCharacters field is found', () => {
     const token = ApiTokenFixture();
     token.tokenLastCharacters = 'a1b2c3d4';
 

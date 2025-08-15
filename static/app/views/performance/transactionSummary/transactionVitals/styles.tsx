@@ -10,7 +10,7 @@ export const Card = styled(PanelItem)`
   padding: 0;
 `;
 
-export const CardSection = styled('div')`
+const CardSection = styled('div')`
   padding: ${space(3)};
 `;
 
@@ -28,7 +28,7 @@ export const CardSectionHeading = styled(SectionHeading)`
 `;
 
 export const Description = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 

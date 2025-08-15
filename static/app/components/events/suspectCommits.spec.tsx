@@ -1,20 +1,24 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {CommitRow} from 'sentry/components/commitRow';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
-
-import {CommitRow} from '../commitRow';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {SuspectCommits} from './suspectCommits';
 
-describe('SuspectCommits', function () {
-  describe('SuspectCommits', function () {
+jest.mock('sentry/views/issueDetails/utils', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/utils'),
+  useHasStreamlinedUI: jest.fn(),
+}));
+
+describe('SuspectCommits', () => {
+  describe('SuspectCommits', () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture();
     const event = EventFixture();
@@ -56,11 +60,8 @@ describe('SuspectCommits', function () {
       },
     ];
 
-    afterEach(function () {
-      MockApiClient.clearMockResponses();
-    });
-
-    beforeEach(function () {
+    beforeEach(() => {
+      jest.mocked(useHasStreamlinedUI).mockReturnValue(false);
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
@@ -74,7 +75,12 @@ describe('SuspectCommits', function () {
       });
     });
 
-    it('Renders base commit row', async function () {
+    afterEach(() => {
+      MockApiClient.clearMockResponses();
+      jest.clearAllMocks();
+    });
+
+    it('Renders base commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -89,7 +95,7 @@ describe('SuspectCommits', function () {
       expect(screen.queryByTestId('email-warning')).not.toBeInTheDocument();
     });
 
-    it('Renders quick context commit row', async function () {
+    it('Renders quick context commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -127,7 +133,7 @@ describe('SuspectCommits', function () {
       expect(screen.queryByText(/Suspect Commits/i)).not.toBeInTheDocument();
     });
 
-    it('expands', async function () {
+    it('expands', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
@@ -145,7 +151,7 @@ describe('SuspectCommits', function () {
       expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
     });
 
-    it('shows unassociated email warning', async function () {
+    it('shows unassociated email warning', async () => {
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
@@ -181,12 +187,11 @@ describe('SuspectCommits', function () {
     });
   });
 
-  describe('StreamlinedSuspectCommits', function () {
-    const organization = OrganizationFixture({features: ['issue-details-streamline']});
+  describe('StreamlinedSuspectCommits', () => {
+    const organization = OrganizationFixture();
     const project = ProjectFixture();
     const event = EventFixture();
     const group = GroupFixture({firstRelease: {}} as any);
-    const location = LocationFixture({query: {streamline: '1'}});
 
     const committers = [
       {
@@ -224,11 +229,8 @@ describe('SuspectCommits', function () {
       },
     ];
 
-    afterEach(function () {
-      MockApiClient.clearMockResponses();
-    });
-
-    beforeEach(function () {
+    beforeEach(() => {
+      (useHasStreamlinedUI as jest.Mock).mockReturnValue(true);
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
@@ -238,15 +240,19 @@ describe('SuspectCommits', function () {
       });
     });
 
-    it('Renders base commit row', async function () {
+    afterEach(() => {
+      MockApiClient.clearMockResponses();
+      jest.clearAllMocks();
+    });
+
+    it('Renders base commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
           commitRow={CommitRow}
           eventId={event.id}
           group={group}
-        />,
-        {router: {location}}
+        />
       );
 
       expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
@@ -254,15 +260,14 @@ describe('SuspectCommits', function () {
       expect(screen.queryByTestId('email-warning')).not.toBeInTheDocument();
     });
 
-    it('Renders quick context commit row', async function () {
+    it('Renders quick context commit row', async () => {
       render(
         <SuspectCommits
           projectSlug={project.slug}
           commitRow={QuickContextCommitRow}
           eventId={event.id}
           group={group}
-        />,
-        {router: {location}}
+        />
       );
 
       expect(await screen.findByTestId('quick-context-commit-row')).toBeInTheDocument();
@@ -283,8 +288,7 @@ describe('SuspectCommits', function () {
           commitRow={CommitRow}
           eventId={event.id}
           group={group}
-        />,
-        {router: {location}}
+        />
       );
       expect(
         await screen.findByText('feat: Enhance suggested commits and add to alerts')

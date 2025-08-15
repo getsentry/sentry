@@ -1,6 +1,7 @@
 import os
+import signal
 import sys
-from collections.abc import MutableMapping
+from collections.abc import Generator, MutableMapping
 
 import psutil
 import pytest
@@ -10,6 +11,7 @@ from django.db import connections
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.pytest.sentry import get_default_silo_mode_for_test_cases
+from sentry.testutils.thread_leaks import pytest as thread_leaks
 
 pytest_plugins = ["sentry.testutils.pytest"]
 
@@ -53,6 +55,12 @@ def unclosed_files():
     fds = _open_files()
     yield
     assert _open_files() == fds
+
+
+@pytest.fixture(autouse=True)
+def unclosed_threads(request):
+    # TODO(DI-1067): strict mode
+    yield from thread_leaks.check_test(request, strict=False)
 
 
 @pytest.fixture(autouse=True)
@@ -146,3 +154,29 @@ def check_leaked_responses_mocks():
             f"`responses` were leaked outside of the test context:\n{leaked_s}"
             f"(make sure to use `@responses.activate` or `with responses.mock:`)"
         )
+
+
+def _leaked_signals() -> list[str]:
+    leaked = []
+    for signum in signal.Signals:
+        got = signal.getsignal(signum)
+        if (
+            got is not None
+            and not isinstance(got, int)
+            and got is not signal.default_int_handler
+            # prevent the debugger from interrupting teardown
+            and "Pdb.sigint_handler" not in str(got)
+        ):
+            leaked.append(f"- {signum!r}: {got}")
+    return leaked
+
+
+@pytest.fixture(autouse=True)
+def check_leaked_signals() -> Generator[None]:
+    before = frozenset(_leaked_signals())
+    yield
+    after = _leaked_signals()
+
+    leaked = [msg for msg in after if msg not in before]
+    if leaked:
+        raise AssertionError(f"test leaked os signal handlers:\n{'\n'.join(leaked)}")

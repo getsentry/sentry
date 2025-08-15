@@ -6,14 +6,13 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import DiscoverLanding from 'sentry/views/discover/landing';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {OrganizationContext} from '../organizationContext';
-
-describe('Discover > Landing', function () {
+describe('Discover > Landing', () => {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic', 'discover-query'];
 
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.loadInitialData([ProjectFixture()]);
 
     MockApiClient.addMockResponse({
@@ -73,19 +72,19 @@ describe('Discover > Landing', function () {
     });
   });
 
-  it('denies access on missing feature', function () {
+  it('denies access on missing feature', () => {
     render(<DiscoverLanding />);
 
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('has the right sorts', async function () {
+  it('has the right sorts', async () => {
     const org = OrganizationFixture({features});
 
     render(
-      <OrganizationContext.Provider value={org}>
+      <OrganizationContext value={org}>
         <DiscoverLanding />
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
 
     const expectedSorts = [
@@ -112,9 +111,9 @@ describe('Discover > Landing', function () {
     const org = OrganizationFixture({features});
 
     render(
-      <OrganizationContext.Provider value={org}>
+      <OrganizationContext value={org}>
         <DiscoverLanding />
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
 
     expect(await screen.findByText('Discover')).toHaveAttribute(

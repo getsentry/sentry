@@ -13,14 +13,14 @@ import type {Subscription as SubscriptionType} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 
-describe('OnDemandBudgets AM Checkout', function () {
+describe('OnDemandBudgets AM Checkout', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture({
     features: ['ondemand-budgets'],
     access: ['org:billing'],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/subscriptions/${organization.slug}/`,
       method: 'GET',
@@ -87,7 +87,7 @@ describe('OnDemandBudgets AM Checkout', function () {
     );
   };
 
-  it('AM checkout with legacy plan - shared budget', async function () {
+  it('AM checkout with legacy plan - shared budget', async () => {
     const subscription = SubscriptionFixture({
       organization,
       plan: 'mm2_f',
@@ -139,7 +139,7 @@ describe('OnDemandBudgets AM Checkout', function () {
     );
   });
 
-  it('AM checkout with AM plan - per-category budget', async function () {
+  it('AM checkout with AM plan - per-category budget', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -210,15 +210,9 @@ describe('OnDemandBudgets AM Checkout', function () {
     expect(mockedEndpoint).toHaveBeenCalledWith(
       '/customers/org-slug/subscription/',
       expect.objectContaining({
-        data: expect.objectContaining({
+        data: {
           onDemandBudget: {
             budgetMode: 'per_category',
-            errorsBudget: 1000,
-            transactionsBudget: 2000,
-            attachmentsBudget: 3000,
-            monitorSeatsBudget: 4000,
-            uptimeBudget: 0,
-            replaysBudget: 0,
             budgets: {
               errors: 1000,
               transactions: 2000,
@@ -226,15 +220,29 @@ describe('OnDemandBudgets AM Checkout', function () {
               replays: 0,
               monitorSeats: 4000,
               uptime: 0,
+              profileDuration: 0,
+              profileDurationUI: 0,
+              logBytes: 0,
             },
           },
-          onDemandMaxSpend: 1000 + 2000 + 3000 + 4000,
-        }),
+          onDemandMaxSpend: 10000,
+          plan: 'am2_business',
+          referrer: 'billing',
+          reservedAttachments: 1,
+          reservedErrors: 50000,
+          reservedMonitorSeats: 1,
+          reservedProfileDuration: undefined,
+          reservedReplays: 500,
+          reservedSpans: undefined,
+          reservedTransactions: 100000,
+          reservedUptime: 1,
+          seer: false,
+        },
       })
     );
   });
 
-  it('AM checkout with AM plan - shared budget', async function () {
+  it('AM checkout with AM plan - shared budget', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -298,7 +306,7 @@ describe('OnDemandBudgets AM Checkout', function () {
     );
   });
 
-  it('AM checkout with AM plan - turn off on-demand', async function () {
+  it('AM checkout with AM plan - turn off on-demand', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -312,14 +320,7 @@ describe('OnDemandBudgets AM Checkout', function () {
       onDemandBudgets: {
         enabled: false,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        replaysBudget: 0,
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {errors: 0, transactions: 0, attachments: 0, replays: 0},
-        errorsBudget: 1000,
-        transactionsBudget: 2000,
-        attachmentsBudget: 3000,
         budgets: {errors: 1000, transactions: 2000, attachments: 3000},
       },
     });
@@ -383,7 +384,7 @@ describe('OnDemandBudgets AM Checkout', function () {
     );
   });
 
-  it('AM checkout with AM plan - on-demand not supported', async function () {
+  it('AM checkout with AM plan - on-demand not supported', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,

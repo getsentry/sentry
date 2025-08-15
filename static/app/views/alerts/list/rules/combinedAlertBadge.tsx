@@ -1,15 +1,15 @@
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t, tct} from 'sentry/locale';
 import {getAggregateEnvStatus} from 'sentry/views/alerts/rules/crons/utils';
 import {UptimeMonitorStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {
-  type CombinedAlerts,
   CombinedAlertType,
   IncidentStatus,
+  type CombinedAlerts,
 } from 'sentry/views/alerts/types';
 import {isIssueAlert} from 'sentry/views/alerts/utils';
-import {MonitorStatus} from 'sentry/views/monitors/types';
+import {MonitorStatus} from 'sentry/views/insights/crons/types';
 
 interface Props {
   rule: CombinedAlerts;

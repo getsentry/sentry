@@ -1,13 +1,14 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 
-describe('Button', function () {
-  it('renders', function () {
+describe('Button', () => {
+  it('renders', () => {
     render(<Button priority="primary">Button</Button>);
   });
 
-  it('calls `onClick` callback', async function () {
+  it('calls `onClick` callback', async () => {
     const spy = jest.fn();
     render(<Button onClick={spy}>Click me</Button>);
     await userEvent.click(screen.getByText('Click me'));
@@ -15,7 +16,7 @@ describe('Button', function () {
     expect(spy).toHaveBeenCalled();
   });
 
-  it('does not call `onClick` on disabled buttons', async function () {
+  it('does not call `onClick` on disabled buttons', async () => {
     const spy = jest.fn();
     render(
       <Button onClick={spy} disabled>
@@ -28,12 +29,12 @@ describe('Button', function () {
   });
 });
 
-describe('LinkButton', function () {
-  it('renders react-router link', function () {
+describe('LinkButton', () => {
+  it('renders react-router link', () => {
     render(<LinkButton to="/some/route">Router Link</LinkButton>);
   });
 
-  it('renders normal link', function () {
+  it('renders normal link', () => {
     render(<LinkButton href="/some/relative/url">Normal Link</LinkButton>);
     expect(screen.getByRole('button', {name: 'Normal Link'})).toHaveAttribute(
       'href',
@@ -41,12 +42,16 @@ describe('LinkButton', function () {
     );
   });
 
-  it('renders disabled link', function () {
+  it('renders disabled link', () => {
     render(
       <LinkButton disabled href="/some/relative/url">
         Disabled Link
       </LinkButton>
     );
-    expect(screen.getByRole('button', {name: 'Disabled Link'})).toBeDisabled();
+
+    const element = screen.getByRole('button', {name: 'Disabled Link'});
+
+    expect(element).not.toHaveAttribute('href');
+    expect(element).toHaveAttribute('aria-disabled', 'true');
   });
 });

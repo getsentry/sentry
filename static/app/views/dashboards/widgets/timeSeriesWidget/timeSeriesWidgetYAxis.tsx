@@ -7,7 +7,8 @@ type TimeSeriesWidgetYAxisProps = YAXisComponentOption;
 
 export function TimeSeriesWidgetYAxis(
   props: TimeSeriesWidgetYAxisProps,
-  yAxisFieldType: string
+  yAxisFieldType: string,
+  yAxisRange: 'auto' | 'dataMin'
 ): YAXisComponentOption {
   return merge(
     {
@@ -24,6 +25,7 @@ export function TimeSeriesWidgetYAxis(
           show: false,
         },
       },
+      min: yAxisRange === 'auto' ? null : 'dataMin',
       // @ts-expect-error ECharts types are wrong here. Returning `undefined` from the `max` function is 100% allowed and is listed in the documentation. See https://github.com/apache/echarts/pull/12215/
       max: value => {
         // Handle a very specific edge case with percentage formatting.
@@ -48,6 +50,12 @@ export function TimeSeriesWidgetYAxis(
         // exactly 0.01% to avoid showing only 0% on the Y axis.
         if (yAxisFieldType === 'percentage' && value.max < 0.001) {
           return 0.001;
+        }
+
+        // "Score" axes are _always_ from 0 to 100. Otherwise it's unclear how much
+        // opportunity there is to improve them.
+        if (yAxisFieldType === 'score') {
+          return 100;
         }
 
         return null;

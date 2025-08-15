@@ -16,10 +16,13 @@ from sentry.shared_integrations.exceptions import (
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.utils.strings import truncatechars
 
 # Generated based on the response from the Bitbucket API
 # Example: {"type": "error", "error": {"message": "Repository has no issue tracker."}}
-BITBUCKET_HALT_ERROR_CODES = ["Repository has no issue tracker."]
+BITBUCKET_HALT_ERROR_CODES = ["Repository has no issue tracker.", "Resource not found"]
+BITBUCKET_MAX_TITLE_LENGTH = 255
 
 
 ISSUE_TYPES = (
@@ -48,7 +51,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs
     ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "bitbucket_integration"
 
@@ -65,11 +68,18 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             org = org_context.organization
 
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, params)
 
         autocomplete_url = reverse(
             "sentry-extensions-bitbucket-search", args=[org.slug, self.model.id]
         )
+
+        title_field = next((field for field in fields if field["name"] == "title"), None)
+        if title_field:
+            title_field["maxLength"] = BITBUCKET_MAX_TITLE_LENGTH
+            title_field["default"] = truncatechars(
+                title_field["default"], BITBUCKET_MAX_TITLE_LENGTH
+            )
 
         return [
             {
@@ -101,7 +111,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
 
     def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, params)
 
         org = group.organization
         autocomplete_url = reverse(

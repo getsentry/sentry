@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -42,7 +42,7 @@ const StyledHeader = styled('h6')`
 const OptionalHeader = styled('h6')`
   font-size: ${p => p.theme.form.md.fontSize};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin-bottom: ${space(0.5)};
 `;
 

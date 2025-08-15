@@ -4,10 +4,12 @@ import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.plugins.providers.integration_repository import RepositoryConfig
 
 MAX_COMMIT_DATA_REQUESTS = 90
 
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class VstsRepositoryProvider(IntegrationRepositoryProvider):
     name = "Azure DevOps"
-    repo_provider = "vsts"
+    repo_provider = IntegrationProviderSlug.AZURE_DEVOPS.value
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]
@@ -45,8 +47,8 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: Mapping[str, str]
-    ) -> Mapping[str, Any]:
+        self, organization: RpcOrganization, data: dict[str, Any]
+    ) -> RepositoryConfig:
         return {
             "name": data["name"],
             "external_id": data["external_id"],

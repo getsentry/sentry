@@ -87,12 +87,6 @@ def get_provider(
             return GenericProvider(organization_id, signature=headers.get("X-Sentry-Signature"))
         case "unleash":
             return UnleashProvider(organization_id, signature=headers.get("Authorization"))
-        case "statsig":
-            return StatsigProvider(
-                organization_id,
-                signature=headers.get("X-Statsig-Signature"),
-                request_timestamp=headers.get("X-Statsig-Request-Timestamp"),
-            )
         case _:
             return None
 

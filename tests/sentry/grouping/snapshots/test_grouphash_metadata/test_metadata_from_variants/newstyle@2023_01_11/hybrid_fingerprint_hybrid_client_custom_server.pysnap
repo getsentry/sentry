@@ -1,5 +1,5 @@
 ---
-created: '2024-11-20T21:26:57.252217+00:00'
+created: '2025-07-18T18:37:27.508476+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -25,5 +25,5 @@ metrics with tags: {
 contributing variants:
   custom_fingerprint*
     hash: "554e214208f0372603dc9fa6c1c0965f"
-    info: {"client_fingerprint":["{{ default }}","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\""}}
+    fingerprint_info: {"client_fingerprint":["{{ default }}","SoftTimeLimitExceeded","sentry.tasks.store.process_event"],"matched_rule":{"attributes":{},"fingerprint":["soft-timelimit-exceeded"],"matchers":[["type","SoftTimeLimitExceeded"]],"text":"type:\"SoftTimeLimitExceeded\" -> \"soft-timelimit-exceeded\""}}
     values: ["soft-timelimit-exceeded"]

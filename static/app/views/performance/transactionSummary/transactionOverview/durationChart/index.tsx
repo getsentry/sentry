@@ -15,12 +15,11 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useRouter from 'sentry/utils/useRouter';
-
-import type {ViewProps} from '../../../types';
 import {
   SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
   SpanOperationBreakdownFilter,
-} from '../../filter';
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import Content from './content';
 
@@ -142,7 +141,7 @@ function DurationChart({
         yAxis={yAxis}
         partial
         withoutZerofill={withoutZerofill}
-        referrer="api.performance.transaction-summary.duration-chart"
+        referrer="api.insights.transaction-summary.duration-chart"
         queryExtras={queryExtras}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => {

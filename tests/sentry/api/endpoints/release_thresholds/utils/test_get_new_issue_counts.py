@@ -14,7 +14,7 @@ from sentry.testutils.cases import TestCase
 
 
 class GetNewIssueCountTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.project1 = self.create_project(name="foo", organization=self.org)
@@ -77,7 +77,7 @@ class GetNewIssueCountTest(TestCase):
             first_seen=self.now - timedelta(minutes=30),
         )
 
-    def test_success_fetches_new_issue_counts(self):
+    def test_success_fetches_new_issue_counts(self) -> None:
         # standard threshold
         t1: EnrichedThreshold = {
             "id": "1",

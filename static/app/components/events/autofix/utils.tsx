@@ -1,14 +1,18 @@
 import {formatRootCauseText} from 'sentry/components/events/autofix/autofixRootCause';
 import {formatSolutionText} from 'sentry/components/events/autofix/autofixSolution';
 import {
-  type AutofixChangesStep,
-  type AutofixCodebaseChange,
-  type AutofixData,
+  AUTOFIX_TTL_IN_DAYS,
   AutofixStatus,
   AutofixStepType,
+  type AutofixCodebaseChange,
+  type AutofixData,
+  type AutofixRootCauseData,
+  type AutofixSolutionTimelineEvent,
 } from 'sentry/components/events/autofix/types';
-
-export const AUTOFIX_ROOT_CAUSE_STEP_ID = 'root_cause_analysis';
+import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {formatEventToMarkdown} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 
 export function getRootCauseDescription(autofixData: AutofixData) {
   const rootCause = autofixData.steps?.find(
@@ -59,6 +63,45 @@ export function getSolutionCopyText(autofixData: AutofixData) {
   return formatSolutionText(solution.solution, solution.custom_solution);
 }
 
+export function formatRootCauseWithEvent(
+  cause: AutofixRootCauseData | undefined,
+  customRootCause: string | undefined,
+  event: Event | undefined
+): string {
+  const rootCauseText = formatRootCauseText(cause, customRootCause);
+
+  if (!event) {
+    return rootCauseText;
+  }
+
+  const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event);
+  return rootCauseText + eventText;
+}
+
+export function formatSolutionWithEvent(
+  solution: AutofixSolutionTimelineEvent[] | undefined,
+  customSolution: string | undefined,
+  event: Event | undefined,
+  rootCause?: AutofixRootCauseData
+): string {
+  let combinedText = '';
+
+  if (rootCause) {
+    const rootCauseText = formatRootCauseText(rootCause);
+    combinedText += rootCauseText + '\n\n';
+  }
+
+  const solutionText = formatSolutionText(solution || [], customSolution);
+  combinedText += solutionText;
+
+  if (event) {
+    const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event);
+    combinedText += eventText;
+  }
+
+  return combinedText;
+}
+
 export function getSolutionIsLoading(autofixData: AutofixData) {
   const solutionProgressStep = autofixData.steps?.find(
     step => step.key === 'solution_processing'
@@ -73,7 +116,7 @@ export function getCodeChangesDescription(autofixData: AutofixData) {
 
   const changesStep = autofixData.steps?.find(
     step => step.type === AutofixStepType.CHANGES
-  ) as AutofixChangesStep | undefined;
+  );
 
   if (!changesStep) {
     return null;
@@ -128,3 +171,109 @@ export const getCodeChangesIsLoading = (autofixData: AutofixData) => {
 
   return changesStep?.status === AutofixStatus.PROCESSING;
 };
+
+const supportedProviders = ['integrations:github', 'integrations:github_enterprise'];
+
+export const isSupportedAutofixProvider = (provider?: {id: string; name: string}) => {
+  if (!provider) {
+    return false;
+  }
+  return supportedProviders.includes(provider.id);
+};
+
+export interface AutofixProgressDetails {
+  overallProgress: number;
+}
+
+export function getAutofixProgressDetails(
+  autofixData?: AutofixData
+): AutofixProgressDetails {
+  if (!autofixData) {
+    return {overallProgress: 0};
+  }
+
+  const steps = autofixData.steps ?? [];
+
+  if (autofixData.status === AutofixStatus.COMPLETED) {
+    return {overallProgress: 100};
+  }
+
+  if (
+    autofixData.status === AutofixStatus.ERROR ||
+    autofixData.status === AutofixStatus.CANCELLED
+  ) {
+    return {overallProgress: 0};
+  }
+
+  const processingSteps = steps.filter(step => step.status === AutofixStatus.PROCESSING);
+  const lastProcessingStep = processingSteps[processingSteps.length - 1];
+
+  if (!lastProcessingStep) {
+    return {overallProgress: 0};
+  }
+
+  const progressCount = lastProcessingStep.progress?.length || 0;
+  // Increment by 8% per progress log, max 97%
+  const progress = Math.min(progressCount * 8, 97);
+
+  return {
+    overallProgress: progress,
+  };
+}
+
+export function getAutofixRunExists(group: Group) {
+  const autofixLastRunAsDate = group.seerAutofixLastTriggered
+    ? new Date(group.seerAutofixLastTriggered)
+    : null;
+  const autofixRanWithinTtl = autofixLastRunAsDate
+    ? autofixLastRunAsDate >
+      new Date(Date.now() - AUTOFIX_TTL_IN_DAYS * 24 * 60 * 60 * 1000)
+    : false;
+
+  return autofixRanWithinTtl;
+}
+
+export function isIssueQuickFixable(group: Group) {
+  return group.seerFixabilityScore && group.seerFixabilityScore > 0.7;
+}
+
+export function getAutofixRunErrorMessage(autofixData: AutofixData | undefined) {
+  if (!autofixData || autofixData.status !== AutofixStatus.ERROR) {
+    return null;
+  }
+
+  const errorStep = autofixData.steps?.find(step => step.status === AutofixStatus.ERROR);
+  const errorMessage = errorStep?.completedMessage || t('Something went wrong.');
+
+  let customErrorMessage = '';
+  if (
+    errorMessage.toLowerCase().includes('overloaded') ||
+    errorMessage.toLowerCase().includes('no completion tokens') ||
+    errorMessage.toLowerCase().includes('exhausted')
+  ) {
+    customErrorMessage = t(
+      'The robots are having a moment. Our LLM provider is overloaded - please try again soon.'
+    );
+  } else if (
+    errorMessage.toLowerCase().includes('prompt') ||
+    errorMessage.toLowerCase().includes('tokens')
+  ) {
+    customErrorMessage = t(
+      "Seer worked so hard that it couldn't fit all its findings in its own memory. Please try again."
+    );
+  } else if (errorMessage.toLowerCase().includes('iterations')) {
+    customErrorMessage = t(
+      'Seer was taking a ton of iterations, so we pulled the plug out of fear it might go rogue. Please try again.'
+    );
+  } else if (errorMessage.toLowerCase().includes('timeout')) {
+    customErrorMessage = t(
+      'Seer was taking way too long, so we pulled the plug to turn it off and on again. Please try again.'
+    );
+  } else {
+    customErrorMessage = t(
+      "Oops, Seer went kaput. We've dispatched Seer to fix Seer. In the meantime, try again?"
+    );
+  }
+
+  return customErrorMessage;
+}

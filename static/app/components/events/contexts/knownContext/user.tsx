@@ -30,7 +30,7 @@ enum UserContextGeoKeys {
   REGION = 'region',
 }
 
-const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
+export const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
 
 function formatGeo(geoData: UserContext['geo'] = {}): string | undefined {
   if (!geoData) {
@@ -114,7 +114,7 @@ export function getUserContextData({
           default:
             return {
               key: ctxKey,
-              subject: ctxKey,
+              subject: `data.${ctxKey}`,
               value: data[ctxKey],
               meta: meta?.[ctxKey]?.[''],
             };

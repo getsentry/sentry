@@ -20,7 +20,7 @@ import type {ReleaseProject} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 
-describe('ReleaseActions', function () {
+describe('ReleaseActions', () => {
   const router = RouterFixture();
   const organization = OrganizationFixture();
 
@@ -51,18 +51,18 @@ describe('ReleaseActions', function () {
   };
   let mockUpdate: ReturnType<typeof MockApiClient.addMockResponse>;
 
-  beforeEach(function () {
+  beforeEach(() => {
     mockUpdate = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
       method: 'POST',
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('archives a release', async function () {
+  it('archives a release', async () => {
     render(
       <ReleaseActions
         organization={organization}
@@ -72,9 +72,12 @@ describe('ReleaseActions', function () {
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
-    renderGlobalModal({router});
+    renderGlobalModal({router, deprecatedRouterMocks: true});
 
     await userEvent.click(screen.getByLabelText('Actions'));
 
@@ -109,7 +112,7 @@ describe('ReleaseActions', function () {
     );
   });
 
-  it('restores a release', async function () {
+  it('restores a release', async () => {
     const refetchDataMock = jest.fn();
 
     render(
@@ -122,7 +125,10 @@ describe('ReleaseActions', function () {
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
     renderGlobalModal({router});
 
@@ -156,7 +162,7 @@ describe('ReleaseActions', function () {
     await waitFor(() => expect(refetchDataMock).toHaveBeenCalledTimes(1));
   });
 
-  it('navigates to a next/prev release', function () {
+  it('navigates to a next/prev release', () => {
     const {rerender} = render(
       <ReleaseActions
         organization={organization}
@@ -166,7 +172,10 @@ describe('ReleaseActions', function () {
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByLabelText('Oldest')).toHaveAttribute(

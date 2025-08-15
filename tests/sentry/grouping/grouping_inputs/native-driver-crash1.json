@@ -12,7 +12,6 @@
           "frames": [
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               },
               "function": "CUseCountedObject<T>::UCDestroy",
@@ -25,7 +24,6 @@
             },
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               },
               "function": "destructor'",
@@ -38,7 +36,6 @@
             },
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               },
               "function": "CD3D11LayeredChild<T>::LUCBeginLayerDestruction",
@@ -51,7 +48,6 @@
             },
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               },
               "function": "CContext::LUCBeginLayerDestruction",
@@ -64,7 +60,6 @@
             },
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               },
               "function": "NDXGI::CDevice::DestroyDriverInstance",
@@ -77,7 +72,6 @@
             },
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               },
               "function": "OpenAdapter10",
@@ -89,7 +83,6 @@
             },
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "missing_symbol"
               },
               "in_app": false,

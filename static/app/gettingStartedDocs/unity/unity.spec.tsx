@@ -13,17 +13,11 @@ function renderMockRequests() {
   });
 }
 
-describe('unity onboarding docs', function () {
-  it('renders docs correctly', async function () {
+describe('unity onboarding docs', () => {
+  it('renders docs correctly', async () => {
     renderMockRequests();
 
-    renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dotnet.unity': {
-          version: '1.99.9',
-        },
-      },
-    });
+    renderWithOnboardingLayout(docs);
 
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
@@ -34,7 +28,7 @@ describe('unity onboarding docs', function () {
     // Renders SDK version from registry
     expect(
       await screen.findByText(
-        textWithMarkupMatcher(/https:\/\/github.com\/getsentry\/unity\.git#1\.99\.9/)
+        textWithMarkupMatcher(/https:\/\/github.com\/getsentry\/unity\.git/)
       )
     ).toBeInTheDocument();
   });

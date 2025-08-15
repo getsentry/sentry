@@ -9,26 +9,24 @@ import {
 } from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import InviteMembersFooter from 'sentry/components/modals/inviteMembersModal/inviteMembersFooter';
 
-describe('InviteRowControlNew', function () {
+describe('InviteRowControlNew', () => {
   const renderComponent = (props: any) => {
     render(
-      <InviteMembersContext.Provider
-        value={{...defaultInviteProps, ...props, willInvite: true}}
-      >
+      <InviteMembersContext value={{...defaultInviteProps, ...props, willInvite: true}}>
         <InviteMembersFooter canSend />
-      </InviteMembersContext.Provider>,
+      </InviteMembersContext>,
       {organization: OrganizationFixture()}
     );
   };
 
-  it('disables send button when there are no emails', function () {
+  it('disables send button when there are no emails', () => {
     renderComponent({});
 
     const sendButton = screen.getByLabelText(/send invite/i);
     expect(sendButton).toBeDisabled();
   });
 
-  it('enables send button when there are emails', async function () {
+  it('enables send button when there are emails', async () => {
     const mockSetInviteStatus = jest.fn();
     const mockSendInvites = jest.fn();
     renderComponent({
@@ -50,7 +48,7 @@ describe('InviteRowControlNew', function () {
     expect(mockSendInvites).toHaveBeenCalled();
   });
 
-  it('displays correct status message for sent invites', function () {
+  it('displays correct status message for sent invites', () => {
     renderComponent({
       complete: true,
       inviteStatus: {
@@ -64,7 +62,7 @@ describe('InviteRowControlNew', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays correct status message for failed invites', function () {
+  it('displays correct status message for failed invites', () => {
     renderComponent({
       complete: true,
       inviteStatus: {
@@ -78,7 +76,7 @@ describe('InviteRowControlNew', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays correct status message for sent and failed invites', function () {
+  it('displays correct status message for sent and failed invites', () => {
     renderComponent({
       complete: true,
       inviteStatus: {

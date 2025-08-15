@@ -1,11 +1,12 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import CrumbItem from 'sentry/components/replays/diff/picker/crumbItem';
 import MutationOption from 'sentry/components/replays/diff/picker/mutationOption';
-import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
-import {Tooltip} from 'sentry/components/tooltip';
+import {After, Before} from 'sentry/components/replays/diff/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isHydrateCrumb, isRRWebChangeFrame} from 'sentry/utils/replays/types';
@@ -54,10 +55,10 @@ export default function DiffTimestampPicker() {
 
   return (
     <Fragment>
-      <DiffHeader>
+      <ContentSliderDiff.Header>
         <Before offset={leftOffsetMs} startTimestampMs={startTimestampMs} />
         <After offset={rightOffsetMs} startTimestampMs={startTimestampMs} />
-      </DiffHeader>
+      </ContentSliderDiff.Header>
       <Wrapper>
         <List>
           {beforeOptions.map((item, i) => (

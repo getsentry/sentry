@@ -4,7 +4,10 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  SubscriptionFixture,
+  SubscriptionWithSeerFixture,
+} from 'getsentry-test/fixtures/subscription';
 import {
   act,
   render,
@@ -21,14 +24,14 @@ import AMCheckout from 'getsentry/views/amCheckout';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
 
-describe('AM1 Checkout', function () {
+describe('AM1 Checkout', () => {
   let mockResponse: any;
   const api = new MockApiClient();
   const organization = OrganizationFixture({features: []});
   const subscription = SubscriptionFixture({organization});
   const params = {};
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.clearMockResponses();
@@ -54,7 +57,7 @@ describe('AM1 Checkout', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -84,7 +87,7 @@ describe('AM1 Checkout', function () {
     });
   });
 
-  it('can skip to step and continue', async function () {
+  it('can skip to step and continue', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -113,7 +116,7 @@ describe('AM1 Checkout', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders cancel subscription button', async function () {
+  it('renders cancel subscription button', async () => {
     const sub: SubscriptionType = {...subscription, canCancel: true};
     SubscriptionStore.set(organization.slug, sub);
 
@@ -135,7 +138,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('button', {name: 'Cancel Subscription'})).toBeInTheDocument();
   });
 
-  it('renders pending cancellation button', async function () {
+  it('renders pending cancellation button', async () => {
     const sub: SubscriptionType = {
       ...subscription,
       canCancel: true,
@@ -161,7 +164,7 @@ describe('AM1 Checkout', function () {
     expect(await screen.findByText('Pending Cancellation')).toBeInTheDocument();
   });
 
-  it('does not renders cancel subscription button if cannot cancel', async function () {
+  it('does not renders cancel subscription button if cannot cancel', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -182,7 +185,7 @@ describe('AM1 Checkout', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders annual terms for annual plan', async function () {
+  it('renders annual terms for annual plan', async () => {
     const sub: SubscriptionType = {
       ...subscription,
       plan: 'am1_team_auf',
@@ -212,7 +215,7 @@ describe('AM1 Checkout', function () {
     );
   });
 
-  it('does not render annual terms for monthly plan', async function () {
+  it('does not render annual terms for monthly plan', async () => {
     const sub = {...subscription};
     SubscriptionStore.set(organization.slug, sub);
 
@@ -236,7 +239,7 @@ describe('AM1 Checkout', function () {
     );
   });
 
-  it('renders default plan data', async function () {
+  it('renders default plan data', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -279,7 +282,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('');
   });
 
-  it('prefills with am1 team subscription data', async function () {
+  it('prefills with am1 team subscription data', async () => {
     const sub: SubscriptionType = SubscriptionFixture({
       organization,
       plan: 'am1_business',
@@ -340,7 +343,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('100');
   });
 
-  it('prefills with am1 business subscription data', async function () {
+  it('prefills with am1 business subscription data', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_business',
@@ -401,7 +404,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('100');
   });
 
-  it('prefills with mm2 team subscription data', async function () {
+  it('prefills with mm2 team subscription data', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_b_100k',
@@ -452,7 +455,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('prefills with mm2 biz subscription data', async function () {
+  it('prefills with mm2 biz subscription data', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_100k',
@@ -500,7 +503,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('prefills with s1 subscription data', async function () {
+  it('prefills with s1 subscription data', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 's1',
@@ -551,7 +554,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('prefills with l1 subscription data', async function () {
+  it('prefills with l1 subscription data', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'l1',
@@ -602,7 +605,7 @@ describe('AM1 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('handles subscription with unlimited ondemand', async function () {
+  it('handles subscription with unlimited ondemand', async () => {
     const sub = {...subscription, onDemandMaxSpend: -1};
     SubscriptionStore.set(organization.slug, sub);
 
@@ -628,7 +631,7 @@ describe('AM1 Checkout', function () {
   });
 });
 
-describe('AM2 Checkout', function () {
+describe('AM2 Checkout', () => {
   let mockResponse: any;
 
   const api = new MockApiClient();
@@ -636,7 +639,7 @@ describe('AM2 Checkout', function () {
   const subscription = SubscriptionFixture({organization});
   const params = {};
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.clearMockResponses();
@@ -665,7 +668,7 @@ describe('AM2 Checkout', function () {
     });
   });
 
-  it('renders for am1 team plan', async function () {
+  it('renders for am1 team plan', async () => {
     const sub = SubscriptionFixture({organization, plan: 'am1_team'});
     SubscriptionStore.set(organization.slug, sub);
 
@@ -700,7 +703,7 @@ describe('AM2 Checkout', function () {
     );
   });
 
-  it('renders for am2 free plan', async function () {
+  it('renders for am2 free plan', async () => {
     const sub = SubscriptionFixture({organization, plan: 'am2_f'});
     SubscriptionStore.set(organization.slug, sub);
 
@@ -735,7 +738,7 @@ describe('AM2 Checkout', function () {
     );
   });
 
-  it('prefills subscription data based on price with same plan type', async function () {
+  it('prefills subscription data based on price with same plan type', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_business',
@@ -794,7 +797,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('prefills subscription data based on price with annual plan', async function () {
+  it('prefills subscription data based on price with annual plan', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_business_auf',
@@ -853,7 +856,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('prefills subscription data based on events with different plan type', async function () {
+  it('prefills subscription data based on events with different plan type', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_team',
@@ -912,7 +915,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
 
-  it('displays 40% india promotion', async function () {
+  it('displays 40% india promotion', async () => {
     const promotionData = {
       completedPromotions: [
         {
@@ -967,7 +970,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getAllByText('53.40')).toHaveLength(2);
   });
 
-  it('skips step 1 for business plan in same tier', async function () {
+  it('skips step 1 for business plan in same tier', async () => {
     const am2BizSubscription = SubscriptionFixture({
       organization,
       plan: 'am2_business',
@@ -1000,7 +1003,91 @@ describe('AM2 Checkout', function () {
     expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
   });
 
-  it('test business bundle standard checkout', async function () {
+  it('does not skip step 1 for business plan pre-backfill', async () => {
+    const launchOrg = OrganizationFixture({features: ['seer-billing']});
+    const am2BizSubscription = SubscriptionFixture({
+      organization: launchOrg,
+      plan: 'am2_business',
+      planTier: 'am2',
+      categories: {
+        errors: MetricHistoryFixture({reserved: 100_000}),
+        transactions: MetricHistoryFixture({reserved: 20_000_000}),
+        attachments: MetricHistoryFixture({reserved: 1}),
+        monitorSeats: MetricHistoryFixture({reserved: 1}),
+        profileDuration: MetricHistoryFixture({reserved: 1}),
+        replays: MetricHistoryFixture({reserved: 10_000}),
+      },
+      onDemandMaxSpend: 2000,
+    });
+
+    SubscriptionStore.set(launchOrg.slug, am2BizSubscription);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization: launchOrg}
+    );
+    await screen.findByText('Choose Your Plan');
+    expect(screen.getByTestId('body-choose-your-plan')).toBeInTheDocument();
+    expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
+  });
+
+  it('skips step 1 for business plan with seer', async () => {
+    const seerOrg = OrganizationFixture({features: ['seer-billing']});
+    const seerSubscription = SubscriptionWithSeerFixture({
+      organization: seerOrg,
+      planTier: 'am2',
+      plan: 'am2_business',
+    });
+
+    SubscriptionStore.set(organization.slug, seerSubscription);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization: seerOrg}
+    );
+    await screen.findByText('Choose Your Plan');
+    expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
+    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
+  });
+
+  it('does not skip step 1 for business plan without seer', async () => {
+    const nonSeerOrg = OrganizationFixture({features: ['seer-billing']});
+    const nonSeerSubscription = SubscriptionFixture({
+      organization: nonSeerOrg,
+      planTier: 'am2',
+      plan: 'am2_business',
+    });
+
+    SubscriptionStore.set(organization.slug, nonSeerSubscription);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization: nonSeerOrg}
+    );
+    await screen.findByText('Choose Your Plan');
+    expect(screen.getByTestId('body-choose-your-plan')).toBeInTheDocument();
+    expect(screen.queryByTestId('errors-volume-item')).not.toBeInTheDocument();
+  });
+
+  it('test business bundle standard checkout', async () => {
     const am2BizSubscription = SubscriptionFixture({
       organization,
       plan: 'am2_business_bundle',
@@ -1041,7 +1128,7 @@ describe('AM2 Checkout', function () {
     expect(screen.getByRole('radio', {name: 'Business'})).toBeChecked();
   });
 
-  it('handles missing categories in subscription.categories', async function () {
+  it('handles missing categories in subscription.categories', async () => {
     /**
      * In this test, we create a subscription where some categories are missing from
      * `subscription.categories`. We then verify that the component renders correctly
@@ -1110,16 +1197,166 @@ describe('AM2 Checkout', function () {
     await userEvent.click(screen.getByText('On-Demand Max Spend'));
     expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('20');
   });
+
+  it('does not use trial volumes for trial subscriptions in checkout', async () => {
+    /**
+     * Test for the trial checkout slider fix. When subscription.isTrial is true,
+     * the checkout should use default volumes instead of trial reserved volumes.
+     */
+    const trialSub = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+      planTier: 'am2',
+      isTrial: true,
+      categories: {
+        // These are high trial volumes that should NOT be used in checkout
+        errors: MetricHistoryFixture({reserved: 500_000}), // High trial volume
+        transactions: MetricHistoryFixture({reserved: 50_000_000}), // High trial volume
+        replays: MetricHistoryFixture({reserved: 25_000}), // High trial volume
+        attachments: MetricHistoryFixture({reserved: 100}), // High trial volume
+        monitorSeats: MetricHistoryFixture({reserved: 10}),
+        profileDuration: MetricHistoryFixture({reserved: 10}),
+      },
+      onDemandMaxSpend: 5000,
+    });
+
+    SubscriptionStore.set(organization.slug, trialSub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+
+    // Navigate to Reserved Volumes step
+    await userEvent.click(screen.getByText('Reserved Volumes'));
+
+    // Verify that sliders show DEFAULT values, NOT the high trial volumes
+    // The key test is that they are NOT the trial volumes we set above
+    expect(screen.getByRole('slider', {name: 'Errors'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '500000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Performance units'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '50000000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Replays'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '25000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Attachments'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '100' // Should NOT be the trial value
+    );
+
+    // Verify they are reasonable default values instead
+    const errorsSlider = screen.getByRole('slider', {name: 'Errors'});
+    const errorsValue = parseInt(errorsSlider.getAttribute('aria-valuetext') || '0', 10);
+    expect(errorsValue).toBe(50_000); // Should be much less than trial volume
+    expect(errorsValue).toBeGreaterThan(0); // Should be a reasonable default
+
+    const replaysSlider = screen.getByRole('slider', {name: 'Replays'});
+    const replaysValue = parseInt(
+      replaysSlider.getAttribute('aria-valuetext') || '0',
+      10
+    );
+    expect(replaysValue).toBe(500); // Should be much less than trial volume
+    expect(replaysValue).toBeGreaterThan(0); // Should be a reasonable default
+  });
+
+  it('continues to use reserved volumes for non-trial subscriptions', async () => {
+    /**
+     * Regression test to ensure non-trial subscriptions still work as expected
+     * and use their actual reserved volumes in checkout.
+     */
+    const nonTrialSub = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+      planTier: 'am2',
+      isTrial: false, // NOT a trial subscription
+      categories: {
+        errors: MetricHistoryFixture({reserved: 200_000}),
+        transactions: MetricHistoryFixture({reserved: 30_000_000}),
+        replays: MetricHistoryFixture({reserved: 25_000}),
+        attachments: MetricHistoryFixture({reserved: 50}),
+        monitorSeats: MetricHistoryFixture({reserved: 5}),
+        profileDuration: MetricHistoryFixture({reserved: 5}),
+      },
+      onDemandMaxSpend: 3000,
+    });
+
+    SubscriptionStore.set(organization.slug, nonTrialSub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+
+    // Navigate to Reserved Volumes step
+    await userEvent.click(screen.getByText('Reserved Volumes'));
+
+    // Verify that sliders show the ACTUAL reserved volumes from subscription
+    // These values might be adjusted by price comparison logic, but should be based on the reserved values
+    expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
+      'aria-valuetext',
+      '200000' // Should use actual reserved volume
+    );
+
+    // Performance units might be adjusted by price comparison, but should be reasonable
+    const performanceSlider = screen.getByRole('slider', {name: 'Performance units'});
+    const performanceValue = parseInt(
+      performanceSlider.getAttribute('aria-valuetext') || '0',
+      10
+    );
+    expect(performanceValue).toBe(30_000_000);
+
+    // Replays and attachments should be close to our reserved values
+    const replaysSlider = screen.getByRole('slider', {name: 'Replays'});
+    const replaysValue = parseInt(
+      replaysSlider.getAttribute('aria-valuetext') || '0',
+      10
+    );
+    expect(replaysValue).toBe(25_000);
+
+    expect(screen.getByRole('slider', {name: 'Attachments'})).toHaveAttribute(
+      'aria-valuetext',
+      '50' // Should use actual reserved volume
+    );
+
+    // Verify onDemand also uses actual value
+    await userEvent.click(screen.getByText('On-Demand Max Spend'));
+    expect(screen.getByRole('textbox', {name: 'Monthly Max'})).toHaveValue('30');
+  });
 });
 
-describe('AM3 Checkout', function () {
+describe('AM3 Checkout', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture({
     features: ['ondemand-budgets', 'am3-billing'],
   });
   const params = {};
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -1140,7 +1377,7 @@ describe('AM3 Checkout', function () {
     });
   });
 
-  it('renders for new customers (AM3 free plan)', async function () {
+  it('renders for new customers (AM3 free plan)', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am3_f',
@@ -1175,12 +1412,12 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('renders for customers migrating from partner billing', async function () {
+  it('renders for customers migrating from partner billing', async () => {
     organization.features.push('partner-billing-migration');
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toString(),
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am2_sponsored_team_auf',
       planTier: PlanTier.AM2,
       isSponsored: true,
@@ -1230,13 +1467,14 @@ describe('AM3 Checkout', function () {
         data: {tier: PlanTier.AM3},
       })
     );
+    organization.features.pop(); // clean up
   });
 
-  it('renders for self-serve partners', async function () {
+  it('renders for self-serve partners', async () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toString(),
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
       planTier: PlanTier.AM3,
       isSelfServePartner: true,
@@ -1289,12 +1527,55 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('renders for VC partners', async function () {
+  it('renders banner for self-serve partners', async () => {
+    const contractPeriodEnd = moment();
+    const sub = SubscriptionFixture({
+      organization,
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+      isSelfServePartner: true,
+      partner: {
+        isActive: true,
+        externalId: 'foo',
+        partnership: {
+          id: 'XX',
+          displayName: 'BAR',
+          supportNote: '',
+        },
+        name: '',
+      },
+    });
+    act(() => SubscriptionStore.set(organization.slug, sub));
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+    expect(
+      screen.getByText('Billing handled externally through BAR')
+    ).toBeInTheDocument();
+  });
+
+  it('renders for VC partners', async () => {
     organization.features.push('vc-marketplace-active-customer');
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: contractPeriodEnd.toString(),
+      contractPeriodEnd: contractPeriodEnd.toISOString(),
       plan: 'am3_f',
       planTier: PlanTier.AM3,
       isSelfServePartner: true,
@@ -1342,7 +1623,7 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('does not render for AM2 customers', async function () {
+  it('does not render for AM2 customers', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am2_f',
@@ -1379,7 +1660,7 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('does not render for AM1 customers', async function () {
+  it('does not render for AM1 customers', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'am1_f',
@@ -1416,7 +1697,7 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('prefills with existing subscription data', async function () {
+  it('prefills with existing subscription data', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
@@ -1443,6 +1724,7 @@ describe('AM3 Checkout', function () {
       },
       onDemandMaxSpend: 2000,
       supportsOnDemand: true,
+      isFree: false,
     });
 
     SubscriptionStore.set(organization.slug, sub);
@@ -1461,9 +1743,10 @@ describe('AM3 Checkout', function () {
     expect(
       await screen.findByRole('heading', {name: 'Change Subscription'})
     ).toBeInTheDocument();
-    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument(); // skips over first step when subscription is already on Business plan
     expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
 
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument(); // skips over first step when subscription is already on Business plan
     // TODO: Can better write this once we have
     // https://github.com/testing-library/jest-dom/issues/478
     expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
@@ -1490,7 +1773,7 @@ describe('AM3 Checkout', function () {
     expect(screen.queryByRole('slider', {name: 'Cron Monitors'})).not.toBeInTheDocument();
   });
 
-  it('allows setting PAYG for customers switching to AM3', async function () {
+  it('allows setting PAYG for customers switching to AM3', async () => {
     const sub = SubscriptionFixture({
       organization,
       // This plan does not have hasOnDemandModes
@@ -1538,7 +1821,7 @@ describe('AM3 Checkout', function () {
     );
   });
 
-  it('handles missing categories in subscription.categories', async function () {
+  it('handles missing categories in subscription.categories', async () => {
     // Add billing config mock response
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
@@ -1570,6 +1853,7 @@ describe('AM3 Checkout', function () {
         enabled: true,
       },
       supportsOnDemand: true,
+      isFree: false,
     });
 
     SubscriptionStore.set(organization.slug, sub);
@@ -1589,11 +1873,16 @@ describe('AM3 Checkout', function () {
       await screen.findByRole('heading', {name: 'Change Subscription'})
     ).toBeInTheDocument();
 
+    // For AM3, first step is pay-as-you-go budget
+    expect(screen.getByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+
+    // Verify that the 'Pay-as-you-go budget' is correctly set
+    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
     // Verify that the component renders without errors
     expect(screen.getByTestId('replays-volume-item')).toBeInTheDocument();
-
-    // For AM3, we should see "Set Your Pay-as-you-go Budget" first
-    expect(screen.getByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
 
     // Check that missing 'Errors' category defaults to 50,000 errors
     expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
@@ -1610,12 +1899,9 @@ describe('AM3 Checkout', function () {
       'aria-valuetext',
       '1'
     );
-
-    // Verify that the 'Pay-as-you-go budget' is correctly set
-    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
   });
 
-  it('handles zero platform reserve', function () {
+  it('handles zero platform reserve', () => {
     const formData = {
       plan: 'am3_business',
       reserved: {
@@ -1642,5 +1928,99 @@ describe('AM3 Checkout', function () {
       reservedProfileDuration: 0,
       reservedSpans: 0,
     });
+  });
+
+  it('does not use trial volumes for trial subscriptions in AM3 checkout', async () => {
+    /**
+     * Test for the trial checkout slider fix in AM3 tier. When subscription.isTrial is true,
+     * the checkout should use default volumes instead of trial reserved volumes.
+     */
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    const trialSub = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      planTier: PlanTier.AM3,
+      isTrial: true, // This is the key - subscription is in trial mode
+      categories: {
+        // These are high trial volumes that should NOT be used in checkout
+        errors: MetricHistoryFixture({reserved: 750_000}), // High trial volume
+        attachments: MetricHistoryFixture({reserved: 200}), // High trial volume
+        replays: MetricHistoryFixture({reserved: 50_000}), // High trial volume
+        spans: MetricHistoryFixture({reserved: 100_000_000}), // High trial volume
+        monitorSeats: MetricHistoryFixture({reserved: 20}),
+        profileDuration: MetricHistoryFixture({reserved: 20}),
+      },
+      onDemandBudgets: {
+        onDemandSpendUsed: 0,
+        sharedMaxBudget: 10000, // High trial budget
+        budgetMode: OnDemandBudgetMode.SHARED,
+        enabled: true,
+      },
+      onDemandMaxSpend: 10000,
+      supportsOnDemand: true,
+      isFree: false,
+    });
+
+    SubscriptionStore.set(organization.slug, trialSub);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Change Subscription'})
+    ).toBeInTheDocument();
+
+    // For AM3, first step is pay-as-you-go budget
+    expect(screen.getByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+
+    // Continue to Reserved Volumes step
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
+
+    // Verify that sliders show reasonable values, NOT the high trial volumes
+    // The key test is that they are NOT the trial volumes we set above
+    expect(screen.getByRole('slider', {name: 'Errors'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '750000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Replays'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '50000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Spans'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '100000000' // Should NOT be the trial value
+    );
+    expect(screen.getByRole('slider', {name: 'Attachments'})).not.toHaveAttribute(
+      'aria-valuetext',
+      '200' // Should NOT be the trial value
+    );
+
+    // Verify they are reasonable default values instead
+    const errorsSlider = screen.getByRole('slider', {name: 'Errors'});
+    const errorsValue = parseInt(errorsSlider.getAttribute('aria-valuetext') || '0', 10);
+    expect(errorsValue).toBe(50_000); // Should be much less than trial volume
+    expect(errorsValue).toBeGreaterThan(0); // Should be a reasonable default
+
+    const replaysSlider = screen.getByRole('slider', {name: 'Replays'});
+    const replaysValue = parseInt(
+      replaysSlider.getAttribute('aria-valuetext') || '0',
+      10
+    );
+    expect(replaysValue).toBe(50); // Should be much less than trial volume
+    expect(replaysValue).toBeGreaterThan(0); // Should be a reasonable default
   });
 });

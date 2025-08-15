@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from functools import wraps
 from typing import Any
 
+import sentry_sdk
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -31,7 +32,6 @@ from sentry.sentry_apps.utils.errors import (
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
-from sentry.utils.sdk import Scope
 from sentry.utils.strings import to_single_line_str
 
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
@@ -209,16 +209,12 @@ class SentryAppPermission(SentryPermission):
         "DELETE": ("org:admin",),
     }
 
-    published_scope_map = {
+    published_scope_map = scope_map = {
         "GET": PARANOID_GET,
         "PUT": ("org:write", "org:admin"),
         "POST": ("org:admin",),
         "DELETE": ("org:admin",),
     }
-
-    @property
-    def scope_map(self):
-        return self.published_scope_map
 
     def has_object_permission(self, request: Request, view, sentry_app: RpcSentryApp | SentryApp):
         if not hasattr(request, "user") or not request.user:
@@ -245,7 +241,6 @@ class SentryAppPermission(SentryPermission):
                     message="User must be in the app owner's organization for unpublished apps",
                     status_code=403,
                     public_context={
-                        "integration": sentry_app.slug,
                         "user_organizations": [org.slug for org in organizations],
                     },
                 )
@@ -287,7 +282,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
         self.check_object_permissions(request, sentry_app)
 
-        Scope.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
+        sentry_sdk.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
 
         kwargs["sentry_app"] = sentry_app
         return (args, kwargs)
@@ -306,7 +301,7 @@ class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
         self.check_object_permissions(request, sentry_app)
 
-        Scope.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
+        sentry_sdk.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
 
         kwargs["sentry_app"] = sentry_app
         return (args, kwargs)
@@ -432,7 +427,7 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
 
         self.check_object_permissions(request, installation)
 
-        Scope.get_isolation_scope().set_tag("sentry_app_installation", installation.uuid)
+        sentry_sdk.get_isolation_scope().set_tag("sentry_app_installation", installation.uuid)
 
         kwargs["installation"] = installation
         return (args, kwargs)

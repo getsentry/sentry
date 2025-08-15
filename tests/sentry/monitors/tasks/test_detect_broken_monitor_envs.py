@@ -1,7 +1,8 @@
 import uuid
 from datetime import timedelta
-from unittest.mock import Mock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -14,7 +15,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
-    MonitorType,
     ScheduleType,
 )
 from sentry.monitors.tasks.detect_broken_monitor_envs import detect_broken_monitor_envs
@@ -28,7 +28,7 @@ from sentry.users.models.useremail import UserEmail
 
 
 class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()
@@ -42,6 +42,12 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             monitor=monitor,
             environment_id=environment_id,
             status=MonitorStatus.OK,
+        )
+
+    def generate_cron_monitor_url(self, org_slug: str, project_slug: str, monitor_slug: str) -> str:
+        return "http://testserver" + reverse(
+            "sentry-organization-cron-monitor-details",
+            args=[org_slug, project_slug, monitor_slug],
         )
 
     def create_monitor_and_env(
@@ -58,7 +64,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             name=name,
             organization_id=organization_id,
             project_id=project_id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": [1, "day"],
                 "schedule_type": ScheduleType.INTERVAL,
@@ -96,7 +101,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_creates_broken_detection_no_duplicates(self, mock_now, builder):
+    def test_creates_broken_detection_no_duplicates(
+        self, mock_now: MagicMock, builder: MagicMock
+    ) -> None:
         now = before_now()
         mock_now.return_value = now
         monitor, monitor_environment = self.create_monitor_and_env()
@@ -112,7 +119,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 1
         assert builder.call_count == 1
 
-    def test_does_not_create_broken_detection_insufficient_duration(self):
+    def test_does_not_create_broken_detection_insufficient_duration(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
 
         first_checkin = MonitorCheckIn.objects.create(
@@ -142,7 +149,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
 
-    def test_does_not_create_broken_detection_insufficient_checkins(self):
+    def test_does_not_create_broken_detection_insufficient_checkins(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
 
         first_checkin = MonitorCheckIn.objects.create(
@@ -172,7 +179,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         detect_broken_monitor_envs()
         assert len(MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)) == 0
 
-    def test_does_not_create_for_disabled_monitor(self):
+    def test_does_not_create_for_disabled_monitor(self) -> None:
         monitor, monitor_environment = self.create_monitor_and_env()
         monitor.status = ObjectStatus.DISABLED
         monitor.save()
@@ -184,7 +191,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_sends_emails_to_all_users_across_orgs(self, mock_now, builder):
+    def test_sends_emails_to_all_users_across_orgs(
+        self, mock_now: MagicMock, builder: MagicMock
+    ) -> None:
         now = before_now()
         mock_now.return_value = now
         monitor, monitor_environment = self.create_monitor_and_env()
@@ -226,45 +235,45 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         monitor.slug,
                         self.project.slug,
-                        f"http://testserver/organizations/{self.organization.slug}/crons/{self.project.slug}/{monitor.slug}/?environment={self.environment.name}",
+                        f"{self.generate_cron_monitor_url(self.organization.slug, self.project.slug, monitor.slug)}?environment={self.environment.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/insights/crons/",
             },
             {
                 "broken_monitors": [
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                     (
                         third_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, third_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
             {
                 "broken_monitors": [
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                     (
                         third_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, third_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
         ]
         expected_subjects = [
@@ -291,7 +300,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_disables_environments_and_sends_email(self, mock_now, builder):
+    def test_disables_environments_and_sends_email(
+        self, mock_now: MagicMock, builder: MagicMock
+    ) -> None:
         now = before_now()
         mock_now.return_value = now
         monitor, monitor_environment = self.create_monitor_and_env()
@@ -365,45 +376,45 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         monitor.slug,
                         self.project.slug,
-                        f"http://testserver/organizations/{self.organization.slug}/crons/{self.project.slug}/{monitor.slug}/?environment={self.environment.name}",
+                        f"{self.generate_cron_monitor_url(self.organization.slug, self.project.slug, monitor.slug)}?environment={self.environment.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{self.organization.slug}/insights/crons/",
             },
             {
                 "muted_monitors": [
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                     (
                         third_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, third_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
             {
                 "muted_monitors": [
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                     (
                         third_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, third_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
         ]
         expected_subjects = [
@@ -430,7 +441,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_disables_corrects_environments_and_sends_email(self, mock_now, builder):
+    def test_disables_corrects_environments_and_sends_email(
+        self, mock_now: MagicMock, builder: MagicMock
+    ) -> None:
         now = before_now()
         mock_now.return_value = now
         monitor, monitor_environment = self.create_monitor_and_env()
@@ -486,22 +499,22 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
             {
                 "muted_monitors": [
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],
-                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/crons/",
+                "view_monitors_link": f"http://testserver/organizations/{second_org.slug}/insights/crons/",
             },
         ]
 
@@ -523,7 +536,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_sends_emails_to_owners_user_id(self, mock_now, builder):
+    def test_sends_emails_to_owners_user_id(self, mock_now: MagicMock, builder: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         builder.return_value.send_async = Mock()
@@ -542,7 +555,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_sends_emails_to_owners_team_id(self, mock_now, builder):
+    def test_sends_emails_to_owners_team_id(self, mock_now: MagicMock, builder: MagicMock) -> None:
         now = before_now()
         mock_now.return_value = now
         builder.return_value.send_async = Mock()
@@ -592,7 +605,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
 
     @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
     @patch("django.utils.timezone.now")
-    def test_does_not_send_emails_to_users_with_disabled_nudges(self, mock_now, builder):
+    def test_does_not_send_emails_to_users_with_disabled_nudges(
+        self, mock_now: MagicMock, builder: MagicMock
+    ) -> None:
         now = before_now()
         mock_now.return_value = now
         builder.return_value.send_async = Mock()

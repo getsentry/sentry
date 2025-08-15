@@ -18,6 +18,7 @@ describe('WidgetCardContextMenu', () => {
       <MEPSettingProvider>
         <DashboardsMEPProvider>
           <WidgetCardContextMenu
+            dashboardFilters={undefined}
             location={LocationFixture()}
             organization={OrganizationFixture({
               features: ['discover-basic'],
@@ -61,11 +62,12 @@ describe('WidgetCardContextMenu', () => {
     expect(await screen.findByText(performanceScoreTooltip)).toBeInTheDocument();
   });
 
-  it('disables duplication if limit reached', async function () {
+  it('disables duplication if limit reached', async () => {
     render(
       <MEPSettingProvider>
         <DashboardsMEPProvider>
           <WidgetCardContextMenu
+            dashboardFilters={undefined}
             location={LocationFixture()}
             organization={OrganizationFixture({
               features: ['discover-basic', 'dashboards-edit'],
@@ -88,13 +90,14 @@ describe('WidgetCardContextMenu', () => {
     expect($button).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('renders the Open in Explore button for span widgets', async function () {
+  it('renders the Open in Explore button for span widgets', async () => {
     render(
       <MEPSettingProvider>
         <DashboardsMEPProvider>
           <WidgetCardContextMenu
+            dashboardFilters={undefined}
             location={LocationFixture()}
-            organization={OrganizationFixture({})}
+            organization={OrganizationFixture()}
             router={RouterFixture()}
             selection={PageFiltersFixture()}
             widget={WidgetFixture({widgetType: WidgetType.SPANS})}

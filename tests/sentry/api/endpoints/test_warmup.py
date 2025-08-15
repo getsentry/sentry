@@ -5,7 +5,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class WarmupEndpointTest(APITestCase):
-    def test_warmup_endpoint(self):
+    def test_warmup_endpoint(self) -> None:
         url = reverse("sentry-warmup")
         response = self.client.get(url)
 

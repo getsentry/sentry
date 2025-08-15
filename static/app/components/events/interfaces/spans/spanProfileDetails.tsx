@@ -1,9 +1,10 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -15,6 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
@@ -28,28 +30,34 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-import type {SpanType} from './types';
-
 const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;
 const MIN_TOP_NODES = 3;
 const TOP_NODE_MIN_COUNT = 3;
 
-interface SpanProfileDetailsProps {
+export interface SpanProfileDetailsProps {
   event: Readonly<EventTransaction>;
-  span: Readonly<SpanType>;
+  span: Readonly<{
+    end_timestamp: number;
+    span_id: string;
+    start_timestamp: number;
+  }>;
   onNoProfileFound?: () => void;
 }
 
 export function useSpanProfileDetails(
   organization: Organization,
   project: Project | undefined,
-  event: Readonly<EventTransaction>,
-  span: Readonly<SpanType>
+  event: Readonly<EventTransaction | undefined>,
+  span: SpanProfileDetailsProps['span']
 ) {
   const profileGroup = useProfileGroup();
 
   const processedEvent = useMemo(() => {
+    if (!event) {
+      return null;
+    }
+
     const entries: EventTransaction['entries'] = [...(event.entries || [])];
     if (profileGroup.images) {
       entries.push({
@@ -74,7 +82,7 @@ export function useSpanProfileDetails(
   }, [profileGroup.profiles, threadId]);
 
   const nodes: CallTreeNode[] = useMemo(() => {
-    if (profile === null) {
+    if (profile === null || !event) {
       return [];
     }
 
@@ -95,7 +103,7 @@ export function useSpanProfileDetails(
       profile.unit
     );
     const relativeStopTimestamp = formatTo(
-      span.timestamp - startTimestamp,
+      span.end_timestamp - startTimestamp,
       'second',
       profile.unit
     );
@@ -129,7 +137,7 @@ export function useSpanProfileDetails(
   }, [nodes]);
 
   const {frames, hasPrevious, hasNext} = useMemo(() => {
-    if (index >= maxNodes) {
+    if (index >= maxNodes || !event) {
       return {frames: [], hasPrevious: false, hasNext: false};
     }
 
@@ -141,7 +149,7 @@ export function useSpanProfileDetails(
   }, [index, maxNodes, event, nodes]);
 
   const profileTarget = useMemo(() => {
-    if (defined(project)) {
+    if (defined(project) && event) {
       const profileContext = event.contexts.profile ?? {};
 
       if (defined(profileContext.profile_id)) {
@@ -210,7 +218,7 @@ export function SpanProfileDetails({
     frames,
   } = useSpanProfileDetails(organization, project, event, span);
 
-  if (!defined(profileTarget)) {
+  if (!defined(profileTarget) || !processedEvent) {
     return null;
   }
 
@@ -249,7 +257,7 @@ export function SpanProfileDetails({
           )}
         />
         <SpanDetailsItem>
-          <ButtonBar merged>
+          <ButtonBar merged gap="0">
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
@@ -257,6 +265,10 @@ export function SpanProfileDetails({
               disabled={!hasPrevious}
               onClick={() => {
                 setIndex(prevIndex => prevIndex - 1);
+                trackAnalytics('profiling_views.trace.profile_context.pagination', {
+                  organization,
+                  direction: 'Previous',
+                });
               }}
             />
             <Button
@@ -266,6 +278,10 @@ export function SpanProfileDetails({
               disabled={!hasNext}
               onClick={() => {
                 setIndex(prevIndex => prevIndex + 1);
+                trackAnalytics('profiling_views.trace.profile_context.pagination', {
+                  organization,
+                  direction: 'Next',
+                });
               }}
             />
           </ButtonBar>
@@ -462,5 +478,5 @@ const SpanDetailsItem = styled('span')<{grow?: boolean}>`
 
 const SectionSubtext = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

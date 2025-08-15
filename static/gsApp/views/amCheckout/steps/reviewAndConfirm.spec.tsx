@@ -11,14 +11,13 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import AMCheckout from 'getsentry/views/amCheckout/';
-
-import {getCheckoutAPIData} from '../utils';
+import {SelectableProduct} from 'getsentry/views/amCheckout/types';
+import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
 import ReviewAndConfirm from './reviewAndConfirm';
 
@@ -54,7 +53,7 @@ jest.mock('getsentry/utils/stripe', () => ({
   },
 }));
 
-describe('AmCheckout > ReviewAndConfirm', function () {
+describe('AmCheckout > ReviewAndConfirm', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
@@ -104,7 +103,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.clearMockResponses();
@@ -140,7 +139,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
   });
 
-  it('cannot skip to review step', async function () {
+  it('cannot skip to review step', async () => {
     mockPreviewGet();
 
     MockApiClient.addMockResponse({
@@ -169,7 +168,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     expect(screen.queryByText('Confirm Changes')).not.toBeInTheDocument();
   });
 
-  it('renders closed', function () {
+  it('renders closed', () => {
     const {mockPreview} = mockPreviewGet();
     render(<ReviewAndConfirm {...stepProps} />);
 
@@ -178,7 +177,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     expect(mockPreview).not.toHaveBeenCalled();
   });
 
-  it('renders open when active', async function () {
+  it('renders open when active', async () => {
     const {preview, mockPreview} = mockPreviewGet();
     render(<ReviewAndConfirm {...stepProps} isActive />);
 
@@ -203,7 +202,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('requests preview with ondemand spend', async function () {
+  it('requests preview with ondemand spend', async () => {
     const {mockPreview, preview} = mockPreviewGet();
     const updatedData = {...formData, onDemandMaxSpend: 5000};
     render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />);
@@ -221,7 +220,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('updates preview with formData change when active', async function () {
+  it('updates preview with formData change when active', async () => {
     const {preview, mockPreview} = mockPreviewGet();
     const {rerender} = render(<ReviewAndConfirm {...stepProps} />);
     expect(await screen.findByText('Review & Confirm')).toBeInTheDocument();
@@ -246,7 +245,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('can confirm changes', async function () {
+  it('can confirm changes', async () => {
     const {preview} = mockPreviewGet();
     const mockConfirm = mockSubscriptionPut();
 
@@ -254,8 +253,15 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     const updatedData = {
       ...formData,
       reserved: {...formData.reserved, errors: reservedErrors},
+      selectedProducts: {
+        [SelectableProduct.SEER]: {
+          enabled: true,
+        },
+      },
     };
-    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />);
+    const {router} = render(
+      <ReviewAndConfirm {...stepProps} formData={updatedData} isActive />
+    );
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
     expect(mockConfirm).toHaveBeenCalledWith(
@@ -270,8 +276,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing', showSeerAutomationAlert: 'true'},
+        })
       )
     );
 
@@ -284,8 +293,6 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       previous_attachments: 1,
       previous_replays: 50,
       previous_monitorSeats: 1,
-      previous_profileDuration: undefined,
-      previous_spans: undefined,
       previous_uptime: 1,
       plan: updatedData.plan,
       errors: updatedData.reserved.errors,
@@ -293,8 +300,16 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       attachments: updatedData.reserved.attachments,
       replays: updatedData.reserved.replays,
       monitorSeats: updatedData.reserved.monitorSeats,
-      spans: undefined,
       uptime: 1,
+    });
+
+    expect(trackGetsentryAnalytics).toHaveBeenCalledWith('checkout.product_select', {
+      organization,
+      subscription,
+      seer: {
+        enabled: true,
+        previously_enabled: false,
+      },
     });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith(
@@ -309,7 +324,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('can schedule changes for partner migration', async function () {
+  it('can schedule changes for partner migration', async () => {
     const partnerOrg = OrganizationFixture({features: ['partner-billing-migration']});
     const partnerSub = SubscriptionFixture({
       organization: partnerOrg,
@@ -323,7 +338,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         },
         name: '',
       },
-      contractPeriodEnd: moment().add(7, 'days').toString(),
+      contractPeriodEnd: moment().add(7, 'days').toISOString(),
     });
     const {preview} = mockPreviewGet(partnerOrg.slug);
     const mockConfirm = mockSubscriptionPut(partnerOrg.slug);
@@ -347,7 +362,9 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       subscription: partnerSub,
     };
 
-    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
+    const {router} = render(
+      <ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />
+    );
     expect(
       await screen.findByText(
         `These changes will take effect at the end of your current FOO sponsored plan on ${moment(partnerSub.contractPeriodEnd).add(1, 'days').format('ll')}. If you want these changes to apply immediately, select Migrate Now.`
@@ -367,8 +384,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${partnerOrg.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${partnerOrg.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
 
@@ -407,7 +427,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('can migrate immediately for partner migration', async function () {
+  it('can migrate immediately for partner migration', async () => {
     const partnerOrg = OrganizationFixture({features: ['partner-billing-migration']});
     const partnerSub = SubscriptionFixture({
       organization: partnerOrg,
@@ -421,7 +441,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         },
         name: '',
       },
-      contractPeriodEnd: moment().add(20, 'days').toString(),
+      contractPeriodEnd: moment().add(20, 'days').toISOString(),
     });
     const {preview} = mockPreviewGet(partnerOrg.slug);
     const mockConfirm = mockSubscriptionPut(partnerOrg.slug);
@@ -442,7 +462,9 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       subscription: partnerSub,
     };
 
-    render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />);
+    const {router} = render(
+      <ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />
+    );
     expect(
       await screen.findByText(
         `These changes will take effect at the end of your current FOO sponsored plan on ${moment(partnerSub.contractPeriodEnd).add(1, 'days').format('ll')}. If you want these changes to apply immediately, select Migrate Now.`
@@ -462,8 +484,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${partnerOrg.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${partnerOrg.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
 
@@ -500,7 +525,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('should render immediate copy for effectiveNow', async function () {
+  it('should render immediate copy for effectiveNow', async () => {
     mockPreviewGet(organization.slug, new Date());
     mockSubscriptionPut(organization.slug);
 
@@ -523,7 +548,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     ).toBeInTheDocument();
   });
 
-  it('should render contract end copy for effective later', async function () {
+  it('should render contract end copy for effective later', async () => {
     mockPreviewGet(organization.slug);
     mockSubscriptionPut(organization.slug);
 
@@ -546,10 +571,10 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     ).toBeInTheDocument();
   });
 
-  it('should render billed through self serve partner copy for effectiveNow', async function () {
+  it('should render billed through self serve partner copy for effectiveNow', async () => {
     const partnerSub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: moment().add(20, 'days').toString(),
+      contractPeriodEnd: moment().add(20, 'days').toISOString(),
       plan: 'am3_f',
       planTier: PlanTier.AM3,
       isSelfServePartner: true,
@@ -590,7 +615,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     ).toBeInTheDocument();
   });
 
-  it('should render billed through self serve partner copy for effective later', async function () {
+  it('should render billed through self serve partner copy for effective later', async () => {
     mockPreviewGet(organization.slug);
     mockSubscriptionPut(organization.slug);
 
@@ -607,7 +632,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
     const partnerSub = SubscriptionFixture({
       organization,
-      contractPeriodEnd: moment().add(20, 'days').toString(),
+      contractPeriodEnd: moment().add(20, 'days').toISOString(),
       plan: 'am3_f',
       planTier: PlanTier.AM3,
       isSelfServePartner: true,
@@ -635,7 +660,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not send transactions upgrade event for plan upgrade', async function () {
+  it('does not send transactions upgrade event for plan upgrade', async () => {
     const {preview} = mockPreviewGet();
     const mockConfirm = mockSubscriptionPut();
     const sub = SubscriptionFixture({
@@ -655,7 +680,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     const updatedData = {...formData, plan: 'am1_business'};
     const props = {...stepProps, subscription: sub, formData: updatedData};
 
-    render(<ReviewAndConfirm {...props} isActive />);
+    const {router} = render(<ReviewAndConfirm {...props} isActive />);
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
 
@@ -671,8 +696,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
 
@@ -701,7 +729,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('does not send transactions upgrade event for transactions downgrade', async function () {
+  it('does not send transactions upgrade event for transactions downgrade', async () => {
     const {preview} = mockPreviewGet();
     const mockConfirm = mockSubscriptionPut();
     const sub = SubscriptionFixture({
@@ -720,7 +748,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
     const updatedData = {...formData};
     const props = {...stepProps, subscription: sub, formData: updatedData};
-    render(<ReviewAndConfirm {...props} isActive />);
+    const {router} = render(<ReviewAndConfirm {...props} isActive />);
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
     expect(mockConfirm).toHaveBeenCalledWith(
@@ -735,8 +763,11 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
 
@@ -766,11 +797,13 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('can confirm with ondemand spend', async function () {
+  it('can confirm with ondemand spend', async () => {
     const {preview} = mockPreviewGet();
     const mockConfirm = mockSubscriptionPut();
     const updatedData = {...formData, reserved: {errors: 100000}, onDemandMaxSpend: 5000};
-    render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />);
+    const {router} = render(
+      <ReviewAndConfirm {...stepProps} isActive formData={updatedData} />
+    );
     await userEvent.click(await screen.findByText('Confirm Changes'));
 
     expect(mockConfirm).toHaveBeenCalledWith(
@@ -785,13 +818,16 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
   });
 
-  it('handles expired token on confirm', async function () {
+  it('handles expired token on confirm', async () => {
     const {preview, mockPreview} = mockPreviewGet();
     const mockConfirm = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/`,
@@ -803,7 +839,9 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
 
     const updatedData = {...formData, reservedErrors: 100000};
-    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />);
+    const {router} = render(
+      <ReviewAndConfirm {...stepProps} formData={updatedData} isActive />
+    );
     expect(mockPreview).toHaveBeenCalledTimes(1);
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
@@ -825,10 +863,15 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     expect(addErrorMessage).toHaveBeenCalledWith(
       'Your preview expired, please review changes and submit again'
     );
-    expect(browserHistory.push).not.toHaveBeenCalled();
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/mock-pathname/`,
+        query: {},
+      })
+    );
   });
 
-  it('handles unknown error when updating subscription', async function () {
+  it('handles unknown error when updating subscription', async () => {
     const {preview, mockPreview} = mockPreviewGet();
     const mockConfirm = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/`,
@@ -837,9 +880,17 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
 
     const updatedData = {...formData, reservedTransactions: 1500000};
-    render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />);
+    const {router} = render(
+      <ReviewAndConfirm {...stepProps} formData={updatedData} isActive />
+    );
 
     expect(mockPreview).toHaveBeenCalledTimes(1);
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/mock-pathname/`,
+        query: {},
+      })
+    );
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
 
@@ -860,10 +911,15 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     expect(addErrorMessage).toHaveBeenCalledWith(
       'An unknown error occurred while saving your subscription'
     );
-    expect(browserHistory.push).not.toHaveBeenCalled();
+    expect(router.location).toEqual(
+      expect.objectContaining({
+        pathname: `/mock-pathname/`,
+        query: {},
+      })
+    );
   });
 
-  it('handles completing a card action when required', async function () {
+  it('handles completing a card action when required', async () => {
     const {preview} = mockPreviewGet();
     // We make two API calls. The first fails with a card action required
     // which we have mocked to succeed. The second request will have
@@ -883,13 +939,18 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     });
 
     const updatedData = {...formData, reserved: {errors: 100000}, onDemandMaxSpend: 5000};
-    render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />);
+    const {router} = render(
+      <ReviewAndConfirm {...stepProps} isActive formData={updatedData} />
+    );
     await userEvent.click(await screen.findByText('Confirm Changes'));
 
     // Wait for URL to change as that signals completion.
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/billing/overview/`,
+          query: {referrer: 'billing'},
+        })
       )
     );
 
@@ -916,7 +977,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     );
   });
 
-  it('handles payment intent errors', async function () {
+  it('handles payment intent errors', async () => {
     mockPreviewGet();
     const mockConfirm = mockSubscriptionPut({
       statusCode: 402,
@@ -938,7 +999,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     expect(mockConfirm).toHaveBeenCalled();
   });
 
-  it('shows generic intent errors for odd types', async function () {
+  it('shows generic intent errors for odd types', async () => {
     mockPreviewGet();
     const mockConfirm = mockSubscriptionPut({
       statusCode: 402,

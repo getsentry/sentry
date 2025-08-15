@@ -12,13 +12,15 @@ import sys
 import tempfile
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Union, overload
+from typing import Any, Final, Literal, Union, overload
 from urllib.parse import urlparse
 
 import sentry
+import sentry.utils.types as env_types
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
+from sentry.conf.types.bgtask import BgTaskConfig
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
@@ -29,9 +31,7 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
-from sentry.utils.types import Type, type_from_value
 
 
 def gettext_noop(s: str) -> str:
@@ -49,13 +49,13 @@ def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
+def env(key: str, default: _EnvTypes, type: env_types.Type | None = None) -> _EnvTypes: ...
 
 
 def env(
     key: str,
     default: str | _EnvTypes = "",
-    type: Type | None = None,
+    type: env_types.Type | None = None,
 ) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
@@ -87,7 +87,7 @@ def env(
             rv = default
 
     if type is None:
-        type = type_from_value(default)
+        type = env_types.type_from_value(default)
 
     return type(rv)
 
@@ -114,7 +114,54 @@ ADMINS = ()
 INTERNAL_IPS: tuple[str, ...] = ()
 
 # List of IP subnets which should not be accessible
-SENTRY_DISALLOWED_IPS: tuple[str, ...] = ()
+SENTRY_DISALLOWED_IPS: tuple[str, ...] = (
+    # # https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv4
+    # "0.0.0.0/8",
+    # "10.0.0.0/8",
+    # "100.64.0.0/10",
+    # "127.0.0.0/8",
+    # "169.254.0.0/16",
+    # "172.16.0.0/12",
+    # "192.0.0.0/29",
+    # "192.0.2.0/24",
+    # "192.88.99.0/24",
+    # "192.168.0.0/16",
+    # "198.18.0.0/15",
+    # "198.51.100.0/24",
+    # "224.0.0.0/4",
+    # "240.0.0.0/4",
+    # "255.255.255.255/32",
+    # # https://en.wikipedia.org/wiki/IPv6#IPv4-mapped_IPv6_addresses
+    # # Subnets match the IPv4 subnets above
+    # "::ffff:0:0/104",
+    # "::ffff:a00:0/104",
+    # "::ffff:6440:0/106",
+    # "::ffff:7f00:0/104",
+    # "::ffff:a9fe:0/112",
+    # "::ffff:ac10:0/108",
+    # "::ffff:c000:0/125",
+    # "::ffff:c000:200/120",
+    # "::ffff:c058:6300/120",
+    # "::ffff:c0a8:0/112",
+    # "::ffff:c612:0/111",
+    # "::ffff:c633:6400/120",
+    # "::ffff:e000:0/100",
+    # "::ffff:f000:0/100",
+    # "::ffff:ffff:ffff/128",
+    # # https://en.wikipedia.org/wiki/Reserved_IP_addresses#IPv6
+    # "::1/128",
+    # "::ffff:0:0:0/96",
+    # "64:ff9b::/96",
+    # "64:ff9b:1::/48",
+    # "100::/64",
+    # "2001:0000::/32",
+    # "2001:20::/28",
+    # "2001:db8::/32",
+    # "2002::/16",
+    # "fc00::/7",
+    # "fe80::/10",
+    # "ff00::/8",
+)
 
 # When resolving DNS for external sources (source map fetching, webhooks, etc),
 # ensure that domains are fully resolved first to avoid poking internal
@@ -341,10 +388,12 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.auth.AuthenticationMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
+    "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.staff.StaffMiddleware",
+    "sentry.middleware.reporting_endpoint.ReportingEndpointMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "sentry.middleware.ratelimit.RatelimitMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -359,7 +408,7 @@ ROOT_URLCONF = "sentry.conf.urls"
 # Once relay's fully rolled out, that can be deleted.
 # Until then, the safest and easiest thing to do is to disable this check
 # to leave things the way they were with Django <1.9.
-DATA_UPLOAD_MAX_MEMORY_SIZE = None
+DATA_UPLOAD_MAX_MEMORY_SIZE: int | None = None
 
 TEMPLATES = [
     {
@@ -397,11 +446,12 @@ INSTALLED_APPS: tuple[str, ...] = (
     "rest_framework",
     "sentry",
     "sentry.analytics",
+    "sentry.auth_v2",
     "sentry.incidents.apps.Config",
     "sentry.deletions",
     "sentry.discover",
     "sentry.analytics.events",
-    "sentry.nodestore",
+    "sentry.services.nodestore",
     "sentry.users",
     "sentry.sentry_apps",
     "sentry.integrations",
@@ -418,6 +468,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
+    "sentry.lang.dart.apps.Config",
     "sentry.plugins.sentry_interface_types.apps.Config",
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
@@ -436,6 +487,8 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.data_secrecy",
     "sentry.workflow_engine",
     "sentry.explore",
+    "sentry.insights",
+    "sentry.preprod",
 )
 
 # Silence internal hints from Django's system checks
@@ -615,7 +668,7 @@ SESSION_COOKIE_NAME = "sentrysid"
 # this breaks certain IDP flows where we need cookies sent to us on a redirected POST
 # request, and `Lax` doesnt permit this.
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
-SESSION_COOKIE_SAMESITE = None
+SESSION_COOKIE_SAMESITE: Literal["Strict", "Lax", None] = None
 
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
@@ -643,6 +696,9 @@ SOCIAL_AUTH_LOGIN_REDIRECT_URL = "/account/settings/identities/"
 SOCIAL_AUTH_ASSOCIATE_ERROR_URL = SOCIAL_AUTH_LOGIN_REDIRECT_URL
 
 INITIAL_CUSTOM_USER_MIGRATION = "0108_fix_user"
+
+# Protect login/registration endpoints during development phase
+AUTH_V2_SECRET = os.environ.get("AUTH_V2_SECRET", None)
 
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
@@ -706,6 +762,11 @@ SEER_RPC_SHARED_SECRET: list[str] | None = None
 # Shared secret used to sign cross-region RPC requests to the seer microservice.
 SEER_API_SHARED_SECRET: str = ""
 
+# Shared secret used to sign cross-region RPC requests from the launchpad microservice.
+LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
+if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
+    LAUNCHPAD_RPC_SHARED_SECRET = [val]
+
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
@@ -725,9 +786,6 @@ from kombu import Exchange, Queue
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
-# Ensure workers run async by default
-# in Development you might want them to run in-process
-TASK_WORKER_ALWAYS_EAGER = False
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
@@ -737,6 +795,7 @@ CELERY_ALWAYS_EAGER = False
 # Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
 # this works.
 CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
+CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE = 0.02
 
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
@@ -746,7 +805,7 @@ CELERY_TASK_PROTOCOL = 1
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
-CELERY_RESULT_BACKEND = None
+CELERY_RESULT_BACKEND: str | None = None
 CELERY_TASK_RESULT_EXPIRES = 1
 CELERY_DISABLE_RATE_LIMITS = True
 CELERY_DEFAULT_QUEUE = "default"
@@ -768,6 +827,7 @@ CELERY_IMPORTS = (
     "sentry.hybridcloud.tasks.backfill_outboxes",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.incidents.tasks",
+    "sentry.integrations.source_code_management.tasks",
     "sentry.integrations.github.tasks",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
@@ -780,12 +840,13 @@ CELERY_IMPORTS = (
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.tasks.assemble",
-    "sentry.tasks.auth",
+    "sentry.tasks.auth.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
-    "sentry.tasks.check_auth",
+    "sentry.tasks.ping",
+    "sentry.tasks.auth.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.clear_expired_rulesnoozes",
@@ -800,11 +861,11 @@ CELERY_IMPORTS = (
     "sentry.tasks.groupowner",
     "sentry.tasks.merge",
     "sentry.tasks.options",
-    "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
+    "sentry.tasks.ai_agent_monitoring",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.reprocessing2",
@@ -842,6 +903,8 @@ CELERY_IMPORTS = (
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
     "sentry.demo_mode.tasks",
+    "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.actions",
 )
 
 # Enable split queue routing
@@ -884,12 +947,24 @@ if SILO_DEVSERVER:
 
 
 CELERY_QUEUES_CONTROL = [
-    Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
+    Queue(
+        "app_platform.control",
+        routing_key="app_platform.control",
+        exchange=control_exchange,
+    ),
     Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
     Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
     Queue("email.control", routing_key="email.control", exchange=control_exchange),
-    Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
-    Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
+    Queue(
+        "integrations.control",
+        routing_key="integrations.control",
+        exchange=control_exchange,
+    ),
+    Queue(
+        "files.delete.control",
+        routing_key="files.delete.control",
+        exchange=control_exchange,
+    ),
     Queue(
         "hybrid_cloud.control_repair",
         routing_key="hybrid_cloud.control_repair",
@@ -898,7 +973,11 @@ CELERY_QUEUES_CONTROL = [
     Queue("options.control", routing_key="options.control", exchange=control_exchange),
     Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
     Queue("webhook.control", routing_key="webhook.control", exchange=control_exchange),
-    Queue("relocation.control", routing_key="relocation.control", exchange=control_exchange),
+    Queue(
+        "relocation.control",
+        routing_key="relocation.control",
+        exchange=control_exchange,
+    ),
     Queue(
         "release_registry.control",
         routing_key="release_registry.control",
@@ -927,7 +1006,8 @@ CELERY_QUEUES_REGION = [
     Queue("default", routing_key="default"),
     Queue("delayed_rules", routing_key="delayed_rules"),
     Queue(
-        "delete_seer_grouping_records_by_hash", routing_key="delete_seer_grouping_records_by_hash"
+        "delete_seer_grouping_records_by_hash",
+        routing_key="delete_seer_grouping_records_by_hash",
     ),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
@@ -936,25 +1016,35 @@ CELERY_QUEUES_REGION = [
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
     Queue(
-        "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
+        "events.reprocessing.preprocess_event",
+        routing_key="events.reprocessing.preprocess_event",
     ),
-    Queue("events.reprocessing.process_event", routing_key="events.reprocessing.process_event"),
     Queue(
-        "events.reprocessing.symbolicate_event", routing_key="events.reprocessing.symbolicate_event"
+        "events.reprocessing.process_event",
+        routing_key="events.reprocessing.process_event",
+    ),
+    Queue(
+        "events.reprocessing.symbolicate_event",
+        routing_key="events.reprocessing.symbolicate_event",
     ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
+    Queue("shortid.counters.refill", routing_key="shortid.counters.refill"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
     Queue("events.symbolicate_js_event", routing_key="events.symbolicate_js_event"),
     Queue("events.symbolicate_jvm_event", routing_key="events.symbolicate_jvm_event"),
     Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
-        "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
+        "group_owners.process_suspect_commits",
+        routing_key="group_owners.process_suspect_commits",
     ),
-    Queue("group_owners.process_commit_context", routing_key="group_owners.process_commit_context"),
+    Queue(
+        "group_owners.process_commit_context",
+        routing_key="group_owners.process_commit_context",
+    ),
     Queue("integrations", routing_key="integrations"),
     Queue(
         "releasemonitor",
@@ -985,6 +1075,7 @@ CELERY_QUEUES_REGION = [
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
     Queue("tempest", routing_key="tempest"),
+    Queue("ai_agent_monitoring", routing_key="ai_agent_monitoring"),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("uptime", routing_key="uptime"),
@@ -998,16 +1089,28 @@ CELERY_QUEUES_REGION = [
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("relocation", routing_key="relocation"),
-    Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
+    Queue(
+        "performance.statistical_detector",
+        routing_key="performance.statistical_detector",
+    ),
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
-    Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
+    Queue(
+        "integrations_slack_activity_notify",
+        routing_key="integrations_slack_activity_notify",
+    ),
     Queue("demo_mode", routing_key="demo_mode"),
     Queue("release_registry", routing_key="release_registry"),
+    Queue("seer.seer_automation", routing_key="seer.seer_automation"),
+    Queue(
+        "workflow_engine.process_workflows",
+        routing_key="workflow_engine.process_workflows",
+    ),
+    Queue("workflow_engine.trigger_action", routing_key="workflow_engine.trigger_action"),
 ]
 
 from celery.schedules import crontab
@@ -1041,8 +1144,8 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "reattempt-deletions-control": {
         "task": "sentry.deletions.tasks.reattempt_deletions_control",
-        # 03:00 PDT, 07:00 EDT, 10:00 UTC
-        "schedule": crontab(hour="10", minute="0"),
+        # Every other hour
+        "schedule": crontab(hour="*/2", minute="0"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "schedule-hybrid-cloud-foreign-key-jobs-control": {
@@ -1175,8 +1278,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "reattempt-deletions": {
         "task": "sentry.deletions.tasks.reattempt_deletions",
-        # 03:00 PDT, 07:00 EDT, 10:00 UTC
-        "schedule": crontab(hour="10", minute="0"),
+        # Every other hour
+        "schedule": crontab(hour="*/2", minute="0"),
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports-new": {
@@ -1304,14 +1407,20 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
     },
-    "demo_mode_sync_artifact_bundles": {
-        "task": "sentry.demo_mode.tasks.sync_artifact_bundles",
+    "demo_mode_sync_debug_artifacts": {
+        "task": "sentry.demo_mode.tasks.sync_debug_artifacts",
         # Run every hour
         "schedule": crontab(minute="0", hour="*/1"),
     },
     "relocation-find-transfer-region": {
         "task": "sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab(minute="*/5"),
+    },
+    "fetch-ai-model-costs": {
+        "task": "sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},  # 1 minute
     },
 }
 
@@ -1372,30 +1481,377 @@ TIMEDELTA_ALLOW_LIST = {
     "schedule-digests",
 }
 
-BGTASKS = {
-    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
-    "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
+BGTASKS: dict[str, BgTaskConfig] = {
+    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {
         "interval": 5 * 60,
         "roles": ["worker"],
     },
 }
 
+#######################
 # Taskworker settings #
-# Shared secret used to sign RPC requests to taskbrokers
-TASKWORKER_SHARED_SECRET: str | None = None
+#######################
+
+# If true, tasks will be run immediately.
+# Used primarily in tests.
+TASKWORKER_ALWAYS_EAGER = False
+
+# Shared secrets used to sign RPC requests to taskbrokers
+# The first secret is used for signing.
+# Environment variable is expected to be a JSON encoded list
+TASKWORKER_SHARED_SECRET = os.getenv("TASKWORKER_SHARED_SECRET")
+
+TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
+
+# Expected to be a JSON encoded dictionary of namespace:topic
+TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
 # The list of modules that workers will import after starting up
 # Like celery, taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.data_export.tasks",
+    "sentry.debug_files.tasks",
+    "sentry.deletions.tasks.hybrid_cloud",
+    "sentry.deletions.tasks.scheduled",
+    "sentry.demo_mode.tasks",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    "sentry.dynamic_sampling.tasks.sliding_window_org",
+    "sentry.hybridcloud.tasks.deliver_from_outbox",
+    "sentry.hybridcloud.tasks.deliver_webhooks",
+    "sentry.incidents.tasks",
+    "sentry.ingest.transaction_clusterer.tasks",
+    "sentry.integrations.github.tasks.link_all_repos",
+    "sentry.integrations.github.tasks.open_pr_comment",
+    "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.jira.tasks",
+    "sentry.integrations.opsgenie.tasks",
+    "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule",
+    "sentry.integrations.slack.tasks.find_channel_id_for_rule",
+    "sentry.integrations.slack.tasks.link_slack_user_identities",
+    "sentry.integrations.slack.tasks.post_message",
+    "sentry.integrations.slack.tasks.send_notifications_on_activity",
+    "sentry.integrations.tasks.create_comment",
+    "sentry.integrations.tasks.kick_off_status_syncs",
+    "sentry.integrations.tasks.migrate_repo",
+    "sentry.integrations.tasks.sync_assignee_outbound",
+    "sentry.integrations.tasks.sync_status_inbound",
+    "sentry.integrations.tasks.sync_status_outbound",
+    "sentry.integrations.tasks.update_comment",
+    "sentry.integrations.vsts.tasks.kickoff_subscription_check",
+    "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.issues.escalating.forecasts",
+    "sentry.middleware.integrations.tasks",
+    "sentry.monitors.tasks.clock_pulse",
+    "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.notifications.utils.tasks",
+    "sentry.preprod.tasks",
+    "sentry.profiles.task",
+    "sentry.release_health.tasks",
+    "sentry.relocation.tasks.process",
+    "sentry.relocation.tasks.transfer",
+    "sentry.replays.tasks",
+    "sentry.rules.processing.delayed_processing",
+    "sentry.sentry_apps.tasks.sentry_apps",
+    "sentry.sentry_apps.tasks.service_hooks",
+    "sentry.snuba.tasks",
+    "sentry.tasks.assemble",
+    "sentry.tasks.auth.auth",
+    "sentry.tasks.auth.check_auth",
+    "sentry.tasks.auto_enable_codecov",
+    "sentry.tasks.auto_ongoing_issues",
+    "sentry.tasks.auto_remove_inbox",
+    "sentry.tasks.auto_resolve_issues",
+    "sentry.tasks.auto_source_code_config",
+    "sentry.tasks.autofix",
+    "sentry.tasks.beacon",
+    "sentry.tasks.check_am2_compatibility",
+    "sentry.tasks.check_new_issue_threshold_met",
+    "sentry.tasks.clear_expired_resolutions",
+    "sentry.tasks.clear_expired_rulesnoozes",
+    "sentry.tasks.clear_expired_snoozes",
+    "sentry.tasks.codeowners.code_owners_auto_sync",
+    "sentry.tasks.codeowners.update_code_owners_schema",
+    "sentry.tasks.collect_project_platforms",
+    "sentry.tasks.commit_context",
+    "sentry.tasks.commits",
+    "sentry.tasks.delete_seer_grouping_records",
+    "sentry.tasks.digests",
+    "sentry.tasks.email",
+    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
+    "sentry.tasks.groupowner",
+    "sentry.tasks.merge",
+    "sentry.tasks.on_demand_metrics",
+    "sentry.tasks.options",
+    "sentry.tasks.ping",
+    "sentry.tasks.post_process",
+    "sentry.tasks.process_buffer",
+    "sentry.tasks.relay",
+    "sentry.tasks.ai_agent_monitoring",
+    "sentry.tasks.release_registry",
+    "sentry.tasks.repository",
+    "sentry.tasks.reprocessing2",
+    "sentry.tasks.seer",
+    "sentry.tasks.statistical_detectors",
+    "sentry.tasks.store",
+    "sentry.tasks.summaries.daily_summary",
+    "sentry.tasks.summaries.weekly_reports",
+    "sentry.tasks.symbolication",
+    "sentry.tasks.unmerge",
+    "sentry.tasks.update_user_reports",
+    "sentry.tasks.user_report",
+    "sentry.tasks.weekly_escalating_forecast",
+    "sentry.tempest.tasks",
+    "sentry.uptime.detectors.tasks",
+    "sentry.uptime.rdap.tasks",
+    "sentry.uptime.subscriptions.tasks",
+    "sentry.workflow_engine.processors.delayed_workflow",
+    "sentry.workflow_engine.tasks.delayed_workflows",
+    "sentry.workflow_engine.tasks.workflows",
+    "sentry.workflow_engine.tasks.actions",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
-TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
-TASKWORKER_ROUTES: dict[str, str] = {}
+
+from sentry.conf.types.taskworker import crontab as task_crontab
 
 # Schedules for taskworker tasks to be spawned on.
-TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
+TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
+    "send-beacon": {
+        "task": "selfhosted:sentry.tasks.send_beacon",
+        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+    },
+    "send-ping": {
+        "task": "selfhosted:sentry.tasks.send_ping",
+        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+    },
+    "flush-buffers": {
+        "task": "buffer:sentry.tasks.process_buffer.process_pending",
+        "schedule": timedelta(seconds=10),
+    },
+    "flush-buffers-batch": {
+        "task": "buffer:sentry.tasks.process_buffer.process_pending_batch",
+        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+    },
+    "sync-options": {
+        "task": "options:sentry.tasks.options.sync_options",
+        "schedule": timedelta(seconds=10),
+    },
+    "schedule-digests": {
+        "task": "digests:sentry.tasks.digests.schedule_digests",
+        "schedule": timedelta(seconds=30),
+    },
+    "monitors-clock-pulse": {
+        "task": "crons:sentry.monitors.tasks.clock_pulse",
+        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+    },
+    "monitors-detect-broken-monitor-envs": {
+        "task": "crons:sentry.monitors.tasks.detect_broken_monitor_envs",
+        "schedule": task_crontab("0", "15", "mon-fri", "*", "*"),
+    },
+    "clear-expired-snoozes": {
+        "task": "issues:sentry.tasks.clear_expired_snoozes",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "clear-expired-rulesnoozes": {
+        "task": "issues:sentry.tasks.clear_expired_rulesnoozes",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "collect-project-platforms": {
+        "task": "issues:sentry.tasks.collect_project_platforms",
+        "schedule": task_crontab("0", "3", "*", "*", "*"),
+    },
+    "deliver-from-outbox": {
+        "task": "hybridcloud:sentry.tasks.enqueue_outbox_jobs",
+        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+    },
+    "update-user-reports": {
+        "task": "issues:sentry.tasks.update_user_reports",
+        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+    },
+    "schedule-auto-resolution": {
+        "task": "issues:sentry.tasks.schedule_auto_resolution",
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
+    "auto-remove-inbox": {
+        "task": "issues:sentry.tasks.auto_remove_inbox",
+        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+    },
+    "schedule-deletions": {
+        "task": "deletions:sentry.deletions.tasks.run_scheduled_deletions",
+        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+    },
+    "reattempt-deletions": {
+        "task": "deletions:sentry.deletions.tasks.reattempt_deletions",
+        "schedule": task_crontab("0", "*/2", "*", "*", "*"),
+    },
+    "schedule-weekly-organization-reports-new": {
+        "task": "reports:sentry.tasks.summaries.weekly_reports.schedule_organizations",
+        "schedule": task_crontab("0", "12", "sat", "*", "*"),
+    },
+    "schedule-hybrid-cloud-foreign-key-jobs": {
+        "task": "deletions:sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
+        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+    },
+    "monitor-release-adoption": {
+        "task": "releasehealth:sentry.release_health.tasks.monitor_release_adoption",
+        "schedule": task_crontab("0", "*", "*", "*", "*"),
+    },
+    "fetch-release-registry-data": {
+        "task": "sdk:sentry.tasks.release_registry.fetch_release_registry_data",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "snuba-subscription-checker": {
+        "task": "alerts:sentry.snuba.tasks.subscription_checker",
+        "schedule": task_crontab("*/20", "*", "*", "*", "*"),
+    },
+    "uptime-subscription-checker": {
+        "task": "uptime:sentry.uptime.tasks.subscription_checker",
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
+    "uptime-broken-monitor-checker": {
+        "task": "uptime:sentry.uptime.tasks.broken_monitor_checker",
+        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+    },
+    "poll_tempest": {
+        "task": "tempest:sentry.tempest.tasks.poll_tempest",
+        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+    },
+    "transaction-name-clusterer": {
+        "task": "performance:sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
+        "schedule": task_crontab("17", "*", "*", "*", "*"),
+    },
+    "auto-enable-codecov": {
+        "task": "integrations:sentry.tasks.auto_enable_codecov.enable_for_org",
+        "schedule": task_crontab("30", "0", "*", "*", "*"),
+    },
+    "dynamic-sampling-boost-low-volume-projects": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
+    "dynamic-sampling-boost-low-volume-transactions": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
+    "dynamic-sampling-recalibrate-orgs": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.recalibrate_orgs",
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
+    "dynamic-sampling-sliding-window-org": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
+    "custom_rule_notifications": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.custom_rule_notifications",
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+    },
+    "clean_custom_rule_notifications": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
+        "schedule": task_crontab("*/7", "*", "*", "*", "*"),
+    },
+    "weekly-escalating-forecast": {
+        "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
+        "schedule": task_crontab("0", "0", "*", "*", "*"),
+    },
+    "schedule_auto_transition_to_ongoing": {
+        "task": "issues:sentry.tasks.schedule_auto_transition_to_ongoing",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "github_comment_reactions": {
+        "task": "integrations:sentry.integrations.github.tasks.github_comment_reactions",
+        "schedule": task_crontab("0", "16", "*", "*", "*"),
+    },
+    "statistical-detectors-detect-regressions": {
+        "task": "performance:sentry.tasks.statistical_detectors.run_detection",
+        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+    },
+    "refresh-artifact-bundles-in-use": {
+        "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
+        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+    },
+    "on-demand-metrics-schedule-on-demand-check": {
+        "task": "performance:sentry.tasks.on_demand_metrics.schedule_on_demand_check",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "uptime-detection-scheduler": {
+        "task": "uptime:sentry.uptime.detectors.tasks.schedule_detections",
+        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+    },
+    "demo_mode_sync_debug_artifacts": {
+        "task": "demomode:sentry.demo_mode.tasks.sync_debug_artifacts",
+        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+    },
+    "relocation-find-transfer-region": {
+        "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "fetch-ai-model-costs": {
+        "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
+        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+    },
+}
+
+TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
+    "check-auth": {
+        "task": "auth.control:sentry.tasks.check_auth",
+        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+    },
+    "sync-options-control": {
+        "task": "options.control:sentry.tasks.options.sync_options_control",
+        "schedule": timedelta(seconds=10),
+    },
+    "deliver-from-outbox-control": {
+        "task": "hybridcloud.control:sentry.tasks.enqueue_outbox_jobs_control",
+        "schedule": timedelta(seconds=10),
+    },
+    "schedule-deletions-control": {
+        "task": "deletions.control:sentry.deletions.tasks.run_scheduled_deletions_control",
+        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+    },
+    "reattempt-deletions-control": {
+        "task": "deletions.control:sentry.deletions.tasks.reattempt_deletions_control",
+        "schedule": task_crontab("0", "*/2", "*", "*", "*"),
+    },
+    "schedule-hybrid-cloud-foreign-key-jobs-control": {
+        "task": "deletions.control:sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
+        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+    },
+    "schedule-vsts-integration-subscription-check": {
+        "task": "integrations.control:sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
+        "schedule": task_crontab("0", "*/6", "*", "*", "*"),
+    },
+    "deliver-webhooks-control": {
+        "task": "hybridcloud.control:sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
+        "schedule": timedelta(seconds=10),
+    },
+    "relocation-find-transfer-control": {
+        "task": "relocation.control:sentry.relocation.transfer.find_relocation_transfer_control",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+    "fetch-release-registry-data-control": {
+        "task": "sdk.control:sentry.tasks.release_registry.fetch_release_registry_data_control",
+        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+    },
+}
+
+if SILO_MODE == "CONTROL":
+    TASKWORKER_SCHEDULES = TASKWORKER_CONTROL_SCHEDULES
+elif SILO_MODE == "REGION":
+    TASKWORKER_SCHEDULES = TASKWORKER_REGION_SCHEDULES
+else:
+    TASKWORKER_SCHEDULES = {
+        **TASKWORKER_CONTROL_SCHEDULES,
+        **TASKWORKER_REGION_SCHEDULES,
+    }
+
+TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
+    "ingest.profiling",
+    "ingest.transactions",
+    "ingest.errors",
+}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
@@ -1415,7 +1871,10 @@ LOGGING: LoggingConfig = {
         # This `internal` logger is separate from the `Logging` integration in the SDK. Since
         # we have this to record events, in `sdk.py` we set the integration's `event_level` to
         # None, so that it records breadcrumbs for all log calls but doesn't send any events.
-        "internal": {"level": "ERROR", "class": "sentry_sdk.integrations.logging.EventHandler"},
+        "internal": {
+            "level": "ERROR",
+            "class": "sentry_sdk.integrations.logging.EventHandler",
+        },
         "metrics": {
             "level": "WARNING",
             "filters": ["important_django_request"],
@@ -1448,7 +1907,11 @@ LOGGING: LoggingConfig = {
         # This only needs to go to Sentry for now.
         "sentry.similarity": {"handlers": ["internal"], "propagate": False},
         "sentry.errors": {"handlers": ["console"], "propagate": False},
-        "sentry_sdk.errors": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "sentry_sdk.errors": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         "sentry.rules": {"handlers": ["console"], "propagate": False},
         "sentry.profiles": {"level": "INFO"},
         "multiprocessing": {
@@ -1468,7 +1931,11 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "toronado": {"level": "ERROR", "handlers": ["null"], "propagate": False},
-        "urllib3.connectionpool": {"level": "ERROR", "handlers": ["console"], "propagate": False},
+        "urllib3.connectionpool": {
+            "level": "ERROR",
+            "handlers": ["console"],
+            "propagate": False,
+        },
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
     },
@@ -1515,12 +1982,19 @@ if os.environ.get("OPENAPIGENERATE", False):
         "DEFAULT_GENERATOR_CLASS": "sentry.apidocs.hooks.CustomGenerator",
         "DESCRIPTION": "Sentry Public API",
         "DISABLE_ERRORS_AND_WARNINGS": False,
+        "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
         # We override the default behavior to skip adding the choice name to the bullet point if
         # it's identical to the choice value by monkey patching build_choice_description_list.
         "ENUM_GENERATE_CHOICE_DESCRIPTION": True,
-        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
+        "LICENSE": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html",
+        },
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
-        "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
+        "POSTPROCESSING_HOOKS": [
+            "sentry.apidocs.hooks.custom_postprocessing_hook",
+            "drf_spectacular.hooks.postprocess_schema_enum_id_removal",
+        ],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
         "SERVERS": [
             {
@@ -1575,9 +2049,6 @@ SENTRY_DEFAULT_LANGUAGE = "en"
 
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
-
-# Allow access to Sentry without authentication.
-SENTRY_PUBLIC = False
 
 # Instruct Sentry that this install intends to be run by a single organization
 # and thus various UI optimizations should be enabled.
@@ -1681,8 +2152,8 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
 
 SENTRY_FILESTORE_ALIASES = {
     "filesystem": "django.core.files.storage.FileSystemStorage",
-    "s3": "sentry.filestore.s3.S3Boto3Storage",
-    "gcs": "sentry.filestore.gcs.GoogleCloudStorage",
+    "s3": "sentry.services.filestore.s3.S3Boto3Storage",
+    "gcs": "sentry.services.filestore.gcs.GoogleCloudStorage",
 }
 
 # set of backends that do not support needing SMTP mail.* settings
@@ -1719,6 +2190,10 @@ ALLOWED_CREDENTIAL_ORIGINS: list[str] = []
 SENTRY_BUFFER = "sentry.buffer.Buffer"
 SENTRY_BUFFER_OPTIONS: dict[str, str] = {}
 
+# Workflow Buffer backend
+SENTRY_WORKFLOW_BUFFER = "sentry.buffer.Buffer"
+SENTRY_WORKFLOW_BUFFER_OPTIONS: dict[str, str] = {}
+
 # Cache backend
 # XXX: We explicitly require the cache to be configured as its not optional
 # and causes serious confusion with the default django cache
@@ -1731,7 +2206,7 @@ SENTRY_ATTACHMENTS_OPTIONS: dict[str, str] = {}
 
 # Events blobs processing backend
 SENTRY_EVENT_PROCESSING_STORE = (
-    "sentry.eventstore.processing.redis.RedisClusterEventProcessingStore"
+    "sentry.services.eventstore.processing.redis.RedisClusterEventProcessingStore"
 )
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
@@ -1759,6 +2234,10 @@ SENTRY_DIGESTS_OPTIONS: dict[str, Any] = {}
 # Quota backend
 SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
+
+# Partnership backend
+SENTRY_PARTNERSHIPS = "sentry.partnerships.Partnership"
+SENTRY_PARTNERSHIP_OPTIONS: dict[str, str] = {}
 
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
@@ -1791,12 +2270,8 @@ SENTRY_SNUBA_TIMEOUT = 30
 SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 
 # Node storage backend
-SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
+SENTRY_NODESTORE = "sentry.services.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS: dict[str, Any] = {}
-
-# Node storage backend used for ArtifactBundle indexing (aka FlatFileIndex aka BundleIndex)
-SENTRY_INDEXSTORE = "sentry.nodestore.django.DjangoNodeStorage"
-SENTRY_INDEXSTORE_OPTIONS: dict[str, Any] = {}
 
 # Tag storage backend
 SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
@@ -1871,7 +2346,6 @@ SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT: str | None = None
-SENTRY_PUBLIC_ENDPOINT: str | None = None
 
 # Hostname prefix to add for organizations that are opted into the
 # `organizations:org-ingest-subdomains` feature.
@@ -1999,7 +2473,12 @@ SENTRY_SCOPE_SETS = (
         ("org:write", "Read and write access to organization details."),
         ("org:read", "Read access to organization details."),
     ),
-    (("org:integrations", "Read, write, and admin access to organization integrations."),),
+    (
+        (
+            "org:integrations",
+            "Read, write, and admin access to organization integrations.",
+        ),
+    ),
     (
         ("member:admin", "Read, write, and admin access to organization members."),
         ("member:write", "Read and write access to organization members."),
@@ -2214,10 +2693,6 @@ SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
 # Raise an error in dev on failed lookups
 SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 
-# You should not change this setting after your database has been created
-# unless you have altered all schemas first
-SENTRY_USE_BIG_INTS = False
-
 # Delay (in ms) to induce on API responses
 #
 # Simulates a small amount of lag which helps uncover more obvious race
@@ -2231,18 +2706,16 @@ SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
 # XXX(dcramer): this doesn't work outside of a source distribution as the
-# webpack.config.js is not part of Sentry's datafiles
+# rspack.config.ts is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
     (
         "webpack",
         [
-            os.path.join(NODE_MODULES_ROOT, ".bin", "webpack"),
+            os.path.join(NODE_MODULES_ROOT, ".bin", "rspack"),
             "serve",
-            "--color",
-            "--output-pathinfo=true",
             "--config={}".format(
                 os.path.normpath(
-                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.ts")
+                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "rspack.config.ts")
                 )
             ),
         ],
@@ -2292,7 +2765,7 @@ SENTRY_USE_PROFILING = False
 SENTRY_USE_SPANS = False
 
 # This flag activates spans consumer in the sentry backend in development environment
-SENTRY_USE_SPANS_BUFFER = False
+SENTRY_USE_SPANS_BUFFER = True
 
 # This flag activates consuming issue platform occurrence data in the development environment
 SENTRY_USE_ISSUE_OCCURRENCE = False
@@ -2305,6 +2778,9 @@ SENTRY_USE_UPTIME = False
 
 # This flag activates the taskbroker in devservices
 SENTRY_USE_TASKBROKER = False
+
+# This flag activates the objectstore in devservices
+SENTRY_USE_OBJECTSTORE = False
 
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
@@ -2368,7 +2844,10 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
         {
             "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{PG_VERSION}-alpine",
             "ports": {"5432/tcp": 5432},
-            "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
+            "environment": {
+                "POSTGRES_DB": "sentry",
+                "POSTGRES_HOST_AUTH_METHOD": "trust",
+            },
             "volumes": {
                 "postgres": {"bind": "/var/lib/postgresql/data"},
                 "wal2json": {"bind": "/wal2json"},
@@ -2558,6 +3037,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "only_if": settings.SENTRY_USE_PROFILING,
         }
     ),
+    "objectstore": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/objectstore:latest",
+            "ports": {"8888/tcp": 8888},
+            "environment": {},
+            "only_if": settings.SENTRY_USE_OBJECTSTORE,
+        }
+    ),
 }
 
 # Max file size for serialized file uploads in API
@@ -2576,7 +3063,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.3.0"
+SELF_HOSTED_STABLE_VERSION = "25.7.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2651,6 +3138,14 @@ SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", SPOTLIGHT)
 # This setting takes precedence over `SENTRY_PROFILING_ENABLED` forcing the SDK
 # to operate under the continuous profiling model.
 SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILING_ENABLED", False)
+
+# The sample rate to use for continuous profile sessions. This sample rate is
+# evaluated once per process and the decision is used for the remainer of the session.
+SENTRY_PROFILE_SESSION_SAMPLE_RATE = 1 if DEBUG else 0
+
+# Tells the sentry sdk to run under the trace lifecycle mode which
+# ensures the profiler is running whenever there is an active trace.
+SENTRY_PROFILE_LIFECYCLE: Literal["manual", "trace"] = "trace"
 
 # Callable to bind additional context for the Sentry SDK
 #
@@ -2788,21 +3283,19 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
-    # Right now Symbolicator is not able to successfully download from
-    # the Intel source because the source doesn't accept custom user agents.
-    # Until we are confident we can spoof Symbolicator's user agent without
-    # abusing the source, we are disabling it. See
-    # https://github.com/getsentry/team-ingest/issues/642.
-    #
-    # "intel": {
-    #     "type": "http",
-    #     "id": "sentry:intel",
-    #     "name": "Intel",
-    #     "layout": {"type": "symstore"},
-    #     "filters": {"filetypes": ["pe", "pdb"]},
-    #     "url": "https://software.intel.com/sites/downloads/symbols/",
-    #     "is_public": True,
-    # },
+    "intel": {
+        "type": "http",
+        "id": "sentry:intel",
+        "name": "Intel",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["pe", "pdb"]},
+        "url": "https://software.intel.com/sites/downloads/symbols/",
+        "headers": {
+            "User-Agent": "curl/7.72.0",
+        },
+        "is_public": True,
+        "has_index": True,
+    },
     "amd": {
         "type": "http",
         "id": "sentry:amd",
@@ -2820,6 +3313,7 @@ SENTRY_BUILTIN_SOURCES = {
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
+        "has_index": True,
     },
     "chromium": {
         "type": "http",
@@ -2989,7 +3483,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "transactions-subscription-results": "default",
     "generic-metrics-subscription-results": "default",
     "metrics-subscription-results": "default",
-    "eap-spans-subscription-results": "default",
+    "subscription-results-eap-items": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
     "ingest-feedback-events-dlq": "default",
@@ -2999,10 +3493,14 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-transactions-dlq": "default",
     "ingest-transactions-backlog": "default",
     "ingest-spans": "default",
+    "ingest-spans-dlq": "default",
     "ingest-metrics": "default",
     "ingest-metrics-dlq": "default",
     "snuba-metrics": "default",
     "profiles": "default",
+    "profiles-call-tree": "default",
+    "snuba-profile-chunks": "default",
+    "processed-profiles": "default",
     "ingest-performance-metrics": "default",
     "ingest-generic-metrics-dlq": "default",
     "snuba-generic-metrics": "default",
@@ -3013,19 +3511,56 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
     "monitors-incident-occurrences": "default",
-    "uptime-configs": "default",
     "uptime-results": "default",
-    "uptime-configs": "default",
     "snuba-uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
-    "snuba-spans": "default",
+    "snuba-items": "default",
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    "task-worker": "default",
-    "snuba-ourlogs": "default",
+    "preprod-artifact-events": "default",
+    # Taskworker topics
+    "taskworker": "default",
+    "taskworker-dlq": "default",
+    "taskworker-billing": "default",
+    "taskworker-billing-dlq": "default",
+    "taskworker-buffer": "default",
+    "taskworker-buffer-dlq": "default",
+    "taskworker-control": "default",
+    "taskworker-control-dlq": "default",
+    "taskworker-cutover": "default",
+    "taskworker-email": "default",
+    "taskworker-email-dlq": "default",
+    "taskworker-ingest": "default",
+    "taskworker-ingest-dlq": "default",
+    "taskworker-ingest-errors": "default",
+    "taskworker-ingest-errors-dlq": "default",
+    "taskworker-ingest-errors-postprocess": "default",
+    "taskworker-ingest-errors-postprocess-dlq": "default",
+    "taskworker-ingest-transactions": "default",
+    "taskworker-ingest-transactions-dlq": "default",
+    "taskworker-ingest-attachments": "default",
+    "taskworker-ingest-attachments-dlq": "default",
+    "taskworker-ingest-profiling": "default",
+    "taskworker-ingest-profiling-dlq": "default",
+    "taskworker-internal": "default",
+    "taskworker-internal-dlq": "default",
+    "taskworker-limited": "default",
+    "taskworker-limited-dlq": "default",
+    "taskworker-long": "default",
+    "taskworker-long-dlq": "default",
+    "taskworker-products": "default",
+    "taskworker-products-dlq": "default",
+    "taskworker-sentryapp": "default",
+    "taskworker-sentryapp-dlq": "default",
+    "taskworker-symbolication": "default",
+    "taskworker-symbolication-dlq": "default",
+    "taskworker-usage": "default",
+    "taskworker-usage-dlq": "default",
+    "taskworker-workflows-engine": "default",
+    "taskworker-workflows-engine-dlq": "default",
 }
 
 
@@ -3039,21 +3574,6 @@ KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = False
 # We use the email with Jira 2-way sync in order to match the user
 JIRA_USE_EMAIL_SCOPE = False
 
-# Specifies the list of django apps to include in the lockfile. If Falsey then include
-# all apps with migrations
-MIGRATIONS_LOCKFILE_APP_WHITELIST = (
-    "nodestore",
-    "replays",
-    "sentry",
-    "social_auth",
-    "feedback",
-    "hybridcloud",
-    "remote_subscriptions",
-    "uptime",
-    "workflow_engine",
-    "tempest",
-    "explore",
-)
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 
@@ -3098,6 +3618,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.integrations.api.endpoints",
     "sentry.users.api.endpoints",
     "sentry.sentry_apps.api.endpoints",
+    "sentry.preprod.api.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3111,16 +3632,16 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
-# Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
-SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
+DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
+BETA_GROUPING_CONFIG = ""
 
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
+SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 
 SENTRY_USE_UWSGI = True
 
 # Configure service wrapper for reprocessing2 state
-SENTRY_REPROCESSING_STORE = "sentry.eventstore.reprocessing.redis.RedisReprocessingStore"
+SENTRY_REPROCESSING_STORE = "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore"
 # Which cluster is used to store auxiliary data for reprocessing. Note that
 # this cluster is not used to store attachments etc, that still happens on
 # rc-processing. This is just for buffering up event IDs and storing a counter
@@ -3176,9 +3697,8 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 # Zero Downtime Migrations settings as defined at
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
-ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
-ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
@@ -3200,15 +3720,19 @@ SEER_SEVERITY_TIMEOUT = 0.3  # 300 milliseconds
 SEER_SEVERITY_RETRIES = 1
 
 SEER_AUTOFIX_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_SUMMARIZATION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+SEER_FIXABILITY_TIMEOUT = 0.6  # 600 milliseconds
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-SEER_GROUPING_TIMEOUT = 1
 
 SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
+
+SEER_SCORING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
+SEER_HISTORICAL_ANOMALY_DETECTION_TIMEOUT = 10
 
 SEER_ANOMALY_DETECTION_ENDPOINT_URL = (
     f"/{SEER_ANOMALY_DETECTION_MODEL_VERSION}/anomaly-detection/detect"
@@ -3221,6 +3745,9 @@ SEER_ALERT_DELETION_URL = (
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
+
+# For encrypting the access token for the GHE integration
+SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
 
 # This is the URL to the profiling service
@@ -3269,6 +3796,11 @@ MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 MAX_MORE_FAST_CONDITION_ISSUE_ALERTS = 1000
 
+# Workflow limits; low-risk limit for general use, higher one
+# for orgs that need it.
+MAX_WORKFLOWS_PER_ORG = 1000
+MAX_MORE_WORKFLOWS_PER_ORG = 10000
+
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
 SNOWFLAKE_VERSION_ID = 1
@@ -3304,8 +3836,15 @@ SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 
+SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT = 10000
+
+SENTRY_PREPROD_ARTIFACT_EVENTS_FUTURES_MAX_LIMIT = 10000
+
 # How long we should wait for a gateway proxy request to return before giving up
-GATEWAY_PROXY_TIMEOUT = None
+GATEWAY_PROXY_TIMEOUT: int | None = None
 
 SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)
@@ -3323,11 +3862,11 @@ SHOW_LOGIN_BANNER = False
 # the broker config from KAFKA_CLUSTERS. This is used for slicing only.
 # Example:
 # SLICED_KAFKA_TOPICS = {
-#   ("KAFKA_SNUBA_GENERIC_METRICS", 0): {
+#   ("snuba-generic-metrics", 0): {
 #       "topic": "generic_metrics_0",
 #       "cluster": "cluster_1",
 #   },
-#   ("KAFKA_SNUBA_GENERIC_METRICS", 1): {
+#   ("snuba-generic-metrics", 1): {
 #       "topic": "generic_metrics_1",
 #       "cluster": "cluster_2",
 # }
@@ -3413,10 +3952,6 @@ SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
 
 
-# If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
-# to the buffer service.
-SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
-
 # Feature flag to turn off role-swapping to help bridge getsentry transition.
 USE_ROLE_SWAPPING_IN_TESTS = True
 
@@ -3468,8 +4003,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
     "sentry-api-0-shared-group-details",
-    # Unscoped profiling URLs
-    "sentry-api-0-profiling-project-profile",
     # These paths are used by relay which is implicitly region scoped
     "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",
@@ -3529,6 +4062,11 @@ MARKETO_CLIENT_ID = os.getenv("MARKETO_CLIENT_ID")
 MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
 MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 
+# Base URL for Codecov API. Override if developing against a local instance
+# of Codecov.
+# Stage: "https://stage-api.codecov.dev/"
+CODECOV_API_BASE_URL = "https://api.codecov.io"
+
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
@@ -3545,6 +4083,9 @@ if ngrok_host:
     SESSION_COOKIE_DOMAIN: str = f".{ngrok_host}"
     CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
     SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+
+if SILO_DEVSERVER or IS_DEV:
+    LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.

@@ -16,7 +16,7 @@ const propNamesToIgnore = ['api', 'children', 'organization'];
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
-export type SessionsRequestRenderProps = {
+type SessionsRequestRenderProps = {
   errored: boolean;
   loading: boolean;
   reloading: boolean;
@@ -130,7 +130,7 @@ class SessionsRequest extends Component<Props, State> {
             )
           : response,
       });
-    } catch (error) {
+    } catch (error: any) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
       this.setState({
         reloading: false,

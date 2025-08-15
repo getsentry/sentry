@@ -14,6 +14,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import CreditCardSetup from 'getsentry/components/creditCardSetup';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {FTCConsentLocation} from 'getsentry/types';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
@@ -46,6 +47,8 @@ function AddPaymentMethod({
         organization={organization}
         onSuccess={onPaymentAccepted}
         buttonText="Continue"
+        location={FTCConsentLocation.CHECKOUT}
+        budgetModeText={subscription.planDetails.budgetTerm}
       />
     );
 
@@ -144,13 +147,13 @@ const StyledRadio = styled(Radio)`
 const CardDetails = styled('div')`
   display: inline-grid;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.textColor};
   font-weight: 600;
 `;
 
 const Description = styled(TextBlock)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   margin: 0;
   font-weight: normal;

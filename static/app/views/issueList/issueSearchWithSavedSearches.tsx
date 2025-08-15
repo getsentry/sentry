@@ -1,13 +1,14 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import IssueListSearchBar from './searchBar';
 
@@ -23,11 +24,15 @@ export function IssueSearchWithSavedSearches({
   onSearch,
 }: IssueSearchWithSavedSearchesProps) {
   const organization = useOrganization();
+
   const selectedSavedSearch = useSelectedSavedSearch();
   const [isSavedSearchesOpen, setIsSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
+  const prefersStackedNav = usePrefersStackedNav();
+
+  const shouldShowSavedSearchesButton = !prefersStackedNav;
 
   function onSavedSearchesToggleClicked() {
     const newOpenState = !isSavedSearchesOpen;
@@ -40,7 +45,7 @@ export function IssueSearchWithSavedSearches({
 
   return (
     <SearchBarWithButtonContainer className={className}>
-      {!organization.features.includes('issue-stream-custom-views') && (
+      {shouldShowSavedSearchesButton && (
         <StyledButton onClick={onSavedSearchesToggleClicked}>
           {selectedSavedSearch?.name ?? t('Custom Search')}
         </StyledButton>
@@ -51,7 +56,7 @@ export function IssueSearchWithSavedSearches({
         initialQuery={query || ''}
         onSearch={onSearch}
         placeholder={t('Search for events, users, tags, and more')}
-        roundCorners={organization.features.includes('issue-stream-custom-views')}
+        roundCorners={!shouldShowSavedSearchesButton}
       />
     </SearchBarWithButtonContainer>
   );
@@ -63,7 +68,7 @@ const SearchBarWithButtonContainer = styled('div')`
   align-items: stretch;
   width: 100%;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     flex-basis: 35rem;
   }
 `;
@@ -72,7 +77,7 @@ const StyledButton = styled(Button)`
   /* Hide this button on small screens */
   display: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     align-items: center;
     height: 100%;
@@ -82,9 +87,7 @@ const StyledButton = styled(Button)`
     border-bottom-right-radius: 0;
     border-right: none;
 
-    ${ButtonLabel} {
-      height: auto;
-      display: block;
+    & > span {
       ${p => p.theme.overflowEllipsis};
     }
   }
@@ -99,7 +102,7 @@ const StyledIssueListSearchBarWithButton = styled(IssueListSearchBar)<{
   ${p =>
     !p.roundCorners &&
     css`
-      @media (min-width: ${p.theme.breakpoints.small}) {
+      @media (min-width: ${p.theme.breakpoints.sm}) {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
       }

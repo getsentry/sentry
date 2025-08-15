@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -8,26 +9,24 @@ import {SpanOpSelector} from 'sentry/views/insights/mobile/appStarts/components/
 
 jest.mock('sentry/utils/usePageFilters');
 
-describe('SpanOpSelector', function () {
+describe('SpanOpSelector', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [parseInt(project.id, 10)],
       },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
-    },
-  });
+    })
+  );
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
@@ -55,7 +54,7 @@ describe('SpanOpSelector', function () {
     },
   });
 
-  it('lists all span operations that are stored', async function () {
+  it('lists all span operations that are stored', async () => {
     render(
       <SpanOpSelector
         primaryRelease="release1"

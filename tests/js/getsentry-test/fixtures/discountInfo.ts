@@ -7,8 +7,7 @@ export function DiscountInfoFixture(props: Props): TDiscountInfo {
     amount: 0,
     billingInterval: 'monthly',
     billingPeriods: 1,
-    // TODO: better typing
-    creditCategory: '',
+    creditCategory: null,
     disclaimerText: '',
     discountType: 'events',
     durationText: 'Monthly',

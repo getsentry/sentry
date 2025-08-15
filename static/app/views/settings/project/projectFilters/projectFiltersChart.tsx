@@ -9,7 +9,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -20,53 +19,22 @@ type Props = {
   project: Project;
 };
 
-const known_categories = [
-  'browser-extensions',
-  'cors',
-  'error-message',
-  'discarded-hash',
-  'invalid-csp',
-  'ip-address',
-  'legacy-browsers',
-  'localhost',
-  'release-version',
-  'web-crawlers',
-  'filtered-transaction',
-  'crash-report-limit',
-  'react-hydration-errors',
-  'chunk-load-error',
-];
-
-function makeStatOPColors(fallbackColor: string): Record<string, string> {
-  const result: Record<string, string> = {};
-  const colors = CHART_PALETTE[known_categories.length - 1];
-
-  known_categories.forEach((category, index) => {
-    const color = colors?.[index % colors.length] ?? fallbackColor;
-    if (color) {
-      result[category] = color;
-    }
-  });
-
-  return result;
-}
-
 function formatData(rawData: UsageSeries | undefined, theme: Theme) {
-  if (!rawData || !rawData.groups?.length) {
+  if (!rawData?.groups?.length) {
     return [];
   }
 
   const fallbackColor = theme.gray200;
-  const statOpsColors = makeStatOPColors(fallbackColor);
+  const statOpsColors = theme.chart.getColorPalette(rawData.groups.length);
 
-  const formattedData = rawData.groups.map(group => {
+  const formattedData = rawData.groups.map((group, index) => {
     const reason = String(group.by.reason!);
     return {
       seriesName: startCase(reason),
-      color: statOpsColors[reason] ?? fallbackColor,
-      data: rawData.intervals.map((interval, index) => ({
+      color: statOpsColors[index] ?? fallbackColor,
+      data: rawData.intervals.map((interval, i) => ({
         name: interval,
-        value: group.series['sum(quantity)']![index]!,
+        value: group.series['sum(quantity)']![i]!,
       })),
     };
   });
@@ -134,5 +102,3 @@ export function ProjectFiltersChart({project}: Props) {
     </Panel>
   );
 }
-
-export default ProjectFiltersChart;

@@ -3,10 +3,10 @@ import partition from 'lodash/partition';
 
 import {defined} from 'sentry/utils';
 import {
-  type Column,
   explodeField,
   generateFieldAsString,
   isAggregateFieldOrEquation,
+  type Column,
   type QueryFieldValue,
   type Sort,
 } from 'sentry/utils/discover/fields';
@@ -16,11 +16,11 @@ import {
   decodeScalar,
   decodeSorts,
 } from 'sentry/utils/queryString';
+import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
-import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
 import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
@@ -31,6 +31,10 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import type {Thresholds} from 'sentry/views/dashboards/widgets/common/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+// For issues dataset, events and users are sorted descending and do not use '-'
+// All other issues fields are sorted ascending
+const REVERSED_ORDER_FIELD_SORT_LIST = ['freq', 'user'];
 
 export type WidgetBuilderStateQueryParams = {
   dataset?: WidgetType;
@@ -132,7 +136,8 @@ function useWidgetBuilderState(): {
   const [sort, setSort] = useQueryParamState<Sort[]>({
     fieldName: 'sort',
     decoder: decodeSorts,
-    serializer: serializeSorts,
+    deserializer: deserializeSorts(dataset),
+    serializer: serializeSorts(dataset),
   });
   const [limit, setLimit] = useQueryParamState<number>({
     fieldName: 'limit',
@@ -232,7 +237,7 @@ function useWidgetBuilderState(): {
             // Otherwise, reset sorting to the first field
             if (
               newFields.length > 0 &&
-              !newFields.find(field => generateFieldAsString(field) === sort?.[0]?.field)
+              !newFields.some(field => generateFieldAsString(field) === sort?.[0]?.field)
             ) {
               const validReleaseSortOptions = newFields.filter(field => {
                 const fieldString = generateFieldAsString(field);
@@ -343,15 +348,17 @@ function useWidgetBuilderState(): {
           setQuery([config.defaultWidgetQuery.conditions]);
           setLegendAlias([]);
           setSelectedAggregate(undefined);
+          setLimit(undefined);
           break;
         }
         case BuilderStateAction.SET_FIELDS: {
           setFields(action.payload);
+
           const isRemoved = action.payload.length < (fields?.length ?? 0);
           if (
             displayType === DisplayType.TABLE &&
             action.payload.length > 0 &&
-            !action.payload.find(
+            !action.payload.some(
               field => generateFieldAsString(field) === sort?.[0]?.field
             )
           ) {
@@ -362,7 +369,7 @@ function useWidgetBuilderState(): {
             }
 
             const firstActionPayloadNotEquation: QueryFieldValue | undefined =
-              action.payload.filter(field => field.kind !== FieldValueKind.EQUATION)[0];
+              action.payload.find(field => field.kind !== FieldValueKind.EQUATION);
 
             let validSortOptions: QueryFieldValue[] = firstActionPayloadNotEquation
               ? [firstActionPayloadNotEquation]
@@ -442,9 +449,9 @@ function useWidgetBuilderState(): {
             const firstYAxisNotEquation = yAxis?.filter(
               field => field.kind !== FieldValueKind.EQUATION
             )[0];
-            const firstActionPayloadNotEquation = action.payload.filter(
+            const firstActionPayloadNotEquation = action.payload.find(
               field => field.kind !== FieldValueKind.EQUATION
-            )[0];
+            );
             // Adding a grouping, so default the sort to the first aggregate if possible
             setSort([
               {
@@ -455,6 +462,15 @@ function useWidgetBuilderState(): {
                 ),
               },
             ]);
+          }
+
+          if (action.payload.length > 0 && (yAxis?.length ?? 0) > 0 && !defined(limit)) {
+            setLimit(
+              Math.min(
+                DEFAULT_RESULTS_LIMIT,
+                getResultsLimit(query?.length ?? 1, yAxis?.length ?? 0)
+              )
+            );
           }
           break;
         }
@@ -468,9 +484,21 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_QUERY:
           setQuery(action.payload);
           break;
-        case BuilderStateAction.SET_SORT:
-          setSort(action.payload);
+        case BuilderStateAction.SET_SORT: {
+          if (dataset === WidgetType.ISSUE) {
+            setSort(
+              action.payload.map(
+                ({field}): Sort => ({
+                  field,
+                  kind: REVERSED_ORDER_FIELD_SORT_LIST.includes(field) ? 'desc' : 'asc',
+                })
+              )
+            );
+          } else {
+            setSort(action.payload);
+          }
           break;
+        }
         case BuilderStateAction.SET_LIMIT:
           setLimit(action.payload);
           break;
@@ -586,11 +614,34 @@ export function serializeFields(fields: Column[]): string[] {
   });
 }
 
-function serializeSorts(sorts: Sort[]): string[] {
-  return sorts.map(sort => {
-    const direction = sort.kind === 'desc' ? '-' : '';
-    return `${direction}${sort.field}`;
-  });
+export function serializeSorts(dataset?: WidgetType) {
+  return function (sorts: Sort[]): string[] {
+    return sorts.map(sort => {
+      // All issue fields do not use '-' regardless of order
+      if (dataset === WidgetType.ISSUE) {
+        return sort.field;
+      }
+      const direction = sort.kind === 'desc' ? '-' : '';
+      return `${direction}${sort.field}`;
+    });
+  };
+}
+
+function deserializeSorts(dataset?: WidgetType) {
+  return function (sorts: Sort[]): Sort[] {
+    return sorts.map(sort => {
+      if (
+        dataset === WidgetType.ISSUE &&
+        REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)
+      ) {
+        return {
+          field: sort.field,
+          kind: 'desc',
+        };
+      }
+      return sort;
+    });
+  };
 }
 
 /**

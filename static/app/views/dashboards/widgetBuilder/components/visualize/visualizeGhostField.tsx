@@ -24,7 +24,7 @@ import {
   StyledDeleteButton,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/index';
 import {ColumnCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
-import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 
 type VisualizeGhostFieldProps = {
   activeId: number;
@@ -105,7 +105,6 @@ function VisualizeGhostField({
               key="parameter:text"
               type="text"
               placeholder={t('Equation')}
-              required
               value={draggingField?.field ?? ''}
               onUpdate={() => {}}
             />
@@ -168,13 +167,13 @@ function VisualizeGhostField({
                       (parameter: any, parameterIndex: number) => {
                         const currentValue =
                           draggingField?.function[parameterIndex + 2] || '';
-                        const key = `${draggingField.function!.join('_')}-${parameterIndex}`;
+                        const key = `${draggingField.function.join('_')}-${parameterIndex}`;
 
                         return (
                           <AggregateParameterField
                             key={key}
                             parameter={parameter}
-                            fieldValue={draggingField!}
+                            fieldValue={draggingField}
                             currentValue={currentValue}
                             onChange={() => {}}
                           />
@@ -187,7 +186,7 @@ function VisualizeGhostField({
                 draggingField?.kind === FieldValueKind.FUNCTION && (
                   <AggregateParameterField
                     parameter={draggableMatchingAggregate?.value.meta.parameters[0]}
-                    fieldValue={draggingField!}
+                    fieldValue={draggingField}
                     currentValue={draggingField?.function[1]}
                     onChange={() => {}}
                   />
@@ -236,7 +235,7 @@ const Ghost = styled('div')`
     cursor: grabbing;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 710px;
   }
 `;

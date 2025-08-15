@@ -22,7 +22,7 @@ const {organization, projects, router} = initializeOrg({
   },
 });
 
-describe('EnvironmentPageFilter', function () {
+describe('EnvironmentPageFilter', () => {
   beforeEach(() => {
     OrganizationStore.init();
 
@@ -42,10 +42,11 @@ describe('EnvironmentPageFilter', function () {
 
   afterEach(() => PageFiltersStore.reset());
 
-  it('renders & handles single selection', async function () {
+  it('renders & handles single selection', async () => {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
@@ -66,10 +67,11 @@ describe('EnvironmentPageFilter', function () {
     );
   });
 
-  it('handles multiple selection', async function () {
+  it('handles multiple selection', async () => {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
@@ -89,11 +91,12 @@ describe('EnvironmentPageFilter', function () {
     );
   });
 
-  it('handles reset', async function () {
+  it('handles reset', async () => {
     const onReset = jest.fn();
     render(<EnvironmentPageFilter onReset={onReset} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open the menu, select project-1
@@ -114,10 +117,11 @@ describe('EnvironmentPageFilter', function () {
     expect(onReset).toHaveBeenCalled();
   });
 
-  it('responds to page filter changes, async e.g. from back button nav', async function () {
+  it('responds to page filter changes, async e.g. from back button nav', async () => {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Confirm initial selection
@@ -130,7 +134,7 @@ describe('EnvironmentPageFilter', function () {
     expect(screen.getByRole('button', {name: 'prod'})).toBeInTheDocument();
   });
 
-  it('displays a desynced state message', async function () {
+  it('displays a desynced state message', async () => {
     const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       organization: {features: ['global-views', 'open-membership']},
       projects: [
@@ -160,6 +164,7 @@ describe('EnvironmentPageFilter', function () {
     render(<EnvironmentPageFilter />, {
       router: desyncRouter,
       organization: desyncOrganization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu

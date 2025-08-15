@@ -17,7 +17,7 @@ import * as analytics from 'sentry/utils/analytics';
 
 import {StacktraceLink} from './stacktraceLink';
 
-describe('StacktraceLink', function () {
+describe('StacktraceLink', () => {
   const org = OrganizationFixture();
   const platform = 'python';
   const project = ProjectFixture();
@@ -34,34 +34,38 @@ describe('StacktraceLink', function () {
 
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     HookStore.init?.();
   });
 
-  it('renders setup CTA with integration but no configs', async function () {
+  it('renders setup CTA with integration but no configs', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config: null, sourceUrl: null, integrations: [integration]},
     });
-    render(<StacktraceLink frame={frame} event={event} line="foo()" />);
+    render(
+      <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />
+    );
     expect(await screen.findByText('Set up Code Mapping')).toBeInTheDocument();
   });
 
-  it('renders source url link', async function () {
+  it('renders source url link', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
-    render(<StacktraceLink frame={frame} event={event} line="foo()" />);
+    render(
+      <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />
+    );
     const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('href', 'https://something.io#L233');
   });
 
-  it('displays fix modal on error', async function () {
+  it('displays fix modal on error', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {
@@ -70,13 +74,15 @@ describe('StacktraceLink', function () {
         integrations: [integration],
       },
     });
-    render(<StacktraceLink frame={frame} event={event} line="foo()" />);
+    render(
+      <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />
+    );
     expect(
       await screen.findByRole('button', {name: 'Set up Code Mapping'})
     ).toBeInTheDocument();
   });
 
-  it('should hide stacktrace link error state on minified javascript frames', async function () {
+  it('should hide stacktrace link error state on minified javascript frames', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {
@@ -90,6 +96,7 @@ describe('StacktraceLink', function () {
         frame={frame}
         event={{...event, platform: 'javascript'}}
         line="{snip} somethingInsane=e.IsNotFound {snip}"
+        disableSetup={false}
       />
     );
     await waitFor(() => {
@@ -97,7 +104,7 @@ describe('StacktraceLink', function () {
     });
   });
 
-  it('should hide stacktrace link error state on unsupported platforms', async function () {
+  it('should hide stacktrace link error state on unsupported platforms', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {
@@ -107,14 +114,19 @@ describe('StacktraceLink', function () {
       },
     });
     const {container} = render(
-      <StacktraceLink frame={frame} event={{...event, platform: 'unreal'}} line="" />
+      <StacktraceLink
+        frame={frame}
+        event={{...event, platform: 'unreal'}}
+        line=""
+        disableSetup={false}
+      />
     );
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
     });
   });
 
-  it('renders the codecov link', async function () {
+  it('renders the codecov link', async () => {
     const organization = {
       ...org,
       codecovAccess: true,
@@ -136,9 +148,12 @@ describe('StacktraceLink', function () {
         coverageUrl: 'https://app.codecov.io/gh/path/to/file.py',
       },
     });
-    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      organization,
-    });
+    render(
+      <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />,
+      {
+        organization,
+      }
+    );
 
     const link = await screen.findByRole('link', {name: 'Open in Codecov'});
     expect(link).toBeInTheDocument();
@@ -154,7 +169,7 @@ describe('StacktraceLink', function () {
     );
   });
 
-  it('renders the missing coverage warning', async function () {
+  it('renders the missing coverage warning', async () => {
     const organization = {
       ...org,
       codecovAccess: true,
@@ -172,13 +187,16 @@ describe('StacktraceLink', function () {
       url: `/projects/${org.slug}/${project.slug}/stacktrace-coverage/`,
       body: {status: CodecovStatusCode.NO_COVERAGE_DATA},
     });
-    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      organization,
-    });
+    render(
+      <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />,
+      {
+        organization,
+      }
+    );
     expect(await screen.findByText('Code Coverage not found')).toBeInTheDocument();
   });
 
-  it('skips codecov when the feature is disabled at org level', async function () {
+  it('skips codecov when the feature is disabled at org level', async () => {
     const organization = {
       ...org,
       codecovAccess: false,
@@ -196,16 +214,19 @@ describe('StacktraceLink', function () {
       url: `/projects/${org.slug}/${project.slug}/stacktrace-coverage/`,
       body: {status: CodecovStatusCode.NO_COVERAGE_DATA},
     });
-    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
-      organization,
-    });
+    render(
+      <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />,
+      {
+        organization,
+      }
+    );
     expect(
       await screen.findByRole('link', {name: 'Open this line in GitHub'})
     ).toBeInTheDocument();
     expect(stacktraceCoverageMock).not.toHaveBeenCalled();
   });
 
-  it('renders the link using a valid sourceLink for a .NET project', async function () {
+  it('renders the link using a valid sourceLink for a .NET project', async () => {
     const dotnetFrame = {
       filename: 'path/to/file.py',
       sourceLink: 'https://www.github.com/username/path/to/file.py#L100',
@@ -223,6 +244,7 @@ describe('StacktraceLink', function () {
         frame={dotnetFrame}
         event={{...event, platform: 'csharp'}}
         line="foo()"
+        disableSetup={false}
       />
     );
     const link = await screen.findByRole('link', {name: 'GitHub'});
@@ -233,12 +255,14 @@ describe('StacktraceLink', function () {
     );
   });
 
-  it('renders in-frame stacktrace links and fetches data with 100ms delay', async function () {
+  it('renders in-frame stacktrace links and fetches data with 100ms delay', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
-    render(<StacktraceLink frame={frame} event={event} line="foo()" />);
+    render(
+      <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />
+    );
 
     const link = await screen.findByRole('link', {name: 'Open this line in GitHub'});
     expect(link).toBeInTheDocument();
@@ -247,5 +271,18 @@ describe('StacktraceLink', function () {
     expect(link).toHaveTextContent('');
 
     expect(mockRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not render the setup button when disableSetup is true', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {config: null, sourceUrl: null, integrations: [integration]},
+    });
+    const {container} = render(
+      <StacktraceLink frame={frame} event={event} line="foo()" disableSetup />
+    );
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 });

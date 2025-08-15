@@ -12,12 +12,12 @@ function TestComponent() {
   return <div>hi</div>;
 }
 
-describe('useRouteAnalyticsHookSetup', function () {
-  it('registers callback', function () {
+describe('useRouteAnalyticsHookSetup', () => {
+  it('registers callback', () => {
     const {organization} = initializeOrg();
     const setOrganization = jest.fn();
     render(
-      <RouteAnalyticsContext.Provider
+      <RouteAnalyticsContext
         value={{
           setOrganization,
           setDisableRouteAnalytics: jest.fn(),
@@ -26,10 +26,10 @@ describe('useRouteAnalyticsHookSetup', function () {
           previousUrl: '',
         }}
       >
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext value={organization}>
           <TestComponent />
-        </OrganizationContext.Provider>
-      </RouteAnalyticsContext.Provider>
+        </OrganizationContext>
+      </RouteAnalyticsContext>
     );
     expect(
       HookStore.getCallback('react-hook:route-activated', 'setOrganization')

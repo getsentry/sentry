@@ -1,4 +1,5 @@
 from sentry import analytics
+from sentry.integrations.analytics import IntegrationIssueCommentsSyncedEvent
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.metrics import (
@@ -9,6 +10,9 @@ from sentry.integrations.tasks import should_comment_sync
 from sentry.models.activity import Activity
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 
 
@@ -18,6 +22,13 @@ from sentry.types.activity import ActivityType
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+        retry=Retry(
+            times=5,
+            delay=60 * 5,
+        ),
+    ),
 )
 @retry(exclude=(Integration.DoesNotExist))
 def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> None:
@@ -41,9 +52,9 @@ def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> 
 
     with SCMIntegrationInteractionEvent(
         interaction_type=SCMIntegrationInteractionType.SYNC_EXTERNAL_ISSUE_COMMENT_CREATE,
-        organization=external_issue.organization,
         provider_key=installation.model.get_provider().name,
-        org_integration=installation.org_integration,
+        organization_id=external_issue.organization.id,
+        integration_id=installation.org_integration.integration_id,
     ).capture() as lifecycle:
         lifecycle.add_extras(
             {
@@ -58,10 +69,9 @@ def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> 
         note.data["external_id"] = installation.get_comment_id(comment)
         note.save()
         analytics.record(
-            # TODO(lb): this should be changed and/or specified?
-            "integration.issue.comments.synced",
-            provider=installation.model.provider,
-            id=installation.model.id,
-            organization_id=external_issue.organization_id,
-            user_id=user_id,
+            IntegrationIssueCommentsSyncedEvent(
+                provider=installation.model.provider,
+                id=installation.model.id,
+                organization_id=external_issue.organization_id,
+            )
         )

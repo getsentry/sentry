@@ -1,6 +1,6 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
@@ -11,20 +11,19 @@ import {
 } from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import {
-  type AutofixData,
-  type AutofixFeedback,
-  type AutofixProgressItem,
-  type AutofixRepository,
-  AutofixStatus,
-  type AutofixStep,
   AutofixStepType,
+  type AutofixData,
+  type AutofixProgressItem,
+  type AutofixStep,
 } from 'sentry/components/events/autofix/types';
-import {IconArrow} from 'sentry/icons';
+import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import testableTransition from 'sentry/utils/testableTransition';
+import useOrganization from 'sentry/utils/useOrganization';
 
-const animationProps: AnimationProps = {
+const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
   initial: {opacity: 0},
   animate: {opacity: 1},
@@ -35,10 +34,13 @@ interface StepProps {
   hasErroredStepBefore: boolean;
   hasStepAbove: boolean;
   hasStepBelow: boolean;
-  repos: AutofixRepository[];
   runId: string;
   step: AutofixStep;
-  feedback?: AutofixFeedback;
+  event?: Event;
+  isAutoTriggeredRun?: boolean;
+  isChangesFirstAppearance?: boolean;
+  isRootCauseFirstAppearance?: boolean;
+  isSolutionFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   shouldCollapseByDefault?: boolean;
@@ -48,6 +50,7 @@ interface AutofixStepsProps {
   data: AutofixData;
   groupId: string;
   runId: string;
+  event?: Event;
 }
 
 function isProgressLog(
@@ -56,28 +59,30 @@ function isProgressLog(
   return 'message' in item && 'timestamp' in item;
 }
 
-export function Step({
+function Step({
   step,
   groupId,
   runId,
-  repos,
   hasStepBelow,
   hasStepAbove,
   hasErroredStepBefore,
-  shouldCollapseByDefault,
   previousDefaultStepIndex,
   previousInsightCount,
-  feedback,
+  isRootCauseFirstAppearance,
+  isSolutionFirstAppearance,
+  isChangesFirstAppearance,
+  isAutoTriggeredRun,
+  event,
 }: StepProps) {
   return (
-    <StepCard>
+    <StepCard id={`autofix-step-${step.id}`} data-step-type={step.type}>
       <ContentWrapper>
         <AnimatePresence initial={false}>
           <AnimationWrapper key="content" {...animationProps}>
             <Fragment>
               {hasErroredStepBefore && hasStepAbove && (
                 <StepMessage>
-                  {t('Autofix encountered an error. Restarting step from scratch...')}
+                  {t('Seer encountered an error. Restarting step from scratch...')}
                 </StepMessage>
               )}
               {step.type === AutofixStepType.DEFAULT && (
@@ -88,7 +93,7 @@ export function Step({
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
-                  shouldCollapseByDefault={shouldCollapseByDefault}
+                  shouldCollapseByDefault={isAutoTriggeredRun && hasStepBelow}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -99,10 +104,10 @@ export function Step({
                   rootCauseSelection={step.selection}
                   terminationReason={step.termination_reason}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
-                  repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
-                  feedback={feedback}
+                  isRootCauseFirstAppearance={isRootCauseFirstAppearance}
+                  event={event}
                 />
               )}
               {step.type === AutofixStepType.SOLUTION && (
@@ -113,11 +118,11 @@ export function Step({
                   description={step.description}
                   solutionSelected={step.solution_selected}
                   customSolution={step.custom_solution}
-                  repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
-                  feedback={feedback}
+                  isSolutionFirstAppearance={isSolutionFirstAppearance}
+                  event={event}
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
@@ -128,6 +133,7 @@ export function Step({
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
+                  isChangesFirstAppearance={isChangesFirstAppearance}
                 />
               )}
             </Fragment>
@@ -138,29 +144,22 @@ export function Step({
   );
 }
 
-export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
+export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
+  const organization = useOrganization();
+  const codingDisabled =
+    organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
   const steps = data.steps;
-  const repos = data.repositories;
+  const isMountedRef = useRef<boolean>(false);
 
-  const stepsRef = useRef<Array<HTMLDivElement | null>>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   if (!steps?.length) {
     return null;
-  }
-
-  if (data.status === AutofixStatus.ERROR) {
-    const errorStep = steps.find(step => step.status === AutofixStatus.ERROR);
-    const errorMessage = errorStep?.completedMessage || t('Something went wrong.');
-
-    return (
-      <ErrorContainer>
-        <StyledArrow direction="down" size="sm" />
-        <ErrorMessage>
-          <strong>{t('Something went wrong with Autofix:')}</strong> {errorMessage}
-        </ErrorMessage>
-      </ErrorContainer>
-    );
   }
 
   const lastStep = steps[steps.length - 1];
@@ -170,8 +169,18 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     replaceHeadersWithBold(logs.at(-1)?.message ?? '') ??
     '';
 
+  const isInitialMount = !isMountedRef.current;
+
+  const shouldShowOutputStream =
+    ((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) &&
+    lastStep!.type !== AutofixStepType.CHANGES;
+  const errorMessage = getAutofixRunErrorMessage(data);
+  const shouldShowStandaloneError = errorMessage && !shouldShowOutputStream;
+
+  const isAutoTriggeredRun = !!data.request.options?.auto_run_source;
+
   return (
-    <StepsContainer ref={containerRef}>
+    <div>
       {steps.map((step, index) => {
         const previousDefaultStepIndex = steps
           .slice(0, index)
@@ -182,6 +191,13 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           previousDefaultStep?.type === AutofixStepType.DEFAULT
             ? previousDefaultStep.insights.length
             : undefined;
+
+        const hasSolutionStepBefore = steps
+          .slice(0, index)
+          .some(s => s.type === AutofixStepType.SOLUTION);
+        const hideStep =
+          (codingDisabled && hasSolutionStepBefore) ||
+          (codingDisabled && step.type === AutofixStepType.CHANGES);
 
         const previousStep = index > 0 ? steps[index - 1] : null;
         const previousStepErrored =
@@ -199,13 +215,12 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           nextStep?.status === 'PROCESSING' &&
           nextStep?.insights?.length === 0;
 
+        if (hideStep) {
+          return null;
+        }
+
         return (
-          <div
-            ref={el => {
-              stepsRef.current[index] = el;
-            }}
-            key={step.id}
-          >
+          <div key={step.id}>
             <Step
               step={step}
               hasStepBelow={
@@ -216,7 +231,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
               hasStepAbove
               groupId={groupId}
               runId={runId}
-              repos={repos}
               hasErroredStepBefore={previousStepErrored}
               shouldCollapseByDefault={
                 step.type === AutofixStepType.DEFAULT &&
@@ -227,21 +241,39 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
                 previousDefaultStepIndex >= 0 ? previousDefaultStepIndex : undefined
               }
               previousInsightCount={previousInsightCount}
-              feedback={data.feedback}
+              isRootCauseFirstAppearance={
+                step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && !isInitialMount
+              }
+              isSolutionFirstAppearance={
+                step.type === AutofixStepType.SOLUTION && !isInitialMount
+              }
+              isChangesFirstAppearance={
+                step.type === AutofixStepType.CHANGES && !isInitialMount
+              }
+              isAutoTriggeredRun={isAutoTriggeredRun}
+              event={event}
             />
           </div>
         );
       })}
-      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) && (
+      {shouldShowOutputStream && (
         <AutofixOutputStream
           stream={lastStep!.output_stream ?? ''}
           activeLog={activeLog}
           groupId={groupId}
           runId={runId}
           responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
+          autofixData={data}
         />
       )}
-    </StepsContainer>
+      {shouldShowStandaloneError && (
+        <StandaloneErrorMessage>
+          {errorMessage}
+          <br />
+          Just hit "Start Over."
+        </StandaloneErrorMessage>
+      )}
+    </div>
   );
 }
 
@@ -249,29 +281,9 @@ const StepMessage = styled('div')`
   overflow: hidden;
   padding: ${space(1)};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   justify-content: flex-start;
   text-align: left;
-`;
-
-const ErrorMessage = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.subText};
-`;
-
-const StepsContainer = styled('div')``;
-
-const ErrorContainer = styled('div')`
-  margin-top: ${space(1)};
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const StyledArrow = styled(IconArrow)`
-  color: ${p => p.theme.subText};
-  opacity: 0.5;
 `;
 
 const StepCard = styled('div')`
@@ -296,3 +308,9 @@ const ContentWrapper = styled(motion.div)`
 `;
 
 const AnimationWrapper = styled(motion.div)``;
+
+const StandaloneErrorMessage = styled('div')`
+  margin: ${space(1)} 0;
+  padding: ${space(2)};
+  color: ${p => p.theme.subText};
+`;

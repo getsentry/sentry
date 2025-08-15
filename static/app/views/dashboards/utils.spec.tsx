@@ -132,7 +132,7 @@ describe('Dashboards util', () => {
     });
   });
 
-  describe('getFieldsFromEquations', function () {
+  describe('getFieldsFromEquations', () => {
     it('returns a list of fields that includes individual terms of provided equations', () => {
       const fields = [
         'equation|(count_if(transaction.duration,greater,300) / count()) * 100',
@@ -148,7 +148,7 @@ describe('Dashboards util', () => {
     });
   });
 
-  describe('getWidgetDiscoverUrl', function () {
+  describe('getWidgetDiscoverUrl', () => {
     let widget!: Widget;
     beforeEach(() => {
       widget = {
@@ -169,7 +169,12 @@ describe('Dashboards util', () => {
       };
     });
     it('returns the discover url of the widget query', () => {
-      const url = getWidgetDiscoverUrl(widget, selection, OrganizationFixture());
+      const url = getWidgetDiscoverUrl(
+        widget,
+        undefined,
+        selection,
+        OrganizationFixture()
+      );
       expect(url).toBe(
         '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Query&query=&statsPeriod=7d&yAxis=count%28%29'
       );
@@ -191,13 +196,47 @@ describe('Dashboards util', () => {
           ],
         },
       };
-      const url = getWidgetDiscoverUrl(widget, selection, OrganizationFixture());
+      const url = getWidgetDiscoverUrl(
+        widget,
+        undefined,
+        selection,
+        OrganizationFixture()
+      );
       expect(url).toBe(
         '/organizations/org-slug/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
       );
     });
+    it('applies the dashboard filters to the query', () => {
+      widget = {
+        ...widget,
+        ...{
+          displayType: DisplayType.LINE,
+          queries: [
+            {
+              name: '',
+              conditions: 'transaction.op:test',
+              fields: [],
+              aggregates: [],
+              columns: [],
+              orderby: '',
+            },
+          ],
+        },
+      };
+      const url = getWidgetDiscoverUrl(
+        widget,
+        {release: ['1.0.0', '2.0.0']},
+        selection,
+        OrganizationFixture()
+      );
+      const queryString = url.split('?')[1];
+      const urlParams = new URLSearchParams(queryString);
+      expect(urlParams.get('query')).toBe(
+        '(transaction.op:test) release:["1.0.0","2.0.0"] '
+      );
+    });
   });
-  describe('getWidgetIssueUrl', function () {
+  describe('getWidgetIssueUrl', () => {
     let widget!: Widget;
     beforeEach(() => {
       widget = {
@@ -218,14 +257,25 @@ describe('Dashboards util', () => {
       };
     });
     it('returns the issue url of the widget query', () => {
-      const url = getWidgetIssueUrl(widget, selection, OrganizationFixture());
+      const url = getWidgetIssueUrl(widget, undefined, selection, OrganizationFixture());
       expect(url).toBe(
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=date&statsPeriod=7d'
       );
     });
+    it('applies the dashboard filters to the query', () => {
+      const url = getWidgetIssueUrl(
+        widget,
+        {release: ['1.0.0', '2.0.0']},
+        selection,
+        OrganizationFixture()
+      );
+      const queryString = url.split('?')[1];
+      const urlParams = new URLSearchParams(queryString);
+      expect(urlParams.get('query')).toBe('(is:unresolved) release:["1.0.0","2.0.0"] ');
+    });
   });
 
-  describe('flattenErrors', function () {
+  describe('flattenErrors', () => {
     it('flattens nested errors', () => {
       const errorResponse = {
         widgets: [
@@ -246,23 +296,23 @@ describe('Dashboards util', () => {
     });
   });
 
-  describe('getDashboardsMEPQueryParams', function () {
-    it('returns correct params if enabled', function () {
+  describe('getDashboardsMEPQueryParams', () => {
+    it('returns correct params if enabled', () => {
       expect(getDashboardsMEPQueryParams(true)).toEqual({
         dataset: 'metricsEnhanced',
       });
     });
-    it('returns empty object if disabled', function () {
+    it('returns empty object if disabled', () => {
       expect(getDashboardsMEPQueryParams(false)).toEqual({});
     });
   });
 
-  describe('getNumEquations', function () {
-    it('returns 0 if there are no equations', function () {
+  describe('getNumEquations', () => {
+    it('returns 0 if there are no equations', () => {
       expect(getNumEquations(['count()', 'epm()', 'count_unique(user)'])).toBe(0);
     });
 
-    it('returns the count of equations if there are multiple', function () {
+    it('returns the count of equations if there are multiple', () => {
       expect(
         getNumEquations([
           'count()',
@@ -273,13 +323,13 @@ describe('Dashboards util', () => {
       ).toBe(2);
     });
 
-    it('returns 0 if the possible equations array is empty', function () {
+    it('returns 0 if the possible equations array is empty', () => {
       expect(getNumEquations([])).toBe(0);
     });
   });
 
-  describe('isCustomMeasurementWidget', function () {
-    it('returns false on a non custom measurement widget', function () {
+  describe('isCustomMeasurementWidget', () => {
+    it('returns false on a non custom measurement widget', () => {
       const widget: Widget = {
         title: 'Title',
         interval: '5m',
@@ -299,7 +349,7 @@ describe('Dashboards util', () => {
       expect(isCustomMeasurementWidget(widget)).toBe(false);
     });
 
-    it('returns true on a custom measurement widget', function () {
+    it('returns true on a custom measurement widget', () => {
       const widget: Widget = {
         title: 'Title',
         interval: '5m',
@@ -320,8 +370,8 @@ describe('Dashboards util', () => {
     });
   });
 
-  describe('hasUnsavedFilterChanges', function () {
-    it('ignores the order of projects', function () {
+  describe('hasUnsavedFilterChanges', () => {
+    it('ignores the order of projects', () => {
       const initialDashboard = {
         projects: [1, 2],
       } as DashboardDetails;
@@ -335,7 +385,7 @@ describe('Dashboards util', () => {
       expect(hasUnsavedFilterChanges(initialDashboard, location)).toBe(false);
     });
 
-    it('ignores the order of environments', function () {
+    it('ignores the order of environments', () => {
       const initialDashboard = {
         environment: ['alpha', 'beta'],
       } as DashboardDetails;
@@ -349,7 +399,7 @@ describe('Dashboards util', () => {
       expect(hasUnsavedFilterChanges(initialDashboard, location)).toBe(false);
     });
 
-    it('ignores the order of releases', function () {
+    it('ignores the order of releases', () => {
       const initialDashboard = {
         filters: {
           release: ['v1', 'v2'],

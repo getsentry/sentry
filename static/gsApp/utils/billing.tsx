@@ -19,12 +19,14 @@ import {
 import type {
   BillingConfig,
   BillingMetricHistory,
+  BillingStatTotal,
   EventBucket,
   Plan,
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
-import {PlanName, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
+import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -37,6 +39,25 @@ function isNum(val: unknown): val is number {
 // TODO(brendan): remove condition for 0 once -1 is the value we use to represent unlimited reserved quota
 export function isUnlimitedReserved(value: number | null | undefined): boolean {
   return value === UNLIMITED_RESERVED;
+}
+
+export function addBillingStatTotals(
+  a: BillingStatTotal,
+  b: BillingStatTotal[]
+): BillingStatTotal {
+  return b.reduce(
+    (acc, curr) => ({
+      accepted: acc.accepted + (curr?.accepted ?? 0),
+      dropped: acc.dropped + (curr?.dropped ?? 0),
+      droppedOther: acc.droppedOther + (curr?.droppedOther ?? 0),
+      droppedOverQuota: acc.droppedOverQuota + (curr?.droppedOverQuota ?? 0),
+      droppedSpikeProtection:
+        acc.droppedSpikeProtection + (curr?.droppedSpikeProtection ?? 0),
+      filtered: acc.filtered + (curr?.filtered ?? 0),
+      projected: acc.projected + (curr?.projected ?? 0),
+    }),
+    a
+  );
 }
 
 export const getSlot = (
@@ -83,13 +104,6 @@ export const getSlot = (
   return Math.min(s, slots.length - 1);
 };
 
-type ReservedSku =
-  | Subscription['reservedErrors']
-  | Subscription['reservedTransactions']
-  | Subscription['reservedAttachments']
-  | number
-  | null;
-
 /**
  * isAbbreviated: Shortens the number using K for thousand, M for million, etc
  *                Useful for Errors/Transactions but not recommended to be used
@@ -112,8 +126,8 @@ type FormatOptions = {
  * If isReservedBudget is true, the reservedQuantity is in cents
  */
 export function formatReservedWithUnits(
-  reservedQuantity: ReservedSku,
-  dataCategory: string,
+  reservedQuantity: number | null,
+  dataCategory: DataCategory,
   options: FormatOptions = {
     isAbbreviated: false,
     useUnitScaling: false,
@@ -124,7 +138,7 @@ export function formatReservedWithUnits(
   if (isReservedBudget) {
     return displayPriceWithCents({cents: reservedQuantity ?? 0});
   }
-  if (dataCategory !== DataCategory.ATTACHMENTS) {
+  if (!isByteCategory(dataCategory)) {
     return formatReservedNumberToString(reservedQuantity, options);
   }
   // convert reservedQuantity to BYTES to check for unlimited
@@ -137,23 +151,23 @@ export function formatReservedWithUnits(
     return `${formatted} GB`;
   }
 
-  return formatAttachmentUnits(reservedQuantity || 0, 3);
+  return formatByteUnits(reservedQuantity || 0, 3);
 }
 
 /**
  * This expects values from CustomerUsageEndpoint, which contains usage
  * quantities for the data categories that we sell.
  *
- * Note: usageQuantity for Attachments should be in BYTES
+ * Note: usageQuantity for Attachments and Logs should be in BYTES
  */
 export function formatUsageWithUnits(
   usageQuantity = 0,
-  dataCategory: string,
+  dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
-  if (dataCategory === DataCategory.ATTACHMENTS) {
+  if (isByteCategory(dataCategory)) {
     if (options.useUnitScaling) {
-      return formatAttachmentUnits(usageQuantity);
+      return formatByteUnits(usageQuantity);
     }
 
     const usageGb = usageQuantity / GIGABYTE;
@@ -161,7 +175,7 @@ export function formatUsageWithUnits(
       ? `${displayNumber(usageGb)} GB`
       : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
   }
-  if (dataCategory === DataCategory.PROFILE_DURATION) {
+  if (isContinuousProfiling(dataCategory)) {
     const usageProfileHours = usageQuantity / MILLISECONDS_IN_HOUR;
     if (usageProfileHours === 0) {
       return '0';
@@ -175,12 +189,25 @@ export function formatUsageWithUnits(
     : usageQuantity.toLocaleString();
 }
 
+export function convertUsageToReservedUnit(
+  usage: number,
+  category: DataCategory | string
+): number {
+  if (isByteCategory(category)) {
+    return usage / GIGABYTE;
+  }
+  if (isContinuousProfiling(category)) {
+    return usage / MILLISECONDS_IN_HOUR;
+  }
+  return usage;
+}
+
 /**
  * Do not export.
  * Helper method for formatReservedWithUnits
  */
 function formatReservedNumberToString(
-  reservedQuantity: ReservedSku,
+  reservedQuantity: number | null,
   options: FormatOptions = {
     isAbbreviated: false,
     isGifted: false,
@@ -221,7 +248,7 @@ function formatReservedNumberToString(
  * For storage/memory/file sizes, please take a look at the function in
  * sentry/utils/formatBytes.
  */
-function formatAttachmentUnits(bytes: number, u = 0) {
+function formatByteUnits(bytes: number, u = 0) {
   const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   const threshold = 1000;
 
@@ -257,8 +284,8 @@ function displayNumber(n: number, fractionDigits = 0) {
 /**
  * Utility functions for Pricing Plans
  */
-export const isEnterprise = (subscription: Subscription) =>
-  ['e1', 'enterprise'].some(p => subscription.plan.startsWith(p));
+export const isEnterprise = (plan: string) =>
+  ['e1', 'enterprise'].some(p => plan.startsWith(p)) || isAmEnterprisePlan(plan);
 
 export const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
 
@@ -295,7 +322,7 @@ export function isAmPlan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am');
 }
 
-function isAm2Plan(planId?: string) {
+export function isAm2Plan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am2');
 }
 
@@ -308,19 +335,67 @@ export function isAm3DsPlan(planId?: string) {
 }
 
 export function isAmEnterprisePlan(planId?: string) {
-  return (
-    typeof planId === 'string' &&
-    planId.startsWith('am') &&
-    (planId.endsWith('_ent') ||
-      planId.endsWith('_ent_auf') ||
-      planId.endsWith('_ent_ds') ||
-      planId.endsWith('_ent_ds_auf'))
-  );
+  if (typeof planId !== 'string' || !isAmPlan(planId)) {
+    return false;
+  }
+
+  return planId.includes('_ent');
 }
 
 export function hasJustStartedPlanTrial(subscription: Subscription) {
   return subscription.isTrial && subscription.isTrialStarted;
 }
+
+export const displayBudgetName = (
+  plan?: Plan | null,
+  options: {
+    pluralOndemand?: boolean;
+    title?: boolean;
+    withBudget?: boolean;
+  } = {}
+) => {
+  const budgetTerm = plan?.budgetTerm ?? 'on-demand';
+  const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
+  if (options.title) {
+    if (budgetTerm === 'on-demand') {
+      if (options.withBudget) {
+        if (options.pluralOndemand) {
+          return 'On-Demand Budgets';
+        }
+        return 'On-Demand Budget';
+      }
+      return 'On-Demand';
+    }
+    return titleCase(text);
+  }
+  return text;
+};
+
+/**
+ * Returns the configurable on-demand/PAYG categories for the given plan
+ * and budget mode.
+ *
+ * @param plan - The plan to get the on-demand/PAYG categories for
+ * @param budgetMode - The on-demand/PAYG budget mode
+ * @returns A list of the appropriate on-demand/PAYG categories for the given plan and budget mode
+ */
+export const getOnDemandCategories = ({
+  plan,
+  budgetMode,
+}: {
+  budgetMode: OnDemandBudgetMode | null;
+  plan: Plan;
+}) => {
+  if (budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    return plan.onDemandCategories.filter(category => {
+      return Object.values(plan.availableReservedBudgetTypes).every(
+        budgetType => !budgetType.dataCategories.includes(category)
+      );
+    });
+  }
+
+  return plan.onDemandCategories;
+};
 
 export const displayPlanName = (plan?: Plan | null) => {
   return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : (plan?.name ?? '[unavailable]');
@@ -338,6 +413,14 @@ export const getAmPlanTier = (plan: string) => {
   }
   return null;
 };
+
+export const isNewPayingCustomer = (
+  subscription: Subscription,
+  organization: Organization
+) =>
+  subscription.isFree ||
+  isTrialPlan(subscription.plan) ||
+  hasPartnerMigrationFeature(organization);
 
 /**
  * Promotion utility functions that are based off of formData which has the plan as a string
@@ -430,11 +513,17 @@ export function getBestActionToIncreaseEventLimits(
     return UsageAction.START_TRIAL;
   }
   // paid plans should add events without changing plans
-  if (isPaidPlan && hasPerformance(subscription.planDetails)) {
+  const hasAnyUsageExceeded = Object.values(subscription.categories).some(
+    category => category.usageExceeded
+  );
+  if (isPaidPlan && hasPerformance(subscription.planDetails) && hasAnyUsageExceeded) {
     return hasBillingPerms ? UsageAction.ADD_EVENTS : UsageAction.REQUEST_ADD_EVENTS;
   }
-  // otherwise, we want them to upgrade to a different plan
-  return hasBillingPerms ? UsageAction.SEND_TO_CHECKOUT : UsageAction.REQUEST_UPGRADE;
+  // otherwise, we want them to upgrade to a different plan if they're not already on a Business plan
+  if (!isBizPlanFamily(subscription.planDetails)) {
+    return hasBillingPerms ? UsageAction.SEND_TO_CHECKOUT : UsageAction.REQUEST_UPGRADE;
+  }
+  return '';
 }
 
 /**

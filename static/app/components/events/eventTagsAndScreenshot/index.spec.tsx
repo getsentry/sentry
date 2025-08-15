@@ -16,7 +16,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {EventAttachment} from 'sentry/types/group';
 
-describe('EventTagsAndScreenshot', function () {
+describe('EventTagsAndScreenshot', () => {
   const user = {
     id: '1',
     email: 'tony1@example.com',
@@ -151,12 +151,12 @@ describe('EventTagsAndScreenshot', function () {
 
   async function assertTagsView() {
     expect(screen.getByText('Tags')).toBeInTheDocument();
-    const tagsContainer = within(screen.getByTestId('event-tags'));
+    const tagsContainer = within(screen.getByRole('region', {name: 'tags'}));
     expect(tagsContainer.getAllByRole('radio')).toHaveLength(
       Object.keys(TagFilter).length
     );
 
-    await expect(mockDetailedProject).toHaveBeenCalled();
+    expect(mockDetailedProject).toHaveBeenCalled();
     expect(await tagsContainer.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByTestId('event-tags-tree')).toBeInTheDocument();
   }
@@ -185,8 +185,8 @@ describe('EventTagsAndScreenshot', function () {
     await assertTagsView();
     eventTagsWithAttachment.unmount();
   }
-  describe('renders tags only', function () {
-    it('tags only', async function () {
+  describe('renders tags only', () => {
+    it('tags only', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
@@ -195,7 +195,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
     });
 
-    it('tags and attachments', async function () {
+    it('tags and attachments', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: attachments,
@@ -203,7 +203,7 @@ describe('EventTagsAndScreenshot', function () {
       await assertTagsViewAsShare();
     });
 
-    it('allows filtering tags', async function () {
+    it('allows filtering tags', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
@@ -247,7 +247,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(rows).toHaveLength(allTags.length);
     });
 
-    it('promotes custom tags', async function () {
+    it('promotes custom tags', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
@@ -277,7 +277,7 @@ describe('EventTagsAndScreenshot', function () {
     });
   });
 
-  describe('renders screenshot only', function () {
+  describe('renders screenshot only', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
@@ -289,7 +289,7 @@ describe('EventTagsAndScreenshot', function () {
       });
     });
 
-    it('no tags', async function () {
+    it('no tags', async () => {
       render(
         <Fragment>
           <GlobalModal />
@@ -305,24 +305,12 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.queryByText('Tags')).not.toBeInTheDocument();
 
       // Screenshot Container
-      expect(
-        (await screen.findByTestId('screenshot-data-section'))?.textContent
-      ).toContain('Screenshot');
+      expect(await screen.findByRole('region', {name: 'Screenshot'})).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1]!.id}/?download`
       );
-
-      // Display help text when hovering question element
-      await userEvent.hover(screen.getByTestId('more-information'));
-
-      expect(
-        await screen.findByText(
-          'This image was captured around the time that the event occurred.'
-        )
-      ).toBeInTheDocument();
-
       // Screenshot is clickable
       await userEvent.click(screen.getByTestId('image-viewer'));
 
@@ -336,7 +324,7 @@ describe('EventTagsAndScreenshot', function () {
     });
   });
 
-  describe('renders screenshot and tags', function () {
+  describe('renders screenshot and tags', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
@@ -344,7 +332,7 @@ describe('EventTagsAndScreenshot', function () {
       });
     });
 
-    it('has tags and attachments', async function () {
+    it('has tags and attachments', async () => {
       render(<EventTagsAndScreenshot event={event} projectSlug={project.slug} />, {
         organization,
       });
@@ -357,9 +345,8 @@ describe('EventTagsAndScreenshot', function () {
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1]!.id}/?download`
       );
 
-      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        'Screenshot'
-      );
+      expect(screen.getByRole('region', {name: 'Screenshot'})).toBeInTheDocument();
+
       expect(
         screen.queryByRole('button', {name: 'Previous Screenshot'})
       ).not.toBeInTheDocument();
@@ -368,7 +355,7 @@ describe('EventTagsAndScreenshot', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('renders multiple screenshots correctly', async function () {
+    it('renders multiple screenshots correctly', async () => {
       MockApiClient.clearMockResponses();
       const moreAttachments = [
         ...attachments,
@@ -396,9 +383,8 @@ describe('EventTagsAndScreenshot', function () {
         {organization}
       );
 
-      expect(
-        (await screen.findByTestId('screenshot-data-section'))?.textContent
-      ).toContain('1 of 2');
+      const screenShotSection = await screen.findByRole('region', {name: 'Screenshots'});
+      expect(screenShotSection).toHaveTextContent('1 of 2');
 
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
@@ -408,9 +394,7 @@ describe('EventTagsAndScreenshot', function () {
 
       await userEvent.click(screen.getByRole('button', {name: 'Next Screenshot'}));
 
-      expect(await screen.findByTestId('screenshot-data-section')).toHaveTextContent(
-        '2 of 2'
-      );
+      expect(screenShotSection).toHaveTextContent('2 of 2');
 
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
@@ -419,7 +403,7 @@ describe('EventTagsAndScreenshot', function () {
       );
     });
 
-    it('can delete a screenshot', async function () {
+    it('can delete a screenshot', async () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
@@ -460,16 +444,14 @@ describe('EventTagsAndScreenshot', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('attachments only', async function () {
+    it('attachments only', async () => {
       render(<EventTagsAndScreenshot event={event} projectSlug={project.slug} />, {
         organization,
       });
       await assertTagsView();
 
       // Screenshot Container
-      expect(
-        (await screen.findByTestId('screenshot-data-section'))?.textContent
-      ).toContain('Screenshot');
+      expect(await screen.findByRole('region', {name: 'Screenshot'})).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',

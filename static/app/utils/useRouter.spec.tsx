@@ -8,7 +8,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
 describe('useRouter', () => {
-  it('returns the current router object', function () {
+  it('returns the current router object', () => {
     let actualRouter: any;
     function HomePage() {
       actualRouter = useRouter();
@@ -23,9 +23,9 @@ describe('useRouter', () => {
     };
 
     render(
-      <TestRouteContext.Provider value={routeContext}>
+      <TestRouteContext value={routeContext}>
         <HomePage />
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
     expect(actualRouter).toEqual(routeContext.router);
   });

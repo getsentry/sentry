@@ -4,7 +4,7 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 
 import useDisableRouteAnalytics from './useDisableRouteAnalytics';
 
-describe('useDisableRouteAnalytics', function () {
+describe('useDisableRouteAnalytics', () => {
   const setDisableRouteAnalytics = jest.fn();
   const otherFns = {
     setRouteAnalyticsParams: jest.fn(),
@@ -16,13 +16,13 @@ describe('useDisableRouteAnalytics', function () {
     jest.clearAllMocks();
   });
 
-  it('disables analytics', function () {
+  it('disables analytics', () => {
     function TestComponent() {
       useDisableRouteAnalytics();
       return <div>hi</div>;
     }
     const getComponent = ({previousUrl = ''}: {previousUrl?: string} = {}) => (
-      <RouteAnalyticsContext.Provider
+      <RouteAnalyticsContext
         value={{
           ...otherFns,
           setDisableRouteAnalytics,
@@ -30,7 +30,7 @@ describe('useDisableRouteAnalytics', function () {
         }}
       >
         <TestComponent />
-      </RouteAnalyticsContext.Provider>
+      </RouteAnalyticsContext>
     );
     const {rerender} = render(getComponent({}));
     expect(setDisableRouteAnalytics).toHaveBeenCalledWith(true);
@@ -42,13 +42,13 @@ describe('useDisableRouteAnalytics', function () {
     expect(setDisableRouteAnalytics).toHaveBeenCalledWith(true);
   });
 
-  it('re-enables analytics', function () {
+  it('re-enables analytics', () => {
     function TestComponent({disabled}: {disabled: boolean}) {
       useDisableRouteAnalytics(disabled);
       return <div>hi</div>;
     }
     const getComponent = ({disabled}: {disabled: boolean}) => (
-      <RouteAnalyticsContext.Provider
+      <RouteAnalyticsContext
         value={{
           ...otherFns,
           setDisableRouteAnalytics,
@@ -56,7 +56,7 @@ describe('useDisableRouteAnalytics', function () {
         }}
       >
         <TestComponent disabled={disabled} />
-      </RouteAnalyticsContext.Provider>
+      </RouteAnalyticsContext>
     );
     const {rerender} = render(getComponent({disabled: true}));
     expect(setDisableRouteAnalytics).toHaveBeenCalledWith(true);

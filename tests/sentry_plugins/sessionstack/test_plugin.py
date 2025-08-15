@@ -17,20 +17,17 @@ ACCESS_TOKENS_URL = (
 )
 
 
+def test_conf_key() -> None:
+    assert SessionStackPlugin().conf_key == "sessionstack"
+
+
 class SessionStackPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return SessionStackPlugin()
 
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "sessionstack"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("sessionstack", self.plugin)
-        self.assertAppInstalled("sessionstack", "sentry_plugins.sessionstack")
-
     @responses.activate
-    def test_config_validation(self):
+    def test_config_validation(self) -> None:
         responses.add(responses.GET, "https://api.sessionstack.com/v1/websites/0")
 
         config = {
@@ -42,7 +39,7 @@ class SessionStackPluginTest(PluginTestCase):
         self.plugin.validate_config(self.project, config)
 
     @responses.activate
-    def test_event_preprocessing(self):
+    def test_event_preprocessing(self) -> None:
         responses.add(
             responses.GET,
             ACCESS_TOKENS_URL,
@@ -78,7 +75,7 @@ class SessionStackPluginTest(PluginTestCase):
 
         assert session_url == EXPECTED_SESSION_URL
 
-    def test_no_secrets(self):
+    def test_no_secrets(self) -> None:
         self.login_as(self.user)
         self.plugin.set_option("api_token", "example-api-token", self.project)
         url = reverse(

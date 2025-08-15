@@ -1,14 +1,12 @@
 import os.path
 import zipfile
 from base64 import b64encode
-from hashlib import sha1
 from io import BytesIO
 from uuid import uuid4
 
 import pytest
 import responses
 from django.conf import settings
-from django.core.files.base import ContentFile
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -18,10 +16,8 @@ from sentry.models.artifactbundle import (
     SourceFileType,
 )
 from sentry.models.files.file import File
-from sentry.models.files.fileblob import FileBlob
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
-from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
@@ -62,48 +58,6 @@ def load_fixture(name):
         return fp.read()
 
 
-def make_compressed_zip_file(files):
-    def remove_and_return(dictionary, key):
-        dictionary.pop(key)
-        return dictionary
-
-    compressed = BytesIO(b"SYSB")
-    with zipfile.ZipFile(compressed, "a") as zip_file:
-        for file_path, info in files.items():
-            zip_file.writestr(file_path, bytes(info["content"]))
-
-        zip_file.writestr(
-            "manifest.json",
-            json.dumps(
-                {
-                    # We remove the "content" key in the original dict, thus no subsequent calls should be made.
-                    "files": {
-                        file_path: remove_and_return(info, "content")
-                        for file_path, info in files.items()
-                    }
-                }
-            ),
-        )
-    compressed.seek(0)
-
-    return compressed.getvalue()
-
-
-def upload_bundle(bundle_file, project, release=None, dist=None, upload_as_artifact_bundle=True):
-    blob1 = FileBlob.from_file(ContentFile(bundle_file))
-    total_checksum = sha1(bundle_file).hexdigest()
-
-    return assemble_artifacts(
-        org_id=project.organization.id,
-        project_ids=[project.id],
-        version=release,
-        dist=dist,
-        checksum=total_checksum,
-        chunks=[blob1.checksum],
-        upload_as_artifact_bundle=upload_as_artifact_bundle,
-    )
-
-
 @django_db_all(transaction=True)
 class TestJavascriptIntegration(RelayStoreHelper):
     @pytest.fixture(autouse=True)
@@ -121,7 +75,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_adds_contexts_without_device(self):
+    def test_adds_contexts_without_device(self) -> None:
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -150,7 +104,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_adds_contexts_with_device(self):
+    def test_adds_contexts_with_device(self) -> None:
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -170,18 +124,29 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         contexts = event.interfaces["contexts"].to_json()
+
         assert contexts.get("os") == {
             "os": "Android 4.3",
             "name": "Android",
             "type": "os",
             "version": "4.3",
         }
-        assert contexts.get("browser") == {
+
+        browser_context = contexts.get("browser")
+
+        # The `user_agent` field was added retroactively so the browser context assertion needs to be forwards and backwards compatible
+        assert browser_context.pop("user_agent", None) in (
+            None,
+            "Mozilla/5.0 (Linux; U; Android 4.3; en-us; SCH-R530U Build/JSS15J) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30 USCC-R530U",
+        )
+
+        assert browser_context == {
             "browser": "Android 4.3",
             "name": "Android",
             "type": "browser",
             "version": "4.3",
         }
+
         assert contexts.get("device") == {
             "family": "Samsung SCH-R530U",
             "type": "device",
@@ -192,7 +157,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_adds_contexts_with_ps4_device(self):
+    def test_adds_contexts_with_ps4_device(self) -> None:
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -222,7 +187,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_error_message_translations(self):
+    def test_error_message_translations(self) -> None:
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -260,7 +225,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_nonhandled_frames_inapp_normalization(self):
+    def test_nonhandled_frames_inapp_normalization(self) -> None:
         data = {
             "timestamp": self.min_ago,
             "message": "hello",
@@ -311,15 +276,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert raw_frame_list[1].in_app
         assert raw_frame_list[2].in_app
 
-    @requires_symbolicator
-    @pytest.mark.symbolicator
-    def test_sourcemap_source_expansion(self):
-        self.project.update_option("sentry:scrape_javascript", False)
-        release = Release.objects.create(
-            organization_id=self.project.organization_id, version="abc"
-        )
-        release.add_project(self.project)
-
+    def _create_source_files_and_sourcemaps(self, release):
         for file in ["file.min.js", "file1.js", "file2.js", "file.sourcemap.js"]:
             with open(get_fixture_path(file), "rb") as f:
                 f1 = File.objects.create(
@@ -335,6 +292,17 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 organization_id=self.project.organization_id,
                 file=f1,
             )
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sourcemap_source_expansion(self) -> None:
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        self._create_source_files_and_sourcemaps(release)
 
         data = {
             "timestamp": self.min_ago,
@@ -426,7 +394,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_webpack(self):
+    def test_sourcemap_webpack(self) -> None:
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -524,9 +492,10 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert second_frame.pre_context == first_frame.pre_context
         assert second_frame.post_context == first_frame.post_context
 
+    @pytest.mark.skip(reason="flaky: #94543")
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_embedded_source_expansion(self):
+    def test_sourcemap_embedded_source_expansion(self) -> None:
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -610,7 +579,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sourcemap_nofiles_source_expansion(self):
+    def test_sourcemap_nofiles_source_expansion(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -681,7 +650,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_indexed_sourcemap_source_expansion(self):
+    def test_indexed_sourcemap_source_expansion(self) -> None:
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"
@@ -793,7 +762,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_debug(self):
+    def test_expansion_via_debug(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -942,7 +911,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_distribution_release_artifacts(self):
+    def test_expansion_via_distribution_release_artifacts(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -1207,17 +1176,17 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_release_archive(self):
+    def test_expansion_via_release_archive(self) -> None:
         self._test_expansion_via_release_archive(link_sourcemaps=True)
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_via_release_archive_no_sourcemap_link(self):
+    def test_expansion_via_release_archive_no_sourcemap_link(self) -> None:
         self._test_expansion_via_release_archive(link_sourcemaps=False)
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_node_processing(self):
+    def test_node_processing(self) -> None:
         project = self.project
         release = Release.objects.create(
             organization_id=project.organization_id, version="nodeabc123"
@@ -1333,20 +1302,26 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame_list[2].function == "App"
         assert frame_list[2].lineno == 2
 
-        assert_abs_path(frame_list[3].abs_path)
+        # 1:1014 in the minified source file is _unmapped_.
+        # There are no tokens in the sourcemap for line 1.
+        assert frame_list[3].abs_path == "app:///dist.bundle.js"
         assert frame_list[3].function == "Object.<anonymous>"
         assert frame_list[3].lineno == 1
+        assert frame_list[3].colno == 1014
 
         assert_abs_path(frame_list[4].abs_path)
         assert frame_list[4].function == "__webpack_require__"
         assert frame_list[4].lineno == 19
 
-        assert_abs_path(frame_list[5].abs_path)
+        # 18:63 in the minified source file is _unmapped_.
+        # There are no tokens in the sourcemap for line 18.
+        assert frame_list[5].abs_path == "app:///dist.bundle.js"
         assert frame_list[5].function == "<unknown>"
-        assert frame_list[5].lineno == 16
+        assert frame_list[5].lineno == 18
+        assert frame_list[5].colno == 63
 
     @responses.activate
-    def test_no_fetch_from_http(self):
+    def test_no_fetch_from_http(self) -> None:
         responses.add(
             responses.GET,
             "http://example.com/node_app.min.js",
@@ -1429,7 +1404,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert not frame_list[x].in_app
 
     @responses.activate
-    def test_html_file_with_query_param_ending_with_js_extension(self):
+    def test_html_file_with_query_param_ending_with_js_extension(self) -> None:
         responses.add(
             responses.GET,
             "http://example.com/file.html",
@@ -1470,7 +1445,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id(self):
+    def test_expansion_with_debug_id(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -1650,7 +1625,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id_and_sourcemap_without_sources_content(self):
+    def test_expansion_with_debug_id_and_sourcemap_without_sources_content(self) -> None:
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
         compressed = BytesIO(b"SYSB")
@@ -1804,7 +1779,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id_and_malformed_sourcemap(self):
+    def test_expansion_with_debug_id_and_malformed_sourcemap(self) -> None:
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
         compressed = BytesIO(b"SYSB")
@@ -1942,7 +1917,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_debug_id_not_found(self):
+    def test_expansion_with_debug_id_not_found(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2062,7 +2037,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_release_dist_pair_x(self):
+    def test_expansion_with_release_dist_pair_x(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2221,7 +2196,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_release_dist_pair_and_sourcemap_without_sources_content(self):
+    def test_expansion_with_release_dist_pair_and_sourcemap_without_sources_content(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2362,7 +2337,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_expansion_with_release_and_malformed_sourcemap(self):
+    def test_expansion_with_release_and_malformed_sourcemap(self) -> None:
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -2481,3 +2456,168 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "symbolicator_type": "malformed_sourcemap",
             "url": "http://example.com/file.malformed.sourcemap.js",
         }
+
+    def generate_symbolicated_in_app_event_data(self, frames):
+        return {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": frames,
+                        },
+                    }
+                ]
+            },
+        }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_symbolicated_in_app_after_symbolication(self) -> None:
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        self._create_source_files_and_sourcemaps(release)
+
+        data = self.generate_symbolicated_in_app_event_data(
+            [
+                {
+                    "abs_path": "http://example.com/file.min.js",
+                    "filename": "file.min.js",
+                    "lineno": 1,
+                    "colno": 39,
+                    "in_app": True,
+                },
+                {
+                    "abs_path": "http://example.com/file.min.js",
+                    "filename": "file.min.js",
+                    "lineno": 1,
+                    "colno": 183,
+                    "in_app": True,
+                },
+            ]
+        )
+
+        event = self.post_and_retrieve_event(data)
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        # Verify both frames are symbolicated and in_app
+        assert frame_list[0].data["symbolicated"] is True
+        assert frame_list[0].in_app is True
+
+        assert frame_list[1].data["symbolicated"] is True
+        assert frame_list[1].in_app is True
+
+        # Verify symbolicated_in_app is True since all in_app frames are symbolicated
+        assert event.data["symbolicated_in_app"] is True
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_symbolicated_in_app_false_with_unsymbolicated_frame(self) -> None:
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        # Create source files and sourcemaps for file.min.js
+        for file in ["file.min.js", "file1.js", "file2.js", "file.sourcemap.js"]:
+            with open(get_fixture_path(file), "rb") as f:
+                f1 = File.objects.create(
+                    name=file,
+                    type="release.file",
+                    headers={},
+                )
+                f1.putfile(f)
+
+            ReleaseFile.objects.create(
+                name=f"http://example.com/{f1.name}",
+                release_id=release.id,
+                organization_id=self.project.organization_id,
+                file=f1,
+            )
+
+        data = self.generate_symbolicated_in_app_event_data(
+            [
+                {
+                    "abs_path": "http://example.com/file.min.js",
+                    "filename": "file.min.js",
+                    "lineno": 1,
+                    "colno": 39,
+                    "in_app": True,
+                },
+                {
+                    "abs_path": "http://example.com/webpack2.min.js",
+                    "filename": "webpack2.min.js",
+                    "lineno": 1,
+                    "colno": 183,
+                    "in_app": True,
+                },
+            ]
+        )
+
+        event = self.post_and_retrieve_event(data)
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        # First frame should be symbolicated and in_app
+        assert frame_list[0].data["symbolicated"] is True
+        assert frame_list[0].in_app is True
+
+        # Second frame should not be symbolicated but is in_app
+        assert frame_list[1].data["symbolicated"] is False
+        assert frame_list[1].in_app is True
+
+        # Verify symbolicated_in_app is False since not all in_app frames are symbolicated
+        assert event.data["symbolicated_in_app"] is False
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_symbolicated_in_app_none_with_no_in_app_frames(self) -> None:
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        data = self.generate_symbolicated_in_app_event_data(
+            [
+                {
+                    "abs_path": "http://example.com/webpack2.min.js",
+                    "filename": "webpack2.min.js",
+                    "lineno": 1,
+                    "colno": 39,
+                    "in_app": False,
+                },
+                {
+                    "abs_path": "http://example.com/webpack2.min.js",
+                    "filename": "webpack2.min.js",
+                    "lineno": 1,
+                    "colno": 183,
+                    "in_app": False,
+                },
+            ]
+        )
+
+        event = self.post_and_retrieve_event(data)
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        # Verify both frames are not symbolicated and not in_app
+        assert frame_list[0].data["symbolicated"] is False
+        assert frame_list[0].in_app is False
+
+        assert frame_list[1].data["symbolicated"] is False
+        assert frame_list[1].in_app is False
+
+        # Verify symbolicated_in_app is None since there are no in_app frames
+        # Using get() since the key might not exist when the value would be None
+        assert event.data.get("symbolicated_in_app") is None

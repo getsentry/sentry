@@ -3,8 +3,8 @@ import {useMemo} from 'react';
 import {
   decodeBoolean,
   decodeInteger,
-  type decodeList,
   decodeScalar,
+  type decodeList,
   type decodeSorts,
   type QueryValue,
 } from 'sentry/utils/queryString';
@@ -21,7 +21,7 @@ type KnownDecoder =
 
 type GenericDecoder<T = unknown> = (query: QueryValue) => T;
 
-export type Decoder = KnownDecoder | GenericDecoder;
+type Decoder = KnownDecoder | GenericDecoder;
 
 /**
  * Select and memoize query params from location.

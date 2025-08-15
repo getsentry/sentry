@@ -45,5 +45,4 @@ const storeConfig: StoreDefinition & DebugMetaStoreInterface & Internals = {
 
 const DebugMetaStore = createStore(storeConfig);
 
-export {DebugMetaStore};
 export default DebugMetaStore;

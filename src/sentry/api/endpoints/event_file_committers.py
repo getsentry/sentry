@@ -2,7 +2,6 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -10,6 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.release import Release
+from sentry.services import eventstore
 from sentry.utils.committers import get_serialized_event_file_committers
 
 
@@ -36,6 +36,8 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
+        elif event.group_id is None:
+            raise NotFound(detail="Issue not found")
 
         try:
             committers = get_serialized_event_file_committers(

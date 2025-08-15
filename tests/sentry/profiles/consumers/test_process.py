@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from base64 import b64encode
 from datetime import datetime
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import msgpack
 from arroyo.backends.kafka import KafkaPayload
@@ -20,8 +21,8 @@ class TestProcessProfileConsumerStrategy(TestCase):
     def processing_factory():
         return ProcessProfileStrategyFactory()
 
-    @patch("sentry.profiles.consumers.process.factory.process_profile_task.s")
-    def test_basic_profile_to_celery(self, process_profile_task):
+    @patch("sentry.profiles.consumers.process.factory.process_profile_task.delay")
+    def test_basic_profile_to_celery(self, process_profile_task: MagicMock) -> None:
         processing_strategy = self.processing_factory().create_with_partitions(
             commit=Mock(), partitions=None
         )
@@ -52,10 +53,13 @@ class TestProcessProfileConsumerStrategy(TestCase):
         processing_strategy.join(1)
         processing_strategy.terminate()
 
-        process_profile_task.assert_called_with(payload=payload, sampled=True)
+        process_profile_task.assert_called_with(
+            payload=b64encode(payload).decode("utf-8"),
+            sampled=True,
+        )
 
 
-def test_adjust_instruction_addr_sample_format():
+def test_adjust_instruction_addr_sample_format() -> None:
     original_frames = [
         {"instruction_addr": "0xdeadbeef"},
         {"instruction_addr": "0xbeefdead"},
@@ -82,7 +86,7 @@ def test_adjust_instruction_addr_sample_format():
     assert frames[4] == {"instruction_addr": "0xdeadbeef", "adjust_instruction_addr": False}
 
 
-def test_adjust_instruction_addr_original_format():
+def test_adjust_instruction_addr_original_format() -> None:
     profile = {
         "platform": "cocoa",
         "sampled_profile": {

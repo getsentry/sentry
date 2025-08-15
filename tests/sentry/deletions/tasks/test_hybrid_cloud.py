@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 from django.apps import apps
+from django.db import connections, router, transaction
 from django.db.models import Max, QuerySet
 
 from sentry.backup.scopes import RelocationScope
@@ -94,7 +95,7 @@ def saved_search_owner_id_field():
 
 
 @django_db_all
-def test_no_work_is_no_op(task_runner, saved_search_owner_id_field):
+def test_no_work_is_no_op(task_runner, saved_search_owner_id_field) -> None:
     reset_watermarks()
 
     # Transaction id should not change when no processing occurs.  (this would happen if setting the next cursor
@@ -109,7 +110,7 @@ def test_no_work_is_no_op(task_runner, saved_search_owner_id_field):
 
 
 @django_db_all
-def test_watermark_and_transaction_id(task_runner, saved_search_owner_id_field):
+def test_watermark_and_transaction_id(task_runner, saved_search_owner_id_field) -> None:
     _, tid1 = get_watermark("tombstone", saved_search_owner_id_field)
     # TODO: Add another test to validate the tid is unique per field
 
@@ -153,7 +154,7 @@ def setup_deletable_objects(
 
 
 @django_db_all
-def test_region_processing(task_runner):
+def test_region_processing(task_runner) -> None:
     reset_watermarks()
 
     # Assume we have two groups of objects
@@ -191,7 +192,7 @@ def test_region_processing(task_runner):
 
 @django_db_all
 @control_silo_test
-def test_control_processing(task_runner):
+def test_control_processing(task_runner) -> None:
     reset_watermarks()
 
     with assume_test_silo_mode(SiloMode.CONTROL):
@@ -218,6 +219,7 @@ def setup_deletion_test():
         name="disco-query",
         organization=organization,
         created_by_id=user.id,
+        query={},
     )
     return {
         "user": user,
@@ -231,7 +233,7 @@ def setup_deletion_test():
 
 
 @django_db_all
-def test_cascade_deletion_behavior(task_runner):
+def test_cascade_deletion_behavior(task_runner) -> None:
     data = setup_deletion_test()
     integration = data["integration"]
     external_issue = data["external_issue"]
@@ -252,7 +254,7 @@ def test_cascade_deletion_behavior(task_runner):
 
 
 @django_db_all
-def test_do_nothing_deletion_behavior(task_runner):
+def test_do_nothing_deletion_behavior(task_runner) -> None:
     data = setup_deletion_test()
     integration = data["integration"]
 
@@ -275,7 +277,7 @@ def test_do_nothing_deletion_behavior(task_runner):
 
 
 @django_db_all
-def test_set_null_deletion_behavior(task_runner):
+def test_set_null_deletion_behavior(task_runner) -> None:
     data = setup_deletion_test()
     user = data["user"]
     saved_query = data["saved_query"]
@@ -332,6 +334,7 @@ def setup_cross_db_deletion_data(
             name="disco-query",
             organization=organization,
             created_by_id=user.id,
+            query={},
         )
         monitor = Monitor.objects.create(
             **monitor_params,
@@ -358,6 +361,10 @@ def setup_cross_db_deletion_data(
 class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        Monitor.objects.all().delete()
+        with assume_test_silo_mode_of(User):
+            User.objects.all().delete()
+
         reset_watermarks()
 
     def assert_monitors_unchanged(self, unaffected_data: list[_CrossDbDeletionData]) -> None:
@@ -380,7 +387,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
             burst()
 
-    def test_cross_db_deletion(self):
+    def test_cross_db_deletion(self) -> None:
         data = setup_cross_db_deletion_data()
         user, monitor, organization, project = itemgetter(
             "user", "monitor", "organization", "project"
@@ -389,6 +396,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
         affected_monitors = [monitor]
 
+        reserve_model_ids(Monitor, 14)
         affected_monitors.extend(
             [
                 Monitor.objects.create(
@@ -414,7 +422,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
         self.assert_monitors_unchanged(unaffected_data=unaffected_data)
         self.assert_monitors_user_ids_null(monitors=affected_monitors)
 
-    def test_deletion_row_after_tombstone(self):
+    def test_deletion_row_after_tombstone(self) -> None:
         data = setup_cross_db_deletion_data()
         user, monitor, organization, project = itemgetter(
             "user", "monitor", "organization", "project"
@@ -438,6 +446,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
         # Same as previous test, but this time with monitors created after
         # the tombstone has been processed
         start_id = monitor.id + 10
+        reserve_model_ids(Monitor, start_id + 9)
         affected_monitors.extend(
             [
                 Monitor.objects.create(
@@ -457,7 +466,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
         self.assert_monitors_unchanged(unaffected_data=unaffected_data)
         self.assert_monitors_user_ids_null(monitors=affected_monitors)
 
-    def test_empty_tombstones_table(self):
+    def test_empty_tombstones_table(self) -> None:
         unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
         assert RegionTombstone.objects.count() == 0
 
@@ -467,7 +476,13 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
 @region_silo_test
 class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
-    def test_get_ids_for_tombstone_cascade_cross_db(self):
+    def setUp(self) -> None:
+        super().setUp()
+        Monitor.objects.all().delete()
+        with assume_test_silo_mode_of(User):
+            User.objects.all().delete()
+
+    def test_get_ids_for_tombstone_cascade_cross_db(self) -> None:
         data = setup_cross_db_deletion_data()
 
         unaffected_data = []
@@ -501,7 +516,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
         assert ids == [monitor.id]
         assert oldest_obj == tombstone.created_at
 
-    def test_get_ids_for_tombstone_cascade_cross_db_watermark_bounds(self):
+    def test_get_ids_for_tombstone_cascade_cross_db_watermark_bounds(self) -> None:
         cascade_data = [setup_cross_db_deletion_data() for _ in range(3)]
 
         # Create some additional filler data
@@ -563,7 +578,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
             )
             assert ids == bounds_with_expected_results
 
-    def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self):
+    def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self) -> None:
         data = setup_cross_db_deletion_data()
         unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
 
@@ -602,9 +617,29 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
         assert oldest_obj == tombstone.created_at
 
 
+def reserve_model_ids(model: type[Model], minimum_id: int) -> None:
+    # Utility that increments the primary key of the given model to the provided
+    # minimum. This ensures we can never have an ID collision when hardcoding ID
+    # values.
+    with assume_test_silo_mode_of(model), transaction.atomic(using=router.db_for_write(model)):
+        with connections[router.db_for_write(model)].cursor() as cursor:
+            last_id = None
+            while last_id is None or last_id < minimum_id:
+                cursor.execute("SELECT nextval(%s)", [f"{model._meta.db_table}_id_seq"])
+                last_id = cursor.fetchone()[0]
+
+
 @region_silo_test
 class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
-    def test_with_simple_tombstone_intersection(self):
+    def setUp(self) -> None:
+        super().setUp()
+        Monitor.objects.all().delete()
+        with assume_test_silo_mode_of(User):
+            User.objects.all().delete()
+
+    def test_with_simple_tombstone_intersection(self) -> None:
+        reserve_model_ids(Monitor, 43)
+        reserve_model_ids(User, 11)
         data = setup_cross_db_deletion_data(desired_user_id=10, desired_monitor_id=42)
         user, monitor = itemgetter("user", "monitor")(data)
 
@@ -634,7 +669,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
         assert ids == [monitor.id]
         assert oldest_obj == tombstone.created_at
 
-    def test_with_empty_tombstones_table(self):
+    def test_with_empty_tombstones_table(self) -> None:
         # Set up some sample data that shouldn't be affected
         with outbox_runner():
             [setup_cross_db_deletion_data() for _ in range(3)]
@@ -658,10 +693,12 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
 
         assert ids == []
 
-    def test_row_watermarking_bounds(self):
+    def test_row_watermarking_bounds(self) -> None:
         # In testing, the IDs for these models will be low, sequential values
         # so adding some seed data to space the IDs out gives better insight
         # on filter correctness.
+        reserve_model_ids(Monitor, 121)
+        reserve_model_ids(User, 78)
         desired_user_and_monitor_ids = [(10, 9), (42, 40), (77, 120)]
         cascade_data = [
             setup_cross_db_deletion_data(desired_user_id=user_id, desired_monitor_id=monitor_id)
@@ -726,7 +763,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                 ids == bounds_with_expected_results
             ), f"Expected  IDs '{bounds_with_expected_results}', got '{ids}', for input: '{bounds}'"
 
-    def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self):
+    def test_get_ids_for_tombstone_cascade_cross_db_with_multiple_tombstone_types(self) -> None:
         data = setup_cross_db_deletion_data()
         unaffected_data = [setup_cross_db_deletion_data() for _ in range(3)]
 

@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Collection, Iterable
+from collections.abc import Collection, Iterable, Sequence
 from datetime import timedelta
 
 from django.db import router, transaction
@@ -26,6 +26,7 @@ def create_snuba_query(
     resolution: timedelta,
     environment: Environment | None,
     event_types: Collection[SnubaQueryEventType.EventType] = (),
+    group_by: Sequence[str] | None = None,
 ):
     """
     Constructs a SnubaQuery which is the postgres representation of a query in snuba
@@ -50,6 +51,7 @@ def create_snuba_query(
         time_window=int(time_window.total_seconds()),
         resolution=int(resolution.total_seconds()),
         environment=environment,
+        group_by=group_by,
     )
     if not event_types:
         if dataset == Dataset.Events:
@@ -181,8 +183,9 @@ def create_snuba_subscription(
         query_extra=query_extra,
     )
 
-    create_subscription_in_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    transaction.on_commit(
+        lambda: create_subscription_in_snuba.delay(query_subscription_id=subscription.id),
+        using=router.db_for_write(QuerySubscription),
     )
 
     return subscription
@@ -222,15 +225,15 @@ def update_snuba_subscription(subscription, old_query_type, old_dataset, old_agg
     with transaction.atomic(router.db_for_write(QuerySubscription)):
         subscription.update(status=QuerySubscription.Status.UPDATING.value)
 
-        update_subscription_in_snuba.apply_async(
-            kwargs={
-                "query_subscription_id": subscription.id,
-                "old_query_type": old_query_type.value,
-                "old_dataset": old_dataset.value,
-                "old_aggregate": old_aggregate,
-                "old_query": old_query,
-            },
-            countdown=5,
+        transaction.on_commit(
+            lambda: update_subscription_in_snuba.delay(
+                query_subscription_id=subscription.id,
+                old_query_type=old_query_type.value,
+                old_dataset=old_dataset.value,
+                old_aggregate=old_aggregate,
+                old_query=old_query,
+            ),
+            using=router.db_for_write(QuerySubscription),
         )
 
     return subscription
@@ -255,8 +258,9 @@ def delete_snuba_subscription(subscription):
     """
     subscription.update(status=QuerySubscription.Status.DELETING.value)
 
-    delete_subscription_from_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    transaction.on_commit(
+        lambda: delete_subscription_from_snuba.delay(query_subscription_id=subscription.id),
+        using=router.db_for_write(QuerySubscription),
     )
 
 
@@ -279,8 +283,9 @@ def disable_snuba_subscription(subscription):
     """
     subscription.update(status=QuerySubscription.Status.DISABLED.value)
 
-    delete_subscription_from_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+    transaction.on_commit(
+        lambda: delete_subscription_from_snuba.delay(query_subscription_id=subscription.id),
+        using=router.db_for_write(QuerySubscription),
     )
 
 
@@ -302,6 +307,8 @@ def enable_snuba_subscription(subscription):
     :return:
     """
     subscription.update(status=QuerySubscription.Status.CREATING.value)
-    create_subscription_in_snuba.apply_async(
-        kwargs={"query_subscription_id": subscription.id}, countdown=5
+
+    transaction.on_commit(
+        lambda: create_subscription_in_snuba.delay(query_subscription_id=subscription.id),
+        using=router.db_for_write(QuerySubscription),
     )

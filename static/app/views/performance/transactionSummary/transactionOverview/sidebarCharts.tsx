@@ -13,7 +13,6 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -148,7 +147,7 @@ function SidebarChartsContainer({
   const api = useApi();
   const theme = useTheme();
 
-  const colors = getChartColorPalette(2);
+  const colors = theme.chart.getColorPalette(2);
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
@@ -230,7 +229,7 @@ function SidebarChartsContainer({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0]!, colors[1]!],
+    colors: [colors[0], colors[1]],
     tooltip: {
       trigger: 'axis',
       truncate: 80,
@@ -277,7 +276,7 @@ function SidebarChartsContainer({
       includePrevious={false}
       yAxis={['apdex()', 'failure_rate()']}
       partial
-      referrer="api.performance.transaction-summary.sidebar-chart"
+      referrer="api.insights.transaction-summary.sidebar-chart"
       queryExtras={queryExtras}
     >
       {({results, errored, loading, reloading}) => {
@@ -334,7 +333,7 @@ const ChartLabel = styled('div')<{top: string}>`
 `;
 
 const ChartValue = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 export default SidebarChartsContainer;

@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import MutableMapping
 from typing import Any
 
-from sentry import options
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
@@ -77,12 +76,8 @@ class ErrorEvent(BaseEvent):
         title = metadata.get("type")
         if title is not None:
             value = metadata.get("value")
-            if options.get("sentry.save-event.title-char-limit-256.enabled"):
-                truncate_to = 256
-            else:
-                truncate_to = 100
             if value:
-                title += f": {truncatechars(value.splitlines()[0], truncate_to)}"
+                title += f": {truncatechars(value.splitlines()[0], 256)}"
 
         return title or metadata.get("function") or "<unknown>"
 
@@ -98,10 +93,10 @@ def _find_main_exception(data: MutableMapping[str, Any]) -> str | None:
     # With chained exceptions, the SDK or our grouping logic can set the main_exception_id
     # to indicate which exception to use for title & subtitle
     main_exception_id = get_path(data, "main_exception_id")
-    return get_exception(exceptions, main_exception_id)
+    return _get_exception(exceptions, main_exception_id)
 
 
-def get_exception(exceptions: MutableMapping[str, Any], main_exception_id: str) -> str | None:
+def _get_exception(exceptions: MutableMapping[str, Any], main_exception_id: str) -> str | None:
     """Returns the exception from the event data."""
     # When there are multiple exceptions, we need to pick one to extract the metadata from.
     # If the event data has been marked with a main_exception_id, then we should be able to

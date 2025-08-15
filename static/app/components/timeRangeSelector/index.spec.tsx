@@ -7,7 +7,7 @@ import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibr
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import ConfigStore from 'sentry/stores/configStore';
 
-const {organization, router} = initializeOrg({
+const {organization} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
@@ -23,7 +23,7 @@ const {organization, router} = initializeOrg({
   },
 });
 
-describe('TimeRangeSelector', function () {
+describe('TimeRangeSelector', () => {
   const onChange = jest.fn();
 
   function getComponent(props = {}) {
@@ -31,10 +31,10 @@ describe('TimeRangeSelector', function () {
   }
 
   function renderComponent(props = {}) {
-    return render(getComponent(props), {router});
+    return render(getComponent(props));
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
@@ -45,19 +45,21 @@ describe('TimeRangeSelector', function () {
     onChange.mockReset();
   });
 
-  it('renders when given relative period', async function () {
+  it('renders when given relative period', async () => {
     renderComponent({relative: '9d'});
     expect(await screen.findByRole('button', {name: '9D'})).toBeInTheDocument();
   });
 
-  it('renders when given an invalid relative period', async function () {
-    render(<TimeRangeSelector relative="1y" />, {router, organization});
+  it('renders when given an invalid relative period', async () => {
+    render(<TimeRangeSelector relative="1y" />, {
+      organization,
+    });
     expect(
       await screen.findByRole('button', {name: 'Invalid Period'})
     ).toBeInTheDocument();
   });
 
-  it('hides relative options', async function () {
+  it('hides relative options', async () => {
     renderComponent({showRelative: false, start: '0', end: '0'});
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -74,7 +76,7 @@ describe('TimeRangeSelector', function () {
     expect(screen.getByTestId('date-range')).toBeInTheDocument();
   });
 
-  it('hides absolute selector', async function () {
+  it('hides absolute selector', async () => {
     renderComponent({showAbsolute: false});
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -84,7 +86,7 @@ describe('TimeRangeSelector', function () {
     expect(screen.queryByTestId('date-range')).not.toBeInTheDocument();
   });
 
-  it('can select an absolute date range', async function () {
+  it('can select an absolute date range', async () => {
     renderComponent();
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -115,7 +117,7 @@ describe('TimeRangeSelector', function () {
     });
   });
 
-  it('can select an absolute range with utc enabled', async function () {
+  it('can select an absolute range with utc enabled', async () => {
     renderComponent({utc: true});
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -147,7 +149,7 @@ describe('TimeRangeSelector', function () {
     });
   });
 
-  it('keeps time inputs focused while interacting with them', async function () {
+  it('keeps time inputs focused while interacting with them', async () => {
     renderComponent();
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -162,7 +164,7 @@ describe('TimeRangeSelector', function () {
     expect(screen.getByTestId('endTime')).toHaveFocus();
   });
 
-  it('switches from relative to absolute and then toggling UTC (starting with UTC)', async function () {
+  it('switches from relative to absolute and then toggling UTC (starting with UTC)', async () => {
     renderComponent({relative: '7d', utc: true});
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -184,7 +186,7 @@ describe('TimeRangeSelector', function () {
     });
   });
 
-  it('switches from relative to absolute and then toggling UTC (starting with non-UTC)', async function () {
+  it('switches from relative to absolute and then toggling UTC (starting with non-UTC)', async () => {
     renderComponent({relative: '7d', utc: false});
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
@@ -205,7 +207,7 @@ describe('TimeRangeSelector', function () {
     });
   });
 
-  it('uses the default absolute date', async function () {
+  it('uses the default absolute date', async () => {
     renderComponent({
       defaultAbsolute: {
         start: new Date('2017-10-10T00:00:00.000Z'),
@@ -256,6 +258,14 @@ describe('TimeRangeSelector', function () {
       start: undefined,
       end: undefined,
     });
+  });
+
+  it('respects maxPickableDays for defaults', async () => {
+    renderComponent({maxPickableDays: 30});
+
+    await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+    expect(screen.queryByRole('option', {name: 'Last 90 days'})).not.toBeInTheDocument();
   });
 
   it('respects maxPickableDays for arbitrary time ranges', async () => {

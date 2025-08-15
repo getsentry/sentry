@@ -64,7 +64,7 @@ def create_default_rules(project: Project, default_rules=True, RuleModel=Rule, *
 
     # When a user creates a new project and opts to set up an issue alert within it,
     # the corresponding task in the quick start sidebar is automatically marked as complete.
-    alert_rule_created.send(
+    alert_rule_created.send_robust(
         user=user,
         project=project,
         rule_id=rule.id,

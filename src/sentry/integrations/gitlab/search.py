@@ -8,6 +8,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.shared_integrations.exceptions import ApiError
 
 T = TypeVar("T", bound=SourceCodeIssueIntegration)
@@ -21,7 +22,7 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
 
     @property
     def integration_provider(self):
-        return "gitlab"
+        return IntegrationProviderSlug.GITLAB.value
 
     @property
     def installation_class(self):
@@ -29,7 +30,9 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
         with self.record_event(
-            SCMIntegrationInteractionType.HANDLE_SEARCH_ISSUES
+            SCMIntegrationInteractionType.HANDLE_SEARCH_ISSUES,
+            organization_id=installation.organization_id,
+            integration_id=installation.org_integration.integration_id,
         ).capture() as lifecycle:
             assert repo
 
@@ -62,7 +65,9 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
         self, integration: Integration, installation: T, query: str
     ) -> Response:
         with self.record_event(
-            SCMIntegrationInteractionType.HANDLE_SEARCH_REPOSITORIES
+            SCMIntegrationInteractionType.HANDLE_SEARCH_REPOSITORIES,
+            organization_id=installation.organization_id,
+            integration_id=integration.id,
         ).capture() as lifecyle:
             assert isinstance(installation, self.installation_class)
             try:

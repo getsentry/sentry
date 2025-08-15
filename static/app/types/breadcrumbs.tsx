@@ -29,6 +29,7 @@ export enum BreadcrumbType {
   INIT = 'init',
   NETWORK = 'network',
   DEVICE = 'device',
+  CONNECTIVITY = 'connectivity',
 }
 
 export enum BreadcrumbMessageFormat {
@@ -46,33 +47,12 @@ interface BreadcrumbTypeBase {
   timestamp?: string;
 }
 
-export interface BreadcrumbTypeSystem extends BreadcrumbTypeBase {
-  action: string;
-  extras: Record<string, any>;
-  type: BreadcrumbType.SYSTEM;
-}
-
-export interface BreadcrumbTypeSession extends BreadcrumbTypeBase {
-  action: string;
-  extras: Record<string, any>;
-  type: BreadcrumbType.SESSION;
-}
-
 export interface BreadcrumbTypeNavigation extends BreadcrumbTypeBase {
   type: BreadcrumbType.NAVIGATION;
   data?: null | {
     from?: string;
     to?: string;
   };
-}
-
-export interface BreadcrumbTypeInit extends BreadcrumbTypeBase {
-  data: {
-    action: 'replay-init';
-    label: string;
-    url: string;
-  };
-  type: BreadcrumbType.INIT;
 }
 
 export interface BreadcrumbTypeHTTP extends BreadcrumbTypeBase {
@@ -132,13 +112,3 @@ interface HTTPCrumb extends BaseCrumb, BreadcrumbTypeHTTP {}
 interface DefaultCrumb extends BaseCrumb, BreadcrumbTypeDefault {}
 
 export type Crumb = NavigationCrumb | HTTPCrumb | DefaultCrumb;
-
-export function isBreadcrumbLogLevel(logLevel: string): logLevel is BreadcrumbLevelType {
-  return Object.values(BreadcrumbLevelType).includes(logLevel as any);
-}
-
-export function isBreadcrumbTypeDefault(
-  breadcrumb: Crumb
-): breadcrumb is Extract<Crumb, BreadcrumbTypeDefault> {
-  return ![BreadcrumbType.HTTP, BreadcrumbType.NAVIGATION].includes(breadcrumb.type);
-}

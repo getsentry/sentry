@@ -20,15 +20,15 @@ interface CreateSavedSearchModalProps extends ModalRenderProps {
 }
 
 function validateSortOption({sort}: {sort?: string}) {
-  const sortOptions = [
+  const sortOptions: string[] = [
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];
-  if (sortOptions.find(option => option === sort)) {
-    return sort as string;
+  if (sort && sortOptions.includes(sort)) {
+    return sort;
   }
 
   return IssueSortOptions.DATE;
@@ -86,7 +86,7 @@ export function CreateSavedSearchModal({
       closeModal();
       clearIndicators();
       onSubmitSuccess(data);
-    } catch (err) {
+    } catch (err: any) {
       clearIndicators();
       onSubmitError(
         err?.responseJSON?.detail
@@ -112,7 +112,9 @@ export function CreateSavedSearchModal({
       <Body>
         {error && (
           <Alert.Container>
-            <Alert type="error">{error}</Alert>
+            <Alert type="error" showIcon={false}>
+              {error}
+            </Alert>
           </Alert.Container>
         )}
         <SavedSearchModalContent organization={organization} />

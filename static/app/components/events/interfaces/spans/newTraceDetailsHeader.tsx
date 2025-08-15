@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader';
 import {t} from 'sentry/locale';
@@ -32,18 +33,18 @@ function ServiceBreakdown({
   if (!displayBreakdown) {
     return (
       <BreakDownWrapper>
-        <BreakDownRow>
+        <Flex align="center" justify="between">
           <div>{t('server side')}</div>
-          <FlexBox>
+          <Flex>
             <span>{'N/A'}</span>
-          </FlexBox>
-        </BreakDownRow>
-        <BreakDownRow>
+          </Flex>
+        </Flex>
+        <Flex align="center" justify="between">
           <div>{t('client side')}</div>
-          <FlexBox>
+          <Flex>
             <span>{'N/A'}</span>
-          </FlexBox>
-        </BreakDownRow>
+          </Flex>
+        </Flex>
       </BreakDownWrapper>
     );
   }
@@ -57,20 +58,20 @@ function ServiceBreakdown({
 
   return httpDuration ? (
     <BreakDownWrapper>
-      <BreakDownRow>
+      <Flex align="center" justify="between">
         <div>{t('server side')}</div>
-        <FlexBox>
+        <Flex>
           <Dur>{getDuration(httpDuration, 2, true)}</Dur>
           <Pct>{serverSidePct}%</Pct>
-        </FlexBox>
-      </BreakDownRow>
-      <BreakDownRow>
+        </Flex>
+      </Flex>
+      <Flex align="center" justify="between">
         <div>{t('client side')}</div>
-        <FlexBox>
+        <Flex>
           <Dur>{getDuration(totalDuration - httpDuration, 2, true)}</Dur>
           <Pct>{clientSidePct}%</Pct>
-        </FlexBox>
-      </BreakDownRow>
+        </Flex>
+      </Flex>
     </BreakDownWrapper>
   ) : null;
 }
@@ -86,11 +87,7 @@ function TraceViewHeader(props: PropType) {
   const hasServiceBreakdown = httpOp && props.traceType === TraceShape.ONE_ROOT;
 
   return (
-    <HeaderContainer
-      // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-      ref={props.traceViewHeaderRef}
-      hasProfileMeasurementsChart={false}
-    >
+    <HeaderContainer ref={props.traceViewHeaderRef} hasProfileMeasurementsChart={false}>
       <DividerHandlerManager.Consumer>
         {dividerHandlerChildrenProps => {
           const {dividerPosition} = dividerHandlerChildrenProps;
@@ -145,7 +142,7 @@ const OperationsBreakdown = styled('div')`
 `;
 
 const Dur = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-variant-numeric: tabular-nums;
 `;
 
@@ -155,18 +152,10 @@ const Pct = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-const FlexBox = styled('div')`
+const BreakDownWrapper = styled('div')`
   display: flex;
-`;
-
-const BreakDownWrapper = styled(FlexBox)`
   flex-direction: column;
   padding: ${space(2)};
-`;
-
-const BreakDownRow = styled(FlexBox)`
-  align-items: center;
-  justify-content: space-between;
 `;
 
 export default TraceViewHeader;

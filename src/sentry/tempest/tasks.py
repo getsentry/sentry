@@ -10,6 +10,8 @@ from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import tempest_tasks
 from sentry.tempest.models import MessageType, TempestCredentials
 
 logger = logging.getLogger(__name__)
@@ -21,6 +23,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.REGION,
     soft_time_limit=55,
     time_limit=60,
+    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def poll_tempest(**kwargs):
     # FIXME: Once we have more traffic this needs to be done smarter.
@@ -43,6 +46,7 @@ def poll_tempest(**kwargs):
     silo_mode=SiloMode.REGION,
     soft_time_limit=55,
     time_limit=60,
+    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     # FIXME: Try catch this later
@@ -61,11 +65,21 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
         result = response.json()
 
         if "latest_id" in result:
-            credentials.latest_fetched_item_id = result["latest_id"]
-            credentials.message = ""
-            credentials.message_type = MessageType.SUCCESS
-            credentials.save(update_fields=["message", "latest_fetched_item_id", "message_type"])
-            return
+            if result["latest_id"] is None:
+                # If there are no crashes in the CRS we want to communicate that back to the
+                # customer so that they are not surprised about no crashes arriving.
+                credentials.message = "No crashes found"
+                credentials.message_type = MessageType.ERROR
+                credentials.save(update_fields=["message", "message_type"])
+                return
+            else:
+                credentials.latest_fetched_item_id = result["latest_id"]
+                credentials.message = ""
+                credentials.message_type = MessageType.SUCCESS
+                credentials.save(
+                    update_fields=["message", "latest_fetched_item_id", "message_type"]
+                )
+                return
         elif "error" in result:
             if result["error"]["type"] == "invalid_credentials":
                 credentials.message = "Seems like the provided credentials are invalid"
@@ -109,6 +123,7 @@ def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
     silo_mode=SiloMode.REGION,
     soft_time_limit=55,
     time_limit=60,
+    taskworker_config=TaskworkerConfig(namespace=tempest_tasks, processing_deadline_duration=60),
 )
 def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
     credentials = TempestCredentials.objects.select_related("project").get(id=credentials_id)
@@ -168,6 +183,13 @@ def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
                 "error": str(e),
             },
         )
+
+        # Fetching crashes can fail if the CRS returns unexpected data.
+        # In this case retying does not help since we will just keep failing.
+        # To avoid this we skip over the bad crash by setting the latest fetched id to
+        # `None` such that in the next iteration of the job we first fetch the latest ID again.
+        credentials.latest_fetched_item_id = None
+        credentials.save(update_fields=["latest_fetched_item_id"])
 
 
 def fetch_latest_id_from_tempest(

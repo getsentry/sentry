@@ -7,7 +7,6 @@ import {renderOnDomReady} from './renderOnDomReady';
 import {renderPipelineView} from './renderPipelineView';
 
 export function initializePipelineView(config: Config) {
-  commonInitialization(config);
   /**
    * XXX: Note we do not include routingInstrumentation because importing
    * `app/routes` significantly increases bundle size.
@@ -16,6 +15,9 @@ export function initializePipelineView(config: Config) {
    * `app/routes` to pass to `initializeSdk()`
    */
   initializeSdk(config);
+
+  // Initialize the config store after the SDK, so we can log errors to Sentry during config initialization if needed. N.B. This mutates the config slightly
+  commonInitialization(config);
 
   // Used for operational metrics to determine that the application js
   // bundle was loaded by browser.

@@ -10,7 +10,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.store_event(
             data={
                 "tags": {"foo": "oof", "bar": "rab"},
@@ -33,7 +33,32 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         assert data["bar"]["canDelete"]
         assert data["bar"]["uniqueValues"] == 2
 
-    def test_simple_flags(self):
+    def test_simple_without_values_seen(self) -> None:
+        self.store_event(
+            data={
+                "tags": {"foo": "oof", "bar": "rab"},
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"tags": {"bar": "rab2"}, "timestamp": before_now(minutes=1).isoformat()},
+            project_id=self.project.id,
+        )
+
+        response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, includeValuesSeen=0
+        )
+
+        data = {v["key"]: v for v in response.data}
+        assert len(data) == 3
+
+        assert data["foo"]["canDelete"]
+        assert "uniqueValues" not in data["foo"]
+        assert data["bar"]["canDelete"]
+        assert "uniqueValues" not in data["bar"]
+
+    def test_simple_flags(self) -> None:
         self.store_event(
             data={
                 "contexts": {
@@ -74,7 +99,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         assert data["abc"]["canDelete"] is False
         assert data["abc"]["uniqueValues"] == 2
 
-    def test_simple_remove_tags_in_denylist(self):
+    def test_simple_remove_tags_in_denylist(self) -> None:
         self.store_event(
             data={
                 # "browser" and "sentry:dist" are in denylist sentry.constants.DS_DENYLIST
@@ -98,7 +123,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         assert data["bar"]["canDelete"]
         assert data["bar"]["uniqueValues"] == 2
 
-    def test_simple_remove_tags_in_denylist_remove_all_tags(self):
+    def test_simple_remove_tags_in_denylist_remove_all_tags(self) -> None:
         self.store_event(
             data={
                 "tags": {deny_tag: "value_{deny_tag}" for deny_tag in DS_DENYLIST},

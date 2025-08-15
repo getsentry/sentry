@@ -1,6 +1,5 @@
 import {
   createContext,
-  forwardRef,
   useContext,
   useLayoutEffect,
   useMemo,
@@ -23,7 +22,6 @@ import {
 } from 'sentry/components/core/input/inputGroup.chonk';
 import type {TextAreaProps} from 'sentry/components/core/textarea';
 import {TextArea as _TextArea} from 'sentry/components/core/textarea';
-import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
 interface InputContext {
@@ -44,7 +42,7 @@ interface InputContext {
    */
   trailingWidth?: number;
 }
-export const InputGroupContext = createContext<InputContext>({inputProps: {}});
+const InputGroupContext = createContext<InputContext>({inputProps: {}});
 
 /**
  * Wrapper for input group. To be used alongisde `Input`, `InputGroup.LeadingItems`,
@@ -73,55 +71,51 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
   );
 
   return (
-    <InputGroupContext.Provider value={contextValue}>
+    <InputGroupContext value={contextValue}>
       <InputGroupWrap disabled={inputProps.disabled} {...props}>
         {children}
       </InputGroupWrap>
-    </InputGroupContext.Provider>
+    </InputGroupContext>
   );
 }
 
-const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({size, disabled, ...props}, ref) => {
-    const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+function Input({ref, size, disabled, ...props}: InputProps) {
+  const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
-    useLayoutEffect(() => {
-      setInputProps?.({size, disabled});
-    }, [size, disabled, setInputProps]);
+  useLayoutEffect(() => {
+    setInputProps?.({size, disabled});
+  }, [size, disabled, setInputProps]);
 
-    return (
-      <StyledInput
-        ref={ref}
-        leadingWidth={leadingWidth}
-        trailingWidth={trailingWidth}
-        size={size}
-        disabled={disabled}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <StyledInput
+      ref={ref}
+      leadingWidth={leadingWidth}
+      trailingWidth={trailingWidth}
+      size={size}
+      disabled={disabled}
+      {...props}
+    />
+  );
+}
 
-const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
-  ({size, disabled, ...props}, ref) => {
-    const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+function TextArea({ref, size, disabled, ...props}: TextAreaProps) {
+  const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
-    useLayoutEffect(() => {
-      setInputProps?.({size, disabled});
-    }, [size, disabled, setInputProps]);
+  useLayoutEffect(() => {
+    setInputProps?.({size, disabled});
+  }, [size, disabled, setInputProps]);
 
-    return (
-      <StyledTextArea
-        ref={ref}
-        leadingWidth={leadingWidth}
-        trailingWidth={trailingWidth}
-        size={size}
-        disabled={disabled}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <StyledTextArea
+      ref={ref}
+      leadingWidth={leadingWidth}
+      trailingWidth={trailingWidth}
+      size={size}
+      disabled={disabled}
+      {...props}
+    />
+  );
+}
 
 interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -210,7 +204,7 @@ InputGroup.TrailingItems = TrailingItems;
 
 export type {InputProps, TextAreaProps};
 
-export const InputGroupWrap = styled('div')<{disabled?: boolean}>`
+const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;
   ${p => p.disabled && `color: ${p.theme.disabled};`};
 `;
@@ -222,18 +216,16 @@ const getInputStyles = ({
   theme,
 }: InputStyleProps & {theme: Theme}) => css`
   ${leadingWidth &&
-  `
+  css`
     padding-left: calc(
-      ${theme.formPadding[size ?? 'md'].paddingLeft}px * 1.5
-      + ${leadingWidth}px
+      ${theme.formPadding[size ?? 'md'].paddingLeft}px * 1.5 + ${leadingWidth}px
     );
   `}
 
   ${trailingWidth &&
-  `
+  css`
     padding-right: calc(
-      ${theme.formPadding[size ?? 'md'].paddingRight}px * 1.5
-      + ${trailingWidth}px
+      ${theme.formPadding[size ?? 'md'].paddingRight}px * 1.5 + ${trailingWidth}px
     );
   `}
 `;
@@ -254,7 +246,7 @@ const StyledTextArea = withChonk(
 
 const InputLeadingItemsWrap = withChonk(
   styled(InputItemsWrap)<{
-    size: FormSize;
+    size: NonNullable<InputStyleProps['size']>;
     disablePointerEvents?: boolean;
   }>`
     left: ${p => p.theme.formPadding[p.size].paddingLeft + 1}px;
@@ -265,7 +257,7 @@ const InputLeadingItemsWrap = withChonk(
 
 const InputTrailingItemsWrap = withChonk(
   styled(InputItemsWrap)<{
-    size: FormSize;
+    size: NonNullable<InputStyleProps['size']>;
     disablePointerEvents?: boolean;
   }>`
     right: ${p => p.theme.formPadding[p.size].paddingRight * 0.75 + 1}px;

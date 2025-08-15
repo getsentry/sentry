@@ -4,6 +4,9 @@ from typing import Literal, TypedDict
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
+NOT_HAS_FILTER_ERROR_MESSAGE = """
+"!has" filter is not supported in this search.
+"""
 RATE_LIMIT_ERROR_MESSAGE = """
 Rate limit exceeded. Please try your query with a smaller date range or fewer projects.
 """
@@ -63,6 +66,7 @@ SPAN_OP = "span.op"
 SPAN_DESCRIPTION = "span.description"
 SPAN_STATUS = "span.status"
 SPAN_CATEGORY = "span.category"
+TRACE = "trace"
 REPLAY_ALIAS = "replay"
 MESSAGING_OPERATION_TYPE_ALIAS = "messaging.operation.type"
 MESSAGING_OPERATION_NAME_ALIAS = "messaging.operation.name"
@@ -183,7 +187,14 @@ SIZE_UNITS: dict[SizeUnit, float] = {
 }
 
 DurationUnit = Literal[
-    "nanosecond", "microsecond", "millisecond", "second", "minute", "hour", "day", "week"
+    "nanosecond",
+    "microsecond",
+    "millisecond",
+    "second",
+    "minute",
+    "hour",
+    "day",
+    "week",
 ]
 
 # event_search normalizes to seconds

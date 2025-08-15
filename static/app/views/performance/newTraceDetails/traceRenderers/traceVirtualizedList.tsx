@@ -1,14 +1,13 @@
 import {useLayoutEffect, useRef, useState} from 'react';
 
 import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import type {TraceScheduler} from '../traceRenderers/traceScheduler';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {
   VirtualizedList,
   type VirtualizedViewManager,
-} from '../traceRenderers/virtualizedViewManager';
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 export interface VirtualizedRow {
   index: number;
@@ -33,21 +32,21 @@ interface UseVirtualizedListResult {
 export const useVirtualizedList = (
   props: UseVirtualizedListProps
 ): UseVirtualizedListResult => {
-  const list = useRef<VirtualizedList | null>();
+  const list = useRef<VirtualizedList | null>(null);
 
   const scrollTopRef = useRef<number>(0);
   const scrollHeightRef = useRef<number>(0);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
 
-  const renderCache = useRef<Map<number, React.ReactNode>>();
-  const styleCache = useRef<Map<number, React.CSSProperties>>();
+  const renderCache = useRef<Map<number, React.ReactNode> | null>(null);
+  const styleCache = useRef<Map<number, React.CSSProperties> | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   if (!styleCache.current) {
-    styleCache.current = new Map();
+    styleCache.current = new Map<number, React.CSSProperties>();
   }
   if (!renderCache.current) {
-    renderCache.current = new Map();
+    renderCache.current = new Map<number, React.ReactNode>();
   }
 
   const [items, setItems] = useState<{
@@ -346,7 +345,7 @@ function findRenderedItems({
   return {rendered, virtualized};
 }
 
-export function findOptimisticStartIndex({
+function findOptimisticStartIndex({
   items,
   overscroll,
   rowHeight,

@@ -32,7 +32,7 @@ def make_input_prompt(message: str):
 **Classify:** """
 
 
-@metrics.wraps("feedback.spam_detection", sample_rate=1.0)
+@metrics.wraps("feedback.spam_detection")
 def is_spam(message: str):
     labeled_spam = False
     response = complete_prompt(
@@ -64,5 +64,5 @@ def trim_response(text):
 
 def spam_detection_enabled(project: Project) -> bool:
     return features.has(
-        "organizations:user-feedback-spam-filter-ingest", project.organization
+        "organizations:user-feedback-spam-ingest", project.organization
     ) and project.get_option("sentry:feedback_ai_spam_detection")

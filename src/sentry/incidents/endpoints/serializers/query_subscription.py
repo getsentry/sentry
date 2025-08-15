@@ -13,7 +13,7 @@ class SnubaQuerySerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[SnubaQuery], user, **kwargs
     ) -> MutableMapping[SnubaQuery, dict[str, Any]]:
-        prefetch_related_objects(item_list, "environment")
+        prefetch_related_objects(item_list, "environment", "snubaqueryeventtype_set")
         return {}
 
     def serialize(
@@ -26,6 +26,7 @@ class SnubaQuerySerializer(Serializer):
             "aggregate": obj.aggregate,
             "timeWindow": obj.time_window,
             "environment": obj.environment.name if obj.environment else None,
+            "eventTypes": [event_type.name.lower() for event_type in obj.event_types],
         }
 
 
@@ -36,7 +37,7 @@ class QuerySubscriptionSerializer(Serializer):
     ) -> MutableMapping[QuerySubscription, dict[str, Any]]:
         attrs: dict[QuerySubscription, dict[str, Any]] = defaultdict(dict)
 
-        prefetch_related_objects(item_list, "snuba_query")
+        prefetch_related_objects(item_list, "snuba_query", "snuba_query__snubaqueryeventtype_set")
         snuba_queries = [item.snuba_query for item in item_list]
         for qs, serialized_sq in zip(item_list, serialize(snuba_queries, user=user)):
             attrs[qs]["snuba_query"] = serialized_sq

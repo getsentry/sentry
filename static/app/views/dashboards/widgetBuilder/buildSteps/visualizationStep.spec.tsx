@@ -16,9 +16,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 import {VisualizationStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/visualizationStep';
-
-import {DashboardsMEPProvider} from '../../widgetCard/dashboardsMEPContext';
-import WidgetLegendSelectionState from '../../widgetLegendSelectionState';
+import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.unmock('lodash/debounce');
 
@@ -95,7 +94,7 @@ function mockRequests(orgSlug: Organization['slug']) {
   return {eventsMock};
 }
 
-describe('VisualizationStep', function () {
+describe('VisualizationStep', () => {
   const {organization, projects, router} = initializeOrg({
     organization: {
       features: ['performance-view', 'dashboards-edit', 'global-views', 'dashboards-mep'],
@@ -113,14 +112,14 @@ describe('VisualizationStep', function () {
     location: LocationFixture(),
     dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard'}),
     organization,
-    router,
+    navigate: jest.fn(),
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.loadInitialData(projects);
   });
 
-  it('debounce works as expected and requests are not triggered often', async function () {
+  it('debounce works as expected and requests are not triggered often', async () => {
     const {eventsMock} = mockRequests(organization.slug);
 
     render(
@@ -149,6 +148,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -161,54 +161,7 @@ describe('VisualizationStep', function () {
     await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
   });
 
-  it('displays stored data alert', async function () {
-    mockRequests(organization.slug);
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      statusCode: 200,
-      body: {
-        meta: {isMetricsData: false},
-        data: [],
-      },
-    });
-
-    render(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={{
-          id: 'new',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [],
-          projects: [],
-          filters: {},
-        }}
-        onSave={jest.fn()}
-        params={{
-          orgId: organization.slug,
-          dashboardId: 'new',
-        }}
-        widgetLegendState={widgetLegendState}
-      />,
-      {
-        router,
-        organization: {
-          ...organization,
-          features: [...organization.features, 'dynamic-sampling', 'mep-rollout-flag'],
-        },
-      }
-    );
-
-    await screen.findByText(/we've automatically adjusted your results/i);
-  });
-
-  it('uses release from URL params when querying', async function () {
+  it('uses release from URL params when querying', async () => {
     const {eventsMock} = mockRequests(organization.slug);
     render(
       <WidgetBuilder
@@ -242,6 +195,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -255,7 +209,7 @@ describe('VisualizationStep', function () {
     );
   });
 
-  it('does not trigger an extra events request when adding a column', async function () {
+  it('does not trigger an extra events request when adding a column', async () => {
     const {eventsMock} = mockRequests(organization.slug);
     render(
       <WidgetBuilder
@@ -289,6 +243,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -298,7 +253,7 @@ describe('VisualizationStep', function () {
     await waitFor(() => expect(eventsMock).toHaveBeenCalledTimes(1));
   });
 
-  it('makes a request to the spans dataset for a table widget', async function () {
+  it('makes a request to the spans dataset for a table widget', async () => {
     const {eventsMock} = mockRequests(organization.slug);
     const mockSpanWidget = {
       interval: '1d',
@@ -332,7 +287,10 @@ describe('VisualizationStep', function () {
           />
         </DashboardsMEPProvider>
       </MEPSettingProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() =>

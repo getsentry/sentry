@@ -10,8 +10,8 @@ import {
 
 import OrganizationApiKeysList from 'sentry/views/settings/organizationApiKeys/organizationApiKeysList';
 
-describe('OrganizationApiKeysList', function () {
-  it('opens a modal when trying to delete a key', async function () {
+describe('OrganizationApiKeysList', () => {
+  it('opens a modal when trying to delete a key', async () => {
     render(
       <OrganizationApiKeysList
         organization={OrganizationFixture()}
@@ -25,7 +25,7 @@ describe('OrganizationApiKeysList', function () {
     renderGlobalModal();
 
     // Click remove button
-    await userEvent.click(await screen.findByTitle('Remove API Key?'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Remove API Key'}));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });

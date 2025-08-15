@@ -3,8 +3,7 @@ import {
   parseSearch,
   type SearchConfig,
 } from 'sentry/components/searchSyntax/parser';
-
-import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 // Span keys
 type TransactionPrefix = 'Transaction';
@@ -77,6 +76,11 @@ const SPAN_DURATION_SYNTHETIC_KEYS: SpanKey[] = [
   'self_time',
 ];
 
+// New span keys that are available on Span-First SDK and OTLP SDK spans for
+// now. In the future we'll backfill the `name` key for all spans, and this can
+// be moved into `SPAN_TEXT_KEYS`
+const SPAN_FIRST_TEXT_KEYS = ['name'];
+
 // @TODO the current date parsing does not support timestamps, so we
 // exclude these keys for now and parse them as numeric keys
 const SPAN_DATE_KEYS: SpanKey[] = [
@@ -99,6 +103,7 @@ const TEXT_KEYS = new Set([
   ...SYNTHETIC_KEYS,
   ...withPrefixedPermutation('transaction', TRANSACTION_TEXT_KEYS),
   ...withPrefixedPermutation('span', SPAN_TEXT_KEYS),
+  ...withPrefixedPermutation('span', SPAN_FIRST_TEXT_KEYS),
 ]);
 const NUMERIC_KEYS = new Set([
   ...withPrefixedPermutation('transaction', TRANSACTION_NUMERIC_KEYS),
@@ -119,7 +124,7 @@ const BOOLEAN_KEYS = new Set([
   ...withPrefixedPermutation('span', SPAN_BOOLEAN_KEYS),
 ]);
 
-export const TRACE_SEARCH_CONFIG: SearchConfig = {
+const TRACE_SEARCH_CONFIG: SearchConfig = {
   ...defaultConfig,
   textOperatorKeys: TEXT_KEYS,
   durationKeys: DURATION_KEYS,

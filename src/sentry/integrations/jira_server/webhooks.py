@@ -16,6 +16,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import jwt, metrics
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,15 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.IP: RateLimit(limit=100, window=1),
+            RateLimitCategory.USER: RateLimit(limit=100, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=1),
+        },
+    }
+
     authentication_classes = ()
     permission_classes = ()
 

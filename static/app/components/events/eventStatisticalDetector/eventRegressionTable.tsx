@@ -2,11 +2,11 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Link} from 'sentry/components/core/link';
 import Duration from 'sentry/components/duration';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {RateUnit} from 'sentry/utils/discover/fields';
@@ -182,6 +182,6 @@ const ChangeContainer = styled(NumberContainer)<{
   change: 'positive' | 'neutral' | 'negative';
 }>`
   ${p => p.change === 'positive' && `color: ${p.theme.red300};`}
-  ${p => p.change === 'neutral' && `color: ${p.theme.gray300};`}
+  ${p => p.change === 'neutral' && `color: ${p.theme.subText};`}
   ${p => p.change === 'negative' && `color: ${p.theme.green300};`}
 `;

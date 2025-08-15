@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -14,28 +15,26 @@ import {
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/views/insights/common/queries/useReleases');
 
-describe('ScreenLoadEventSamples', function () {
+describe('ScreenLoadEventSamples', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
   let mockEventsRequest!: jest.Mock;
-  beforeEach(function () {
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
+  beforeEach(() => {
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [parseInt(project.id, 10)],
         },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
-      },
-    });
+      })
+    );
     jest.mocked(useReleaseSelection).mockReturnValue({
       primaryRelease: 'com.example.vu.android@2.10.5',
       isLoading: false,
@@ -80,29 +79,30 @@ describe('ScreenLoadEventSamples', function () {
         meta: {
           fields: {
             profile_id: 'string',
-            'transaction.id': 'string',
+            'transaction.span_id': 'string',
             'span.duration': 'duration',
-            'project.name': 'string',
+            project: 'string',
             id: 'string',
           },
         },
         data: [
           {
             profile_id: 'profile-id',
-            'transaction.id': '76af98a3ac9d4448b894e44b1819970e',
+            'transaction.span_id': '76af98a3ac9d4448b894e44b1819970e',
             'span.duration': 131,
-            'project.name': 'sentry-cocoa',
+            project: 'sentry-cocoa',
             id: 'f0587aad3de14aeb',
+            trace: 'trace-id',
           },
         ],
       },
       match: [
-        MockApiClient.matchQuery({referrer: 'api.starfish.mobile-startup-event-samples'}),
+        MockApiClient.matchQuery({referrer: 'api.insights.mobile-startup-event-samples'}),
       ],
     });
   });
 
-  it('makes a request for the release and transaction passed as props', async function () {
+  it('makes a request for the release and transaction passed as props', async () => {
     render(
       <EventSamples
         release="com.example.vu.android@2.10.5"
@@ -124,7 +124,7 @@ describe('ScreenLoadEventSamples', function () {
     // Transaction is a link
     expect(await screen.findByRole('link', {name: '76af98a3'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/sentry-cocoa:76af98a3ac9d4448b894e44b1819970e/'
+      '/organizations/org-slug/traces/trace/trace-id/?statsPeriod=14d'
     );
 
     // Profile is a button

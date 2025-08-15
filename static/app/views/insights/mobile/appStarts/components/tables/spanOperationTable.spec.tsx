@@ -1,5 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -7,36 +8,42 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/appStarts/components/tables/spanOperationTable';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
-describe('SpanOpSelector', function () {
+const mockUseLocation = jest.mocked(useLocation);
+
+describe('SpanOpSelector', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   let mockEventsRequest: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [parseInt(project.id, 10)],
       },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue(LocationFixture());
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
+
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: `/${DOMAIN_VIEW_BASE_URL}/${MOBILE_LANDING_SUB_PATH}`})
+    );
 
     mockEventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -47,10 +54,10 @@ describe('SpanOpSelector', function () {
             'span.op': 'string',
             'span.description': 'string',
             'span.group': 'string',
-            'avg_if(span.self_time,release,release1)': 'duration',
+            'avg_if(span.self_time,release,equals,release1)': 'duration',
             'avg_compare(span.self_time,release,release1,release2)': 'percent_change',
             'count()': 'integer',
-            'avg_if(span.self_time,release,release2)': 'duration',
+            'avg_if(span.self_time,release,equals,release2)': 'duration',
             'sum(span.self_time)': 'duration',
           },
         },
@@ -60,10 +67,10 @@ describe('SpanOpSelector', function () {
             'span.op': 'app.start.warm',
             'span.description': 'Application Init',
             'span.group': '7f4be68f08c0455f',
-            'avg_if(span.self_time,release,release1)': 22.549867,
+            'avg_if(span.self_time,release,equals,release1)': 22.549867,
             'avg_compare(span.self_time,release,release1,release2)': 0.5,
             'count()': 14,
-            'avg_if(span.self_time,release,release2)': 12504.931908384617,
+            'avg_if(span.self_time,release,equals,release2)': 12504.931908384617,
             'sum(span.self_time)': 162586.66467600001,
           },
         ],
@@ -71,7 +78,7 @@ describe('SpanOpSelector', function () {
     });
   });
 
-  it('renders data properly', async function () {
+  it('renders data properly', async () => {
     render(
       <SpanOperationTable
         transaction="foo-bar"
@@ -94,11 +101,11 @@ describe('SpanOpSelector', function () {
 
     expect(screen.getByRole('link', {name: 'Application Init'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/mobile/app-startup/spans/?spanDescription=Application%20Init&spanGroup=7f4be68f08c0455f&spanOp=app.start.warm&transaction=foo-bar'
+      '/organizations/org-slug/insights/mobile/mobile-vitals/details/?spanDescription=Application%20Init&spanGroup=7f4be68f08c0455f&spanOp=app.start.warm&transaction=foo-bar'
     );
   });
 
-  it('displays the infinity symbol for new spans with null percent change', async function () {
+  it('displays the infinity symbol for new spans with null percent change', async () => {
     mockEventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -108,10 +115,10 @@ describe('SpanOpSelector', function () {
             'span.op': 'string',
             'span.description': 'string',
             'span.group': 'string',
-            'avg_if(span.self_time,release,release1)': 'duration',
+            'avg_if(span.self_time,release,equals,release1)': 'duration',
             'avg_compare(span.self_time,release,release1,release2)': 'percent_change',
             'count()': 'integer',
-            'avg_if(span.self_time,release,release2)': 'duration',
+            'avg_if(span.self_time,release,equals,release2)': 'duration',
             'sum(span.self_time)': 'duration',
           },
         },
@@ -125,8 +132,8 @@ describe('SpanOpSelector', function () {
             'sum(span.self_time)': 162586.66467600001,
 
             // simulate a scenario where a span was added in release 2
-            'avg_if(span.self_time,release,release1)': 0,
-            'avg_if(span.self_time,release,release2)': 12504.931908384617,
+            'avg_if(span.self_time,release,equals,release1)': 0,
+            'avg_if(span.self_time,release,equals,release2)': 12504.931908384617,
             'avg_compare(span.self_time,release,release1,release2)': null,
           },
         ],
@@ -144,7 +151,7 @@ describe('SpanOpSelector', function () {
     expect(await screen.findByRole('cell', {name: '+∞%'})).toBeInTheDocument();
   });
 
-  it('modifies the request to events when a span operation is selected', async function () {
+  it('modifies the request to events when a span operation is selected', async () => {
     // Mock useLocation to simulate the span op query param
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({
@@ -172,7 +179,7 @@ describe('SpanOpSelector', function () {
       },
       match: [
         function (_url: string, options: Record<string, any>) {
-          return options?.query?.referrer === 'api.starfish.get-span-operations';
+          return options?.query?.referrer === 'api.insights.get-span-operations';
         },
       ],
     });
@@ -185,7 +192,7 @@ describe('SpanOpSelector', function () {
       />
     );
 
-    await waitFor(function () {
+    await waitFor(() => {
       expect(mockEventsRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({

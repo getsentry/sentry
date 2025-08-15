@@ -11,13 +11,18 @@
 
 # What's Sentry?
 
-Sentry is a developer-first error tracking and performance monitoring platform that helps developers see what actually matters, solve quicker, and learn continuously about their applications.
+Sentry is the debugging platform that helps every developer detect, trace, and fix issues. Code breaks, fix it faster.
 
 <p align="center">
-  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/projects.png" width="270" />
   <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/issue-details.png" width="270" />
-  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/transaction-summary.png" width="270" />
-  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/releases.png" width="270" />
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/seer.png" width="270" />
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/insights.png" width="270" />
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/traces.png" width="270" />
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/trace-explorer.png" width="270" />
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/replays.png" width="270" />
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/insights.png" width="270" />
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/logs.png" width="270" />
+  <img src="https://github.com/getsentry/sentry/raw/master/.github/screenshots/uptime.png" width="270" />
 </p>
 
 ## Official Sentry SDKs
@@ -35,12 +40,13 @@ Sentry is a developer-first error tracking and performance monitoring platform t
 - [Objective-C/Swift](https://github.com/getsentry/sentry-cocoa)
 - [C\#/F\#](https://github.com/getsentry/sentry-dotnet)
 - [C/C++](https://github.com/getsentry/sentry-native)
-- [Dart](https://github.com/getsentry/sentry-dart)
+- [Dart/Flutter](https://github.com/getsentry/sentry-dart)
 - [Perl](https://github.com/getsentry/perl-raven)
 - [Clojure](https://github.com/getsentry/sentry-clj/)
 - [Elixir](https://github.com/getsentry/sentry-elixir)
 - [Unity](https://github.com/getsentry/sentry-unity)
 - [Unreal Engine](https://github.com/getsentry/sentry-unreal)
+- [Godot Engine](https://github.com/getsentry/sentry-godot)
 - [PowerShell](https://github.com/getsentry/sentry-powershell)
 
 # Resources

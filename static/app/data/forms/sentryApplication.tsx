@@ -1,5 +1,5 @@
+import {ExternalLink} from 'sentry/components/core/link';
 import type {Field} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
 import {extractMultilineFields} from 'sentry/utils';
 

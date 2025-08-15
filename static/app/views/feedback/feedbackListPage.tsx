@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -9,6 +10,7 @@ import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
 import FeedbackWhatsNewBanner from 'sentry/components/feedback/feedbackWhatsNewBanner';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
+import FeedbackSummaryCategories from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
 import useHaveSelectedProjectsSetupFeedback, {
   useHaveSelectedProjectsSetupNewFeedback,
@@ -17,7 +19,6 @@ import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys
 import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -27,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 export default function FeedbackListPage() {
@@ -74,31 +76,40 @@ export default function FeedbackListPage() {
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>
-              <LayoutGrid data-banner={showWhatsNewBanner}>
+              <Background>
                 {showWidgetBanner ? (
-                  <FeedbackWidgetBanner style={{gridArea: 'banner'}} />
+                  <FeedbackWidgetBanner />
                 ) : showWhatsNewBanner ? (
-                  <FeedbackWhatsNewBanner style={{gridArea: 'banner'}} />
+                  <FeedbackWhatsNewBanner />
                 ) : null}
-                <FeedbackFilters style={{gridArea: 'filters'}} />
-                {hasSetupOneFeedback || hasSlug ? (
-                  <Fragment>
-                    <Container style={{gridArea: 'list'}}>
-                      <FeedbackList />
-                    </Container>
+                <LayoutGrid>
+                  <FiltersContainer style={{gridArea: 'top'}}>
+                    <FeedbackFilters />
                     <SearchContainer>
                       <FeedbackSearch />
                     </SearchContainer>
-                    <Container style={{gridArea: 'details'}}>
-                      <FeedbackItemLoader />
-                    </Container>
-                  </Fragment>
-                ) : (
-                  <SetupContainer>
-                    <FeedbackSetupPanel />
-                  </SetupContainer>
-                )}
-              </LayoutGrid>
+                  </FiltersContainer>
+                  {hasSetupOneFeedback || hasSlug ? (
+                    <Fragment>
+                      <SummaryListContainer style={{gridArea: 'list'}}>
+                        <FeedbackSummaryCategories />
+                        <Container>
+                          <FeedbackList />
+                        </Container>
+                      </SummaryListContainer>
+                      <Container style={{gridArea: 'details'}}>
+                        <AnalyticsArea name="details">
+                          <FeedbackItemLoader />
+                        </AnalyticsArea>
+                      </Container>
+                    </Fragment>
+                  ) : (
+                    <SetupContainer>
+                      <FeedbackSetupPanel />
+                    </SetupContainer>
+                  )}
+                </LayoutGrid>
+              </Background>
             </ErrorBoundary>
           </PageFiltersContainer>
         </FeedbackQueryKeys>
@@ -107,58 +118,63 @@ export default function FeedbackListPage() {
   );
 }
 
-const LayoutGrid = styled('div')`
+const Background = styled('div')`
   background: ${p => p.theme.background};
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: ${space(2)};
+`;
 
+const SummaryListContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const LayoutGrid = styled('div')`
+  overflow: hidden;
   flex-grow: 1;
 
   display: grid;
   gap: ${space(2)};
   place-items: stretch;
 
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
+    padding: ${space(2)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: ${space(2)};
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    padding: ${space(2)} ${space(4)};
+  }
+
   grid-template-rows: max-content 1fr;
   grid-template-areas:
-    'filters search'
+    'top top'
     'list details';
 
-  &[data-banner='true'] {
-    grid-template-rows: max-content max-content 1fr;
-    grid-template-areas:
-      'banner banner'
-      'filters search'
-      'list details';
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: 1fr;
     grid-template-areas:
-      'filters'
-      'search'
+      'top'
       'list'
       'details';
-
-    &[data-banner='true'] {
-      grid-template-areas:
-        'banner'
-        'filters'
-        'search'
-        'list'
-        'details';
-    }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(2)};
-    grid-template-columns: minmax(1fr, 195px) 1fr;
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: minmax(195px, 1fr) 1.5fr;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding: ${space(2)} ${space(4)} ${space(2)} ${space(4)};
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 390px 1fr;
   }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: minmax(390px, 1fr) 2fr;
   }
 `;
@@ -173,6 +189,17 @@ const SetupContainer = styled('div')`
   grid-column: 1 / -1;
 `;
 
+const FiltersContainer = styled('div')`
+  display: flex;
+  flex-grow: 1;
+  gap: ${space(1)};
+  align-items: flex-start;
+`;
+
+/**
+ * Prevent the search box from growing infinitely.
+ * See https://github.com/getsentry/sentry/pull/80328
+ */
 const SearchContainer = styled('div')`
   flex-grow: 1;
   min-width: 0;

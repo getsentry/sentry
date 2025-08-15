@@ -4,7 +4,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 
-describe('SQLishFormatter', function () {
+describe('SQLishFormatter', () => {
   describe('SQLishFormatter.toString()', () => {
     const formatter = new SQLishFormatter();
 
@@ -132,13 +132,6 @@ describe('SQLishFormatter', function () {
 
       return container.innerHTML;
     };
-
-    beforeEach(() => {
-      // The renderer throws an error because elements in the list do not have
-      // a `"key"` prop, but that's intentional. The list elements are spans
-      // with no semantic meaning, and their keys are not meaningful.
-      jest.spyOn(console, 'error').mockImplementation(jest.fn());
-    });
 
     it('Capitalizes keywords', () => {
       expect(getMarkup(formatter.toSimpleMarkup('select hello'))).toMatchInlineSnapshot(

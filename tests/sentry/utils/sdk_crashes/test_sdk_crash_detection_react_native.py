@@ -198,7 +198,9 @@ def test_sdk_crash_is_reported_production_paths(
 
 
 @decorators
-def test_beta_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_beta_sdk_version_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="4.1.0-beta.0")
     event = store_event(data=event_data)
@@ -261,7 +263,9 @@ def test_organization_empty_allowlist_not_detected(
 
 
 @decorators
-def test_console_mechanism_not_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_console_mechanism_not_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event(
         exception={
             "values": [
@@ -294,7 +298,79 @@ def test_console_mechanism_not_detected(mock_sdk_crash_reporter, mock_random, st
 
 
 @decorators
-def test_console_mechanism_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_sentry_wrapped_not_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
+    event_data = get_crash_event(
+        exception={
+            "values": [
+                get_exception(
+                    frames=[
+                        *get_frames(),
+                        {
+                            "function": "sentryWrapped",
+                            "module": "@sentry/browser/src/helpers",
+                            "filename": "@sentry/browser/src/helpers.ts",
+                            "abs_path": "app:///@sentry/browser/src/helpers.ts",
+                        },
+                    ],
+                ),
+            ]
+        }
+    )
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_sentry_wrapped_end_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
+    event_data = get_crash_event(
+        exception={
+            "values": [
+                get_exception(
+                    frames=[
+                        *get_frames(),
+                        {
+                            # sentryWrappedPostfix is not related to sentryWrapped and should be detected
+                            # if this causes a crash, it could be a bug in the SDK
+                            "function": "sentryWrappedPostfix",
+                            "module": "@sentry/browser/src/helpers",
+                            "filename": "@sentry/browser/src/helpers.ts",
+                            "abs_path": "app:///@sentry/browser/src/helpers.ts",
+                        },
+                    ],
+                ),
+            ]
+        }
+    )
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+@decorators
+def test_console_mechanism_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event(
         exception={
             "values": [
@@ -327,7 +403,9 @@ def test_console_mechanism_detected(mock_sdk_crash_reporter, mock_random, store_
 
 
 @decorators
-def test_missing_exception_not_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_missing_exception_not_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
     event_data = get_crash_event(exception={"values": []})
 
     event = store_event(data=event_data)

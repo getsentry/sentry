@@ -6,29 +6,27 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectTeamAccess from 'sentry/views/projectDetail/projectTeamAccess';
 
-describe('ProjectDetail > ProjectTeamAccess', function () {
-  const {organization, router} = initializeOrg();
+describe('ProjectDetail > ProjectTeamAccess', () => {
+  const {organization} = initializeOrg();
 
-  it('renders a list', function () {
+  it('renders a list', () => {
     render(
       <ProjectTeamAccess
         organization={organization}
         project={ProjectFixture({teams: [TeamFixture()]})}
-      />,
-      {router}
+      />
     );
 
     expect(screen.getByText('Team Access')).toBeInTheDocument();
     expect(screen.getByText('#team-slug')).toBeInTheDocument();
   });
 
-  it('links to a team settings', function () {
+  it('links to a team settings', () => {
     render(
       <ProjectTeamAccess
         organization={organization}
         project={ProjectFixture({teams: [TeamFixture()]})}
-      />,
-      {router}
+      />
     );
 
     expect(screen.getByRole('link', {name: '#team-slug'})).toHaveAttribute(
@@ -37,10 +35,8 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     );
   });
 
-  it('display the right empty state with access', function () {
-    render(<ProjectTeamAccess organization={organization} project={ProjectFixture()} />, {
-      router,
-    });
+  it('display the right empty state with access', () => {
+    render(<ProjectTeamAccess organization={organization} project={ProjectFixture()} />);
 
     expect(screen.getByRole('button', {name: 'Assign Team'})).toHaveAttribute(
       'href',
@@ -48,18 +44,20 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     );
   });
 
-  it('display the right empty state without access', function () {
+  it('display the right empty state without access', () => {
     render(
       <ProjectTeamAccess
         organization={{...organization, access: []}}
         project={ProjectFixture({teams: []})}
-      />,
-      {router}
+      />
     );
-    expect(screen.getByRole('button', {name: 'Assign Team'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Assign Team'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
-  it('collapses more than 5 teams', async function () {
+  it('collapses more than 5 teams', async () => {
     render(
       <ProjectTeamAccess
         organization={organization}
@@ -74,8 +72,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
             TeamFixture({slug: 'team7'}),
           ],
         })}
-      />,
-      {router}
+      />
     );
 
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
@@ -87,7 +84,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
   });
 
-  it('sorts teams alphabetically', function () {
+  it('sorts teams alphabetically', () => {
     render(
       <ProjectTeamAccess
         organization={organization}
@@ -98,8 +95,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
             TeamFixture({slug: 'a'}),
           ],
         })}
-      />,
-      {router}
+      />
     );
 
     const badges = screen.getAllByTestId('badge-display-name');

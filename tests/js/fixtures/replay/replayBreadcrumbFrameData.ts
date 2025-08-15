@@ -1,5 +1,8 @@
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {RawBreadcrumbFrame, RawHydrationErrorFrame} from 'sentry/utils/replays/types';
+import type {
+  RawBreadcrumbFrame,
+  RawHydrationErrorFrame,
+} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
@@ -40,57 +43,6 @@ export function ReplayClickFrameFixture(
   };
 }
 
-export function ReplayInputFrameFixture(
-  fields: TestableFrame<'ui.input'>
-): MockFrame<'ui.input'> {
-  return {
-    category: 'ui.input',
-    message: fields.message ?? '',
-    timestamp: fields.timestamp.getTime() / 1000,
-    type: BreadcrumbType.DEFAULT,
-  };
-}
-
-export function ReplayKeyboardEventFrameFixture(
-  fields: TestableFrame<'ui.keyDown'>
-): MockFrame<'ui.keyDown'> {
-  return {
-    category: 'ui.keyDown',
-    data: fields.data ?? {
-      altKey: false,
-      ctrlKey: false,
-      key: 'A',
-      metaKey: false,
-      shiftKey: false,
-    },
-    message: fields.message,
-    timestamp: fields.timestamp.getTime() / 1000,
-    type: BreadcrumbType.DEFAULT,
-  };
-}
-
-export function ReplayBlurFrameFixture(
-  fields: TestableFrame<'ui.blur'>
-): MockFrame<'ui.blur'> {
-  return {
-    category: 'ui.blur',
-    message: fields.message,
-    timestamp: fields.timestamp.getTime() / 1000,
-    type: BreadcrumbType.DEFAULT,
-  };
-}
-
-export function ReplayFocusFrameFixture(
-  fields: TestableFrame<'ui.focus'>
-): MockFrame<'ui.focus'> {
-  return {
-    category: 'ui.focus',
-    message: fields.message,
-    timestamp: fields.timestamp.getTime() / 1000,
-    type: BreadcrumbType.DEFAULT,
-  };
-}
-
 export function ReplaySlowClickFrameFixture(
   fields: TestableFrame<'ui.slowClickDetected'>
 ): MockFrame<'ui.slowClickDetected'> {
@@ -117,21 +69,6 @@ export function ReplayHydrationErrorFrameFixture(
     timestamp: fields.timestamp.getTime() / 1000,
     data: fields.data ?? undefined,
     type: BreadcrumbType.DEFAULT,
-  };
-}
-
-export function ReplayMutationFrameFixture(
-  fields: TestableFrame<'replay.mutations'>
-): MockFrame<'replay.mutations'> {
-  return {
-    category: 'replay.mutations',
-    data: fields.data ?? {
-      count: 1100,
-      limit: true,
-    },
-    message: fields.message,
-    timestamp: fields.timestamp.getTime() / 1000,
-    type: '',
   };
 }
 

@@ -1,10 +1,9 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
+import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -19,22 +18,22 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import decodeSubregions from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
+import type {
+  NonDefaultSpanSampleFields,
+  SpanSample,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
+import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {
-  ModuleName,
-  SpanIndexedField,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-import {SampleDrawerBody} from '../../../components/sampleDrawerBody';
-import {SampleDrawerHeaderTransaction} from '../../../components/sampleDrawerHeaderTransaction';
-
-const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanFields;
 
 type Props = {
   groupId: string;
@@ -50,12 +49,12 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
   const {
     transaction: transactionName,
     transactionMethod,
-    [SpanMetricsField.USER_GEO_SUBREGION]: subregions,
+    [SpanFields.USER_GEO_SUBREGION]: subregions,
   } = useLocationQuery({
     fields: {
       transaction: decodeScalar,
       transactionMethod: decodeScalar,
-      [SpanMetricsField.USER_GEO_SUBREGION]: decodeSubregions,
+      [SpanFields.USER_GEO_SUBREGION]: decodeSubregions,
     },
   });
 
@@ -65,14 +64,6 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
   );
 
   transactionRoute ??= `/${getTransactionSummaryBaseUrl(organization, view, true)}`;
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debounceSetHighlightedSpanId = useCallback(
-    debounce(id => {
-      setHighlightedSpanId(id);
-    }, 10),
-    []
-  );
 
   const {selection} = usePageFilters();
   const location = useLocation();
@@ -108,14 +99,11 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
 
   let columnOrder = DEFAULT_COLUMN_ORDER;
 
-  const additionalFields: SpanIndexedField[] = [
-    SpanIndexedField.TRACE,
-    SpanIndexedField.TRANSACTION_ID,
-  ];
+  const additionalFields: NonDefaultSpanSampleFields[] = [SpanFields.TRACE];
 
   if (moduleName === ModuleName.RESOURCE) {
-    additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
-    additionalFields?.push(SpanIndexedField.SPAN_DESCRIPTION);
+    additionalFields?.push(SpanFields.HTTP_RESPONSE_CONTENT_LENGTH);
+    additionalFields?.push(SpanFields.SPAN_DESCRIPTION);
 
     columnOrder = [
       ...DEFAULT_COLUMN_ORDER,
@@ -132,76 +120,89 @@ export function SampleList({groupId, moduleName, transactionRoute, referrer}: Pr
     ];
   }
 
+  const handleClickSample = useCallback(
+    (span: SpanSample) => {
+      router.push(
+        generateLinkToEventInTraceView({
+          targetId: span['transaction.span_id'],
+          spanId: span.span_id,
+          location,
+          organization,
+          traceSlug: span.trace,
+          timestamp: span.timestamp,
+        })
+      );
+    },
+    [organization, location, router]
+  );
+
+  const handleMouseOverSample = useCallback(
+    (sample: SpanSample) => setHighlightedSpanId(sample.span_id),
+    []
+  );
+
+  const handleMouseLeaveSample = useCallback(() => setHighlightedSpanId(undefined), []);
+
   return (
     <PageAlertProvider>
-      <DrawerHeader>
-        <SampleDrawerHeaderTransaction
-          project={project}
-          transaction={transactionName}
-          transactionMethod={transactionMethod}
-        />
-      </DrawerHeader>
-
-      <SampleDrawerBody>
-        <PageAlert />
-
-        <SampleInfo
-          groupId={groupId}
-          transactionName={transactionName}
-          transactionMethod={transactionMethod}
-          subregions={subregions}
-        />
-
-        <DurationChart
-          groupId={groupId}
-          transactionName={transactionName}
-          transactionMethod={transactionMethod}
-          subregions={subregions}
-          additionalFields={additionalFields}
-          onClickSample={span => {
-            router.push(
-              generateLinkToEventInTraceView({
-                eventId: span['transaction.id'],
-                projectSlug: span.project,
-                spanId: span.span_id,
-                location,
-                organization,
-                traceSlug: span.trace,
-                timestamp: span.timestamp,
-              })
-            );
-          }}
-          onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
-          onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
-          spanSearch={spanSearch}
-          highlightedSpanId={highlightedSpanId}
-        />
-
-        <StyledSearchBar>
-          <SpanSearchQueryBuilder
-            projects={selection.projects}
-            initialQuery={spanSearchQuery ?? ''}
-            onSearch={handleSearch}
-            placeholder={t('Search for span attributes')}
-            searchSource={`${moduleName}-sample-panel`}
+      <InsightsSpanTagProvider>
+        <EventDrawerHeader>
+          <SampleDrawerHeaderTransaction
+            project={project}
+            transaction={transactionName}
+            transactionMethod={transactionMethod}
           />
-        </StyledSearchBar>
+        </EventDrawerHeader>
 
-        <SampleTable
-          highlightedSpanId={highlightedSpanId}
-          transactionMethod={transactionMethod}
-          onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
-          onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
-          groupId={groupId}
-          moduleName={moduleName}
-          transactionName={transactionName}
-          subregions={subregions}
-          spanSearch={spanSearch}
-          columnOrder={columnOrder}
-          additionalFields={additionalFields}
-          referrer={referrer}
-        />
-      </SampleDrawerBody>
+        <SampleDrawerBody>
+          <PageAlert />
+
+          <SampleInfo
+            groupId={groupId}
+            transactionName={transactionName}
+            transactionMethod={transactionMethod}
+            subregions={subregions}
+          />
+
+          <DurationChart
+            groupId={groupId}
+            transactionName={transactionName}
+            transactionMethod={transactionMethod}
+            subregions={subregions}
+            additionalFields={additionalFields}
+            onClickSample={handleClickSample}
+            onMouseOverSample={handleMouseOverSample}
+            onMouseLeaveSample={handleMouseLeaveSample}
+            spanSearch={spanSearch}
+            highlightedSpanId={highlightedSpanId}
+          />
+
+          <StyledSearchBar>
+            <EapSpanSearchQueryBuilderWrapper
+              projects={selection.projects}
+              initialQuery={spanSearchQuery ?? ''}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              searchSource={`${moduleName}-sample-panel`}
+            />
+          </StyledSearchBar>
+
+          <SampleTable
+            highlightedSpanId={highlightedSpanId}
+            transactionMethod={transactionMethod}
+            onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
+            onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
+            groupId={groupId}
+            moduleName={moduleName}
+            transactionName={transactionName}
+            subregions={subregions}
+            spanSearch={spanSearch}
+            columnOrder={columnOrder}
+            additionalFields={additionalFields}
+            referrer={referrer}
+          />
+        </SampleDrawerBody>
+      </InsightsSpanTagProvider>
     </PageAlertProvider>
   );
 }

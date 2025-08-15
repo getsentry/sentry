@@ -1,10 +1,10 @@
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {
-  type ApiQueryKey,
   getApiQueryData,
   setApiQueryData,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -17,7 +17,7 @@ type UpdateTokenQueryVariables = {
 type FetchApiTokenParameters = {
   tokenId: string;
 };
-export const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters): ApiQueryKey => [
+const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters): ApiQueryKey => [
   `/api-tokens/${tokenId}/`,
 ];
 

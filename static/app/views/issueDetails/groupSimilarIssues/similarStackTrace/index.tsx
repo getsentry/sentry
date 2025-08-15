@@ -242,7 +242,7 @@ function SimilarStackTrace({project}: Props) {
 export default SimilarStackTrace;
 
 const Title = styled('h4')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   margin-bottom: ${space(0.75)};
 `;
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 from urllib.parse import urlparse
 
@@ -11,27 +11,30 @@ from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
 from sentry import http
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
-    IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
     IntegrationMetadata,
 )
+from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssuesSpec
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
+from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.utils import jwt
+from sentry.utils import jwt, metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -74,7 +77,7 @@ FEATURES = [
         """
         Create and link Sentry issue groups directly to a GitHub issue or pull
         request in any of your repositories, providing a quick way to jump from
-        Sentry bug to tracked issue or PR!
+        Sentry bug to tracked issue or PR.
         """,
         IntegrationFeatures.ISSUE_BASIC,
     ),
@@ -155,7 +158,7 @@ class GitHubEnterpriseIntegration(
 
     @property
     def integration_name(self) -> str:
-        return "github_enterprise"
+        return IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
     def get_client(self):
         if not self.org_integration:
@@ -173,7 +176,7 @@ class GitHubEnterpriseIntegration(
 
     # IntegrationInstallation methods
 
-    def message_from_error(self, exc):
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError):
             if exc.code is None:
                 message = None
@@ -212,7 +215,7 @@ class GitHubEnterpriseIntegration(
         ]
 
     def source_url_matches(self, url: str) -> bool:
-        raise IntegrationFeatureNotImplementedError
+        return url.startswith(f"https://{self.model.metadata["domain_name"]}")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         # Must format the url ourselves since `check_file` is a head request
@@ -220,16 +223,40 @@ class GitHubEnterpriseIntegration(
         return f"{repo.url}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        url = url.replace(f"{repo.url}/blob/", "")
+        branch, _, _ = url.partition("/")
+        return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        url = url.replace(f"{repo.url}/blob/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
 
     def search_issues(self, query: str | None, **kwargs):
         return self.get_client().search_issues(query)
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         # TODO: define this, used to migrate repositories
+        return False
+
+    # CommitContextIntegration methods
+
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        if api_error.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "issue_locked_error"},
+                )
+                return True
+
+            elif RATE_LIMITED_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "rate_limited_error"},
+                )
+                return True
+
         return False
 
 
@@ -308,8 +335,8 @@ class InstallationForm(forms.Form):
         self.fields["verify_ssl"].initial = True
 
 
-class InstallationConfigView(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+class InstallationConfigView:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -347,7 +374,7 @@ class InstallationConfigView(PipelineView):
 
 
 class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
-    key = "github_enterprise"
+    key = IntegrationProviderSlug.GITHUB_ENTERPRISE.value
     name = "GitHub Enterprise"
     metadata = metadata
     integration_cls = GitHubEnterpriseIntegration
@@ -360,7 +387,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         ]
     )
 
-    def _make_identity_pipeline_view(self):
+    def _make_identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
         """
         Make the nested identity provider view. It is important that this view is
         not constructed until we reach this step and the
@@ -379,20 +406,24 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
 
         return NestedPipelineView(
             bind_key="identity",
-            provider_key="github_enterprise",
-            pipeline_cls=IdentityProviderPipeline,
+            provider_key=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            pipeline_cls=IdentityPipeline,
             config=identity_pipeline_config,
         )
 
-    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
-        return [
+    def get_pipeline_views(
+        self,
+    ) -> Sequence[
+        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
+    ]:
+        return (
             InstallationConfigView(),
             GitHubEnterpriseInstallationRedirect(),
             # The identity provider pipeline should be constructed at execution
             # time, this allows for the oauth configuration parameters to be made
             # available from the installation config view.
             lambda: self._make_identity_pipeline_view(),
-        ]
+        )
 
     def post_install(
         self,
@@ -471,7 +502,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 "installation": installation_data,
             },
             "user_identity": {
-                "type": "github_enterprise",
+                "type": IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
                 "external_id": user["id"],
                 "scopes": [],  # GitHub apps do not have user scopes
                 "data": {"access_token": identity["access_token"]},
@@ -489,7 +520,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         )
 
 
-class GitHubEnterpriseInstallationRedirect(PipelineView):
+class GitHubEnterpriseInstallationRedirect:
     def get_app_url(self, installation_data):
         if installation_data.get("public_link"):
             return installation_data["public_link"]
@@ -498,7 +529,7 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
         name = installation_data.get("name")
         return f"https://{url}/github-apps/{name}"
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         installation_data = pipeline.fetch_state(key="installation_data")
 
         if "installation_id" in request.GET:

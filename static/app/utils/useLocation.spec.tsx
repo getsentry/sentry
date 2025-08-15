@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
 describe('useLocation', () => {
-  it('returns the current location object', function () {
+  it('returns the current location object', () => {
     let location: any;
     function HomePage() {
       location = useLocation();
@@ -26,9 +26,9 @@ describe('useLocation', () => {
     };
 
     render(
-      <TestRouteContext.Provider value={routeContext}>
+      <TestRouteContext value={routeContext}>
         <HomePage />
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
 
     expect(location.pathname).toBe('/mock-pathname/');

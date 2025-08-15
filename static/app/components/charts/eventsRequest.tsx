@@ -26,8 +26,9 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-export type TimeSeriesData = {
+type TimeSeriesData = {
   allTimeseriesData?: EventsStatsData;
   comparisonTimeseriesData?: Series[];
   originalPreviousTimeseriesData?: EventsStatsData | null;
@@ -65,6 +66,7 @@ export type RenderProps = LoadingStatus &
   };
 
 type DefaultProps = {
+  includeAllArgs: false;
   /**
    * Include data for previous period
    */
@@ -199,6 +201,10 @@ type EventsRequestPartialProps = {
    */
   sampleRate?: number;
   /**
+   * The type of sampling mode used for EAP dataset requests
+   */
+  sampling?: SamplingMode;
+  /**
    * Should loading be shown.
    */
   showLoading?: boolean;
@@ -216,10 +222,6 @@ type EventsRequestPartialProps = {
    * This is a temporary flag to allow us to test on demand metrics
    */
   useOnDemandMetrics?: boolean;
-  /**
-   * Whether or not to use RPCs instead of SnQL requests in the backend.
-   */
-  useRpc?: boolean;
   /**
    * Whether or not to zerofill results
    */
@@ -277,6 +279,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     comparisonDelta: undefined,
     limit: 15,
     query: '',
+    includeAllArgs: false,
     includePrevious: true,
     includeTransformedData: true,
   };
@@ -334,8 +337,8 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     } else {
       try {
         api.clear();
-        timeseriesData = await doEventsRequest(api, props);
-      } catch (resp) {
+        timeseriesData = await doEventsRequest<false>(api, props);
+      } catch (resp: any) {
         if (resp?.responseJSON?.detail) {
           errorMessage = resp.responseJSON.detail;
         } else {

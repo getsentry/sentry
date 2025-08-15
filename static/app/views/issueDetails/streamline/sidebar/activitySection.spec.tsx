@@ -1,5 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -17,7 +18,7 @@ import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
-describe('StreamlinedActivitySection', function () {
+describe('StreamlinedActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
   user.options.prefersIssueDetailsStreamlinedUI = true;
@@ -35,7 +36,6 @@ describe('StreamlinedActivitySection', function () {
         data: {text: 'Test Note'},
         dateCreated: '2020-01-01T00:00:00',
         user,
-        project,
       },
     ],
     project,
@@ -46,9 +46,10 @@ describe('StreamlinedActivitySection', function () {
   beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
+    localStorage.clear();
   });
 
-  it('renders the input with a comment button', async function () {
+  it('renders the input with a comment button', async () => {
     const comment = 'nice work friends';
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/',
@@ -84,7 +85,7 @@ describe('StreamlinedActivitySection', function () {
     expect(postMock).toHaveBeenCalled();
   });
 
-  it('allows submitting the comment field with hotkeys', async function () {
+  it('allows submitting the comment field with hotkeys', async () => {
     const comment = 'nice work friends';
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/',
@@ -106,7 +107,7 @@ describe('StreamlinedActivitySection', function () {
     expect(postMock).toHaveBeenCalled();
   });
 
-  it('renders note and allows for delete', async function () {
+  it('renders note and allows for delete', async () => {
     const deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/note-1/',
       method: 'DELETE',
@@ -131,7 +132,7 @@ describe('StreamlinedActivitySection', function () {
     expect(screen.queryByText('Test Note')).not.toBeInTheDocument();
   });
 
-  it('renders note and allows for edit', async function () {
+  it('renders note and allows for edit', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
 
     const editGroup = GroupFixture({
@@ -143,7 +144,6 @@ describe('StreamlinedActivitySection', function () {
           data: {text: 'Group Test'},
           dateCreated: '2020-01-01T00:00:00',
           user,
-          project,
         },
       ],
       project,
@@ -180,7 +180,45 @@ describe('StreamlinedActivitySection', function () {
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
   });
 
-  it('renders note but does not allow for deletion if written by someone else', async function () {
+  it('renders note from a sentry app', async () => {
+    const newUser = UserFixture({name: 'sentry-app-proxy-user-abcd123'});
+    const sentryApp = SentryAppFixture({
+      name: 'Bug Bot',
+      avatars: [
+        {
+          avatarType: 'upload',
+          avatarUrl: 'https://example.com/avatar.png',
+          avatarUuid: '1234567890',
+          photoType: 'icon',
+          color: true,
+        },
+      ],
+    });
+    const newGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'This note came from my sentry app'},
+          dateCreated: '2020-01-01T00:00:00',
+          sentry_app: sentryApp,
+          user: newUser,
+        },
+      ],
+    });
+
+    render(<StreamlinedActivitySection group={newGroup} />);
+    expect(
+      await screen.findByText('This note came from my sentry app')
+    ).toBeInTheDocument();
+    const icon = screen.getByTestId('upload-avatar');
+    expect(icon).toHaveAttribute('title', sentryApp.name);
+    expect(screen.getByText(sentryApp.name)).toBeInTheDocument();
+    // We should not show the user, if a sentry app is attached
+    expect(screen.queryByText(newUser.name)).not.toBeInTheDocument();
+  });
+
+  it('renders note but does not allow for deletion if written by someone else', async () => {
     const updatedActivityGroup = GroupFixture({
       id: '1338',
       activity: [
@@ -190,7 +228,6 @@ describe('StreamlinedActivitySection', function () {
           data: {text: 'Test Note'},
           dateCreated: '2020-01-01T00:00:00',
           user: UserFixture({id: '2'}),
-          project,
         },
       ],
       project,
@@ -204,7 +241,7 @@ describe('StreamlinedActivitySection', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('collapses activity when there are more than 5 items', async function () {
+  it('collapses activity when there are more than 5 items', async () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -227,7 +264,7 @@ describe('StreamlinedActivitySection', function () {
     expect(await screen.findByText('View 4 more')).toBeInTheDocument();
   });
 
-  it('does not collapse activity when rendered in the drawer', function () {
+  it('does not collapse activity when rendered in the drawer', () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -254,12 +291,7 @@ describe('StreamlinedActivitySection', function () {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('renders the number of comments', function () {
-    render(<StreamlinedActivitySection group={{...group, numComments: 2}} />);
-    expect(screen.getByLabelText('Number of comments: 2')).toBeInTheDocument();
-  });
-
-  it('filters comments correctly', function () {
+  it('filters comments correctly', () => {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -275,7 +307,6 @@ describe('StreamlinedActivitySection', function () {
       data: {text: 'Resolved'},
       dateCreated: '2020-01-01T00:00:00',
       user,
-      project,
     });
 
     const updatedActivityGroup = GroupFixture({

@@ -1,5 +1,6 @@
 import GroupList from 'sentry/components/issues/groupList';
 import {t} from 'sentry/locale';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -9,7 +10,7 @@ import {getReleaseBounds, getReleaseParams} from 'sentry/views/releases/utils';
 import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 
 interface Props {
-  projectId: string;
+  projectId: string | undefined;
   release: string;
   withChart?: boolean;
 }
@@ -18,7 +19,6 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const {data: releaseDetails} = useReleaseDetails({release});
-  let queryFilterDescription;
   const path = `/organizations/${organization.slug}/issues/`;
   const queryParams = {
     ...getReleaseParams({
@@ -30,8 +30,7 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
     sort: IssueSortOptions.FREQ,
     groupStatsPeriod: 'auto',
     query: new MutableSearch([
-      `first-release:${release}`,
-      'is:unresolved',
+      `first-release:"${escapeDoubleQuotes(release)}"`,
     ]).formatString(),
   };
 
@@ -43,14 +42,15 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
     <GroupList
       endpointPath={path}
       queryParams={queryParams}
-      query={`release:${releaseDetails?.versionInfo.version.raw}`}
+      query={
+        releaseDetails
+          ? `release:"${escapeDoubleQuotes(releaseDetails?.versionInfo.version.raw)}"`
+          : ''
+      }
       canSelectGroups={false}
-      queryFilterDescription={queryFilterDescription}
       withChart={withChart}
-      narrowGroups
       renderEmptyMessage={renderEmptyMessage}
-      withPagination={false}
-      // onFetchSuccess={}
+      withPagination
       source="release-drawer"
     />
   );

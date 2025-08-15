@@ -13,7 +13,7 @@ function CommandPalette({Body}: ModalRenderProps) {
 
   useEffect(
     () =>
-      void trackAnalytics('omnisearch.open', {
+      trackAnalytics('omnisearch.open', {
         organization: null,
       }),
     []
@@ -26,7 +26,6 @@ function CommandPalette({Body}: ModalRenderProps) {
           <Search
             entryPoint="command_palette"
             minSearch={1}
-            maxResults={10}
             dropdownClassName={injectedCss`
                 width: 100%;
                 border: transparent;

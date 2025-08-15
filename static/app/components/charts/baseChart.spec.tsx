@@ -1,22 +1,22 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import BaseChart from 'sentry/components/charts/baseChart';
-import theme from 'sentry/utils/theme';
+
+const theme = ThemeFixture();
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(() => null);
 });
 
-describe('BaseChart', function () {
-  it('renders with grey dotted previous period when using only a single series', function () {
+describe('BaseChart', () => {
+  it('renders with grey dotted previous period when using only a single series', () => {
     render(
       <BaseChart
         colors={['#444674', '#d6567f', '#f2b712']}
-        previousPeriod={[
-          {seriesName: 'count()', data: [{value: 123, name: new Date().getTime()}]},
-        ]}
+        previousPeriod={[{seriesName: 'count()', data: [{value: 123, name: Date.now()}]}]}
       />
     );
     // @ts-expect-error TODO: Fix this type
@@ -26,19 +26,19 @@ describe('BaseChart', function () {
     expect(series[0].lineStyle.type).toBe('dotted');
   });
 
-  it('renders with lightened colored dotted previous period when using multiple series', function () {
+  it('renders with lightened colored dotted previous period when using multiple series', () => {
     render(
       <BaseChart
         colors={['#444674', '#d6567f', '#f2b712']}
         previousPeriod={[
-          {seriesName: 'count()', data: [{value: 123, name: new Date().getTime()}]},
+          {seriesName: 'count()', data: [{value: 123, name: Date.now()}]},
           {
             seriesName: 'count_unique(user)',
-            data: [{value: 123, name: new Date().getTime()}],
+            data: [{value: 123, name: Date.now()}],
           },
           {
             seriesName: 'failure_count()',
-            data: [{value: 123, name: new Date().getTime()}],
+            data: [{value: 123, name: Date.now()}],
           },
         ]}
       />

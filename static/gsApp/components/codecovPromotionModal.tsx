@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import {IconArrow, IconCodecov} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -63,7 +63,7 @@ function CodecovPromotionModal(props: Props) {
           </PriceWrapper>
         </PromotionPriceComparison>
 
-        <StyledButtonBar gap={1}>
+        <StyledButtonBar>
           <Button
             size="md"
             priority="primary"
@@ -111,7 +111,7 @@ const Subheader = styled('div')`
   text-transform: uppercase;
   font-weight: bold;
   color: ${p => p.theme.purple300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   gap: ${space(0.5)};
   display: flex;
   justify-content: flex-start;
@@ -119,7 +119,7 @@ const Subheader = styled('div')`
 `;
 
 const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.gray400};
   margin-top: ${space(1)};
 `;
@@ -135,7 +135,7 @@ const StyledButtonBar = styled(ButtonBar)`
 
 const InnerContent = styled('div')`
   padding: 20px 30px 20px;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const PriceWrapper = styled('div')`
@@ -144,8 +144,8 @@ const PriceWrapper = styled('div')`
 `;
 
 const SeatText = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
 `;
 
 const OffsetIconArrow = styled(IconArrow)`

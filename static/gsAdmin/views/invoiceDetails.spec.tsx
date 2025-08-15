@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -14,10 +13,10 @@ import ConfigStore from 'sentry/stores/configStore';
 
 import InvoiceDetails from 'admin/views/invoiceDetails';
 
-describe('InvoiceDetails', function () {
+describe('InvoiceDetails', () => {
   const mockOrg = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/`,
@@ -44,8 +43,8 @@ describe('InvoiceDetails', function () {
     ]);
   });
 
-  describe('Close Invoice', function () {
-    it('can close invoice', async function () {
+  describe('Close Invoice', () => {
+    it('can close invoice', async () => {
       const invoice = InvoiceFixture({isClosed: false});
       MockApiClient.addMockResponse({
         url: `/_admin/invoices/${invoice.id}/`,
@@ -58,26 +57,19 @@ describe('InvoiceDetails', function () {
         body: InvoiceFixture({isClosed: true}),
       });
 
-      const {router} = initializeOrg({
-        router: {
-          params: {
-            orgId: mockOrg.slug,
-            invoiceId: invoice.id,
-            region: 'us',
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
           },
+          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
         },
       });
 
-      render(<InvoiceDetails />, {router});
-
-      expect(
-        await screen.findAllByRole('button', {name: 'Invoices Actions'})
-      ).toHaveLength(2);
-
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Invoices Actions'})[0]!
+        await screen.findByRole('button', {name: 'Invoices Actions'})
       );
-      await userEvent.click(screen.getByTestId('action-closeInvoice'));
+      await userEvent.click(screen.getByText('Close Invoice'));
       renderGlobalModal();
 
       await userEvent.click(screen.getByTestId('confirm-button'));
@@ -85,7 +77,7 @@ describe('InvoiceDetails', function () {
       expect(updateMock).toHaveBeenCalled();
     });
 
-    it('cannot close already closed invoice', async function () {
+    it('cannot close already closed invoice', async () => {
       const invoice = InvoiceFixture({isClosed: true});
       MockApiClient.addMockResponse({
         url: `/_admin/invoices/${invoice.id}/`,
@@ -93,33 +85,26 @@ describe('InvoiceDetails', function () {
         host: 'https://de.sentry.io',
       });
 
-      const {router} = initializeOrg({
-        router: {
-          params: {
-            orgId: mockOrg.slug,
-            invoiceId: invoice.id,
-            region: 'de',
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/de/${invoice.id}/`,
           },
+          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
         },
       });
 
-      render(<InvoiceDetails />, {router});
-
-      expect(
-        await screen.findAllByRole('button', {name: 'Invoices Actions'})
-      ).toHaveLength(2);
-
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Invoices Actions'})[0]!
+        await screen.findByRole('button', {name: 'Invoices Actions'})
       );
 
-      expect(screen.getByTestId('action-closeInvoice')).toHaveAttribute(
+      expect(await screen.findByTestId('closeInvoice')).toHaveAttribute(
         'aria-disabled',
         'true'
       );
     });
 
-    it('requires billing admin permission', async function () {
+    it('requires billing admin permission', async () => {
       ConfigStore.set('user', UserFixture({permissions: new Set([])}));
 
       const invoice = InvoiceFixture({isClosed: false});
@@ -129,50 +114,33 @@ describe('InvoiceDetails', function () {
         host: 'https://us.sentry.io',
       });
 
-      const {router} = initializeOrg({
-        router: {
-          params: {
-            orgId: mockOrg.slug,
-            invoiceId: invoice.id,
-            region: 'us',
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
           },
+          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
         },
       });
 
-      render(<InvoiceDetails />, {router});
-
-      expect(
-        await screen.findAllByRole('button', {name: 'Invoices Actions'})
-      ).toHaveLength(2);
-
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Invoices Actions'})[0]!
+        await screen.findByRole('button', {name: 'Invoices Actions'})
       );
 
-      expect(screen.getByTestId('action-closeInvoice')).toHaveAttribute(
+      expect(await screen.findByTestId('closeInvoice')).toHaveAttribute(
         'aria-disabled',
         'true'
       );
     });
   });
 
-  describe('Retry Payment', function () {
-    it('can retry payment', async function () {
+  describe('Retry Payment', () => {
+    it('can retry payment', async () => {
       const invoice = InvoiceFixture({isPaid: false});
       MockApiClient.addMockResponse({
         url: `/_admin/invoices/${invoice.id}/`,
         body: invoice,
         host: 'https://us.sentry.io',
-      });
-
-      const {router} = initializeOrg({
-        router: {
-          params: {
-            orgId: mockOrg.slug,
-            invoiceId: invoice.id,
-            region: 'us',
-          },
-        },
       });
 
       const updateMock = MockApiClient.addMockResponse({
@@ -183,16 +151,19 @@ describe('InvoiceDetails', function () {
         }),
       });
 
-      render(<InvoiceDetails />, {router});
-
-      expect(
-        await screen.findAllByRole('button', {name: 'Invoices Actions'})
-      ).toHaveLength(2);
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
+          },
+          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
+        },
+      });
 
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Invoices Actions'})[0]!
+        await screen.findByRole('button', {name: 'Invoices Actions'})
       );
-      await userEvent.click(screen.getByTestId('action-retryPayment'));
+      await userEvent.click(screen.getByText('Retry Payment'));
       renderGlobalModal();
 
       await userEvent.click(screen.getByTestId('confirm-button'));
@@ -200,7 +171,7 @@ describe('InvoiceDetails', function () {
       expect(updateMock).toHaveBeenCalled();
     });
 
-    it('cannot retry already paid invoice', async function () {
+    it('cannot retry already paid invoice', async () => {
       const invoice = InvoiceFixture({isPaid: true});
       MockApiClient.addMockResponse({
         url: `/_admin/invoices/${invoice.id}/`,
@@ -208,27 +179,20 @@ describe('InvoiceDetails', function () {
         host: 'https://us.sentry.io',
       });
 
-      const {router} = initializeOrg({
-        router: {
-          params: {
-            orgId: mockOrg.slug,
-            invoiceId: invoice.id,
-            region: 'us',
+      render(<InvoiceDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${mockOrg.slug}/invoices/us/${invoice.id}/`,
           },
+          route: `/organizations/:orgId/invoices/:region/:invoiceId/`,
         },
       });
 
-      render(<InvoiceDetails />, {router});
-
-      expect(
-        await screen.findAllByRole('button', {name: 'Invoices Actions'})
-      ).toHaveLength(2);
-
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Invoices Actions'})[0]!
+        await screen.findByRole('button', {name: 'Invoices Actions'})
       );
 
-      expect(screen.getByTestId('action-retryPayment')).toHaveAttribute(
+      expect(await screen.findByTestId('retryPayment')).toHaveAttribute(
         'aria-disabled',
         'true'
       );

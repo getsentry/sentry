@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import onboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -49,8 +49,8 @@ const Body = styled(PanelBody)`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
 `;
 
@@ -69,7 +69,7 @@ const SentaurIllustration = styled('img')`
   margin: 20px 20px 10px 10px;
   pointer-events: none;
   justify-self: end;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;

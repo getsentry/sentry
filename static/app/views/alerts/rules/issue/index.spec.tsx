@@ -23,7 +23,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
@@ -31,7 +30,7 @@ import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/onboardingTasks');
+
 jest.mock('sentry/actionCreators/indicator', () => ({
   addSuccessMessage: jest.fn(),
   addErrorMessage: jest.fn(),
@@ -108,7 +107,11 @@ const createWrapper = (props = {}) => {
         userTeamIds={[]}
       />
     </ProjectAlerts>,
-    {router, organization}
+    {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    }
   );
 
   return {
@@ -120,8 +123,8 @@ const createWrapper = (props = {}) => {
   };
 };
 
-describe('IssueRuleEditor', function () {
-  beforeEach(function () {
+describe('IssueRuleEditor', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
@@ -158,7 +161,7 @@ describe('IssueRuleEditor', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
     ProjectsStore.reset();
   });
@@ -193,12 +196,36 @@ describe('IssueRuleEditor', function () {
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
     });
+
+    it('allows test notifications', async () => {
+      const {organization, project} = createWrapper();
+      const mockTestNotification = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/rule-actions/`,
+        method: 'POST',
+        body: {},
+      });
+      await userEvent.click(screen.getByText('Send Test Notification'));
+      expect(mockTestNotification).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/rule-actions/`,
+        expect.objectContaining({
+          data: {
+            actions: [
+              {
+                id: 'sentry.rules.actions.notify_event.NotifyEventAction',
+                name: 'Send a notification (for all legacy integrations)',
+              },
+            ],
+            name: 'My alert rule',
+          },
+        })
+      );
+    });
   });
 
-  describe('Edit Rule', function () {
+  describe('Edit Rule', () => {
     let mock: any;
     const endpoint = '/projects/org-slug/project-slug/rules/1/';
-    beforeEach(function () {
+    beforeEach(() => {
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'PUT',
@@ -206,7 +233,7 @@ describe('IssueRuleEditor', function () {
       });
     });
 
-    it('gets correct rule name', async function () {
+    it('gets correct rule name', async () => {
       const rule = ProjectAlertRuleFixture();
       mock = MockApiClient.addMockResponse({
         url: endpoint,
@@ -218,14 +245,14 @@ describe('IssueRuleEditor', function () {
       expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
     });
 
-    it('deletes rule', async function () {
+    it('deletes rule', async () => {
       const deleteMock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'DELETE',
         body: {},
       });
       const {router} = createWrapper();
-      renderGlobalModal({router});
+      renderGlobalModal({router, deprecatedRouterMocks: true});
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
@@ -239,7 +266,7 @@ describe('IssueRuleEditor', function () {
       );
     });
 
-    it('saves rule with condition value of 0', async function () {
+    it('saves rule with condition value of 0', async () => {
       const rule = ProjectAlertRuleFixture({
         conditions: [
           {id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'},
@@ -276,7 +303,7 @@ describe('IssueRuleEditor', function () {
       expect(addErrorMessage).toHaveBeenCalledTimes(0);
     });
 
-    it('sends correct environment value', async function () {
+    it('sends correct environment value', async () => {
       createWrapper();
       await selectEvent.select(screen.getByText('staging'), 'production');
       await userEvent.click(screen.getByText('Save Rule'));
@@ -293,7 +320,7 @@ describe('IssueRuleEditor', function () {
       expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
 
-    it('strips environment value if "All environments" is selected', async function () {
+    it('strips environment value if "All environments" is selected', async () => {
       createWrapper();
       await selectEvent.select(screen.getByText('staging'), 'All Environments');
       await userEvent.click(screen.getByText('Save Rule'));
@@ -305,15 +332,6 @@ describe('IssueRuleEditor', function () {
           data: expect.objectContaining({environment: '__all_environments__'}),
         })
       );
-      expect(metric.startSpan).toHaveBeenCalledTimes(1);
-      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
-    });
-
-    it('updates the alert onboarding task', async function () {
-      createWrapper();
-      await userEvent.click(screen.getByText('Save Rule'));
-
-      await waitFor(() => expect(updateOnboardingTask).toHaveBeenCalledTimes(1));
       expect(metric.startSpan).toHaveBeenCalledTimes(1);
       expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
@@ -385,7 +403,7 @@ describe('IssueRuleEditor', function () {
       ).toBeInTheDocument();
     });
 
-    it('opts out of the alert being disabled', async function () {
+    it('opts out of the alert being disabled', async () => {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/1/',
         body: ProjectAlertRuleFixture({
@@ -406,15 +424,15 @@ describe('IssueRuleEditor', function () {
       );
     });
 
-    it('renders environment selector in adopted release filter', async function () {
+    it('renders environment selector in adopted release filter', async () => {
       createWrapper({
         projects: [ProjectFixture({environments: ['production', 'staging']})],
       });
 
-      // Add the adopted release filter
+      // Add the release filter
       await selectEvent.select(
         screen.getByText('Add optional filter...'),
-        /The {oldest_or_newest} adopted release associated/
+        /The {oldest_or_newest} release associated/
       );
 
       const filtersContainer = await screen.findByTestId('rule-filters');
@@ -428,18 +446,18 @@ describe('IssueRuleEditor', function () {
     });
   });
 
-  describe('Edit Rule: Slack Channel Look Up', function () {
+  describe('Edit Rule: Slack Channel Look Up', () => {
     const uuid = 'xxxx-xxxx-xxxx';
 
-    beforeEach(function () {
+    beforeEach(() => {
       jest.useFakeTimers();
     });
 
-    afterEach(function () {
+    afterEach(() => {
       jest.clearAllTimers();
     });
 
-    it('success status updates the rule', async function () {
+    it('success status updates the rule', async () => {
       const mockSuccess = MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/rule-task/${uuid}/`,
         body: {status: 'success', rule: ProjectAlertRuleFixture({name: 'Slack Rule'})},
@@ -464,7 +482,7 @@ describe('IssueRuleEditor', function () {
       );
     });
 
-    it('pending status keeps loading true', async function () {
+    it('pending status keeps loading true', async () => {
       const pollingMock = MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/rule-task/${uuid}/`,
         body: {status: 'pending'},
@@ -486,7 +504,7 @@ describe('IssueRuleEditor', function () {
       expect(await screen.findByTestId('loading-mask')).toBeInTheDocument();
     });
 
-    it('failed status renders error message', async function () {
+    it('failed status renders error message', async () => {
       const mockFailed = MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/rule-task/${uuid}/`,
         body: {status: 'failed'},
@@ -510,12 +528,12 @@ describe('IssueRuleEditor', function () {
     });
   });
 
-  describe('Duplicate Rule', function () {
+  describe('Duplicate Rule', () => {
     let mock: any;
     const rule = ProjectAlertRuleFixture();
     const endpoint = `/projects/org-slug/project-slug/rules/${rule.id}/`;
 
-    beforeEach(function () {
+    beforeEach(() => {
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'GET',
@@ -523,7 +541,7 @@ describe('IssueRuleEditor', function () {
       });
     });
 
-    it('gets correct rule to duplicate and renders fields correctly', async function () {
+    it('gets correct rule to duplicate and renders fields correctly', async () => {
       createWrapper({
         organization: {
           access: ['alerts:write'],
@@ -543,7 +561,7 @@ describe('IssueRuleEditor', function () {
       expect(mock).toHaveBeenCalled();
     });
 
-    it('does not add FirstSeenEventCondition to a duplicate rule', async function () {
+    it('does not add FirstSeenEventCondition to a duplicate rule', async () => {
       MockApiClient.addMockResponse({
         url: endpoint,
         method: 'GET',

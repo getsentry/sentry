@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import TaskRunner
@@ -13,7 +14,7 @@ class TestDeleteWorkflow(HybridCloudTestMixin):
         return TaskRunner()
 
     @pytest.fixture(autouse=True)
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = Factories.create_organization()
         self.project = Factories.create_project(organization=self.organization)
 
@@ -53,6 +54,8 @@ class TestDeleteWorkflow(HybridCloudTestMixin):
             comparison=1,
             condition_result=True,
         )
+        self.workflow.status = ObjectStatus.PENDING_DELETION
+        self.workflow.save()
 
     @pytest.mark.parametrize(
         "instance_attr",
@@ -69,7 +72,7 @@ class TestDeleteWorkflow(HybridCloudTestMixin):
             "action_condition",
         ],
     )
-    def test_delete_workflow(self, instance_attr):
+    def test_delete_workflow(self, instance_attr) -> None:
         instance = getattr(self, instance_attr)
         instance_id = instance.id
         cls = instance.__class__

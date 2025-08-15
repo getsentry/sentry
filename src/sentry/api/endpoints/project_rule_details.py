@@ -8,11 +8,11 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log, features
+from sentry import analytics, audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
-from sentry.api.endpoints.project_rules import find_duplicate_rule, send_confirmation_notification
+from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -35,14 +35,9 @@ from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
-from sentry.utils import metrics
-from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
-    delete_migrated_issue_alert,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -249,7 +244,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             kwargs = {
                 "name": data["name"],
                 "environment": data.get("environment"),
-                "project": project,
+                "project": None,
+                "project_id": project.id,
                 "action_match": data["actionMatch"],
                 "filter_match": data.get("filterMatch"),
                 "conditions": conditions,
@@ -330,16 +326,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 sender=self,
                 is_api_token=request.auth is not None,
             )
-            if features.has(
-                "organizations:rule-create-edit-confirm-notification", project.organization
-            ):
-                new_rule_data = get_updated_rule_data(rule)
-                changed_data = get_changed_data(rule, new_rule_data, rule_data_before)
-                send_confirmation_notification(rule=rule, new=False, changed=changed_data)
-                metrics.incr(
-                    "rule_confirmation.edit.notification.sent",
-                    skip_internal=False,
-                )
+
             return Response(serialize(updated_rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -367,24 +354,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
-        rule_id = rule.id
-
         with transaction.atomic(router.db_for_write(Rule)):
             rule.update(status=ObjectStatus.PENDING_DELETION)
             RuleActivity.objects.create(
                 rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
             )
             scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
-
-            if features.has(
-                "organizations:workflow-engine-issue-alert-dual-write", project.organization
-            ):
-                workflow_id = delete_migrated_issue_alert(rule)
-                if workflow_id:
-                    logger.info(
-                        "workflow_engine.issue_alert.deleted",
-                        extra={"rule_id": rule_id, "workflow_id": workflow_id},
-                    )
 
         self.create_audit_entry(
             request=request,

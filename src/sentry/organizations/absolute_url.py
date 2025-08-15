@@ -9,22 +9,22 @@ from sentry.utils.http import absolute_uri, is_using_customer_domain
 
 _path_patterns: list[tuple[re.Pattern[str], str]] = [
     # /organizations/slug/section, but not /organizations/new
-    (re.compile(r"\/?organizations\/(?!new)[^\/]+\/(.*)"), r"/\1"),
+    (re.compile(r"\/?organizations\/(?!new)[^/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/
     (
-        re.compile(r"\/settings\/(?!account\/|!billing\/|projects\/|teams)[^\/]+\/?$"),
+        re.compile(r"\/settings\/(?!account\/|!billing\/|projects\/|teams)[^/]+\/?$"),
         "/settings/organization/",
     ),
     # Move /settings/:orgId/:section -> /settings/:section
     # but not /settings/organization or /settings/projects which is a new URL
     (
-        re.compile(r"^\/?settings\/(?!account\/|billing\/|projects\/|teams)[^\/]+\/(.*)"),
+        re.compile(r"^\/?settings\/(?!account\/|billing\/|projects\/|teams)[^/]+\/(.*)"),
         r"/settings/\1",
     ),
-    (re.compile(r"^\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
-    (re.compile(r"^\/?onboarding\/[^\/]+\/(.*)"), r"/onboarding/\1"),
+    (re.compile(r"^\/?join-request\/[^/]+\/?.*"), r"/join-request/"),
+    (re.compile(r"^\/?onboarding\/[^/]+\/(.*)"), r"/onboarding/\1"),
     (
-        re.compile(r"^\/?(?!settings)[^\/]+\/([^\/]+)\/getting-started\/(.*)"),
+        re.compile(r"^\/?(?!settings)[^/]+\/([^/]+)\/getting-started\/(.*)"),
         r"/getting-started/\1/\2",
     ),
 ]
@@ -87,6 +87,20 @@ def organization_absolute_url(
         path = customer_domain_path(path)
         url_base = generate_organization_url(slug)
     uri = absolute_uri(path, url_prefix=url_base)
+    parts = construct_url_parts(uri=uri, query=query, fragment=fragment)
+    return "".join(parts)
+
+
+def api_absolute_url(
+    *, slug: str, path: str, query: str | None = None, fragment: str | None = None
+) -> str:
+    full_path = f"/api/0/organizations/{slug}/{path.lstrip('/')}/"
+    uri = absolute_uri(full_path)
+    parts = construct_url_parts(uri=uri, query=query, fragment=fragment)
+    return "".join(parts)
+
+
+def construct_url_parts(*, uri: str, query: str | None, fragment: str | None) -> list[str]:
     parts = [uri]
     if query and not query.startswith("?"):
         query = f"?{query}"
@@ -96,4 +110,4 @@ def organization_absolute_url(
         fragment = f"#{fragment}"
     if fragment:
         parts.append(fragment)
-    return "".join(parts)
+    return parts

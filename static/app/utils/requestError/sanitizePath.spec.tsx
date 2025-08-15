@@ -1,6 +1,6 @@
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
-describe('sanitizePath', function () {
+describe('sanitizePath', () => {
   for (const prefix of ['https://sentry.io/api/0', '']) {
     test.each([
       // /organizations/ endpoints
@@ -99,13 +99,6 @@ describe('sanitizePath', function () {
         // ProjectTeamDetailsEndpoint
         '/projects/sentry/javascript/teams/search-and-storage/',
         '/projects/{orgSlug}/{projectSlug}/teams/{teamSlug}/',
-      ],
-
-      [
-        // XXX: This should probably be an organization endpoint...
-        // ProjectAgnosticRuleConditionsEndpoint
-        '/projects/sentry/rule-conditions/',
-        '/projects/{orgSlug}/rule-conditions/',
       ],
 
       [

@@ -3,12 +3,19 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectCspReports from 'sentry/views/settings/projectSecurityHeaders/csp';
 
-describe('ProjectCspReports', function () {
+describe('ProjectCspReports', () => {
   const {project, organization} = initializeOrg();
 
   const projectUrl = `/projects/${organization.slug}/${project.slug}/`;
 
-  beforeEach(function () {
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/security-headers/csp/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/settings/security-headers/csp/',
+  };
+
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/keys/`,
@@ -24,13 +31,11 @@ describe('ProjectCspReports', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<ProjectCspReports />, {
       organization,
+      initialRouterConfig,
     });
-
-    // Renders the loading indication initially
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     // Heading
     expect(
@@ -38,7 +43,7 @@ describe('ProjectCspReports', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders loading error', async function () {
+  it('renders loading error', async () => {
     MockApiClient.addMockResponse({
       url: projectUrl,
       method: 'GET',
@@ -47,6 +52,7 @@ describe('ProjectCspReports', function () {
     });
     render(<ProjectCspReports />, {
       organization,
+      initialRouterConfig,
     });
 
     expect(
@@ -54,9 +60,10 @@ describe('ProjectCspReports', function () {
     ).toBeInTheDocument();
   });
 
-  it('can enable default ignored sources', async function () {
+  it('can enable default ignored sources', async () => {
     render(<ProjectCspReports />, {
       organization,
+      initialRouterConfig,
     });
 
     const mock = MockApiClient.addMockResponse({
@@ -83,9 +90,10 @@ describe('ProjectCspReports', function () {
     );
   });
 
-  it('can set additional ignored sources', async function () {
+  it('can set additional ignored sources', async () => {
     render(<ProjectCspReports />, {
       organization,
+      initialRouterConfig,
     });
 
     const mock = MockApiClient.addMockResponse({

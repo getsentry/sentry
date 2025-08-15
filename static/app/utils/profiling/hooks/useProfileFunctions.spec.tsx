@@ -13,19 +13,17 @@ function TestContext({children}: {children: React.ReactNode}) {
 
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
+      <OrganizationContext value={organization}>{children}</OrganizationContext>
     </QueryClientProvider>
   );
 }
 
-describe('useProfileFunctions', function () {
-  afterEach(function () {
+describe('useProfileFunctions', () => {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('initializes with the loading state', function () {
+  it('initializes with the loading state', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {data: []},
@@ -50,7 +48,7 @@ describe('useProfileFunctions', function () {
     );
   });
 
-  it('fetches functions', async function () {
+  it('fetches functions', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {data: []},

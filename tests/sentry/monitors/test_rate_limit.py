@@ -1,12 +1,6 @@
 from unittest import mock
 
-from sentry.monitors.models import (
-    Monitor,
-    MonitorEnvironment,
-    MonitorStatus,
-    MonitorType,
-    ScheduleType,
-)
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, ScheduleType
 from sentry.monitors.rate_limit import get_project_monitor_quota
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
@@ -16,7 +10,7 @@ from sentry.testutils.helpers import override_options
 @mock.patch("sentry.monitors.rate_limit.ALLOWED_MINIMUM", 5)
 class MonitorRateLimit(TestCase):
     @override_options({"crons.per_monitor_rate_limit": 2})
-    def test_minimum(self):
+    def test_minimum(self) -> None:
         """
         Without any monitor environments we'll always return ALLOWED_MINIMUM.
         """
@@ -25,7 +19,7 @@ class MonitorRateLimit(TestCase):
         assert window == 45
 
     @override_options({"crons.per_monitor_rate_limit": 2})
-    def test_computed_from_environments(self):
+    def test_computed_from_environments(self) -> None:
         """
         Validate that the quota is computed from the total number of monitor
         environments in a project.
@@ -33,7 +27,6 @@ class MonitorRateLimit(TestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": "*/5 * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
@@ -52,7 +45,6 @@ class MonitorRateLimit(TestCase):
         monitor2 = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=project2.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": "*/5 * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
         MonitorEnvironment.objects.create(

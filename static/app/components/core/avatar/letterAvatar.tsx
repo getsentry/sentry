@@ -1,53 +1,53 @@
 import type React from 'react';
-import {forwardRef} from 'react';
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import color from 'color';
 
-import {
-  type BaseAvatarComponentProps,
-  BaseAvatarComponentStyles,
-} from './baseAvatarComponentStyles';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
-export interface LetterAvatarProps
+import {baseAvatarStyles, type BaseAvatarStyleProps} from './baseAvatarComponentStyles';
+
+interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>,
-    BaseAvatarComponentProps {
+    BaseAvatarStyleProps {
+  identifier: string | undefined;
   displayName?: string;
-  identifier?: string;
+  ref?: React.Ref<SVGSVGElement>;
 }
 
 /**
  * Also see avatar.py. Anything changed in this file (how colors are selected,
  * the svg, etc) will also need to be changed there.
  */
-export const LetterAvatar = forwardRef<SVGSVGElement, LetterAvatarProps>(
-  ({displayName, ...props}, ref) => {
-    return (
-      <LetterAvatarComponent ref={ref} viewBox="0 0 120 120" {...props}>
-        <rect x="0" y="0" width="120" height="120" rx="15" ry="15" />
-        <text
-          x="50%"
-          y="50%"
-          fontSize="65"
-          style={{dominantBaseline: 'central'}}
-          textAnchor="middle"
-        >
-          {getInitials(displayName)}
-        </text>
-      </LetterAvatarComponent>
-    );
-  }
-);
+export function LetterAvatar({displayName, ref, ...props}: LetterAvatarProps) {
+  const theme = useTheme();
+  return (
+    <LetterAvatarComponent ref={ref} viewBox="0 0 120 120" {...props}>
+      <rect x="0" y="0" width="120" height="120" rx="15" ry="15" />
+      <text
+        x="50%"
+        y="50%"
+        fontSize="65"
+        fontWeight={theme.isChonk ? 'bold' : 'inherit'}
+        style={{dominantBaseline: 'central'}}
+        textAnchor="middle"
+      >
+        {getInitials(displayName)}
+      </text>
+    </LetterAvatarComponent>
+  );
+}
 
 const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
-  ${BaseAvatarComponentStyles};
+  ${baseAvatarStyles};
 
   rect {
     fill: ${props =>
-      props.theme.isChonk
+      isChonkTheme(props.theme)
         ? props.suggested
           ? props.theme.background
-          : getChonkColor(props.identifier, props.theme as DO_NOT_USE_ChonkTheme)
-              .background
+          : getChonkColor(props.identifier, props.theme).background
         : props.suggested
           ? props.theme.background
           : getColor(props.identifier)};
@@ -55,10 +55,10 @@ const LetterAvatarComponent = styled('svg')<LetterAvatarProps>`
 
   text {
     fill: ${props =>
-      props.theme.isChonk
+      isChonkTheme(props.theme)
         ? props.suggested
           ? props.theme.subText
-          : getChonkColor(props.identifier, props.theme as DO_NOT_USE_ChonkTheme).content
+          : getChonkColor(props.identifier, props.theme).content
         : props.suggested
           ? props.theme.subText
           : props.theme.white};
@@ -131,30 +131,9 @@ function getInitials(displayName: string | undefined) {
   return initials.toUpperCase();
 }
 
-function makeChonkLetterAvatarColors(theme: DO_NOT_USE_ChonkTheme): Array<{
-  background: string;
-  content: string;
-}> {
-  return [
-    {
-      background: theme.colors.chonk.blue400,
-      content: theme.colors.white,
-    },
-    {
-      background: theme.colors.chonk.pink400,
-      content: theme.colors.black,
-    },
-    {
-      background: theme.colors.chonk.red400,
-      content: theme.colors.white,
-    },
-    {
-      background: theme.colors.chonk.yellow400,
-      content: theme.colors.black,
-    },
-    {
-      background: theme.colors.chonk.green400,
-      content: theme.colors.black,
-    },
-  ];
+function makeChonkLetterAvatarColors(theme: DO_NOT_USE_ChonkTheme) {
+  return theme.chart.getColorPalette(9).map(c => ({
+    background: c,
+    content: color(c).isDark() ? theme.colors.white : theme.colors.black,
+  }));
 }

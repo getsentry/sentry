@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 
-describe('dropdownMenuDeprecated', function () {
+describe('dropdownMenuDeprecated', () => {
   function DeprecatedDropdownImplementation(
     props: Partial<ComponentProps<typeof DeprecatedDropdownMenu>> = {}
   ) {
@@ -24,11 +24,11 @@ describe('dropdownMenuDeprecated', function () {
     );
   }
 
-  it('renders', function () {
+  it('renders', () => {
     render(<DeprecatedDropdownImplementation />);
   });
 
-  it('can toggle dropdown menu with actor', async function () {
+  it('can toggle dropdown menu with actor', async () => {
     render(<DeprecatedDropdownImplementation />);
 
     await userEvent.click(screen.getByRole('button'));
@@ -37,14 +37,14 @@ describe('dropdownMenuDeprecated', function () {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
-  it('closes dropdown when clicking on anything in menu', async function () {
+  it('closes dropdown when clicking on anything in menu', async () => {
     render(<DeprecatedDropdownImplementation />);
     await userEvent.click(screen.getByRole('button'));
     await userEvent.click(screen.getByRole('listitem'));
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
-  it('closes dropdown when clicking outside of menu', async function () {
+  it('closes dropdown when clicking outside of menu', async () => {
     render(
       <div data-test-id="outside-element">
         <DeprecatedDropdownImplementation />
@@ -56,7 +56,7 @@ describe('dropdownMenuDeprecated', function () {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
-  it('closes dropdown when pressing escape', async function () {
+  it('closes dropdown when pressing escape', async () => {
     render(<DeprecatedDropdownImplementation />);
     await userEvent.click(screen.getByRole('button'));
 
@@ -64,7 +64,7 @@ describe('dropdownMenuDeprecated', function () {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
-  it('ignores "Escape" key if `closeOnEscape` is false', async function () {
+  it('ignores "Escape" key if `closeOnEscape` is false', async () => {
     render(<DeprecatedDropdownImplementation closeOnEscape={false} />);
     await userEvent.click(screen.getByRole('button'));
 
@@ -72,21 +72,13 @@ describe('dropdownMenuDeprecated', function () {
     expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
-  it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', async function () {
-    render(<DeprecatedDropdownImplementation keepMenuOpen />);
-    await userEvent.click(screen.getByRole('button'));
-    await userEvent.click(screen.getByRole('listitem'));
-
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
-  });
-
-  it('render prop getters all extend props and call original onClick handlers', async function () {
+  it('render prop getters all extend props and call original onClick handlers', async () => {
     const rootClick = jest.fn();
     const actorClick = jest.fn();
     const menuClick = jest.fn();
 
     render(
-      <DeprecatedDropdownMenu keepMenuOpen>
+      <DeprecatedDropdownMenu>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span {...getRootProps({onClick: rootClick})} data-test-id="root">
             <button {...getActorProps({onClick: actorClick})} data-test-id="actor">
@@ -112,11 +104,9 @@ describe('dropdownMenuDeprecated', function () {
 
     await userEvent.click(screen.getByTestId('menu'));
     expect(menuClick).toHaveBeenCalled();
-
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
-  it('always rendered menus should attach document event listeners only when opened', async function () {
+  it('always rendered menus should attach document event listeners only when opened', async () => {
     const addSpy = jest.spyOn(document, 'addEventListener');
     const removeSpy = jest.spyOn(document, 'removeEventListener');
 
@@ -138,16 +128,16 @@ describe('dropdownMenuDeprecated', function () {
 
     await userEvent.click(screen.getByRole('button'));
     expect(addSpy).toHaveBeenCalledWith('click', expect.anything(), true);
-    expect(removeSpy).not.toHaveBeenCalled();
+    expect(removeSpy).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole('button'));
-    expect(removeSpy).toHaveBeenCalled();
+    expect(removeSpy).toHaveBeenCalledTimes(2);
 
     addSpy.mockRestore();
     removeSpy.mockRestore();
   });
 
-  it('does not close nested dropdown on actor clicks', async function () {
+  it('does not close nested dropdown on actor clicks', async () => {
     render(
       <DeprecatedDropdownMenu isNestedDropdown>
         {({getRootProps, getActorProps, getMenuProps}) => (

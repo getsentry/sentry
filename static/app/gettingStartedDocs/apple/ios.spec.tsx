@@ -8,8 +8,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs, {InstallationMode} from './ios';
 
-describe('apple-ios onboarding docs', function () {
-  it('renders docs correctly', function () {
+describe('apple-ios onboarding docs', () => {
+  it('renders docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -18,11 +18,26 @@ describe('apple-ios onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders swift onboarding docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL_SWIFT,
+      },
+    });
+
+    expect(
+      await screen.findAllByText(
+        textWithMarkupMatcher(/throw MyCustomError\.myFirstIssue/)
+      )
+    ).toHaveLength(1);
+  });
+
+  it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
       selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
+        installationMode: InstallationMode.MANUAL_SWIFT,
       },
     });
 
@@ -31,10 +46,10 @@ describe('apple-ios onboarding docs', function () {
     ).toHaveLength(2);
   });
 
-  it('renders transaction profiling', async function () {
+  it('renders transaction profiling', async () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
+        installationMode: InstallationMode.MANUAL_SWIFT,
       },
     });
 
@@ -52,7 +67,7 @@ describe('apple-ios onboarding docs', function () {
     ).toHaveLength(2);
   });
 
-  it('renders continuous profiling', function () {
+  it('renders continuous profiling', () => {
     const organization = OrganizationFixture({
       features: ['continuous-profiling'],
     });
@@ -61,7 +76,7 @@ describe('apple-ios onboarding docs', function () {
       docs,
       {
         selectedOptions: {
-          installationMode: InstallationMode.MANUAL,
+          installationMode: InstallationMode.MANUAL_SWIFT,
         },
       },
       {
@@ -75,16 +90,29 @@ describe('apple-ios onboarding docs', function () {
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
-    const startMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/SentrySDK.startProfiler\(\)/)
+    const sessionSampleRateElements = screen.queryAllByText(
+      textWithMarkupMatcher(/\$0\.sessionSampleRate = 1\.0/)
     );
-    expect(startMatches.length).toBeGreaterThan(0);
-    startMatches.forEach(match => expect(match).toBeInTheDocument());
+    expect(sessionSampleRateElements).toHaveLength(2);
+    sessionSampleRateElements.forEach(element => expect(element).toBeInTheDocument());
 
-    const stopMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/SentrySDK.stopProfiler\(\)/)
+    const lifecycleElements = screen.queryAllByText(
+      textWithMarkupMatcher(/\$0\.lifecycle = \.trace/)
     );
-    expect(stopMatches.length).toBeGreaterThan(0);
-    stopMatches.forEach(match => expect(match).toBeInTheDocument());
+    expect(lifecycleElements).toHaveLength(2);
+    lifecycleElements.forEach(element => expect(element).toBeInTheDocument());
+  });
+
+  it('renders manual objective-c docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+      selectedOptions: {
+        installationMode: InstallationMode.MANUAL_OBJECTIVE_C,
+      },
+    });
+
+    expect(
+      await screen.findAllByText(textWithMarkupMatcher(/@import Sentry;/))
+    ).toHaveLength(1);
   });
 });

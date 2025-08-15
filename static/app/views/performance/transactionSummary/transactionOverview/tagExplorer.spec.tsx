@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -8,22 +7,17 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {TagExplorer} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
 
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = jest.mocked(useLocation);
-
 function WrapperComponent(props: React.ComponentProps<typeof TagExplorer>) {
   return (
-    <OrganizationContext.Provider value={props.organization}>
+    <OrganizationContext value={props.organization}>
       <MEPSettingProvider>
         <TagExplorer {...props} />
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 
@@ -56,13 +50,10 @@ function initialize(query: Record<string, string>, additionalFeatures = []) {
   };
 }
 
-describe('WrapperComponent', function () {
+describe('WrapperComponent', () => {
   const facetUrl = '/organizations/org-slug/events-facets-performance/';
   let facetApiMock: jest.Mock;
-  beforeEach(function () {
-    mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
-    );
+  beforeEach(() => {
     facetApiMock = MockApiClient.addMockResponse({
       url: facetUrl,
       body: {
@@ -99,12 +90,12 @@ describe('WrapperComponent', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', async function () {
+  it('renders basic UI elements', async () => {
     const projects = [ProjectFixture()];
     const {
       organization,
@@ -131,7 +122,7 @@ describe('WrapperComponent', function () {
     expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
   });
 
-  it('Tag explorer uses LCP if projects are frontend', async function () {
+  it('Tag explorer uses LCP if projects are frontend', async () => {
     const projects = [ProjectFixture({id: '123', platform: 'javascript-react'})];
     const {
       organization,
@@ -168,7 +159,7 @@ describe('WrapperComponent', function () {
     );
   });
 
-  it('Tag explorer view all tags button links to tags page', async function () {
+  it('Tag explorer view all tags button links to tags page', async () => {
     const projects = [ProjectFixture({id: '123', platform: 'javascript-react'})];
     const {
       organization,
@@ -176,7 +167,6 @@ describe('WrapperComponent', function () {
       eventView,
       spanOperationBreakdownFilter,
       transactionName,
-      router,
     } = initialize(
       {
         project: '123',
@@ -192,19 +182,18 @@ describe('WrapperComponent', function () {
         projects={projects}
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
-      />,
-      {router}
+      />
     );
 
     const button = await screen.findByTestId('tags-explorer-open-tags');
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary/tags/?project=123&transaction=example-transaction'
+      '/organizations/org-slug/insights/summary/tags/?project=123&transaction=example-transaction'
     );
   });
 
-  it('Tag explorer uses the operation breakdown as a column', async function () {
+  it('Tag explorer uses the operation breakdown as a column', async () => {
     const projects = [ProjectFixture({platform: 'javascript-react'})];
     const {organization, location, eventView, transactionName} = initialize({});
 
@@ -233,7 +222,7 @@ describe('WrapperComponent', function () {
     );
   });
 
-  it('renders the table headers in the correct order', async function () {
+  it('renders the table headers in the correct order', async () => {
     const projects = [ProjectFixture()];
     const {
       organization,
@@ -241,7 +230,6 @@ describe('WrapperComponent', function () {
       eventView,
       spanOperationBreakdownFilter,
       transactionName,
-      router,
     } = initialize({});
 
     render(
@@ -252,8 +240,7 @@ describe('WrapperComponent', function () {
         projects={projects}
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
-      />,
-      {router}
+      />
     );
 
     await waitFor(() => expect(facetApiMock).toHaveBeenCalled());

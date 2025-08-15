@@ -79,7 +79,7 @@ function RecurringCredits({displayType, planDetails}: Props) {
       );
     }
 
-    return `+${formatReservedWithUnits(credit.amount, category, {
+    return `+${formatReservedWithUnits(credit.amount, category as DataCategory, {
       isAbbreviated: true,
       useUnitScaling: true,
     })}/mo`;
@@ -103,24 +103,24 @@ function RecurringCredits({displayType, planDetails}: Props) {
             </thead>
             <tbody>
               {credits.map((credit, index) => {
-                const category =
-                  credit.type === CreditType.DISCOUNT ||
-                  credit.type === CreditType.PERCENT
-                    ? credit.type
-                    : getCreditDataCategory(credit)!;
+                const category = getCreditDataCategory(credit);
 
                 return (
                   <tr key={index}>
-                    <Title>
-                      {getPlanCategoryName({
-                        plan: planDetails,
-                        category,
-                        capitalize: false,
-                      })}
-                    </Title>
+                    {category ? (
+                      <Title>
+                        {getPlanCategoryName({
+                          plan: planDetails,
+                          category,
+                          capitalize: false,
+                        })}
+                      </Title>
+                    ) : (
+                      <Title>{credit.type}</Title>
+                    )}
 
                     <td data-test-id="amount">
-                      <span>{getAmount(credit, category)}</span>
+                      <span>{getAmount(credit, category ?? credit.type)}</span>
                     </td>
                     <td data-test-id="end-date">
                       {moment(credit.periodEnd).format('ll')}
@@ -145,7 +145,7 @@ const StyledPanelBody = styled(PanelBodyWithTable)`
 `;
 
 const SubText = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
 `;
 

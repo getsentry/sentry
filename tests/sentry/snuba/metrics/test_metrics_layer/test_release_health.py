@@ -27,7 +27,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def now(self):
         return BaseMetricsLayerTestCase.MOCK_DATETIME
 
-    def test_valid_filter_include_meta(self):
+    def test_valid_filter_include_meta(self) -> None:
         self.create_release(version="foo", project=self.project)
         self.store_session(
             self.build_session(
@@ -63,7 +63,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_validate_include_meta_computes_meta_for_composite_derived_metrics(self):
+    def test_validate_include_meta_computes_meta_for_composite_derived_metrics(self) -> None:
         query_params = MultiValueDict(
             {
                 "field": [
@@ -89,7 +89,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_alias_on_composite_entity_derived_metric(self):
+    def test_alias_on_composite_entity_derived_metric(self) -> None:
         for tag_value, count_value in (
             ("errored_preaggr", 10),
             ("crashed", 2),
@@ -139,7 +139,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_aliasing_behavior_on_derived_op_and_derived_alias(self):
+    def test_aliasing_behavior_on_derived_op_and_derived_alias(self) -> None:
         for tag_value, d_value in (
             ("exited", [4, 5, 6, 1, 2, 3]),
             ("crashed", [7, 8, 9]),
@@ -217,7 +217,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             }
         ]
 
-    def test_anr_rate_operations(self):
+    def test_anr_rate_operations(self) -> None:
         for tag_value, count_value, anr_mechanism in (
             ("abnormal", 1, None),
             ("abnormal", 2, "anr_background"),
@@ -273,7 +273,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_having(self):
+    def test_having(self) -> None:
         for name, count in (
             ("r1", 1),
             ("r3", 3),

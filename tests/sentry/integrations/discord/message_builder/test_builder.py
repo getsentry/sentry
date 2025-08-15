@@ -19,7 +19,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TestDiscordMessageBuilder(TestCase):
-    def test_empty(self):
+    def test_empty(self) -> None:
         message = DiscordMessageBuilder()
         result = message.build()
         assert result == {
@@ -28,7 +28,7 @@ class TestDiscordMessageBuilder(TestCase):
             "embeds": [],
         }
 
-    def test_some(self):
+    def test_some(self) -> None:
         flags = DiscordMessageFlags().set_ephemeral()
         message = DiscordMessageBuilder(
             content="message content",
@@ -42,7 +42,7 @@ class TestDiscordMessageBuilder(TestCase):
             "flags": EPHEMERAL_FLAG,
         }
 
-    def test_all(self):
+    def test_all(self) -> None:
         embed = DiscordMessageEmbed(
             title="Title",
             description="description",

@@ -2,9 +2,7 @@ import type {Location} from 'history';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -12,18 +10,19 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const WIDGET_ID_DELIMITER = ':';
-const SERIES_NAME_DELIMITER = ';';
+const SERIES_NAME_DELIMITER = '|~|';
 
 describe('WidgetLegend functions util', () => {
   let legendFunctions: WidgetLegendSelectionState;
 
-  describe('legendChanges', function () {
+  describe('legendChanges', () => {
     let widget: Widget;
     let location: Location;
     let organization: Organization;
     let dashboard: DashboardDetails;
-    let router: InjectedRouter;
+    let mockNavigate: jest.Mock;
     beforeEach(() => {
+      mockNavigate = jest.fn();
       widget = {
         id: '12345',
         title: 'Test Query',
@@ -55,15 +54,11 @@ describe('WidgetLegend functions util', () => {
         ...DashboardFixture([widget, {...widget, id: '23456'}]),
       };
 
-      router = {
-        ...RouterFixture({location}),
-      };
-
       legendFunctions = new WidgetLegendSelectionState({
         dashboard,
         location,
         organization,
-        router,
+        navigate: mockNavigate,
       });
     });
 
@@ -75,9 +70,12 @@ describe('WidgetLegend functions util', () => {
 
     it('updates legend query param when legend option toggled', () => {
       legendFunctions.setWidgetSelectionState({'Releases:12345': true}, widget);
-      expect(router.replace).toHaveBeenCalledWith({
-        query: {unselectedSeries: [`12345${WIDGET_ID_DELIMITER}`]},
-      });
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {unselectedSeries: [`12345${WIDGET_ID_DELIMITER}`]},
+        }),
+        {preventScrollReset: true, replace: true}
+      );
     });
 
     it('updates legend query param when legend option toggled but not in query params', () => {
@@ -90,9 +88,12 @@ describe('WidgetLegend functions util', () => {
         },
         widget
       );
-      expect(router.replace).toHaveBeenCalledWith({
-        query: {unselectedSeries: [`12345${WIDGET_ID_DELIMITER}Releases`]},
-      });
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {unselectedSeries: [`12345${WIDGET_ID_DELIMITER}Releases`]},
+        }),
+        {preventScrollReset: true, replace: true}
+      );
     });
 
     it('gives updated query param when widget change submitted', () => {
@@ -103,7 +104,7 @@ describe('WidgetLegend functions util', () => {
     });
   });
 
-  describe('legend naming', function () {
+  describe('legend naming', () => {
     let widget: Widget;
     beforeEach(() => {
       widget = {

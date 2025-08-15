@@ -33,7 +33,6 @@ import {
   createIngestionSeries,
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,
@@ -64,7 +63,11 @@ export enum ChartType {
   AREA = 2,
 }
 
-export interface ChartRenderingProps {
+export function isChartType(value: any): value is ChartType {
+  return typeof value === 'number' && Object.values(ChartType).includes(value as any);
+}
+
+interface ChartRenderingProps {
   height: number;
   isFullscreen: boolean;
 }
@@ -83,7 +86,6 @@ type Props = {
   disableXAxis?: boolean;
   durationUnit?: number;
   error?: Error | null;
-  forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxis?: boolean;
@@ -104,6 +106,7 @@ type Props = {
   onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
   rateUnit?: RateUnit;
+  ref?: RefObject<ReactEchartsRef>;
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
@@ -135,7 +138,7 @@ function Chart({
   onMouseOver,
   onMouseOut,
   onHighlight,
-  forwardedRef,
+  ref,
   chartGroup,
   tooltipFormatterOptions = {},
   error,
@@ -155,14 +158,14 @@ function Chart({
   const isLegendVisible = renderingContext?.isFullscreen ?? showLegend;
 
   const defaultRef = useRef<ReactEchartsRef>(null);
-  const chartRef = forwardedRef || defaultRef;
+  const chartRef = ref || defaultRef;
 
   const echartsInstance = chartRef?.current?.getEchartsInstance?.();
   if (echartsInstance && !echartsInstance.group) {
     echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
 
-  const colors = chartColors ?? getChartColorPalette(4);
+  const colors = chartColors ?? theme.chart.getColorPalette(4);
 
   const durationOnly =
     aggregateOutputFormat === 'duration' ||
@@ -500,7 +503,7 @@ function Chart({
 
     return (
       <AreaChart
-        forwardedRef={chartRef}
+        ref={chartRef}
         height={height}
         {...zoomRenderProps}
         series={[...series, ...incompleteSeries, ...(releaseSeries ?? [])]}
@@ -649,7 +652,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   align-items: center;
 `;
 
-export function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }

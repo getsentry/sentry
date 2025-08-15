@@ -10,10 +10,10 @@ from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
-from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.silo.base import control_silo_function
@@ -119,7 +119,7 @@ def _create_subscription_data(shared_secret: str) -> dict[str, Any]:
 
 
 class VstsSetupApiClient(ApiClient):
-    integration_name = "vsts"
+    integration_name = IntegrationProviderSlug.AZURE_DEVOPS.value
     api_version = "4.1"  # TODO: update api version
     api_version_preview = "-preview.1"
 
@@ -146,7 +146,7 @@ class VstsSetupApiClient(ApiClient):
 
 
 class VstsApiClient(IntegrationProxyClient, RepositoryClient):
-    integration_name = "vsts"
+    integration_name = IntegrationProviderSlug.AZURE_DEVOPS.value
     api_version = "4.1"  # TODO: update api version
     api_version_preview = "-preview.1"
     _identity: Identity | None = None
@@ -172,12 +172,12 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
 
     def request(self, method: str, *args: Any, **kwargs: Any) -> Any:
         api_preview = kwargs.pop("api_preview", False)
-        new_headers = prepare_headers(
+        base_headers = prepare_headers(
             api_version=self.api_version,
             method=method,
             api_version_preview=self.api_version_preview if api_preview else "",
         )
-        kwargs.setdefault("headers", {}).update(new_headers)
+        kwargs["headers"] = {**base_headers, **(kwargs.get("headers", {}))}
 
         return self._request(method, *args, **kwargs)
 
@@ -237,7 +237,6 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         title: str | None = None,
         description: str | None = None,
         comment: str | None = None,
-        link: str | None = None,
     ) -> dict[str, Any]:
         data = []
         if title:
@@ -246,16 +245,6 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
             data.append({"op": "add", "path": FIELD_MAP["description"], "value": description})
         if comment:
             data.append({"op": "add", "path": FIELD_MAP["comment"], "value": comment})
-        # XXX: Link is not yet used, as we can't explicitly bind it to Sentry.
-        # if link:
-        #     data.append({
-        #         'op': 'add',
-        #         'path': FIELD_MAP['link'],
-        #         'value': {
-        #             'rel': 'Hyperlink',
-        #             'url': link,
-        #         }
-        #     })
 
         return self.patch(
             VstsApiPath.work_items_create.format(
@@ -450,4 +439,19 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
-        raise IntegrationFeatureNotImplementedError
+        response = self.get_cached(
+            path=VstsApiPath.items.format(
+                instance=repo.config["instance"],
+                project=quote(repo.config["project"]),
+                repo_id=quote(repo.config["name"]),
+            ),
+            params={
+                "path": path,
+                "api-version": "7.0",
+                "versionDescriptor.version": ref,
+                "download": "true",
+            },
+            headers={"Accept": "*/*"},
+            raw_response=True,
+        )
+        return response.text

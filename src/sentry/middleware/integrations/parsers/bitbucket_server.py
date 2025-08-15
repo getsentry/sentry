@@ -6,13 +6,14 @@ from django.http.response import HttpResponseBase
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.bitbucket_server.webhook import BitbucketServerWebhookEndpoint
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.middleware.integrations.parsers.bitbucket import BitbucketRequestParser
 
 logger = logging.getLogger(__name__)
 
 
 class BitbucketServerRequestParser(BitbucketRequestParser):
-    provider = "bitbucket_server"
+    provider = IntegrationProviderSlug.BITBUCKET_SERVER.value
     webhook_identifier = WebhookProviderIdentifier.BITBUCKET_SERVER
 
     def get_response(self) -> HttpResponseBase:

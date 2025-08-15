@@ -17,9 +17,9 @@ import GroupStore from 'sentry/stores/groupStore';
 import type {NoteType} from 'sentry/types/alerts';
 import type {
   Group,
-  GroupActivity as GroupActivityType,
   GroupActivityNote,
   GroupActivityReprocess,
+  GroupActivity as GroupActivityType,
 } from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import type {MutateOptions} from 'sentry/utils/queryClient';
@@ -35,13 +35,13 @@ import {
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
 
-export type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
+type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
 
 interface GroupActivityProps {
   group: Group;
 }
 
-export function GroupActivity({group}: GroupActivityProps) {
+function GroupActivity({group}: GroupActivityProps) {
   const organization = useOrganization();
   const {activity: activities, count, id: groupId} = group;
   const groupCount = Number(count);

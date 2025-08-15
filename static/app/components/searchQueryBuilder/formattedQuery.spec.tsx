@@ -14,18 +14,25 @@ const FILTER_KEYS: TagCollection = {
   },
 };
 
-describe('FormattedQuery', function () {
+jest.mock('sentry/components/searchQueryBuilder/context', () => ({
+  useSearchQueryBuilder: () => ({
+    size: 'normal',
+    getFieldDefinition: () => null,
+  }),
+}));
+
+describe('FormattedQuery', () => {
   const defaultProps: Partial<FormattedQueryProps> = {
     filterKeys: FILTER_KEYS,
   };
 
-  it('renders aggregate filters correctly', function () {
+  it('renders aggregate filters correctly', () => {
     render(<FormattedQuery {...defaultProps} query="count():>1" />);
 
     expect(screen.getByText(textWithMarkupMatcher('count() > 1'))).toBeInTheDocument();
   });
 
-  it('renders filters with multiple values correctly', function () {
+  it('renders filters with multiple values correctly', () => {
     render(<FormattedQuery {...defaultProps} query="browser.name:[Firefox,Chrome]" />);
 
     expect(
@@ -33,13 +40,13 @@ describe('FormattedQuery', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders "is" filter correctly', function () {
+  it('renders "is" filter correctly', () => {
     render(<FormattedQuery {...defaultProps} query="is:unresolved" />);
 
     expect(screen.getByText(textWithMarkupMatcher('is unresolved'))).toBeInTheDocument();
   });
 
-  it('renders relative date filter correctly', function () {
+  it('renders relative date filter correctly', () => {
     render(<FormattedQuery {...defaultProps} query="lastSeen:-7d" />);
 
     expect(
@@ -47,7 +54,7 @@ describe('FormattedQuery', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders absolute date filter correctly', function () {
+  it('renders absolute date filter correctly', () => {
     render(<FormattedQuery {...defaultProps} query="lastSeen:>2024-01-01" />);
 
     expect(
@@ -55,10 +62,34 @@ describe('FormattedQuery', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders boolean logic correctly', function () {
+  it('renders boolean logic correctly', () => {
     render(<FormattedQuery {...defaultProps} query="(a OR b)" />);
 
     expect(screen.getByText('OR')).toBeInTheDocument();
     expect(screen.getAllByTestId('icon-parenthesis')).toHaveLength(2);
+  });
+
+  it('renders explicit string tag correctly', () => {
+    render(<FormattedQuery {...defaultProps} query="tags[foo,string]:bar" />);
+
+    expect(screen.getByText(textWithMarkupMatcher('foo is bar'))).toBeInTheDocument();
+  });
+
+  it('renders explicit number tag correctly', () => {
+    render(<FormattedQuery {...defaultProps} query="tags[foo,number]:<=100" />);
+
+    expect(screen.getByText(textWithMarkupMatcher('foo is <=100'))).toBeInTheDocument();
+  });
+
+  it('renders has explicit string tag correctly', () => {
+    render(<FormattedQuery {...defaultProps} query="has:tags[foo,string]" />);
+
+    expect(screen.getByText(textWithMarkupMatcher('has foo'))).toBeInTheDocument();
+  });
+
+  it('renders has number string tag correctly', () => {
+    render(<FormattedQuery {...defaultProps} query="has:tags[foo,number]" />);
+
+    expect(screen.getByText(textWithMarkupMatcher('has foo'))).toBeInTheDocument();
   });
 });

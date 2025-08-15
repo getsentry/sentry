@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import moment from 'moment-timezone';
 
 import {
@@ -9,14 +10,17 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {Link} from 'sentry/components/core/link';
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Truncate from 'sentry/components/truncate';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 
 import CustomerName from 'admin/components/customerName';
 import DetailLabel from 'admin/components/detailLabel';
@@ -34,11 +38,6 @@ import ResultGrid from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
 import titleCase from 'getsentry/utils/titleCase';
-
-type Props = DeprecatedAsyncComponent['props'] &
-  RouteComponentProps<{regionName: string; relocationUuid: string}, unknown> & {
-    api: Client;
-  };
 
 enum ArtifactsState {
   DISABLED = 0,
@@ -110,11 +109,6 @@ const orderedRelocationArtifacts = [
   'out/colliding-users.tar',
 ];
 
-type State = DeprecatedAsyncComponent['state'] & {
-  artifactsState: ArtifactsState;
-  data: Relocation;
-};
-
 const getArtifactRow = (row: RelocationArtifact) => [
   <td key="file">
     <strong>
@@ -175,57 +169,48 @@ const getUserRow = (row: any) => [
   </td>,
 ];
 
-class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const region = ConfigStore.get('regions').find(
-      (r: any) => r.name === this.props.params.regionName
-    );
-    return [
-      [
-        'data',
-        `/relocations/${this.props.params.relocationUuid}/`,
-        {
-          host: region ? region.url : '',
-        },
-      ],
-    ];
-  }
+function RelocationDetails() {
+  const {regionName, relocationUuid} = useParams<{
+    regionName: string;
+    relocationUuid: string;
+  }>();
+  const [artifactsState, setArtifactsState] = useState<ArtifactsState>(
+    ArtifactsState.DISABLED
+  );
+  const navigate = useNavigate();
 
-  componentDidMount() {
-    super.componentDidMount();
+  const region = ConfigStore.get('regions').find((r: any) => r.name === regionName);
+  const regionClient = new Client({baseUrl: `${region?.url || ''}/api/0`});
+  const regionApi = useApi({api: regionClient});
 
-    const region = ConfigStore.get('regions').find(
-      (r: any) => r.name === this.props.params.regionName
-    );
-    this.setState({
-      artifactsState: ArtifactsState.DISABLED,
-      region,
-    });
-    this.api = new Client({
-      baseUrl: `${region?.url || ''}/api/0`,
-    });
-  }
-
-  onDataUpdate = (data: any) => {
-    this.setState({
-      data: {
-        ...data,
-        region: ConfigStore.get('regions').find(
-          (region: any) => region.name === this.props.params.regionName
-        ),
-      },
-    });
-  };
-
-  onRequestSuccess = ({stateKey, data}: any) => {
-    if (stateKey === 'data') {
-      this.onDataUpdate(data);
+  const {data, isPending, isError, refetch} = useApiQuery<Relocation>(
+    [`/relocations/${relocationUuid}/`, {host: region ? region.url : ''}],
+    {
+      staleTime: 0,
     }
+  );
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  const relocationData = {
+    ...data,
+    region: ConfigStore.get('regions').find((r: any) => r.name === regionName) || {
+      name: regionName,
+      url: '',
+    },
   };
 
-  renderActions() {
-    const data: Relocation = this.state.data;
-    const artifactsState: ArtifactsState = this.state.artifactsState;
+  const handleDataUpdate = () => {
+    refetch();
+  };
+
+  const renderActions = () => {
     const actions: ActionItem[] = [];
 
     if (
@@ -238,24 +223,21 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
         help: `Show all artifacts (files, findings, etc) associated with this relocation for further review. You may need special admin privileges to use this feature.`,
         skipConfirmModal: true,
         onAction: () => {
-          if (this.state.artifactsState !== ArtifactsState.FETCHING) {
-            clearIndicators();
-            addLoadingMessage('Loading artifacts list...');
-            this.setState({
-              artifactsState: ArtifactsState.FETCHING,
-            });
-          }
+          // artifact state is either disabled or error
+          clearIndicators();
+          addLoadingMessage('Loading artifacts list...');
+          setArtifactsState(ArtifactsState.FETCHING);
         },
       });
     }
 
     // There are no actions for a relocation that has already succeeded.
-    if (data.status === 'SUCCESS') {
+    if (relocationData.status === 'SUCCESS') {
       return actions;
     }
 
     // Only one possible action for a failed relocation.
-    if (data.status === 'FAILURE') {
+    if (relocationData.status === 'FAILURE') {
       actions.push({
         key: 'retry',
         name: 'Retry',
@@ -265,10 +247,10 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
           openModal(deps => (
             <RelocationRetryModal
               {...deps}
-              relocation={data}
+              relocation={relocationData}
               onSuccess={(rawRelocation: Relocation) => {
-                browserHistory.push(
-                  `/_admin/relocations/${data.region.name}/${rawRelocation.uuid}/`
+                navigate(
+                  `/_admin/relocations/${relocationData.region.name}/${rawRelocation.uuid}/`
                 );
               }}
             />
@@ -279,7 +261,7 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
     }
 
     // In progress relocations may be paused, unless we are on the penultimate step.
-    if (data.status === 'IN_PROGRESS' && data.step !== 'NOTIFYING') {
+    if (relocationData.status === 'IN_PROGRESS' && relocationData.step !== 'NOTIFYING') {
       actions.push({
         key: 'pause',
         name: 'Schedule Pause',
@@ -289,9 +271,9 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
           openModal(deps => (
             <RelocationPauseModal
               {...deps}
-              relocation={data}
-              onSuccess={(rawRelocation: Relocation) => {
-                this.onDataUpdate(rawRelocation);
+              relocation={relocationData}
+              onSuccess={() => {
+                handleDataUpdate();
               }}
             />
           ));
@@ -301,8 +283,9 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
 
     // A paused relocation, or one that already has a pause scheduled, can be unpaused.
     const hasScheduledPause =
-      data.status === 'IN_PROGRESS' && data.scheduledPauseAtStep !== null;
-    if (data.status === 'PAUSE' || hasScheduledPause) {
+      relocationData.status === 'IN_PROGRESS' &&
+      relocationData.scheduledPauseAtStep !== null;
+    if (relocationData.status === 'PAUSE' || hasScheduledPause) {
       actions.push({
         key: 'unpause',
         name: 'Unpause',
@@ -312,9 +295,9 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
           openModal(deps => (
             <RelocationUnpauseModal
               {...deps}
-              relocation={data}
-              onSuccess={(rawRelocation: Relocation) => {
-                this.onDataUpdate(rawRelocation);
+              relocation={relocationData}
+              onSuccess={() => {
+                handleDataUpdate();
               }}
             />
           ));
@@ -323,7 +306,7 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
     }
 
     // Relocations may be cancelled, unless we are on the penultimate step.
-    if (data.step !== 'NOTIFYING') {
+    if (relocationData.step !== 'NOTIFYING') {
       actions.push({
         key: 'cancel',
         name: 'Schedule Cancellation',
@@ -333,9 +316,9 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
           openModal(deps => (
             <RelocationCancelModal
               {...deps}
-              relocation={data}
-              onSuccess={(rawRelocation: Relocation) => {
-                this.onDataUpdate(rawRelocation);
+              relocation={relocationData}
+              onSuccess={() => {
+                handleDataUpdate();
               }}
             />
           ));
@@ -352,9 +335,9 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
         openModal(deps => (
           <RelocationAbortModal
             {...deps}
-            relocation={data}
-            onSuccess={(rawRelocation: Relocation) => {
-              this.onDataUpdate(rawRelocation);
+            relocation={relocationData}
+            onSuccess={() => {
+              handleDataUpdate();
             }}
           />
         ));
@@ -362,35 +345,37 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
     });
 
     return actions;
-  }
+  };
 
-  renderOverview() {
-    const data: Relocation = this.state.data;
+  const renderOverview = () => {
     return (
       <DetailsContainer>
         <DetailList>
           <DetailLabel title="Provenance">
-            <code>{data.provenance}</code>
+            <code>{relocationData.provenance}</code>
           </DetailLabel>
           <DetailLabel title="Region">
-            <code>{this.props.params.regionName}</code>
+            <code>{regionName}</code>
           </DetailLabel>
           <DetailLabel title="Status">
-            <RelocationBadge data={data} />
+            <RelocationBadge data={relocationData} />
           </DetailLabel>
           <DetailLabel title="Owner">
-            {data.owner ? (
-              <Link aria-label="Owner" to={`/_admin/users/${data.owner.id}/`}>
-                {data.owner.email}
+            {relocationData.owner ? (
+              <Link aria-label="Owner" to={`/_admin/users/${relocationData.owner.id}/`}>
+                {relocationData.owner.email}
               </Link>
             ) : (
               <i>&lt;deleted&gt;</i>
             )}
           </DetailLabel>
           <DetailLabel title="Creator">
-            {data.creator ? (
-              <Link aria-label="Creator" to={`/_admin/users/${data.creator.id}/`}>
-                {data.creator.email}
+            {relocationData.creator ? (
+              <Link
+                aria-label="Creator"
+                to={`/_admin/users/${relocationData.creator.id}/`}
+              >
+                {relocationData.creator.email}
               </Link>
             ) : (
               <i>&lt;deleted&gt;</i>
@@ -398,27 +383,34 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
           </DetailLabel>
         </DetailList>
         <DetailList>
-          <DetailLabel title="Started">{moment(data.dateAdded).fromNow()}</DetailLabel>
-          <DetailLabel title="Updated">{moment(data.dateUpdated).fromNow()}</DetailLabel>
+          <DetailLabel title="Started">
+            {moment(relocationData.dateAdded).fromNow()}
+          </DetailLabel>
+          <DetailLabel title="Updated">
+            {moment(relocationData.dateUpdated).fromNow()}
+          </DetailLabel>
           <DetailLabel title="Autopause">
-            {data.scheduledPauseAtStep ? `${titleCase(data.scheduledPauseAtStep)}` : '--'}
+            {relocationData.scheduledPauseAtStep
+              ? `${titleCase(relocationData.scheduledPauseAtStep)}`
+              : '--'}
           </DetailLabel>
           <DetailLabel title="Owner Notified Of">
-            {data.latestNotified ? `${titleCase(data.latestNotified)}` : '--'}
+            {relocationData.latestNotified
+              ? `${titleCase(relocationData.latestNotified)}`
+              : '--'}
           </DetailLabel>
           <DetailLabel title="Unclaimed Users Last Notified">
-            {data.latestUnclaimedEmailsSentAt
-              ? moment(data.latestUnclaimedEmailsSentAt).fromNow()
+            {relocationData.latestUnclaimedEmailsSentAt
+              ? moment(relocationData.latestUnclaimedEmailsSentAt).fromNow()
               : '--'}
           </DetailLabel>
         </DetailList>
       </DetailsContainer>
     );
-  }
+  };
 
-  renderSummary() {
-    const data: Relocation = this.state.data;
-    const current_step = RelocationSteps[data.step];
+  const renderSummary = () => {
+    const current_step = RelocationSteps[relocationData.step];
     const steps: React.ReactElement[] = [];
     Object.keys(RelocationSteps)
       .filter(step => Number.isNaN(Number(step)))
@@ -428,11 +420,13 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
         }
 
         let text = <span>{`${key + 1}: ${titleCase(step)}`}</span>;
-        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-        if (RelocationSteps[step] === current_step) {
+        if (RelocationSteps[step as keyof typeof RelocationSteps] === current_step) {
           text = <b>{text}</b>;
         }
-        if (step === data.scheduledPauseAtStep || data.status === 'PAUSE') {
+        if (
+          step === relocationData.scheduledPauseAtStep ||
+          relocationData.status === 'PAUSE'
+        ) {
           text = <i>{text}</i>;
         }
 
@@ -448,24 +442,26 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
     return (
       <DetailList>
         <DetailLabel title="Progress">{steps}</DetailLabel>
-        <DetailLabel title="Requested Slugs">{data.wantOrgSlugs.join(', ')}</DetailLabel>
-        {data.wantUsernames ? (
+        <DetailLabel title="Requested Slugs">
+          {relocationData.wantOrgSlugs.join(', ')}
+        </DetailLabel>
+        {relocationData.wantUsernames ? (
           <DetailLabel title="Requested Usernames">
-            {data.wantUsernames.join(', ')}
+            {relocationData.wantUsernames.join(', ')}
           </DetailLabel>
         ) : null}
-        {data.failureReason ? (
-          <DetailLabel title="Notes">{data.failureReason}</DetailLabel>
+        {relocationData.failureReason ? (
+          <DetailLabel title="Notes">{relocationData.failureReason}</DetailLabel>
         ) : null}
       </DetailList>
     );
-  }
+  };
 
-  renderArtifactsSection() {
-    if (this.state.artifactsState === ArtifactsState.DISABLED) {
+  const renderArtifactsSection = () => {
+    if (artifactsState === ArtifactsState.DISABLED) {
       return null;
     }
-    if (this.state.artifactsState === ArtifactsState.ERROR) {
+    if (artifactsState === ArtifactsState.ERROR) {
       return {
         noPanel: false,
         content: (
@@ -484,9 +480,9 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
           key="artifacts"
           inPanel
           panelTitle="Relocation Artifacts"
-          path={`/_admin/relocations/${this.state.data.uuid}/`}
-          api={this.api}
-          endpoint={`/relocations/${this.state.data.uuid}/artifacts/`}
+          path={`/_admin/relocations/${relocationData.uuid}/`}
+          api={regionApi}
+          endpoint={`/relocations/${relocationData.uuid}/artifacts/`}
           method="GET"
           columns={[
             <th key="file" style={{width: 240}}>
@@ -506,8 +502,8 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
               response.files
                 .map((metadata: any) => {
                   return {
-                    regionName: this.props.params.regionName,
-                    relocation: this.state.data,
+                    regionName,
+                    relocation: relocationData,
                     path: metadata.path,
                     description: expectedRelocationArtifacts.get(metadata.path) || '',
                     sizeInKbs: metadata.bytes / 1000,
@@ -522,11 +518,11 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
               });
           }}
           onLoad={() => {
-            this.setState({artifactsState: ArtifactsState.FETCHED});
+            setArtifactsState(ArtifactsState.FETCHED);
             addSuccessMessage('Artifacts list loaded.');
           }}
           onError={res => {
-            this.setState({artifactsState: ArtifactsState.ERROR});
+            setArtifactsState(ArtifactsState.ERROR);
             if (res.status === 401 || res.status === 403) {
               addErrorMessage(res.responseJSON.detail);
             } else if (res.status === 404) {
@@ -540,16 +536,16 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
         />
       ),
     };
-  }
+  };
 
-  renderImportedOrgs(importedOrgIds: number[]) {
+  const renderImportedOrgs = (importedOrgIds: number[]) => {
     return (
       <ResultGrid
         key="orgs"
         inPanel
         panelTitle="Relocated Customers"
-        path={`/_admin/relocations/${this.state.data.uuid}/`}
-        api={this.api}
+        path={`/_admin/relocations/${relocationData.uuid}/`}
+        api={regionApi}
         endpoint="/customers/"
         method="GET"
         columns={[
@@ -562,15 +558,15 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
         defaultParams={{query: importedOrgIds.map(id => `id:${id.toString()}`).join(' ')}}
       />
     );
-  }
+  };
 
-  renderImportedUsers(importedUserIds: number[]) {
+  const renderImportedUsers = (importedUserIds: number[]) => {
     return (
       <ResultGrid
         key="users"
         inPanel
         panelTitle="Relocated Users"
-        path={`/_admin/relocations/${this.state.data.uuid}/`}
+        path={`/_admin/relocations/${relocationData.uuid}/`}
         endpoint="/users/"
         method="GET"
         columns={[
@@ -591,45 +587,46 @@ class RelocationDetails extends DeprecatedAsyncComponent<Props, State> {
         }}
       />
     );
+  };
+
+  const sections = [
+    {noPanel: false, content: renderOverview()},
+    {noPanel: false, content: renderSummary()},
+  ];
+
+  // If we are not sufficiently far along in the relocation step-wise, ignore this bit.
+  const stepValue = RelocationSteps[relocationData.step]
+    ? Number(RelocationSteps[relocationData.step].valueOf())
+    : 0;
+
+  if (stepValue >= 5) {
+    if (relocationData.importedOrgIds) {
+      sections.push({
+        noPanel: true,
+        content: renderImportedOrgs(relocationData.importedOrgIds),
+      });
+    }
+    if (relocationData.importedUserIds) {
+      sections.push({
+        noPanel: true,
+        content: renderImportedUsers(relocationData.importedUserIds),
+      });
+    }
   }
 
-  renderBody() {
-    const data: Relocation = this.state.data;
-    const sections = [
-      {noPanel: false, content: this.renderOverview()},
-      {noPanel: false, content: this.renderSummary()},
-    ];
-
-    // If we are not sufficiently far along in the relocation step-wise, ignore this bit.
-    if (RelocationSteps[data.step].valueOf() >= 5) {
-      if (data.importedOrgIds) {
-        sections.push({
-          noPanel: true,
-          content: this.renderImportedOrgs(data.importedOrgIds),
-        });
-      }
-      if (data.importedUserIds) {
-        sections.push({
-          noPanel: true,
-          content: this.renderImportedUsers(data.importedUserIds),
-        });
-      }
-    }
-
-    const maybeArtifactsSection = this.renderArtifactsSection();
-    if (maybeArtifactsSection) {
-      sections.push(maybeArtifactsSection);
-    }
-
-    return (
-      <DetailsPage
-        rootName="Relocation"
-        name={data.uuid}
-        actions={this.renderActions()}
-        sections={sections}
-      />
-    );
+  const maybeArtifactsSection = renderArtifactsSection();
+  if (maybeArtifactsSection) {
+    sections.push(maybeArtifactsSection);
   }
+
+  return (
+    <DetailsPage
+      rootName="Relocation"
+      name={relocationData.uuid}
+      actions={renderActions()}
+      sections={sections}
+    />
+  );
 }
 
 export default RelocationDetails;

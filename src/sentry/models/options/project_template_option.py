@@ -7,7 +7,6 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
-from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager.option import OptionManager
 from sentry.utils.cache import cache
 
@@ -105,7 +104,7 @@ class ProjectTemplateOption(Model):
 
     project_template = FlexibleForeignKey("sentry.ProjectTemplate", related_name="options")
     key = models.CharField(max_length=64)
-    value = PickledObjectField()
+    value = models.JSONField(null=True)
 
     objects: ClassVar[ProjectTemplateOptionManager] = ProjectTemplateOptionManager()
 

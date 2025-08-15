@@ -1,8 +1,8 @@
-import {useCallback, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -10,12 +10,13 @@ import type {SelectValue} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {
+  parseFunction,
   type AggregateParameter,
   type AggregationKeyWithAlias,
   type AggregationRefinement,
-  parseFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -32,6 +33,7 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
 type AggregateFunction = [
   AggregationKeyWithAlias,
@@ -57,6 +59,7 @@ interface SelectRowProps {
     option: FieldValueOption,
     fieldValue?: QueryFieldValue | undefined
   ) => boolean;
+  disabled?: boolean;
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
   stringFields?: string[];
@@ -95,7 +98,7 @@ export function SelectRow({
   field,
   index,
   hasColumnParameter,
-  columnOptions,
+  columnOptions: defaultColumnOptions,
   aggregateOptions,
   stringFields,
   error,
@@ -106,6 +109,7 @@ export function SelectRow({
   fieldOptions,
   columnFilterMethod,
   aggregates,
+  disabled,
 }: SelectRowProps) {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
@@ -126,12 +130,29 @@ export function SelectRow({
     });
   }, []);
 
+  const [lockOptions, columnOptions] = useMemo(() => {
+    if (state.dataset === WidgetType.SPANS && field.kind === FieldValueKind.FUNCTION) {
+      if (field.function[0] === AggregationKey.COUNT) {
+        const options = [
+          {
+            label: t('spans'),
+            value: DEFAULT_VISUALIZATION_FIELD,
+            textValue: DEFAULT_VISUALIZATION_FIELD,
+          },
+        ];
+        return [true, options];
+      }
+    }
+
+    return [false, defaultColumnOptions];
+  }, [defaultColumnOptions, state.dataset, field]);
+
   return (
     <PrimarySelectRow hasColumnParameter={hasColumnParameter}>
       <AggregateCompactSelect
         searchable
         hasColumnParameter={hasColumnParameter}
-        disabled={aggregateOptions.length <= 1}
+        disabled={disabled || aggregateOptions.length <= 1}
         options={aggregateOptions}
         value={
           parseFunction(stringFields?.[index] ?? '')?.name
@@ -245,6 +266,7 @@ export function SelectRow({
               currentField.function[0] = parseAggregateFromValueKey(
                 dropdownSelection.value as string
               ) as AggregationKeyWithAlias;
+
               if (
                 selectedAggregate?.value.meta &&
                 'parameters' in selectedAggregate.value.meta
@@ -273,6 +295,7 @@ export function SelectRow({
                           option.value === currentField.function[1] && !option.disabled
                       )?.value
                     );
+
                   currentField.function[1] =
                     (isValidColumn
                       ? currentField.function[1]
@@ -423,6 +446,7 @@ export function SelectRow({
             triggerProps={{
               'aria-label': t('Column Selection'),
             }}
+            disabled={disabled || lockOptions}
           />
         </SelectWrapper>
       )}
@@ -446,7 +470,7 @@ const FooterWrapper = styled('div')`
   align-items: center;
   justify-content: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const SelectWrapper = styled('div')`

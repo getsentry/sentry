@@ -55,8 +55,8 @@ function renderMockRequests({
   });
 }
 
-describe('Onboarding Setup Docs', function () {
-  it('does not render Product Selection', async function () {
+describe('Onboarding Setup Docs', () => {
+  it('does not render Product Selection', async () => {
     const {router, organization, project} = initializeOrg({
       projects: [
         {
@@ -90,6 +90,7 @@ describe('Onboarding Setup Docs', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -104,7 +105,7 @@ describe('Onboarding Setup Docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders SDK version from the sentry release registry', async function () {
+  it('renders SDK version from the sentry release registry', async () => {
     const {router, organization, project} = initializeOrg({
       projects: [
         {
@@ -138,6 +139,7 @@ describe('Onboarding Setup Docs', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -146,8 +148,8 @@ describe('Onboarding Setup Docs', function () {
     ).toBeInTheDocument();
   });
 
-  describe('renders Product Selection', function () {
-    it('all products checked', async function () {
+  describe('renders Product Selection', () => {
+    it('all products checked', async () => {
       const {router, organization, project} = initializeOrg({
         router: {
           location: {
@@ -194,6 +196,7 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -201,12 +204,13 @@ describe('Onboarding Setup Docs', function () {
         await screen.findByRole('heading', {name: 'Configure React SDK'})
       ).toBeInTheDocument();
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Tracing/);
-      expect(codeBlock).toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
     });
 
-    it('only performance checked', async function () {
+    it('only performance checked', async () => {
       const {router, organization, project} = initializeOrg({
         router: {
           location: {
@@ -248,15 +252,17 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Tracing/);
-      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Session Replay/);
     });
 
-    it('only session replay checked', async function () {
+    it('only session replay checked', async () => {
       const {router, organization, project} = initializeOrg({
         router: {
           location: {
@@ -298,15 +304,17 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Session Replay/);
-      expect(codeBlock).not.toHaveTextContent(/Tracing/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
     });
 
-    it('only error monitoring checked', async function () {
+    it('only error monitoring checked', async () => {
       const {router, organization, project} = initializeOrg({
         router: {
           location: {
@@ -348,19 +356,21 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).not.toHaveTextContent(/Tracing/);
-      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Session Replay/);
     });
   });
 
-  describe('JS Loader Script', function () {
-    it('renders Loader Script setup', async function () {
+  describe('JS Loader Script', () => {
+    it('renders Loader Script setup', async () => {
       const {router, organization, project} = initializeOrg({
         router: {
           location: {
@@ -417,6 +427,7 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -445,7 +456,7 @@ describe('Onboarding Setup Docs', function () {
         await screen.findByRole('radio', {name: 'Loader Script'})
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Session Replay'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Session Replay'}));
       expect(updateLoaderMock).toHaveBeenCalledTimes(2);
 
       expect(updateLoaderMock).toHaveBeenLastCalledWith(
@@ -467,7 +478,7 @@ describe('Onboarding Setup Docs', function () {
   });
 
   describe('special platforms', () => {
-    it('renders platform other', async function () {
+    it('renders platform other', async () => {
       const {router, organization, project} = initializeOrg({
         projects: [
           {
@@ -501,6 +512,7 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 

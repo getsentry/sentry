@@ -13,8 +13,10 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
-import {SPAN_RELATIVE_PERIODS, SPAN_RETENTION_DAYS} from '../utils';
+import {
+  SPAN_RELATIVE_PERIODS,
+  SPAN_RETENTION_DAYS,
+} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 
 import {ZoomKeys} from './utils';
 
@@ -81,7 +83,7 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 1fr auto;
   }
 `;

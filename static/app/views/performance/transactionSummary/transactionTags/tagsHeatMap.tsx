@@ -33,16 +33,16 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
-  TableData as TagTableData,
   TableDataRow,
+  TableData as TagTableData,
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
-import Tab from '../tabs';
-import {eventsRouteWithQuery} from '../transactionEvents/utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
@@ -111,6 +111,7 @@ function TagsHeatMap(
     aggregateColumn,
   } = props;
 
+  const {view} = useDomainViewFilters();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartElement, setChartElement] = useState<VirtualReference | undefined>();
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
@@ -327,13 +328,13 @@ function TagsHeatMap(
               eventView={transactionEventView}
               orgSlug={organization.slug}
               limit={4}
-              referrer="api.performance.tag-page"
+              referrer="api.insights.tag-page"
             >
               {({isLoading: isTransactionsLoading, tableData: transactionTableData}) => {
                 if (isTransactionsLoading) {
                   return (
                     <LoadingContainer>
-                      <LoadingIndicator size={40} hideMessage />
+                      <LoadingIndicator size={40} />
                     </LoadingContainer>
                   );
                 }
@@ -355,7 +356,6 @@ function TagsHeatMap(
                       const target = generateLinkToEventInTraceView({
                         eventId: row.id,
                         traceSlug: row.trace?.toString()!,
-                        projectSlug: (row.project || row['project.name'])!.toString(),
                         timestamp: row.timestamp!,
                         location: {
                           ...location,
@@ -365,8 +365,8 @@ function TagsHeatMap(
                           },
                         },
                         organization,
-                        transactionName,
                         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+                        view,
                       });
 
                       return (

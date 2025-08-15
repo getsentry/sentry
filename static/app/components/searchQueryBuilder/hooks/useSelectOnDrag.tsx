@@ -3,7 +3,7 @@ import type {ListState} from '@react-stately/list';
 import type {Key} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
+import {Token, type ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
 type DraggingState = {
   startPos: {
@@ -86,9 +86,9 @@ function getItemIndexAtPosition(
   x: number,
   y: number
 ) {
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i]!;
-    const coords = coordinates[key]!;
+  for (const [i, key] of keys.entries()) {
+    const coords = coordinates[key];
+    if (!coords) continue;
 
     // If we are above this item, we must be in between this and the
     // previous item on the row above it.

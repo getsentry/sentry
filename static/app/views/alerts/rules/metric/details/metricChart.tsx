@@ -1,5 +1,5 @@
 import {Fragment, useCallback} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -27,15 +27,14 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -44,7 +43,6 @@ import type {Project} from 'sentry/types/project';
 import toArray from 'sentry/utils/array/toArray';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -56,21 +54,27 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constan
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
-import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
-import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
-import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
-
-import type {Anomaly, Incident} from '../../../types';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
+import {
+  isEapAlertType,
+  shouldUseErrorsDiscoverDataset,
+} from 'sentry/views/alerts/rules/utils';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {
   alertDetailsLink,
   alertTooltipValueFormatter,
   isSessionAggregate,
-} from '../../../utils';
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
+} from 'sentry/views/alerts/utils';
+import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
+import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {
+  getAlertTypeFromAggregateDataset,
+  getTraceItemTypeForDatasetAndEventType,
+} from 'sentry/views/alerts/wizard/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
+import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
 
 import type {TimePeriodType} from './constants';
 import {
@@ -93,10 +97,7 @@ interface MetricChartProps {
 }
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
-  const {
-    options: {timezone},
-  } = ConfigStore.get('user');
-  return moment.tz(date, timezone).format(format);
+  return moment(date).format(format);
 }
 
 export function getRuleChangeSeries(
@@ -158,6 +159,11 @@ export default function MetricChart({
   const navigate = useNavigate();
   const organization = useOrganization();
   const shouldUseSessionsStats = isCrashFreeAlert(rule.dataset);
+
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(
+    rule.dataset,
+    rule.eventTypes
+  );
 
   const handleZoom = useCallback(
     (start: DateString, end: DateString) => {
@@ -234,6 +240,7 @@ export default function MetricChart({
         query,
         dataset,
         openInDiscoverDataset,
+        traceItemType,
       });
 
       const resolvedPercent =
@@ -288,23 +295,29 @@ export default function MetricChart({
             </Fragment>
           </StyledInlineContainer>
           {!isSessionAggregate(rule.aggregate) &&
-            (getAlertTypeFromAggregateDataset(rule) === 'eap_metrics' ? (
+            (isEapAlertType(
+              getAlertTypeFromAggregateDataset({
+                ...rule,
+                eventTypes: rule.eventTypes,
+                organization,
+              })
+            ) ? (
               <Feature features="visibility-explore-view">
-                <Button size="sm" {...props}>
+                <LinkButton size="sm" {...props}>
                   {buttonText}
-                </Button>
+                </LinkButton>
               </Feature>
             ) : (
               <Feature features="discover-basic">
-                <Button size="sm" {...props}>
+                <LinkButton size="sm" {...props}>
                   {buttonText}
-                </Button>
+                </LinkButton>
               </Feature>
             ))}
         </StyledChartControls>
       );
     },
-    [rule, organization, project, timePeriod, query]
+    [query, rule, organization, project, timePeriod, traceItemType]
   );
 
   const renderChart = useCallback(
@@ -335,16 +348,19 @@ export default function MetricChart({
         totalDuration,
         waitingForDataDuration,
         chartOption,
-      } = getMetricAlertChartOption({
-        timeseriesData,
-        rule,
-        seriesName: formattedAggregate,
-        incidents,
-        anomalies,
-        showWaitingForData:
-          shouldShowOnDemandMetricAlertUI(organization) && isOnDemandAlert,
-        handleIncidentClick,
-      });
+      } = getMetricAlertChartOption(
+        {
+          timeseriesData,
+          rule,
+          seriesName: formattedAggregate,
+          incidents,
+          anomalies,
+          showWaitingForData:
+            shouldShowOnDemandMetricAlertUI(organization) && isOnDemandAlert,
+          handleIncidentClick,
+        },
+        theme
+      );
 
       const comparisonSeriesName = capitalize(
         COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)
@@ -375,7 +391,14 @@ export default function MetricChart({
           <StyledPanelBody withPadding>
             <ChartHeader>
               <HeaderTitleLegend>
-                {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
+                {
+                  AlertWizardAlertNames[
+                    getAlertTypeFromAggregateDataset({
+                      ...rule,
+                      organization,
+                    })
+                  ]
+                }
               </HeaderTitleLegend>
             </ChartHeader>
             <ChartFilters>
@@ -395,33 +418,28 @@ export default function MetricChart({
                 <QueryFilters>{queryFilter}</QueryFilters>
               </Tooltip>
             </ChartFilters>
-            {getDynamicText({
-              value: (
-                <ChartZoom
-                  start={start}
-                  end={end}
-                  onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
-                >
-                  {zoomRenderProps => (
-                    <AreaChart
-                      {...zoomRenderProps}
-                      {...chartOption}
-                      showTimeInTooltip
-                      minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-                      additionalSeries={additionalSeries}
-                      tooltip={getMetricChartTooltipFormatter({
-                        formattedAggregate,
-                        rule,
-                        interval,
-                        comparisonSeriesName,
-                        theme,
-                      })}
-                    />
-                  )}
-                </ChartZoom>
-              ),
-              fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-            })}
+            <ChartZoom
+              start={start}
+              end={end}
+              onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+            >
+              {zoomRenderProps => (
+                <AreaChart
+                  {...zoomRenderProps}
+                  {...chartOption}
+                  showTimeInTooltip
+                  minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
+                  additionalSeries={additionalSeries}
+                  tooltip={getMetricChartTooltipFormatter({
+                    formattedAggregate,
+                    rule,
+                    interval,
+                    comparisonSeriesName,
+                    theme,
+                  })}
+                />
+              )}
+            </ChartZoom>
           </StyledPanelBody>
           {renderChartActions(
             totalDuration,
@@ -456,6 +474,10 @@ export default function MetricChart({
       rule,
       timePeriod,
       referrer: 'api.alerts.alert-rule-chart',
+      samplingMode:
+        rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+          ? SAMPLING_MODE.NORMAL
+          : undefined,
     },
     {enabled: !shouldUseSessionsStats}
   );
@@ -574,7 +596,7 @@ export function getMetricChartTooltipFormatter({
         )}</strong></span></div>`,
       `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
       comparisonSeries &&
-        `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+        `<div><span class="tooltip-label">${comparisonSeries.marker as string} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
       `</div>`,
       `<div class="tooltip-footer">`,
       `<span>${startTime} &mdash; ${endTime}</span>`,
@@ -614,13 +636,13 @@ const StyledInlineContainer = styled(InlineContainer)`
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
-  background: ${p => p.theme.formText};
+  background: ${p => p.theme.subText};
   height: ${space(1)};
   margin-right: ${space(0.5)};
 `;
 
 const ChartFilters = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.textColor};
   display: inline-grid;

@@ -1,5 +1,6 @@
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.serializers import ListField
 
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -8,66 +9,72 @@ from sentry.utils.dates import parse_stats_period, validate_interval
 
 
 class VisualizeSerializer(serializers.Serializer):
-    chartType = serializers.IntegerField()
+    chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField())
 
 
+class GroupBySerializer(serializers.Serializer):
+    groupBy = serializers.CharField()
+
+
+class AggregateFieldSerializer(serializers.Serializer):
+    # visualizes
+    chartType = serializers.IntegerField(required=False)
+    yAxes = serializers.ListField(child=serializers.CharField(), required=False)
+
+    # group bys
+    groupBy = serializers.CharField(required=False)
+
+    def validate(self, data):
+        visualize_serializer = VisualizeSerializer(data=data)
+
+        group_by_serializer = GroupBySerializer(data=data)
+
+        # if one of them is valid, then it's good
+        if visualize_serializer.is_valid() != group_by_serializer.is_valid():
+            return data
+
+        if visualize_serializer.is_valid() and group_by_serializer.is_valid():
+            raise ParseError("Ambiguous aggregate field. Must specify groupBy or yAxes, not both.")
+
+        # when neither are valid, we need to do some better error handling
+        visualize_errors = visualize_serializer.errors
+        group_by_errors = group_by_serializer.errors
+
+        visualize_has_not_required_errors = any(
+            error.code != "required" for error in visualize_errors.get("yAxes", [])
+        )
+        group_by_has_not_required_errors = any(
+            error.code != "required" for error in group_by_errors.get("groupBy", [])
+        )
+
+        if visualize_has_not_required_errors:
+            visualize_serializer.is_valid(raise_exception=True)
+        elif group_by_has_not_required_errors:
+            group_by_serializer.is_valid(raise_exception=True)
+
+        raise ValidationError(
+            {
+                **visualize_errors,
+                **group_by_errors,
+            }
+        )
+
+
 @extend_schema_serializer(exclude_fields=["groupby"])
-class ExploreSavedQuerySerializer(serializers.Serializer):
-    name = serializers.CharField(
-        required=True, max_length=255, help_text="The user-defined saved query name."
-    )
-    projects = ListField(
-        child=serializers.IntegerField(),
-        required=False,
-        default=[],
-        help_text="The saved projects filter for this query.",
-    )
-    dataset = serializers.ChoiceField(
-        choices=ExploreSavedQueryDataset.as_text_choices(),
-        default=ExploreSavedQueryDataset.get_type_name(ExploreSavedQueryDataset.SPANS),
-        help_text="The dataset you would like to query. `spans` is the only supported value for now.",
-    )
-    start = serializers.DateTimeField(
-        required=False, allow_null=True, help_text="The saved start time for this saved query."
-    )
-    end = serializers.DateTimeField(
-        required=False, allow_null=True, help_text="The saved end time for this saved query."
-    )
-    range = serializers.CharField(
-        required=False,
-        allow_null=True,
-        help_text="The saved time range period for this saved query.",
-    )
+class QuerySerializer(serializers.Serializer):
     fields = ListField(
         child=serializers.CharField(),
         required=False,
         allow_null=True,
-        help_text="""The fields, functions, or equations that can be requested for the query. At most 20 fields can be selected per request. Each field can be one of the following types:
-- A built-in key field. See possible fields in the [properties table](/product/sentry-basics/search/searchable-properties/#properties-table), under any field that is an event property.
-    - example: `field=transaction`
-- A tag. Tags should use the `tag[]` formatting to avoid ambiguity with any fields
-    - example: `field=tag[isEnterprise]`
-- A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions).
-    - when a function is included, Discover will group by any tags or fields
-    - example: `field=count_if(transaction.duration,greater,300)`
-- An equation when prefixed with `equation|`. Read more about [equations here](/product/discover-queries/query-builder/query-equations/).
-    - example: `field=equation|count_if(transaction.duration,greater,300) / count() * 100`
-""",
+        help_text="The fields that can be requested for the query.",
     )  # type: ignore[assignment]  # XXX: clobbers Serializer.fields
     orderby = serializers.CharField(
         required=False,
         allow_null=True,
-        help_text="How to order the query results. Must be something in the `field` list, excluding equations.",
+        help_text="How to order the query results. Must be something in the `field` list.",
     )
-
     groupby = ListField(child=serializers.CharField(), required=False, allow_null=True)
-    environment = ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_null=True,
-        help_text="The name of environments to filter by.",
-    )
     query = serializers.CharField(
         required=False,
         allow_null=True,
@@ -80,8 +87,16 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="The visualizations to be plotted on the chart.",
     )
-    interval = serializers.CharField(
-        required=False, allow_null=True, help_text="Resolution of the time series."
+    aggregateField = ListField(
+        child=AggregateFieldSerializer(),
+        required=False,
+        allow_null=True,
+        help_text="The visualizations to be plotted on the chart.",
+    )
+    aggregateOrderby = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="How to order the query results. Must be something in the `aggregateField` list, excluding equations.",
     )
     mode = serializers.ChoiceField(
         choices=[
@@ -91,29 +106,87 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         help_text="The mode of the query.",
     )
 
+
+class ExploreSavedQuerySerializer(serializers.Serializer):
+    name = serializers.CharField(
+        required=True, max_length=255, help_text="The user-defined saved query name."
+    )
+    projects = ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        default=list,
+        help_text="The saved projects filter for this query.",
+    )
+    dataset = serializers.ChoiceField(
+        choices=ExploreSavedQueryDataset.as_text_choices(),
+        default=ExploreSavedQueryDataset.get_type_name(ExploreSavedQueryDataset.SPANS),
+        help_text="The dataset you would like to query. `spans` is the only supported value for now.",
+    )
+    start = serializers.DateTimeField(
+        required=False,
+        allow_null=True,
+        help_text="The saved start time for this saved query.",
+    )
+    end = serializers.DateTimeField(
+        required=False,
+        allow_null=True,
+        help_text="The saved end time for this saved query.",
+    )
+    range = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="The saved time range period for this saved query.",
+    )
+    environment = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="The name of environments to filter by.",
+    )
+    interval = serializers.CharField(
+        required=False, allow_null=True, help_text="Resolution of the time series."
+    )
+    query = ListField(child=QuerySerializer(), required=False, allow_null=True)
+
     def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids
 
         return validate_project_ids(projects, self.context["params"]["project_id"])
 
+    # Avoid including any side-effecting logic here, since this logic is also used when generating prebuilt queries on first read
     def validate(self, data):
         query = {}
         query_keys = [
             "environment",
-            "query",
-            "fields",
             "range",
             "start",
             "end",
-            "orderby",
-            "visualize",
             "interval",
+        ]
+
+        inner_query_keys = [
+            "query",
+            "fields",
+            "orderby",
+            "groupby",
+            "visualize",
             "mode",
+            "aggregateField",
+            "aggregateOrderby",
         ]
 
         for key in query_keys:
             if data.get(key) is not None:
                 query[key] = data[key]
+
+        if "query" in data:
+            query["query"] = []
+            for q in data["query"]:
+                inner_query = {}
+                for key in inner_query_keys:
+                    if key in q:
+                        inner_query[key] = q[key]
+                query["query"].append(inner_query)
 
         if data["projects"] == ALL_ACCESS_PROJECTS:
             data["projects"] = []

@@ -1,11 +1,11 @@
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as ActionCreators from 'sentry/actionCreators/formSearch';
-import FormSource from 'sentry/components/search/sources/formSource';
-import type {FormSearchField} from 'sentry/stores/formSearchStore';
-import FormSearchStore from 'sentry/stores/formSearchStore';
+import FormSource, {
+  setSearchMap,
+  type FormSearchField,
+} from 'sentry/components/search/sources/formSource';
 
-describe('FormSource', function () {
+describe('FormSource', () => {
   const searchMap: FormSearchField[] = [
     {
       title: 'Test Field',
@@ -31,17 +31,11 @@ describe('FormSource', function () {
     },
   ];
 
-  beforeEach(function () {
-    jest.spyOn(ActionCreators, 'loadSearchMap').mockImplementation(() => {});
-
-    FormSearchStore.loadSearchMap(searchMap);
+  beforeEach(() => {
+    setSearchMap(searchMap);
   });
 
-  afterEach(function () {
-    jest.mocked(ActionCreators.loadSearchMap).mockRestore();
-  });
-
-  it('can find a form field', async function () {
+  it('can find a form field', async () => {
     const mock = jest.fn().mockReturnValue(null);
     render(<FormSource query="te">{mock}</FormSource>);
 
@@ -63,6 +57,7 @@ describe('FormSource', function () {
                 resultType: 'field',
                 sourceType: 'field',
                 to: {pathname: '/route/', hash: '#test-field'},
+                resolvedTs: expect.anything(),
               },
             }),
           ],
@@ -71,7 +66,7 @@ describe('FormSource', function () {
     );
   });
 
-  it('does not find any form field', async function () {
+  it('does not find any form field', async () => {
     const mock = jest.fn().mockReturnValue(null);
     render(<FormSource query="invalid">{mock}</FormSource>);
 

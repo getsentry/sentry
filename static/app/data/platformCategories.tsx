@@ -1,3 +1,4 @@
+import {platforms} from 'sentry/data/platforms';
 import type {PlatformKey} from 'sentry/types/project';
 
 export enum PlatformCategory {
@@ -7,6 +8,7 @@ export enum PlatformCategory {
   SERVERLESS = 3,
   DESKTOP = 4,
   OTHER = 5,
+  GAMING = 6,
 }
 
 // Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py
@@ -23,6 +25,7 @@ export const frontend: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
   'javascript-solid',
   'javascript-solidstart',
@@ -162,6 +165,18 @@ export const desktop: PlatformKey[] = [
   'unreal',
 ];
 
+// Mirrors `GAMING` in src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+export const gaming: PlatformKey[] = [
+  'godot',
+  'native',
+  'nintendo-switch',
+  'playstation',
+  'unity',
+  'unreal',
+  'xbox',
+];
+
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
   'react-native',
@@ -237,6 +252,7 @@ export const platformsWithNestedInstrumentationGuides: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
   'javascript-solid',
   'javascript-svelte',
@@ -284,65 +300,97 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
   'nintendo-switch',
+  'playstation',
+  'xbox',
+]);
+
+// List of platforms that have logging onboarding checklist content
+export const withLoggingOnboarding: Set<PlatformKey> = new Set(['javascript-react']);
+
+// List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
+export const withoutLoggingSupport: Set<PlatformKey> = new Set([
+  'cocoa-objc',
+  'cocoa-swift',
+  'elixir',
+  'dotnet',
+  'php-symfony',
+  'unity',
+  'unreal',
+  'native',
 ]);
 
 export const profiling: PlatformKey[] = [
-  // mobile
   'android',
+  'apple',
   'apple-ios',
-  // go
+  'apple-macos',
+  'dotnet',
+  'dotnet-winforms',
+  'dotnet-wpf',
+  'flutter',
   'go',
-  // nodejs
-  'node',
-  'node-express',
-  'node-koa',
-  'node-connect',
+  'javascript',
+  'javascript-angular',
+  'javascript-astro',
+  'javascript-ember',
+  'javascript-gatsby',
   'javascript-nextjs',
   'javascript-nuxt',
+  'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
+  'javascript-solid',
   'javascript-solidstart',
+  'javascript-svelte',
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
-  'javascript',
-  'javascript-react',
-  // react-native
-  'react-native',
-  // python
-  'python',
-  'python-django',
-  'python-flask',
-  'python-fastapi',
-  'python-starlette',
-  'python-sanic',
-  'python-celery',
-  'python-bottle',
-  'python-pylons',
-  'python-pyramid',
-  'python-tornado',
-  'python-rq',
-  'python-aiohttp',
-  'python-chalice',
-  'python-falcon',
-  'python-quart',
-  'python-tryton',
-  'python-wsgi',
-  'python-serverless',
-  // rust
-  'rust',
-  // php
+  'javascript-vue',
+  'node',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-connect',
+  'node-express',
+  'node-fastify',
+  'node-gcpfunctions',
+  'node-hapi',
+  'node-koa',
+  'node-nestjs',
   'php',
   'php-laravel',
   'php-symfony',
-  // ruby
-  'ruby',
-  'ruby-rails',
+  'python',
+  'python-aiohttp',
+  'python-asgi',
+  'python-awslambda',
+  'python-bottle',
+  'python-celery',
+  'python-chalice',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-gcpfunctions',
+  'python-pylons',
+  'python-pyramid',
+  'python-quart',
+  'python-rq',
+  'python-sanic',
+  'python-serverless',
+  'python-starlette',
+  'python-tornado',
+  'python-tryton',
+  'python-wsgi',
+  'react-native',
   'ruby-rack',
+  'ruby-rails',
+  'ruby',
 ];
 
 export const releaseHealth: PlatformKey[] = [
-  // frontend
   'javascript',
   'javascript-react',
+  'javascript-react-router',
+  'javascript-remix',
   'javascript-angular',
   'javascript-angularjs',
   'javascript-astro',
@@ -352,7 +400,6 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-vue',
   'javascript-nextjs',
   'javascript-nuxt',
-  'javascript-remix',
   'javascript-solid',
   'javascript-solidstart',
   'javascript-svelte',
@@ -460,6 +507,7 @@ export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-nextjs',
   'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
   'javascript-solid',
   'javascript-solidstart',
@@ -507,6 +555,8 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 // Feedback platforms that show only NPM widget setup instructions (no loader)
 export const feedbackNpmPlatforms: readonly PlatformKey[] = [
   'ionic',
+  'react-native',
+  'flutter',
   ...replayFrontendPlatforms,
 ];
 
@@ -531,13 +581,11 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'dotnet-wpf',
   'dotnet-winforms',
   'dotnet-xamarin',
-  'flutter',
   'java',
   'java-log4j2',
   'java-logback',
   'kotlin',
   'node-koa',
-  'react-native',
   'unity',
   'unreal',
 ];
@@ -576,33 +624,25 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
   ...feedbackCrashApiPlatforms,
 ];
 
-// Feature flag onboarding platforms
-export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
-  'javascript',
-  'python',
-  'javascript-angular',
-  'javascript-astro',
-  'javascript-ember',
-  'javascript-gatsby',
+const platformKeys = platforms.map(p => p.id);
+
+// Feature flag platforms with gettingStartedDocs. Note backend js platforms start with 'node-'.
+export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = platformKeys.filter(
+  id => id.startsWith('javascript') || id.startsWith('python')
+);
+
+// Feature flag platforms to show the issue details distribution drawer for.
+export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platformKeys.filter(
+  id => id.startsWith('javascript') || id.startsWith('python')
+);
+
+export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   'javascript-nextjs',
-  'javascript-nuxt',
-  'javascript-react',
   'javascript-remix',
-  'javascript-solid',
+  'javascript-react-router',
   'javascript-solidstart',
-  'javascript-svelte',
   'javascript-sveltekit',
   'javascript-tanstackstart-react',
-  'javascript-vue',
-  'python-aiohttp',
-  'python-bottle',
-  'python-django',
-  'python-falcon',
-  'python-fastapi',
-  'python-flask',
-  'python-pyramid',
-  'python-quart',
-  'python-sanic',
-  'python-starlette',
-  'python-tornado',
-];
+  ...platformKeys.filter(id => id.startsWith('node')),
+  ...platformKeys.filter(id => id.startsWith('python')),
+]);

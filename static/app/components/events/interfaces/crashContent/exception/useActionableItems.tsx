@@ -1,6 +1,6 @@
 import {
-  type ErrorMessage,
   getErrorMessage,
+  type ErrorMessage,
 } from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {
   shouldErrorBeShown,
@@ -59,7 +59,7 @@ export function actionableItemsEnabled({
   organization?: Organization | SharedViewOrganization | null;
   projectSlug?: string;
 }) {
-  if (!organization || !organization.features || !projectSlug || !eventId) {
+  if (!organization?.features || !projectSlug || !eventId) {
     return false;
   }
   return true;

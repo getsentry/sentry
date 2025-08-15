@@ -5,7 +5,7 @@ import {
   validateTokens,
 } from 'sentry/components/arithmeticBuilder/validator';
 
-describe('vaidateTokens', function () {
+describe('vaidateTokens', () => {
   it.each([
     '',
     '(',
@@ -28,12 +28,19 @@ describe('vaidateTokens', function () {
     'avg(span.duration) avg(span.duration)',
     'avg(span.duration) + avg(span.duration))',
     'avg(span.duration) ( avg(span.duration) + avg(span.duration) )',
-  ])('fails %s', function (expression) {
+  ])('fails %s', expression => {
     const tokens = tokenizeExpression(expression);
     expect(validateTokens(tokens)).toBe(false);
   });
 
   it.each([
+    '1',
+    '(1)',
+    '((1))',
+    '1 + 1',
+    '(1 + 1)',
+    '(1 + 1) / 1',
+    '(1 + 1) / (1 - 1)',
     'avg(span.duration)',
     '(avg(span.duration))',
     '((avg(span.duration)))',
@@ -41,33 +48,41 @@ describe('vaidateTokens', function () {
     '(avg(span.duration) + avg(span.duration))',
     '(avg(span.duration) + avg(span.duration)) / avg(span.duration)',
     '(avg(span.duration) + avg(span.duration)) / (avg(span.duration) - avg(span.duration))',
-  ])('passes %s', function (expression) {
+    'avg(span.duration) + 1',
+    '(avg(span.duration) + 1)',
+    '1 + avg(span.duration)',
+    '(1 + avg(span.duration))',
+  ])('passes %s', expression => {
     const tokens = tokenizeExpression(expression);
     expect(validateTokens(tokens)).toBe(true);
   });
 });
 
-describe('computeNextAllowedTokenKinds', function () {
+describe('computeNextAllowedTokenKinds', () => {
   it.each([
-    ['', [[TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION]]],
+    ['', [[TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL]]],
     [
       '(',
       [
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
         [],
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
       ],
     ],
     [
       'avg(span.duration)',
-      [[TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION], [], [TokenKind.OPERATOR]],
+      [
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
+        [],
+        [TokenKind.OPERATOR],
+      ],
     ],
     [
       '(avg(span.duration)',
       [
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
         [],
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
         [],
         [TokenKind.CLOSE_PARENTHESIS, TokenKind.OPERATOR],
       ],
@@ -75,14 +90,24 @@ describe('computeNextAllowedTokenKinds', function () {
     [
       'avg(span.duration) (',
       [
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
         [],
         [TokenKind.OPERATOR],
         [],
-        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION],
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
       ],
     ],
-  ])('suggests next token', function (expression, expected) {
+    [
+      '1 1',
+      [
+        [TokenKind.OPEN_PARENTHESIS, TokenKind.FUNCTION, TokenKind.LITERAL],
+        [],
+        [TokenKind.OPERATOR],
+        [],
+        [TokenKind.OPERATOR],
+      ],
+    ],
+  ])('suggests next token %s', (expression, expected) => {
     const tokens = tokenizeExpression(expression);
     expect(computeNextAllowedTokenKinds(tokens)).toEqual(expected);
   });

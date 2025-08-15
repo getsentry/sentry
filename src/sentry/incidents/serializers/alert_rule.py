@@ -13,6 +13,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 from sentry import features
 from sentry.api.exceptions import BadRequest, RequestTimeout
 from sentry.api.fields.actor import ActorField
+from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.api.serializers.rest_framework.project import ProjectField
@@ -30,11 +31,12 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
-    dual_update_resolve_condition,
+    dual_update_alert_rule,
     dual_write_alert_rule,
 )
 
@@ -124,6 +126,20 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 "Invalid threshold type, valid values are %s"
                 % [item.value for item in AlertRuleThresholdType]
             )
+
+    def validate_aggregate(self, aggregate):
+        """
+        Validate aggregate field and reject upsampled_count() from user input.
+
+        upsampled_count() is reserved for internal use only and gets set automatically
+        by the backend when error upsampling is detected. Users should use count() instead.
+        """
+        if aggregate == "upsampled_count()":
+            raise serializers.ValidationError(
+                "upsampled_count() is not allowed as user input. Use count() instead - "
+                "it will be automatically converted to upsampled_count() when appropriate."
+            )
+        return aggregate
 
     def validate(self, data):
         """
@@ -249,6 +265,9 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
         with transaction.atomic(router.db_for_write(AlertRule)):
             triggers = validated_data.pop("triggers")
             user = self.context.get("user", None)
+
+            self._apply_error_upsampling_if_needed(validated_data)
+
             try:
                 alert_rule = create_alert_rule(
                     user=user,
@@ -272,12 +291,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
 
             self._handle_triggers(alert_rule, triggers)
 
-            # NOTE (mifu67): skip dual writing anomaly detection alerts until we figure out how to handle them
-            should_dual_write = (
-                features.has(
-                    "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
-                )
-                and alert_rule.detection_type != AlertRuleDetectionType.DYNAMIC
+            should_dual_write = features.has(
+                "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
             )
             if should_dual_write:
                 try:
@@ -287,10 +302,28 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                     raise BadRequest(message="Error when creating alert rule")
             return alert_rule
 
+    def _apply_error_upsampling_if_needed(self, validated_data):
+        """
+        Automatically convert count() to upsampled_count() for error alerts on upsampled projects.
+        """
+        # Only apply to count() aggregates on Events dataset (error alerts)
+        if (
+            validated_data.get("aggregate") == "count()"
+            and validated_data.get("dataset") == Dataset.Events
+            and validated_data.get("projects")
+        ):
+            project_ids = [project.id for project in validated_data["projects"]]
+            if are_any_projects_error_upsampled(project_ids):
+                validated_data["aggregate"] = "upsampled_count()"
+
     def update(self, instance, validated_data):
         triggers = validated_data.pop("triggers")
         if "id" in validated_data:
             validated_data.pop("id")
+
+        # Apply error upsampling conversion if needed
+        self._apply_error_upsampling_if_needed(validated_data)
+
         with transaction.atomic(router.db_for_write(AlertRule)):
             try:
                 alert_rule = update_alert_rule(
@@ -313,6 +346,11 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 )
                 raise BadRequest
             self._handle_triggers(alert_rule, triggers)
+            try:
+                dual_update_alert_rule(alert_rule)
+            except Exception:
+                sentry_sdk.capture_exception()
+                raise BadRequest(message="Error when updating alert rule")
             return alert_rule
 
     def _handle_triggers(self, alert_rule, triggers):
@@ -360,8 +398,5 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                         channel_lookup_timeout_error = e
                 else:
                     raise serializers.ValidationError(trigger_serializer.errors)
-            # after all the triggers have been processed, dual update the resolve data condition if necessary
-            # if an error occurs in this method, it won't affect the alert rule triggers, which have already been saved
-            dual_update_resolve_condition(alert_rule)
         if channel_lookup_timeout_error:
             raise channel_lookup_timeout_error

@@ -13,17 +13,13 @@ export function getDatasetFromLocation(location: Location): DiscoverDatasets | u
   return parseDataset(rawDataset);
 }
 
-export function parseDataset(rawDataset: string | undefined) {
-  if (rawDataset === 'spansIndexed') {
-    return DiscoverDatasets.SPANS_INDEXED;
-  }
-
+function parseDataset(rawDataset: string | undefined) {
   if (rawDataset === 'spansRpc') {
-    return DiscoverDatasets.SPANS_EAP_RPC;
+    return DiscoverDatasets.SPANS;
   }
 
   if (rawDataset === 'spans') {
-    return DiscoverDatasets.SPANS_EAP;
+    return DiscoverDatasets.SPANS;
   }
 
   return undefined;

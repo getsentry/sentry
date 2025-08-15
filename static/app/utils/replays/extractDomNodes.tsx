@@ -2,7 +2,7 @@ import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getNodeIds} from 'sentry/utils/replays/types';
-import constructSelector from 'sentry/views/replays/deadRageClick/constructSelector';
+import constructSelector from 'sentry/views/replays/selectors/constructSelector';
 
 export type Extraction = {
   frame: ReplayFrame;
@@ -14,7 +14,7 @@ export type Extraction = {
 const extractDomNodes = {
   shouldVisitFrame: (frame: any) => {
     const nodeIds = getNodeIds(frame);
-    return nodeIds.filter((nodeId: any) => nodeId !== -1).length > 0;
+    return nodeIds.some((nodeId: any) => nodeId !== -1);
   },
   onVisitFrame: (frame: any, collection: any, replayer: any) => {
     const mirror = replayer.getMirror();

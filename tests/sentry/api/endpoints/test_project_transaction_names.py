@@ -66,8 +66,8 @@ class ProjectTransactionNamesClusterTest(APITestCase):
             },
         }
 
-    def test_get_snuba(self):
+    def test_get_snuba(self) -> None:
         self._test_get("snuba")
 
-    def test_get_redis(self):
+    def test_get_redis(self) -> None:
         self._test_get("redis")

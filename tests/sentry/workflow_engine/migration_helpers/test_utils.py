@@ -16,8 +16,9 @@ OPSGENIE_METADATA = {
 
 
 class WorkflowNameTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.rpc_user = user_service.get_user(user_id=self.user.id)
+        assert self.rpc_user
         self.og_team = self.create_team(organization=self.organization)
         self.og_team_table = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
         self.metric_alert = self.create_alert_rule(resolve_threshold=2)
@@ -27,7 +28,7 @@ class WorkflowNameTest(APITestCase):
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.alert_rule_trigger_critical,
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=str(self.rpc_user.id),
         )
         self.slack_integration = install_slack(self.organization)
         self.opsgenie_integration = self.create_provider_integration(
@@ -60,46 +61,49 @@ class WorkflowNameTest(APITestCase):
             self.org_integration.config = {"team_table": [self.og_team_table]}
             self.org_integration.save()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         """
         Test that the action text is what we expect when we migrate an alert rule with only a critical trigger
         """
         migrate_alert_rule(self.metric_alert, self.rpc_user)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.metric_alert.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
         assert self.rpc_user
         assert workflow.name == f"Email {self.rpc_user.email}"
 
-    def test_warning_and_critical(self):
+    def test_warning_and_critical(self) -> None:
         """
         Test that the action text is what we expect when we have both a critical and warning trigger
         """
         self.alert_rule_trigger_warning = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="warning"
         )
+        assert self.rpc_user
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.alert_rule_trigger_warning,
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
+            target_identifier=str(self.rpc_user.id),
         )
         migrate_alert_rule(self.metric_alert, self.rpc_user)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.metric_alert.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
-        assert self.rpc_user
         assert (
             workflow.name
             == f"Critical - Email {self.rpc_user.email}, Warning - Email {self.rpc_user.email}"
         )
 
-    def test_many_actions(self):
+    def test_many_actions(self) -> None:
         """
         Test that if we have more than 3 actions we format the name as expected
         """
         user2 = self.create_user(email="meow@woof.com")
         user3 = self.create_user(email="bark@meow.com")
         user4 = self.create_user(email="idk@lol.com")
+        self.create_member(user=user2, organization=self.organization, role="admin", teams=[])
+        self.create_member(user=user3, organization=self.organization, role="admin", teams=[])
+        self.create_member(user=user4, organization=self.organization, role="admin", teams=[])
 
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.alert_rule_trigger_critical,
@@ -117,7 +121,7 @@ class WorkflowNameTest(APITestCase):
             target_identifier=str(user4.id),
         )
         migrate_alert_rule(self.metric_alert, self.rpc_user)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.metric_alert.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
         assert self.rpc_user
@@ -126,7 +130,7 @@ class WorkflowNameTest(APITestCase):
             == f"Email {self.rpc_user.email}, Email {user2.email}, Email {user3.email}...(+1)"
         )
 
-    def test_with_integrations(self):
+    def test_with_integrations(self) -> None:
         """
         Test that we receive the text we expect for actions of various integration types
         """
@@ -163,7 +167,7 @@ class WorkflowNameTest(APITestCase):
             integration_id=self.slack_integration.id,
         )
         migrate_alert_rule(self.metric_alert, self.rpc_user)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.metric_alert.id)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
         assert self.rpc_user
@@ -171,3 +175,34 @@ class WorkflowNameTest(APITestCase):
             workflow.name
             == f"Critical - Email {self.rpc_user.email}, Notify {self.og_team_table["team"]} via {self.opsgenie_integration.provider.title()}, Warning - Email #{self.og_team.slug}...(+2)"
         )
+
+    def test_missing_org_member(self) -> None:
+        user = self.create_user()
+        alert_rule = self.create_alert_rule()
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, target_identifier=str(user.id)
+        )
+
+        migrate_alert_rule(alert_rule, self.rpc_user)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+
+        assert workflow.name == "Email [removed]"
+
+    def test_missing_team(self) -> None:
+        team = self.create_team(organization=self.organization)
+        alert_rule = self.create_alert_rule(organization=self.organization)
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger,
+            target_identifier=str(team.id),
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+        )
+        team.delete()
+
+        migrate_alert_rule(alert_rule, self.rpc_user)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+
+        assert workflow.name == "Email [removed]"

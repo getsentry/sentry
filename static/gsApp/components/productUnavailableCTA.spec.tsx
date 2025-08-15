@@ -66,9 +66,9 @@ function renderMockRequests({
   return {requestUpdatePlanDueToReplay};
 }
 
-describe('ProductUnavailableCTA', function () {
-  describe('with no billing access', function () {
-    it('renders no alert', function () {
+describe('ProductUnavailableCTA', () => {
+  describe('with no billing access', () => {
+    it('renders no alert', () => {
       const organization = OrganizationFixture({
         features: ['performance-view', 'session-replay'],
       });
@@ -83,17 +83,15 @@ describe('ProductUnavailableCTA', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('without performance and session replay', async function () {
-      const {organization, router} = initializeOrg();
+    it('without performance and session replay', async () => {
+      const {organization} = initializeOrg();
 
       const mockRequests = renderMockRequests({
         planTier: PlanTier.MM1,
         organization,
       });
 
-      render(<ProductUnavailableCTA organization={organization} />, {
-        router,
-      });
+      render(<ProductUnavailableCTA organization={organization} />);
 
       expect(
         await screen.findByText(/request an owner in your organization to update/i)
@@ -113,8 +111,8 @@ describe('ProductUnavailableCTA', function () {
       });
     });
 
-    it('without session replay', async function () {
-      const {organization, router} = initializeOrg({
+    it('without session replay', async () => {
+      const {organization} = initializeOrg({
         organization: {
           features: ['performance-view'],
         },
@@ -125,9 +123,7 @@ describe('ProductUnavailableCTA', function () {
         organization,
       });
 
-      render(<ProductUnavailableCTA organization={organization} />, {
-        router,
-      });
+      render(<ProductUnavailableCTA organization={organization} />);
 
       expect(
         await screen.findByText(/request an owner in your organization to update/i)
@@ -150,8 +146,8 @@ describe('ProductUnavailableCTA', function () {
     });
   });
 
-  describe('with billing access', function () {
-    it('renders no alert', function () {
+  describe('with billing access', () => {
+    it('renders no alert', () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
         features: ['performance-view', 'session-replay'],
@@ -167,8 +163,8 @@ describe('ProductUnavailableCTA', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('without performance and session replay', async function () {
-      const {router, organization} = initializeOrg({
+    it('without performance and session replay', async () => {
+      const {organization} = initializeOrg({
         organization: {
           access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
         },
@@ -179,9 +175,7 @@ describe('ProductUnavailableCTA', function () {
         organization,
       });
 
-      render(<ProductUnavailableCTA organization={organization} />, {
-        router,
-      });
+      render(<ProductUnavailableCTA organization={organization} />);
 
       expect(await screen.findByText(/update your organization/i)).toBeInTheDocument();
       expect(screen.getByText(/use performance and session replay/i)).toBeInTheDocument();
@@ -192,8 +186,8 @@ describe('ProductUnavailableCTA', function () {
       );
     });
 
-    it('without session replay', async function () {
-      const {organization, router} = initializeOrg({
+    it('without session replay', async () => {
+      const {organization} = initializeOrg({
         organization: {
           access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
           features: ['performance-view'],
@@ -217,6 +211,9 @@ describe('ProductUnavailableCTA', function () {
         reservedAttachments: 0,
         reservedMonitorSeats: 0,
         reservedUptime: 0,
+        reservedProfileDuration: 0,
+        reservedProfileDurationUI: 0,
+        reservedLogBytes: 0,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});
@@ -229,9 +226,7 @@ describe('ProductUnavailableCTA', function () {
         reservations: mockReservations,
       });
 
-      const {rerender} = render(<ProductUnavailableCTA organization={organization} />, {
-        router,
-      });
+      const {rerender} = render(<ProductUnavailableCTA organization={organization} />);
 
       expect(await screen.findByText(/update your organization/i)).toBeInTheDocument();
       expect(screen.getByText(/use session replay/i)).toBeInTheDocument();

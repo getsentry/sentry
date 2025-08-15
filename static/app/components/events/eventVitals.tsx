@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -162,7 +162,7 @@ const Measurements = styled('div')`
 `;
 
 const Container = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(4)};
 `;
 
@@ -196,8 +196,8 @@ const FireIconContainer = styled('span')<{size: IconSize}>`
 `;
 
 const Value = styled('span')<{failedThreshold: boolean}>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   ${p => p.failedThreshold && `color: ${p.theme.errorText};`}
 `;
 
-export const EventVitalContainer = styled('div')``;
+const EventVitalContainer = styled('div')``;

@@ -10,13 +10,13 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
-describe('SharedGroupDetails', function () {
+describe('SharedGroupDetails', () => {
   const eventEntry = EventEntryFixture();
   const exception = EventStacktraceExceptionFixture().entries[0];
   const params = {shareId: 'a'};
   const router = RouterFixture({params});
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/test-org/projects/`,
       method: 'GET',
@@ -48,13 +48,17 @@ describe('SharedGroupDetails', function () {
         errors: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/test-org/project-slug/events/1/committers/`,
+      body: [],
+    });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <SharedGroupDetails
         params={params}
@@ -63,13 +67,12 @@ describe('SharedGroupDetails', function () {
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
-      />,
-      {router}
+      />
     );
     await screen.findByText('Details');
   });
 
-  it('renders with org slug in path', async function () {
+  it('renders with org slug in path', async () => {
     const params_with_slug = {shareId: 'a', orgId: 'test-org'};
     const router_with_slug = RouterFixture({params_with_slug});
     render(
@@ -80,8 +83,7 @@ describe('SharedGroupDetails', function () {
         routes={router_with_slug.routes}
         routeParams={router_with_slug.params}
         location={router_with_slug.location}
-      />,
-      {router}
+      />
     );
     await screen.findByText('Details');
     await screen.findByTestId('sgh-timestamp');

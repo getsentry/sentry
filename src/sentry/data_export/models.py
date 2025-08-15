@@ -37,7 +37,7 @@ class ExportedData(Model):
 
     organization = FlexibleForeignKey("sentry.Organization")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
-    file_id = BoundedBigIntegerField(null=True)
+    file_id = BoundedBigIntegerField(null=True, db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_finished = models.DateTimeField(null=True)
     date_expired = models.DateTimeField(null=True, db_index=True)
@@ -71,16 +71,16 @@ class ExportedData(Model):
         # Example: 12:21 PM on July 21, 2020 (UTC)
         return None if date is None else date.strftime("%-I:%M %p on %B %d, %Y (%Z)")
 
-    def delete_file(self):
+    def delete_file(self) -> None:
         file = self._get_file()
         if file:
             file.delete()
 
     def delete(self, *args, **kwargs):
         self.delete_file()
-        super().delete(*args, **kwargs)
+        return super().delete(*args, **kwargs)
 
-    def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION):
+    def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION) -> None:
         self.delete_file()  # If a file is present, remove it
         current_time = timezone.now()
         expire_time = current_time + expiration
@@ -161,7 +161,7 @@ class ExportedDataBlob(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     data_export = FlexibleForeignKey("sentry.ExportedData")
-    blob_id = BoundedBigIntegerField()
+    blob_id = BoundedBigIntegerField(db_index=True)
     offset = BoundedBigIntegerField()
 
     class Meta:

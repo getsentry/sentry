@@ -3,9 +3,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 
-describe('Breadcrumb', function () {
-  it('renders the profiling link', function () {
-    const {organization, router} = initializeOrg();
+describe('Breadcrumb', () => {
+  it('renders the profiling link', () => {
+    const {organization} = initializeOrg();
     render(
       <ProfilingBreadcrumbs
         organization={organization}
@@ -21,8 +21,7 @@ describe('Breadcrumb', function () {
             },
           },
         ]}
-      />,
-      {router}
+      />
     );
     expect(screen.getByText('Profiling')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Profiling'})).toHaveAttribute(

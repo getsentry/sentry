@@ -6,18 +6,20 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 
-from sentry.eventstore import processing
-from sentry.eventstore.processing.base import Event
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.javascript.processing import process_js_stacktraces
 from sentry.lang.native.processing import get_native_symbolication_function
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.services.eventstore import processing
+from sentry.services.eventstore.processing.base import Event
 from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import symbolication_tasks
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
 
@@ -282,6 +284,10 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         soft_time_limit=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 20,
         acks_late=True,
         silo_mode=SiloMode.REGION,
+        taskworker_config=TaskworkerConfig(
+            namespace=symbolication_tasks,
+            processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+        ),
     )
     def symbolication_fn(
         cache_key: str,

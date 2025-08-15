@@ -14,7 +14,12 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "test@test.com",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -31,7 +36,12 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "hello", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "hello",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -54,15 +64,30 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "test@test.com",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ",",
-              "value": {"type": "valueText", "value": "test2@test.com", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "test2@test.com",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ",",
-              "value": {"type": "valueText", "value": "test3@test.com", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "test3@test.com",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -79,7 +104,12 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "hello", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "hello",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -102,15 +132,30 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "test@test.com",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ", ",
-              "value": {"type": "valueText", "value": "test@test2.com", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "test@test2.com",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ",     ",
-              "value": {"type": "valueText", "value": "test@test3.com", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "test@test3.com",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -127,7 +172,12 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "hello", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "hello",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -145,7 +195,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "test", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "h[e]llo]", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "h[e]llo]",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -160,7 +215,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "test", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "[h[e]llo", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "[h[e]llo",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -175,7 +235,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "test", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "[h]", "quoted": true}
+        "value": {
+          "type": "valueText",
+          "value": "[h]",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -190,7 +255,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "test", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "[h]*", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "[h]*",
+          "quoted": false,
+          "wildcard": "trailing"
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -205,7 +275,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "test", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "[h", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "[h",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {"type": "freeText", "value": "e]", "quoted": false, "invalid": null},
@@ -222,7 +297,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "test", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "[]", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "[]",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -242,15 +322,30 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "test@test.com",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ", ",
-              "value": {"type": "valueText", "value": "hi", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "hi",
+                "quoted": true,
+                "wildcard": false
+              }
             },
             {
               "separator": ", ",
-              "value": {"type": "valueText", "value": "1", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "1",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -273,15 +368,30 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "test@test.com",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ", ",
-              "value": {"type": "valueText", "value": "hi", "quoted": true}
+              "value": {
+                "type": "valueText",
+                "value": "hi",
+                "quoted": true,
+                "wildcard": false
+              }
             },
             {
               "separator": ", ",
-              "value": {"type": "valueText", "value": "1.0", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "1.0",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -304,7 +414,12 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "[h]", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "[h]",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -327,11 +442,21 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "a", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "a",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ", ",
-              "value": {"type": "valueText", "value": "[h]", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "[h]",
+                "quoted": false,
+                "wildcard": false
+              }
             }
           ]
         }
@@ -352,7 +477,8 @@
         "value": {
           "type": "valueText",
           "value": "[test@test.com]user.email:hello@hello.com",
-          "quoted": false
+          "quoted": false,
+          "wildcard": false
         }
       },
       {"type": "spaces", "value": ""}
@@ -377,7 +503,12 @@
           "items": [
             {
               "separator": "",
-              "value": {"type": "valueText", "value": "test@test.com", "quoted": false}
+              "value": {
+                "type": "valueText",
+                "value": "test@test.com",
+                "quoted": false,
+                "wildcard": false
+              }
             },
             {
               "separator": ", ",

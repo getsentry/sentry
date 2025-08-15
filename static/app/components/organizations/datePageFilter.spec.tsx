@@ -16,7 +16,7 @@ const {organization, router} = initializeOrg({
   },
 });
 
-describe('DatePageFilter', function () {
+describe('DatePageFilter', () => {
   beforeEach(() => {
     PageFiltersStore.init();
     OrganizationStore.init();
@@ -37,8 +37,12 @@ describe('DatePageFilter', function () {
     );
   });
 
-  it('can change period', async function () {
-    render(<DatePageFilter />, {router, organization});
+  it('can change period', async () => {
+    render(<DatePageFilter />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     // Open time period dropdown
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
@@ -71,8 +75,12 @@ describe('DatePageFilter', function () {
     });
   });
 
-  it('can change absolute range', async function () {
-    render(<DatePageFilter />, {router, organization});
+  it('can change absolute range', async () => {
+    render(<DatePageFilter />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     // Open time period dropdown
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
@@ -123,7 +131,7 @@ describe('DatePageFilter', function () {
     );
   });
 
-  it('displays a desynced state message', async function () {
+  it('displays a desynced state message', async () => {
     const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       router: {
         location: {
@@ -148,6 +156,7 @@ describe('DatePageFilter', function () {
     render(<DatePageFilter />, {
       router: desyncRouter,
       organization: desyncOrganization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu

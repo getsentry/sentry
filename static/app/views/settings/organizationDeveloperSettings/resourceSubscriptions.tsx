@@ -26,8 +26,7 @@ export default class Subscriptions extends Component<Props> {
     webhookDisabled: false,
   };
 
-  constructor(props: Props, context: any) {
-    super(props, context);
+  UNSAFE_componentWillMount(): void {
     this.context.form.setValue('events', this.props.events);
   }
 
@@ -97,7 +96,7 @@ export default class Subscriptions extends Component<Props> {
 const SubscriptionGrid = styled('div')`
   display: grid;
   grid-template: auto / 1fr 1fr 1fr;
-  @media (max-width: ${props => props.theme.breakpoints.large}) {
+  @media (max-width: ${props => props.theme.breakpoints.lg}) {
     grid-template: 1fr 1fr 1fr / auto;
   }
 `;

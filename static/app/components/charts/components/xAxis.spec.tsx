@@ -1,6 +1,9 @@
+import {ThemeFixture} from 'sentry-fixture/theme';
+
 import type {XAxisProps} from 'sentry/components/charts/components/xAxis';
 import XAxis from 'sentry/components/charts/components/xAxis';
-import {lightTheme} from 'sentry/utils/theme';
+
+const theme = ThemeFixture();
 
 jest.mock('moment-timezone', () => {
   const moment = jest.requireActual('moment-timezone');
@@ -8,19 +11,19 @@ jest.mock('moment-timezone', () => {
   return moment;
 });
 
-describe('Chart XAxis', function () {
+describe('Chart XAxis', () => {
   let axisLabelFormatter: (value: string | number, index: number) => string;
   let xAxisObj!: ReturnType<typeof XAxis>;
   const props: XAxisProps = {
     isGroupedByDate: true,
-    theme: lightTheme,
+    theme,
   };
   const timestamp = 1531094400000;
 
-  describe('axisLabel', function () {
-    describe('With Period > 24h', function () {
-      describe('Local timezone', function () {
-        beforeEach(function () {
+  describe('axisLabel', () => {
+    describe('With Period > 24h', () => {
+      describe('Local timezone', () => {
+        beforeEach(() => {
           xAxisObj = XAxis({
             ...props,
             period: '7d',
@@ -31,17 +34,17 @@ describe('Chart XAxis', function () {
           axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
-        it('formats axis label for first data point', function () {
+        it('formats axis label for first data point', () => {
           expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 8 5:00 PM');
         });
 
-        it('formats axis label for second data point', function () {
+        it('formats axis label for second data point', () => {
           expect(axisLabelFormatter(timestamp, 1)).toBe('Jul 8 5:00 PM');
         });
       });
 
-      describe('UTC', function () {
-        beforeEach(function () {
+      describe('UTC', () => {
+        beforeEach(() => {
           xAxisObj = XAxis({
             ...props,
             period: '7d',
@@ -52,17 +55,17 @@ describe('Chart XAxis', function () {
           axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
-        it('formats axis label for first data point', function () {
+        it('formats axis label for first data point', () => {
           expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 9 12:00 AM');
         });
 
-        it('formats axis label for second data point', function () {
+        it('formats axis label for second data point', () => {
           expect(axisLabelFormatter(timestamp, 1)).toBe('Jul 9 12:00 AM');
         });
       });
 
       describe('Multiline', () => {
-        beforeEach(function () {
+        beforeEach(() => {
           xAxisObj = XAxis({
             ...props,
             useMultilineDate: true,
@@ -73,19 +76,19 @@ describe('Chart XAxis', function () {
           axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
-        it('formats axis label for first data point', function () {
+        it('formats axis label for first data point', () => {
           expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 8\n5:00 PM');
         });
 
-        it('formats axis label for second data point', function () {
+        it('formats axis label for second data point', () => {
           expect(axisLabelFormatter(timestamp, 1)).toBe('Jul 8\n5:00 PM');
         });
       });
     });
 
-    describe('With Period <= 24h', function () {
-      describe('Local timezone', function () {
-        beforeEach(function () {
+    describe('With Period <= 24h', () => {
+      describe('Local timezone', () => {
+        beforeEach(() => {
           xAxisObj = XAxis({
             ...props,
             period: '24h',
@@ -96,17 +99,17 @@ describe('Chart XAxis', function () {
           axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
-        it('formats axis label for first data point', function () {
+        it('formats axis label for first data point', () => {
           expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 8 5:00 PM');
         });
 
-        it('formats axis label for second data point', function () {
+        it('formats axis label for second data point', () => {
           expect(axisLabelFormatter(timestamp, 1)).toBe('5:00 PM');
         });
       });
 
-      describe('UTC', function () {
-        beforeEach(function () {
+      describe('UTC', () => {
+        beforeEach(() => {
           xAxisObj = XAxis({
             ...props,
             period: '24h',
@@ -117,17 +120,17 @@ describe('Chart XAxis', function () {
           axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
-        it('formats axis label for first data point', function () {
+        it('formats axis label for first data point', () => {
           expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 9 12:00 AM');
         });
 
-        it('formats axis label for second data point', function () {
+        it('formats axis label for second data point', () => {
           expect(axisLabelFormatter(timestamp, 1)).toBe('12:00 AM');
         });
       });
 
       describe('Multiline', () => {
-        beforeEach(function () {
+        beforeEach(() => {
           xAxisObj = XAxis({
             ...props,
             useMultilineDate: true,
@@ -139,11 +142,11 @@ describe('Chart XAxis', function () {
           axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
-        it('formats axis label for first data point', function () {
+        it('formats axis label for first data point', () => {
           expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 9\n12:00 AM');
         });
 
-        it('formats axis label for second data point', function () {
+        it('formats axis label for second data point', () => {
           expect(axisLabelFormatter(timestamp, 1)).toBe('12:00 AM');
         });
       });

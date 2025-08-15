@@ -14,7 +14,7 @@ import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 // XXX(epurkhiser): This appears to also be tested by ./index.spec.tsx
 
-describe('OrganizationAuditLog', function () {
+describe('OrganizationAuditLog', () => {
   const {organization, router} = initializeOrg({
     projects: [],
     router: {
@@ -23,7 +23,7 @@ describe('OrganizationAuditLog', function () {
   });
   const ENDPOINT = `/organizations/${organization.slug}/audit-logs/`;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -31,13 +31,12 @@ describe('OrganizationAuditLog', function () {
     });
   });
 
-  it('renders', async function () {
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+  it('renders', async () => {
+    render(<OrganizationAuditLog location={router.location} />);
 
     expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    // Check that both textboxes are present (date selector search and event selector)
+    expect(screen.getAllByRole('textbox')).toHaveLength(2);
     expect(screen.getByText('Member')).toBeInTheDocument();
     expect(screen.getByText('Action')).toBeInTheDocument();
     expect(screen.getByText('IP')).toBeInTheDocument();
@@ -46,30 +45,26 @@ describe('OrganizationAuditLog', function () {
     expect(await screen.findByText('edited project ludic-science')).toBeInTheDocument();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: {rows: [], options: AuditLogsApiEventNamesFixture()},
     });
 
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     expect(await screen.findByText('No audit entries available')).toBeInTheDocument();
   });
 
   it('displays whether an action was done by a superuser', async () => {
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     expect(await screen.findByText('Sentry Staff')).toBeInTheDocument();
     expect(screen.getAllByText('Foo Bar')).toHaveLength(2);
   });
 
-  it('replaces rule and alertrule audit types in dropdown', async function () {
+  it('replaces rule and alertrule audit types in dropdown', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -79,9 +74,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     await userEvent.click(screen.getByText('Select Action:'));
 
@@ -90,7 +83,7 @@ describe('OrganizationAuditLog', function () {
     expect(screen.getByText('member.add')).toBeInTheDocument();
   });
 
-  it('replaces text in rule and alertrule entries', async function () {
+  it('replaces text in rule and alertrule entries', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/audit-logs/`,
@@ -122,9 +115,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    render(<OrganizationAuditLog location={router.location} />, {
-      router,
-    });
+    render(<OrganizationAuditLog location={router.location} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 

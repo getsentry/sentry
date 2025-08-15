@@ -100,7 +100,7 @@ default_manager.add(
         event_id=36,
         name="PROJECT_ACCEPT_TRANSFER",
         api_name="project.accept-transfer",
-        template="accepted transfer of project {slug}",
+        template="accepted transfer of project {project_slug} from {old_organization_slug} to {new_organization_slug}",
     )
 )
 default_manager.add(events.ProjectEnableAuditLogEvent())
@@ -603,6 +603,22 @@ default_manager.add(
         template="removed workflow {name}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=216,
+        name="DETECTOR_WORKFLOW_ADD",
+        api_name="detector_workflow.add",
+        template="connected detector {detector_name} to workflow {workflow_name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=217,
+        name="DETECTOR_WORKFLOW_REMOVE",
+        api_name="detector_workflow.remove",
+        template="disconnected detector {detector_name} from workflow {workflow_name}",
+    )
+)
 
 default_manager.add(
     AuditLogEvent(
@@ -610,16 +626,6 @@ default_manager.add(
         name="MEMBER_REINVITE",
         api_name="member.reinvite",
         template="reinvited member {email}",
-    )
-)
-
-default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
-
-default_manager.add(
-    AuditLogEvent(
-        event_id=1142,
-        name="DATA_SECRECY_REINSTATED",
-        api_name="data-secrecy.reinstated",
     )
 )
 
@@ -645,5 +651,30 @@ default_manager.add(
         name="PROJECT_ADD_WITH_ORIGIN",
         api_name="project.create-with-origin",
         template="created project {slug} via {origin}",
+    )
+)
+# NOTE: 1155 is defined in the private repo but not here in the public repo so we skip it.
+default_manager.add(
+    AuditLogEvent(
+        event_id=1156,
+        name="REPLAYDELETIONJOBMODEL_START",
+        api_name="replay-deletion-jobs.start",
+        template="started replay deletion job",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1157,
+        name="REPLAYDELETIONJOBMODEL_CANCELED",
+        api_name="replay-deletion-jobs.stop",
+        template="canceled replay deletion job",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=1158,
+        name="ORG_CONSOLE_PLATFORM_EDIT",
+        api_name="org.console-platform.edit",
+        template="{console_platforms}",
     )
 )

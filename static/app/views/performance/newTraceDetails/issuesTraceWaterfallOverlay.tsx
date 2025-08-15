@@ -4,7 +4,7 @@ import Color from 'color';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -121,7 +121,13 @@ export function IssueTraceWaterfallOverlay({
     });
   }, [organization]);
 
-  const baseLink = getTraceLinkForIssue(traceTarget);
+  // Link to an offender span in the trace view if the event includes an occurrence.
+  // Keeps the highlighted span consistent across issues and trace waterfalls.
+  const spanId = event.occurrence?.evidenceData?.offenderSpanIds?.[0];
+  const baseNodePath: TraceTree.NodePath[] = spanId
+    ? [`span-${spanId}`, `txn-${event.eventID}`]
+    : [`txn-${event.eventID}`];
+  const baseLink = getTraceLinkForIssue(traceTarget, baseNodePath);
 
   return (
     <OverlayWrapper>
@@ -132,7 +138,7 @@ export function IssueTraceWaterfallOverlay({
       />
       {rowPositions?.map(pos => (
         <IssuesTraceOverlayContainer
-          key={pos.pathToNode[0]!}
+          key={pos.pathToNode[0]}
           to={getTraceLinkForIssue(traceTarget, pos.pathToNode)}
           onClick={handleLinkClick}
           style={{

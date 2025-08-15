@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
-import type {SpanIndexedResponse} from 'sentry/views/insights/types';
 
-export function CacheHitMissCell(props: {hit: SpanIndexedResponse['cache.hit']}) {
+// TODO: Ideally the hit prop is a boolean (SpanResponse['cache.hit'])
+export function CacheHitMissCell(props: {hit: 'true' | 'false' | ''}) {
   const {hit} = props;
   if (hit === 'true') {
     return <span>{t('HIT')}</span>;

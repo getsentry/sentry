@@ -3,18 +3,16 @@ import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
-import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconSubtract} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {OrgAuthToken} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 function LastUsed({
@@ -30,14 +28,7 @@ function LastUsed({
     return (
       <Fragment>
         {tct('[date] in project [project]', {
-          date: (
-            <TimeSince
-              date={getDynamicText({
-                value: dateLastUsed,
-                fixed: new Date(1508208080000), // National Pasta Day
-              })}
-            />
-          ),
+          date: <TimeSince date={dateLastUsed} />,
           project: (
             <Link to={`/settings/${organization.slug}/projects/${projectLastUsed.slug}/`}>
               {projectLastUsed.name}
@@ -51,12 +42,7 @@ function LastUsed({
   if (dateLastUsed) {
     return (
       <Fragment>
-        <TimeSince
-          date={getDynamicText({
-            value: dateLastUsed,
-            fixed: new Date(1508208080000), // National Pasta Day
-          })}
-        />
+        <TimeSince date={dateLastUsed} />
       </Fragment>
     );
   }
@@ -104,13 +90,7 @@ export function OrganizationAuthTokensAuthTokenRow({
 
         {token.tokenLastCharacters && (
           <TokenPreview aria-label={t('Token preview')}>
-            {tokenPreview(
-              getDynamicText({
-                value: token.tokenLastCharacters,
-                fixed: 'ABCD',
-              }),
-              'sntrys_'
-            )}
+            {tokenPreview(token.tokenLastCharacters, 'sntrys_')}
           </TokenPreview>
         )}
       </div>
@@ -120,12 +100,7 @@ export function OrganizationAuthTokensAuthTokenRow({
           <Placeholder height="1.25em" />
         ) : (
           <Fragment>
-            <TimeSince
-              date={getDynamicText({
-                value: token.dateCreated,
-                fixed: new Date(1508208080000), // National Pasta Day
-              })}
-            />
+            <TimeSince date={token.dateCreated} />
           </Fragment>
         )}
       </DateTime>
@@ -159,13 +134,7 @@ export function OrganizationAuthTokensAuthTokenRow({
               size="sm"
               disabled={isRevoking || !revokeToken}
               aria-label={t('Revoke %s', token.name)}
-              icon={
-                isRevoking ? (
-                  <LoadingIndicator mini />
-                ) : (
-                  <IconSubtract isCircled size="xs" />
-                )
-              }
+              icon={<IconDelete />}
             >
               {t('Revoke')}
             </Button>
@@ -190,9 +159,9 @@ const DateTime = styled('div')`
 `;
 
 const NeverUsed = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const TokenPreview = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

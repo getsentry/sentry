@@ -21,5 +21,5 @@ TEST_CASES = [
 
 
 @pytest.mark.parametrize("minutes, expected_str", TEST_CASES)
-def test_format_duration(minutes, expected_str):
+def test_format_duration(minutes, expected_str) -> None:
     assert expected_str == format_duration_idiomatic(minutes)

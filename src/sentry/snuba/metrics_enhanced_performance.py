@@ -31,7 +31,6 @@ def query(
     orderby: list[str] | None = None,
     offset: int | None = None,
     limit: int = 50,
-    referrer: str | None = None,
     auto_fields: bool = False,
     auto_aggregations: bool = False,
     include_equation_fields: bool = False,
@@ -49,6 +48,9 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
+    *,
+    referrer: str,
 ) -> EventsResponse:
     metrics_compatible = not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
@@ -76,6 +78,7 @@ def query(
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                debug=debug,
             )
             result["meta"]["datasetReason"] = dataset_reason
 
@@ -114,6 +117,7 @@ def query(
             transform_alias_to_input_format=transform_alias_to_input_format,
             has_metrics=has_metrics,
             query_source=query_source,
+            debug=debug,
         )
         results["meta"]["isMetricsData"] = False
         results["meta"]["isMetricsExtractedData"] = False
@@ -225,7 +229,6 @@ def top_events_timeseries(
     limit: int,
     organization: Organization,
     equations: list[str] | None = None,
-    referrer: str | None = None,
     top_events: EventsResponse | None = None,
     allow_empty: bool = True,
     zerofill_results: bool = True,
@@ -236,6 +239,8 @@ def top_events_timeseries(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)
@@ -254,7 +259,6 @@ def top_events_timeseries(
                 limit,
                 organization,
                 equations,
-                referrer,
                 top_events,
                 allow_empty,
                 zerofill_results,
@@ -264,6 +268,7 @@ def top_events_timeseries(
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
                 transform_alias_to_input_format=transform_alias_to_input_format,
+                referrer=referrer,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -291,7 +296,6 @@ def top_events_timeseries(
             limit,
             organization,
             equations,
-            referrer,
             top_events,
             allow_empty,
             zerofill_results,
@@ -299,6 +303,7 @@ def top_events_timeseries(
             functions_acl,
             query_source=query_source,
             transform_alias_to_input_format=transform_alias_to_input_format,
+            referrer=referrer,
         )
     return SnubaTSResult(
         {
@@ -325,7 +330,6 @@ def histogram_query(
     min_value=None,
     max_value=None,
     data_filter=None,
-    referrer=None,
     group_by=None,
     order_by=None,
     limit_by=None,
@@ -336,6 +340,8 @@ def histogram_query(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
     query_source: QuerySource | None = None,
+    *,
+    referrer: str,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -354,7 +360,6 @@ def histogram_query(
                 min_value,
                 max_value,
                 data_filter,
-                referrer,
                 group_by,
                 order_by,
                 limit_by,
@@ -363,6 +368,7 @@ def histogram_query(
                 normalize_results,
                 use_metrics_layer,
                 query_source=query_source,
+                referrer=referrer,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -384,7 +390,6 @@ def histogram_query(
             min_value,
             max_value,
             data_filter,
-            referrer,
             group_by,
             order_by,
             limit_by,
@@ -392,5 +397,6 @@ def histogram_query(
             extra_conditions,
             normalize_results,
             query_source=query_source,
+            referrer=referrer,
         )
     return {}

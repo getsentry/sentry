@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
-import PageAlertBar from 'sentry/components/pageAlertBar';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,28 +16,32 @@ export default function FinishSetupAlert({
   projectId: string;
 }) {
   return (
-    <PageAlertBar>
-      <IconLightning />
+    <Alert
+      type="info"
+      icon={<IconLightning />}
+      trailingItems={
+        <LinkButton
+          size="xs"
+          priority="primary"
+          external
+          href="https://docs.sentry.io/performance-monitoring/getting-started/"
+          onClick={() =>
+            trackAnalytics('growth.sample_transaction_docs_link_clicked', {
+              project_id: projectId,
+              organization,
+            })
+          }
+        >
+          {t('Get Started')}
+        </LinkButton>
+      }
+    >
       <TextWrapper>
         {t(
           'You are viewing a sample transaction. Configure performance to start viewing real transactions.'
         )}
       </TextWrapper>
-      <LinkButton
-        size="xs"
-        priority="primary"
-        external
-        href="https://docs.sentry.io/performance-monitoring/getting-started/"
-        onClick={() =>
-          trackAnalytics('growth.sample_transaction_docs_link_clicked', {
-            project_id: projectId,
-            organization,
-          })
-        }
-      >
-        {t('Get Started')}
-      </LinkButton>
-    </PageAlertBar>
+    </Alert>
   );
 }
 

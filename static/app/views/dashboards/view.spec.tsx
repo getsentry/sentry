@@ -6,10 +6,10 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 
-describe('Dashboards > ViewEditDashboard', function () {
+describe('Dashboards > ViewEditDashboard', () => {
   const initialData = initializeOrg();
 
-  it('removes widget params from url and preserves selection params', function () {
+  it('removes widget params from url and preserves selection params', () => {
     const router = RouterFixture({
       location: {
         pathname: '/',
@@ -41,7 +41,6 @@ describe('Dashboards > ViewEditDashboard', function () {
     render(
       <ViewEditDashboard
         location={router.location}
-        organization={initialData.organization}
         router={initialData.router}
         params={{
           orgId: initialData.organization.slug,
@@ -53,7 +52,10 @@ describe('Dashboards > ViewEditDashboard', function () {
       >
         <Fragment />
       </ViewEditDashboard>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(router.replace).toHaveBeenCalledWith(

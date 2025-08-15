@@ -1,15 +1,15 @@
 import {Component, createRef, Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {css} from '@emotion/react';
+import {css, withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
-import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,15 +22,13 @@ import {
   hasDuplicate,
   isLegalEquationColumn,
 } from 'sentry/utils/discover/fields';
-import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
 import type {UserSelectValues} from 'sentry/utils/userselect';
 import {setBodyUserSelect} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-
-import type {generateFieldOptions} from '../utils';
+import type {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {FieldValueOption} from './queryField';
 import {QueryField} from './queryField';
@@ -45,6 +43,7 @@ type Props = {
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
   organization: Organization;
+  theme: Theme;
   className?: string;
   filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
@@ -92,7 +91,7 @@ class ColumnEditCollection extends Component<Props, State> {
       portal.style.position = 'absolute';
       portal.style.top = '0';
       portal.style.left = '0';
-      portal.style.zIndex = String(theme.zIndex.modal);
+      portal.style.zIndex = String(this.props.theme.zIndex.modal);
 
       this.portal = portal;
 
@@ -585,7 +584,7 @@ class ColumnEditCollection extends Component<Props, State> {
               const operation =
                 // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 AGGREGATIONS[col.function[0]] ?? SESSIONS_OPERATIONS[col.function[0]];
-              if (!operation || !operation.parameters) {
+              if (!operation?.parameters) {
                 // Operation should be in the look-up table, but not all operations are (eg. private). This should be changed at some point.
                 return 3;
               }
@@ -639,7 +638,7 @@ class ColumnEditCollection extends Component<Props, State> {
           });
         })}
         <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
-          <Actions gap={1} showAliasField={showAliasField}>
+          <Actions showAliasField={showAliasField}>
             <Button
               size="sm"
               aria-label={t('Add a Column')}
@@ -707,7 +706,7 @@ const RowContainer = styled('div')<{
       align-items: flex-start;
       grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px 40px`};
 
-      @media (min-width: ${p.theme.breakpoints.small}) {
+      @media (min-width: ${p.theme.breakpoints.sm}) {
         grid-template-columns: ${p.singleColumn
           ? `1fr calc(200px + ${space(1)})`
           : `${space(3)} 1fr calc(200px + ${space(1)}) 40px 40px`};
@@ -769,12 +768,12 @@ const AliasInput = styled(Input)`
 
 const AliasField = styled('div')<{singleColumn: boolean}>`
   margin-top: ${space(1)};
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     margin-top: 0;
     margin-left: ${space(1)};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-row: 2/2;
     grid-column: ${p => (p.singleColumn ? '1/-1' : '2/2')};
   }
@@ -789,4 +788,5 @@ const DragAndReorderButton = styled(Button)`
   height: ${p => p.theme.form.md.height};
 `;
 
-export default ColumnEditCollection;
+const ColumnEditCollectionWithTheme = withTheme(ColumnEditCollection);
+export {ColumnEditCollectionWithTheme as ColumnEditCollection};

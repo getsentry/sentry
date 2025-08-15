@@ -190,10 +190,10 @@ class NotificationActionProject(Model):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Organization}
 
     project = FlexibleForeignKey("sentry.Project")
-    action = FlexibleForeignKey("sentry.NotificationAction")
+    action = FlexibleForeignKey("notifications.NotificationAction")
 
     class Meta:
-        app_label = "sentry"
+        app_label = "notifications"
         db_table = "sentry_notificationactionproject"
 
     def get_relocation_scope(self) -> RelocationScope:
@@ -220,7 +220,7 @@ class NotificationAction(AbstractNotificationAction):
     trigger_type = models.SmallIntegerField(choices=_trigger_types)
 
     class Meta:
-        app_label = "sentry"
+        app_label = "notifications"
         db_table = "sentry_notificationaction"
 
     @classmethod

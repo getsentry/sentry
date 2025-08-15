@@ -8,10 +8,10 @@ from typing import Any
 import sentry_sdk
 from django import forms
 
-from sentry.eventstore.models import GroupEvent
 from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_dataset_columns
+from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.types.condition_activity import ConditionActivity
@@ -34,14 +34,14 @@ class AttributeHandler(ABC):
         raise NotImplementedError
 
 
-attribute_registry = Registry[AttributeHandler]()
+attribute_registry = Registry[type[AttributeHandler]]()
 
 
 # Maps attributes to snuba columns
-ATTR_CHOICES = {
+ATTR_CHOICES: dict[str, Columns | None] = {
     "message": Columns.MESSAGE,
     "platform": Columns.PLATFORM,
-    "environment": Columns.MESSAGE,
+    "environment": Columns.ENVIRONMENT,
     "type": Columns.TYPE,
     "error.handled": Columns.ERROR_HANDLED,
     "error.unhandled": Columns.ERROR_HANDLED,
@@ -65,6 +65,10 @@ ATTR_CHOICES = {
     "app.in_foreground": Columns.APP_IN_FOREGROUND,
     "os.distribution_name": Columns.OS_DISTRIBUTION_NAME,
     "os.distribution_version": Columns.OS_DISTRIBUTION_VERSION,
+    "symbolicated_in_app": Columns.SYMBOLICATED_IN_APP,
+    "ota_updates.channel": Columns.OTA_UPDATES_CHANNEL,
+    "ota_updates.runtime_version": Columns.OTA_UPDATES_RUNTIME_VERSION,
+    "ota_updates.update_id": Columns.OTA_UPDATES_UPDATE_ID,
 }
 
 
@@ -286,7 +290,9 @@ class ErrorAttributeHandler(AttributeHandler):
         return [
             e.mechanism.handled != negate
             for e in getattr(event.interfaces.get("exception"), "values", [])
-            if getattr(e, "mechanism") is not None and getattr(e.mechanism, "handled") is not None
+            if e is not None
+            and getattr(e, "mechanism") is not None
+            and getattr(e.mechanism, "handled") is not None
         ]
 
 
@@ -430,4 +436,19 @@ class OsAttributeHandler(AttributeHandler):
             if os_context is None:
                 os_context = {}
             return [os_context.get(path[1])]
+        return []
+
+
+@attribute_registry.register("ota_updates")
+class ExpoUpdatesAttributeHandler(AttributeHandler):
+    minimum_path_length = 2
+
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
+        if path[1] in ("channel", "runtime_version", "update_id"):
+            contexts = event.data.get("contexts", {})
+            ota_updates_context = contexts.get("ota_updates")
+            if ota_updates_context is None:
+                ota_updates_context = {}
+            return [ota_updates_context.get(path[1])]
         return []

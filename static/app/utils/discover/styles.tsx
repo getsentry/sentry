@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
-import Link from 'sentry/components/links/link';
 import ShortId, {StyledAutoSelectText} from 'sentry/components/shortId';
 import {IconUser} from 'sentry/icons/iconUser';
-import {space} from 'sentry/styles/space';
 
 // Styled components used to render discover result sets.
 
@@ -24,7 +23,7 @@ export const NumberContainer = styled('div')`
 `;
 
 export const FieldDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-variant-numeric: tabular-nums;
   ${p => p.theme.overflowEllipsis};
 `;
@@ -59,6 +58,11 @@ export const FlexContainer = styled('div')`
 `;
 
 export const UserIcon = styled(IconUser)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   color: ${p => p.theme.gray400};
+`;
+
+export const IconContainer = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.md};
 `;

@@ -8,12 +8,12 @@ import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 
-describe('EventSamplesTable', function () {
+describe('EventSamplesTable', () => {
   let mockRouter: InjectedRouter;
   let mockLocation: ReturnType<typeof LocationFixture>;
   let mockQuery: NewQuery;
   let mockEventView: EventView;
-  beforeEach(function () {
+  beforeEach(() => {
     mockRouter = RouterFixture();
     mockLocation = LocationFixture({
       query: {
@@ -50,7 +50,7 @@ describe('EventSamplesTable', function () {
     });
   });
 
-  it('uses a column name map to render column names', function () {
+  it('uses a column name map to render column names', () => {
     mockQuery = {
       name: '',
       fields: ['rawField'],
@@ -75,14 +75,14 @@ describe('EventSamplesTable', function () {
         }}
         sortKey=""
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByText('Readable Column Name')).toBeInTheDocument();
     expect(screen.queryByText('rawField')).not.toBeInTheDocument();
   });
 
-  it('uses the event ID key to get the event ID from the data payload', function () {
+  it('uses the event ID key to get the event ID from the data payload', () => {
     mockQuery = {
       name: '',
       fields: ['transaction.id'],
@@ -106,7 +106,7 @@ describe('EventSamplesTable', function () {
         sortKey=""
         data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Test only one column to isolate event ID
@@ -116,10 +116,10 @@ describe('EventSamplesTable', function () {
     expect(screen.queryByText('1')).not.toBeInTheDocument();
   });
 
-  it('uses the profile ID key to get the profile ID from the data payload and display an icon button', async function () {
+  it('uses the profile ID key to get the profile ID from the data payload and display an icon button', async () => {
     mockQuery = {
       name: '',
-      fields: ['profile.id', 'project.name'], // Project name is required to form the profile target
+      fields: ['profile.id', 'project'], // Project name is required to form the profile target
       query: '',
       version: 2,
     };
@@ -139,11 +139,11 @@ describe('EventSamplesTable', function () {
         }}
         sortKey=""
         data={{
-          data: [{id: '1', 'profile.id': 'abc', 'project.name': 'project'}],
-          meta: {fields: {'profile.id': 'string', 'project.name': 'string'}},
+          data: [{id: '1', 'profile.id': 'abc', project: 'project'}],
+          meta: {fields: {'profile.id': 'string', project: 'string'}},
         }}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Test only one column to isolate profile column
@@ -152,7 +152,7 @@ describe('EventSamplesTable', function () {
     expect(await screen.findByRole('button', {name: 'View Profile'})).toBeInTheDocument();
   });
 
-  it('updates URL params when device class selector is changed', async function () {
+  it('updates URL params when device class selector is changed', async () => {
     mockQuery = {
       name: '',
       fields: ['transaction.id'],
@@ -177,7 +177,7 @@ describe('EventSamplesTable', function () {
         sortKey=""
         data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByRole('button', {name: /device class all/i})).toBeInTheDocument();
@@ -193,7 +193,7 @@ describe('EventSamplesTable', function () {
     );
   });
 
-  it('updates URL params when the table is paginated', async function () {
+  it('updates URL params when the table is paginated', async () => {
     const pageLinks =
       '<https://sentry.io/fake/previous>; rel="previous"; results="false"; cursor="0:0:1", ' +
       '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
@@ -214,7 +214,7 @@ describe('EventSamplesTable', function () {
         data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
         pageLinks={pageLinks}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
@@ -228,7 +228,7 @@ describe('EventSamplesTable', function () {
     );
   });
 
-  it('uses a custom sort key for sortable headers', async function () {
+  it('uses a custom sort key for sortable headers', async () => {
     mockQuery = {
       name: '',
       fields: ['transaction.id', 'duration'],
@@ -253,7 +253,7 @@ describe('EventSamplesTable', function () {
         sortKey="customSortKey"
         data={{data: [{id: '1', 'transaction.id': 'abc', duration: 'def'}], meta: {}}}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Ascending sort in transaction ID because the default is descending
@@ -267,7 +267,7 @@ describe('EventSamplesTable', function () {
     );
   });
 
-  it('only displays data for the columns defined in the name map', async function () {
+  it('only displays data for the columns defined in the name map', async () => {
     mockQuery = {
       name: '',
       fields: ['transaction.id', 'duration'],
@@ -291,7 +291,7 @@ describe('EventSamplesTable', function () {
         sortKey="customSortKey"
         data={{data: [{id: '1', 'transaction.id': 'abc', duration: 'def'}], meta: {}}}
       />,
-      {router: mockRouter}
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Although ID is queried for, because it's not defined in the map

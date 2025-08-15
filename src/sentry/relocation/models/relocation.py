@@ -90,7 +90,7 @@ class Relocation(DefaultFieldsModelExisting):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
-        def __str__(self):
+        def __str__(self) -> str:
             if self.name == "SELF_HOSTED":
                 return "self-hosted"
             elif self.name == "SAAS_TO_SAAS":
@@ -119,7 +119,9 @@ class Relocation(DefaultFieldsModelExisting):
     # Possible values are in the Provenance enum. The relocation pipeline has different behaviors
     # depending on the source of the relocation.
     provenance = models.SmallIntegerField(
-        choices=Provenance.get_choices(), default=Provenance.SELF_HOSTED
+        choices=Provenance.get_choices(),
+        default=Provenance.SELF_HOSTED,
+        db_default=Provenance.SELF_HOSTED,
     )
 
     # Possible values are in the Status enum.
@@ -228,7 +230,7 @@ class RelocationFile(DefaultFieldsModelExisting):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
-        def __str__(self):
+        def __str__(self) -> str:
             if self.name == "RAW_USER_DATA":
                 return "raw-relocation-data"
             elif self.name == "NORMALIZED_USER_DATA":

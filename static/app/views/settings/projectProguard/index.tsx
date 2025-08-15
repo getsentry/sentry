@@ -2,7 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
@@ -11,7 +11,6 @@ import type {DebugFile} from 'sentry/types/debugFiles';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -20,18 +19,13 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import ProjectProguardRow from './projectProguardRow';
 
-export type ProjectProguardProps = RouteComponentProps<{projectId: string}> & {
+type ProjectProguardProps = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   project: Project;
 };
 
 export type ProguardMappingAssociation = {
   releases: string[];
-};
-
-export type AssociatedMapping = {
-  mapping?: DebugFile;
-  releaseAssociation?: DebugIdBundleAssociation[];
 };
 
 function ProjectProguard({organization, location, router, params}: ProjectProguardProps) {

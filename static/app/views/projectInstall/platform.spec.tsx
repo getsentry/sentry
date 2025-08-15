@@ -62,14 +62,14 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
   });
 }
 
-describe('ProjectInstallPlatform', function () {
-  beforeEach(function () {
+describe('ProjectInstallPlatform', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     ConfigStore.init();
   });
 
-  it('should render NotFound if no matching integration/platform', async function () {
-    const {organization, routerProps, project, router} = initializeOrg({
+  it('should render NotFound if no matching integration/platform', async () => {
+    const {organization, routerProps, project} = initializeOrg({
       router: {
         params: {
           projectId: ProjectFixture().slug,
@@ -82,21 +82,19 @@ describe('ProjectInstallPlatform', function () {
     render(
       <ProjectInstallPlatform
         {...routerProps}
-        loading={false}
         platform={undefined}
         currentPlatformKey={'lua' as PlatformKey}
         project={project}
       />,
       {
         organization,
-        router,
       }
     );
 
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('should display info for a non-supported platform', async function () {
+  it('should display info for a non-supported platform', async () => {
     const {organization, routerProps, project} = initializeOrg({
       router: {
         params: {
@@ -121,7 +119,6 @@ describe('ProjectInstallPlatform', function () {
     render(
       <ProjectInstallPlatform
         {...routerProps}
-        loading={false}
         platform={platform}
         project={project}
         currentPlatformKey={platform.id}
@@ -136,10 +133,10 @@ describe('ProjectInstallPlatform', function () {
     ).toBeInTheDocument();
   });
 
-  it('should not render performance/session replay buttons for errors only self-hosted', async function () {
+  it('should not render performance/session replay buttons for errors only self-hosted', async () => {
     const project = ProjectFixture({platform: 'javascript'});
 
-    const {routerProps, router} = initializeOrg({
+    const {routerProps} = initializeOrg({
       router: {
         params: {
           projectId: project.slug,
@@ -164,13 +161,9 @@ describe('ProjectInstallPlatform', function () {
       <ProjectInstallPlatform
         {...routerProps}
         project={project}
-        loading={false}
         platform={platform}
         currentPlatformKey={platform.id}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     expect(

@@ -7,10 +7,10 @@ from rest_framework.serializers import ValidationError
 
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
-from sentry.identity.vercel import VercelIdentityProvider
+from sentry.identity.vercel.provider import VercelIdentityProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider
+from sentry.integrations.vercel import VercelClient, VercelIntegrationProvider, metadata
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -19,7 +19,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 )
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -108,19 +108,19 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_team_flow(self):
+    def test_team_flow(self) -> None:
         self.assert_setup_flow(is_team=True)
 
     @responses.activate
-    def test_user_flow(self):
+    def test_user_flow(self) -> None:
         self.assert_setup_flow(is_team=False)
 
     @responses.activate
-    def test_no_name(self):
+    def test_no_name(self) -> None:
         self.assert_setup_flow(no_name=True)
 
     @responses.activate
-    def test_use_existing_installation(self):
+    def test_use_existing_installation(self) -> None:
         sentry_app = self.create_internal_integration(
             webhook_url=None,
             name="Vercel Internal Integration",
@@ -136,7 +136,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert SentryAppInstallation.objects.count() == 1
 
     @responses.activate
-    def test_update_organization_config(self):
+    def test_update_organization_config(self) -> None:
         """Test that Vercel environment variables are created"""
         with self.tasks():
             self.assert_setup_flow()
@@ -246,7 +246,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert req_params["type"] == "system"
 
     @responses.activate
-    def test_update_org_config_vars_exist(self):
+    def test_update_org_config_vars_exist(self) -> None:
         """Test the case wherein the secret and env vars already exist"""
 
         with self.tasks():
@@ -371,7 +371,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert req_params["type"] == "system"
 
     @responses.activate
-    def test_upgrade_org_config_no_dsn(self):
+    def test_upgrade_org_config_no_dsn(self) -> None:
         """Test that the function doesn't progress if there is no active DSN"""
 
         with self.tasks():
@@ -391,7 +391,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             installation.update_organization_config(data)
 
     @responses.activate
-    def test_get_dynamic_display_information(self):
+    def test_get_dynamic_display_information(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
@@ -403,7 +403,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert "configure your repositories." in instructions[0]
 
     @responses.activate
-    def test_uninstall(self):
+    def test_uninstall(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
             responses.add(
@@ -426,3 +426,29 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id
         ).exists()
+
+
+class VercelIntegrationMetadataTest(TestCase):
+
+    def test_asdict(self) -> None:
+        assert metadata.asdict() == {
+            "description": "Vercel is an all-in-one platform with Global CDN supporting static & JAMstack deployment and Serverless Functions.",
+            "features": [
+                {
+                    "description": "Connect your Sentry and Vercel projects to automatically upload source maps and notify Sentry of new releases being deployed.",
+                    "featureGate": "integrations-deployment",
+                }
+            ],
+            "author": "The Sentry Team",
+            "noun": "Installation",
+            "issue_url": "https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Vercel%20Integration%20Problem",
+            "source_url": "https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
+            "aspects": {
+                "configure_integration": {"title": "Connect Your Projects"},
+                "externalInstall": {
+                    "url": "https://vercel.com/integrations/sentry/add",
+                    "buttonText": "Vercel Marketplace",
+                    "noticeText": "Visit the Vercel Marketplace to install this integration. After installing the Sentry integration, you'll be redirected back to Sentry to finish syncing Vercel and Sentry projects.",
+                },
+            },
+        }

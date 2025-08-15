@@ -37,7 +37,6 @@ def query(
     orderby: list[str] | None = None,
     offset: int | None = None,
     limit: int = 50,
-    referrer: str | None = None,
     auto_fields: bool = False,
     auto_aggregations: bool = False,
     include_equation_fields: bool = False,
@@ -55,6 +54,9 @@ def query(
     granularity: int | None = None,
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
+    *,
+    referrer: str,
 ) -> EventsResponse:
     with sentry_sdk.start_span(op="mep", name="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -79,10 +81,9 @@ def query(
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
+                parser_config_overrides={"allow_not_has_filter": False},
             ),
         )
-        if referrer is None:
-            referrer = ""
         metrics_referrer = referrer + ".metrics-enhanced"
         results = metrics_query.run_query(
             referrer=metrics_referrer, query_source=query_source, use_cache=True
@@ -91,6 +92,8 @@ def query(
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
         results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
+        if debug:
+            results["meta"]["debug_info"] = {"query": str(metrics_query.get_snql_query().query)}
         sentry_sdk.set_tag("performance.dataset", "metrics")
         sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
         return results
@@ -102,7 +105,6 @@ def bulk_timeseries_query(
     queries: list[str],
     snuba_params: SnubaParams,
     rollup: int,
-    referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: timedelta | None = None,
@@ -115,6 +117,7 @@ def bulk_timeseries_query(
     *,
     apply_formatting: Literal[False],
     query_source: QuerySource | None = None,
+    referrer: str,
 ) -> EventsResponse: ...
 
 
@@ -124,7 +127,6 @@ def bulk_timeseries_query(
     queries: list[str],
     snuba_params: SnubaParams,
     rollup: int,
-    referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: timedelta | None = None,
@@ -135,6 +137,8 @@ def bulk_timeseries_query(
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
     query_source: QuerySource | None = None,
+    *,
+    referrer: str,
 ) -> SnubaTSResult: ...
 
 
@@ -143,7 +147,6 @@ def bulk_timeseries_query(
     queries: list[str],
     snuba_params: SnubaParams,
     rollup: int,
-    referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: timedelta | None = None,
@@ -156,6 +159,7 @@ def bulk_timeseries_query(
     query_source: QuerySource | None = None,
     *,
     apply_formatting: bool = True,
+    referrer: str,
 ) -> SnubaTSResult | EventsResponse:
     """
     High-level API for doing *bulk* arbitrary user timeseries queries against events.
@@ -182,6 +186,7 @@ def bulk_timeseries_query(
                         functions_acl=functions_acl,
                         allow_metric_aggregates=allow_metric_aggregates,
                         use_metrics_layer=use_metrics_layer,
+                        parser_config_overrides={"allow_not_has_filter": False},
                     ),
                 )
                 snql_query = metrics_query.get_snql_query()
@@ -253,7 +258,6 @@ def timeseries_query(
     query: str,
     snuba_params: SnubaParams,
     rollup: int,
-    referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: timedelta | None = None,
@@ -266,6 +270,8 @@ def timeseries_query(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -291,6 +297,7 @@ def timeseries_query(
                     on_demand_metrics_enabled=on_demand_metrics_enabled,
                     on_demand_metrics_type=on_demand_metrics_type,
                     transform_alias_to_input_format=transform_alias_to_input_format,
+                    parser_config_overrides={"allow_not_has_filter": False},
                 ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
@@ -405,7 +412,6 @@ def top_events_timeseries(
     limit,
     organization,
     equations=None,
-    referrer=None,
     top_events=None,
     allow_empty=True,
     zerofill_results=True,
@@ -416,6 +422,8 @@ def top_events_timeseries(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> SnubaTSResult | dict[str, Any]:
 
     if top_events is None:
@@ -449,6 +457,7 @@ def top_events_timeseries(
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             on_demand_metrics_type=on_demand_metrics_type,
             transform_alias_to_input_format=transform_alias_to_input_format,
+            parser_config_overrides={"allow_not_has_filter": False},
         ),
     )
     if len(top_events["data"]) == limit and include_other:
@@ -555,7 +564,6 @@ def histogram_query(
     min_value=None,
     max_value=None,
     data_filter=None,
-    referrer=None,
     group_by=None,
     order_by=None,
     limit_by=None,
@@ -564,6 +572,8 @@ def histogram_query(
     normalize_results=True,
     use_metrics_layer=True,
     query_source: QuerySource | None = None,
+    *,
+    referrer: str,
 ):
     """
     API for generating histograms for numeric columns.

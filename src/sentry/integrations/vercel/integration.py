@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 from urllib.parse import urlencode
 
+import sentry_sdk
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import ValidationError
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -20,10 +21,11 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline import NestedPipelineView
 from sentry.pipeline.views.base import PipelineView
+from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project_key import project_key_service
 from sentry.sentry_apps.logic import SentryAppCreator
@@ -61,19 +63,26 @@ INSTALL_NOTICE_TEXT = _(
 )
 
 
-external_install = {
-    "url": f"https://vercel.com/integrations/{options.get('vercel.integration-slug')}/add",
-    "buttonText": _("Vercel Marketplace"),
-    "noticeText": INSTALL_NOTICE_TEXT,
-}
-
-
 configure_integration = {"title": _("Connect Your Projects")}
 install_source_code_integration = _(
     "Install a [source code integration]({}) and configure your repositories."
 )
 
-metadata = IntegrationMetadata(
+
+class VercelIntegrationMetadata(IntegrationMetadata):
+    def asdict(self):
+        metadata = super().asdict()
+        # We have to calculate this here since fetching options at the module level causes us to skip the cache.
+        metadata["aspects"]["externalInstall"] = {
+            "url": f"https://vercel.com/integrations/{options.get('vercel.integration-slug')}/add",
+            "buttonText": _("Vercel Marketplace"),
+            "noticeText": INSTALL_NOTICE_TEXT,
+        }
+
+        return metadata
+
+
+metadata = VercelIntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
     author="The Sentry Team",
@@ -81,7 +90,6 @@ metadata = IntegrationMetadata(
     issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Vercel%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
     aspects={
-        "externalInstall": external_install,
         "configure_integration": configure_integration,
     },
 )
@@ -280,6 +288,12 @@ class VercelIntegration(IntegrationInstallation):
             )
 
             for env_var, details in env_var_map.items():
+                # We are logging a message because we potentially have a weird bug where auth tokens disappear from vercel
+                if env_var == "SENTRY_AUTH_TOKEN" and details["value"] is None:
+                    sentry_sdk.capture_message(
+                        "Setting SENTRY_AUTH_TOKEN env var with None value in Vercel integration"
+                    )
+
                 self.create_env_var(
                     vercel_client,
                     vercel_project_id,
@@ -353,17 +367,16 @@ class VercelIntegrationProvider(IntegrationProvider):
     # feature flag handler is in getsentry
     requires_feature_flag = True
 
-    def get_pipeline_views(self) -> list[PipelineView]:
-        identity_pipeline_config = {"redirect_url": absolute_uri(self.oauth_redirect_url)}
-
-        identity_pipeline_view = NestedPipelineView(
+    def _identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
+        return NestedPipelineView(
             bind_key="identity",
             provider_key=self.key,
-            pipeline_cls=IdentityProviderPipeline,
-            config=identity_pipeline_config,
+            pipeline_cls=IdentityPipeline,
+            config={"redirect_url": absolute_uri(self.oauth_redirect_url)},
         )
 
-        return [identity_pipeline_view]
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
+        return [self._identity_pipeline_view()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["identity"]["data"]

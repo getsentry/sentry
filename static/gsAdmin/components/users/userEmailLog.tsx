@@ -1,8 +1,8 @@
 import {Component} from 'react';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
@@ -156,7 +156,7 @@ export default class UserEmailLog extends Component<Props, State> {
               <tr>
                 <td colSpan={4}>
                   <Alert.Container>
-                    <Alert type="error">
+                    <Alert type="error" showIcon={false}>
                       There was a problem loading SendGrid details
                     </Alert>
                   </Alert.Container>

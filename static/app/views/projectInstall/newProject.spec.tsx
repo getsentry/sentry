@@ -1,12 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
-import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import NewProject from 'sentry/views/projectInstall/newProject';
 
-describe('NewProjectPlatform', function () {
+describe('NewProjectPlatform', () => {
   const organization = OrganizationFixture();
   const integrations = [
     OrganizationIntegrationsFixture({
@@ -17,10 +16,6 @@ describe('NewProjectPlatform', function () {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/rule-conditions/`,
-      body: MOCK_RESP_VERBOSE,
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
       body: integrations,
     });
@@ -30,7 +25,7 @@ describe('NewProjectPlatform', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('should render', function () {
+  it('should render', () => {
     render(<NewProject />);
   });
 });

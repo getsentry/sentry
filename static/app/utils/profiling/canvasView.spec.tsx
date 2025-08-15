@@ -1,4 +1,5 @@
 import {mat3, vec2} from 'gl-matrix';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
   makeCanvasMock,
@@ -11,9 +12,8 @@ import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import {lightTheme} from 'sentry/utils/theme';
 
-const theme = makeLightFlamegraphTheme(lightTheme);
+const theme = makeLightFlamegraphTheme(ThemeFixture());
 
 const makeCanvasAndView = (
   canvas: HTMLCanvasElement,
@@ -179,7 +179,7 @@ describe('CanvasView', () => {
       it('is zoomed in', () => {
         const {view} = makeCanvasAndView(canvas, flamegraph);
 
-        // Duration is is 1000, so we can't go over the end of the profile
+        // Duration is 1000, so we can't go over the end of the profile
         view.setConfigView(new Rect(600, 0, 500, 50));
         expect(view.configView).toEqual(new Rect(500, 0, 500, 50));
       });

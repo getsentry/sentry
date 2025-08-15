@@ -3,8 +3,8 @@ import type {Project} from 'sentry/types/project';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,6 +18,11 @@ import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
+import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
+import type {
+  SamplingMode,
+  SpansRPCQueryExtras,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 interface MetricEventStatsParams {
   project: Project;
@@ -26,7 +31,7 @@ interface MetricEventStatsParams {
   timePeriod: TimePeriodType;
 }
 
-export interface EventRequestQueryParams {
+interface EventRequestQueryParams {
   comparisonDelta?: number;
   dataset?: DiscoverDatasets;
   end?: string;
@@ -39,25 +44,38 @@ export interface EventRequestQueryParams {
   project?: number[];
   query?: string;
   referrer?: string;
+  samplingMode?: SamplingMode;
   start?: string;
   statsPeriod?: string;
   team?: string | string[];
   topEvents?: number;
   // XXX: This is the literal string 'true', not a boolean
   useOnDemandMetrics?: 'true';
-  useRpc?: '1';
   withoutZerofill?: '1';
   yAxis?: string | string[];
 }
 
 export function useMetricEventStats(
-  {project, rule, timePeriod, referrer}: MetricEventStatsParams,
+  {
+    project,
+    rule,
+    timePeriod,
+    referrer,
+    samplingMode,
+  }: MetricEventStatsParams & SpansRPCQueryExtras,
   options: Partial<UseApiQueryOptions<EventsStats>> = {}
 ) {
   const organization = useOrganization();
   const location = useLocation();
 
-  const {dataset, aggregate, query: ruleQuery, environment: ruleEnvironment} = rule;
+  const {
+    dataset,
+    aggregate,
+    query: ruleQuery,
+    environment: ruleEnvironment,
+    eventTypes: storedEventTypes,
+  } = rule;
+  const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, storedEventTypes);
   const interval = getPeriodInterval(timePeriod, rule);
   const isOnDemandAlert = isOnDemandMetricAlert(dataset, aggregate, ruleQuery);
   const eventType = extractEventTypeFilterFromRule(rule);
@@ -79,6 +97,7 @@ export function useMetricEventStats(
     dataset,
     newAlertOrQuery: false,
     useOnDemandMetrics: isOnDemandAlert,
+    traceItemType,
   });
 
   const queryObject: EventRequestQueryParams = Object.fromEntries(
@@ -90,8 +109,8 @@ export function useMetricEventStats(
       environment: ruleEnvironment ? [ruleEnvironment] : undefined,
       query,
       yAxis: aggregate,
-      useRpc: dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? '1' : undefined,
       referrer,
+      sampling: samplingMode,
       ...queryExtras,
     }).filter(([, value]) => typeof value !== 'undefined')
   );

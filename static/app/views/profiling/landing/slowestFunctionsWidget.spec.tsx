@@ -5,8 +5,8 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {SlowestFunctionsWidget} from 'sentry/views/profiling/landing/slowestFunctionsWidget';
 
-describe('SlowestFunctionsWidget', function () {
-  beforeEach(function () {
+describe('SlowestFunctionsWidget', () => {
+  beforeEach(() => {
     const project = ProjectFixture({
       id: '1',
       slug: 'proj-slug',
@@ -15,11 +15,11 @@ describe('SlowestFunctionsWidget', function () {
     ProjectsStore.loadInitialData([project]);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders errors', async function () {
+  it('renders errors', async () => {
     // return 400 for all queries
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -35,7 +35,7 @@ describe('SlowestFunctionsWidget', function () {
     expect(await screen.findByTestId('error-indicator')).toBeInTheDocument();
   });
 
-  it('renders no functions', async function () {
+  it('renders no functions', async () => {
     // for the slowest functions query
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -59,7 +59,7 @@ describe('SlowestFunctionsWidget', function () {
     expect(await screen.findByText('No functions found')).toBeInTheDocument();
   });
 
-  it('renders examples and chart', async function () {
+  it('renders examples and chart', async () => {
     // for the slowest functions query
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -237,19 +237,18 @@ describe('SlowestFunctionsWidget', function () {
 
     render(<SlowestFunctionsWidget widgetHeight="100px" breakdownFunction="p75()" />);
 
-    // starts by rendering loading
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-
     // switches to the functions-chart  once the api responds with data
     expect(await screen.findByTestId('function-chart')).toBeInTheDocument();
 
-    const items = screen.getAllByRole('listitem', {});
+    const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(2);
 
-    const buttons = within(items[0]!).getAllByRole('button');
-    expect(buttons).toHaveLength(2);
-    await userEvent.click(buttons[1]!);
+    const button = within(items[0]!).getByRole('button', {name: 'Example Profiles'});
+    expect(button).toBeInTheDocument();
+    // Open example profiles dropdown
+    await userEvent.click(button);
 
+    // Check items in example profiles dropdown
     expect(screen.getByText('1'.repeat(8))).toBeInTheDocument();
     expect(screen.getByText('2'.repeat(8))).toBeInTheDocument();
   });

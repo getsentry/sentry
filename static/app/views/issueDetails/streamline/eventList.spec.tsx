@@ -74,16 +74,19 @@ describe('EventList', () => {
   function renderAllEvents() {
     render(<EventList group={group} />, {
       organization,
+
       router: RouterFixture({
         location: LocationFixture({
           pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
         }),
         routes: [{name: '', path: 'events/'}],
       }),
+
+      deprecatedRouterMocks: true,
     });
   }
 
-  it('renders the list using a discover event query', async function () {
+  it('renders the list using a discover event query', async () => {
     renderAllEvents();
     const {result} = renderHook(() => useEventColumns(group, organization));
 
@@ -122,7 +125,7 @@ describe('EventList', () => {
     }
   });
 
-  it('updates query from location param change', async function () {
+  it('updates query from location param change', async () => {
     const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
     const locationQuery = {
       query: {
@@ -131,6 +134,7 @@ describe('EventList', () => {
     };
     render(<EventList group={group} />, {
       organization,
+
       router: RouterFixture({
         location: LocationFixture({
           pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
@@ -138,6 +142,8 @@ describe('EventList', () => {
         }),
         routes: [{name: '', path: 'events/'}],
       }),
+
+      deprecatedRouterMocks: true,
     });
 
     const expectedArgs = [

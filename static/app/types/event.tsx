@@ -14,7 +14,7 @@ import type {Image} from './debugImage';
 import type {IssueAttachment, IssueCategory, IssueType} from './group';
 import type {PlatformKey} from './project';
 import type {Release} from './release';
-import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
+import type {StackTraceMechanism, StacktraceType} from './stacktrace';
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
 
@@ -30,16 +30,12 @@ export type EventGroupComponent = {
 };
 export type EventGroupingConfig = {
   base: string | null;
-  changelog: string;
   delegates: string[];
-  hidden: boolean;
   id: string;
-  latest: boolean;
-  risk: number;
   strategies: string[];
 };
 
-export type VariantEvidence = {
+type VariantEvidence = {
   desc: string;
   fingerprint: string;
   cause_span_hashes?: string[];
@@ -51,21 +47,41 @@ export type VariantEvidence = {
   parent_span_ids?: string[];
 };
 
-type EventGroupVariantKey =
-  | 'built-in-fingerprint'
-  | 'custom-fingerprint'
-  | 'app'
-  | 'default'
-  | 'system';
-
 export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
-  CUSTOM_FINGERPRINT = 'custom-fingerprint',
-  BUILT_IN_FINGERPRINT = 'built-in-fingerprint',
+  CUSTOM_FINGERPRINT = 'custom_fingerprint',
+  BUILT_IN_FINGERPRINT = 'built_in_fingerprint',
   COMPONENT = 'component',
-  SALTED_COMPONENT = 'salted-component',
-  PERFORMANCE_PROBLEM = 'performance-problem',
+  SALTED_COMPONENT = 'salted_component',
+  PERFORMANCE_PROBLEM = 'performance_problem',
+}
+
+function convertVariantTypeToUnderscore(type: string): EventGroupVariantType {
+  const converted = type.replace(/-/g, '_');
+  return converted as EventGroupVariantType;
+}
+
+export function isEventGroupVariantType(value: string): value is EventGroupVariantType {
+  const eventGroupVariantTypes = new Set<string>([
+    'checksum',
+    'fallback',
+    'custom-fingerprint',
+    'built-in-fingerprint',
+    'component',
+    'salted-component',
+    'performance-problem',
+  ]);
+  return eventGroupVariantTypes.has(value);
+}
+
+export function convertVariantFromBackend(variant: any): EventGroupVariant {
+  const convertedVariant = {
+    ...variant,
+    type: convertVariantTypeToUnderscore(variant.type),
+  };
+
+  return convertedVariant as EventGroupVariant;
 }
 
 interface BaseVariant {
@@ -122,8 +138,6 @@ export type EventGroupVariant =
   | BuiltInFingerprintVariant
   | PerformanceProblemVariant;
 
-export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
-
 /**
  * SDK Update metadata
  */
@@ -134,7 +148,7 @@ type EnableIntegrationSuggestion = {
   integrationUrl?: string | null;
 };
 
-export type UpdateSdkSuggestion = {
+type UpdateSdkSuggestion = {
   enables: SDKUpdatesSuggestion[];
   newSdkVersion: string;
   sdkName: string;
@@ -161,7 +175,7 @@ export interface Thread {
   crashed: boolean;
   current: boolean;
   id: number;
-  rawStacktrace: RawStacktrace;
+  rawStacktrace: StacktraceType | null;
   stacktrace: StacktraceType | null;
   heldLocks?: Record<string, Lock> | null;
   name?: string | null;
@@ -211,14 +225,10 @@ export type Frame = {
   symbolicatorStatus?: SymbolicatorStatus;
 };
 
-export enum FrameBadge {
-  GROUPING = 'grouping',
-}
-
 export type ExceptionValue = {
   mechanism: StackTraceMechanism | null;
   module: string | null;
-  rawStacktrace: RawStacktrace;
+  rawStacktrace: StacktraceType | null;
   stacktrace: StacktraceType | null;
   threadId: number | null;
   type: string;
@@ -337,7 +347,7 @@ type EntryMessage = {
   type: EntryType.MESSAGE;
 };
 
-export interface EntryRequestDataDefault {
+interface EntryRequestDataDefault {
   apiTarget: null;
   method: string | null;
   url: string;
@@ -405,7 +415,7 @@ export type Entry =
 
 // Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
 
-export interface BaseContext {
+interface BaseContext {
   type: string;
 }
 
@@ -527,7 +537,7 @@ type OSContext = {
   version: string;
 };
 
-export enum OtelContextKey {
+enum OtelContextKey {
   ATTRIBUTES = 'attributes',
   RESOURCE = 'resource',
 }
@@ -561,6 +571,7 @@ export interface UnityContext {
 
 export enum MemoryInfoContextKey {
   ALLOCATED_BYTES = 'allocated_bytes',
+  TOTAL_ALLOCATED_BYTES = 'total_allocated_bytes',
   FRAGMENTED_BYTES = 'fragmented_bytes',
   HEAP_SIZE_BYTES = 'heap_size_bytes',
   HIGH_MEMORY_LOAD_THRESHOLD_BYTES = 'high_memory_load_threshold_bytes',
@@ -593,6 +604,7 @@ export interface MemoryInfoContext {
   [MemoryInfoContextKey.PAUSE_TIME_PERCENTAGE]?: number;
   [MemoryInfoContextKey.INDEX]?: number;
   [MemoryInfoContextKey.ALLOCATED_BYTES]?: number;
+  [MemoryInfoContextKey.TOTAL_ALLOCATED_BYTES]?: number;
   [MemoryInfoContextKey.FRAGMENTED_BYTES]?: number;
   [MemoryInfoContextKey.HEAP_SIZE_BYTES]?: number;
   [MemoryInfoContextKey.HIGH_MEMORY_LOAD_THRESHOLD_BYTES]?: number;
@@ -619,7 +631,7 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
 
-export type MetricAlertContextType = {
+type MetricAlertContextType = {
   alert_rule_id?: string;
 };
 
@@ -641,19 +653,19 @@ export interface ReplayContext {
   [ReplayContextKey.REPLAY_ID]: string;
   type: string;
 }
-export interface BrowserContext {
+interface BrowserContext {
   name: string;
   version: string;
 }
 
-export interface ResponseContext {
+interface ResponseContext {
   data: unknown;
   type: 'response';
 }
 
 // event.contexts.flags can be overriden by the user so the type is not strict
 export type FeatureFlag = {flag?: string; result?: boolean};
-export type Flags = {values?: FeatureFlag[]};
+type Flags = {values?: FeatureFlag[]};
 
 export type EventContexts = {
   'Current Culture'?: CultureContext;
@@ -686,17 +698,24 @@ export type EventContexts = {
 export type Measurement = {value: number; type?: string; unit?: string};
 
 export type EventTag = {key: string; value: string};
+export type EventTagWithMeta = EventTag & {meta?: Record<string, any>};
 
-export type EventUser = {
+type EventUser = {
   data?: string | null;
   email?: string;
+  geo?: {
+    city?: string;
+    country_code?: string;
+    region?: string;
+    subdivision?: string;
+  };
   id?: string;
   ip_address?: string;
   name?: string | null;
   username?: string | null;
 };
 
-export type PerformanceDetectorData = {
+type PerformanceDetectorData = {
   causeSpanIds: string[];
   offenderSpanIds: string[];
   parentSpanIds: string[];
@@ -709,7 +728,7 @@ export type EventEvidenceDisplay = {
   value: string;
 };
 
-export type EventOccurrence = {
+type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**
@@ -795,8 +814,8 @@ interface EventBase {
   release?: EventRelease | null;
   resolvedWith?: string[];
   sdk?: {
-    name: string;
-    version: string;
+    name: string | null;
+    version: string | null;
   } | null;
   sdkUpdates?: SDKUpdatesSuggestion[];
   userReport?: any;

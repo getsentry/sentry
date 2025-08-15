@@ -17,4 +17,7 @@ if TYPE_CHECKING:
     get_skippable_tasks = __onboarding_task_backend.get_skippable_tasks
     fetch_onboarding_tasks = __onboarding_task_backend.fetch_onboarding_tasks
     create_or_update_onboarding_task = __onboarding_task_backend.create_or_update_onboarding_task
+    complete_onboarding_task = __onboarding_task_backend.complete_onboarding_task
+    has_completed_onboarding_task = __onboarding_task_backend.has_completed_onboarding_task
     try_mark_onboarding_complete = __onboarding_task_backend.try_mark_onboarding_complete
+    transfer_onboarding_tasks = __onboarding_task_backend.transfer_onboarding_tasks

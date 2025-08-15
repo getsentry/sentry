@@ -3,14 +3,14 @@ import {t, tct} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';
 import {
-  type CombinedAlerts,
   CombinedAlertType,
+  type CombinedAlerts,
   type CronRule,
   type IssueAlert,
   type MetricAlert,
   type UptimeAlert,
 } from 'sentry/views/alerts/types';
-import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
+import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 interface Props {
   rule: CombinedAlerts;

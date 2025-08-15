@@ -98,7 +98,7 @@ class UnwrappedProvider extends Component<Props> {
         selectedTeams,
         selectedProjects
       );
-    } catch (err) {
+    } catch (err: any) {
       error = err.responseJSON?.detail ?? t('Error fetching team key transactions');
     }
 
@@ -187,7 +187,7 @@ class UnwrappedProvider extends Component<Props> {
         teamIds
       );
       this.setState({teamKeyTransactions: newTeamKeyTransactions});
-    } catch (err) {
+    } catch (err: any) {
       this.setState({
         error: err.responseJSON?.detail ?? null,
       });
@@ -208,9 +208,9 @@ class UnwrappedProvider extends Component<Props> {
     };
 
     return (
-      <TeamKeyTransactionsManagerContext.Provider value={childrenProps}>
+      <TeamKeyTransactionsManagerContext value={childrenProps}>
         {this.props.children}
-      </TeamKeyTransactionsManagerContext.Provider>
+      </TeamKeyTransactionsManagerContext>
     );
   }
 }

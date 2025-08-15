@@ -9,7 +9,7 @@ import {Http} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/d
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
-describe('Breadcrumb Data Http', function () {
+describe('Breadcrumb Data Http', () => {
   const project = ProjectFixture({id: '0'});
 
   const {organization, router} = initializeOrg({
@@ -31,7 +31,7 @@ describe('Breadcrumb Data Http', function () {
     ProjectsStore.loadInitialData([project]);
   });
 
-  it('display redacted url', async function () {
+  it('display redacted url', async () => {
     render(
       <Http
         meta={{
@@ -63,7 +63,11 @@ describe('Breadcrumb Data Http', function () {
           },
         }}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('POST')).toBeInTheDocument();
@@ -78,7 +82,7 @@ describe('Breadcrumb Data Http', function () {
     ).toBeInTheDocument(); // tooltip description
   });
 
-  it('display redacted data', async function () {
+  it('display redacted data', async () => {
     render(
       <Http
         meta={{
@@ -95,7 +99,11 @@ describe('Breadcrumb Data Http', function () {
           data: null,
         }}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.queryByText('http://example.com/foo')).not.toBeInTheDocument();

@@ -23,6 +23,7 @@ export default function getConfiguration({
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   return [
     {
+      id: 'settings-project',
       name: t('Project'),
       items: [
         {
@@ -61,6 +62,11 @@ export default function getConfiguration({
           title: t('Data Forwarding'),
         },
         {
+          path: `${pathPrefix}/seer/`,
+          title: t('Seer'),
+          show: () => !organization?.hideAiFeatures,
+        },
+        {
           path: `${pathPrefix}/user-feedback/`,
           title: t('User Feedback'),
           show: () => !isSelfHostedErrorsOnly,
@@ -68,12 +74,13 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/toolbar/`,
           title: t('Dev Toolbar'),
-          show: () => !!organization?.features?.includes('dev-toolbar-ui'),
+          show: () => !!organization?.features?.includes('sentry-toolbar-ui'),
           badge: () => 'beta',
         },
       ],
     },
     {
+      id: 'settings-processing',
       name: t('Processing'),
       items: [
         {
@@ -131,6 +138,7 @@ export default function getConfiguration({
       ],
     },
     {
+      id: 'settings-sdk',
       name: t('SDK Setup'),
       items: [
         {
@@ -154,6 +162,7 @@ export default function getConfiguration({
       ],
     },
     {
+      id: 'settings-legacy-integrations',
       name: t('Legacy Integrations'),
       items: [
         {

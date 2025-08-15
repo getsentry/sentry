@@ -8,9 +8,9 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
-import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
+import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
-describe('CheckoutOverviewV2', function () {
+describe('CheckoutOverviewV2', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
@@ -19,7 +19,7 @@ describe('CheckoutOverviewV2', function () {
   const billingConfig = BillingConfigFixture(PlanTier.AM3);
   const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
@@ -43,7 +43,7 @@ describe('CheckoutOverviewV2', function () {
     });
   });
 
-  it('initializes with business plan and unset budget when on AM3 developer plan', async function () {
+  it('initializes with business plan and default budget when on AM3 developer plan', async () => {
     render(
       <AMCheckout
         {...routerProps}
@@ -60,12 +60,13 @@ describe('CheckoutOverviewV2', function () {
       screen.getByText('This is your standard monthly subscription charge.')
     ).toBeInTheDocument();
     expect(screen.getAllByText('$89/mo')).toHaveLength(2);
-    expect(screen.queryByTestId('additional-monthly-charge')).not.toBeInTheDocument();
-    expect(screen.getByText('Monthly Reserved Volumes')).toBeInTheDocument();
-    expect(screen.getByText('Billed Monthly')).toBeInTheDocument();
+    expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(
+      '+ up to $300/mo based on PAYG usage'
+    );
+    expect(screen.getByText('Total Monthly Charges')).toBeInTheDocument();
   });
 
-  it('renders with existing plan', function () {
+  it('renders with existing plan', () => {
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
       reserved: {
@@ -74,9 +75,16 @@ describe('CheckoutOverviewV2', function () {
         replays: 50,
         spans: 10_000_000,
         monitorSeats: 1,
-        profileDuration: 50,
+        profileDuration: 0,
+        profileDurationUI: 0,
+        uptime: 1,
       },
       onDemandMaxSpend: 5000,
+      selectedProducts: {
+        [SelectableProduct.SEER]: {
+          enabled: true,
+        },
+      },
     };
 
     render(
@@ -90,9 +98,8 @@ describe('CheckoutOverviewV2', function () {
       />
     );
 
-    expect(screen.getByText('Sentry Team Plan')).toBeInTheDocument();
-    expect(screen.getByText('Monthly Reserved Volumes')).toBeInTheDocument();
-    expect(screen.getByText('Billed Annually')).toBeInTheDocument();
+    expect(screen.getByTestId('seer-reserved')).toHaveTextContent('Seer AI Agent$216/yr');
+    expect(screen.getByText('Total Annual Charges')).toBeInTheDocument();
     expect(screen.getByText('$312/yr')).toBeInTheDocument();
     expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(
       '+ up to $50/mo based on PAYG usage'
@@ -111,10 +118,13 @@ describe('CheckoutOverviewV2', function () {
       '10,000,000 SpansIncluded'
     );
     expect(screen.getByTestId('monitorSeats-reserved')).toHaveTextContent(
-      '1 Cron monitorIncluded'
+      '1 Cron MonitorIncluded'
     );
     expect(screen.getByTestId('profileDuration-reserved')).toHaveTextContent(
-      '50 Profile hoursIncluded'
+      'Continuous Profile HoursAvailable'
+    );
+    expect(screen.getByTestId('profileDurationUI-reserved')).toHaveTextContent(
+      'Profile HoursAvailable'
     );
     expect(screen.queryByTestId('spansIndexed-reserved')).not.toBeInTheDocument();
     expect(
@@ -122,7 +132,7 @@ describe('CheckoutOverviewV2', function () {
     ).toBeInTheDocument();
   });
 
-  it('hides payg budget when setting to zero', function () {
+  it('shows zero state when payg budget is set to zero', () => {
     const formData: CheckoutFormData = {
       plan: 'am3_team_auf',
       reserved: {
@@ -130,6 +140,9 @@ describe('CheckoutOverviewV2', function () {
         attachments: 25,
         replays: 500,
         monitorSeats: 1,
+        uptime: 1,
+        profileDuration: 0,
+        profileDurationUI: 0,
       },
       onDemandMaxSpend: 0,
     };
@@ -146,7 +159,74 @@ describe('CheckoutOverviewV2', function () {
     );
 
     expect(screen.getByText('Sentry Team Plan')).toBeInTheDocument();
+    expect(screen.getByText('Pay-as-you-go (PAYG) Budget')).toBeInTheDocument();
+    expect(screen.getByText('$0/mo')).toBeInTheDocument();
     expect(screen.queryByTestId('additional-monthly-charge')).not.toBeInTheDocument();
-    expect(screen.queryByText('Additional Coverage')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Product not available')[0]).toBeInTheDocument();
+  });
+
+  it('does not show product when not selected', () => {
+    const formData: CheckoutFormData = {
+      plan: 'am3_team_auf',
+      reserved: {
+        errors: 100000,
+        attachments: 25,
+        replays: 50,
+        spans: 10_000_000,
+        monitorSeats: 1,
+        profileDuration: 0,
+        profileDurationUI: 0,
+        uptime: 1,
+      },
+      onDemandMaxSpend: 5000,
+      selectedProducts: {
+        [SelectableProduct.SEER]: {
+          enabled: false,
+        },
+      },
+    };
+
+    render(
+      <CheckoutOverviewV2
+        activePlan={teamPlanAnnual}
+        billingConfig={billingConfig}
+        formData={formData}
+        onUpdate={jest.fn()}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    expect(screen.queryByTestId('seer-reserved')).not.toBeInTheDocument();
+  });
+
+  it('does not show selectable product when not included in formData', () => {
+    const formData: CheckoutFormData = {
+      plan: 'am3_team_auf',
+      reserved: {
+        errors: 100000,
+        attachments: 25,
+        replays: 50,
+        spans: 10_000_000,
+        monitorSeats: 1,
+        profileDuration: 0,
+        profileDurationUI: 0,
+        uptime: 1,
+      },
+      onDemandMaxSpend: 5000,
+    };
+
+    render(
+      <CheckoutOverviewV2
+        activePlan={teamPlanAnnual}
+        billingConfig={billingConfig}
+        formData={formData}
+        onUpdate={jest.fn()}
+        organization={organization}
+        subscription={subscription}
+      />
+    );
+
+    expect(screen.queryByTestId('seer-reserved')).not.toBeInTheDocument();
   });
 });

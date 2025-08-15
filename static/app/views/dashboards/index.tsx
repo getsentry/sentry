@@ -37,6 +37,7 @@ function DashboardsV2Container(props: Props) {
             <ErrorBoundary>
               <DashboardDetail
                 {...props}
+                key={dashboard.id}
                 initialState={DashboardState.VIEW}
                 dashboard={dashboard}
                 dashboards={dashboards}

@@ -32,7 +32,7 @@ class RpcServiceEndpointTest(APITestCase):
 
         return f"rpcsignature {signature}"
 
-    def test_invalid_endpoint(self):
+    def test_invalid_endpoint(self) -> None:
         path = self._get_path("not_a_service", "not_a_method")
         response = self.client.post(path)
         assert response.status_code == 403
@@ -43,31 +43,31 @@ class RpcServiceEndpointTest(APITestCase):
         )
         return response
 
-    def test_missing_authentication(self):
+    def test_missing_authentication(self) -> None:
         path = self._get_path("organization", "get_organization_by_id")
         data: dict[str, Any] = {"args": {}, "meta": {"organization_id": self.organization.id}}
         response = self.client.post(path, data=data)
         assert response.status_code == 403
 
-    def test_invalid_authentication(self):
+    def test_invalid_authentication(self) -> None:
         path = self._get_path("organization", "get_organization_by_id")
         data: dict[str, Any] = {"args": {}, "meta": {"organization_id": self.organization.id}}
         response = self.client.post(path, data=data, HTTP_AUTHORIZATION="rpcsignature trash")
         assert response.status_code == 401
 
-    def test_bad_service_name(self):
+    def test_bad_service_name(self) -> None:
         path = self._get_path("not_a_service", "not_a_method")
         data: dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 404
 
-    def test_bad_method_name(self):
+    def test_bad_method_name(self) -> None:
         path = self._get_path("user", "not_a_method")
         data: dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 404
 
-    def test_no_body(self):
+    def test_no_body(self) -> None:
         path = self._get_path("organization", "get_organization_by_id")
         data: dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
@@ -76,7 +76,7 @@ class RpcServiceEndpointTest(APITestCase):
             "detail": ErrorDetail(string="Malformed request.", code="parse_error")
         }
 
-    def test_invalid_args_syntax(self):
+    def test_invalid_args_syntax(self) -> None:
         path = self._get_path("organization", "get_organization_by_id")
         data: dict[str, Any] = {"args": [], "meta": {}}
         response = self._send_post_request(path, data)
@@ -85,7 +85,7 @@ class RpcServiceEndpointTest(APITestCase):
             "detail": ErrorDetail(string="Malformed request.", code="parse_error")
         }
 
-    def test_missing_argument_key(self):
+    def test_missing_argument_key(self) -> None:
         path = self._get_path("organization", "get_organization_by_id")
         data: dict[str, Any] = {}
         response = self._send_post_request(path, data)
@@ -94,7 +94,7 @@ class RpcServiceEndpointTest(APITestCase):
             "detail": ErrorDetail(string="Malformed request.", code="parse_error")
         }
 
-    def test_missing_argument_values(self):
+    def test_missing_argument_values(self) -> None:
         path = self._get_path("organization", "get_organization_by_id")
         data: dict[str, Any] = {"args": {}}
         response = self._send_post_request(path, data)
@@ -103,7 +103,7 @@ class RpcServiceEndpointTest(APITestCase):
             "detail": ErrorDetail(string="Malformed request.", code="parse_error")
         }
 
-    def test_with_empty_response(self):
+    def test_with_empty_response(self) -> None:
         path = self._get_path("organization", "get_organization_by_id")
         data = {"args": {"id": 0}}
         response = self._send_post_request(path, data)
@@ -112,7 +112,7 @@ class RpcServiceEndpointTest(APITestCase):
         assert "meta" in response.data
         assert response.data["value"] is None
 
-    def test_with_object_response(self):
+    def test_with_object_response(self) -> None:
         organization = self.create_organization()
 
         path = self._get_path("organization", "get_organization_by_id")
@@ -127,7 +127,7 @@ class RpcServiceEndpointTest(APITestCase):
         assert response_obj.organization.slug == organization.slug
         assert response_obj.organization.name == organization.name
 
-    def test_with_invalid_arguments(self):
+    def test_with_invalid_arguments(self) -> None:
         path = self._get_path("organization", "get_organization_by_id")
         data = {"args": {"id": "invalid type"}}
         response = self._send_post_request(path, data)

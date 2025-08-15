@@ -1,5 +1,6 @@
 import type {mat3} from 'gl-matrix';
 
+import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
@@ -12,12 +13,6 @@ import {
   FlamegraphRenderer,
 } from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-
-function colorComponentsToRgba(color: number[]): string {
-  return `rgba(${Math.floor(color[0]! * 255)}, ${Math.floor(color[1]! * 255)}, ${Math.floor(
-    color[2]! * 255
-  )}, ${color[3] ?? 1})`;
-}
 
 export class FlamegraphRenderer2D extends FlamegraphRenderer {
   ctx: CanvasRenderingContext2D | null = null;
@@ -81,8 +76,8 @@ export class FlamegraphRenderer2D extends FlamegraphRenderer {
 
       this.ctx.fillStyle =
         this.isSearching && !this.searchResults.has(getFlamegraphFrameSearchId(frame))
-          ? colorComponentsToRgba(this.theme.COLORS.FRAME_FALLBACK_COLOR)
-          : colorComponentsToRgba(color);
+          ? colorComponentsToRGBA(this.theme.COLORS.FRAME_FALLBACK_COLOR)
+          : colorComponentsToRGBA(color);
 
       this.ctx.fillRect(
         rect.x + border,

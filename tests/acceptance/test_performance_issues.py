@@ -2,7 +2,7 @@ import random
 import string
 from datetime import timedelta
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
@@ -62,7 +62,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         }
 
     @patch("django.utils.timezone.now")
-    def test_with_one_performance_issue(self, mock_now):
+    def test_with_one_performance_issue(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
@@ -82,10 +82,10 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
             self.store_event(data=event_data, project_id=self.project.id)
             group = mock_eventstream.call_args[0][2].group
 
-        self.page.visit_issue(self.org.slug, group.id)
+        self.page.visit_performance_issue(self.org.slug, group.id)
 
     @patch("django.utils.timezone.now")
-    def test_multiple_events_with_one_cause_are_grouped(self, mock_now):
+    def test_multiple_events_with_one_cause_are_grouped(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
@@ -96,7 +96,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         assert Group.objects.count() == 1
 
     @patch("django.utils.timezone.now")
-    def test_n_one_api_call_performance_issue(self, mock_now):
+    def test_n_one_api_call_performance_issue(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now(minutes=5)
         event_data = self.create_sample_event(
             "n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream",
@@ -118,10 +118,12 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         ):
             self.store_event(data=event_data, project_id=self.project.id)
             group = mock_eventstream.call_args[0][2].group
-        self.page.visit_issue(self.org.slug, group.id)
+        self.page.visit_performance_issue(self.org.slug, group.id)
 
     @patch("django.utils.timezone.now")
-    def test_multiple_events_with_multiple_causes_are_not_grouped(self, mock_now):
+    def test_multiple_events_with_multiple_causes_are_not_grouped(
+        self, mock_now: MagicMock
+    ) -> None:
         mock_now.return_value = before_now(minutes=5)
 
         # Create identical events with different parent spans

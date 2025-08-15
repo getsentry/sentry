@@ -2,7 +2,7 @@ import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
@@ -10,9 +10,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
+  ProductSolution,
   type DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -262,8 +263,7 @@ function SidebarContent() {
             activeProductSelection={PROFILING_ONBOARDING_STEPS}
             organization={organization}
             platform={currentPlatform}
-            projectId={currentProject.id}
-            projectSlug={currentProject.slug}
+            project={currentProject}
           />
         ) : null}
       </Content>
@@ -275,17 +275,22 @@ interface ProfilingOnboardingContentProps {
   activeProductSelection: ProductSolution[];
   organization: Organization;
   platform: PlatformIntegration;
-  projectId: Project['id'];
-  projectSlug: Project['slug'];
+  project: Project;
 }
 
 function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   const api = useApi();
+  const organization = useOrganization();
+
   const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: props.organization.slug,
-    projSlug: props.projectSlug,
+    projSlug: props.project.slug,
     platform: props.platform,
   });
+
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
+
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
 
   if (isLoading) {
@@ -340,15 +345,15 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     dsn,
     organization: props.organization,
     platformKey: props.platform.id,
-    projectId: props.projectId,
-    projectSlug: props.projectSlug,
+    project: props.project,
+    isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: true,
     isReplaySelected: false,
     sourcePackageRegistries: {
-      isLoading: false,
-      data: undefined,
+      isLoading: isLoadingRegistry,
+      data: registryData,
     },
     platformOptions: PROFILING_ONBOARDING_STEPS,
     newOrg: false,
@@ -407,9 +412,9 @@ const Content = styled('div')`
 const Heading = styled('div')`
   display: flex;
   color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   margin-top: ${space(3)};
 `;

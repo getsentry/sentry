@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -24,10 +25,9 @@ import {
   AlertRuleComparisonType,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {Anomaly, Incident} from 'sentry/views/alerts/types';
+import type {Incident} from 'sentry/views/alerts/types';
 import {
   fetchAlertRule,
-  fetchAnomaliesForRule,
   fetchIncident,
   fetchIncidentsForRule,
 } from 'sentry/views/alerts/utils/apiCalls';
@@ -47,18 +47,22 @@ interface Props extends RouteComponentProps<{ruleId: string}> {
 }
 
 interface State {
-  error: ResponseMeta | null;
+  error: RequestError | null;
   hasError: boolean;
   isLoading: boolean;
   selectedIncident: Incident | null;
-  anomalies?: Anomaly[];
   incidents?: Incident[];
   rule?: MetricRule;
   warning?: string;
 }
 
 class MetricAlertDetails extends Component<Props, State> {
-  state: State = {isLoading: false, hasError: false, error: null, selectedIncident: null};
+  state: State = {
+    isLoading: false,
+    hasError: false,
+    error: null,
+    selectedIncident: null,
+  };
 
   componentDidMount() {
     const {api, organization} = this.props;
@@ -217,24 +221,16 @@ class MetricAlertDetails extends Component<Props, State> {
     const timePeriod = this.getTimePeriod(selectedIncident);
     const {start, end} = timePeriod;
     try {
-      const [incidents, rule, anomalies] = await Promise.all([
+      const [incidents, rule] = await Promise.all([
         fetchIncidentsForRule(organization.slug, ruleId, start, end),
         rulePromise,
-        organization.features.includes('anomaly-detection-alerts-charts')
-          ? fetchAnomaliesForRule(organization.slug, ruleId, start, end)
-          : undefined, // NOTE: there's no way for us to determine the alert rule detection type here.
-        // proxy API will need to determine whether to fetch anomalies or not
       ]);
-      // NOTE: 'anomaly-detection-alerts-charts' flag does not exist
-      // Flag can be enabled IF we want to enable marked lines/areas for anomalies in the future
-      // For now, we defer to incident lines as indicators for anomalies
       let warning: any;
       if (rule.status === ALERT_RULE_STATUS.NOT_ENOUGH_DATA) {
         warning =
           'Insufficient data for anomaly detection. This feature will enable automatically when more data is available.';
       }
       this.setState({
-        anomalies,
         incidents,
         rule,
         warning,
@@ -243,7 +239,12 @@ class MetricAlertDetails extends Component<Props, State> {
         hasError: false,
       });
     } catch (error) {
-      this.setState({selectedIncident, isLoading: false, hasError: true, error});
+      this.setState({
+        selectedIncident,
+        isLoading: false,
+        hasError: true,
+        error: error as RequestError,
+      });
     }
   };
 
@@ -253,7 +254,7 @@ class MetricAlertDetails extends Component<Props, State> {
     return (
       <Layout.Page withPadding>
         <Alert.Container>
-          <Alert type="error" showIcon>
+          <Alert type="error">
             {error?.status === 404
               ? t('This alert rule could not be found.')
               : t('An error occurred while fetching the alert rule.')}
@@ -264,7 +265,7 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 
   render() {
-    const {rule, incidents, hasError, selectedIncident, anomalies, warning} = this.state;
+    const {rule, incidents, hasError, selectedIncident, warning} = this.state;
     const {organization, projects, loadingProjects} = this.props;
     const timePeriod = this.getTimePeriod(selectedIncident);
 
@@ -284,9 +285,7 @@ class MetricAlertDetails extends Component<Props, State> {
       >
         {warning && (
           <Alert.Container>
-            <Alert type="warning" showIcon>
-              {warning}
-            </Alert>
+            <Alert type="warning">{warning}</Alert>
           </Alert.Container>
         )}
         <SentryDocumentTitle title={rule?.name ?? ''} />
@@ -302,7 +301,6 @@ class MetricAlertDetails extends Component<Props, State> {
           rule={rule}
           project={project}
           incidents={incidents}
-          anomalies={anomalies}
           timePeriod={timePeriod}
           selectedIncident={selectedIncident}
         />

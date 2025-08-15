@@ -14,7 +14,12 @@
         },
         "key": {"type": "keySimple", "value": "stack.colno", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": ">3s", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": ">3s",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

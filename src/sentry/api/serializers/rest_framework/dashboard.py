@@ -2,6 +2,7 @@ import re
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
+from math import floor
 from typing import TypedDict
 
 import sentry_sdk
@@ -11,12 +12,12 @@ from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import features, options
-from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.issue_search import parse_search_query
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -34,6 +35,7 @@ from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES as ERROR_PARSER_CONFIG_OVERRIDES
 from sentry.tasks.on_demand_metrics import (
     _get_widget_on_demand_specs,
     check_field_cardinality,
@@ -271,17 +273,25 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             # or to provide the start/end so that the interval can be computed.
             # This uses a hard coded start/end to ensure the validation succeeds
             # since the values themselves don't matter.
+            config = QueryBuilderConfig(
+                equation_config={
+                    "auto_add": bool(not is_table or injected_orderby_equation),
+                    "aggregates_only": not is_table,
+                },
+                use_aggregate_conditions=True,
+            )
+            if self.context.get("widget_type") == DashboardWidgetTypes.get_type_name(
+                DashboardWidgetTypes.ERROR_EVENTS
+            ):
+                config.parser_config_overrides = ERROR_PARSER_CONFIG_OVERRIDES
+            elif self.context.get("widget_type") == DashboardWidgetTypes.get_type_name(
+                DashboardWidgetTypes.TRANSACTION_LIKE
+            ):
+                config.has_metrics = use_metrics
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
-                config=QueryBuilderConfig(
-                    equation_config={
-                        "auto_add": bool(not is_table or injected_orderby_equation),
-                        "aggregates_only": not is_table,
-                    },
-                    use_aggregate_conditions=True,
-                    has_metrics=use_metrics,
-                ),
+                config=config,
             )
 
             builder.resolve_time_conditions()
@@ -363,14 +373,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 },
             )
             sentry_sdk.capture_message("Created or updated widget with discover dataset.")
-            if features.has(
-                "organizations:deprecate-discover-widget-type",
-                self.context["organization"],
-                actor=self.context["request"].user,
-            ):
-                raise serializers.ValidationError(
-                    "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
-                )
+            raise serializers.ValidationError(
+                "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+            )
         return widget_type
 
     validate_id = validate_id
@@ -388,6 +393,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         if data.get("display_type"):
             additional_context["display_type"] = data.get("display_type")
+        if data.get("widget_type"):
+            additional_context["widget_type"] = data.get("widget_type")
         if self.context.get("request") and self.context["request"].user:
             additional_context["user"] = self.context["request"].user
 
@@ -408,10 +415,25 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             "organizations:on-demand-metrics-extraction-widgets", organization
         )
 
+        if (
+            features.has(
+                "organizations:discover-saved-queries-deprecation",
+                self.context["organization"],
+                actor=self.context["request"].user,
+            )
+            and not data.get("id")
+            and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE
+        ):
+            raise serializers.ValidationError(
+                {
+                    "widget_type": "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
+                }
+            )
+
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
-                if len(query.get("columns")) > 0:
+                if len(query.get("columns", [])) > 0:
                     has_columns = True
                 if (
                     data.get("widget_type") == DashboardWidgetTypes.ISSUE
@@ -421,7 +443,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     has_query_error = True
                 elif (
                     "widget_type" not in data
-                    or data.get("widget_type") == DashboardWidgetTypes.DISCOVER
+                    or data.get("widget_type")
+                    in [
+                        DashboardWidgetTypes.DISCOVER,
+                        DashboardWidgetTypes.TRANSACTION_LIKE,
+                        DashboardWidgetTypes.ERROR_EVENTS,
+                    ]
                 ) and "discover_query_error" in query:
                     query_errors.append(query["discover_query_error"])
                     has_query_error = True
@@ -490,7 +517,23 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             and data.get("limit") is None
             and has_columns
         ):
-            raise serializers.ValidationError({"limit": "limit is required."})
+            defaultLimit = 5
+            maxLimit = 10
+            numQueries = len(data.get("queries", []))
+            numYAxes = len(data.get("queries", [])[0].get("aggregates", []))
+            limit = defaultLimit
+
+            if numQueries == 0 or numYAxes == 0:
+                limit = defaultLimit
+            else:
+                limit = floor(maxLimit / (numQueries * numYAxes))
+
+            sentry_sdk.capture_message(
+                f"Dashboard Widget limit was not set. Suggested maximum limit is {limit}."
+            )
+            raise serializers.ValidationError(
+                {"limit": f"limit is required. The maximum limit is ${limit}."}
+            )
         # Validate widget thresholds
         thresholds = data.get("thresholds")
         if thresholds:
@@ -565,7 +608,7 @@ class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
         child=serializers.IntegerField(),
         help_text="List of team IDs that have edit access to a dashboard.",
         required=False,
-        default=[],
+        default=list,
     )
 
     def validate(self, data):
@@ -797,7 +840,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             description=widget_data.get("description", None),
             thresholds=widget_data.get("thresholds", None),
             interval=widget_data.get("interval", "5m"),
-            widget_type=widget_data.get("widget_type", DashboardWidgetTypes.DISCOVER),
+            widget_type=widget_data.get("widget_type", DashboardWidgetTypes.ERROR_EVENTS),
             discover_widget_split=widget_data.get("discover_widget_split", None),
             order=order,
             limit=widget_data.get("limit", None),
@@ -953,6 +996,20 @@ class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(
         required=True, max_length=255, help_text="The user defined title for this dashboard."
     )
+    is_favorited = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Favorite the dashboard automatically for the request user",
+    )
+
+
+class DashboardStarredOrderSerializer(serializers.Serializer):
+    dashboard_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
+
+    def validate_dashboard_ids(self, dashboard_ids):
+        if len(dashboard_ids) != len(set(dashboard_ids)):
+            raise serializers.ValidationError("Single dashboard cannot take up multiple positions")
+        return dashboard_ids
 
 
 def schedule_update_project_configs(dashboard: Dashboard):

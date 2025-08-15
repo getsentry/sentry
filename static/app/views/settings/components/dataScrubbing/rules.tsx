@@ -1,4 +1,4 @@
-import {forwardRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ConfirmDelete from 'sentry/components/confirmDelete';
@@ -16,12 +16,10 @@ type Props = {
   disabled?: boolean;
   onDeleteRule?: (id: Rule['id']) => void;
   onEditRule?: (id: Rule['id']) => void;
+  ref?: React.Ref<HTMLUListElement>;
 };
 
-const Rules = forwardRef(function RulesList(
-  {rules, onEditRule, onDeleteRule, disabled}: Props,
-  ref: React.Ref<HTMLUListElement>
-) {
+function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
   return (
     <List ref={ref} isDisabled={disabled} data-test-id="advanced-data-scrubbing-rules">
       {rules.map(rule => {
@@ -67,7 +65,7 @@ const Rules = forwardRef(function RulesList(
       })}
     </List>
   );
-});
+}
 
 export default Rules;
 
@@ -80,10 +78,10 @@ const List = styled('ul')<{
   margin-bottom: 0 !important;
   ${p =>
     p.isDisabled &&
-    `
+    css`
       color: ${p.theme.gray200};
       background: ${p.theme.backgroundSecondary};
-  `}
+    `}
 `;
 
 const ListItem = styled('li')`

@@ -67,7 +67,7 @@ class AuthenticatorInterface:
     is_backup_interface = False
     enroll_button = _("Enroll")
     configure_button = _("Info")
-    remove_button: str | _StrPromise | None = _("Remove")
+    remove_button: str | _StrPromise | None = _("Remove 2FA method")
     is_available = True
     allow_multi_enrollment = False
     allow_rotation_in_place = False
@@ -76,7 +76,9 @@ class AuthenticatorInterface:
     _unbound_config: dict[Any, Any]
 
     def __init__(
-        self, authenticator=None, status: EnrollmentStatus = EnrollmentStatus.EXISTING
+        self,
+        authenticator: Authenticator | None = None,
+        status: EnrollmentStatus = EnrollmentStatus.EXISTING,
     ) -> None:
         self.authenticator = authenticator
         self.status = status
@@ -113,7 +115,7 @@ class AuthenticatorInterface:
         return type(self).activate is not AuthenticatorInterface.activate
 
     @property
-    def can_validate_otp(self):
+    def can_validate_otp(self) -> bool:
         """If the interface is able to validate OTP codes then this returns
         `True`.
         """
@@ -188,7 +190,7 @@ class AuthenticatorInterface:
         """
         return False
 
-    def validate_response(self, request: Request, challenge, response):
+    def validate_response(self, request: Request, challenge, response) -> bool:
         """If the activation generates a challenge that needs to be
         responded to this validates the response for that challenge.  This
         is only ever called for challenges emitted by the activation of this

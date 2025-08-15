@@ -17,7 +17,7 @@ class CreateTeamTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.path = f"/settings/{self.org.slug}/teams/"
 
-    def test_create(self):
+    def test_create(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_test_id("team-list")
 

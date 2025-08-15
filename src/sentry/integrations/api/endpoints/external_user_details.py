@@ -18,6 +18,7 @@ from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
+    ExternalUserPermission,
     ExternalUserSerializer,
 )
 from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
@@ -30,11 +31,12 @@ logger = logging.getLogger(__name__)
 @region_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
+    owner = ApiOwner.ECOSYSTEM
+    permission_classes = (ExternalUserPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
 
     def convert_args(
         self,

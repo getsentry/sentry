@@ -194,11 +194,11 @@ const Smoke = styled('g')`
   }
 
   ${new Array(3).fill(0).map(
-    (_, i) => `
-  > :nth-child(${i + 1}) {
-    animation-delay: ${4 + i * 0.2}s
-  }
-  `
+    (_, i) => css`
+      > :nth-child(${i + 1}) {
+        animation-delay: ${4 + i * 0.2}s;
+      }
+    `
   )}
 `;
 

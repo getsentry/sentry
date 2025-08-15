@@ -1,5 +1,5 @@
 import BasePlugin from 'sentry/plugins/basePlugin';
-import DefaultIssuePlugin from 'sentry/plugins/defaultIssuePlugin';
+import {DefaultIssuePlugin} from 'sentry/plugins/defaultIssuePlugin';
 import Registry from 'sentry/plugins/registry';
 
 import SessionStackContextType from './sessionstack/contexts/sessionstack';
@@ -17,8 +17,6 @@ contexts.sessionstack = SessionStackContextType;
 
 // Jira
 registry.add('jira', Jira);
-
-export {BasePlugin, DefaultIssuePlugin, registry};
 
 const add: typeof registry.add = registry.add.bind(registry);
 const get: typeof registry.get = registry.get.bind(registry);

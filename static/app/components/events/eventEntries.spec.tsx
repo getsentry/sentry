@@ -8,7 +8,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventEntries} from 'sentry/components/events/eventEntries';
 
-describe('EventEntries', function () {
+describe('EventEntries', () => {
   const defaultProps = {
     organization: OrganizationFixture(),
     project: ProjectFixture(),
@@ -16,7 +16,7 @@ describe('EventEntries', function () {
     location: LocationFixture(),
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     const project = ProjectFixture({platform: 'javascript'});
 
     MockApiClient.addMockResponse({
@@ -35,7 +35,7 @@ describe('EventEntries', function () {
     });
   });
 
-  it('renders the replay section in the correct place', async function () {
+  it('renders the replay section in the correct place', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: null}},
@@ -54,14 +54,15 @@ describe('EventEntries', function () {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByTestId(/event-section/)).toHaveLength(4); //  event tags + 2 entries + event grouping
+      expect(screen.getAllByRole('button', {name: /Section/i})).toHaveLength(4);
     });
 
-    const sections = screen.getAllByTestId(/event-section/);
+    const sections = screen.getAllByRole('button', {name: /Section/i});
 
     // Replay should be after message but before images loaded
     expect(sections[0]).toHaveTextContent(/message/i);
     expect(sections[1]).toHaveTextContent(/replay/i);
     expect(sections[2]).toHaveTextContent(/images loaded/i);
+    expect(sections[3]).toHaveTextContent(/event grouping/i);
   });
 });

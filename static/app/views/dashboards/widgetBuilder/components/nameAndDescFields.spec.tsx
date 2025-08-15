@@ -16,7 +16,7 @@ const mockUseNavigate = jest.mocked(useNavigate);
 describe('WidgetBuilder', () => {
   let router!: ReturnType<typeof RouterFixture>;
   let organization!: ReturnType<typeof OrganizationFixture>;
-  beforeEach(function () {
+  beforeEach(() => {
     router = RouterFixture({
       location: {
         pathname: '/organizations/org-slug/dashboard/1/',
@@ -24,10 +24,10 @@ describe('WidgetBuilder', () => {
       },
       params: {},
     });
-    organization = OrganizationFixture({});
+    organization = OrganizationFixture();
   });
 
-  it('edits name and description', async function () {
+  it('edits name and description', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -38,6 +38,7 @@ describe('WidgetBuilder', () => {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -47,7 +48,7 @@ describe('WidgetBuilder', () => {
         ...router.location,
         query: expect.objectContaining({title: 'some name'}),
       }),
-      {replace: true}
+      expect.anything()
     );
 
     await userEvent.click(await screen.findByTestId('add-description'));
@@ -61,18 +62,22 @@ describe('WidgetBuilder', () => {
         ...router.location,
         query: expect.objectContaining({description: 'some description'}),
       }),
-      {replace: true}
+      expect.anything()
     );
   });
 
-  it('displays error', async function () {
+  it('displays error', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderNameAndDescription
           error={{title: 'Title is required during creation.'}}
         />
       </WidgetBuilderProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(

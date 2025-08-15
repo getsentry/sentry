@@ -21,7 +21,7 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 from snuba_sdk import Column, Condition, Op
 
-from sentry import eventstore, eventtypes, features, options, tagstore
+from sentry import eventstore, eventtypes, options, tagstore
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
@@ -29,23 +29,22 @@ from sentry.db.models import (
     BoundedIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    GzippedDictField,
     Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
-from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
-from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
+from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
@@ -61,7 +60,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.incidents.utils.metric_issue_poc import OpenPeriod
+    from sentry.integrations.models.integration import Integration
     from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.environment import Environment
     from sentry.models.team import Team
@@ -221,8 +220,8 @@ STATUS_UPDATE_CHOICES = {
 
 
 class EventOrdering(Enum):
-    LATEST = ["-timestamp", "-event_id"]
-    OLDEST = ["timestamp", "event_id"]
+    LATEST = ["project_id", "-timestamp", "-event_id"]
+    OLDEST = ["project_id", "timestamp", "event_id"]
     RECOMMENDED = [
         "-replay.id",
         "-trace.sampled",
@@ -240,7 +239,6 @@ def get_oldest_or_latest_event(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> GroupEvent | None:
-
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
@@ -315,6 +313,7 @@ def get_recommended_event(
         referrer="Group.get_helpful",
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
+        inner_limit=1000,
     )
 
     if events:
@@ -407,7 +406,7 @@ class GroupManager(BaseManager["Group"]):
 
     def get_groups_by_external_issue(
         self,
-        integration: RpcIntegration,
+        integration: Integration | RpcIntegration,
         organizations: Iterable[Organization],
         external_issue_key: str | None,
     ) -> QuerySet[Group]:
@@ -426,7 +425,8 @@ class GroupManager(BaseManager["Group"]):
         org_ids_with_integration = list(
             i.organization_id
             for i in integration_service.get_organization_integrations(
-                organization_ids=[o.id for o in organizations], integration_id=integration.id
+                organization_ids=[o.id for o in organizations],
+                integration_id=integration.id,
             )
         )
 
@@ -447,6 +447,7 @@ class GroupManager(BaseManager["Group"]):
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models.activity import Activity
+        from sentry.models.groupopenperiod import update_group_open_period
 
         modified_groups_list = []
         selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
@@ -458,10 +459,17 @@ class GroupManager(BaseManager["Group"]):
             and activity_type == ActivityType.AUTO_SET_ONGOING
         )
 
+        # Track the resolved groups that are being unresolved and need to have their open period reopened
+        should_reopen_open_period = {
+            group.id: group.status == GroupStatus.RESOLVED for group in selected_groups
+        }
+        resolved_at = timezone.now()
         updated_priority = {}
         for group in selected_groups:
             group.status = status
             group.substatus = substatus
+            if status == GroupStatus.RESOLVED:
+                group.resolved_at = resolved_at
             if should_update_priority:
                 priority = get_priority_for_ongoing_group(group)
                 if priority and group.priority != priority:
@@ -470,10 +478,12 @@ class GroupManager(BaseManager["Group"]):
 
             modified_groups_list.append(group)
 
-        Group.objects.bulk_update(modified_groups_list, ["status", "substatus", "priority"])
+        Group.objects.bulk_update(
+            modified_groups_list, ["status", "substatus", "priority", "resolved_at"]
+        )
 
         for group in modified_groups_list:
-            Activity.objects.create_group_activity(
+            activity = Activity.objects.create_group_activity(
                 group,
                 activity_type,
                 data=activity_data,
@@ -493,6 +503,21 @@ class GroupManager(BaseManager["Group"]):
                 )
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
+            # The open period is only updated when a group is resolved or reopened. We don't want to
+            # update the open period when a group transitions between different substatuses within UNRESOLVED.
+            if status == GroupStatus.RESOLVED:
+                update_group_open_period(
+                    group=group,
+                    new_status=GroupStatus.RESOLVED,
+                    resolution_time=activity.datetime,
+                    resolution_activity=activity,
+                )
+            elif status == GroupStatus.UNRESOLVED and should_reopen_open_period[group.id]:
+                update_group_open_period(
+                    group=group,
+                    new_status=GroupStatus.UNRESOLVED,
+                )
+
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
             raise Group.DoesNotExist
@@ -507,9 +532,13 @@ class GroupManager(BaseManager["Group"]):
 
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         user_ids = list(team.member_set.values_list("user_id", flat=True))
-        assigned_groups = GroupAssignee.objects.filter(
-            Q(team=team) | Q(user_id__in=user_ids)
-        ).values_list("group_id", flat=True)
+
+        assigned_groups = (
+            GroupAssignee.objects.filter(team=team)
+            .union(GroupAssignee.objects.filter(user_id__in=user_ids))
+            .values_list("group_id", flat=True)
+        )
+
         return self.filter(
             project__in=project_list,
             id__in=assigned_groups,
@@ -525,7 +554,9 @@ class GroupManager(BaseManager["Group"]):
         return {
             i.id: i.qualified_short_id
             for i in self.filter(
-                id__in=group_ids, project_id__in=project_ids, project__organization=organization
+                id__in=group_ids,
+                project_id__in=project_ids,
+                project__organization=organization,
             )
         }
 
@@ -584,13 +615,15 @@ class Group(Model):
     time_spent_count = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
-    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
-        blank=True, null=True
-    )
+    data = LegacyTextJSONField(null=True)
     short_id = BoundedBigIntegerField(null=True)
-    type = BoundedPositiveIntegerField(default=DEFAULT_TYPE_ID, db_index=True)
-    priority = models.PositiveSmallIntegerField(null=True)
+    type = BoundedPositiveIntegerField(
+        default=DEFAULT_TYPE_ID, db_default=DEFAULT_TYPE_ID, db_index=True
+    )
+    priority = models.PositiveIntegerField(null=True)
     priority_locked_at = models.DateTimeField(null=True)
+    seer_fixability_score = models.FloatField(null=True)
+    seer_autofix_last_triggered = models.DateTimeField(null=True)
 
     objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))
 
@@ -612,14 +645,11 @@ class Group(Model):
             models.Index(fields=("status", "substatus", "first_seen")),
             models.Index(fields=("project", "status", "priority", "last_seen", "id")),
         ]
-        unique_together = (
-            ("project", "short_id"),
-            ("project", "id"),
-        )
+        unique_together = (("project", "short_id"),)
 
     __repr__ = sane_repr("project_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"({self.times_seen}) {self.title}"
 
     def save(self, *args, **kwargs):
@@ -664,6 +694,10 @@ class Group(Model):
                 query = urlencode(params)
             return organization.absolute_url(path, query=query)
 
+    def get_absolute_api_url(self):
+        path = f"/issues/{self.id}/"
+        return self.organization.absolute_api_url(path=path)
+
     @property
     def qualified_short_id(self):
         if self.short_id is not None:
@@ -680,9 +714,6 @@ class Group(Model):
 
     def is_unresolved(self):
         return self.get_status() == GroupStatus.UNRESOLVED
-
-    # TODO(dcramer): remove in 9.0 / after plugins no long ref
-    is_muted = is_ignored
 
     def is_resolved(self):
         return self.get_status() == GroupStatus.RESOLVED
@@ -736,7 +767,7 @@ class Group(Model):
             data_source=data_source,
         )
 
-        has_replays = counts.get(self.id, 0) > 0  # type: ignore[call-overload]
+        has_replays = counts.get(self.id, 0) > 0
         # need to refactor counts so that the type of the key returned in the dict is always a str
         # for typing
         metrics.incr(
@@ -765,7 +796,9 @@ class Group(Model):
                     status = GroupStatus.UNRESOLVED
 
         if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
-            return GroupStatus.RESOLVED
+            # Only auto-resolve if this group type has auto-resolve enabled
+            if self.issue_type.enable_auto_resolve:
+                return GroupStatus.RESOLVED
         return status
 
     def get_share_id(self):
@@ -926,7 +959,7 @@ class Group(Model):
         """
         return self.data.get("type", "default")
 
-    def get_event_metadata(self) -> Mapping[str, Any]:
+    def get_event_metadata(self) -> dict[str, Any]:
         """
         Return the metadata of this issue.
 
@@ -1030,6 +1063,10 @@ class Group(Model):
     def issue_category(self):
         return GroupCategory(self.issue_type.category)
 
+    @property
+    def issue_category_v2(self):
+        return GroupCategory(self.issue_type.category_v2)
+
 
 @receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
 def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
@@ -1038,7 +1075,8 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
         if instance.status == GroupStatus.IGNORED:
             if instance.substatus not in IGNORED_SUBSTATUS_CHOICES:
                 logger.error(
-                    "Invalid substatus for IGNORED group.", extra={"substatus": instance.substatus}
+                    "Invalid substatus for IGNORED group.",
+                    extra={"substatus": instance.substatus},
                 )
         elif instance.status == GroupStatus.UNRESOLVED:
             if instance.substatus not in UNRESOLVED_SUBSTATUS_CHOICES:
@@ -1052,104 +1090,3 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
                 "No substatus allowed for group",
                 extra={"status": instance.status, "substatus": instance.substatus},
             )
-
-
-def get_last_checked_for_open_period(group: Group) -> datetime:
-    from sentry.incidents.models.alert_rule import AlertRule
-    from sentry.issues.grouptype import MetricIssuePOC
-
-    event = group.get_latest_event()
-    last_checked = group.last_seen
-    if event and group.type == MetricIssuePOC.type_id:
-        alert_rule_id = event.data.get("contexts", {}).get("metric_alert", {}).get("alert_rule_id")
-        if alert_rule_id:
-            try:
-                alert_rule = AlertRule.objects.get(id=alert_rule_id)
-                now = timezone.now()
-                last_checked = now - timedelta(seconds=alert_rule.snuba_query.time_window)
-            except AlertRule.DoesNotExist:
-                pass
-
-    return last_checked
-
-
-def get_open_periods_for_group(
-    group: Group,
-    query_start: datetime | None = None,
-    query_end: datetime | None = None,
-    offset: int | None = None,
-    limit: int | None = None,
-) -> list[OpenPeriod]:
-    from sentry.incidents.utils.metric_issue_poc import OpenPeriod
-
-    if not features.has("organizations:issue-open-periods", group.organization):
-        return []
-
-    if query_start is None or query_end is None:
-        query_start = timezone.now() - timedelta(days=90)
-        query_end = timezone.now()
-
-    query_limit = limit * 2 if limit else None
-    # Filter to REGRESSION and RESOLVED activties to find the bounds of each open period.
-    # The only UNRESOLVED activity we would care about is the first UNRESOLVED activity for the group creation,
-    # but we don't create an entry for that .
-    activities = Activity.objects.filter(
-        group=group,
-        type__in=[ActivityType.SET_REGRESSION.value, ActivityType.SET_RESOLVED.value],
-        datetime__gte=query_start,
-        datetime__lte=query_end,
-    ).order_by("-datetime")[:query_limit]
-
-    open_periods = []
-    start: datetime | None = None
-    end: datetime | None = None
-    last_checked = get_last_checked_for_open_period(group)
-
-    # Handle currently open period
-    if group.status == GroupStatus.UNRESOLVED and len(activities) > 0:
-        open_periods.append(
-            OpenPeriod(
-                start=activities[0].datetime,
-                end=None,
-                duration=None,
-                is_open=True,
-                last_checked=last_checked,
-            )
-        )
-        activities = activities[1:]
-
-    for activity in activities:
-        if activity.type == ActivityType.SET_RESOLVED.value:
-            end = activity.datetime
-        elif activity.type == ActivityType.SET_REGRESSION.value:
-            start = activity.datetime
-            if end is not None:
-                open_periods.append(
-                    OpenPeriod(
-                        start=start,
-                        end=end,
-                        duration=end - start,
-                        is_open=False,
-                        last_checked=end,
-                    )
-                )
-                end = None
-
-    # Add the very first open period, which has no UNRESOLVED activity for the group creation
-    open_periods.append(
-        OpenPeriod(
-            start=group.first_seen,
-            end=end if end else None,
-            duration=end - group.first_seen if end else None,
-            is_open=False if end else True,
-            last_checked=end if end else last_checked,
-        )
-    )
-
-    if offset and limit:
-        return open_periods[offset : offset + limit]
-
-    if limit:
-        return open_periods[:limit]
-
-    return open_periods

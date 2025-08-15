@@ -19,10 +19,11 @@ from snuba_sdk import (
 )
 
 from sentry import options, quotas
-from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
-from sentry.dynamic_sampling.models.factory import model_factory
-from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
+from sentry.dynamic_sampling.models.transactions_rebalancing import (
+    TransactionsRebalancingInput,
+    TransactionsRebalancingModel,
+)
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
@@ -55,6 +56,9 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -95,6 +99,14 @@ class ProjectTransactionsTotals(TypedDict, total=True):
     soft_time_limit=6 * 60,  # 6 minutes
     time_limit=6 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=6 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_transactions(context: TaskContext) -> None:
@@ -153,6 +165,14 @@ def boost_low_volume_transactions(context: TaskContext) -> None:
     soft_time_limit=4 * 60,  # 4 minutes
     time_limit=4 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=4 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions_of_project(project_transactions: ProjectTransactions) -> None:
@@ -215,7 +235,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
 
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
 
-    model = model_factory(ModelType.TRANSACTIONS_REBALANCING)
+    model = TransactionsRebalancingModel()
     rebalanced_transactions = guarded_run(
         model,
         TransactionsRebalancingInput(
@@ -261,7 +281,7 @@ def is_project_identity_before(left: ProjectIdentity, right: ProjectIdentity) ->
 class FetchProjectTransactionTotals:
     """
     Fetches the total number of transactions and the number of distinct transaction types for each
-    project in the given organisations
+    project in the given organizations
     """
 
     def __init__(self, orgs: Sequence[int]):

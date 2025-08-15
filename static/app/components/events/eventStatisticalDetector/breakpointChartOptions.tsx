@@ -12,8 +12,8 @@ import {
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
-  type NormalizedTrendsTransaction,
   TrendFunctionField,
+  type NormalizedTrendsTransaction,
 } from 'sentry/views/performance/trends/types';
 import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
@@ -29,7 +29,7 @@ function getBreakpointChartOptionsFromData(
   chartType: ChartType,
   theme: Theme
 ) {
-  const trendFunctionName: Partial<{[key in ChartType]: string}> = {
+  const trendFunctionName: Partial<Record<ChartType, string>> = {
     [ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION]: 'transaction.duration',
     [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: 'function.duration',
   };
@@ -49,11 +49,10 @@ function getBreakpointChartOptionsFromData(
   };
 
   // Mapping from BreakpointType to transformation functions
-  const transformFunction: Partial<{[key in ChartType]: (arg: any) => EventsStatsData}> =
-    {
-      [ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION]: defaultTransform,
-      [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: transformFunctionStats,
-    };
+  const transformFunction: Partial<Record<ChartType, (arg: any) => EventsStatsData>> = {
+    [ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION]: defaultTransform,
+    [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: transformFunctionStats,
+  };
 
   const transformedSeries = transformEventStats(
     transformFunction[chartType]!(percentileData),

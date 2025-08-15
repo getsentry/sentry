@@ -1,11 +1,11 @@
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import omit from 'lodash/omit';
 
-import {Chevron} from 'sentry/components/chevron';
 import {Button} from 'sentry/components/core/button';
+import {debossedBackground} from 'sentry/components/core/chonk';
 import type {StylesConfig as ReactSelectStylesConfig} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {IconClose} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
@@ -13,6 +13,21 @@ import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
+
+const multiValueSizeMapping = {
+  md: {
+    height: '20px',
+    spacing: '4px',
+  },
+  sm: {
+    height: '18px',
+    spacing: '2px',
+  },
+  xs: {
+    height: '16px',
+    spacing: '2px',
+  },
+} satisfies Record<FormSize, {height: string; spacing: string}>;
 
 export const getChonkStylesConfig = ({
   theme,
@@ -45,26 +60,28 @@ export const getChonkStylesConfig = ({
       color: 'currentcolor',
     },
   });
+  const boxShadow = `0px 2px 0px 0px ${theme.tokens.border.primary} inset`;
 
   return {
     control: (_, state) => ({
       display: 'flex',
       color: state.isDisabled ? theme.disabled : theme.textColor,
-      background: theme.background,
+      ...debossedBackground(theme),
       border: `1px solid ${theme.border}`,
-      boxShadow: theme.dropShadowMedium,
-      borderRadius: theme.borderRadius,
+      boxShadow,
+      ...theme.formRadius[size],
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
-      ...(state.isFocused && theme.focusRing),
+      ...(state.isFocused && theme.focusRing(boxShadow)),
       ...(state.isDisabled && {
         background: theme.background,
         color: theme.disabled,
         cursor: 'not-allowed',
+        opacity: '60%',
       }),
       ...omit(theme.form[size], 'height'),
       ...(state.isMulti && {
-        maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
+        maxHeight: '12em', // 10 lines (1.2em * 10) + padding
         overflow: 'hidden',
       }),
     }),
@@ -74,14 +91,16 @@ export const getChonkStylesConfig = ({
       zIndex: theme.zIndex.dropdown,
       background: theme.backgroundElevated,
       borderRadius: theme.borderRadius,
-      boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
+      border: `1px solid ${theme.border}`,
+      boxShadow: 'none',
       width: 'auto',
       minWidth: '100%',
       maxWidth: maxMenuWidth ?? 'auto',
-      top: theme.form[size].height,
-      marginTop: '8px',
     }),
-
+    noOptionsMessage: provided => ({
+      ...provided,
+      color: theme.disabled,
+    }),
     menuPortal: provided => ({
       ...provided,
       maxWidth: maxMenuWidth ?? '24rem',
@@ -112,10 +131,7 @@ export const getChonkStylesConfig = ({
       paddingBottom: 0,
       paddingLeft: theme.formPadding[size].paddingLeft,
       paddingRight: theme.formSpacing[size],
-      // offset horizontal margin/padding from multiValue (space(0.25)) &
-      // multiValueLabel (space(0.75))
       ...(state.isMulti && {
-        marginLeft: `-${space(1)}`,
         maxHeight: 'inherit',
         overflowY: 'auto',
         scrollbarColor: `${theme.purple200} ${theme.background}`,
@@ -139,34 +155,43 @@ export const getChonkStylesConfig = ({
       ...provided,
       color: state.isDisabled ? theme.disabled : theme.subText,
     }),
-    multiValue: (provided, state) => ({
+    multiValue: provided => ({
       ...provided,
-      color: state.isDisabled ? theme.disabled : theme.textColor,
+      color: isDisabled ? theme.disabled : theme.textColor,
       backgroundColor: theme.background,
-      borderRadius: '2px',
+      borderRadius: '4px',
       border: `1px solid ${theme.border}`,
+      boxShadow: `0px 1px 0px 0px ${theme.tokens.border.primary}`,
       display: 'flex',
-      marginLeft: space(0.25),
+      margin: 0,
+      marginTop: multiValueSizeMapping[size].spacing,
+      marginBottom: multiValueSizeMapping[size].spacing,
+      marginRight: multiValueSizeMapping[size].spacing,
     }),
     multiValueLabel: provided => ({
       ...provided,
-      color: theme.textColor,
-      padding: '0',
-      paddingLeft: space(0.75),
-      lineHeight: '1.8',
+      color: isDisabled ? theme.disabled : theme.textColor,
+      padding: multiValueSizeMapping[size].spacing,
+      paddingLeft: multiValueSizeMapping[size].spacing,
+      height: multiValueSizeMapping[size].height,
+      display: 'flex',
+      alignItems: 'center',
     }),
     multiValueRemove: () => ({
       alignItems: 'center',
-      borderLeft: `1px solid ${theme.innerBorder}`,
-      borderRadius: '0 2px 2px 0',
       display: 'flex',
-      padding: '0 4px',
-      marginLeft: '4px',
+      margin: '4px 4px',
 
-      '&:hover': {
-        color: theme.headingColor,
-        background: theme.backgroundTertiary,
-      },
+      ...(isDisabled
+        ? {
+            pointerEvents: 'none',
+          }
+        : {
+            '&:hover': {
+              cursor: 'pointer',
+              background: theme.hover,
+            },
+          }),
     }),
     indicatorsContainer: () => ({
       display: 'grid',
@@ -234,7 +259,7 @@ export function ChonkDropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <Chevron direction="down" size="medium" />
+      <IconChevron direction="down" size="xs" />
     </selectComponents.DropdownIndicator>
   );
 }
@@ -242,38 +267,33 @@ export function ChonkDropdownIndicator(
 export const ChonkCheckWrap = chonkStyled('div')<{
   isMultiple: boolean;
   isSelected: boolean;
+  size: FormSize;
 }>`
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 1em;
+  height: 1.4em;
 
   ${p =>
     p.isMultiple
-      ? `
-      width: 1em;
-      height: 1em;
-      padding: 1px;
-      border: solid 1px ${p.theme.border};
-      background: ${p.theme.backgroundElevated};
-      border-radius: 2px;
-      box-shadow: inset ${p.theme.dropShadowMedium};
-      ${
-        p.isSelected &&
+      ? css`
+          padding: 1px;
+          border: solid 1px ${p.theme.border};
+          background: ${p.theme.backgroundElevated};
+          border-radius: 2px;
+          height: 1em;
+          margin-top: 2px;
+          ${p.isSelected &&
+          css`
+            background: ${p.theme.purple300};
+            border-color: ${p.theme.purple300};
+          `}
         `
-        background: ${p.theme.purple300};
-        border-color: ${p.theme.purple300};
-       `
-      }
-    `
-      : `
-      width: 1em;
-      height: 1.4em;
-      padding-bottom: 1px;
-      ${
-        p.isSelected &&
-        `
-        color: ${p.theme.colors.content.accent};
-       `
-      }
-    `}
+      : css`
+          ${p.isSelected &&
+          css`
+            color: ${p.theme.colors.content.accent};
+          `}
+        `}
 `;

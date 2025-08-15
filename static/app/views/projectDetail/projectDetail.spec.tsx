@@ -6,28 +6,25 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import * as useApi from 'sentry/utils/useApi';
 
 import ProjectDetail from './projectDetail';
 
 jest.mock('sentry/actionCreators/organization');
 
-describe('ProjectDetail', function () {
+describe('ProjectDetail', () => {
   const {organization, router, projects} = initializeOrg();
   const project = projects[0]!;
 
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.init();
   });
 
-  afterEach(function () {
+  afterEach(() => {
     ProjectsStore.reset();
   });
 
-  it('Render an error if project not found', async function () {
+  it('Render an error if project not found', async () => {
     ProjectsStore.loadInitialData([{...project, slug: 'slug'}]);
-    const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
 
     render(
       <ProjectDetail
@@ -38,17 +35,23 @@ describe('ProjectDetail', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText(/project could not be found/)).toBeInTheDocument();
 
     // By clicking on the retry button, we should attempt to fetch the organization details again
     await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
-    expect(fetchOrganizationDetails).toHaveBeenCalledWith(api, organization.slug);
+    expect(fetchOrganizationDetails).toHaveBeenCalledWith(
+      expect.any(MockApiClient),
+      organization.slug
+    );
   });
 
-  it('Render warning if user is not a member of the project', async function () {
+  it('Render warning if user is not a member of the project', async () => {
     ProjectsStore.loadInitialData([{...project, hasAccess: false}]);
 
     render(
@@ -60,7 +63,10 @@ describe('ProjectDetail', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(
@@ -68,7 +74,7 @@ describe('ProjectDetail', function () {
     ).toBeInTheDocument();
   });
 
-  it('Render project details', async function () {
+  it('Render project details', async () => {
     ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
@@ -86,13 +92,16 @@ describe('ProjectDetail', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText(/project details/i)).toBeInTheDocument();
   });
 
-  it('Sync project with slug', async function () {
+  it('Sync project with slug', async () => {
     ProjectsStore.loadInitialData([project]);
     jest.spyOn(pageFilters, 'updateProjects');
 
@@ -114,7 +123,10 @@ describe('ProjectDetail', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => {

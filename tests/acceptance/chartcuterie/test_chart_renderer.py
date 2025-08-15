@@ -3,7 +3,7 @@ from sentry.testutils.helpers.response import close_streaming_response
 
 
 class TestChartRenderer(AcceptanceTestCase):
-    def test_debug_renders(self):
+    def test_debug_renders(self) -> None:
         options = {
             "chart-rendering.enabled": True,
             "system.url-prefix": self.browser.live_server_url,
@@ -11,6 +11,8 @@ class TestChartRenderer(AcceptanceTestCase):
 
         with self.options(options):
             self.browser.get("debug/chart-renderer/")
+
+        self.wait_for_loading()
 
         images = self.browser.elements(selector="img")
         assert len(images) > 0

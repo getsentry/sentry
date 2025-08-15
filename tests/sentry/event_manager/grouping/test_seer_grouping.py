@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from datetime import datetime
 from time import time
 from typing import Any
@@ -13,13 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.mocking import capture_results
 
-EMPTY_SEER_RESULTS = (
-    {
-        "results": [],
-        "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-    },
-    None,
-)
+EMPTY_SEER_RESULTS = (None, None)
 
 
 def get_event_data(dog: str = "Charlie") -> dict[str, Any]:
@@ -49,7 +42,7 @@ def get_event_data(dog: str = "Charlie") -> dict[str, Any]:
 class SeerEventManagerGroupingTest(TestCase):
     """Test whether Seer is called during ingest and if so, how the results are used"""
 
-    def test_obeys_seer_similarity_flags(self):
+    def test_obeys_seer_similarity_flags(self) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         assert existing_event.group_id
         seer_result_data = SeerSimilarIssueData(
@@ -106,10 +99,6 @@ class SeerEventManagerGroupingTest(TestCase):
                 },
                 self.project,
             )
-            expected_metadata = {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "results": [asdict(seer_result_data)],
-            }
             # In real life just filtering on group id wouldn't be enough to guarantee us a
             # single, specific GroupHash record, but since the database resets before each test,
             # here it's okay
@@ -119,9 +108,8 @@ class SeerEventManagerGroupingTest(TestCase):
             assert should_call_seer_spy.call_count == 1
             assert get_seer_similar_issues_spy.call_count == 1
 
-            # Metadata returned (metadata storage is tested separately in
-            # `test_stores_seer_results_in_grouphash_metadata`)
-            assert get_seer_similar_issues_return_values[0][0] == expected_metadata
+            # Stacktrace distance returned
+            assert get_seer_similar_issues_return_values[0][0] == 0.01
 
             # Parent grouphash returned and parent group used
             assert get_seer_similar_issues_return_values[0][1] == expected_grouphash
@@ -129,13 +117,13 @@ class SeerEventManagerGroupingTest(TestCase):
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=EMPTY_SEER_RESULTS)
-    def test_calls_seer_if_no_group_found(self, mock_get_seer_similar_issues: MagicMock, _):
+    def test_calls_seer_if_no_group_found(self, mock_get_seer_similar_issues: MagicMock, _) -> None:
         save_new_event({"message": "Dogs are great!"}, self.project)
         assert mock_get_seer_similar_issues.call_count == 1
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=EMPTY_SEER_RESULTS)
-    def test_bypasses_seer_if_group_found(self, mock_get_seer_similar_issues: MagicMock, _):
+    def test_bypasses_seer_if_group_found(self, mock_get_seer_similar_issues: MagicMock, _) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         assert mock_get_seer_similar_issues.call_count == 1
 
@@ -144,7 +132,7 @@ class SeerEventManagerGroupingTest(TestCase):
         assert mock_get_seer_similar_issues.call_count == 1  # didn't get called again
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
-    def test_assigns_event_to_neighbor_group_if_found(self, _):
+    def test_assigns_event_to_neighbor_group_if_found(self, _: MagicMock) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         assert existing_event.group_id is not None
@@ -165,7 +153,7 @@ class SeerEventManagerGroupingTest(TestCase):
             assert existing_event.group_id == new_event.group_id
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
-    def test_creates_new_group_if_no_neighbor_found(self, _):
+    def test_creates_new_group_if_no_neighbor_found(self, _: MagicMock) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         with patch(
@@ -197,7 +185,7 @@ class StoredSeerMetadataTest(TestCase):
         assert metadata.seer_match_distance == expected_seer_match_distance
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
-    def test_group_with_no_seer_match(self, _):
+    def test_group_with_no_seer_match(self, _: MagicMock) -> None:
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
@@ -223,7 +211,7 @@ class StoredSeerMetadataTest(TestCase):
             )
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
-    def test_group_with_seer_match(self, _):
+    def test_group_with_seer_match(self, _: MagicMock) -> None:
         existing_event = save_new_event(get_event_data(), self.project)
         existing_event_grouphash = GroupHash.objects.filter(
             hash=existing_event.get_primary_hash(), project_id=self.project.id
@@ -265,7 +253,7 @@ class StoredSeerMetadataTest(TestCase):
                 seer_result_data.stacktrace_distance,
             )
 
-    def test_event_not_sent_to_seer(self):
+    def test_event_not_sent_to_seer(self) -> None:
         with patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=False):
             event = save_new_event({"message": "Sit! Stay! Good dog!"}, self.project)
             event_grouphash = GroupHash.objects.filter(
@@ -276,7 +264,7 @@ class StoredSeerMetadataTest(TestCase):
             self.assert_correct_seer_metadata(event_grouphash, None, None, None, None, None)
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
-    def test_fills_in_missing_date_added(self, _):
+    def test_fills_in_missing_date_added(self, _: MagicMock) -> None:
 
         # Mimic the effects of the race condition wherein two events with the same new hash race to
         # create `GroupHash` and `GroupHashMetadata` records, and each event wins one of the races,

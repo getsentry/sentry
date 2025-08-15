@@ -24,8 +24,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {
-  type GroupTag,
   useGroupTags,
+  type GroupTag,
 } from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {
   mergeAndSortTagValues,
@@ -76,8 +76,14 @@ export function useEventQuery({groupId}: {groupId: string}): string {
     if (token.type === Token.FREE_TEXT) {
       return false;
     }
-    if (token.type === Token.FILTER && !filterKeys.hasOwnProperty(token.key.text)) {
-      return false;
+    if (token.type === Token.FILTER) {
+      let tagKey = token.key.text;
+      if (tagKey.startsWith('tags[')) {
+        tagKey = tagKey.slice(5, -1);
+      }
+      if (!filterKeys.hasOwnProperty(tagKey)) {
+        return false;
+      }
     }
     return true;
   });
@@ -208,7 +214,6 @@ export function EventSearch({
       label={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events')}
       searchSource={searchSource}
       className={className}
-      showUnsubmittedIndicator
       {...queryBuilderProps}
     />
   );

@@ -1,7 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
@@ -16,13 +15,12 @@ import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrence
 
 describe('OccurrenceSummary', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture();
 
   afterEach(() => {
     resetMockDate();
   });
 
-  it('renders empty if not enabled in the issue config', function () {
+  it('renders empty if not enabled in the issue config', () => {
     const group = GroupFixture();
     const event = EventFixture();
     const {container} = render(<OccurrenceSummary group={group} event={event} />, {
@@ -31,7 +29,7 @@ describe('OccurrenceSummary', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders downtime if enabled', function () {
+  it('renders downtime if enabled', () => {
     const group = GroupFixture({
       issueCategory: IssueCategory.UPTIME,
       issueType: IssueType.UPTIME_DOMAIN_FAILURE,
@@ -41,14 +39,12 @@ describe('OccurrenceSummary', () => {
           type: GroupActivityType.SET_RESOLVED,
           dateCreated: '2025-01-02T11:00:00Z',
           data: {},
-          project,
           id: '2',
         },
         {
           type: GroupActivityType.FIRST_SEEN,
           dateCreated: '2025-01-01T11:00:00Z',
           data: {},
-          project,
           id: '1',
         },
       ],
@@ -59,7 +55,7 @@ describe('OccurrenceSummary', () => {
     expect(screen.getByText('1 day')).toBeInTheDocument();
   });
 
-  it('renders detector details correctly', function () {
+  it('renders detector details correctly', () => {
     const group = GroupFixture({
       issueCategory: IssueCategory.UPTIME,
       issueType: IssueType.UPTIME_DOMAIN_FAILURE,
@@ -77,7 +73,7 @@ describe('OccurrenceSummary', () => {
     expect(screen.getByText('123')).toBeInTheDocument();
   });
 
-  it('renders evidence details correctly', function () {
+  it('renders evidence details correctly', () => {
     const now = '2025-01-01T12:00:00Z';
     setMockDate(new Date(now));
 
@@ -121,7 +117,7 @@ describe('OccurrenceSummary', () => {
     expect(screen.getByText('an hour ago')).toBeInTheDocument();
   });
 
-  it('allows for invalid check-in dates', function () {
+  it('allows for invalid check-in dates', () => {
     const group = GroupFixture({
       issueCategory: IssueCategory.CRON,
       issueType: IssueType.MONITOR_CHECK_IN_FAILURE,

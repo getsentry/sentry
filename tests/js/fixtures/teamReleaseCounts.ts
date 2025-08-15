@@ -1,4 +1,4 @@
-import {ProjectReleaseCount} from 'sentry/views/organizationStats/teamInsights/teamReleases';
+import type {ProjectReleaseCount} from 'sentry/views/organizationStats/teamInsights/teamReleases';
 
 export function TeamReleaseCountsFixture(): ProjectReleaseCount {
   return {

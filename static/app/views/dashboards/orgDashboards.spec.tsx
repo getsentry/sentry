@@ -93,7 +93,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router, organization}
+      {router, organization, deprecatedRouterMocks: true}
     );
 
     await waitFor(() =>
@@ -156,7 +156,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router, organization}
+      {router, organization, deprecatedRouterMocks: true}
     );
 
     await waitFor(() =>
@@ -228,7 +228,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router, organization}
+      {router, organization, deprecatedRouterMocks: true}
     );
 
     // The first call is done by the page filters
@@ -257,7 +257,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router, organization}
+      {router, organization, deprecatedRouterMocks: true}
     );
 
     expect(router.replace).not.toHaveBeenCalled();
@@ -303,7 +303,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router, organization}
+      {router, organization, deprecatedRouterMocks: true}
     );
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledTimes(1));

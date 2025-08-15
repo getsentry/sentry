@@ -13,8 +13,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventTags} from 'sentry/components/events/eventTags';
+import ModalStore from 'sentry/stores/modalStore';
 
-describe('EventTagsTree', function () {
+describe('EventTagsTree', () => {
   const {organization, project} = initializeOrg();
   const tags = [
     {key: 'app', value: 'Sentry'},
@@ -65,7 +66,8 @@ describe('EventTagsTree', function () {
   const referrer = 'event-tags-table';
   let mockDetailedProject: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
+    ModalStore.reset();
     MockApiClient.clearMockResponses();
     mockDetailedProject = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -73,9 +75,10 @@ describe('EventTagsTree', function () {
     });
   });
 
-  it('renders tag tree', async function () {
+  it('renders tag tree', async () => {
     render(<EventTags projectSlug={project.slug} event={event} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -108,36 +111,30 @@ describe('EventTagsTree', function () {
     for (const link of linkDropdowns) {
       await userEvent.click(link);
       expect(
-        await screen.findByLabelText('Search issues with this tag value')
+        await within(link.parentElement!).findByLabelText(
+          'Search issues with this tag value'
+        )
       ).toBeInTheDocument();
       expect(
-        await screen.findByLabelText('View other events with this tag value')
+        await within(link.parentElement!).findByLabelText(
+          'View other events with this tag value'
+        )
       ).toBeInTheDocument();
-      expect(screen.getByLabelText('Copy tag value to clipboard')).toBeInTheDocument();
+      expect(
+        await within(link.parentElement!).findByLabelText('Copy tag value to clipboard')
+      ).toBeInTheDocument();
     }
   });
 
-  it('renders release tag differently', async function () {
+  it('renders release tag differently', async () => {
     const releaseVersion = 'v1.0';
-
-    const reposRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      body: [],
-    });
-    const releasesRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/releases/${releaseVersion}/`,
-      body: [],
-    });
-    const deploysRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/${releaseVersion}/deploys/`,
-      body: [],
-    });
 
     const releaseEvent = EventFixture({
       tags: [{key: 'release', value: releaseVersion}],
     });
     render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -146,12 +143,10 @@ describe('EventTagsTree', function () {
       HTMLElement & {parentElement: HTMLAnchorElement}
     >(releaseVersion);
     const anchorLink = versionText.parentElement;
+    // Release links are opened in the Release Drawer
     expect(anchorLink.href).toContain(
-      `/organizations/${organization.slug}/releases/${releaseVersion}/`
+      `/mock-pathname/?rd=show&rdRelease=${releaseVersion}&rdSource=release-version-link`
     );
-    expect(reposRequest).toHaveBeenCalled();
-    expect(releasesRequest).toHaveBeenCalled();
-    expect(deploysRequest).toHaveBeenCalled();
     const dropdown = screen.getByLabelText('Tag Actions Menu');
     await userEvent.click(dropdown);
     expect(screen.getByLabelText('View this release')).toBeInTheDocument();
@@ -164,9 +159,7 @@ describe('EventTagsTree', function () {
       validateLink: () => {
         const linkElement = screen.getByRole('link', {name: 'abc123'});
         const href = linkElement.attributes.getNamedItem('href');
-        expect(href?.value).toContain(
-          `/organizations/${organization.slug}/performance/summary/`
-        );
+        expect(href?.value).toContain(`/organizations/org-slug/insights/summary/`);
         expect(href?.value).toContain(`project=${project.id}`);
         expect(href?.value).toContain('transaction=abc123');
         expect(href?.value).toContain(`referrer=${referrer}`);
@@ -188,7 +181,7 @@ describe('EventTagsTree', function () {
       labelText: 'Visit this external link',
       validateLink: async () => {
         renderGlobalModal();
-        const linkElement = screen.getByText('https://example.com');
+        const linkElement = await screen.findByText('https://example.com');
         await userEvent.click(linkElement);
         expect(await screen.findByTestId('external-link-warning')).toBeInTheDocument();
       },
@@ -199,6 +192,7 @@ describe('EventTagsTree', function () {
       const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
       render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
         organization,
+        deprecatedRouterMocks: true,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -206,11 +200,11 @@ describe('EventTagsTree', function () {
       const dropdown = screen.getByLabelText('Tag Actions Menu');
       await userEvent.click(dropdown);
       expect(screen.getByLabelText(labelText)).toBeInTheDocument();
-      validateLink();
+      await (validateLink as () => Promise<void>)();
     }
   );
 
-  it('renders error message tooltips instead of dropdowns', async function () {
+  it('renders error message tooltips instead of dropdowns', async () => {
     const errorTagEvent = EventFixture({
       _meta: {
         tags: {
@@ -246,6 +240,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={project.slug} event={errorTagEvent} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -258,7 +253,7 @@ describe('EventTagsTree', function () {
     expect(errorRows).toHaveLength(2);
   });
 
-  it('avoids rendering nullish tags', async function () {
+  it('avoids rendering nullish tags', async () => {
     const uniqueTagsEvent = EventFixture({
       tags: [
         {key: null, value: 'null tag'},
@@ -268,6 +263,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -278,7 +274,7 @@ describe('EventTagsTree', function () {
     expect(screen.queryByText('undefined tag')).not.toBeInTheDocument();
   });
 
-  it("renders 'Add to event highlights' option based on highlights", async function () {
+  it("renders 'Add to event highlights' option based on highlights", async () => {
     const highlightsEvent = EventFixture({
       tags: [
         {key: 'useless-tag', value: 'not so much'},
@@ -293,6 +289,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -313,7 +310,7 @@ describe('EventTagsTree', function () {
     expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
   });
 
-  it("renders 'Add to event highlights' option based on permissions", async function () {
+  it("renders 'Add to event highlights' option based on permissions", async () => {
     const readAccessOrganization = OrganizationFixture({
       access: ['org:read'],
     });
@@ -332,6 +329,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization: readAccessOrganization,
+      deprecatedRouterMocks: true,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -344,7 +342,7 @@ describe('EventTagsTree', function () {
     expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
   });
 
-  it('renders tag details link when on issue details route', async function () {
+  it('renders tag details link when on issue details route', async () => {
     const highlightsEvent = EventFixture({
       tags: [{key: 'useless-tag', value: 'not so much'}],
     });
@@ -357,6 +355,7 @@ describe('EventTagsTree', function () {
     render(<EventTags projectSlug={project.slug} event={highlightsEvent} />, {
       organization,
       router: issueDetailsRouter,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 

@@ -7,7 +7,7 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {DocIntegration} from 'sentry/types/integrations';

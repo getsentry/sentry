@@ -53,11 +53,15 @@ const renderActionDropdown = (
       value={value}
       contextValueType={contextValueType}
     />,
-    {organization, router: mockedRouter}
+    {
+      organization,
+      router: mockedRouter,
+      deprecatedRouterMocks: true,
+    }
   );
 };
 
-describe('Quick Context Actions', function () {
+describe('Quick Context Actions', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });

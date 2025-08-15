@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 
 import {OverviewRow} from './overviewRow';
 
@@ -28,6 +29,12 @@ export function OverviewTimeline({uptimeRules}: Props) {
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const dateNavigation = useDateNavigation();
+
+  const {data: summaries} = useUptimeMonitorSummaries({
+    start: timeWindowConfig.start,
+    end: timeWindowConfig.end,
+    ruleIds: uptimeRules.map(rule => rule.id),
+  });
 
   return (
     <MonitorListPanel role="region">
@@ -57,6 +64,8 @@ export function OverviewTimeline({uptimeRules}: Props) {
         showCursor
         cursorOffsets={{right: 40}}
         timeWindowConfig={timeWindowConfig}
+        cursorOverlayAnchor="top"
+        cursorOverlayAnchorOffset={10}
       />
       <UptimeAlertRow>
         {uptimeRules.map(uptimeRule => (
@@ -64,6 +73,7 @@ export function OverviewTimeline({uptimeRules}: Props) {
             key={uptimeRule.id}
             timeWindowConfig={timeWindowConfig}
             uptimeRule={uptimeRule}
+            summary={summaries?.[uptimeRule.id] ?? null}
           />
         ))}
       </UptimeAlertRow>

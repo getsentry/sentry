@@ -30,7 +30,7 @@ const BASIC_QUERY_PARAMS = {
 
 function WrappedComponent({data, ...rest}: any) {
   return (
-    <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext value={data.organization}>
       <MEPSettingProvider>
         <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
           <WidgetContainer
@@ -47,22 +47,22 @@ function WrappedComponent({data, ...rest}: any) {
           />
         </PerformanceDisplayProvider>
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 
-describe('Performance > Widgets > Query Batching', function () {
+describe('Performance > Widgets > Query Batching', () => {
   let eventsMock: jest.Mock;
   let eventStatsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events/',
       body: {
         data: [
           {
-            'tpm()': 53.12,
+            'epm()': 53.12,
             'user_misery()': 0.023,
             'failure_rate()': 0.012,
           },
@@ -77,7 +77,7 @@ describe('Performance > Widgets > Query Batching', function () {
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
       body: {
-        'tpm()': {
+        'epm()': {
           data: [
             [
               1636822800,
@@ -150,7 +150,7 @@ describe('Performance > Widgets > Query Batching', function () {
     });
   });
 
-  it('EventsRequest and DiscoverQuery based component fires queries without provider', async function () {
+  it('EventsRequest and DiscoverQuery based component fires queries without provider', async () => {
     const data = initializeData();
 
     render(
@@ -173,7 +173,7 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           ...BASIC_QUERY_PARAMS,
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
@@ -185,13 +185,13 @@ describe('Performance > Widgets > Query Batching', function () {
         query: expect.objectContaining({
           environment: ['prod'],
           statsPeriod: '7d',
-          field: ['tpm()'],
+          field: ['epm()'],
         }),
       })
     );
   });
 
-  it('Multiple EventsRequest and DiscoverQuery based components fire individual queries without provider', async function () {
+  it('Multiple EventsRequest and DiscoverQuery based components fire individual queries without provider', async () => {
     const data = initializeData();
 
     render(
@@ -227,13 +227,13 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           ...BASIC_QUERY_PARAMS,
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
   });
 
-  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider', async function () {
+  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider', async () => {
     const data = initializeData();
 
     render(
@@ -268,7 +268,7 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['prod'],
-          field: ['tpm()', 'failure_rate()', 'user_misery()'],
+          field: ['epm()', 'failure_rate()', 'user_misery()'],
           statsPeriod: '7d',
         }),
       })
@@ -282,7 +282,7 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           ...BASIC_QUERY_PARAMS,
-          yAxis: ['tpm()', 'failure_rate()', 'user_misery()'],
+          yAxis: ['epm()', 'failure_rate()', 'user_misery()'],
         }),
       })
     );
@@ -291,7 +291,7 @@ describe('Performance > Widgets > Query Batching', function () {
     expect(await screen.findAllByTestId('widget-state-has-data')).toHaveLength(3);
   });
 
-  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider and add MEP', async function () {
+  it('Multiple EventsRequest and DiscoverQuery based components merge queries with provider and add MEP', async () => {
     const data = initializeData();
 
     render(
@@ -325,7 +325,7 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           ...BASIC_QUERY_PARAMS,
-          yAxis: ['tpm()', 'failure_rate()', 'user_misery()'],
+          yAxis: ['epm()', 'failure_rate()', 'user_misery()'],
         }),
       })
     );
@@ -334,7 +334,7 @@ describe('Performance > Widgets > Query Batching', function () {
     expect(await screen.findAllByTestId('widget-state-has-data')).toHaveLength(3);
   });
 
-  it('Errors work correctly', async function () {
+  it('Errors work correctly', async () => {
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events-stats/`,
@@ -375,7 +375,7 @@ describe('Performance > Widgets > Query Batching', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           ...BASIC_QUERY_PARAMS,
-          yAxis: ['tpm()', 'failure_rate()', 'user_misery()'],
+          yAxis: ['epm()', 'failure_rate()', 'user_misery()'],
         }),
       })
     );

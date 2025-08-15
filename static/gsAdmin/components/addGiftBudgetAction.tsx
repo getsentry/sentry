@@ -8,8 +8,8 @@ import InputField from 'sentry/components/forms/fields/inputField';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 
@@ -39,7 +39,7 @@ function AddGiftBudgetModal({
   const [notes, setNotes] = useState<string | null>(null);
 
   const reservedBudgetOptions = useMemo(
-    () => subscription.reservedBudgets ?? [],
+    () => subscription.reservedBudgets?.filter(b => b.reservedBudget > 0) ?? [],
     [subscription.reservedBudgets]
   );
 
@@ -100,7 +100,7 @@ function AddGiftBudgetModal({
         ) : (
           <div />
         )}
-        <Form onSubmit={onSubmit} submitLabel={t('Confirm')} onCancel={closeModal}>
+        <Form onSubmit={onSubmit} submitLabel={'Confirm'} onCancel={closeModal}>
           {reservedBudgetOptions.map(budget => (
             <BudgetCard
               key={budget.id}
@@ -123,7 +123,7 @@ function AddGiftBudgetModal({
                   .map(category =>
                     getPlanCategoryName({
                       plan: subscription.planDetails,
-                      category,
+                      category: category as DataCategory,
                       capitalize: false,
                       hadCustomDynamicSampling: true,
                     })

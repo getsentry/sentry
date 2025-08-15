@@ -43,7 +43,7 @@ describe('releases/utils', () => {
       });
     });
 
-    it('adds 1 minute to end if start and end are within same minute', () => {
+    it('adds 1 second to end if start and end are within same minute', () => {
       expect(
         getReleaseBounds(
           ReleaseFixture({
@@ -53,7 +53,7 @@ describe('releases/utils', () => {
         )
       ).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
-        releaseEnd: '2020-03-23T01:03:59Z',
+        releaseEnd: '2020-03-23T01:03:00Z',
         type: 'normal',
       });
     });
@@ -160,8 +160,8 @@ describe('releases/utils', () => {
   });
 });
 
-describe('searchReleaseVersion()', function () {
-  it('should escape quotes', function () {
+describe('searchReleaseVersion()', () => {
+  it('should escape quotes', () => {
     expect(searchReleaseVersion('com.sentry.go_app@"1.0.0-chore"')).toBe(
       'release:"com.sentry.go_app@\\"1.0.0-chore\\""'
     );

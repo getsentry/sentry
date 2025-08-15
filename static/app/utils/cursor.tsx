@@ -1,4 +1,4 @@
-export type CursorInfo = {
+type CursorInfo = {
   isPrev: boolean;
   offset: number;
   value: number;

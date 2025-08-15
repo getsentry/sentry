@@ -13,11 +13,11 @@ describe('Redeem promo code', () => {
   const {router} = initializeOrg({
     organization,
   });
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, {});
   });
 
-  it('renders redeem promo code page', function () {
+  it('renders redeem promo code page', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
       planTier: PlanTier.AM1,
@@ -34,14 +34,13 @@ describe('Redeem promo code', () => {
         params={{orgId: organization.slug}}
       />,
       {
-        router,
         organization,
       }
     );
     expect(screen.queryAllByText('Redeem Promotional Code')).toHaveLength(2);
   });
 
-  it('does not render redeem promo code page for YY partnership orgs', async function () {
+  it('does not render redeem promo code page for YY partnership orgs', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am2_business',
       planTier: 'am2',
@@ -68,7 +67,6 @@ describe('Redeem promo code', () => {
         params={{orgId: organization.slug}}
       />,
       {
-        router,
         organization,
       }
     );

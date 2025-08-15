@@ -1,28 +1,30 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar
+import enum
+from typing import ClassVar
 
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
+from django.db.models import SET_NULL
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 
 
 # NOTE: There are gaps in the numberation because a
 # few tasks were removed as they are no longer used in the quick start sidebar
-class OnboardingTask:
+class OnboardingTask(enum.IntEnum):
     FIRST_PROJECT = 1
     FIRST_EVENT = 2
     INVITE_MEMBER = 3
@@ -35,41 +37,52 @@ class OnboardingTask:
     REAL_TIME_NOTIFICATIONS = 15
     LINK_SENTRY_TO_SOURCE_CODE = 16
 
+    @classmethod
+    def values(cls) -> list[int]:
+        return [member.value for member in cls]
 
-class OnboardingTaskStatus:
+
+class OnboardingTaskStatus(enum.IntEnum):
     COMPLETE = 1
-    PENDING = 2
+    # deprecated - no longer used
+    # PENDING = 2
     SKIPPED = 3
 
-
-# NOTE: data fields for some event types are as follows:
-#
-#   FIRST_EVENT:      { 'platform':  'flask', }
-#   INVITE_MEMBER:    { 'invited_member': user.id, 'teams': [team.id] }
-#   SECOND_PLATFORM:  { 'platform': 'javascript' }
-#
-# NOTE: Currently the `PENDING` status is applicable for the following
-# onboarding tasks:
-#
-#   FIRST_EVENT:     User confirms that sdk has been installed
-#   INVITE_MEMBER:   Until the member has successfully joined org
+    @classmethod
+    def values(cls) -> list[int]:
+        return [member.value for member in cls]
 
 
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
-    def record(self, organization_id, task, **kwargs):
+    def record(
+        self,
+        organization_id: int,
+        task: int,
+        status: OnboardingTaskStatus = OnboardingTaskStatus.COMPLETE,
+        **kwargs,
+    ) -> bool:
+        """Record the completion of an onboarding task. Caches the completion. Returns whether the task was created or not."""
+        if status != OnboardingTaskStatus.COMPLETE:
+            raise ValueError(
+                f"status={status} unsupported must be {OnboardingTaskStatus.COMPLETE}."
+            )
+
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
         if cache.get(cache_key) is None:
-            _, created = self.create_or_update(
+            defaults = {
+                **kwargs,
+                "status": status,
+            }
+            _, created = self.update_or_create(
                 organization_id=organization_id,
                 task=task,
-                values=kwargs,
+                defaults=defaults,
             )
 
             # Store marker to prevent running all the time
             cache.set(cache_key, 1, 3600)
-            if created:
-                return True
+            return created
         return False
 
 
@@ -83,7 +96,6 @@ class AbstractOnboardingTask(Model):
 
     STATUS_CHOICES = (
         (OnboardingTaskStatus.COMPLETE, "complete"),
-        (OnboardingTaskStatus.PENDING, "pending"),
         (OnboardingTaskStatus.SKIPPED, "skipped"),
     )
 
@@ -95,9 +107,11 @@ class AbstractOnboardingTask(Model):
     status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
+    project = FlexibleForeignKey(
+        "sentry.Project", db_constraint=False, null=True, on_delete=SET_NULL
+    )
     # INVITE_MEMBER { invited_member: user.id }
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    data = LegacyTextJSONField(default=dict)
 
     # abstract
     TASK_LOOKUP_BY_KEY: dict[str, int]
@@ -132,7 +146,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
     TASK_KEY_MAP = dict(TASK_CHOICES)
     TASK_LOOKUP_BY_KEY = {v: k for k, v in TASK_CHOICES}
 
-    task = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in TASK_CHOICES])
+    task = BoundedPositiveIntegerField(choices=TASK_CHOICES)
 
     # Tasks which should be completed for the onboarding to be considered
     # complete.
@@ -169,6 +183,20 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.SESSION_REPLAY,
             OnboardingTask.REAL_TIME_NOTIFICATIONS,
             OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+        ]
+    )
+
+    # These are tasks that can be tightened to a project
+    TRANSFERABLE_TASKS = frozenset(
+        [
+            OnboardingTask.FIRST_PROJECT,
+            OnboardingTask.FIRST_EVENT,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.RELEASE_TRACKING,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+            OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.SOURCEMAPS,
         ]
     )
 

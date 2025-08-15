@@ -10,9 +10,9 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {
-  type ApiQueryKey,
   keepPreviousData,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -236,10 +236,6 @@ export function fetchFeatureFlagValues({
   search?: string;
   sort?: '-last_seen' | '-count';
 }): Promise<TagValue[]> {
-  if (!organization.features.includes('feature-flag-autocomplete')) {
-    return Promise.resolve([]);
-  }
-
   // Search syntax may wrap with flags[] or flags[""], but this endpoint doesn't support it.
   const strippedKey = tagKey.replace(/^flags\[(?:"?)(.*?)(?:"?)\]$/, '$1');
 
@@ -290,7 +286,7 @@ export type FetchOrganizationTagsParams = {
   useFlagsBackend?: boolean;
 };
 
-export const makeFetchOrganizationTags = ({
+const makeFetchOrganizationTags = ({
   orgSlug,
   dataset,
   projectIds,

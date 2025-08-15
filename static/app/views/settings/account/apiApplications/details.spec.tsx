@@ -7,8 +7,8 @@ import {
 
 import ApiApplicationDetails from 'sentry/views/settings/account/apiApplications/details';
 
-describe('ApiApplications', function () {
-  it('renders basic details for newly created App', async function () {
+describe('ApiApplications', () => {
+  it('renders basic details for newly created App', async () => {
     MockApiClient.addMockResponse({
       url: '/api-applications/abcd/',
       body: {
@@ -30,6 +30,8 @@ describe('ApiApplications', function () {
           appId: 'abcd',
         },
       },
+
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -55,7 +57,7 @@ describe('ApiApplications', function () {
     expect(screen.getByLabelText('Token URL')).toBeInTheDocument();
   });
 
-  it('handles client secret rotation', async function () {
+  it('handles client secret rotation', async () => {
     MockApiClient.addMockResponse({
       url: '/api-applications/abcd/',
       body: {
@@ -84,6 +86,8 @@ describe('ApiApplications', function () {
           appId: 'abcd',
         },
       },
+
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
 

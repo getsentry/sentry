@@ -2,12 +2,12 @@ import {Outcome} from 'sentry/types/core';
 
 import {ClientDiscardReason, getReasonGroupName} from './getReasonGroupName';
 
-describe('getReasonGroupName', function () {
-  it('handles legacy too_large reason', function () {
+describe('getReasonGroupName', () => {
+  it('handles legacy too_large reason', () => {
     expect(getReasonGroupName(Outcome.INVALID, 'too_large')).toBe('too_large_other');
   });
 
-  it('handles all new (visible) discard reasons', function () {
+  it('handles all new (visible) discard reasons', () => {
     const testCases: Array<[string, string]> = [
       ['too_large:unknown', 'too_large_other'],
       ['too_large:security', 'too_large_other'],
@@ -44,7 +44,26 @@ describe('getReasonGroupName', function () {
     });
   });
 
-  it('handles all edge cases for reasons', function () {
+  it('handles all the new attachment discard reasons', () => {
+    const testCases: Array<[string, string]> = [
+      ['too_large:attachment:attachment', 'too_large_attachment'],
+      ['too_large:attachment:minidump', 'too_large_minidump'],
+      ['too_large:attachment:apple_crash_report', 'too_large_apple_crash_report'],
+      ['too_large:attachment:event_payload', 'too_large_attachment'],
+      ['too_large:attachment:breadcrumbs', 'too_large_attachment'],
+      ['too_large:attachment:prosperodump', 'too_large_prosperodump'],
+      ['too_large:attachment:unreal_context', 'too_large_unreal_context'],
+      ['too_large:attachment:unreal_logs', 'too_large_unreal_logs'],
+      ['too_large:attachment:view_hierarchy', 'too_large_attachment'],
+      ['too_large:attachment:unknown', 'too_large_attachment'],
+    ];
+
+    testCases.forEach(([input, expected]) => {
+      expect(getReasonGroupName(Outcome.INVALID, input)).toBe(expected);
+    });
+  });
+
+  it('handles all edge cases for reasons', () => {
     const testCases: Array<[string, string]> = [
       ['too_large:invalid', 'too_large_other'],
       ['too_large:strange:reason', 'too_large_other'],
@@ -59,7 +78,7 @@ describe('getReasonGroupName', function () {
     });
   });
 
-  it('handles other existing reason types', function () {
+  it('handles other existing reason types', () => {
     expect(getReasonGroupName(Outcome.INVALID, 'duplicate')).toBe('duplicate');
     expect(getReasonGroupName(Outcome.INVALID, 'duplicate_item')).toBe('invalid_request');
     expect(getReasonGroupName(Outcome.INVALID, 'project_id')).toBe('project_missing');
@@ -76,6 +95,25 @@ describe('getReasonGroupName', function () {
 
     expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'queue_overflow')).toBe(
       ClientDiscardReason.QUEUE_OVERFLOW
+    );
+  });
+
+  it('groups all dynamic sampling reason codes into "dynamic sampling" label', () => {
+    const testCases: Array<[string, string]> = [
+      ['Sampled:1000,1004,1500', 'dynamic sampling'],
+      ['Sampled:1000,1500', 'dynamic sampling'],
+    ];
+
+    testCases.forEach(([input, expected]) => {
+      expect(getReasonGroupName(Outcome.FILTERED, input)).toBe(expected);
+    });
+  });
+  it('handles invalid signature types', () => {
+    expect(getReasonGroupName(Outcome.INVALID, 'invalid_signature')).toBe(
+      'invalid_signature'
+    );
+    expect(getReasonGroupName(Outcome.INVALID, 'missing_signature')).toBe(
+      'invalid_signature'
     );
   });
 });

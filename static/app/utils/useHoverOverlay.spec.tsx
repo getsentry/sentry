@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
 function Component(props: Partial<React.HTMLAttributes<HTMLInputElement>>) {
-  const {wrapTrigger} = useHoverOverlay('test', {skipWrapper: true});
+  const {wrapTrigger} = useHoverOverlay({skipWrapper: true});
 
   return wrapTrigger(<input {...props} />);
 }
@@ -32,5 +32,24 @@ describe('useHoverOverlay', () => {
 
     await userEvent.tab();
     expect(componentProps.onBlur).toHaveBeenCalled();
+  });
+
+  it('skipWrapper=true does not swallow refs', () => {
+    function InnerComponent(
+      props: Partial<React.HTMLAttributes<HTMLDivElement>> &
+        React.RefAttributes<HTMLDivElement>
+    ) {
+      return <div {...props} />;
+    }
+
+    const ref = jest.fn();
+
+    const WrappedComponent = () => {
+      const {wrapTrigger} = useHoverOverlay({skipWrapper: true});
+      return wrapTrigger(<InnerComponent ref={ref} />);
+    };
+
+    render(<WrappedComponent />);
+    expect(ref).toHaveBeenCalled();
   });
 });

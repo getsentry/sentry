@@ -14,7 +14,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
@@ -22,6 +21,7 @@ import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Input} from 'sentry/components/core/input';
+import {ExternalLink} from 'sentry/components/core/link';
 import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -34,7 +34,6 @@ import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
@@ -59,7 +58,6 @@ import {
   IssueAlertFilterType,
 } from 'sentry/types/alerts';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
@@ -75,13 +73,12 @@ import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
 import SetupMessagingIntegrationButton, {
   MessagingIntegrationAnalyticsView,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+import {getProjectOptions} from 'sentry/views/alerts/rules/utils';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-
-import {getProjectOptions} from '../utils';
 
 import RuleNodeList from './ruleNodeList';
 
@@ -132,7 +129,7 @@ type RuleTaskResponse = {
 
 type RouteParams = {projectId?: string; ruleId?: string};
 
-export type IncompatibleRule = {
+type IncompatibleRule = {
   conditionIndices: number[] | null;
   filterIndices: number[] | null;
 };
@@ -150,9 +147,7 @@ type Props = {
 
 type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
-  detailedError: null | {
-    [key: string]: string[];
-  };
+  detailedError: null | Record<string, string[]>;
   environments: Environment[] | null;
   incompatibleConditions: number[] | null;
   incompatibleFilters: number[] | null;
@@ -433,6 +428,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         method: 'POST',
         data: {
           actions: rule?.actions ?? [],
+          name: rule?.name,
         },
       })
       .then(() => {
@@ -458,12 +454,6 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
     const {organization, router} = this.props;
     const {project} = this.state;
-    // The onboarding task will be completed on the server side when the alert
-    // is created
-    updateOnboardingTask(null, organization, {
-      task: OnboardingTaskKey.ALERT_RULE,
-      status: 'complete',
-    });
 
     metric.endSpan({name: 'saveAlertRule'});
 
@@ -554,7 +544,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         } else {
           this.handleRuleSuccess(isNew, data);
         }
-      } catch (err) {
+      } catch (err: any) {
         this.setState({
           detailedError: err.responseJSON || {__all__: 'Unknown error'},
           loading: false,
@@ -591,7 +581,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
           stepBack: -2,
         })
       );
-    } catch (err) {
+    } catch (err: any) {
       this.setState({
         detailedError: err.responseJSON || {__all__: 'Unknown error'},
       });
@@ -673,7 +663,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
             ])
             .filter(([, initial]) => !!initial)
         )
-      : {};
+      : [];
   };
 
   handleResetRow = <T extends keyof IssueAlertRuleAction>(
@@ -840,7 +830,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   renderError() {
     return (
       <Alert.Container>
-        <Alert type="error" showIcon>
+        <Alert type="error">
           {t(
             'Unable to access this alert rule -- check to make sure you have the correct permissions'
           )}
@@ -966,7 +956,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert type="warning" showIcon>
+        <Alert type="warning">
           <div>
             {t(
               'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
@@ -1029,8 +1019,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         []),
     ];
 
-    const environment =
-      !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
+    const environment = rule?.environment ? rule.environment : ALL_ENVIRONMENTS_KEY;
 
     return (
       <FormField
@@ -1086,7 +1075,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
               disabled={disabled || isSavedAlertRule(rule)}
               value={selectedProject.id}
               styles={{
-                container: (provided: {[x: string]: string | number | boolean}) => ({
+                container: (provided: Record<string, string | number | boolean>) => ({
                   ...provided,
                   marginBottom: `${space(1)}`,
                 }),
@@ -1101,8 +1090,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                   ?.split(':')[1];
                 if (
                   ownerId &&
-                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
-                    undefined &&
+                  !nextSelectedProject.teams.some(({id}) => id === ownerId) &&
                   nextSelectedProject.teams.length
                 ) {
                   this.handleOwnerChange({value: nextSelectedProject.teams[0]!.id});
@@ -1178,8 +1166,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     } = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
-    const environment =
-      !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
+    const environment = rule?.environment ? rule.environment : ALL_ENVIRONMENTS_KEY;
 
     const canCreateAlert = hasEveryAccess(['alerts:write'], {organization, project});
     const disabled = loading || !(canCreateAlert || isActiveSuperuser());
@@ -1217,7 +1204,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                 disabled={disabled}
                 priority="danger"
                 confirmText={t('Delete Rule')}
-                onConfirm={this.handleDeleteRule}
+                onConfirm={() => {
+                  this.handleDeleteRule();
+                }}
                 header={<h5>{t('Delete Alert Rule?')}</h5>}
                 message={t(
                   'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
@@ -1313,7 +1302,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('conditions') && (
-                              <Alert type="error">
+                              <Alert type="error" showIcon={false}>
                                 {detailedError?.conditions![0]}
                                 {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
@@ -1400,7 +1389,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('filters') && (
-                              <Alert type="error">{detailedError?.filters![0]}</Alert>
+                              <Alert type="error" showIcon={false}>
+                                {detailedError?.filters![0]}
+                              </Alert>
                             )
                           }
                           incompatibleRules={incompatibleFilters}
@@ -1447,7 +1438,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('actions') && (
-                              <Alert type="error">{detailedError?.actions![0]}</Alert>
+                              <Alert type="error" showIcon={false}>
+                                {detailedError?.actions![0]}
+                              </Alert>
                             )
                           }
                           additionalAction={{
@@ -1622,12 +1615,12 @@ const ConditionsPanel = styled(Panel)`
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const StyledFieldHelp = styled(FieldHelp)`
   margin-top: 0;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     margin-left: -${space(4)};
   }
 `;
@@ -1692,8 +1685,8 @@ const Badge = styled('span')`
   color: ${p => p.theme.white};
   text-transform: uppercase;
   text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.5;
 `;
 
@@ -1703,7 +1696,7 @@ const EmbeddedWrapper = styled('div')`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;
 `;
 
@@ -1730,7 +1723,7 @@ const StyledField = styled(FieldGroup)`
 `;
 
 const StyledFieldWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: ${space(1)};
@@ -1738,7 +1731,7 @@ const StyledFieldWrapper = styled('div')`
 `;
 
 const ContentIndent = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     margin-left: ${space(4)};
   }
 `;
@@ -1748,7 +1741,7 @@ const AcknowledgeLabel = styled('label')`
   align-items: center;
   gap: ${space(1)};
   line-height: 2;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const AcknowledgeField = styled(FieldGroup)`

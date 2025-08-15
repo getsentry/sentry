@@ -50,12 +50,10 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
         <p>{t('This flamegraph has no data.')}</p>
         <div>
           <ExportProfileButton
-            variant="default"
             eventId={params.eventId}
             orgId={orgSlug}
             size="sm"
             projectId={params.projectId}
-            title={undefined}
             disabled={params.eventId === undefined || params.projectId === undefined}
           >
             {t('Export Raw Profile')}

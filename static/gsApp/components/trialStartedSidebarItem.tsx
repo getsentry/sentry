@@ -7,13 +7,13 @@ import {motion} from 'framer-motion';
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import testableTransition from 'sentry/utils/testableTransition';
 import withApi from 'sentry/utils/withApi';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 import TrialRequestedActions from 'getsentry/actions/trialRequestedActions';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -104,7 +104,7 @@ class TrialStartedSidebarItem extends Component<Props, State> {
   }
 
   renderWithHovercard(hovercardBody: React.ReactNode) {
-    const prefersNewNav = prefersStackedNav();
+    const prefersNewNav = prefersStackedNav(this.props.organization);
 
     return (
       <StyledHovercard
@@ -144,7 +144,7 @@ class TrialStartedSidebarItem extends Component<Props, State> {
       }
     }
 
-    const prefersNewNav = prefersStackedNav();
+    const prefersNewNav = prefersStackedNav(this.props.organization);
 
     const content = (
       <Wrapper
@@ -242,11 +242,11 @@ const StyledHovercard = styled(Hovercard)<{prefersNewNav: boolean}>`
 
 const HovercardBody = styled('div')`
   h1 {
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
     margin-bottom: ${space(1.5)};
   }
   p {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
   }
 `;
 
@@ -256,7 +256,7 @@ const Bullets = styled('div')`
   grid-auto-rows: max-content;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(2)};
 `;
 

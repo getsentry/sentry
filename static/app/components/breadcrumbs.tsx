@@ -4,9 +4,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Chevron} from 'sentry/components/chevron';
+import type {LinkProps} from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import type {BreadcrumbDropdownProps} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
@@ -110,7 +110,7 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
         const {label, to, preservePageFilters, key} = crumb;
         const labelKey = typeof label === 'string' ? label : '';
         const mapKey =
-          (key ?? typeof to === 'string') ? `${labelKey}${to}` : `${labelKey}${index}`;
+          key ?? (typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`);
 
         return (
           <Fragment key={mapKey}>
@@ -159,6 +159,7 @@ const BreadcrumbLink = styled(
     )
 )`
   ${getBreadcrumbListItemStyles}
+  max-width: 400px;
 
   &:hover,
   &:active {

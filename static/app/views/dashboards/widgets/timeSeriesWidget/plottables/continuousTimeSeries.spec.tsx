@@ -17,7 +17,7 @@ describe('ContinuousTimeSeries', () => {
 
     it('marks empty series as empty', () => {
       const timeSeries = TimeSeriesFixture({
-        data: [],
+        values: [],
       });
 
       const plottable = new Dots(timeSeries);
@@ -27,14 +27,14 @@ describe('ContinuousTimeSeries', () => {
 
     it('marks series of all nulls as empty', () => {
       const timeSeries = TimeSeriesFixture({
-        data: [
+        values: [
           {
             value: null,
-            timestamp: '2024-10-24T15:00:00-04:00',
+            timestamp: 1729796400000, // '2024-10-24T15:00:00-04:00'
           },
           {
             value: null,
-            timestamp: '2024-10-24T15:30:00-04:00',
+            timestamp: 1729798200000, // '2024-10-24T15:30:00-04:00'
           },
         ],
       });
@@ -66,7 +66,7 @@ describe('ContinuousTimeSeries', () => {
   describe('start/end', () => {
     it('sets start and end to null if there is not data', () => {
       const timeSeries = TimeSeriesFixture({
-        data: [],
+        values: [],
       });
 
       const plottable = new Dots(timeSeries);
@@ -77,18 +77,18 @@ describe('ContinuousTimeSeries', () => {
 
     it('sets start and end to the same date if only one data point exists', () => {
       const timeSeries = TimeSeriesFixture({
-        data: [
+        values: [
           {
             value: 10,
-            timestamp: '2024-10-24T15:00:00-04:00',
+            timestamp: 1729796400000, // '2024-10-24T15:00:00-04:00'
           },
         ],
       });
 
       const plottable = new Dots(timeSeries);
 
-      expect(plottable.start).toBe('2024-10-24T15:00:00-04:00');
-      expect(plottable.end).toBe('2024-10-24T15:00:00-04:00');
+      expect(plottable.start).toBe(1729796400000);
+      expect(plottable.end).toBe(1729796400000);
     });
 
     it('returns the start and end if available', () => {
@@ -96,16 +96,13 @@ describe('ContinuousTimeSeries', () => {
 
       const plottable = new Dots(timeSeries);
 
-      expect(plottable.start).toBe('2024-10-24T15:00:00-04:00');
-      expect(plottable.end).toBe('2024-10-24T15:30:00-04:00');
+      expect(plottable.start).toBe(1729796400000);
+      expect(plottable.end).toBe(1729798200000);
     });
   });
 });
 
 class Dots extends ContinuousTimeSeries implements Plottable {
-  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
-    return new Dots(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
-  }
   toSeries(_plottingOptions: any) {
     return [LineSeries({})];
   }

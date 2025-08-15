@@ -1,9 +1,9 @@
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import type {TraceSearchResult} from '../traceSearch/traceSearchEvaluator';
-import {traceReducerExhaustiveActionCheck} from '../traceState';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceSearchResult} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
+import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-export type TraceSearchAction =
+type TraceSearchAction =
   | {query: string; type: 'set query'; source?: 'external'}
   | {type: 'go to first match'}
   | {type: 'go to last match'}
@@ -116,7 +116,7 @@ export function traceSearchReducer(
     }
     case 'go to previous match': {
       if (state.resultIteratorIndex === null) {
-        if (!state.results || !state.results.length) {
+        if (!state.results?.length) {
           return state;
         }
         return {

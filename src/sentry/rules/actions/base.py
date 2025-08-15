@@ -3,12 +3,11 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Generator
-from typing import Any
 
-from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.base import CallbackFuture, RuleBase
+from sentry.services.eventstore.models import GroupEvent
 
 logger = logging.getLogger("sentry.rules")
 
@@ -56,9 +55,3 @@ class EventAction(RuleBase, abc.ABC):
         >>>     for future in futures:
         >>>         print(future)
         """
-
-    def send_confirmation_notification(self, rule: Rule, new: bool, changed: dict[str, Any]):
-        """
-        Send a notification confirming that a rule was created or edited
-        """
-        pass

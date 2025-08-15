@@ -1,6 +1,6 @@
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {Incident} from 'sentry/views/alerts/types';
@@ -17,7 +17,7 @@ interface MetricIncidentsParams {
   };
 }
 
-export function makeMetricIncidentsQueryKey(params: MetricIncidentsParams): ApiQueryKey {
+function makeMetricIncidentsQueryKey(params: MetricIncidentsParams): ApiQueryKey {
   const {orgSlug, query} = params;
   return [
     `/organizations/${orgSlug}/incidents/`,

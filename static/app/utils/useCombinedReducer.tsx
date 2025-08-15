@@ -1,5 +1,7 @@
-import type {Reducer, ReducerAction} from 'react';
+import type {Reducer} from 'react';
 import {useReducer} from 'react';
+
+import type {ReducerAction} from 'sentry/types/reducerAction';
 
 type ReducersObject<S = any, A = any> = {
   [K in keyof S]: Reducer<S, A>;
@@ -24,7 +26,7 @@ type ReducerActions<M> = M extends ReducersObject
   : never;
 
 type CombinedState<S> = {} & S;
-export type CombinedReducer<M extends ReducersObject> = Reducer<
+type CombinedReducer<M extends ReducersObject> = Reducer<
   CombinedState<ReducersState<M>>,
   ReducerActions<M>
 >;

@@ -13,6 +13,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
+from sentry.performance_issues.detectors.utils import escape_transaction
 from sentry.search.events.constants import METRICS_GRANULARITIES
 from sentry.seer.breakpoints import detect_breakpoints
 from sentry.snuba import metrics_performance
@@ -21,7 +23,6 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.iterators import chunked
-from sentry.utils.performance_issues.detectors.utils import escape_transaction
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -41,8 +42,6 @@ DEFAULT_RATE_LIMIT = 15
 DEFAULT_RATE_LIMIT_WINDOW = 1
 DEFAULT_CONCURRENT_RATE_LIMIT = 15
 ORGANIZATION_RATE_LIMIT = 30
-
-_query_thread_pool = ThreadPoolExecutor()
 
 
 @region_silo_endpoint
@@ -70,7 +69,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             "organizations:performance-new-trends", organization, actor=request.user
         )
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -278,7 +277,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ]
 
             # send the data to microservice
-            results = list(_query_thread_pool.map(detect_breakpoints, trends_requests))
+            with ThreadPoolExecutor(thread_name_prefix=__name__) as query_thread_pool:
+                results = list(query_thread_pool.map(detect_breakpoints, trends_requests))
             trend_results = []
 
             # append all the results

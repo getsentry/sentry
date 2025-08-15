@@ -7,16 +7,17 @@ import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
-import {IconWarning} from 'sentry/icons';
+import {IconGroup, IconLightning, IconUser, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 
-import {type Plan, PlanTier} from 'getsentry/types';
+import {PlanTier, type Plan} from 'getsentry/types';
 import {
   getBusinessPlanOfTier,
   isBizPlanFamily,
+  isNewPayingCustomer,
   isTeamPlan,
   isTeamPlanFamily,
 } from 'getsentry/utils/billing';
@@ -26,14 +27,16 @@ import {
 } from 'getsentry/utils/promotionUtils';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
+import PlanSelectCard from 'getsentry/views/amCheckout/steps/planSelectCard';
 import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
+import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getDiscountedPrice} from 'getsentry/views/amCheckout/utils';
 
 export type PlanContent = {
   description: React.ReactNode;
-  features: {[key: string]: React.ReactNode};
+  features: Record<string, React.ReactNode>;
   hasMoreLink?: boolean;
 };
 
@@ -127,13 +130,13 @@ function PlanSelect({
   subscription,
   formData,
   referrer,
+  isNewCheckout,
   onEdit,
   onToggleLegacy,
   onUpdate,
   onCompleteStep,
 }: StepProps) {
   const {data: promotionData, refetch} = usePromotionTriggerCheck(organization);
-
   const discountInfo = promotion?.discountInfo;
   let trailingItems: React.ReactNode = null;
   if (showSubscriptionDiscount({activePlan, discountInfo}) && discountInfo) {
@@ -150,7 +153,9 @@ function PlanSelect({
 
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (plan.id === subscription.plan) {
-      return <Tag>{t('Current plan')}</Tag>;
+      // TODO(checkout v3): Replace with custom badge
+      const copy = isNewCheckout ? t('Current') : t('Current plan');
+      return <Tag type="info">{copy}</Tag>;
     }
 
     if (
@@ -172,11 +177,27 @@ function PlanSelect({
   };
 
   const renderBody = () => {
+    const shouldShowDefaultPayAsYouGo =
+      isNewPayingCustomer(subscription, organization) && checkoutTier === PlanTier.AM3; // TODO(isabella): Test if this behavior works as expected on older tiers
+
     const planOptions = getPlanOptions({billingConfig, activePlan});
+    const planToPriorPlan = planOptions.reduce(
+      (acc, plan, i) => {
+        if (i > 0) {
+          const nextPlan = planOptions[i - 1];
+          if (nextPlan) {
+            acc[nextPlan.id] = plan;
+          }
+        }
+        return acc;
+      },
+      {} as Record<string, Plan>
+    );
     return (
       <PanelBody data-test-id="body-choose-your-plan">
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
+          const priorPlan = planToPriorPlan[plan.id];
 
           // calculate the price with discount
           const cents =
@@ -206,25 +227,51 @@ function PlanSelect({
             planContent.features.deactivated_member_header = t('Unlimited members');
           }
 
+          const planIcon = isBizPlanFamily(plan) ? (
+            <IconLightning /> // TODO(checkout v3): replace with building icon
+          ) : isTeamPlanFamily(plan) ? (
+            <IconGroup />
+          ) : (
+            <IconUser />
+          );
+
+          const commonProps = {
+            plan,
+            isSelected,
+            badge: getBadge(plan),
+            onUpdate,
+            planValue: plan.name,
+            planName: plan.name,
+            priceHeader: t('Starts At'),
+            price: basePrice,
+            planContent,
+            highlightedFeatures,
+            shouldShowDefaultPayAsYouGo,
+          };
+
+          if (isNewCheckout) {
+            return (
+              <PlanSelectCard
+                key={plan.id}
+                planIcon={planIcon}
+                priorPlan={priorPlan}
+                shouldShowEventPrice={!!isBizPlanFamily(plan)}
+                {...commonProps}
+              />
+            );
+          }
+
           return (
             <PlanSelectRow
               key={plan.id}
-              plan={plan}
-              isSelected={isSelected}
-              badge={getBadge(plan)}
-              onUpdate={onUpdate}
-              planValue={plan.name}
-              planName={plan.name}
-              priceHeader={t('Starts At')}
-              price={basePrice}
-              planContent={planContent}
-              highlightedFeatures={highlightedFeatures}
               isFeaturesCheckmarked={isFeaturesCheckmarked}
               discountInfo={
                 showSubscriptionDiscount({activePlan, discountInfo})
                   ? discountInfo
                   : undefined
               }
+              shouldShowEventPrice
+              {...commonProps}
             />
           );
         })}
@@ -323,6 +370,14 @@ function PlanSelect({
         organization={organization}
       />
       {isActive && renderBody()}
+      {isActive && (
+        <ProductSelect
+          activePlan={activePlan}
+          formData={formData}
+          onUpdate={onUpdate}
+          isNewCheckout={isNewCheckout}
+        />
+      )}
       {isActive && renderFooter()}
     </Panel>
   );

@@ -12,17 +12,16 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {traceAnalytics} from '../traceAnalytics';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import type {TraceReducer} from '../traceState';
-import type {TraceSearchState} from '../traceState/traceSearch';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {TraceReducer} from 'sentry/views/performance/newTraceDetails/traceState';
+import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
 import {
   useTraceState,
   useTraceStateDispatch,
   useTraceStateEmitter,
-} from '../traceState/traceStateProvider';
+} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 interface TraceSearchInputProps {
   onTraceSearch: (
@@ -117,6 +116,10 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       organization,
     });
     traceDispatch({type: 'clear query'});
+
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   }, [traceDispatch, organization]);
 
   const onKeyDown = useCallback(
@@ -228,9 +231,9 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         name="query"
         autoComplete="off"
         placeholder={t('Search in trace')}
-        defaultValue={traceState.search.query}
         onChange={onChange}
         onKeyDown={onKeyDown}
+        defaultValue={traceState.search.query}
         onFocus={onSearchFocus}
       />
       <InputGroup.TrailingItems>
@@ -344,7 +347,7 @@ const StyledSearchBarTrailingButton = styled(SearchBarTrailingButton)`
 
 const StyledTrailingText = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledSearchBar = styled(InputGroup)`

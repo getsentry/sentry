@@ -39,10 +39,10 @@ export function sanitizePath(path: string) {
       .split('?')[0]!
       .replace(
         /(?<start>.*?\/)(?<type>organizations|issues|groups|customers|subscriptions|projects|teams|users)\/(?<second>[^/]+)\/(?<third>[^/]+\/)?(?<fourth>[^/]+\/)?(?<fifth>[^/]+\/)?(?<sixth>[^/]+\/)?(?<seventh>[^/]+\/)?(?<end>.*)/,
-        function (...args) {
+        (...args) => {
           const matches = args[args.length - 1];
 
-          let {type} = matches;
+          const {type} = matches;
           const {
             start,
             second,
@@ -53,14 +53,6 @@ export function sanitizePath(path: string) {
             seventh = '',
             end,
           } = matches;
-
-          // The `rule-conditions` endpoint really ought to be an org endpoint,
-          // and it's formatted like one, so for now, let's treat it like one.
-          // We can fix it before we return our final value. See
-          // `ProjectAgnosticRuleConditionsEndpoint` in `sentry/api/urls.py`.
-          if (third === 'rule-conditions/') {
-            type = 'organizations';
-          }
 
           const isOrgLike = [
             'organizations',
@@ -106,12 +98,6 @@ export function sanitizePath(path: string) {
                 secondarySlugPlaceholder = secondarySlug;
               }
             }
-          }
-
-          // Now that we've handled all our special cases based on type, we can
-          // restore the correct value for `rule-conditions`
-          if (contentType === 'rule-conditions/') {
-            type = 'projects';
           }
 
           return `${start}${type}/${primarySlugPlaceholder}${contentType}${secondarySlugPlaceholder}${contentSubtype}${tertiarySlugPlaceholder}${end}`;

@@ -12,6 +12,9 @@ from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.monitoring.queues import backend
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import Retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
@@ -59,6 +62,13 @@ def log_error_if_queue_has_items(func):
     default_retry_delay=60,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        retry=Retry(
+            times=3,
+            delay=60,
+        ),
+    ),
 )
 @log_error_if_queue_has_items
 def schedule_auto_transition_to_ongoing() -> None:
@@ -73,17 +83,14 @@ def schedule_auto_transition_to_ongoing() -> None:
 
     schedule_auto_transition_issues_new_to_ongoing.delay(
         first_seen_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
     )
 
     schedule_auto_transition_issues_regressed_to_ongoing.delay(
         date_added_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
     )
 
     schedule_auto_transition_issues_escalating_to_ongoing.delay(
         date_added_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
     )
 
 
@@ -96,6 +103,14 @@ def schedule_auto_transition_to_ongoing() -> None:
     default_retry_delay=60,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=25 * 60,
+        retry=Retry(
+            times=3,
+            delay=60,
+        ),
+    ),
 )
 @log_error_if_queue_has_items
 def schedule_auto_transition_issues_new_to_ongoing(
@@ -163,6 +178,14 @@ def schedule_auto_transition_issues_new_to_ongoing(
     default_retry_delay=60,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=25 * 60,
+        retry=Retry(
+            times=3,
+            delay=60,
+        ),
+    ),
 )
 def run_auto_transition_issues_new_to_ongoing(
     group_ids: list[int],
@@ -191,6 +214,14 @@ def run_auto_transition_issues_new_to_ongoing(
     default_retry_delay=60,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=25 * 60,
+        retry=Retry(
+            times=3,
+            delay=60,
+        ),
+    ),
 )
 @log_error_if_queue_has_items
 def schedule_auto_transition_issues_regressed_to_ongoing(
@@ -251,6 +282,14 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     default_retry_delay=60,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=25 * 60,
+        retry=Retry(
+            times=3,
+            delay=60,
+        ),
+    ),
 )
 def run_auto_transition_issues_regressed_to_ongoing(
     group_ids: list[int],
@@ -279,6 +318,14 @@ def run_auto_transition_issues_regressed_to_ongoing(
     default_retry_delay=60,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=25 * 60,
+        retry=Retry(
+            times=3,
+            delay=60,
+        ),
+    ),
 )
 @log_error_if_queue_has_items
 def schedule_auto_transition_issues_escalating_to_ongoing(
@@ -339,6 +386,14 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     default_retry_delay=60,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=25 * 60,
+        retry=Retry(
+            times=3,
+            delay=60,
+        ),
+    ),
 )
 def run_auto_transition_issues_escalating_to_ongoing(
     group_ids: list[int],

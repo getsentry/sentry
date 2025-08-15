@@ -4,12 +4,13 @@ import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/bui
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
@@ -19,16 +20,13 @@ import {
   getFeedbackConfigureDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
-  getProfilingDocumentHeaderConfigurationStep,
-  MaybeBrowserProfilingBetaWarning,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
-import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -80,6 +78,12 @@ const getDynamicParts = (params: Params): string[] => {
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
   }
 
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Logs
+      enableLogs: true`);
+  }
+
   if (params.isProfilingSelected) {
     dynamicParts.push(`
         // Set profilesSampleRate to 1.0 to profile every transaction.
@@ -96,7 +100,12 @@ const getDynamicParts = (params: Params): string[] => {
 const getSdkSetupSnippet = (params: Params) => {
   const config = buildSdkConfig({
     params,
-    staticParts: [`dsn: "${params.dsn.public}"`],
+    staticParts: [
+      `dsn: "${params.dsn.public}"`,
+      `// Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true`,
+    ],
     getIntegrations,
     getDynamicParts,
   });
@@ -132,6 +141,7 @@ const getVerifySnippet = () => `
   Throw error
 </button>`;
 
+// TODO: Remove once the other product areas support content blocks
 const getInstallConfig = () => [
   {
     language: 'bash',
@@ -148,54 +158,98 @@ const getInstallConfig = () => [
         language: 'bash',
         code: 'yarn add @sentry/solid',
       },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: 'pnpm add @sentry/solid',
+      },
     ],
   },
 ];
 
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'npm',
+      language: 'bash',
+      code: 'npm install --save @sentry/solid',
+    },
+    {
+      label: 'yarn',
+      language: 'bash',
+      code: 'yarn add @sentry/solid',
+    },
+    {
+      label: 'pnpm',
+      language: 'bash',
+      code: 'pnpm add @sentry/solid',
+    },
+  ],
+};
+
 const onboarding: OnboardingConfig = {
-  introduction: params => (
+  introduction: () => (
     <Fragment>
-      <MaybeBrowserProfilingBetaWarning {...params} />
       <p>
-        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
-          strong: <strong />,
-        })}
+        {tct(
+          "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
+          {
+            strong: <strong />,
+          }
+        )}
       </p>
     </Fragment>
   ),
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        "Initialize Sentry as early as possible in your application's lifecycle, usually your solid app's entry point ([code:main.ts/js]):",
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct(
+            "Initialize Sentry as early as possible in your application's lifecycle, usually your solid app's entry point ([code:main.ts/js]):",
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getSdkSetupSnippet(params),
             },
           ],
         },
-        ...(params.isProfilingSelected
-          ? [getProfilingDocumentHeaderConfigurationStep()]
-          : []),
+        {
+          type: 'conditional',
+          condition: params.isReplaySelected,
+          content: [
+            {
+              type: 'custom',
+              content: <TracePropagationMessage />,
+            },
+          ],
+        },
       ],
     },
     getUploadSourceMapsStep({
@@ -206,15 +260,18 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
-              value: 'javascript',
               language: 'javascript',
               code: getVerifySnippet(),
             },
@@ -223,14 +280,31 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'solid-features',
-      name: t('Solid Features'),
-      description: t('Learn about our first class integration with the Solid framework.'),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/features/',
-    },
-  ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'solid-features',
+        name: t('Solid Features'),
+        description: t(
+          'Learn about our first class integration with the Solid framework.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/solid/features/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/solid/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig = {
@@ -262,7 +336,6 @@ const replayOnboarding: OnboardingConfig = {
               code: getSdkSetupSnippet(params),
             },
           ],
-          additionalInfo: <TracePropagationMessage />,
         },
       ],
     },
@@ -332,16 +405,16 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  installSnippetBlock,
+  docsLink:
+    'https://docs.sentry.io/platforms/javascript/guides/solid/profiling/browser-profiling/',
+});
 
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,

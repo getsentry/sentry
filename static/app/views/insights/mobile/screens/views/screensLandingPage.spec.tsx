@@ -1,24 +1,33 @@
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MODULE_FEATURE} from 'sentry/views/insights/mobile/screens/settings';
-import {ScreensLandingPage} from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
+import ScreensLandingPage from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
 
-describe('Screens Landing Page', function () {
+describe('Screens Landing Page', () => {
   const organization = OrganizationFixture({
     features: [MODULE_FEATURE],
   });
-  const project = ProjectFixture({platform: 'react-native'});
+
+  const project = ProjectFixture({
+    hasInsightsScreenLoad: true,
+    firstTransactionEvent: true,
+    platform: 'react-native',
+  });
+
+  ProjectsStore.loadInitialData([project]);
 
   jest.mocked(useLocation).mockReturnValue({
     action: 'PUSH',
@@ -32,22 +41,20 @@ describe('Screens Landing Page', function () {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [parseInt(project.id, 10)],
       },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
-    },
-  });
+    })
+  );
 
   jest.mocked(useCrossPlatformProject).mockReturnValue({
     project,
@@ -55,7 +62,7 @@ describe('Screens Landing Page', function () {
     isProjectCrossPlatform: true,
   });
 
-  describe('Top Section', function () {
+  describe('Top Section', () => {
     beforeEach(() => {
       organization.features = [MODULE_FEATURE];
       MockApiClient.addMockResponse({
@@ -72,12 +79,12 @@ describe('Screens Landing Page', function () {
       jest.clearAllMocks();
     });
 
-    it('shows the platform selector for hybrid sdks', async function () {
-      render(<ScreensLandingPage />, {organization});
+    it('shows the platform selector for hybrid sdks', async () => {
+      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
       expect(await screen.findByLabelText('Android')).toBeInTheDocument();
     });
 
-    it('renders all vital cards', async function () {
+    it('renders all vital cards', async () => {
       jest.mocked(useLocation).mockReturnValue({
         action: 'PUSH',
         hash: '',
@@ -118,10 +125,12 @@ describe('Screens Landing Page', function () {
             isMetricsExtractedData: false,
             tips: {},
             datasetReason: 'unchanged',
-            dataset: 'metrics',
+            dataset: 'spans',
           },
         },
-        match: [MockApiClient.matchQuery({dataset: 'metrics'})],
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.insights.mobile-screens-metrics'}),
+        ],
       });
 
       const spanMetricsMock = MockApiClient.addMockResponse({
@@ -149,13 +158,17 @@ describe('Screens Landing Page', function () {
             isMetricsExtractedData: false,
             tips: {},
             datasetReason: 'unchanged',
-            dataset: 'spansMetrics',
+            dataset: 'spans',
           },
         },
-        match: [MockApiClient.matchQuery({dataset: 'spansMetrics'})],
+        match: [
+          MockApiClient.matchQuery({
+            referrer: 'api.insights.mobile-screens-span-metrics',
+          }),
+        ],
       });
 
-      render(<ScreensLandingPage />, {organization});
+      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
 
       await waitFor(() => {
         expect(metricsMock).toHaveBeenCalled();
@@ -179,7 +192,7 @@ describe('Screens Landing Page', function () {
       }
     });
   });
-  describe('Permissions', function () {
+  describe('Permissions', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-stats/`,
@@ -194,17 +207,17 @@ describe('Screens Landing Page', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('shows no content if permission is missing', async function () {
+    it('shows no content if permission is missing', async () => {
       organization.features = [];
-      render(<ScreensLandingPage />, {organization});
+      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
       expect(
         await screen.findByText("You don't have access to this feature")
       ).toBeInTheDocument();
     });
 
-    it('shows content if permission is there', async function () {
+    it('shows content if permission is there', async () => {
       organization.features = [MODULE_FEATURE, 'insights-entry-points'];
-      render(<ScreensLandingPage />, {organization});
+      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
       expect(await screen.findAllByText('Mobile Vitals')).toHaveLength(2);
     });
   });

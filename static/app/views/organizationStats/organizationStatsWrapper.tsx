@@ -1,5 +1,5 @@
-import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';
 import Redirect from 'sentry/components/redirect';
+import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
 type OrganizationStatsWrapperProps = {
   children: React.ReactNode;
@@ -10,7 +10,7 @@ type OrganizationStatsWrapperProps = {
 export function OrganizationStatsWrapper({children}: OrganizationStatsWrapperProps) {
   const redirectPath = useRedirectNavV2Routes({
     oldPathPrefix: '/stats/',
-    newPathPrefix: '/settings/stats/',
+    newPathPrefix: `/settings/stats/`,
   });
 
   if (redirectPath) {

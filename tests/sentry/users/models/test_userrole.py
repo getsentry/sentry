@@ -10,6 +10,6 @@ class UserRoleTest(TestCase):
     def setUp(self) -> None:
         manage_default_super_admin_role()
 
-    def test_creates_super_admin_role(self):
+    def test_creates_super_admin_role(self) -> None:
         role = UserRole.objects.get(name="Super Admin")
         assert sorted(role.permissions) == sorted(settings.SENTRY_USER_PERMISSIONS)

@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './maui';
 
-describe('maui onboarding docs', function () {
-  it('renders errors onboarding docs correctly', async function () {
+describe('maui onboarding docs', () => {
+  it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dotnet.maui': {
@@ -31,26 +31,13 @@ describe('maui onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/options.TracesSampleRate/))
-    ).toBeInTheDocument();
-  });
-
-  it('renders profiling onboarding docs correctly', async function () {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.PERFORMANCE_MONITORING,
-        ProductSolution.PROFILING,
-      ],
-    });
-
-    expect(
-      await screen.findByText(textWithMarkupMatcher(/options.ProfilesSampleRate/))
     ).toBeInTheDocument();
   });
 });

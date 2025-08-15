@@ -6,7 +6,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import TrialAlert from 'getsentry/views/subscriptionPage/trialAlert';
 
-describe('Subscription > TrialAlert', function () {
+describe('Subscription > TrialAlert', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
 
@@ -18,7 +18,7 @@ describe('Subscription > TrialAlert', function () {
     resetMockDate();
   });
 
-  it('does not render not on trial', function () {
+  it('does not render not on trial', () => {
     const sub = {
       ...subscription,
       isTrial: false,
@@ -29,7 +29,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('renders 1 day left', function () {
+  it('renders 1 day left', () => {
     const sub = {
       ...subscription,
       isTrial: true,
@@ -42,7 +42,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
 
-  it('renders 14 days left', function () {
+  it('renders 14 days left', () => {
     const sub = {
       ...subscription,
       isTrial: true,
@@ -55,7 +55,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
 
-  it('does not render negative days left', function () {
+  it('does not render negative days left', () => {
     const sub = {
       ...subscription,
       isTrial: true,
@@ -67,7 +67,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('renders enterprise trial', function () {
+  it('renders enterprise trial', () => {
     const sub = {
       ...subscription,
       isTrial: true,
@@ -79,12 +79,12 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByText('Enterprise Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        "With your trial you have access to Sentry's business plan features, and unlimited errors, transactions, replays, attachments, cron monitors, and uptime monitors."
+        "With your trial you have access to Sentry's business plan features."
       )
     ).toBeInTheDocument();
   });
 
-  it('renders am3 enterprise trial', function () {
+  it('renders am3 enterprise trial', () => {
     const am3_sub = SubscriptionFixture({organization, plan: 'am3_f'});
     const sub = {
       ...am3_sub,
@@ -97,12 +97,12 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByText('Enterprise Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        "With your trial you have access to Sentry's business plan features, and unlimited errors, replays, attachments, cron monitors, spans, profile hours, and uptime monitors."
+        "With your trial you have access to Sentry's business plan features."
       )
     ).toBeInTheDocument();
   });
 
-  it('renders plan trial', function () {
+  it('renders plan trial', () => {
     const sub = {
       ...subscription,
       isTrial: true,
@@ -121,7 +121,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.queryByText(/unlimited errors/)).not.toBeInTheDocument();
   });
 
-  it('renders performance trial', function () {
+  it('renders performance trial', () => {
     const sub = {
       ...subscription,
       isTrial: true,
@@ -134,7 +134,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByText('Performance Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        `With your trial you have access to Sentry's performance features, and unlimited transactions and attachments.`
+        `With your trial you have access to Sentry's performance features.`
       )
     ).toBeInTheDocument();
   });

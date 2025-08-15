@@ -1,26 +1,22 @@
 import {useCallback, useEffect, useState} from 'react';
-import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {uniq} from 'sentry/utils/array/uniq';
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
-import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, type ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
   domainAlias: string;
@@ -30,10 +26,6 @@ type Props = {
   spanCategory?: string;
   value?: string;
 };
-
-interface DomainData {
-  'span.domain': string[];
-}
 
 export function DomainSelector({
   value = '',
@@ -58,24 +50,34 @@ export function DomainSelector({
     []
   );
 
-  const eventView = getEventView(
-    location,
-    moduleName,
-    spanCategory,
-    searchQuery,
-    additionalQuery
-  );
+  const query = [
+    ...buildEventViewQuery({
+      moduleName,
+      location: {
+        ...location,
+        query: omit(location.query, ['span.action', 'span.domain']),
+      },
+      spanCategory,
+    }),
+    ...(searchQuery && searchQuery.length > 0
+      ? [`${SpanFields.SPAN_DOMAIN}:*${[searchQuery]}*`]
+      : []),
+    ...(additionalQuery || []),
+  ].join(' ');
 
   const {
     data: domainData,
     isPending,
     pageLinks,
-  } = useSpansQuery<DomainData[]>({
-    eventView,
-    initialData: [],
-    limit: LIMIT,
-    referrer: 'api.starfish.get-span-domains',
-  });
+  } = useSpans(
+    {
+      limit: LIMIT,
+      search: query,
+      sorts: [{field: 'count()', kind: 'desc'}],
+      fields: [SpanFields.SPAN_DOMAIN, 'count()'],
+    },
+    'api.insights.get-span-domains'
+  );
 
   const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
     query: searchQuery,
@@ -83,25 +85,61 @@ export function DomainSelector({
     pageLinks,
   });
 
-  const incomingDomains = [
-    ...uniq(domainData?.flatMap(row => row[SpanMetricsField.SPAN_DOMAIN])),
-  ];
+  const domainList: Array<{label: string; value: string}> = [];
+  const uniqueDomains = new Set<string>();
+
+  domainData.forEach(row => {
+    const spanDomain: string | string[] = row[SpanFields.SPAN_DOMAIN];
+
+    const domains = typeof spanDomain === 'string' ? spanDomain.split(',') : spanDomain;
+
+    if (!domains || domains.length === 0) {
+      return;
+    }
+
+    // if there is only one domain, this means that the domain is not a comma-separated list
+    if (domains.length === 1 && domains?.[0]) {
+      if (uniqueDomains.has(domains[0])) {
+        return;
+      }
+      uniqueDomains.add(domains[0]);
+      domainList.push({
+        label: domains[0],
+        value: `*${domains[0]}*`,
+      });
+    } else {
+      domains?.forEach(domain => {
+        if (uniqueDomains.has(domain) || !domain) {
+          return;
+        }
+        uniqueDomains.add(domain);
+        domainList.push({
+          label: domain,
+          value: `*,${domain},*`,
+        });
+      });
+    }
+  });
 
   if (value) {
-    incomingDomains.push(value);
+    let scrubbedValue = value;
+    if (scrubbedValue.startsWith('*') && scrubbedValue.endsWith('*')) {
+      scrubbedValue = scrubbedValue.slice(1, -1);
+    }
+    if (scrubbedValue.startsWith(',') && scrubbedValue.endsWith(',')) {
+      scrubbedValue = scrubbedValue.slice(1, -1);
+    }
+    domainList.push({
+      label: scrubbedValue,
+      value,
+    });
   }
 
   const {options: domainOptions, clear: clearDomainOptionsCache} =
     useCompactSelectOptionsCache(
-      incomingDomains
-        .filter(Boolean)
-        .filter(domain => domain !== EMPTY_OPTION_VALUE)
-        .map(datum => {
-          return {
-            value: datum,
-            label: datum,
-          };
-        })
+      domainList
+        .filter(domain => Boolean(domain?.label))
+        .filter(domain => domain.value !== EMPTY_OPTION_VALUE)
     );
 
   useEffect(() => {
@@ -155,7 +193,7 @@ export function DomainSelector({
           ...location,
           query: {
             ...location.query,
-            [SpanMetricsField.SPAN_DOMAIN]: newValue.value,
+            [SpanFields.SPAN_DOMAIN]: newValue.value,
             [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });
@@ -165,37 +203,3 @@ export function DomainSelector({
 }
 
 const LIMIT = 100;
-
-function getEventView(
-  location: Location,
-  moduleName: ModuleName,
-  spanCategory?: string,
-  search?: string,
-  additionalQuery?: string[]
-) {
-  const query = [
-    ...buildEventViewQuery({
-      moduleName,
-      location: {
-        ...location,
-        query: omit(location.query, ['span.action', 'span.domain']),
-      },
-      spanCategory,
-    }),
-    ...(search && search.length > 0
-      ? [`${SpanMetricsField.SPAN_DOMAIN}:*${[search]}*`]
-      : []),
-    ...(additionalQuery || []),
-  ].join(' ');
-  return EventView.fromNewQueryWithLocation(
-    {
-      name: '',
-      fields: [SpanMetricsField.SPAN_DOMAIN, 'count()'],
-      orderby: '-count',
-      query,
-      dataset: DiscoverDatasets.SPANS_METRICS,
-      version: 2,
-    },
-    location
-  );
-}

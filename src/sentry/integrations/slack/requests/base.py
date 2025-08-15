@@ -15,6 +15,7 @@ from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.identity.services.identity.model import RpcIdentityProvider
 from sentry.integrations.messaging.commands import CommandInput
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.safe import get_path
@@ -99,7 +100,7 @@ class SlackRequest:
         except Exception:
             pass
         context = integration_service.get_integration_identity_context(
-            integration_provider="slack",
+            integration_provider=IntegrationProviderSlug.SLACK.value,
             integration_external_id=team_id,
             identity_external_id=user_id,
             identity_provider_external_id=team_id,
@@ -162,7 +163,7 @@ class SlackRequest:
 
         if self._provider is None:
             self._provider = identity_service.get_provider(
-                provider_type="slack", provider_ext_id=self.team_id
+                provider_type=IntegrationProviderSlug.SLACK.value, provider_ext_id=self.team_id
             )
 
         if self._provider is not None:
@@ -225,7 +226,9 @@ class SlackRequest:
     def validate_integration(self) -> None:
         if not self._integration:
             self._integration = integration_service.get_integration(
-                provider="slack", external_id=self.team_id, status=ObjectStatus.ACTIVE
+                provider=IntegrationProviderSlug.SLACK.value,
+                external_id=self.team_id,
+                status=ObjectStatus.ACTIVE,
             )
 
         if not self._integration:

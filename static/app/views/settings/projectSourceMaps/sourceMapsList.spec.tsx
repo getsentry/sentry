@@ -37,6 +37,11 @@ function renderReleaseBundlesMockRequests({
         ],
   });
 
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/releases/`,
+    body: [],
+  });
+
   return {sourceMaps};
 }
 
@@ -62,10 +67,10 @@ function renderDebugIdBundlesMockRequests({
   return {artifactBundles, artifactBundlesDeletion};
 }
 
-describe('ProjectSourceMaps', function () {
-  describe('Artifact Bundles', function () {
-    it('renders default state', async function () {
-      const {organization, project, router, routerProps} = initializeOrg({
+describe('ProjectSourceMaps', () => {
+  describe('Artifact Bundles', () => {
+    it('renders default state', async () => {
+      const {organization, project, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -88,7 +93,6 @@ describe('ProjectSourceMaps', function () {
       });
 
       render(<SourceMapsList project={project} {...routerProps} />, {
-        router,
         organization,
       });
       expect(mockRequests.artifactBundles).toHaveBeenCalledTimes(1);
@@ -142,8 +146,8 @@ describe('ProjectSourceMaps', function () {
       });
     });
 
-    it('renders empty state', async function () {
-      const {organization, project, routerProps, router} = initializeOrg({
+    it('renders empty state', async () => {
+      const {organization, project, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -167,11 +171,10 @@ describe('ProjectSourceMaps', function () {
       });
 
       render(<SourceMapsList project={project} {...routerProps} />, {
-        router,
         organization,
       });
 
-      expect(await screen.findByText('No source map uploads found')).toBeInTheDocument();
+      expect(await screen.findByText('No source maps uploaded')).toBeInTheDocument();
     });
   });
 });

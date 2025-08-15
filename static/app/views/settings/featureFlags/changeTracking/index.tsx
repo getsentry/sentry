@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import AnalyticsArea from 'sentry/components/analyticsArea';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -73,7 +74,7 @@ function SecretList({
   );
 }
 
-export function OrganizationFeatureFlagsChangeTracking() {
+function OrganizationFeatureFlagsChangeTracking() {
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
@@ -161,7 +162,7 @@ export function OrganizationFeatureFlagsChangeTracking() {
         )}
       </TextBlock>
 
-      <Flex justify="space-between">
+      <Flex justify="between">
         <h5>{t('Providers')}</h5>
         {addNewProvider(hasAccess)}
       </Flex>
@@ -200,10 +201,16 @@ export function OrganizationFeatureFlagsChangeTracking() {
   );
 }
 
-export default OrganizationFeatureFlagsChangeTracking;
+export default function OrganizationFeatureFlagsChangeTrackingRoute() {
+  return (
+    <AnalyticsArea name="feature_flag_org_settings">
+      <OrganizationFeatureFlagsChangeTracking />
+    </AnalyticsArea>
+  );
+}
 
 const ResponsivePanelTable = styled(PanelTable)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
 
     > *:nth-child(4n + 2),

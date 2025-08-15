@@ -1,0 +1,86 @@
+[
+  {
+    "desc": "Basic text filter sets startsWith to false",
+    "query": "foo:bar",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "bar",
+          "quoted": false,
+          "wildcard": false
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Value with leading asterisk, sets wildcard to trailing",
+    "query": "foo:bar*",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "bar*",
+          "quoted": false,
+          "wildcard": "trailing"
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Value with quotes, sets wildcard to trailing",
+    "query": "foo:\"bar*\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "bar*",
+          "quoted": true,
+          "wildcard": "trailing"
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  },
+  {
+    "desc": "Value with quotes and spaces, sets wildcard to trailing",
+    "query": "foo:\"e m*\"",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "foo", "quoted": false},
+        "operator": "",
+        "value": {
+          "type": "valueText",
+          "value": "e m*",
+          "quoted": true,
+          "wildcard": "trailing"
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

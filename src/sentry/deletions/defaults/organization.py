@@ -34,6 +34,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.models.repository import Repository
         from sentry.models.team import Team
         from sentry.models.transaction_threshold import ProjectTransactionThreshold
+        from sentry.workflow_engine.models import Workflow
 
         # Team must come first
         relations: list[BaseRelation] = [ModelRelation(Team, {"organization_id": instance.id})]
@@ -63,6 +64,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
                 task=DiscoverSavedQueryDeletionTask,
             )
         )
+        relations.append(ModelRelation(Workflow, {"organization_id": instance.id}))
 
         return relations
 

@@ -9,18 +9,18 @@ import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations
 
 jest.mock('sentry/actionCreators/modal');
 
-describe('AddIntegrationRow', function () {
+describe('AddIntegrationRow', () => {
   let org: any;
   const project = ProjectFixture();
   const provider = GitHubIntegrationProviderFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     org = OrganizationFixture();
     jest.clearAllMocks();
   });
 
   const getComponent = () => (
-    <IntegrationContext.Provider
+    <IntegrationContext
       value={{
         provider,
         type: 'first_party',
@@ -33,7 +33,7 @@ describe('AddIntegrationRow', function () {
       }}
     >
       <AddIntegrationRow onClick={jest.fn()} />
-    </IntegrationContext.Provider>
+    </IntegrationContext>
   );
 
   it('renders', async () => {

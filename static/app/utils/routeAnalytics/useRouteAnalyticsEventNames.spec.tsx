@@ -9,15 +9,15 @@ function TestComponent({eventKey, eventName}: {eventKey: string; eventName: stri
   return <div>hi</div>;
 }
 
-describe('useRouteAnalyticsEventNames', function () {
-  it('disables analytics', function () {
+describe('useRouteAnalyticsEventNames', () => {
+  it('disables analytics', () => {
     const setEventNames = jest.fn();
     const getComponent = (
       eventKey: string,
       eventName: string,
       extraContext?: Record<string, any>
     ) => (
-      <RouteAnalyticsContext.Provider
+      <RouteAnalyticsContext
         value={{
           setDisableRouteAnalytics: jest.fn(),
           setRouteAnalyticsParams: jest.fn(),
@@ -28,7 +28,7 @@ describe('useRouteAnalyticsEventNames', function () {
         }}
       >
         <TestComponent {...{eventKey, eventName}} />
-      </RouteAnalyticsContext.Provider>
+      </RouteAnalyticsContext>
     );
     const {rerender} = render(getComponent('a', 'b'));
     expect(setEventNames).toHaveBeenCalledWith('a', 'b');

@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,7 +16,7 @@ interface Props {
   isDataAvailable?: boolean;
 }
 
-function DivWrapper(props: any) {
+function DivWrapper(props: React.ComponentProps<'div'>) {
   return <div {...props} />;
 }
 
@@ -70,9 +69,9 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
           'Some of your projects have been omitted from query performance analysis. Please [supportLink]. Omitted projects: [projectList].',
           {
             supportLink: (
-              <Button priority="link" onClick={() => openHelpSearchModal({organization})}>
+              <Link to="" onClick={() => openHelpSearchModal({organization})}>
                 {t('Contact Support')}
-              </Button>
+              </Link>
             ),
             projectList: <ProjectList projects={denylistedProjects} />,
           }
@@ -97,14 +96,14 @@ function ProjectList({projects, limit = MAX_LISTED_PROJECTS}: ProjectListProps) 
       {visibleProjects.slice(0, limit).map((project, projectIndex) => {
         return (
           <span key={project.id}>
-            <a
-              href={makeProjectsPathname({
+            <Link
+              to={makeProjectsPathname({
                 path: `/${project.slug}/`,
-                orgSlug: organization.slug,
+                organization,
               })}
             >
               {project.name}
-            </a>
+            </Link>
             {projectIndex < visibleProjects.length - 1 && ', '}
           </span>
         );

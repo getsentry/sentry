@@ -120,6 +120,11 @@ export interface UseOverlayProps
    * If this is not desired, set to `false`.
    */
   shouldApplyMinWidth?: boolean;
+  /**
+   * Strategy for the overlay. See https://popper.js.org/docs/v2/constructors/#strategy
+   * for details.
+   */
+  strategy?: PopperProps<any>['strategy'];
 }
 
 function useOverlay({
@@ -140,6 +145,7 @@ function useOverlay({
   shouldCloseOnInteractOutside,
   onInteractOutside,
   disableTrigger,
+  strategy = 'absolute',
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
@@ -242,7 +248,11 @@ function useOverlay({
     styles: popperStyles,
     state: popperState,
     update: popperUpdate,
-  } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
+  } = usePopper(triggerElement, overlayElement, {
+    modifiers,
+    placement: position,
+    strategy,
+  });
 
   // Get props for trigger button
   const {triggerProps, overlayProps: overlayTriggerAriaProps} = useOverlayTriggerAria(
@@ -258,9 +268,12 @@ function useOverlay({
   // Get props for overlay element
   const interactedOutside = useRef(false);
   const interactOutsideTrigger = useRef<HTMLElement | null>(null);
+  const isClosing = useRef(false);
   const {overlayProps: overlayAriaProps} = useOverlayAria(
     {
       onClose: () => {
+        // Prevent onClose from triggering multiple times when clicking outside
+        isClosing.current = true;
         onClose?.();
 
         if (interactedOutside.current) {
@@ -269,13 +282,13 @@ function useOverlay({
           const trigger = interactOutsideTrigger.current;
           interactOutsideTrigger.current = null;
 
-          requestAnimationFrame(() => {
-            trigger?.focus();
-            trigger?.click();
-          });
+          // When changing this, check that you can switch between dropdowns with a single click
+          trigger?.focus();
+          trigger?.click();
         }
 
         openState.close();
+        isClosing.current = false;
       },
       isOpen: openState.isOpen,
       isDismissable,
@@ -286,7 +299,8 @@ function useOverlay({
           target &&
           triggerRef.current !== target &&
           !triggerRef.current?.contains(target) &&
-          (shouldCloseOnInteractOutside?.(target) ?? true)
+          (shouldCloseOnInteractOutside?.(target) ?? true) &&
+          !isClosing.current
         ) {
           // Check if the target is inside a different overlay trigger. If yes, then we
           // should activate that trigger after this overlay has closed (see the onClose

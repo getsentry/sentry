@@ -2,9 +2,9 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
-const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_SELF_TIME} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_SELF_TIME} = SpanFields;
 
 type Query = {
   sort?: string;
@@ -12,11 +12,11 @@ type Query = {
 
 const SORTABLE_FIELDS = [
   `avg(${SPAN_SELF_TIME})`,
-  'spm()',
+  'epm()',
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
 ] as const;
 
-export type ValidSort = Sort & {
+type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 
@@ -32,7 +32,7 @@ export function useResourceSummarySort(
 
   return (
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    decodeSorts(location.query[sortParameterName]).filter(isAValidSort)[0] ?? fallback
+    decodeSorts(location.query[sortParameterName]).find(isAValidSort) ?? fallback
   );
 }
 

@@ -1,14 +1,17 @@
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
+
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
-jest.mock('moment-timezone', () => {
-  const moment = jest.requireActual('moment-timezone');
-  // Jun 06 2022
-  moment.now = jest.fn().mockReturnValue(1654492173000);
-  return moment;
-});
+describe('getDaysSinceDate', () => {
+  beforeEach(() => {
+    setMockDate(1654492173000);
+  });
 
-describe('getDaysSinceDate', function () {
-  it('simple test', function () {
+  afterEach(() => {
+    resetMockDate();
+  });
+
+  it('simple test', () => {
     expect(getDaysSinceDate('2022-05-11')).toBe(26);
   });
 });

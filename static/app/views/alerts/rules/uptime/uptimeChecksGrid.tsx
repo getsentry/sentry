@@ -2,20 +2,20 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {UptimeCheck, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   reasonToText,
   statusToText,
@@ -36,7 +36,7 @@ const EMPTY_TRACE = '00000000000000000000000000000000';
 export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
   const traceIds = uptimeChecks?.map(check => check.traceId) ?? [];
 
-  const {data: spanCounts, isPending: spanCountLoading} = useEAPSpans(
+  const {data: spanCounts, isPending: spanCountLoading} = useSpans(
     {
       limit: 10,
       enabled: traceIds.length > 0,
@@ -65,14 +65,14 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
         {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
         {key: 'durationMs', width: 110, name: t('Duration')},
         {key: 'regionName', width: 200, name: t('Region')},
-        {key: 'traceId', width: 100, name: t('Trace')},
+        {key: 'traceId', width: 150, name: t('Trace')},
       ]}
       columnSortBy={[]}
       grid={{
         renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell
-            column={column}
+            column={column as GridColumnOrder<keyof UptimeCheck>}
             uptimeRule={uptimeRule}
             check={dataRow}
             spanCount={traceSpanCounts?.[dataRow.traceId]}
@@ -95,6 +95,7 @@ function CheckInBodyCell({
   uptimeRule: UptimeRule;
 }) {
   const theme = useTheme();
+  const organization = useOrganization();
 
   const {
     timestamp,
@@ -109,6 +110,10 @@ function CheckInBodyCell({
   if (check[column.key] === undefined) {
     return <Cell />;
   }
+
+  const alwaysShowTraceLink = organization.features.includes(
+    'uptime-eap-uptime-results-query'
+  );
 
   switch (column.key) {
     case 'timestamp': {
@@ -137,9 +142,9 @@ function CheckInBodyCell({
       return <Cell>{httpStatusCode}</Cell>;
     }
     case 'checkStatus': {
-      const colorKey = tickStyle[checkStatus].labelColor ?? 'textColor';
+      const color = tickStyle(theme)[checkStatus].labelColor ?? theme.textColor;
       return (
-        <Cell style={{color: theme[colorKey] as string}}>
+        <Cell style={{color}}>
           {statusToText[checkStatus]}{' '}
           {checkStatusReason &&
             tct('([reason])', {
@@ -183,8 +188,10 @@ function CheckInBodyCell({
 
       return (
         <TraceCell>
-          {spanCount ? (
-            <Link to={`/performance/trace/${traceId}/`}>{getShortEventId(traceId)}</Link>
+          {alwaysShowTraceLink || spanCount ? (
+            <Link to={`/performance/trace/${traceId}/?includeUptime=1`}>
+              {getShortEventId(traceId)}
+            </Link>
           ) : (
             getShortEventId(traceId)
           )}

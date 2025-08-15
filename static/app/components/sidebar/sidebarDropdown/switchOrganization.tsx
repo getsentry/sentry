@@ -142,7 +142,7 @@ export default SwitchOrganization;
 
 const StyledIconAdd = styled(IconAdd)`
   margin-right: ${space(1)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const MenuItemLabelWithIcon = styled('span')`
@@ -153,7 +153,7 @@ const MenuItemLabelWithIcon = styled('span')`
 `;
 
 const SubMenuCaret = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   transition: 0.1s color linear;
 
   &:hover,

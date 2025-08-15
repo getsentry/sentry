@@ -53,17 +53,6 @@ function useRouter(): InjectedRouter<any, any> {
           console.error('isActive not implemented for react-router 6 migration');
           return false;
         },
-        createPath: (_pathOrLoc: LocationDescriptor, _query?: any) => {
-          throw new Error('createpath not implemented for react-router 6 migration');
-        },
-        createHref: (_pathOrLoc: LocationDescriptor, _query?: any) => {
-          throw new Error('createHref not implemented for react-router 6 migration');
-        },
-        setRouteLeaveHook: (_route: any, _callback: any) => () => {
-          throw new Error(
-            'setRouteLeave hook not implemented for react-router6 migration'
-          );
-        },
       }) satisfies InjectedRouter,
     [location, navigate, params, routes]
   );

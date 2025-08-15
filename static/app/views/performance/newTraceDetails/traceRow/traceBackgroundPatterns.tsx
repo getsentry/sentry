@@ -1,11 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
-function getMaxErrorSeverity(errors: TraceTree.TraceError[]) {
+function getMaxErrorSeverity(errors: TraceTree.TraceErrorIssue[]) {
   return errors.reduce((acc, error) => {
     if (error.level === 'fatal') {
       return 'fatal';
@@ -24,17 +24,17 @@ interface BackgroundPatternsProps {
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  performance_issues: TraceTreeNode<TraceTree.Transaction>['performance_issues'];
+  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
 }
 
 export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
-  const performance_issues = useMemo(() => {
-    if (!props.performance_issues.size) {
+  const occurences = useMemo(() => {
+    if (!props.occurrences.size) {
       return [];
     }
 
-    return [...props.performance_issues];
-  }, [props.performance_issues]);
+    return [...props.occurrences];
+  }, [props.occurrences]);
 
   const errors = useMemo(() => {
     if (!props.errors.size) {
@@ -47,13 +47,13 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
     return getMaxErrorSeverity(errors);
   }, [errors]);
 
-  if (!props.performance_issues.size && !props.errors.size) {
+  if (!props.occurrences.size && !props.errors.size) {
     return null;
   }
 
   // If there is an error, render the error pattern across the entire width.
-  // Else if there is a performance issue, render the performance issue pattern
-  // for the duration of the performance issue. If there is a profile, render
+  // Else if there is an occurence, render the occurence pattern
+  // for the duration of the occurence. If there is a profile, render
   // the profile pattern for entire duration (we do not have profile durations here)
   return (
     <Fragment>
@@ -67,10 +67,13 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
         >
           <div className={`TracePattern ${severity}`} />
         </div>
-      ) : performance_issues.length > 0 ? (
+      ) : occurences.length > 0 ? (
         <Fragment>
-          {performance_issues.map((issue, i) => {
-            const timestamp = issue.start * 1e3;
+          {occurences.map((occurence, i) => {
+            const timestamp =
+              'start_timestamp' in occurence
+                ? occurence.start_timestamp * 1e3
+                : occurence.start * 1e3;
             // Clamp the issue timestamp to the span's timestamp
             const left = props.manager.computeRelativeLeftPositionFromOrigin(
               clamp(
@@ -90,7 +93,7 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
                   width: (1 - left) * 100 + '%',
                 }}
               >
-                <div className="TracePattern performance_issue" />
+                <div className="TracePattern occurence" />
               </div>
             );
           })}

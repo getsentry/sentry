@@ -11,17 +11,17 @@ import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 
 const relayPiiConfig = JSON.stringify(DataScrubbingRelayPiiConfigFixture());
 
-describe('Data Scrubbing', function () {
+describe('Data Scrubbing', () => {
   beforeEach(() => {
     ModalStore.reset();
   });
 
-  describe('Organization level', function () {
+  describe('Organization level', () => {
     const {organization} = initializeOrg();
     const additionalContext = 'These rules can be configured for each project.';
     const endpoint = `organization/${organization.slug}/`;
 
-    it('default render', function () {
+    it('default render', () => {
       render(
         <DataScrubbing
           additionalContext={additionalContext}
@@ -29,7 +29,10 @@ describe('Data Scrubbing', function () {
           relayPiiConfig={relayPiiConfig}
           organization={organization}
           onSubmitSuccess={jest.fn()}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       // Header
@@ -62,20 +65,23 @@ describe('Data Scrubbing', function () {
       expect(screen.getByRole('button', {name: 'Add Rule'})).toBeEnabled();
     });
 
-    it('render empty state', function () {
+    it('render empty state', () => {
       render(
         <DataScrubbing
           endpoint={endpoint}
           relayPiiConfig={undefined}
           organization={organization}
           onSubmitSuccess={jest.fn()}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(screen.getByText('You have no data scrubbing rules')).toBeInTheDocument();
     });
 
-    it('render disabled actions', function () {
+    it('render disabled actions', () => {
       render(
         <DataScrubbing
           additionalContext={additionalContext}
@@ -84,7 +90,10 @@ describe('Data Scrubbing', function () {
           organization={organization}
           onSubmitSuccess={jest.fn()}
           disabled
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       // Read Docs is the only enabled action
@@ -92,17 +101,19 @@ describe('Data Scrubbing', function () {
 
       expect(screen.getByRole('button', {name: 'Add Rule'})).toBeDisabled();
 
-      for (const index in JSON.parse(relayPiiConfig).rules as number[]) {
-        expect(screen.getAllByRole('button', {name: 'Edit Rule'})[index]).toBeDisabled();
+      Object.keys(DataScrubbingRelayPiiConfigFixture).forEach(index => {
         expect(
-          screen.getAllByRole('button', {name: 'Delete Rule'})[index]
+          screen.getAllByRole('button', {name: 'Edit Rule'})[Number(index)]
         ).toBeDisabled();
-      }
+        expect(
+          screen.getAllByRole('button', {name: 'Delete Rule'})[Number(index)]
+        ).toBeDisabled();
+      });
     });
   });
 
-  describe('Project level', function () {
-    it('default render', function () {
+  describe('Project level', () => {
+    it('default render', () => {
       const {organization, project} = initializeOrg();
 
       render(
@@ -112,7 +123,10 @@ describe('Data Scrubbing', function () {
           organization={organization}
           onSubmitSuccess={jest.fn()}
           project={project}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       // Header
@@ -121,7 +135,7 @@ describe('Data Scrubbing', function () {
       ).toBeInTheDocument();
     });
 
-    it('OrganizationRules has content', function () {
+    it('OrganizationRules has content', () => {
       const {organization, project} = initializeOrg({
         organization: {
           relayPiiConfig,
@@ -136,14 +150,17 @@ describe('Data Scrubbing', function () {
           onSubmitSuccess={jest.fn()}
           project={project}
         />,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       // Organization Rules
       expect(screen.getByText('Organization Rules')).toBeInTheDocument();
     });
 
-    it('Delete rule successfully', async function () {
+    it('Delete rule successfully', async () => {
       const {organization, project} = initializeOrg();
 
       render(
@@ -157,7 +174,10 @@ describe('Data Scrubbing', function () {
             organization={organization}
             onSubmitSuccess={jest.fn()}
           />
-        </Fragment>
+        </Fragment>,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getAllByLabelText('Delete Rule')[0]!);
@@ -167,7 +187,7 @@ describe('Data Scrubbing', function () {
       ).toBeInTheDocument();
     });
 
-    it('Open Add Rule Modal', async function () {
+    it('Open Add Rule Modal', async () => {
       const {organization, project} = initializeOrg();
 
       render(
@@ -181,7 +201,10 @@ describe('Data Scrubbing', function () {
             organization={organization}
             onSubmitSuccess={jest.fn()}
           />
-        </Fragment>
+        </Fragment>,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
@@ -191,7 +214,7 @@ describe('Data Scrubbing', function () {
       ).toBeInTheDocument();
     });
 
-    it('Open Edit Rule Modal', async function () {
+    it('Open Edit Rule Modal', async () => {
       const {organization, router, project} = initializeOrg();
 
       render(
@@ -206,7 +229,10 @@ describe('Data Scrubbing', function () {
             onSubmitSuccess={jest.fn()}
           />
         </Fragment>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]!);

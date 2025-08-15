@@ -83,7 +83,7 @@ function HotkeysLabel({value, forcePlatform}: Props) {
 export default HotkeysLabel;
 
 const Key = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const HotkeysContainer = styled('div')`

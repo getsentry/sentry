@@ -1,4 +1,4 @@
-import type {Location, LocationDescriptor} from 'history';
+import type {Location} from 'history';
 
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
@@ -12,7 +12,6 @@ import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/ut
 
 import type Tab from './transactionSummary/tabs';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
-import {getPerformanceLandingUrl} from './utils';
 
 type Props = {
   location: Location;
@@ -30,9 +29,6 @@ type Props = {
 
 function Breadcrumb(props: Props) {
   function getCrumbs() {
-    const hasPerfLandingRemovalFlag = props.organization.features.includes(
-      'insights-performance-landing-removal'
-    );
     const crumbs: Crumb[] = [];
     const {
       organization,
@@ -44,26 +40,9 @@ function Breadcrumb(props: Props) {
       traceSlug,
     } = props;
 
-    if (hasPerfLandingRemovalFlag) {
-      crumbs.push({
-        label: DOMAIN_VIEW_BASE_TITLE,
-      });
-    } else {
-      const performanceTarget: LocationDescriptor = {
-        pathname: getPerformanceLandingUrl(organization),
-        query: {
-          ...location.query,
-          // clear out the transaction name
-          transaction: undefined,
-        },
-      };
-
-      crumbs.push({
-        to: performanceTarget,
-        label: t('Performance'),
-        preservePageFilters: true,
-      });
-    }
+    crumbs.push({
+      label: DOMAIN_VIEW_BASE_TITLE,
+    });
 
     crumbs.push(
       ...getTabCrumbs({
@@ -92,10 +71,12 @@ export const getTabCrumbs = ({
   traceSlug,
   view,
   vitalName,
+  shouldUseOTelFriendlyUI,
 }: {
   location: Location;
   organization: Organization;
   eventSlug?: string;
+  shouldUseOTelFriendlyUI?: boolean;
   spanSlug?: SpanSlug;
   traceSlug?: string;
   transaction?: {
@@ -134,11 +115,17 @@ export const getTabCrumbs = ({
     view,
   };
 
-  crumbs.push({
-    to: transactionSummaryRouteWithQuery(routeQuery),
-    label: t('Transaction Summary'),
-    preservePageFilters: true,
-  });
+  shouldUseOTelFriendlyUI
+    ? crumbs.push({
+        to: transactionSummaryRouteWithQuery(routeQuery),
+        label: t('Service Entry Span Summary'),
+        preservePageFilters: true,
+      })
+    : crumbs.push({
+        to: transactionSummaryRouteWithQuery(routeQuery),
+        label: t('Transaction Summary'),
+        preservePageFilters: true,
+      });
 
   if (spanSlug) {
     crumbs.push({

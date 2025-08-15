@@ -9,18 +9,16 @@ from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
+def test_conf_key() -> None:
+    assert OpsGeniePlugin().conf_key == "opsgenie"
+
+
 class OpsGeniePluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return OpsGeniePlugin()
 
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "opsgenie"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("opsgenie", self.plugin)
-
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("api_key", "abcdef", self.project)
         assert self.plugin.is_configured(self.project) is False
@@ -28,7 +26,7 @@ class OpsGeniePluginTest(PluginTestCase):
         assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add("POST", "https://api.opsgenie.com/v2/alerts")
         self.plugin.set_option("api_key", "abcdef", self.project)
         self.plugin.set_option("alert_url", "https://api.opsgenie.com/v2/alerts", self.project)

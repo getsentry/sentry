@@ -1,16 +1,16 @@
 import {t} from 'sentry/locale';
 import {
+  convertVariantFromBackend,
+  EventGroupVariantType,
+  isEventGroupVariantType,
   type Event,
   type EventGroupVariant,
-  EventGroupVariantType,
 } from 'sentry/types/event';
-import {type Group, IssueCategory} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface EventGroupingInfoResponse {
-  [variant: string]: EventGroupVariant;
-}
+type EventGroupingInfoResponse = Record<string, EventGroupVariant>;
 
 function generatePerformanceGroupInfo({
   event,
@@ -52,31 +52,32 @@ export function useEventGroupingInfo({
   event,
   group,
   projectSlug,
-  query,
 }: {
   event: Event;
   group: Group | undefined;
   projectSlug: string;
-  query: Record<string, string>;
 }) {
   const organization = useOrganization();
 
-  const hasPerformanceGrouping =
-    event.occurrence &&
-    event.type === 'transaction' &&
-    group?.issueCategory === IssueCategory.PERFORMANCE;
+  const hasPerformanceGrouping = event.occurrence && event.type === 'transaction';
 
   const {data, isPending, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
-    [
-      `/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`,
-      {query},
-    ],
+    [`/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`],
     {enabled: !hasPerformanceGrouping, staleTime: Infinity}
   );
 
   const groupInfo = hasPerformanceGrouping
     ? generatePerformanceGroupInfo({group, event})
-    : (data ?? null);
+    : data
+      ? Object.fromEntries(
+          Object.entries(data).map(([key, variant]) => [
+            key,
+            isEventGroupVariantType(variant.type)
+              ? convertVariantFromBackend(variant)
+              : variant,
+          ])
+        )
+      : null;
 
   return {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping};
 }

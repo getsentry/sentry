@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -153,11 +153,11 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   return (
     <Wrapper>
       {hasStreamlinedUI ? (
-        <Flex justify="space-between">
-          <FilterMessage align="center" gap={space(1)}>
+        <Flex justify="between">
+          <Flex align="center" gap="md">
             <IconFilter size="xs" />
             {t('Results are filtered by the selections above.')}
-          </FilterMessage>
+          </Flex>
           <GroupEventAttachmentsFilter
             onChange={key => setPreviouslyUsedAttachmentsTab(key)}
           />
@@ -181,15 +181,15 @@ const ScreenshotGrid = styled('div')`
   grid-template-rows: repeat(2, max-content);
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: repeat(4, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints['2xl']}) {
     grid-template-columns: repeat(6, minmax(100px, 1fr));
   }
 `;
@@ -203,5 +203,3 @@ const Wrapper = styled('div')`
   flex-direction: column;
   gap: ${space(2)};
 `;
-
-const FilterMessage = styled(Flex)``;

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -10,8 +10,7 @@ import {space} from 'sentry/styles/space';
 import ZendeskLink from 'getsentry/components/zendeskLink';
 import {ANNUAL} from 'getsentry/constants';
 import {CohortId, type PlanMigration, type Subscription} from 'getsentry/types';
-
-import {PanelBodyWithTable} from '../styles';
+import {PanelBodyWithTable} from 'getsentry/views/subscriptionPage/styles';
 
 import PlanMigrationTable from './planMigrationTable';
 
@@ -117,7 +116,7 @@ export default PlanMigrationActive;
 const StyledPanelBody = styled(PanelBodyWithTable)`
   h6 {
     font-weight: 400;
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
     margin-bottom: ${space(0.75)};
   }
 
@@ -151,5 +150,5 @@ const Feature = styled('span')`
 `;
 
 const MoreInfo = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

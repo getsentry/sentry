@@ -18,9 +18,15 @@ import type {
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {decodeList} from 'sentry/utils/queryString';
-
-import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
-import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
+import {
+  getReleaseBounds,
+  getReleaseParams,
+  isMobileRelease,
+} from 'sentry/views/releases/utils';
+import {
+  commonTermsDescription,
+  SessionTerm,
+} from 'sentry/views/releases/utils/sessionTerm';
 
 type CommitsByRepository = Record<string, Commit[]>;
 
@@ -172,11 +178,10 @@ function generateReleaseMarkLine(
       label: {
         position: 'insideEndBottom',
         formatter: hideLabel ? '' : title,
-        // @ts-expect-error TS(2322): Type '{ position: "insideEndBottom"; formatter: st... Remove this comment to see the full error message
-        font: 'Rubik',
+        fontFamily: 'Rubik',
         fontSize: 14,
-        color: theme.chartLabel,
-        backgroundColor: theme.chartOther,
+        color: theme.tokens.content.muted,
+        backgroundColor: theme.tokens.background.secondary,
       },
       data: [
         {

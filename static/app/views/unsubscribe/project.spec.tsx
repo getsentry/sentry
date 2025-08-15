@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import UnsubscribeProject from 'sentry/views/unsubscribe/project';
 
-describe('UnsubscribeProject', function () {
+describe('UnsubscribeProject', () => {
   const params = {orgId: 'acme', id: '9876'};
   let mockUpdate: jest.Mock;
   let mockGet: jest.Mock;
@@ -26,13 +26,16 @@ describe('UnsubscribeProject', function () {
     });
   });
 
-  it('loads data from the API based on URL parameters', async function () {
+  it('loads data from the API based on URL parameters', async () => {
     const {router, routerProps} = initializeOrg({
       router: {location: {query: {_: 'signature-value'}}, params},
     });
     render(
       <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();
@@ -40,13 +43,16 @@ describe('UnsubscribeProject', function () {
     expect(mockGet).toHaveBeenCalled();
   });
 
-  it('makes an API request when the form is submitted', async function () {
+  it('makes an API request when the form is submitted', async () => {
     const {router, routerProps} = initializeOrg({
       router: {location: {query: {_: 'signature-value'}}, params},
     });
     render(
       <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();

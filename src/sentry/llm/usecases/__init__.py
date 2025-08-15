@@ -19,6 +19,7 @@ class LLMUseCase(Enum):
     EXAMPLE = "example"  # used in tests / examples
     SUGGESTED_FIX = "suggestedfix"  # OG version of suggested fix
     SPAM_DETECTION = "spamdetection"
+    FEEDBACK_SUMMARIES = "feedbacksummaries"
 
 
 llm_provider_backends: dict[str, LlmModelBase] = {}
@@ -26,7 +27,6 @@ llm_provider_backends: dict[str, LlmModelBase] = {}
 
 def get_llm_provider_backend(usecase: LLMUseCase) -> LlmModelBase:
     usecase_config = get_usecase_config(usecase.value)
-    global llm_provider_backends
 
     if usecase_config["provider"] in llm_provider_backends:
         return llm_provider_backends[usecase_config["provider"]]

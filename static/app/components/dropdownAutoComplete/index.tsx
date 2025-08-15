@@ -37,14 +37,10 @@ interface LazyDropdownAutoCompleteProps extends BaseProps {
   items?: never;
 }
 
-export interface StaticDropdownAutoCompleteProps extends BaseProps {
+interface StaticDropdownAutoCompleteProps extends BaseProps {
   items: MenuProps['items'];
   lazyItems?: never;
 }
-
-export type DropdownAutoCompleteProps =
-  | LazyDropdownAutoCompleteProps
-  | StaticDropdownAutoCompleteProps;
 
 /**
  * @deprecated prefer using CompactSelect

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -24,7 +24,7 @@ class UpdateUserReportTest(TestCase):
         )
         return event, report
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         now = timezone.now()
         project = self.create_project()
         event1, _ = self.create_event_and_report(project.id)
@@ -44,7 +44,7 @@ class UpdateUserReportTest(TestCase):
         assert report3.group_id is None
         assert report3.environment_id is None
 
-    def test_report_timerange(self):
+    def test_report_timerange(self) -> None:
         # The task should only update UserReports added in the given time range.
         now = timezone.now()
         start = now - timedelta(days=3)
@@ -64,7 +64,7 @@ class UpdateUserReportTest(TestCase):
         )
 
         with self.tasks():
-            update_user_reports(start=start, end=end)
+            update_user_reports(start_datetime=start.isoformat(), end_datetime=end.isoformat())
 
         report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)
         report2 = UserReport.objects.get(project_id=project.id, event_id=event2.event_id)
@@ -80,7 +80,7 @@ class UpdateUserReportTest(TestCase):
         assert report4.group_id is None
         assert report4.environment_id is None
 
-    def test_event_timerange(self):
+    def test_event_timerange(self) -> None:
         # The task should only query associated events from the given time range, or up to 1 day older.
         event_lookback = timedelta(days=1)
 
@@ -106,7 +106,11 @@ class UpdateUserReportTest(TestCase):
         )
 
         with self.tasks():
-            update_user_reports(start=start, end=end, event_lookback=event_lookback)
+            update_user_reports(
+                start_datetime=start.isoformat(),
+                end_datetime=end.isoformat(),
+                event_lookback_days=event_lookback.days,
+            )
 
         report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)
         report2 = UserReport.objects.get(project_id=project.id, event_id=event2.event_id)
@@ -122,8 +126,10 @@ class UpdateUserReportTest(TestCase):
         assert report4.group_id is None
         assert report4.environment_id is None
 
-    @patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
-    def test_simple_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
+    def test_calls_feedback_shim_if_ff_enabled(
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         project = self.create_project()
         event1 = self.store_event(
             data={
@@ -162,8 +168,39 @@ class UpdateUserReportTest(TestCase):
         assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == event1.event_id
         assert mock_event_data["level"] == "error"
 
+    @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
+    def test_does_not_call_feedback_shim_if_environment_is_set(
+        self, mock_produce_occurrence_to_kafka
+    ):
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "environment": self.environment.name,
+                "tags": {"foo": "bar"},
+            },
+            project_id=project.id,
+        )
+        UserReport.objects.create(
+            project_id=project.id,
+            event_id=event1.event_id,
+            comments="It broke!",
+            email="foo@example.com",
+            name="Foo Bar",
+            environment_id=self.environment.id,
+        )
+        with self.tasks():
+            update_user_reports(max_events=2)
+
+        # group_id is still updated
+        report1 = UserReport.objects.get(project_id=project.id, event_id=event1.event_id)
+        assert report1.group_id == event1.group_id
+        assert report1.environment_id == event1.get_environment().id
+
+        # no shim
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+
     @patch("sentry.quotas.backend.get_event_retention")
-    def test_event_retention(self, mock_get_event_retention):
+    def test_event_retention(self, mock_get_event_retention: MagicMock) -> None:
         retention_days = 21
         mock_get_event_retention.return_value = retention_days
         project = self.create_project()
@@ -176,7 +213,11 @@ class UpdateUserReportTest(TestCase):
         self.create_event_and_report(project.id, event_dt=event_dt, report_dt=report_dt)
 
         with self.tasks():
-            update_user_reports(start=epoch, end=now, event_lookback=event_lookback)
+            update_user_reports(
+                start_datetime=epoch.isoformat(),
+                end_datetime=now.isoformat(),
+                event_lookback_days=event_lookback.days,
+            )
 
         assert mock_get_event_retention.call_count > 0
         report = UserReport.objects.get()

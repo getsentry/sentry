@@ -1,24 +1,4 @@
-import logging
-from dataclasses import dataclass
 from enum import Enum
-
-logger = logging.getLogger(__name__)
-
-
-@dataclass
-class PullRequestIssue:
-    title: str
-    subtitle: str | None
-    url: str
-    affected_users: int | None = None
-    event_count: int | None = None
-    function_name: str | None = None
-
-
-@dataclass
-class PullRequestFile:
-    filename: str
-    patch: str
 
 
 class GithubAPIErrorType(Enum):

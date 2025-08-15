@@ -88,7 +88,7 @@ function InviteMembersModal({
           isOverMemberLimit: isOverMemberLimit,
         }) => {
           return (
-            <InviteMembersContext.Provider
+            <InviteMembersContext
               value={{
                 willInvite,
                 invites,
@@ -121,7 +121,7 @@ function InviteMembersModal({
               <Footer>
                 <InviteMembersFooter canSend={canSend} />
               </Footer>
-            </InviteMembersContext.Provider>
+            </InviteMembersContext>
           );
         }}
       </InviteModalHook>
@@ -136,7 +136,7 @@ export const modalCss = css`
 `;
 
 const Heading = styled('h1')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   font-size: ${p => p.theme.headerFontSize};
   margin-top: 0;
   margin-bottom: ${space(0.75)};

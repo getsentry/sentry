@@ -1,16 +1,18 @@
 import {Fragment, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
+import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import FileSize from 'sentry/components/fileSize';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   ErrorDot,
@@ -37,7 +39,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
   QuickTraceEvent,
   TraceErrorOrIssue,
@@ -49,9 +50,7 @@ import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSum
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
-import {OpsDot} from '../../opsBreakdown';
-
-import * as SpanEntryContext from './context';
+import {SpanEntryContext} from './context';
 import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {SpanProfileDetails} from './spanProfileDetails';
@@ -102,6 +101,7 @@ type Props = {
 };
 
 function SpanDetail(props: Props) {
+  const theme = useTheme();
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
   const profileId = props.event.contexts.profile?.profile_id;
@@ -131,7 +131,7 @@ function SpanDetail(props: Props) {
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
         <StyledDiscoverButton href="#" size="xs" disabled>
-          <StyledLoadingIndicator size={12} />
+          <StyledLoadingIndicator size={16} />
         </StyledDiscoverButton>
       );
     }
@@ -298,7 +298,7 @@ function SpanDetail(props: Props) {
 
     return (
       <Alert.Container>
-        <Alert type="info" showIcon system>
+        <Alert type="info" system>
           {t(
             'This is a span that has no parent span within this transaction. It has been attached to the transaction root span by default.'
           )}
@@ -366,8 +366,8 @@ function SpanDetail(props: Props) {
   }
 
   function partitionSizes(data: any): {
-    nonSizeKeys: {[key: string]: unknown};
-    sizeKeys: {[key: string]: number};
+    nonSizeKeys: Record<string, unknown>;
+    sizeKeys: Record<string, number>;
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce(
       (keys, key) => {
@@ -399,7 +399,16 @@ function SpanDetail(props: Props) {
       return null;
     }
 
-    return <SpanProfileDetails span={span} event={event} />;
+    return (
+      <SpanProfileDetails
+        span={{
+          span_id: span.span_id,
+          start_timestamp: span.start_timestamp,
+          end_timestamp: span.timestamp,
+        }}
+        event={event}
+      />
+    );
   }
 
   function renderSpanDetails() {
@@ -435,7 +444,7 @@ function SpanDetail(props: Props) {
       value => value === 0
     );
 
-    const timingKeys = getSpanSubTimings(span) ?? [];
+    const timingKeys = getSpanSubTimings(span, theme) ?? [];
 
     return (
       <Fragment>
@@ -503,26 +512,16 @@ function SpanDetail(props: Props) {
               </Row>
               <Row title="Status">{span.status || ''}</Row>
               <Row title="Start Date">
-                {getDynamicText({
-                  fixed: 'Mar 16, 2020 9:10:12 AM UTC',
-                  value: (
-                    <Fragment>
-                      <DateTime date={startTimestamp * 1000} year seconds timeZone />
-                      {` (${startTimeWithLeadingZero})`}
-                    </Fragment>
-                  ),
-                })}
+                <Fragment>
+                  <DateTime date={startTimestamp * 1000} year seconds timeZone />
+                  {` (${startTimeWithLeadingZero})`}
+                </Fragment>
               </Row>
               <Row title="End Date">
-                {getDynamicText({
-                  fixed: 'Mar 16, 2020 9:10:13 AM UTC',
-                  value: (
-                    <Fragment>
-                      <DateTime date={endTimestamp * 1000} year seconds timeZone />
-                      {` (${endTimeWithLeadingZero})`}
-                    </Fragment>
-                  ),
-                })}
+                <Fragment>
+                  <DateTime date={endTimestamp * 1000} year seconds timeZone />
+                  {` (${endTimeWithLeadingZero})`}
+                </Fragment>
               </Row>
               <Row title="Duration">{durationString}</Row>
               <Row title="Operation">{span.op || ''}</Row>
@@ -639,12 +638,11 @@ const ValueTd = styled('td')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: flex;
   align-items: center;
-  height: ${space(2)};
   margin: 0;
 `;
 
 const StyledText = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(2)} 0;
 `;
 
@@ -708,8 +706,8 @@ export function Row({
   );
 }
 
-export function Tags({span}: {span: RawSpanType}) {
-  const tags: {[tag_name: string]: string} | undefined = span?.tags;
+function Tags({span}: {span: RawSpanType}) {
+  const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {
     return null;

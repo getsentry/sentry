@@ -7,6 +7,7 @@ from urllib.robotparser import RobotFileParser
 
 from django.utils import timezone
 
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -33,16 +34,17 @@ from sentry.uptime.detectors.tasks import (
     schedule_detections,
     set_failed_url,
 )
-from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
+from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import (
-    get_auto_monitored_subscriptions_for_project,
+    get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
 )
+from sentry.uptime.types import UptimeMonitorMode
 
 
 @freeze_time()
 class ScheduleDetectionsTest(UptimeTestCase):
-    def test_no_last_processed(self):
+    def test_no_last_processed(self) -> None:
         # The first time this runs we don't expect much to happen,
         # just that it'll update the last processed date in redis
         cluster = _get_cluster()
@@ -58,7 +60,7 @@ class ScheduleDetectionsTest(UptimeTestCase):
             timezone.now().replace(second=0, microsecond=0).timestamp()
         )
 
-    def test_processes(self):
+    def test_processes(self) -> None:
         cluster = _get_cluster()
         current_bucket = timezone.now().replace(second=0, microsecond=0)
         last_processed_bucket = current_bucket - timedelta(minutes=10)
@@ -68,7 +70,10 @@ class ScheduleDetectionsTest(UptimeTestCase):
         ) as mock_process_detection_bucket:
             schedule_detections()
             mock_process_detection_bucket.delay.assert_has_calls(
-                [call(last_processed_bucket + timedelta(minutes=i)) for i in range(1, 11)]
+                [
+                    call((last_processed_bucket + timedelta(minutes=i)).isoformat())
+                    for i in range(1, 11)
+                ]
             )
         last_processed = cluster.get(LAST_PROCESSED_KEY)
         assert last_processed is not None
@@ -76,7 +81,7 @@ class ScheduleDetectionsTest(UptimeTestCase):
             timezone.now().replace(second=0, microsecond=0).timestamp()
         )
 
-    def test_lock(self):
+    def test_lock(self) -> None:
         lock = locks.get(
             SCHEDULER_LOCK_KEY,
             duration=60,
@@ -91,14 +96,15 @@ class ScheduleDetectionsTest(UptimeTestCase):
 
 @freeze_time()
 class ProcessDetectionBucketTest(UptimeTestCase):
-    def test_empty_bucket(self):
+    def test_empty_bucket(self) -> None:
         with mock.patch(
             "sentry.uptime.detectors.tasks.process_organization_url_ranking"
         ) as mock_process_project_url_ranking:
-            process_detection_bucket(timezone.now().replace(second=0, microsecond=0))
+            now = timezone.now().replace(second=0, microsecond=0)
+            process_detection_bucket(now.isoformat())
             mock_process_project_url_ranking.delay.assert_not_called()
 
-    def test_bucket(self):
+    def test_bucket(self) -> None:
         bucket = datetime(2024, 7, 18, 0, 21)
         dummy_organization_id = 21
 
@@ -113,7 +119,7 @@ class ProcessDetectionBucketTest(UptimeTestCase):
         with mock.patch(
             "sentry.uptime.detectors.tasks.process_organization_url_ranking"
         ) as mock_process_organization_url_ranking:
-            process_detection_bucket(bucket)
+            process_detection_bucket(bucket.isoformat())
             mock_process_organization_url_ranking.delay.assert_has_calls(
                 [call(self.project.organization.id), call(other_project.organization.id)],
                 any_order=True,
@@ -124,7 +130,7 @@ class ProcessDetectionBucketTest(UptimeTestCase):
 
 @freeze_time()
 class ProcessOrganizationUrlRankingTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         # TODO: Better testing for this function when we implement things that happen on success
         url_1 = "https://sentry.io"
         url_2 = "https://sentry.sentry.io"
@@ -137,7 +143,7 @@ class ProcessOrganizationUrlRankingTest(UptimeTestCase):
             "sentry.uptime.detectors.tasks.process_project_url_ranking",
             return_value=False,
         ) as mock_process_project_url_ranking:
-            process_organization_url_ranking(self.organization)
+            process_organization_url_ranking(self.organization.id)
             mock_process_project_url_ranking.assert_has_calls(
                 [
                     call(self.project, 3),
@@ -145,7 +151,7 @@ class ProcessOrganizationUrlRankingTest(UptimeTestCase):
                 ]
             )
 
-    def test_should_not_detect_project(self):
+    def test_should_not_detect_project(self) -> None:
         with mock.patch(
             "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
         ) as mock_get_candidate_urls_for_project:
@@ -153,7 +159,7 @@ class ProcessOrganizationUrlRankingTest(UptimeTestCase):
             assert not process_project_url_ranking(self.project, 5)
             mock_get_candidate_urls_for_project.assert_not_called()
 
-    def test_should_not_detect_organization(self):
+    def test_should_not_detect_organization(self) -> None:
         url_1 = "https://sentry.io"
         url_2 = "https://sentry.sentry.io"
         project_2 = self.create_project()
@@ -180,7 +186,7 @@ class ProcessOrganizationUrlRankingTest(UptimeTestCase):
 
 @freeze_time()
 class ProcessProjectUrlRankingTest(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         # TODO: Better testing for this function when we implement things that happen on success
         url_1 = "https://sentry.io"
         url_2 = "https://sentry.sentry.io"
@@ -199,7 +205,7 @@ class ProcessProjectUrlRankingTest(UptimeTestCase):
                 ]
             )
 
-    def test_should_not_detect(self):
+    def test_should_not_detect(self) -> None:
         self.project.update_option("sentry:uptime_autodetection", False)
         with mock.patch(
             "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
@@ -211,7 +217,7 @@ class ProcessProjectUrlRankingTest(UptimeTestCase):
 @freeze_time()
 class ProcessCandidateUrlTest(UptimeTestCase):
     @with_feature(["organizations:uptime", "organizations:uptime-automatic-subscription-creation"])
-    def test_succeeds_new(self):
+    def test_succeeds_new(self) -> None:
         url = "https://sentry.io"
         assert not is_url_auto_monitored_for_project(self.project, url)
         assert process_candidate_url(self.project, 100, url, 50)
@@ -219,7 +225,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         assert self.project.get_option("sentry:uptime_autodetection") is False
         assert self.organization.get_option("sentry:uptime_autodetection") is False
 
-    def test_succeeds_new_no_feature(self):
+    def test_succeeds_new_no_feature(self) -> None:
         with mock.patch(
             "sentry.uptime.detectors.tasks.monitor_url_for_project"
         ) as mock_monitor_url_for_project:
@@ -233,7 +239,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
             mock_monitor_url_for_project.assert_not_called()
 
     @with_feature(["organizations:uptime", "organizations:uptime-automatic-subscription-creation"])
-    def test_succeeds_existing_subscription_other_project(self):
+    def test_succeeds_existing_subscription_other_project(self) -> None:
         other_project = self.create_project()
         url = "https://sentry.io"
         uptime_subscription = self.create_uptime_subscription(
@@ -249,26 +255,26 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         assert self.organization.get_option("sentry:uptime_autodetection") is False
 
     @with_feature(["organizations:uptime", "organizations:uptime-automatic-subscription-creation"])
-    def test_succeeds_existing_subscription_this_project(self):
+    def test_succeeds_existing_subscription_this_project(self) -> None:
         url = "https://sentry.io"
         assert process_candidate_url(self.project, 100, url, 50)
-        subscription = get_auto_monitored_subscriptions_for_project(self.project)[0]
+        detector = get_auto_monitored_detectors_for_project(self.project)[0]
         assert process_candidate_url(self.project, 100, url, 50)
-        new_subscription = get_auto_monitored_subscriptions_for_project(self.project)[0]
-        assert subscription.id == new_subscription.id
+        new_detector = get_auto_monitored_detectors_for_project(self.project)[0]
+        assert detector.id == new_detector.id
         assert self.project.get_option("sentry:uptime_autodetection") is False
         assert self.organization.get_option("sentry:uptime_autodetection") is False
 
-    def test_below_thresholds(self):
+    def test_below_thresholds(self) -> None:
         assert not process_candidate_url(self.project, 500, "https://sentry.io", 1)
         assert not process_candidate_url(self.project, 500, "https://sentry.io", 10)
 
-    def test_failed_url(self):
+    def test_failed_url(self) -> None:
         url = "https://sentry.io"
         set_failed_url(url)
         assert not process_candidate_url(self.project, 100, url, 50)
 
-    def test_failed_robots_txt(self):
+    def test_failed_robots_txt(self) -> None:
         url = "https://sentry.io"
         test_robot_parser = RobotFileParser()
         robots_txt = ["User-agent: *", "Disallow: /"]
@@ -280,7 +286,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
             assert not process_candidate_url(self.project, 100, url, 50)
         assert is_failed_url(url)
 
-    def test_failed_robots_txt_user_agent(self):
+    def test_failed_robots_txt_user_agent(self) -> None:
         url = "https://sentry.io"
         test_robot_parser = RobotFileParser()
         robots_txt = ["User-agent: SentryUptimeBot", "Disallow: /"]
@@ -292,7 +298,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
             assert not process_candidate_url(self.project, 100, url, 50)
         assert is_failed_url(url)
 
-    def test_succeeded_robots_txt(self):
+    def test_succeeded_robots_txt(self) -> None:
         url = "https://sentry.io"
         test_robot_parser = RobotFileParser()
         robots_txt = ["User-agent: *", "Allow: /", "Disallow: /no-robos"]
@@ -303,7 +309,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         ):
             assert process_candidate_url(self.project, 100, url, 50)
 
-    def test_no_robots_txt(self):
+    def test_no_robots_txt(self) -> None:
         # Supplying no robots txt should allow all urls
         url = "https://sentry.io"
         test_robot_parser = RobotFileParser()
@@ -315,7 +321,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
         ):
             assert process_candidate_url(self.project, 100, url, 50)
 
-    def test_error_robots_txt(self):
+    def test_error_robots_txt(self) -> None:
         # Supplying no robots txt should allow all urls
         url = "https://sentry.io"
         with mock.patch(
@@ -326,7 +332,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
 
 
 class TestFailedUrl(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         url = "https://sentry.io"
         assert not is_failed_url(url)
         set_failed_url(url)
@@ -335,32 +341,38 @@ class TestFailedUrl(UptimeTestCase):
 
 
 class TestMonitorUrlForProject(UptimeTestCase):
-    def test(self):
+    def test(self) -> None:
         url = "http://sentry.io"
         assert not is_url_auto_monitored_for_project(self.project, url)
         monitor_url_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url)
 
-    def test_existing(self):
+    def test_existing(self) -> None:
         url = "http://sentry.io"
-        monitor_url_for_project(self.project, url)
+        with self.tasks():
+            monitor_url_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url)
         url_2 = "http://santry.io"
-        monitor_url_for_project(self.project, url_2)
+        with self.tasks():
+            monitor_url_for_project(self.project, url_2)
+        # Execute scheduled deletions to ensure the first detector is cleaned
+        # up when re-detecting
+        with self.tasks():
+            run_scheduled_deletions()
         assert not is_url_auto_monitored_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url_2)
 
-    def test_manual_existing(self):
+    def test_manual_existing(self) -> None:
         manual_url = "https://sentry.io"
         self.create_project_uptime_subscription(
             uptime_subscription=self.create_uptime_subscription(url=manual_url),
-            mode=ProjectUptimeSubscriptionMode.MANUAL,
+            mode=UptimeMonitorMode.MANUAL,
         )
         url = "http://santry.io"
         monitor_url_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url)
         assert ProjectUptimeSubscription.objects.filter(
             project=self.project,
-            mode=ProjectUptimeSubscriptionMode.MANUAL,
+            mode=UptimeMonitorMode.MANUAL,
             uptime_subscription__url=manual_url,
         ).exists()

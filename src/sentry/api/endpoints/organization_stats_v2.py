@@ -20,6 +20,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import (
     COLUMN_MAP,
@@ -99,7 +100,18 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     category = serializers.ChoiceField(
-        ("error", "transaction", "attachment", "replay", "profile", "profile_duration", "monitor"),
+        (
+            "error",
+            "transaction",
+            "attachment",
+            "replay",
+            "profile",
+            "profile_duration",
+            "profile_duration_ui",
+            "profile_chunk",
+            "profile_chunk_ui",
+            "monitor",
+        ),
         required=False,
         help_text=(
             "Filter by data category. Each category represents a different type of data:\n\n"
@@ -109,6 +121,9 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
             "- `replay`: Session replay events\n"
             "- `profile`: Performance profiles\n"
             "- `profile_duration`: Profile duration data (note: cannot be combined with other categories since quantity represents milliseconds)\n"
+            "- `profile_duration_ui`: Profile duration (UI) data (note: cannot be combined with other categories since quantity represents milliseconds)\n"
+            "- `profile_chunk`: Profile chunk data\n"
+            "- `profile_chunk_ui`: Profile chunk (UI) data\n"
             "- `monitor`: Cron monitor events"
         ),
     )
@@ -164,7 +179,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_EVENT_COUNTS_V2,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Query event counts for your Organization.
         Select a field, define a date range, and group or filter by columns.

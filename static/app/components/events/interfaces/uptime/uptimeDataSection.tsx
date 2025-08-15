@@ -1,7 +1,6 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
@@ -12,17 +11,18 @@ import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMon
 import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
-import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import {type Group, GroupActivityType, GroupStatus} from 'sentry/types/group';
+import {GroupActivityType, GroupStatus, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -30,6 +30,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {ResolutionSelector} from 'sentry/views/insights/crons/components/overviewTimeline/resolutionSelector';
 import {
   checkStatusPrecedent,
   statusToText,
@@ -38,7 +39,6 @@ import {
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
 
 interface Props {
   event: Event;
@@ -54,7 +54,7 @@ const DOWNTIME_START_TYPES = [
 
 const DOWNTIME_TERMINAL_TYPES = [GroupActivityType.SET_RESOLVED];
 
-export function useDowntimeDuration({group}: {group: Group}): {
+function useDowntimeDuration({group}: {group: Group}): {
   durationMs: number;
   endDate: Date;
   startDate: Date;
@@ -128,7 +128,7 @@ export function UptimeDataSection({group, event, project}: Props) {
   const bucketedData = alertRuleId ? (uptimeStats?.[alertRuleId] ?? []) : [];
 
   const actions = (
-    <ButtonBar gap={1}>
+    <ButtonBar>
       {defined(alertRuleId) && (
         <LinkButton
           icon={<IconSettings />}
@@ -192,7 +192,7 @@ const DowntimeTooltipTitle = styled('div')`
 `;
 
 const DowntimeLabel = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const Text = styled('div')`

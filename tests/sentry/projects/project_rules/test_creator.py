@@ -1,9 +1,15 @@
+import pytest
+
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.models.rule import Rule
+from sentry.locks import locks
+from sentry.models.rule import Rule, RuleSource
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.actor import Actor
+from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
+    UnableToAcquireLockApiError,
+)
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
@@ -15,7 +21,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class TestProjectRuleCreator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(name="bloop", owner=self.user)
         self.project = self.create_project(
@@ -43,9 +49,10 @@ class TestProjectRuleCreator(TestCase):
                 }
             ],
             frequency=5,
+            source=RuleSource.ISSUE,
         )
 
-    def test_creates_rule(self):
+    def test_creates_rule(self) -> None:
         r = self.creator.run()
         rule = Rule.objects.get(id=r.id)
         assert rule.label == "New Cool Rule"
@@ -76,7 +83,7 @@ class TestProjectRuleCreator(TestCase):
         assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    def test_dual_create_workflow_engine(self):
+    def test_dual_create_workflow_engine(self) -> None:
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -140,3 +147,44 @@ class TestProjectRuleCreator(TestCase):
 
         action = DataConditionGroupAction.objects.get(condition_group=action_filter).action
         assert action.type == Action.Type.PLUGIN
+
+    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
+    def test_dual_create_workflow_engine__cant_acquire_lock(self) -> None:
+        lock = locks.get(
+            f"workflow-engine-project-error-detector:{self.project.id}",
+            duration=10,
+            name="workflow_engine_issue_alert",
+        )
+        lock.acquire()
+
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                "key": "foo",
+                "match": "eq",
+                "value": "bar",
+            },
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "foo",
+                "match": "is",
+            },
+        ]
+
+        with pytest.raises(UnableToAcquireLockApiError):
+            ProjectRuleCreator(
+                name="New Cool Rule",
+                owner=Actor.from_id(user_id=self.user.id),
+                project=self.project,
+                action_match="any",
+                filter_match="all",
+                conditions=conditions,
+                environment=self.environment.id,
+                actions=[
+                    {
+                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+                        "name": "Send a notification (for all legacy integrations)",
+                    }
+                ],
+                frequency=5,
+            ).run()

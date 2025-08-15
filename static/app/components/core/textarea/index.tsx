@@ -1,9 +1,10 @@
-import {forwardRef} from 'react';
 import TextareaAutosize, {type TextareaAutosizeProps} from 'react-textarea-autosize';
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Input, type InputStylesProps} from 'sentry/components/core/input';
+import type {InputStylesProps} from 'sentry/components/core/input';
+import {inputStyles} from 'sentry/components/core/input';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
@@ -21,6 +22,7 @@ export interface TextAreaProps
    * Max number of rows to default to.
    */
   maxRows?: number;
+  ref?: React.Ref<HTMLTextAreaElement>;
   /**
    * Number of rows to default to.
    */
@@ -28,31 +30,36 @@ export interface TextAreaProps
   style?: TextareaAutosizeProps['style'];
 }
 
-const TextAreaControl = forwardRef(function TextAreaControl(
-  {autosize, rows = 3, maxRows, size: _size, ...p}: TextAreaProps,
-  ref: React.Ref<HTMLTextAreaElement>
-) {
+function TextAreaControl({
+  ref,
+  autosize,
+  rows = 3,
+  maxRows,
+  size: _size,
+  ...p
+}: TextAreaProps) {
   return autosize ? (
     <TextareaAutosize {...p} ref={ref} rows={rows} maxRows={maxRows} />
   ) : (
     <textarea ref={ref} {...p} rows={rows} />
   );
-});
+}
 
 TextAreaControl.displayName = 'TextAreaControl';
 
-const StyledTextArea = styled(Input.withComponent(TextAreaControl), {
+const StyledTextArea = styled(TextAreaControl, {
   shouldForwardProp: (p: string) => ['autosize', 'maxRows'].includes(p) || isPropValid(p),
 })`
+  ${inputStyles};
   line-height: ${p => p.theme.text.lineHeightBody};
   /** Allow react-textarea-autosize to freely control height based on props. */
   ${p =>
     p.autosize &&
-    `
+    css`
       height: unset;
       min-height: unset;
     `}
-` as unknown as typeof TextAreaControl;
+`;
 
 export const TextArea = withChonk(
   StyledTextArea,

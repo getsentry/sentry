@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationTeamProjects from 'sentry/views/settings/organizationTeams/teamProjects';
 
-describe('OrganizationTeamProjects', function () {
+describe('OrganizationTeamProjects', () => {
   let getMock!: jest.Mock;
   let putMock!: jest.Mock;
   let postMock!: jest.Mock;
@@ -25,13 +25,13 @@ describe('OrganizationTeamProjects', function () {
     access: ['project:read', 'project:write', 'project:admin'],
   });
 
-  const {router, routerProps, organization} = initializeOrg({
+  const {routerProps, organization} = initializeOrg({
     organization: OrganizationFixture({slug: 'org-slug'}),
     projects: [project, project2],
     router: {params: {teamId: team.slug}},
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     getMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project, project2],
@@ -58,13 +58,12 @@ describe('OrganizationTeamProjects', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('should fetch linked and unlinked projects', async function () {
+  it('should fetch linked and unlinked projects', async () => {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      router,
       organization,
     });
 
@@ -76,9 +75,8 @@ describe('OrganizationTeamProjects', function () {
     expect(getMock.mock.calls[1][1].query.query).toBe('!team:team-slug');
   });
 
-  it('should allow bookmarking', async function () {
+  it('should allow bookmarking', async () => {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      router,
       organization,
     });
 
@@ -99,9 +97,8 @@ describe('OrganizationTeamProjects', function () {
     );
   });
 
-  it('should allow adding and removing projects', async function () {
+  it('should allow adding and removing projects', async () => {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      router,
       organization,
     });
 
@@ -119,9 +116,8 @@ describe('OrganizationTeamProjects', function () {
     expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 
-  it('handles filtering unlinked projects', async function () {
+  it('handles filtering unlinked projects', async () => {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      router,
       organization,
     });
 

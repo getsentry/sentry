@@ -34,10 +34,10 @@ jest.mock('getsentry/utils/stripe', () => {
   };
 });
 
-describe('Billing Details Step', function () {
+describe('Billing Details Step', () => {
   const api = new MockApiClient();
 
-  const {organization, router, routerProps} = initializeOrg({
+  const {organization, routerProps} = initializeOrg({
     organization: {
       access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
     },
@@ -69,7 +69,7 @@ describe('Billing Details Step', function () {
   };
   let updateMock: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.clearMockResponses();
 
@@ -106,7 +106,7 @@ describe('Billing Details Step', function () {
     );
   };
 
-  it('cannot skip to step', async function () {
+  it('cannot skip to step', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
       method: 'GET',
@@ -123,8 +123,7 @@ describe('Billing Details Step', function () {
         checkoutTier={PlanTier.AM2}
         onToggleLegacy={jest.fn()}
         params={params}
-      />,
-      {router}
+      />
     );
 
     await screen.findByTestId('checkout-steps');
@@ -140,15 +139,14 @@ describe('Billing Details Step', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders without existing billing address', async function () {
+  it('renders without existing billing address', async () => {
     render(
       <AddBillingDetails
         {...stepProps}
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});
@@ -162,7 +160,7 @@ describe('Billing Details Step', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders billing address', async function () {
+  it('renders billing address', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -175,8 +173,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});
@@ -193,7 +190,7 @@ describe('Billing Details Step', function () {
     expect(screen.queryByRole('textbox', {name: /vat number/i})).not.toBeInTheDocument();
   });
 
-  it('can complete step', async function () {
+  it('can complete step', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -206,8 +203,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});
@@ -235,7 +231,7 @@ describe('Billing Details Step', function () {
     );
   });
 
-  it('renders tax number and region for EU country', async function () {
+  it('renders tax number and region for EU country', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -253,8 +249,7 @@ describe('Billing Details Step', function () {
         subscription={subscription}
         isCompleted={false}
         prevStepCompleted
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /vat number/i});
@@ -262,7 +257,7 @@ describe('Billing Details Step', function () {
     expect(screen.getByDisplayValue('Vienna')).toBeInTheDocument();
   });
 
-  it('renders tax number field for GST country', async function () {
+  it('renders tax number field for GST country', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -279,14 +274,13 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /gst\/hst number/i});
   });
 
-  it('can submit VAT number', async function () {
+  it('can submit VAT number', async () => {
     const details = {
       addressLine1: 'Rothschildplatz 3/3.02.AB',
       addressLine2: '1020 Wien',
@@ -309,8 +303,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /vat number/i});
@@ -340,7 +333,7 @@ describe('Billing Details Step', function () {
     );
   });
 
-  it('can clear VAT number for non-VAT country', async function () {
+  it('can clear VAT number for non-VAT country', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -353,8 +346,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});
@@ -376,7 +368,7 @@ describe('Billing Details Step', function () {
     );
   });
 
-  it('displays tax id for country without sales tax if it exists', async function () {
+  it('displays tax id for country without sales tax if it exists', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -389,8 +381,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});
@@ -398,7 +389,7 @@ describe('Billing Details Step', function () {
     expect(screen.getByDisplayValue('123456789')).toBeInTheDocument();
   });
 
-  it('displays address on file', async function () {
+  it('displays address on file', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -417,8 +408,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByText(/current billing details on file/i);
@@ -436,7 +426,7 @@ describe('Billing Details Step', function () {
     expect(updateMock).not.toHaveBeenCalled();
   });
 
-  it('can edit address on file', async function () {
+  it('can edit address on file', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -452,8 +442,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByText(/current billing details on file/i);
@@ -470,7 +459,7 @@ describe('Billing Details Step', function () {
     expect(updateMock).toHaveBeenCalled();
   });
 
-  it('handles invalid region choice', async function () {
+  it('handles invalid region choice', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
@@ -486,8 +475,7 @@ describe('Billing Details Step', function () {
         isCompleted={false}
         prevStepCompleted
         subscription={subscription}
-      />,
-      {router}
+      />
     );
 
     await screen.findByRole('textbox', {name: /street address 1/i});

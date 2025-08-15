@@ -14,9 +14,10 @@ import {percent} from 'sentry/utils';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-type GroupedAuthorCommits = {
-  [key: string]: {author: User | undefined; commitCount: number};
-};
+type GroupedAuthorCommits = Record<
+  string,
+  {author: User | undefined; commitCount: number}
+>;
 
 type Props = {
   orgId: string;
@@ -110,7 +111,7 @@ const AuthorLine = styled('div')`
   grid-template-columns: 30px 2fr 1fr 40px;
   width: 100%;
   margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const AuthorName = styled('div')`

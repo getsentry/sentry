@@ -1,9 +1,10 @@
+from unittest import TestCase
+
 from sentry.apidocs.hooks import custom_postprocessing_hook
-from sentry.testutils.cases import TestCase
 
 
 class FixIssueRoutesTest(TestCase):
-    def test_issue_route_fixes(self):
+    def test_issue_route_fixes(self) -> None:
         BEFORE = {
             "components": {"schemas": {}},
             "paths": {

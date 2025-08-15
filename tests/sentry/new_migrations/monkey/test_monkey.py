@@ -8,7 +8,7 @@ from sentry.testutils.cases import TestCase
 
 
 class MonkeyTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         assert executor.MigrationExecutor is SentryMigrationExecutor
         assert writer.MIGRATION_TEMPLATE == SENTRY_MIGRATION_TEMPLATE
         assert Field.deconstruct == deconstruct != original_deconstruct

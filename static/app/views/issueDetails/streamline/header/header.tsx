@@ -2,28 +2,34 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ErrorLevel from 'sentry/components/events/errorLevel';
+import EventMessage from 'sentry/components/events/eventMessage';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {TourElement} from 'sentry/components/tours/components';
-import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {MAX_PICKABLE_DAYS} from 'sentry/constants';
+import {IconInfo, IconMegaphone} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,21 +45,24 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/attachmentsBadge';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/streamline/header/issueIdBreadcrumb';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/header/replayBadge';
+import SeerBadge from 'sentry/views/issueDetails/streamline/header/seerBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+} from 'sentry/views/issueDetails/utils';
 
 interface GroupHeaderProps {
   event: Event | null;
   group: Group;
-  groupReprocessingStatus: ReprocessingStatus;
   project: Project;
 }
 
 export default function StreamlinedGroupHeader({
   event,
   group,
-  groupReprocessingStatus,
   project,
 }: GroupHeaderProps) {
   const location = useLocation();
@@ -62,13 +71,41 @@ export default function StreamlinedGroupHeader({
 
   const {sort: _sort, ...query} = location.query;
   const {count: eventCount, userCount} = group;
+  const useGetMaxRetentionDays =
+    HookStore.get('react-hook:use-get-max-retention-days')[0] ??
+    (() => MAX_PICKABLE_DAYS);
+  const maxRetentionDays = useGetMaxRetentionDays();
+  const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
   const {title: primaryTitle, subtitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
   const disableActions = [
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(groupReprocessingStatus);
+
+  const hasErrorUpsampling = project.features.includes('error-upsampling');
+
+  const isQueryInjection = group.issueType === IssueType.QUERY_INJECTION_VULNERABILITY;
+  const openForm = useFeedbackForm();
+  const feedbackButton = openForm ? (
+    <Button
+      aria-label={t('Give feedback on the query injection issue')}
+      icon={<IconMegaphone />}
+      size={'xs'}
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t('Please provide feedback on the query injection issue.'),
+          tags: {
+            ['feedback.source']: 'issue_details_query_injection',
+          },
+        })
+      }
+    >
+      {t('Give Feedback')}
+    </Button>
+  ) : null;
 
   const statusProps = getBadgeProperties(group.status, group.substatus);
   const issueTypeConfig = getConfigForIssueType(group, project);
@@ -82,9 +119,9 @@ export default function StreamlinedGroupHeader({
   return (
     <Fragment>
       <Header>
-        <Flex justify="space-between">
-          <Flex align="center">
-            <Breadcrumbs
+        <Flex justify="between">
+          <Flex align="center" gap="md">
+            <StyledBreadcrumbs
               crumbs={[
                 {
                   label: 'Issues',
@@ -98,9 +135,18 @@ export default function StreamlinedGroupHeader({
                 },
               ]}
             />
+            {hasErrorUpsampling && (
+              <Tooltip
+                title={t(
+                  'Error counts on this page have been upsampled based on your sampling rate.'
+                )}
+              >
+                <StyledTag>{t('Errors Upsampled')}</StyledTag>
+              </Tooltip>
+            )}
           </Flex>
-          <ButtonBar gap={0.5}>
-            {!hasOnlyOneUIOption && (
+          <ButtonBar gap="xs">
+            {!hasOnlyOneUIOption && !isQueryInjection && (
               <LinkButton
                 size="xs"
                 external
@@ -116,63 +162,93 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
-            <NewIssueExperienceButton />
+            {isQueryInjection ? (
+              <ButtonBar gap="xs">
+                <LinkButton
+                  size="xs"
+                  external
+                  title={t('Learn more about the query injection issue')}
+                  href={`https://docs.sentry.io/product/issues/issue-details/query-injection-issues/`}
+                  aria-label={t('Learn more about the query injection issue')}
+                  icon={<IconInfo />}
+                  analyticsEventKey="issue_details.query_injection_learn_more"
+                  analyticsEventName="Issue Details: Query Injection Learn More"
+                >
+                  {t('Learn more')}
+                </LinkButton>
+                {feedbackButton}
+              </ButtonBar>
+            ) : (
+              <NewIssueExperienceButton />
+            )}
           </ButtonBar>
         </Flex>
         <HeaderGrid>
-          <Flex gap={space(0.75)} align="baseline">
-            <PrimaryTitle
+          <Title>
+            <Tooltip
               title={primaryTitle}
+              skipWrapper
               isHoverable
               showOnlyOnOverflow
               delay={1000}
             >
-              {primaryTitle}
-            </PrimaryTitle>
-            <SecondaryTitle
-              title={secondaryTitle}
-              isHoverable
-              showOnlyOnOverflow
-              delay={1000}
-              isDefault={!secondaryTitle}
-            >
-              {secondaryTitle ?? t('No error message')}
-            </SecondaryTitle>
-          </Flex>
+              <PrimaryTitle>{primaryTitle}</PrimaryTitle>
+            </Tooltip>
+            {isQueryInjection && <FeatureBadge type="beta" />}
+          </Title>
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled && (
               <StatLink
                 to={`${baseUrl}events/${location.search}`}
                 aria-label={t('View events')}
               >
-                {t('Events')}
+                {t('Events (total)')}
               </StatLink>
             )}
           </StatTitle>
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled &&
               (userCount === 0 ? (
-                t('Users')
+                t('Users %s', userCountPeriod)
               ) : (
                 <StatLink
-                  to={`${baseUrl}tags/user/${location.search}`}
+                  to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
                   aria-label={t('View affected users')}
                 >
-                  {t('Users')}
+                  {t('Users %s', userCountPeriod)}
                 </StatLink>
               ))}
           </StatTitle>
-          <Flex gap={space(1)} align="center" justify="flex-start">
+          <EventMessage
+            data={group}
+            level={group.level}
+            message={secondaryTitle}
+            type={group.type}
+          />
+          {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
-              {issueTypeConfig.logLevel.enabled && (
-                <ErrorLevel level={group.level} size={10} />
-              )}
-              {group.isUnhandled && <UnhandledTag />}
-              {(issueTypeConfig.logLevel.enabled || group.isUnhandled) && <Divider />}
+              <StatCount value={eventCount} aria-label={t('Event count')} />
+              <StatCount value={userCount} aria-label={t('User count')} />
             </Fragment>
+          )}
+          <Flex gap="md" align="center">
+            {group.isUnhandled && (
+              <Fragment>
+                <UnhandledTag />
+                <Divider />
+              </Fragment>
+            )}
             {statusProps?.status ? (
               <Fragment>
-                <Tooltip title={statusProps?.tooltip}>
+                <Tooltip
+                  isHoverable
+                  title={tct('[tooltip] [link:Learn more]', {
+                    tooltip: statusProps.tooltip,
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
+                    ),
+                  })}
+                >
                   <Subtext>{statusProps?.status}</Subtext>
                 </Tooltip>
               </Fragment>
@@ -180,25 +256,24 @@ export default function StreamlinedGroupHeader({
             {subtitle && (
               <Fragment>
                 <Divider />
-                <Subtitle title={subtitle} isHoverable showOnlyOnOverflow delay={1000}>
+                <Tooltip
+                  title={subtitle}
+                  skipWrapper
+                  isHoverable
+                  showOnlyOnOverflow
+                  delay={1000}
+                >
                   <Subtext>{subtitle}</Subtext>
-                </Subtitle>
+                </Tooltip>
               </Fragment>
             )}
             <ErrorBoundary customComponent={null}>
               <AttachmentsBadge group={group} />
               <UserFeedbackBadge group={group} project={project} />
               <ReplayBadge group={group} project={project} />
+              <SeerBadge group={group} />
             </ErrorBoundary>
           </Flex>
-          {issueTypeConfig.eventAndUserCounts.enabled && (
-            <Fragment>
-              <StatCount value={eventCount} aria-label={t('Event count')} />
-              <GuideAnchor target="issue_header_stats">
-                <StatCount value={userCount} aria-label={t('User count')} />
-              </GuideAnchor>
-            </Fragment>
-          )}
         </HeaderGrid>
       </Header>
       <TourElement<IssueDetailsTour>
@@ -222,16 +297,14 @@ export default function StreamlinedGroupHeader({
               {t('Priority')}
               <GroupPriority group={group} />
             </Workflow>
-            <GuideAnchor target="issue_sidebar_owners" position="left">
-              <Workflow>
-                {t('Assignee')}
-                <GroupHeaderAssigneeSelector
-                  group={group}
-                  project={project}
-                  event={event}
-                />
-              </Workflow>
-            </GuideAnchor>
+            <Workflow>
+              {t('Assignee')}
+              <GroupHeaderAssigneeSelector
+                group={group}
+                project={project}
+                event={event}
+              />
+            </Workflow>
           </WorkflowActions>
         </ActionBar>
       </TourElement>
@@ -241,7 +314,7 @@ export default function StreamlinedGroupHeader({
 
 const Header = styled('header')`
   background-color: ${p => p.theme.background};
-  padding: ${space(1)} 24px;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
 `;
 
 const HeaderGrid = styled('div')`
@@ -251,27 +324,20 @@ const HeaderGrid = styled('div')`
   align-items: center;
 `;
 
-const PrimaryTitle = styled(Tooltip)`
+const PrimaryTitle = styled('span')`
   overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 20px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   flex-shrink: 0;
-`;
-
-const SecondaryTitle = styled(Tooltip)<{isDefault: boolean}>`
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-style: ${p => (p.isDefault ? 'italic' : 'initial')};
 `;
 
 const StatTitle = styled('div')`
   display: block;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   justify-self: flex-end;
 `;
@@ -291,9 +357,6 @@ const StatCount = styled(Count)`
 
 const Subtext = styled('span')`
   color: ${p => p.theme.subText};
-`;
-
-const Subtitle = styled(Tooltip)`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -337,14 +400,31 @@ const WorkflowActions = styled('div')`
   justify-content: flex-end;
   column-gap: ${space(2)};
   flex-wrap: wrap;
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     justify-content: flex-start;
   }
 `;
 
 const Workflow = styled('div')`
   display: flex;
+  align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
+`;
+
+const Title = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
+  column-gap: ${p => p.theme.space.sm};
+`;
+
+const StyledBreadcrumbs = styled(Breadcrumbs)`
+  padding: 0;
+`;
+
+const StyledTag = styled(Tag)`
+  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+    display: none;
+  }
 `;

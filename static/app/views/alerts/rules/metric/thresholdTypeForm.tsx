@@ -1,18 +1,17 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Select} from 'sentry/components/core/select';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import type {Dataset} from './types';
-import {AlertRuleComparisonType} from './types';
+import {AlertRuleComparisonType, Dataset} from './types';
 
 type Props = {
   alertType: MetricAlertType;
@@ -50,9 +49,17 @@ function ThresholdTypeForm({
     'custom_transactions',
   ]);
 
-  const hasAnomalyDetection =
-    organization.features.includes('anomaly-detection-alerts') &&
-    organization.features.includes('anomaly-detection-rollout');
+  const hasAnomalyDetection = organization.features.includes('anomaly-detection-alerts');
+
+  const hasAnomalyDetectionForEAP = organization.features.includes(
+    'anomaly-detection-eap'
+  );
+
+  let comparisonDeltaOptions = COMPARISON_DELTA_OPTIONS;
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    // Don't allow comparisons over a week for span alerts
+    comparisonDeltaOptions = comparisonDeltaOptions.filter(delta => delta.value <= 10080);
+  }
 
   const thresholdTypeChoices: RadioOption[] = [
     [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
@@ -65,27 +72,27 @@ function ThresholdTypeForm({
           <Select
             name="comparisonDelta"
             styles={{
-              container: (provided: {[x: string]: string | number | boolean}) => ({
+              container: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
                 marginLeft: space(1),
               }),
-              control: (provided: {[x: string]: string | number | boolean}) => ({
+              control: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
                 minHeight: 30,
                 minWidth: 500,
                 maxWidth: 1000,
               }),
-              valueContainer: (provided: {[x: string]: string | number | boolean}) => ({
+              valueContainer: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
                 padding: 0,
               }),
-              singleValue: (provided: {[x: string]: string | number | boolean}) => ({
+              singleValue: (provided: Record<string, string | number | boolean>) => ({
                 ...provided,
               }),
             }}
             value={comparisonDelta}
             onChange={({value}: any) => onComparisonDeltaChange(value)}
-            options={COMPARISON_DELTA_OPTIONS}
+            options={comparisonDeltaOptions}
             required={comparisonType === AlertRuleComparisonType.CHANGE}
           />
         </ComparisonContainer>
@@ -95,18 +102,15 @@ function ThresholdTypeForm({
     ],
   ];
 
-  if (hasAnomalyDetection && validAnomalyDetectionAlertTypes.has(alertType)) {
+  if (
+    hasAnomalyDetection &&
+    (validAnomalyDetectionAlertTypes.has(alertType) ||
+      (hasAnomalyDetectionForEAP && isEapAlertType(alertType)))
+  ) {
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,
       <ComparisonContainer key="Dynamic">
         {t('Anomaly: whenever values are outside of expected bounds')}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t('Anomaly detection is in beta and may produce unexpected results'),
-            isHoverable: true,
-          }}
-        />
       </ComparisonContainer>,
     ] as RadioOption);
   }

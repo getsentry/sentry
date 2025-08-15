@@ -4,9 +4,9 @@ import type {Location} from 'history';
 import upperFirst from 'lodash/upperFirst';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingError from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -16,11 +16,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
@@ -56,7 +56,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
     return (
       <StaffNote>
         {logEntryUser.name}
-        <Tag>{t('Sentry Staff')}</Tag>
+        <Tag type="default">{t('Sentry Staff')}</Tag>
       </StaffNote>
     );
   }
@@ -94,6 +94,7 @@ type Props = {
 
 function UsageLog({location, subscription}: Props) {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const {
     data: auditLogs,
     isPending,
@@ -122,12 +123,12 @@ function UsageLog({location, subscription}: Props) {
   const handleEventFilter = (value: string | null) => {
     if (value === null) {
       // Clear filters
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {...location.query, event: undefined, cursor: undefined},
       });
     } else {
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {...location.query, event: value, cursor: undefined},
       });
@@ -140,7 +141,7 @@ function UsageLog({location, subscription}: Props) {
   };
 
   const handleCursor: CursorHandler = resultsCursor => {
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, cursor: resultsCursor},
     });
@@ -223,7 +224,7 @@ const SentryAvatar = styled(ActivityAvatar)`
 `;
 
 const Note = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   word-break: break-word;
 `;
 
@@ -244,7 +245,7 @@ const UsageTable = styled(PanelTable)`
 `;
 
 const UserInfo = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   min-width: 250px;
   display: flex;
 `;
@@ -256,13 +257,13 @@ const NoteContainer = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const TimestampInfo = styled('div')`
   display: grid;
   grid-template-columns: max-content auto;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-content: center;
 `;

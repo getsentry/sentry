@@ -18,6 +18,7 @@ export function getBadgeProperties(
     return {
       tagType: 'highlight',
       status: t('Resolved'),
+      tooltip: t('This issue was marked as fixed.'),
     };
   }
   if (status === 'unresolved') {
@@ -25,23 +26,29 @@ export function getBadgeProperties(
       return {
         tagType: 'highlight',
         status: t('Regressed'),
+        tooltip: t('This issue was resolved then occurred again.'),
       };
     }
     if (substatus === GroupSubstatus.ESCALATING) {
       return {
         tagType: 'error',
         status: t('Escalating'),
+        tooltip: t('This issue is occurring significantly more often it used to.'),
       };
     }
     if (substatus === GroupSubstatus.NEW) {
       return {
         tagType: 'warning',
         status: t('New'),
+        tooltip: t('This issue first occurred in the last 7 days.'),
       };
     }
     return {
       tagType: 'default',
       status: t('Ongoing'),
+      tooltip: t(
+        'This issue was created more than 7 days ago or has manually been marked as reviewed.'
+      ),
     };
   }
   if (status === 'ignored') {
@@ -50,10 +57,10 @@ export function getBadgeProperties(
       status: t('Archived'),
       tooltip:
         substatus === GroupSubstatus.ARCHIVED_FOREVER
-          ? t('Archived forever')
+          ? t('Archived forever.')
           : substatus === GroupSubstatus.ARCHIVED_UNTIL_ESCALATING
-            ? t('Archived until escalating')
-            : t('Archived until condition met'),
+            ? t('Archived until escalating.')
+            : t('Archived until condition met.'),
     };
   }
   return undefined;

@@ -2,8 +2,9 @@ import logging
 import signal
 import time
 from threading import Thread
+from typing import Any
 
-from sentry import options
+from arroyo.processing.processor import StreamProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -21,24 +22,29 @@ def delay_kafka_rebalance(configured_delay: int) -> None:
     """
 
     time_elapsed_in_slot = int(time.time()) % configured_delay
+    sleep_secs = configured_delay - time_elapsed_in_slot
 
-    time.sleep(configured_delay - time_elapsed_in_slot)
+    logger.info("Sleeping for %s seconds to quantize rebalancing", sleep_secs)
+    time.sleep(sleep_secs)
 
 
-def delay_shutdown(consumer_name, processor) -> None:
-    if consumer_name == "ingest-generic-metrics" and options.get(
-        "sentry-metrics.synchronize-kafka-rebalances"
-    ):
-        configured_delay = options.get("sentry-metrics.synchronized-rebalance-delay")
-        logger.info("Started delay in consumer shutdown step")
-        delay_kafka_rebalance(configured_delay)
-        logger.info("Finished delay in consumer shutdown step")
+def delay_shutdown(processor: StreamProcessor[Any], quantized_rebalance_delay_secs: int) -> None:
+    if quantized_rebalance_delay_secs:
+        delay_kafka_rebalance(quantized_rebalance_delay_secs)
+
     processor.signal_shutdown()
 
 
-def run_processor_with_signals(processor, consumer_name: str | None = None):
-    def handler(signum, frame):
-        t = Thread(target=delay_shutdown, args=(consumer_name, processor))
+def run_processor_with_signals(
+    processor: StreamProcessor[Any], quantized_rebalance_delay_secs: int | None = None
+) -> None:
+    if quantized_rebalance_delay_secs:
+        # delay startup for quantization
+        delay_kafka_rebalance(quantized_rebalance_delay_secs)
+
+    def handler(signum: object, frame: object) -> None:
+        # delay shutdown for quantization
+        t = Thread(target=delay_shutdown, args=(processor, quantized_rebalance_delay_secs))
         t.start()
 
     signal.signal(signal.SIGINT, handler)

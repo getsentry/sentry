@@ -1,12 +1,12 @@
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
-export type FlamegraphSearchResult = {
+type FlamegraphSearchResult = {
   frame: FlamegraphFrame;
   match: ReadonlyArray<[number, number]>;
 };
 
-export type SpansSearchResult = {
+type SpansSearchResult = {
   match: ReadonlyArray<[number, number]>;
   span: SpanChartNode;
 };

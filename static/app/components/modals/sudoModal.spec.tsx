@@ -8,11 +8,11 @@ import ModalStore from 'sentry/stores/modalStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import App from 'sentry/views/app';
 
-describe('Sudo Modal', function () {
+describe('Sudo Modal', () => {
   const setHasPasswordAuth = (hasPasswordAuth: boolean) =>
     ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth});
 
-  beforeEach(function () {
+  beforeEach(() => {
     window.__initialData = {
       ...window.__initialData,
       links: {
@@ -64,7 +64,7 @@ describe('Sudo Modal', function () {
     OrganizationStore.reset();
   });
 
-  it('can delete an org with sudo flow', async function () {
+  it('can delete an org with sudo flow', async () => {
     const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(true);
 
@@ -111,7 +111,10 @@ describe('Sudo Modal', function () {
     expect(sudoMock).not.toHaveBeenCalled();
 
     // "Sudo" auth
-    await userEvent.type(screen.getByRole('textbox', {name: 'Password'}), 'password');
+    await userEvent.type(
+      await screen.findByRole('textbox', {name: 'Password'}),
+      'password'
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Confirm Password'}));
 
     expect(sudoMock).toHaveBeenCalledWith(
@@ -135,7 +138,7 @@ describe('Sudo Modal', function () {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('shows button to redirect if user does not have password auth', async function () {
+  it('shows button to redirect if user does not have password auth', async () => {
     const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(false);
 
@@ -150,10 +153,10 @@ describe('Sudo Modal', function () {
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Continue'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Continue'})).toHaveAttribute(
       'href',
       '/auth/login/?next=http%3A%2F%2Flocalhost%2F'
     );
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
   });
 });

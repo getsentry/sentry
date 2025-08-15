@@ -10,10 +10,16 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 
-describe('getIssueFieldRenderer', function () {
-  let location: any, context: any, project: any, organization: any, data: any, user: any;
+describe('getIssueFieldRenderer', () => {
+  let location: any,
+    context: any,
+    project: any,
+    organization: any,
+    theme: any,
+    data: any,
+    user: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     context = initializeOrg({
       organization,
       router: {},
@@ -72,7 +78,7 @@ describe('getIssueFieldRenderer', function () {
   });
 
   describe('Issue fields', () => {
-    it('can render assignee', async function () {
+    it('can render assignee', async () => {
       MemberListStore.loadInitialData([
         UserFixture({
           name: 'Test User',
@@ -94,25 +100,27 @@ describe('getIssueFieldRenderer', function () {
         },
       });
       GroupStore.add([group]);
-      const renderer = getIssueFieldRenderer('assignee');
+      const renderer = getIssueFieldRenderer('assignee', {});
 
       render(
-        renderer!(data, {
+        renderer(data, {
           location,
           organization,
+          theme,
         }) as React.ReactElement
       );
       await userEvent.hover(screen.getByText('TU'));
       expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
     });
 
-    it('can render counts', async function () {
-      const renderer = getIssueFieldRenderer('events');
+    it('can render counts', async () => {
+      const renderer = getIssueFieldRenderer('events', {});
 
       render(
-        renderer!(data, {
+        renderer(data, {
           location,
           organization,
+          theme,
         }) as React.ReactElement
       );
       expect(screen.getByText('3k')).toBeInTheDocument();
@@ -124,23 +132,24 @@ describe('getIssueFieldRenderer', function () {
     });
   });
 
-  it('can render links', function () {
-    const renderer = getIssueFieldRenderer('links');
+  it('can render links', () => {
+    const renderer = getIssueFieldRenderer('links', {});
 
     render(
-      renderer!(data, {
+      renderer(data, {
         location,
         organization,
+        theme,
       }) as React.ReactElement
     );
     expect(screen.getByText('ANNO-123')).toBeInTheDocument();
   });
 
-  it('can render multiple links', function () {
-    const renderer = getIssueFieldRenderer('links');
+  it('can render multiple links', () => {
+    const renderer = getIssueFieldRenderer('links', {});
 
     render(
-      renderer!(
+      renderer(
         {
           data,
           ...{
@@ -153,6 +162,7 @@ describe('getIssueFieldRenderer', function () {
         {
           location,
           organization,
+          theme,
         }
       ) as React.ReactElement
     );

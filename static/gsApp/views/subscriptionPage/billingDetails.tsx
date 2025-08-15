@@ -77,6 +77,7 @@ class BillingDetails extends Component<Props, State> {
     if (queryReferrer?.includes('billing-failure')) {
       openEditCreditCard({
         organization,
+        subscription,
         onSuccess: this.handleCardUpdated,
         location,
       });
@@ -135,6 +136,7 @@ class BillingDetails extends Component<Props, State> {
               onClick={() =>
                 openEditCreditCard({
                   organization,
+                  subscription,
                   onSuccess: this.handleCardUpdated,
                 })
               }
@@ -204,7 +206,7 @@ function BillingDetailsFormContainer({organization}: {organization: Organization
         billingDetails: response,
         useExisting: response.addressType === AddressType.STRUCTURED,
       }));
-    } catch (error) {
+    } catch (error: any) {
       setState(prevState => ({...prevState, loadError: error, isLoading: false}));
       if (error.status !== 401 && error.status !== 403) {
         Sentry.captureException(error);

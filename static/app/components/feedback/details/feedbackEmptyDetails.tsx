@@ -18,7 +18,7 @@ const FeedbackEmptyDetails = styled((props: any) => (
 `;
 
 const StyledEmptyMessage = styled(EmptyMessage)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 export default FeedbackEmptyDetails;

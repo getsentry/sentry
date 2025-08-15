@@ -6,6 +6,9 @@ from django.utils import timezone
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import Retry
 
 NEW_ISSUE_WEEKLY_THRESHOLD = 10
 new_issue_threshold_key = (
@@ -58,6 +61,13 @@ def calculate_threshold_met(project_id: int) -> bool:
     queue="check_new_issue_threshold_met",
     default_retry_delay=60,
     max_retries=1,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        retry=Retry(
+            times=1,
+            delay=60,
+        ),
+    ),
 )
 def check_new_issue_threshold_met(project_id: int) -> None:
     """

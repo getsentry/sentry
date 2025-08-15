@@ -16,7 +16,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 @pytest.mark.snuba_ci
 class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # We want to always consider 7 days for simplicity.
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
@@ -51,7 +51,7 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
                         - datetime.timedelta(weeks=week),
                     )
 
-    def test_timeseries_query(self):
+    def test_timeseries_query(self) -> None:
         results = timeseries_query(
             selected_columns=["avg(transaction.duration)"],
             query="",
@@ -90,7 +90,7 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
         for index, data in enumerate(results.data["data"]):
             assert data.get("avg_transaction_duration") == expected[index]
 
-    def test_timeseries_query_with_comparison(self):
+    def test_timeseries_query_with_comparison(self) -> None:
         results = timeseries_query(
             selected_columns=["avg(transaction.duration)"],
             query="",
@@ -158,7 +158,7 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
             assert data.get("avg_transaction_duration") == expected[index]
             assert data.get("comparisonCount") == expected_comparison[index]
 
-    def test_timeseries_query_with_comparison_and_multiple_aggregates(self):
+    def test_timeseries_query_with_comparison_and_multiple_aggregates(self) -> None:
         with pytest.raises(
             IncompatibleMetricsQuery,
             match="The comparison query for metrics supports only one aggregate.",

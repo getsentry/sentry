@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:28.121116+00:00'
+created: '2025-04-25T21:24:25.375715+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,35 +30,35 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.utils.safe"
               function*
                 "safe_execute"
               context-line*
                 "result = func(*args, **kwargs)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.utils.services"
               function*
                 "<lambda>"
               context-line*
                 "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "getsentry.quotas"
               function*
                 "is_rate_limited"
               context-line*
                 "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.quotas.redis"
               function*
                 "is_rate_limited"
               context-line*
                 "rejections = is_rate_limited(client, keys, args)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.utils.redis"
               function*

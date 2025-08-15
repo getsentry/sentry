@@ -6,8 +6,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventSdk} from 'sentry/components/events/eventSdk';
 
-describe('event sdk', function () {
-  it('display redacted tags', async function () {
+describe('event sdk', () => {
+  it('display redacted tags', async () => {
     const event = EventFixture({
       sdk: {
         name: 'sentry.cocoa',
@@ -26,6 +26,7 @@ describe('event sdk', function () {
       },
     });
 
+    await userEvent.click(screen.getByRole('button', {name: 'View SDK Section'}));
     await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(

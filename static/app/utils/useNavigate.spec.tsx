@@ -16,7 +16,7 @@ describe('useNavigate', () => {
     ConfigStore.loadInitialData(configState);
   });
 
-  it('returns the navigate function', function () {
+  it('returns the navigate function', () => {
     let navigate: ReturnType<typeof useNavigate> | undefined = undefined;
 
     function HomePage() {
@@ -32,15 +32,15 @@ describe('useNavigate', () => {
     };
 
     render(
-      <TestRouteContext.Provider value={routeContext}>
+      <TestRouteContext value={routeContext}>
         <HomePage />
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
 
     expect(typeof navigate).toBe('function');
   });
 
-  it('applies url normalization for customer-domains', function () {
+  it('applies url normalization for customer-domains', () => {
     ConfigStore.set('customerDomain', {
       subdomain: 'albertos-apples',
       organizationUrl: 'https://albertos-apples.sentry.io',
@@ -64,9 +64,9 @@ describe('useNavigate', () => {
     };
 
     render(
-      <TestRouteContext.Provider value={routeContext}>
+      <TestRouteContext value={routeContext}>
         <HomePage />
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
 
     expect(routeContext.router.push).toHaveBeenCalledWith({

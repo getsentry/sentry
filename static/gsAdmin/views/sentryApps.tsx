@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 

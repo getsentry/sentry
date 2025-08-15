@@ -2,12 +2,11 @@ import {Component, Fragment} from 'react';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import EmailField from 'sentry/components/forms/fields/emailField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -193,7 +192,7 @@ class DataRequests extends Component<Props, State> {
         <PageHeader title="Data Requests" />
 
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="warning" showIcon={false}>
             Use this form to determine what action needs taken for a data request.
           </Alert>
         </Alert.Container>

@@ -87,7 +87,7 @@ const CountdownRing = withTheme(({theme, id, totalTime}: CountdownRingProps) => 
   }, [timeLeft]);
 
   // Reset time left when id changes
-  useEffect(() => void setTimeLeft(totalTime), [id, totalTime]);
+  useEffect(() => setTimeLeft(totalTime), [id, totalTime]);
 
   return (
     <RingContainer animate={{opacity: 1}} initial={{opacity: 0}} exit={{opacity: 0}}>
@@ -119,7 +119,7 @@ const Heading = styled('div')`
 const FeatureLink = styled(motion.div)`
   cursor: pointer;
   transition: color 300ms;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   position: relative;
   display: grid;
   grid-template-columns: max-content auto;

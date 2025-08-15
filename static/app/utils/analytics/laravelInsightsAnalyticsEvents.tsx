@@ -1,7 +1,7 @@
 export type LaravelInsightsEventParameters = {
   'laravel-insights.page-view': Record<string, unknown>;
-  'laravel-insights.ui_toggle': {
-    isEnabled: boolean;
+  'laravel-insights.table_view_change': {
+    view: string;
   };
 };
 
@@ -10,5 +10,5 @@ export const laravelInsightsEventMap: Record<
   string
 > = {
   'laravel-insights.page-view': 'Laravel Insights: Page View',
-  'laravel-insights.ui_toggle': 'Laravel Insights: UI Toggle',
+  'laravel-insights.table_view_change': 'Laravel Insights: Table View Change',
 };

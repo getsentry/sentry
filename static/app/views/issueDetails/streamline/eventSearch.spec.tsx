@@ -11,6 +11,7 @@ import {
   renderHook,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -33,7 +34,7 @@ describe('EventSearch', () => {
     handleSearch: mockHandleSearch,
     query: '',
   };
-  const [tagKey, tagValue] = ['user.email', 'leander.rodrigues@sentry.io'];
+  const [tagKey, tagValue] = ['user.email', 'leander@s.io'];
   let mockTagKeyQuery: jest.Mock;
 
   beforeEach(() => {
@@ -57,27 +58,30 @@ describe('EventSearch', () => {
     });
   });
 
-  it('handles basic inputs for tags', async function () {
+  it('handles basic inputs for tags', async () => {
     render(<EventSearch {...defaultProps} />);
     const search = screen.getByRole('combobox', {name: 'Add a search term'});
     expect(search).toBeInTheDocument();
     await userEvent.type(search, `${tagKey}:`);
     await userEvent.keyboard(`${tagValue}{enter}{enter}`);
 
-    expect(mockTagKeyQuery).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockTagKeyQuery).toHaveBeenCalled();
+    });
     expect(mockHandleSearch).toHaveBeenCalledWith(
       `${tagKey}:${tagValue}`,
       expect.anything()
     );
-  });
+  }, 10_000);
 
-  it('filters issue tokens from event queries', function () {
+  it('filters issue tokens from event queries', () => {
     const validQuery = `${tagKey}:${tagValue} device.family:[iphone,pixel]`;
 
     const {result: onlyIssueTokens} = renderHook(
       () => useEventQuery({groupId: group.id}),
       {
         wrapper: makeAllTheProviders({
+          deprecatedRouterMocks: true,
           organization,
           router: RouterFixture({
             location: LocationFixture({
@@ -93,6 +97,7 @@ describe('EventSearch', () => {
       () => useEventQuery({groupId: group.id}),
       {
         wrapper: makeAllTheProviders({
+          deprecatedRouterMocks: true,
           organization,
           router: RouterFixture({
             location: LocationFixture({
@@ -108,6 +113,7 @@ describe('EventSearch', () => {
       () => useEventQuery({groupId: group.id}),
       {
         wrapper: makeAllTheProviders({
+          deprecatedRouterMocks: true,
           organization,
           router: RouterFixture({
             location: LocationFixture({
@@ -123,6 +129,7 @@ describe('EventSearch', () => {
       () => useEventQuery({groupId: group.id}),
       {
         wrapper: makeAllTheProviders({
+          deprecatedRouterMocks: true,
           organization,
           router: RouterFixture({
             location: LocationFixture({

@@ -19,6 +19,7 @@ from sentry.models.grouphistory import GroupHistory
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.models.team import TeamStatus
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
@@ -53,8 +54,17 @@ class OrganizationReportContext:
             else:
                 self.projects_context_map[project.id] = ProjectContext(project)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
+
+    def is_empty(self):
+        """
+        Returns True if every project context is empty.
+        """
+        return all(
+            project_ctx.check_if_project_is_empty()
+            for project_ctx in self.projects_context_map.values()
+        )
 
 
 class ProjectContext:
@@ -90,7 +100,7 @@ class ProjectContext:
         # Dictionary of { timestamp: count }
         self.replay_count_by_day = {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "\n".join(
             [
                 f"{self.key_errors_by_group}, ",
@@ -145,7 +155,9 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
     Populates context.project_ownership which is { user_id: set<project_id> }
     """
     for project_id, user_id in OrganizationMember.objects.filter(
-        organization_id=ctx.organization.id, teams__projectteam__project__isnull=False
+        organization_id=ctx.organization.id,
+        teams__projectteam__project__isnull=False,
+        teams__status=TeamStatus.ACTIVE,
     ).values_list("teams__projectteam__project_id", "user_id"):
         if user_id is not None:
             ctx.project_ownership.setdefault(user_id, set()).add(project_id)
@@ -438,6 +450,7 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
             last_seen__lt=ctx.end,
             status=GroupStatus.UNRESOLVED,
         )
+        .select_related("project")
         .values("project_id", "substatus")
         .annotate(total=Count("substatus"))
     )

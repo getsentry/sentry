@@ -27,12 +27,14 @@ function makeSearchResultsMock(items?: ResultItem[], threshold?: number) {
         sourceType: 'organization',
         title: 'Vandelay Industries - Import',
         model: {slug: 'vdl-imp'},
+        resolvedTs: 0,
       },
       {
         resultType: 'integration',
         model: {slug: 'vdl-exp'},
         sourceType: 'organization',
         title: 'Vandelay Industries - Export',
+        resolvedTs: 0,
       },
     ];
     const results = new Fuse(searchableItems, {
@@ -105,6 +107,7 @@ describe('Search', () => {
                 title: 'Vandelay Industries - Import',
                 to: 'https://vandelayindustries.io/import',
                 model: {slug: 'vdl-imp'},
+                resolvedTs: 0,
               },
             ]),
           ],
@@ -141,6 +144,7 @@ describe('Search', () => {
                 title: 'Vandelay Industries - Import',
                 to: 'https://vandelayindustries.io/import',
                 model: {slug: 'vdl-imp'},
+                resolvedTs: 0,
               },
             ]),
           ],
@@ -171,6 +175,7 @@ describe('Search', () => {
       title: `${i} Vandelay Industries - Import`,
       to: 'https://vandelayindustries.io/import',
       model: {slug: 'vdl-imp'},
+      resolvedTs: 0,
     }));
 
     render(

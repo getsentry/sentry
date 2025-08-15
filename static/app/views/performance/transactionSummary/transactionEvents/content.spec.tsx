@@ -1,4 +1,3 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -13,15 +12,10 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
-import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import EventsPageContent from 'sentry/views/performance/transactionSummary/transactionEvents/content';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-
-jest.mock('sentry/utils/useLocation');
-
-const mockUseLocation = jest.mocked(useLocation);
 
 function initializeData() {
   const organization = OrganizationFixture({
@@ -40,11 +34,11 @@ function initializeData() {
     },
     projects: [],
   });
-  act(() => void ProjectsStore.loadInitialData(initialData.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 
-describe('Performance Transaction Events Content', function () {
+describe('Performance Transaction Events Content', () => {
   let fields: string[];
   let data: any[];
   let transactionName: string;
@@ -52,7 +46,7 @@ describe('Performance Transaction Events Content', function () {
   let initialData: ReturnType<typeof initializeData>;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
-  beforeEach(function () {
+  beforeEach(() => {
     transactionName = 'transactionName';
     fields = [
       'id',
@@ -64,9 +58,6 @@ describe('Performance Transaction Events Content', function () {
       'spans.total.time',
       ...SPAN_OP_BREAKDOWN_FIELDS,
     ];
-    mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
-    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -185,15 +176,15 @@ describe('Performance Transaction Events Content', function () {
     );
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
   });
 
-  it('basic rendering', async function () {
+  it('basic rendering', async () => {
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={eventView}
           organization={initialData.organization}
@@ -207,8 +198,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="123"
           projects={[]}
         />
-      </OrganizationContext.Provider>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();
@@ -231,9 +221,9 @@ describe('Performance Transaction Events Content', function () {
     ]);
   });
 
-  it('rendering with webvital selected', async function () {
+  it('rendering with webvital selected', async () => {
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={eventView}
           organization={initialData.organization}
@@ -248,8 +238,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="123"
           projects={[]}
         />
-      </OrganizationContext.Provider>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();
@@ -265,7 +254,7 @@ describe('Performance Transaction Events Content', function () {
     expect(columnTitles).toStrictEqual(expect.arrayContaining(['measurements.lcp']));
   });
 
-  it('rendering with http.method', async function () {
+  it('rendering with http.method', async () => {
     const _eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
@@ -279,7 +268,7 @@ describe('Performance Transaction Events Content', function () {
       initialData.router.location
     );
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={_eventView}
           organization={initialData.organization}
@@ -294,8 +283,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="1"
           projects={[ProjectFixture({id: '1', platform: 'python'})]}
         />
-      </OrganizationContext.Provider>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();

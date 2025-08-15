@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -12,12 +12,12 @@ pytestmark = [requires_snuba]
 
 
 class TestServiceHooks(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.hook = self.create_service_hook(project=self.project, events=("issue.created",))
 
     @patch("sentry.sentry_apps.tasks.service_hooks.safe_urlopen")
     @responses.activate
-    def test_verify_sentry_hook_signature(self, safe_urlopen):
+    def test_verify_sentry_hook_signature(self, safe_urlopen: MagicMock) -> None:
         import hmac
         from hashlib import sha256
 
@@ -25,7 +25,12 @@ class TestServiceHooks(TestCase):
             data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
 
-        process_service_hook(self.hook.id, event)
+        process_service_hook(
+            self.hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+        )
 
         body = json.dumps(get_payload_v0(event))
 
@@ -38,14 +43,48 @@ class TestServiceHooks(TestCase):
 
     @patch("sentry.sentry_apps.tasks.service_hooks.safe_urlopen")
     @responses.activate
-    def test_event_created_sends_service_hook(self, safe_urlopen):
+    def test_event_created_sends_service_hook(self, safe_urlopen: MagicMock) -> None:
         self.hook.update(events=["event.created", "event.alert"])
 
         event = self.store_event(
             data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
         )
 
-        process_service_hook(self.hook.id, event)
+        process_service_hook(
+            self.hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+        )
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+
+        assert kwargs["url"] == self.hook.url
+        assert data == json.loads(json.dumps(get_payload_v0(event)))
+        assert kwargs["headers"].keys() <= {
+            "Content-Type",
+            "X-ServiceHook-Timestamp",
+            "X-ServiceHook-GUID",
+            "X-ServiceHook-Signature",
+        }
+
+    @patch("sentry.sentry_apps.tasks.service_hooks.safe_urlopen")
+    @responses.activate
+    def test_event_created_sends_service_hook_with_event_id(self, safe_urlopen: MagicMock) -> None:
+        self.hook.update(events=["event.created", "event.alert"])
+
+        event = self.store_event(
+            data={"timestamp": before_now(minutes=1).isoformat()}, project_id=self.project.id
+        )
+        assert event.group
+
+        process_service_hook(
+            self.hook.id,
+            project_id=event.project_id,
+            group_id=event.group.id,
+            event_id=event.event_id,
+        )
 
         ((_, kwargs),) = safe_urlopen.call_args_list
         data = json.loads(kwargs["data"])
@@ -60,7 +99,7 @@ class TestServiceHooks(TestCase):
         }
 
     @responses.activate
-    def test_v0_payload(self):
+    def test_v0_payload(self) -> None:
         responses.add(responses.POST, "https://example.com/sentry/webhook")
 
         event = self.store_event(
@@ -68,7 +107,12 @@ class TestServiceHooks(TestCase):
         )
         assert event.group is not None
 
-        process_service_hook(self.hook.id, event)
+        process_service_hook(
+            self.hook.id,
+            project_id=self.project.id,
+            group_id=event.group_id,
+            event_id=event.event_id,
+        )
         body = get_payload_v0(event)
         assert (
             body["group"]["url"]

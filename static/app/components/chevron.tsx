@@ -58,10 +58,10 @@ function Chevron({
       viewBox="0 0 14 14"
       size={
         size === 'small'
-          ? theme.fontSizeSmall
+          ? theme.fontSize.sm
           : size === 'medium'
-            ? theme.fontSizeMedium
-            : theme.fontSizeLarge
+            ? theme.fontSize.md
+            : theme.fontSize.lg
       }
       weightFactor={rubikWeightFactor[weight]}
       strokeOpacity={light ? 0.6 : 1}

@@ -15,11 +15,11 @@ function TestComponent({setRouteAnalyticsParams}: any) {
 
 const WrappedComponent = withRouteAnalytics(TestComponent);
 
-describe('withRouteAnalytics', function () {
-  it('passes context to children as props', function () {
+describe('withRouteAnalytics', () => {
+  it('passes context to children as props', () => {
     const setRouteAnalyticsParams = jest.fn();
     render(
-      <RouteAnalyticsContext.Provider
+      <RouteAnalyticsContext
         value={{
           setRouteAnalyticsParams,
           setDisableRouteAnalytics: jest.fn(),
@@ -29,7 +29,7 @@ describe('withRouteAnalytics', function () {
         }}
       >
         <WrappedComponent />
-      </RouteAnalyticsContext.Provider>
+      </RouteAnalyticsContext>
     );
     expect(setRouteAnalyticsParams).toHaveBeenCalledWith({foo: 'bar'});
   });

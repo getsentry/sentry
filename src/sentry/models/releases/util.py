@@ -12,7 +12,6 @@ from django.db.models.signals import pre_save
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
 
-from sentry.db.models import ArrayField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.releases.release_project import ReleaseProject
@@ -133,7 +132,9 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
             )
             cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
             qs = qs.annotate(
-                semver=Func(*(F(col) for col in cols), function="ROW", output_field=ArrayField())
+                semver=Func(
+                    *(F(col) for col in cols), function="ROW", output_field=models.JSONField()
+                )
             )
             qs = getattr(qs, query_func)(**{f"semver__{semver_filter.operator}": filter_func})
         return qs

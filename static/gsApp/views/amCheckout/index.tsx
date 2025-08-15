@@ -7,8 +7,8 @@ import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -16,6 +16,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {QueryClient} from 'sentry/utils/queryClient';
@@ -27,16 +28,21 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
-import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import {
-  type BillingConfig,
+  ANNUAL,
+  MONTHLY,
+  PAYG_BUSINESS_DEFAULT,
+  PAYG_TEAM_DEFAULT,
+} from 'getsentry/constants';
+import {
   CheckoutType,
-  type DataCategories,
   OnDemandBudgetMode,
-  type OnDemandBudgets,
-  type Plan,
   PlanName,
   PlanTier,
+  type BillingConfig,
+  type EventBucket,
+  type OnDemandBudgets,
+  type Plan,
   type PromotionData,
   type Subscription,
 } from 'getsentry/types';
@@ -46,6 +52,8 @@ import {
   hasPerformance,
   isAmPlan,
   isBizPlanFamily,
+  isNewPayingCustomer,
+  isTrialPlan,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
@@ -62,9 +70,13 @@ import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudget
 import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
 import PlanSelect from 'getsentry/views/amCheckout/steps/planSelect';
 import ReviewAndConfirm from 'getsentry/views/amCheckout/steps/reviewAndConfirm';
-import SetBudgetAndReserves from 'getsentry/views/amCheckout/steps/setBudgetAndReserves';
-import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
-import {getBucket} from 'getsentry/views/amCheckout/utils';
+import SetPayAsYouGo from 'getsentry/views/amCheckout/steps/setPayAsYouGo';
+import type {
+  CheckoutFormData,
+  SelectedProductData,
+} from 'getsentry/views/amCheckout/types';
+import {SelectableProduct} from 'getsentry/views/amCheckout/types';
+import {getBucket, hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
@@ -115,11 +127,30 @@ class AMCheckout extends Component<Props, State> {
         }
       }
     } else if (
-      // skip 'Choose Your Plan' if customer is already on Business plan
+      // skip 'Choose Your Plan' if customer is already on Business plan and they have all additional products enabled
       isBizPlanFamily(props.subscription.planDetails) &&
       props.checkoutTier === props.subscription.planTier
     ) {
-      step = 2;
+      // TODO(billing): cleanup condition after backfill
+      const selectedAll = props.organization.features.includes('seer-billing')
+        ? props.subscription.reservedBudgets &&
+          props.subscription.reservedBudgets.length > 0
+          ? props.subscription.reservedBudgets.every(budget => {
+              if (
+                Object.values(SelectableProduct).includes(
+                  budget.apiName as string as SelectableProduct
+                )
+              ) {
+                return budget.reservedBudget > 0;
+              }
+              return !props.organization.features.includes(budget.billingFlag || '');
+            })
+          : false // don't skip before backfill
+        : true; // skip if seer hasn't launched
+
+      if (selectedAll) {
+        step = 2;
+      }
     }
     this.initialStep = step;
     this.state = {
@@ -198,7 +229,7 @@ class AMCheckout extends Component<Props, State> {
       const formData = this.getInitialData(billingConfig);
 
       this.setState({billingConfig, formData});
-    } catch (error) {
+    } catch (error: any) {
       this.setState({error, loading: false});
       if (error.status !== 401 && error.status !== 403) {
         Sentry.captureException(error);
@@ -248,15 +279,16 @@ class AMCheckout extends Component<Props, State> {
     if (subscription.isSelfServePartner) {
       if (hasActiveVCFeature(organization)) {
         // Don't allow VC customers to choose Annual plans
-        return [PlanSelect, SetBudgetAndReserves, ReviewAndConfirm];
+        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm];
       }
-      return [PlanSelect, SetBudgetAndReserves, ContractSelect, ReviewAndConfirm];
+      return [PlanSelect, SetPayAsYouGo, AddDataVolume, ContractSelect, ReviewAndConfirm];
     }
 
     // Display for AM3 tiers and above
     return [
       PlanSelect,
-      SetBudgetAndReserves,
+      SetPayAsYouGo,
+      AddDataVolume,
       ContractSelect,
       AddPaymentMethod,
       AddBillingDetails,
@@ -371,7 +403,7 @@ class AMCheckout extends Component<Props, State> {
    * If not available on current tier, use the default plan.
    */
   getInitialData(billingConfig: BillingConfig): CheckoutFormData {
-    const {subscription} = this.props;
+    const {subscription, checkoutTier, organization} = this.props;
     const {onDemandMaxSpend, planDetails} = subscription;
 
     const initialPlan = this.getInitialPlan(billingConfig);
@@ -385,20 +417,19 @@ class AMCheckout extends Component<Props, State> {
     // Default to the max event volume per category based on either
     // the current reserved volume or the current reserved price.
     const reserved = Object.fromEntries(
-      Object.entries(planDetails.planCategories)
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      (Object.entries(planDetails.planCategories) as Array<[DataCategory, EventBucket[]]>)
         .filter(([category, _]) => initialPlan.planCategories[category])
         .map(([category, eventBuckets]) => {
-          const currentHistory = subscription.categories[category as DataCategories];
+          const currentHistory = subscription.categories[category];
           // When introducing a new category before backfilling, the reserved value from the billing metric
           // history is not available, so we default to 0.
-          let events = currentHistory?.reserved || 0;
+          // Skip trial volumes - don't pre-fill with trial reserved amounts
+          let events = (!subscription.isTrial && currentHistory?.reserved) || 0;
 
           if (canComparePrices) {
             const price = getBucket({events, buckets: eventBuckets}).price;
             const eventsByPrice = getBucket({
               price,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               buckets: initialPlan.planCategories[category],
             }).events;
             events = Math.max(events, eventsByPrice);
@@ -425,7 +456,45 @@ class AMCheckout extends Component<Props, State> {
       },
       ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
       onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
+      selectedProducts: Object.values(SelectableProduct).reduce(
+        (acc, product) => {
+          acc[product] = {
+            enabled: false,
+          };
+          return acc;
+        },
+        {} as Record<SelectableProduct, SelectedProductData>
+      ),
     };
+
+    if (
+      isNewPayingCustomer(subscription, organization) &&
+      checkoutTier === PlanTier.AM3
+    ) {
+      // TODO(isabella): Test if this behavior works as expected on older tiers
+      data.onDemandMaxSpend = isBizPlanFamily(initialPlan)
+        ? PAYG_BUSINESS_DEFAULT
+        : PAYG_TEAM_DEFAULT;
+      data.onDemandBudget = {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: data.onDemandMaxSpend,
+      };
+    }
+
+    if (!isTrialPlan(subscription.plan)) {
+      // don't prepopulate selected products from trial state
+      subscription.reservedBudgets?.forEach(budget => {
+        if (
+          Object.values(SelectableProduct).includes(
+            budget.apiName as string as SelectableProduct
+          )
+        ) {
+          data.selectedProducts[budget.apiName as string as SelectableProduct] = {
+            enabled: budget.reservedBudget > 0,
+          };
+        }
+      });
+    }
 
     return this.getValidData(initialPlan, data);
   }
@@ -433,7 +502,7 @@ class AMCheckout extends Component<Props, State> {
   getValidData(plan: Plan, data: Omit<CheckoutFormData, 'plan'>): CheckoutFormData {
     const {subscription, organization, checkoutTier} = this.props;
 
-    const {onDemandMaxSpend, onDemandBudget} = data;
+    const {onDemandMaxSpend, onDemandBudget, selectedProducts} = data;
 
     // Verify next plan data volumes before updating form data
     // finds the approximate bucket if event level does not exist
@@ -479,6 +548,7 @@ class AMCheckout extends Component<Props, State> {
       onDemandMaxSpend: newOnDemandMaxSpend,
       onDemandBudget: newOnDemandBudget,
       reserved: nextReserved,
+      selectedProducts,
     };
   }
 
@@ -502,15 +572,15 @@ class AMCheckout extends Component<Props, State> {
 
     if (this.state.currentStep === 1) {
       trackGetsentryAnalytics('checkout.change_plan', analyticsParams);
-    } else if (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3) {
+    } else if (
+      (checkoutTier === PlanTier.AM3 && this.state.currentStep === 2) ||
+      (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 3)
+    ) {
       trackGetsentryAnalytics('checkout.ondemand_changed', {
         ...analyticsParams,
         cents: validData.onDemandMaxSpend || 0,
       });
-    } else if (
-      (checkoutTier === PlanTier.AM3 && this.state.currentStep === 3) ||
-      (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 4)
-    ) {
+    } else if (this.state.currentStep === 4) {
       trackGetsentryAnalytics('checkout.change_contract', analyticsParams);
     }
 
@@ -582,6 +652,7 @@ class AMCheckout extends Component<Props, State> {
       const isActive = currentStep === stepNumber;
       const isCompleted = !isActive && completedSteps.has(stepNumber);
       const prevStepCompleted = completedSteps.has(stepNumber - 1);
+      const isNewCheckout = hasCheckoutV3(organization); // TODO(checkout-v3): remove post-GA
 
       return (
         <CheckoutStep
@@ -592,9 +663,38 @@ class AMCheckout extends Component<Props, State> {
           isCompleted={isCompleted}
           prevStepCompleted={prevStepCompleted}
           referrer={this.referrer}
+          isNewCheckout={isNewCheckout}
         />
       );
     });
+  }
+
+  renderPartnerAlert() {
+    const {subscription} = this.props;
+
+    if (!subscription.isSelfServePartner) {
+      return null;
+    }
+
+    return (
+      <Alert.Container>
+        <Alert type="info">
+          <PartnerAlertContent>
+            <PartnerAlertTitle>
+              {tct('Billing handled externally through [partnerName]', {
+                partnerName: subscription.partner?.partnership.displayName,
+              })}
+            </PartnerAlertTitle>
+            {tct(
+              'Payments for this subscription are processed by [partnerName]. Please make sure your payment method is up to date on their platform to avoid service interruptions.',
+              {
+                partnerName: subscription.partner?.partnership.displayName,
+              }
+            )}
+          </PartnerAlertContent>
+        </Alert>
+      </Alert.Container>
+    );
   }
 
   render() {
@@ -651,7 +751,7 @@ class AMCheckout extends Component<Props, State> {
         />
         {isOnSponsoredPartnerPlan && (
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               {t(
                 'Your promotional plan with %s ends on %s.',
                 subscription.partner?.partnership.displayName,
@@ -662,9 +762,7 @@ class AMCheckout extends Component<Props, State> {
         )}
         {promotionDisclaimerText && (
           <Alert.Container>
-            <Alert type="info" showIcon>
-              {promotionDisclaimerText}
-            </Alert>
+            <Alert type="info">{promotionDisclaimerText}</Alert>
           </Alert.Container>
         )}
         <SettingsPageHeader
@@ -672,8 +770,12 @@ class AMCheckout extends Component<Props, State> {
           colorSubtitle={subscriptionDiscountInfo}
           data-test-id="change-subscription"
         />
+
         <CheckoutContainer>
-          <div data-test-id="checkout-steps">{this.renderSteps()}</div>
+          <CheckoutMain>
+            {this.renderPartnerAlert()}
+            <div data-test-id="checkout-steps">{this.renderSteps()}</div>
+          </CheckoutMain>
           <SidePanel>
             <OverviewContainer>
               {checkoutTier === PlanTier.AM3 ? (
@@ -728,7 +830,7 @@ const CheckoutContainer = styled('div')`
   gap: ${space(3)};
   grid-template-columns: 58% auto;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: auto;
   }
 `;
@@ -745,7 +847,7 @@ const SidePanel = styled('div')`
  * but keep cancel subscription button
  */
 const OverviewContainer = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
 `;
@@ -756,7 +858,7 @@ const SupportPrompt = styled(Panel)`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   align-items: center;
 `;
@@ -768,15 +870,27 @@ const CancelSubscription = styled('div')`
 `;
 
 const DisclaimerText = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   text-align: center;
   margin-bottom: ${space(1)};
 `;
 
+const PartnerAlertContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const PartnerAlertTitle = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-bottom: ${space(1)};
+`;
+
 const AnnualTerms = styled(TextBlock)`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
+
+const CheckoutMain = styled('div')``;
 
 export default withPromotions(withApi(withOrganization(withSubscription(AMCheckout))));

@@ -28,6 +28,9 @@ export function DashboardListItemFixture(
     title: 'Dashboard',
     widgetDisplay: [],
     widgetPreview: [],
+    projects: [],
+    environment: [],
+    filters: {},
     ...params,
   };
 }

@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import CancelSubscription from 'getsentry/views/cancelSubscription';
 
-describe('CancelSubscription', function () {
+describe('CancelSubscription', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     organization,
@@ -15,7 +15,7 @@ describe('CancelSubscription', function () {
     canSelfServe: true,
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
@@ -39,19 +39,17 @@ describe('CancelSubscription', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<CancelSubscription />);
     expect(
       await screen.findByRole('heading', {name: 'Cancel Subscription'})
     ).toBeInTheDocument();
     expect(
-      await screen.findByRole('radio', {
-        name: 'The project/product/company is shutting down.',
-      })
+      await screen.findByText('The project/product/company is shutting down.')
     ).toBeInTheDocument();
   });
 
-  it('can not cancel free plans', async function () {
+  it('can not cancel free plans', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'GET',
@@ -64,12 +62,12 @@ describe('CancelSubscription', function () {
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   });
 
-  it('displays followup textarea when option is selected', async function () {
+  it('displays followup textarea when option is selected', async () => {
     render(<CancelSubscription />);
 
-    const radio = await screen.findByRole('radio', {
-      name: 'The project/product/company is shutting down.',
-    });
+    const radio = await screen.findByText(
+      'The project/product/company is shutting down.'
+    );
     expect(radio).toBeInTheDocument();
 
     expect(screen.queryByRole('textbox', {name: 'followup'})).not.toBeInTheDocument();
@@ -77,13 +75,13 @@ describe('CancelSubscription', function () {
     expect(screen.getByRole('textbox', {name: /Sorry to hear that/})).toBeInTheDocument();
   });
 
-  it('calls cancel API', async function () {
+  it('calls cancel API', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'DELETE',
     });
     render(<CancelSubscription />);
-    const radio = await screen.findByRole('radio', {name: 'Other'});
+    const radio = await screen.findByText('We are switching to a different solution.');
     expect(radio).toBeInTheDocument();
 
     await userEvent.click(radio);
@@ -94,8 +92,35 @@ describe('CancelSubscription', function () {
       `/customers/${organization.slug}/`,
       expect.objectContaining({
         data: {
-          reason: 'other',
+          reason: 'competitor',
           followup: 'Cancellation reason',
+          checkboxes: [],
+        },
+      })
+    );
+  });
+
+  it('calls cancel API with checkboxes', async () => {
+    const mock = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'DELETE',
+    });
+    render(<CancelSubscription />);
+    const radio = await screen.findByText("Sentry doesn't fit our needs.");
+    expect(radio).toBeInTheDocument();
+
+    await userEvent.click(radio);
+    await userEvent.click(screen.getByTestId('checkbox-reach_out'));
+    await userEvent.type(screen.getByRole('textbox'), 'Cancellation reason');
+    await userEvent.click(screen.getByRole('button', {name: /Cancel Subscription/}));
+
+    expect(mock).toHaveBeenCalledWith(
+      `/customers/${organization.slug}/`,
+      expect.objectContaining({
+        data: {
+          reason: 'not_a_fit',
+          followup: 'Cancellation reason',
+          checkboxes: ['reach_out'],
         },
       })
     );

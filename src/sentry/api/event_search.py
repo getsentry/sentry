@@ -5,16 +5,17 @@ import re
 from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, cast, overload
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events.constants import (
     DURATION_UNITS,
+    NOT_HAS_FILTER_ERROR_MESSAGE,
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
@@ -122,10 +123,10 @@ aggregate_date_filter = negation? aggregate_key sep operator? iso_8601_date_form
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
 # has filter for not null type checks
-has_filter = negation? &"has:" search_key sep (search_key / search_value)
+has_filter = negation? &"has:" search_key sep (text_key / search_value)
 
 # is filter. Specific to issue search
-is_filter  = negation? &"is:" search_key sep search_value
+is_filter = negation? &"is:" search_key sep search_value
 
 # in filter key:[val1, val2]
 text_in_filter = negation? text_key sep text_in_list
@@ -133,19 +134,27 @@ text_in_filter = negation? text_key sep text_in_list
 # standard key:val filter
 text_filter = negation? text_key sep operator? search_value
 
-key                    = ~r"[a-zA-Z0-9_.-]+"
-quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
-explicit_flag_key       = "flags" open_bracket search_key closed_bracket
-explicit_string_flag_key = "flags" open_bracket search_key spaces comma spaces "string" closed_bracket
-explicit_number_flag_key = "flags" open_bracket search_key spaces comma spaces "number" closed_bracket
-explicit_tag_key       = "tags" open_bracket search_key closed_bracket
-explicit_string_tag_key = "tags" open_bracket search_key spaces comma spaces "string" closed_bracket
-explicit_number_tag_key = "tags" open_bracket search_key spaces comma spaces "number" closed_bracket
-aggregate_key          = key open_paren spaces function_args? spaces closed_paren
-function_args          = aggregate_param (spaces comma spaces !comma aggregate_param?)*
-aggregate_param        = quoted_aggregate_param / raw_aggregate_param
-raw_aggregate_param    = ~r"[^()\t\n, \"]+"
-quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
+key         = ~r"[a-zA-Z0-9_.-]+"
+escaped_key = ~r"[a-zA-Z0-9_.:-]+"
+quoted_key  = '"' escaped_key '"'
+
+# the quoted variant is here to for backwards compatibility,
+# and can be removed once we're sure it's no longer in use
+explicit_flag_key         = "flags" open_bracket escaped_key closed_bracket
+explicit_string_flag_key  = "flags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
+explicit_number_flag_key  = "flags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
+
+explicit_tag_key        = "tags" open_bracket escaped_key closed_bracket
+explicit_string_tag_key = "tags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
+explicit_number_tag_key = "tags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
+
+aggregate_key                    = key open_paren spaces function_args? spaces closed_paren
+function_args                    = aggregate_param (spaces comma spaces !comma aggregate_param?)*
+aggregate_param                  = explicit_tag_key_aggregate_param / quoted_aggregate_param / raw_aggregate_param
+raw_aggregate_param              = ~r"[^()\t\n, \"]+"
+quoted_aggregate_param           = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
+explicit_tag_key_aggregate_param = explicit_tag_key / explicit_number_tag_key / explicit_string_tag_key
+
 search_key             = explicit_number_flag_key / explicit_number_tag_key / key / quoted_key
 text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
@@ -176,7 +185,7 @@ duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") 
 size_format          = numeric (size_unit) &end_value
 percentage_format    = numeric "%"
 
-numeric_unit        = ~r"[kmb]"i
+numeric_unit         = ~r"[kmb]"i
 size_unit            = bits / bytes
 bits                 = ~r"bit|kib|mib|gib|tib|pib|eib|zib|yib"i
 bytes                = ~r"bytes|nb|kb|mb|gb|tb|pb|eb|zb|yb"i
@@ -322,9 +331,9 @@ def remove_optional_nodes[T](children: list[T]) -> list[T]:
     ]
 
 
-def process_list[
-    T
-](first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]) -> list[T]:
+def process_list[T](
+    first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]
+) -> list[T]:
     # Empty values become blank nodes
     if any(isinstance(item[4], Node) for item in remaining):
         raise InvalidSearchQuery("Lists should not have empty values")
@@ -414,11 +423,15 @@ def _is_wildcard(raw_value: object) -> TypeIs[str]:
 
 class SearchValue(NamedTuple):
     raw_value: str | float | datetime | Sequence[float] | Sequence[str]
+    # Used for top events where we don't want to modify the raw value at all
+    use_raw_value: bool = False
 
     @property
     def value(self) -> Any:
-        if _is_wildcard(self.raw_value):
-            return translate_wildcard(self.raw_value)
+        if self.use_raw_value:
+            return self.raw_value
+        elif self.is_wildcard():
+            return translate_wildcard(cast(str, self.raw_value))
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
         return self.raw_value
@@ -437,7 +450,27 @@ class SearchValue(NamedTuple):
             return str(self.value)
 
     def is_wildcard(self) -> bool:
+        # If we're using the raw value only it'll never be a wildcard
+        if self.use_raw_value:
+            return False
         return _is_wildcard(self.raw_value)
+
+    def is_str_sequence(self) -> bool:
+        return isinstance(self.raw_value, list) and all(isinstance(e, str) for e in self.raw_value)
+
+    def split_wildcards(self) -> tuple[list[str], list[str]] | None:
+        if not self.is_str_sequence():
+            return None
+        wildcards = []
+        non_wildcards = []
+        assert isinstance(self.raw_value, list)
+        for s in self.raw_value:
+            assert isinstance(s, str)
+            if _is_wildcard(s) is True:
+                wildcards.append(s)
+            else:
+                non_wildcards.append(s)
+        return (non_wildcards, wildcards)
 
     def classify_and_format_wildcard(
         self,
@@ -550,32 +583,16 @@ class AggregateKey(NamedTuple):
     name: str
 
 
-# https://github.com/python/mypy/issues/18520
-# without this mypy thinks that AggregateFilter and SearchFilter are
-# structurally equivalent and will refuse to narrow them
-if TYPE_CHECKING:
+class AggregateFilter(NamedTuple):
+    key: AggregateKey
+    operator: str
+    value: SearchValue
 
-    class AggregateFilter(NamedTuple):
-        key: AggregateKey
-        operator: str
-        value: SearchValue
-        DO_NOT_USE_ME_I_AM_FOR_MYPY: bool = True
+    def to_query_string(self) -> str:
+        return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
 
-        def to_query_string(self) -> str:
-            return ""
-
-else:  # real implementation here!
-
-    class AggregateFilter(NamedTuple):
-        key: AggregateKey
-        operator: str
-        value: SearchValue
-
-        def to_query_string(self) -> str:
-            return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
-
-        def __str__(self) -> str:
-            return f"{self.key.name}{self.operator}{self.value.raw_value}"
+    def __str__(self) -> str:
+        return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
 @dataclass  # pycqa/pycodestyle#1277
@@ -623,11 +640,15 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
     # Whether to wrap free_text_keys in asterisks
     wildcard_free_text: bool = False
 
+    # Disallow the use of the !has filter
+    allow_not_has_filter: bool = True
+
     @overload
     @classmethod
-    def create_from[
-        TBool: (Literal[True], Literal[False])
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[Any],
         *,
@@ -637,9 +658,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[
-        TBool: (Literal[True], Literal[False])
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[TBool],
         **overrides: Any,
@@ -660,7 +682,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
     # a way to represent positional-heterogenous lists -- but they are
     # actually lists
 
-    unwrapped_exceptions = (InvalidSearchQuery,)
+    unwrapped_exceptions = (InvalidSearchQuery, IncompatibleMetricsQuery)
 
     def __init__(
         self,
@@ -1221,6 +1243,16 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         # the key is has here, which we don't need
         negation, _, _, _, (search_key,) = children
 
+        # Some datasets do not support the !has filter, but we allow
+        # team_key_transaction because we control that field and special
+        # case the way it's processed in search
+        if (
+            not self.config.allow_not_has_filter
+            and is_negated(negation)
+            and search_key.name != TEAM_KEY_TRANSACTION_ALIAS
+        ):
+            raise IncompatibleMetricsQuery(NOT_HAS_FILTER_ERROR_MESSAGE)
+
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):
             raise InvalidSearchQuery(
@@ -1317,8 +1349,11 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
     def visit_key(self, node: Node, children: object) -> str:
         return node.text
 
-    def visit_quoted_key(self, node: Node, children: tuple[Node, Node, Node]) -> str:
-        return children[1].text
+    def visit_escaped_key(self, node: Node, children: object) -> str:
+        return node.text
+
+    def visit_quoted_key(self, node: Node, children: tuple[Node, str, Node]) -> str:
+        return children[1]
 
     def visit_explicit_tag_key(
         self,
@@ -1326,11 +1361,11 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         children: tuple[
             Node,  # "tags"
             str,  # '['
-            SearchKey,
+            str,  # escaped_key
             str,  # ']'
         ],
     ) -> SearchKey:
-        return SearchKey(f"tags[{children[2].name}]")
+        return SearchKey(f"tags[{children[2]}]")
 
     def visit_explicit_string_tag_key(
         self,
@@ -1338,7 +1373,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         children: tuple[
             Node,  # "tags"
             str,  # '['
-            SearchKey,
+            str,  # escaped_key
             str,  # ' '
             Node,  # ','
             str,  # ' '
@@ -1346,7 +1381,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             str,  # ']'
         ],
     ) -> SearchKey:
-        return SearchKey(f"tags[{children[2].name},string]")
+        return SearchKey(f"tags[{children[2]},string]")
 
     def visit_explicit_number_tag_key(
         self,
@@ -1354,7 +1389,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         children: tuple[
             Node,  # "tags"
             str,  # '['
-            SearchKey,
+            str,  # escaped_key
             str,  # ' '
             Node,  # ','
             str,  # ' '
@@ -1362,7 +1397,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             str,  # ']'
         ],
     ) -> SearchKey:
-        return SearchKey(f"tags[{children[2].name},number]")
+        return SearchKey(f"tags[{children[2]},number]")
 
     def visit_explicit_flag_key(
         self,
@@ -1370,11 +1405,11 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         children: tuple[
             Node,  # "flags"
             str,  # [
-            SearchKey,
+            str,  # escaped_key
             str,  # ]
         ],
     ) -> SearchKey:
-        return SearchKey(f"flags[{children[2].name}]")
+        return SearchKey(f"flags[{children[2]}]")
 
     def visit_explicit_string_flag_key(
         self,
@@ -1382,7 +1417,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         children: tuple[
             Node,  # "flags"
             str,  # '['
-            SearchKey,
+            str,  # escaped_key
             str,  # ' '
             Node,  # ','
             str,  # ' '
@@ -1390,7 +1425,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             str,  # ']'
         ],
     ) -> SearchKey:
-        return SearchKey(f"flags[{children[2].name},string]")
+        return SearchKey(f"flags[{children[2]},string]")
 
     def visit_explicit_number_flag_key(
         self,
@@ -1398,7 +1433,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         children: tuple[
             Node,  # "flags"
             str,  # '['
-            SearchKey,
+            str,  # escaped_key
             str,  # ' '
             Node,  # ','
             str,  # ' '
@@ -1406,7 +1441,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             str,  # ']'
         ],
     ) -> SearchKey:
-        return SearchKey(f"flags[{children[2].name},number]")
+        return SearchKey(f"flags[{children[2]},number]")
 
     def visit_aggregate_key(
         self,
@@ -1464,6 +1499,13 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             value = "".join(node.text for node in flatten(children[1]))
 
         return f'"{value}"'
+
+    def visit_explicit_tag_key_aggregate_param(
+        self,
+        node: Node,
+        children: tuple[SearchKey],
+    ) -> str:
+        return children[0].name
 
     def visit_search_key(self, node: Node, children: tuple[str | SearchKey]) -> SearchKey:
         key = children[0]
@@ -1658,6 +1700,7 @@ default_config = SearchConfig(
         "error.main_thread",
         "stack.in_app",
         "is_application",
+        "symbolicated_in_app",
         TEAM_KEY_TRANSACTION_ALIAS,
     },
 )

@@ -22,7 +22,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
-    MonitorType,
     ScheduleType,
 )
 from sentry.monitors.system_incidents import DecisionResult, TickAnomalyDecision
@@ -118,7 +117,7 @@ def test_incident_mark_unknown(
 
 class MonitorsClockTickEndToEndTest(TestCase):
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    def test_end_to_end(self):
+    def test_end_to_end(self) -> None:
         ts = timezone.now().replace(second=0, microsecond=0)
 
         broker: LocalBroker[KafkaPayload] = LocalBroker(MemoryMessageStorage())
@@ -134,7 +133,6 @@ class MonitorsClockTickEndToEndTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": "* * * * *",
                 "schedule_type": ScheduleType.CRONTAB,

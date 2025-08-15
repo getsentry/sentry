@@ -2,31 +2,34 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import type {TabListItemProps} from 'sentry/components/core/tabs';
+import {TabList} from 'sentry/components/core/tabs';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import {TabList} from 'sentry/components/tabs';
-import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
-  type RoutableModuleNames,
   useModuleURLBuilder,
+  type RoutableModuleNames,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   isModuleConsideredNew,
   isModuleEnabled,
+  isModuleInBeta,
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
-import type {ModuleName} from 'sentry/views/insights/types';
+import FeedbackButtonTour from 'sentry/views/insights/sessions/components/tour/feedbackButtonTour';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
   domainBaseUrl: string;
@@ -57,7 +60,13 @@ export function DomainViewHeader({
   const organization = useOrganization();
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
-  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
+  const isNextJsInsightsAvailable = useIsNextJsInsightsAvailable();
+  const {view, isInOverviewPage} = useDomainViewFilters();
+
+  const isLaravelInsights = isLaravelInsightsAvailable && isInOverviewPage;
+  const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
+  const isAgentMonitoring = view === 'ai';
 
   const crumbs: Crumb[] = [
     {
@@ -71,7 +80,9 @@ export function DomainViewHeader({
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
-  const globalQuery = extractSelectionParameters(location?.query);
+  const globalQuery = {
+    ...extractSelectionParameters(location?.query),
+  };
 
   const tabList: TabListItemProps[] = [
     ...(hasOverviewPage
@@ -96,6 +107,19 @@ export function DomainViewHeader({
       })),
   ];
 
+  const feedbackOptions =
+    isAgentMonitoring || isLaravelInsights || isNextJsInsights
+      ? {
+          tags: {
+            ['feedback.source']: isAgentMonitoring
+              ? 'agent-monitoring'
+              : isLaravelInsights
+                ? 'laravel-insights'
+                : 'nextjs-insights',
+            ['feedback.owner']: 'telemetry-experience',
+          },
+        }
+      : undefined;
   return (
     <Fragment>
       <Layout.Header>
@@ -104,19 +128,12 @@ export function DomainViewHeader({
           <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton
-              optionOverrides={
-                isLaravelInsightsEnabled
-                  ? {
-                      tags: {
-                        ['feedback.source']: 'laravel-insights',
-                        ['feedback.owner']: 'telemetry-experience',
-                      },
-                    }
-                  : undefined
-              }
-            />
+          <ButtonBar>
+            {selectedModule === ModuleName.SESSIONS ? (
+              <FeedbackButtonTour />
+            ) : (
+              <FeedbackWidgetButton optionOverrides={feedbackOptions} />
+            )}
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
@@ -128,7 +145,7 @@ export function DomainViewHeader({
               ))}
             </TabList>
           )}
-          {hideDefaultTabs && tabs && tabs.tabList}
+          {hideDefaultTabs && tabs?.tabList}
         </Layout.HeaderTabs>
       </Layout.Header>
     </Fragment>
@@ -144,11 +161,15 @@ function TabLabel({moduleName}: TabLabelProps) {
   const organization = useOrganization();
   const showBusinessIcon = !isModuleEnabled(moduleName, organization);
 
-  if (showBusinessIcon || isModuleConsideredNew(moduleName)) {
+  const hasTrailingBadge =
+    showBusinessIcon || isModuleConsideredNew(moduleName) || isModuleInBeta(moduleName);
+
+  if (hasTrailingBadge) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
-        {isModuleConsideredNew(moduleName) && <Badge type="new">{t('New')}</Badge>}
+        {isModuleConsideredNew(moduleName) && <FeatureBadge type="new" />}
+        {isModuleInBeta(moduleName) && <FeatureBadge type="beta" />}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
     );
@@ -161,5 +182,5 @@ const TabContainer = styled('div')`
   display: inline-flex;
   align-items: center;
   text-align: left;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
 `;

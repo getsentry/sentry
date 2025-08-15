@@ -22,7 +22,7 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   right: 100%;
   border-radius: 3px 0 0 3px;
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: none;
   }
 `;

@@ -1,10 +1,10 @@
 import type {CSSProperties} from 'react';
-import {forwardRef, useCallback} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
@@ -26,24 +26,23 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   startTimestampMs: number;
   style: CSSProperties;
   expandPaths?: string[];
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-const ConsoleLogRow = forwardRef<HTMLDivElement, Props>(function ConsoleLogRow(
-  {
-    currentHoverTime,
-    currentTime,
-    expandPaths,
-    frame,
-    onMouseEnter,
-    onMouseLeave,
-    index,
-    onClickTimestamp,
-    onDimensionChange,
-    startTimestampMs,
-    style,
-  },
-  ref
-) {
+function ConsoleLogRow({
+  currentHoverTime,
+  currentTime,
+  expandPaths,
+  frame,
+  onMouseEnter,
+  onMouseLeave,
+  index,
+  onClickTimestamp,
+  onDimensionChange,
+  startTimestampMs,
+  style,
+  ref,
+}: Props) {
   const handleDimensionChange = useCallback(
     (path: any, expandedState: any) => onDimensionChange?.(index, path, expandedState),
     [onDimensionChange, index]
@@ -88,7 +87,7 @@ const ConsoleLogRow = forwardRef<HTMLDivElement, Props>(function ConsoleLogRow(
       />
     </ConsoleLog>
   );
-});
+}
 
 export default ConsoleLogRow;
 
@@ -101,7 +100,7 @@ const ConsoleLog = styled('div')<{
   gap: ${space(0.75)};
   align-items: baseline;
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   background-color: ${p =>
     ['warning', 'error'].includes(String(p.level))
@@ -140,7 +139,7 @@ const ICONS = {
 };
 
 const MediumFontSize = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 function ConsoleLevelIcon({level}: {level: string | undefined}) {

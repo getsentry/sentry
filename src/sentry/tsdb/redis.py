@@ -13,7 +13,14 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes
 from redis.client import Script
 
-from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBItem, TSDBKey, TSDBModel
+from sentry.tsdb.base import (
+    BaseTSDB,
+    IncrMultiOptions,
+    SnubaCondition,
+    TSDBItem,
+    TSDBKey,
+    TSDBModel,
+)
 from sentry.utils.dates import to_datetime
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_redis_script
 from sentry.utils.versioning import Version
@@ -315,6 +322,9 @@ class RedisTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        group_on_time: bool = True,
+        aggregation_override: str | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -491,6 +501,7 @@ class RedisTSDB(BaseTSDB):
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[int, list[tuple[int, Any]]]:
         """
         Fetch counts of distinct items for each rollup interval within the range.
@@ -521,7 +532,7 @@ class RedisTSDB(BaseTSDB):
     def get_distinct_counts_totals(
         self,
         model: TSDBModel,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
@@ -530,8 +541,10 @@ class RedisTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, int | str] | None = None,
         referrer_suffix: str | None = None,
-        conditions: list[tuple[str, str, str]] | None = None,
-    ) -> dict[int, Any]:
+        conditions: list[SnubaCondition] | None = None,
+        group_on_time: bool = False,
+        project_ids: Sequence[int] | None = None,
+    ) -> Mapping[TSDBKey, int]:
         """
         Count distinct items during a time range.
         """
@@ -742,6 +755,7 @@ class RedisTSDB(BaseTSDB):
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
         self.validate_arguments([model], [environment_id])
 

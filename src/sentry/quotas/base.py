@@ -401,6 +401,13 @@ class Quota(Service):
         """
         return _limit_from_settings(options.get("system.event-retention-days"))
 
+    def get_downsampled_event_retention(self, organization):
+        """
+        Returns the retention for downsampled events in the given organization in days.
+        Returning ``0`` means downsampled event retention will default to the value of ``get_event_retention``.
+        """
+        return 0
+
     def validate(self):
         """
         Validates that the quota service is operational.
@@ -446,14 +453,6 @@ class Quota(Service):
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
-                id="pati",
-                option="project-abuse-quota.transaction-limit",
-                compat_option_org="sentry:project-transaction-limit",
-                compat_option_sentry="getsentry.rate-limit.project-transactions",
-                categories=[index_data_category("transaction", org)],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
                 id="paa",
                 option="project-abuse-quota.attachment-limit",
                 categories=[DataCategory.ATTACHMENT],
@@ -469,12 +468,6 @@ class Quota(Service):
                 id="pas",
                 option="project-abuse-quota.session-limit",
                 categories=[DataCategory.SESSION],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
-                id="paspi",
-                option="project-abuse-quota.span-limit",
-                categories=[DataCategory.SPAN_INDEXED],
                 scope=QuotaScope.PROJECT,
             ),
         ]
@@ -683,7 +676,12 @@ class Quota(Service):
 
     def disable_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
         """
-        Removes an object from it's assigned seat.
+        Disables an assigned seat.
+        """
+
+    def remove_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+        """
+        Removes an assigned seat.
         """
 
     def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
@@ -725,3 +723,35 @@ class Quota(Service):
             new_role: The member's new role after the change
         """
         pass
+
+    def has_available_reserved_budget(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Determines if the organization has enough reserved budget for the given data category operation.
+        """
+        return True
+
+    def record_seer_run(self, org_id: int, project_id: int, data_category: DataCategory) -> None:
+        """
+        Records a seer run for an organization.
+        """
+        return
+
+    def has_profile_duration_quota(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Determines if the organization has quota available for the given data category.
+
+        Args:
+            org_id: The ID of the organization to check
+            data_category: The data category to check quota for.
+
+        Returns:
+            bool: True if the organization has quota available, False otherwise.
+                  Always False if data category is not a profile duration category.
+        """
+        return True
+
+    def get_dashboard_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of dashboards allowed for the organization's plan type.
+        """
+        return -1

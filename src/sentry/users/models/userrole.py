@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any
 
 from django.conf import settings
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 from django.utils import timezone
 
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import ArrayField, control_silo_model, sane_repr
+from sentry.db.models import control_silo_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.hybridcloud.models.outbox import ControlOutboxBase
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
@@ -34,7 +34,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     name = models.CharField(max_length=MAX_USER_ROLE_NAME_LENGTH, unique=True)
-    permissions: models.Field[Sequence[str], list[str]] = ArrayField()
+    permissions = ArrayField(models.TextField(), default=list)
     users = models.ManyToManyField("sentry.User", through="sentry.UserRoleUser")
 
     class Meta:

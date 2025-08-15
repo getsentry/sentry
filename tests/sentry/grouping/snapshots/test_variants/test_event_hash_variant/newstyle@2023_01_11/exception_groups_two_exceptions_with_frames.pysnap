@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:10.924364+00:00'
+created: '2025-05-12T23:41:02.990228+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,12 +11,12 @@ app:
       chained-exception*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "dostuff"
               function*
                 "do_stuff"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "dostuff"
               function*
@@ -27,12 +27,12 @@ app:
             "Can't do the stuff"
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "dostuff"
               function*
                 "do_other_stuff"
-            frame (ignored due to recursion)
+            frame (marked in-app by the client but ignored due to recursion)
               module*
                 "dostuff"
               function*

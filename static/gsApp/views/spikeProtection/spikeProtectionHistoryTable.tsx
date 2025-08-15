@@ -2,9 +2,10 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import DiscoverButton from 'sentry/components/discoverButton';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Panel from 'sentry/components/panels/panel';
@@ -22,6 +23,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {
   formatUsageWithUnits,
   getFormatUsageOptions,
@@ -158,7 +160,10 @@ class SpikeProtectionHistoryTable extends Component<Props> {
             })
           }
           to={{
-            pathname: `/organizations/${organization.slug}/discover/homepage/`,
+            pathname: makeDiscoverPathname({
+              organization,
+              path: '/homepage/',
+            }),
             query: {
               project: [project.id],
               start: decodeScalar(spike.start),
@@ -272,7 +277,7 @@ const SectionHeading = styled('div')`
 
 const Title = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.gray400};
   display: flex;
   flex: 1;
@@ -295,7 +300,7 @@ const EmptySpikeHistory = styled(Panel)`
   text-align: center;
   padding: ${space(4)} ${space(2)};
   b {
-    font-size: ${p => p.theme.fontSizeLarge};
+    font-size: ${p => p.theme.fontSize.lg};
     margin-bottom: ${space(1)};
   }
   p:last-child {

@@ -5,7 +5,7 @@ from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -28,23 +28,19 @@ class TestTaggedEventCondition(ConditionTestCase):
         )
         return event
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.event = self.get_event()
         self.group = self.create_group(project=self.project)
         self.group_event = self.event.for_group(self.group)
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-            }
-        )
+        self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"},
             condition_result=True,
         )
 
-    def test_dual_write(self):
+    def test_dual_write(self) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
@@ -73,7 +69,7 @@ class TestTaggedEventCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    def test_dual_write_filter(self):
+    def test_dual_write_filter(self) -> None:
         self.payload["id"] = TaggedEventFilter.id
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
@@ -103,7 +99,7 @@ class TestTaggedEventCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    def test_json_schema(self):
+    def test_json_schema(self) -> None:
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"}
         )
@@ -157,11 +153,11 @@ class TestTaggedEventCondition(ConditionTestCase):
         with pytest.raises(ValidationError):
             self.dc.save()
 
-    def test_equals(self):
+    def test_equals(self) -> None:
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"}
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -170,9 +166,9 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry.other.example",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_does_not_equal(self):
+    def test_does_not_equal(self) -> None:
         self.dc.comparison.update(
             {
                 "match": MatchType.NOT_EQUAL,
@@ -180,7 +176,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry.example",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -189,9 +185,9 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry.other.example",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
-    def test_starts_with(self):
+    def test_starts_with(self) -> None:
         self.dc.comparison.update(
             {
                 "match": MatchType.STARTS_WITH,
@@ -199,14 +195,14 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry.",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.STARTS_WITH, "key": "logger", "value": "bar."}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_does_not_start_with(self):
+    def test_does_not_start_with(self) -> None:
         self.dc.comparison.update(
             {
                 "match": MatchType.NOT_STARTS_WITH,
@@ -214,7 +210,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry.",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -223,9 +219,9 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "bar.",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
-    def test_ends_with(self):
+    def test_ends_with(self) -> None:
         self.dc.comparison.update(
             {
                 "match": MatchType.ENDS_WITH,
@@ -233,12 +229,12 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": ".example",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.ENDS_WITH, "key": "logger", "value": ".foo"})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_does_not_end_with(self):
+    def test_does_not_end_with(self) -> None:
         self.dc.comparison.update(
             {
                 "match": MatchType.NOT_ENDS_WITH,
@@ -246,7 +242,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": ".example",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -255,9 +251,9 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": ".foo",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
-    def test_contains(self):
+    def test_contains(self) -> None:
         self.dc.comparison.update(
             {
                 "match": MatchType.CONTAINS,
@@ -265,14 +261,14 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.CONTAINS, "key": "logger", "value": "bar.foo"}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_does_not_contain(self):
+    def test_does_not_contain(self) -> None:
         self.dc.comparison.update(
             {
                 "match": MatchType.NOT_CONTAINS,
@@ -280,7 +276,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -289,23 +285,23 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "bar.foo",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
-    def test_is_set(self):
+    def test_is_set(self) -> None:
         self.dc.comparison.update({"match": MatchType.IS_SET, "key": "logger"})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.IS_SET, "key": "missing"})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_is_not_set(self):
+    def test_is_not_set(self) -> None:
         self.dc.comparison.update({"match": MatchType.NOT_SET, "key": "logger"})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.NOT_SET, "key": "missing"})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
-    def test_is_in(self):
+    def test_is_in(self) -> None:
         self.dc.comparison.update(
             {
                 "match": MatchType.IS_IN,
@@ -313,7 +309,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "bar.foo, wee, wow",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -322,9 +318,9 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "foo.bar",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
-    def test_not_in(self):
+    def test_not_in(self) -> None:
         self.dc.comparison.update(
             {
                 "match": MatchType.NOT_IN,
@@ -332,7 +328,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "bar.foo, wee, wow",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -341,4 +337,4 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "foo.bar",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)

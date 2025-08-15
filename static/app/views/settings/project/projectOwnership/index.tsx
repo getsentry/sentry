@@ -1,12 +1,14 @@
+import {useTheme} from '@emotion/react';
+
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
@@ -15,10 +17,10 @@ import type {IssueOwnership} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,6 +33,7 @@ import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnershi
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 export default function ProjectOwnership({project}: {project: Project}) {
+  const theme = useTheme();
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const ownershipTitle = t('Ownership Rules');
@@ -116,7 +119,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
       <SettingsPageHeader
         title={t('Ownership Rules')}
         action={
-          <ButtonBar gap={1}>
+          <ButtonBar>
             {hasCodeowners && (
               <Access access={['org:integrations']} project={project}>
                 {({hasAccess}) => (
@@ -142,6 +145,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
                   project,
                   ownership: ownership!,
                   onSave: handleOwnershipSave,
+                  theme,
                 })
               }
               disabled={!!ownership && editOwnershipRulesDisabled}
@@ -167,7 +171,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
       />
       {isCodeownersError && (
         <Alert.Container>
-          <Alert type="error">
+          <Alert type="error" showIcon={false}>
             {t(
               "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
             )}
@@ -247,7 +251,9 @@ export default function ProjectOwnership({project}: {project: Project}) {
         </Form>
       ) : (
         <Alert.Container>
-          <Alert type="error">{t('There was an error issue owner settings.')}</Alert>
+          <Alert type="error" showIcon={false}>
+            {t('There was an error issue owner settings.')}
+          </Alert>
         </Alert.Container>
       )}
     </SentryDocumentTitle>

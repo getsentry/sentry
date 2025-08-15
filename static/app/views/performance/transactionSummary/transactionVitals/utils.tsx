@@ -10,11 +10,7 @@ import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transaction
 
 import type {Point, Rectangle} from './types';
 
-export function generateVitalsRoute({
-  organization,
-}: {
-  organization: Organization;
-}): string {
+function generateVitalsRoute({organization}: {organization: Organization}): string {
   return `${getTransactionSummaryBaseUrl(organization)}/vitals/`;
 }
 

@@ -6,17 +6,16 @@ import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import ReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPauseButton';
 import ReplayPreferenceDropdown from 'sentry/components/replays/preferences/replayPreferenceDropdown';
-import SideBySide from 'sentry/components/stories/sideBySide';
 import {StructuredData} from 'sentry/components/structuredEventData';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {useReplayPlayerState} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 
-export default storyBook('ReplayPlayer', story => {
+export default Storybook.story('ReplayPlayer', story => {
   story('Default', () => {
     function Example() {
       return (
-        <SideBySide>
+        <Storybook.SideBySide>
           <ReplayPlayPauseButton />
           <ReplayCurrentTime />
           <ReplayPreferenceDropdown speedOptions={[0.5, 1, 2, 8]} />
@@ -28,7 +27,7 @@ export default storyBook('ReplayPlayer', story => {
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>
-        </SideBySide>
+        </Storybook.SideBySide>
       );
     }
     return (

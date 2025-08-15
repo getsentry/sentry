@@ -232,7 +232,10 @@ def query_replays_dataset_tagkey_values(
     if tag_substr_query:
         where.append(
             Condition(
-                Function("positionCaseInsensitive", parameters=[grouped_column, tag_substr_query]),
+                Function(
+                    "positionCaseInsensitive",
+                    parameters=[grouped_column, tag_substr_query],
+                ),
                 Op.NEQ,
                 0,
             )
@@ -269,7 +272,9 @@ def query_replays_dataset_tagkey_values(
         tenant_ids=tenant_ids,
     )
     return raw_snql_query(
-        snuba_request, referrer="replays.query.query_replays_dataset_tagkey_values", use_cache=True
+        snuba_request,
+        referrer="replays.query.query_replays_dataset_tagkey_values",
+        use_cache=True,
     )
 
 
@@ -280,7 +285,10 @@ def anyIfNonZeroIP(
 ) -> Function:
     return Function(
         "anyIf",
-        parameters=[Column(column_name), Function("greater", parameters=[Column(column_name), 0])],
+        parameters=[
+            Column(column_name),
+            Function("greater", parameters=[Column(column_name), 0]),
+        ],
         alias=alias or column_name if aliased else None,
     )
 
@@ -305,7 +313,8 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
         "arrayMap",
         parameters=[
             Lambda(
-                ["url_tuple"], Function("tupleElement", parameters=[Identifier("url_tuple"), 2])
+                ["url_tuple"],
+                Function("tupleElement", parameters=[Identifier("url_tuple"), 2]),
             ),
             agg_urls_column,
         ],
@@ -314,7 +323,8 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
         "arrayMap",
         parameters=[
             Lambda(
-                ["url_tuple"], Function("tupleElement", parameters=[Identifier("url_tuple"), 1])
+                ["url_tuple"],
+                Function("tupleElement", parameters=[Identifier("url_tuple"), 1]),
             ),
             agg_urls_column,
         ],
@@ -350,8 +360,11 @@ replay_url_parser_config = SearchConfig(
         "activity",
         "count_warnings",
         "count_infos",
+        "count_traces",
+        "count_screens",
     },
     duration_keys={"duration"},
+    boolean_keys={"is_archived"},
 )
 
 
@@ -447,7 +460,11 @@ def _collect_event_ids(alias, ids_type_list):
         parameters=[
             Lambda(
                 ["error_id_no_dashes"],
-                _strip_uuid_dashes("error_id_no_dashes", Identifier("error_id_no_dashes")),
+                _strip_uuid_dashes(
+                    "error_id_no_dashes",
+                    Identifier("error_id_no_dashes"),
+                    aliased=False,
+                ),
             ),
             Function("flatten", [id_types_to_aggregate]),
         ],
@@ -555,12 +572,21 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "browser": ["browser_name", "browser_version"],
     "device": ["device_name", "device_brand", "device_family", "device_model"],
     "sdk": ["sdk_name", "sdk_version"],
+    "ota_updates": [
+        "ota_updates_channel",
+        "ota_updates_runtime_version",
+        "ota_updates_update_id",
+    ],
     "tags": ["tk", "tv"],
     # Nested fields.  Useful for selecting searchable fields.
     "user.id": ["user_id"],
     "user.email": ["user_email"],
     "user.username": ["user_username"],
     "user.ip": ["user_ip"],
+    "user.geo.city": ["user_geo_city"],
+    "user.geo.country_code": ["user_geo_country_code"],
+    "user.geo.region": ["user_geo_region"],
+    "user.geo.subdivision": ["user_geo_subdivision"],
     "os.name": ["os_name"],
     "os.version": ["os_version"],
     "browser.name": ["browser_name"],
@@ -571,6 +597,9 @@ FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "device.model": ["device_model"],
     "sdk.name": ["sdk_name"],
     "sdk.version": ["sdk_version"],
+    "ota_updates.channel": ["ota_updates_channel"],
+    "ota_updates.runtime_version": ["ota_updates_runtime_version"],
+    "ota_updates.update_id": ["ota_updates_update_id"],
     # Click actions
     "click.alt": ["click.alt"],
     "click.label": ["click.aria_label"],
@@ -623,7 +652,10 @@ QUERY_ALIAS_COLUMN_MAP = {
     "replay_id": Column("replay_id"),
     "agg_project_id": Function(
         "anyIf",
-        parameters=[Column("project_id"), Function("equals", parameters=[Column("segment_id"), 0])],
+        parameters=[
+            Column("project_id"),
+            Function("equals", parameters=[Column("segment_id"), 0]),
+        ],
         alias="agg_project_id",
     ),
     "trace_ids": Function(
@@ -713,6 +745,10 @@ QUERY_ALIAS_COLUMN_MAP = {
         parameters=[anyIfNonZeroIP(column_name="ip_address_v4", aliased=False)],
         alias="user_ip",
     ),
+    "user_geo_city": anyIf(column_name="user_geo_city"),
+    "user_geo_country_code": anyIf(column_name="user_geo_country_code"),
+    "user_geo_region": anyIf(column_name="user_geo_region"),
+    "user_geo_subdivision": anyIf(column_name="user_geo_subdivision"),
     "os_name": anyIf(column_name="os_name"),
     "os_version": anyIf(column_name="os_version"),
     "browser_name": anyIf(column_name="browser_name"),
@@ -723,6 +759,9 @@ QUERY_ALIAS_COLUMN_MAP = {
     "device_model": anyIf(column_name="device_model"),
     "sdk_name": anyIf(column_name="sdk_name"),
     "sdk_version": anyIf(column_name="sdk_version"),
+    "ota_updates_channel": anyIf(column_name="ota_updates_channel"),
+    "ota_updates_runtime_version": anyIf(column_name="ota_updates_runtime_version"),
+    "ota_updates_update_id": anyIf(column_name="ota_updates_update_id"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
     "click.alt": Function("groupArray", parameters=[Column("click_alt")], alias="click_alt"),
@@ -744,7 +783,9 @@ QUERY_ALIAS_COLUMN_MAP = {
     "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
     "click.component_name": Function(
-        "groupArray", parameters=[Column("click_component_name")], alias="click_component_name"
+        "groupArray",
+        parameters=[Column("click_component_name")],
+        alias="click_component_name",
     ),
     "error_ids": _collect_new_errors(),
     "warning_ids": _collect_event_ids("warning_ids", ["warning_id"]),

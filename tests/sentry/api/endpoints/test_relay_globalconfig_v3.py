@@ -58,7 +58,7 @@ def call_endpoint(client, relay, private_key):
         },
     }
 )
-def test_global_config():
+def test_global_config() -> None:
     config = get_global_config()
 
     normalized = normalize_global_config(config)
@@ -66,6 +66,10 @@ def test_global_config():
     # It is not allowed to specify `None` as default for an option.
     if not config["options"]["relay.span-normalization.allowed_hosts"]:
         del config["options"]["relay.span-normalization.allowed_hosts"]
+
+    # The sentry_relay's normalize_global_config doesn't handle relay.drop-transaction-attachments option yet
+    if "relay.drop-transaction-attachments" in config["options"]:
+        del config["options"]["relay.drop-transaction-attachments"]
 
     assert normalized == config
 
@@ -119,12 +123,12 @@ def test_return_global_config_on_right_version(
     },
 )
 @patch("sentry.relay.globalconfig.RELAY_OPTIONS", [])
-def test_global_config_valid_with_generic_filters():
+def test_global_config_valid_with_generic_filters() -> None:
     config = get_global_config()
     assert config == normalize_global_config(config)
 
 
 @django_db_all
-def test_global_config_histogram_outliers(insta_snapshot):
+def test_global_config_histogram_outliers(insta_snapshot) -> None:
     config = get_global_config()
     insta_snapshot(config["metricExtraction"])

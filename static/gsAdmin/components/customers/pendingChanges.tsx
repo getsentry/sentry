@@ -9,7 +9,7 @@ import {DataCategory} from 'sentry/types/core';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {usePlanMigrations} from 'getsentry/hooks/usePlanMigrations';
-import type {DataCategories, Plan, PlanMigration, Subscription} from 'getsentry/types';
+import type {Plan, PlanMigration, Subscription} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
@@ -117,16 +117,13 @@ function getRegularChanges(subscription: Subscription) {
     changes.push(`Billing period — ${old} → ${change}`);
   }
 
-  if (
-    pendingChanges.reservedEvents !== subscription.reservedEvents ||
-    pendingChanges.reserved.errors !== subscription.categories.errors?.reserved
-  ) {
+  if (pendingChanges.reserved.errors !== subscription.categories.errors?.reserved) {
     const old = formatReservedWithUnits(
-      subscription.reservedEvents || (subscription.categories.errors?.reserved ?? null),
+      subscription.categories.errors?.reserved ?? null,
       DataCategory.ERRORS
     );
     const change = formatReservedWithUnits(
-      pendingChanges.reservedEvents || (pendingChanges.reserved?.errors ?? null),
+      pendingChanges.reserved?.errors ?? null,
       DataCategory.ERRORS
     );
     changes.push(
@@ -147,7 +144,7 @@ function getRegularChanges(subscription: Subscription) {
       ...subscription.planDetails.categories,
       ...Object.keys(pendingChanges.reserved ?? {}),
     ]),
-  ] as DataCategories[];
+  ] as DataCategory[];
   categories.forEach(category => {
     if (category !== 'errors') {
       // Errors and Events handled above
@@ -155,7 +152,7 @@ function getRegularChanges(subscription: Subscription) {
         (pendingChanges.reserved?.[category] ?? 0) !==
         (subscription.categories?.[category]?.reserved ?? 0)
       ) {
-        const categoryEnum = category as DataCategory;
+        const categoryEnum = category;
         const oldReserved = subscription.categories?.[category]?.reserved ?? null;
         const pendingReserved = pendingChanges.reserved?.[category] ?? null;
         const old =
@@ -190,18 +187,14 @@ function getRegularChanges(subscription: Subscription) {
 
   categories.forEach(category => {
     if (
-      (pendingChanges.customPrices?.[category as DataCategories] ?? 0) !==
-      (subscription.categories?.[category as DataCategories]?.customPrice ?? 0)
+      (pendingChanges.customPrices?.[category] ?? 0) !==
+      (subscription.categories?.[category]?.customPrice ?? 0)
     ) {
-      const old = getStringForPrice(
-        subscription.categories?.[category as DataCategories]?.customPrice
-      );
-      const change = getStringForPrice(
-        pendingChanges.customPrices?.[category as DataCategories]
-      );
+      const old = getStringForPrice(subscription.categories?.[category]?.customPrice);
+      const change = getStringForPrice(pendingChanges.customPrices?.[category]);
       changes.push(
         formatChangeForCategory({
-          category: category as DataCategory,
+          category,
           changeTitle: 'Custom price for',
           oldValue: old,
           pendingValue: change,
@@ -240,7 +233,7 @@ function getRegularChanges(subscription: Subscription) {
       );
       changes.push(
         formatChangeForCategory({
-          category: category as DataCategory,
+          category,
           changeTitle: 'Reserved cost-per-event for',
           oldValue: old,
           pendingValue: change,
@@ -255,8 +248,8 @@ function getRegularChanges(subscription: Subscription) {
   const newBudgetsChanges: string[] = [];
   oldBudgets?.forEach(budget => {
     const budgetName = getReservedBudgetDisplayName({
+      reservedBudget: budget,
       plan: subscription.planDetails,
-      categories: Object.keys(budget.categories),
       hadCustomDynamicSampling: oldPlanUsesDsNames,
     });
     oldBudgetsChanges.push(
@@ -265,8 +258,8 @@ function getRegularChanges(subscription: Subscription) {
   });
   pendingChanges.reservedBudgets.forEach(budget => {
     const budgetName = getReservedBudgetDisplayName({
+      pendingReservedBudget: budget,
       plan: pendingChanges.planDetails,
-      categories: Object.keys(budget.categories),
       hadCustomDynamicSampling: newPlanUsesDsNames,
     });
     newBudgetsChanges.push(
@@ -275,11 +268,11 @@ function getRegularChanges(subscription: Subscription) {
   });
 
   if (oldBudgetsChanges.length > 0 || newBudgetsChanges.length > 0) {
-    changes.push(
-      `Reserved budgets — ${
-        oldBudgetsChanges.length > 0 ? oldBudgetsChanges.join(', ') : 'None'
-      } → ${newBudgetsChanges.length > 0 ? newBudgetsChanges.join(', ') : 'None'}`
-    );
+    const before = oldBudgetsChanges.length > 0 ? oldBudgetsChanges.join(', ') : 'None';
+    const after = newBudgetsChanges.length > 0 ? newBudgetsChanges.join(', ') : 'None';
+    if (before !== after) {
+      changes.push(`Reserved budgets — ${before} → ${after}`);
+    }
   }
 
   return changes;
@@ -304,13 +297,11 @@ function getOnDemandChanges(subscription: Subscription) {
     if (!isOnDemandBudgetsEqual(pendingOnDemandBudgets, currentOnDemandBudgets)) {
       const current = formatOnDemandBudget(
         subscription.planDetails,
-        subscription.planTier,
         currentOnDemandBudgets,
         subscription.planDetails.onDemandCategories
       );
       const change = formatOnDemandBudget(
         pendingChanges.planDetails,
-        subscription.planTier,
         pendingOnDemandBudgets,
         pendingChanges.planDetails.onDemandCategories
       );
@@ -355,13 +346,21 @@ function getChanges(subscription: Subscription, planMigrations: PlanMigration[])
   const effectiveDate = activeMigration?.effectiveAt ?? pendingChanges.effectiveDate;
 
   const regularChanges = getRegularChanges(subscription);
-  if (regularChanges.length > 0) {
-    changeSet.push({effectiveDate, items: regularChanges});
-  }
-
   const onDemandChanges = getOnDemandChanges(subscription);
-  if (onDemandChanges.length) {
-    changeSet.push({effectiveDate: onDemandEffectiveDate, items: onDemandChanges});
+
+  if (effectiveDate === onDemandEffectiveDate) {
+    const combinedChanges = [...regularChanges, ...onDemandChanges];
+    if (combinedChanges.length > 0) {
+      changeSet.push({effectiveDate, items: combinedChanges});
+    }
+  } else {
+    if (regularChanges.length > 0) {
+      changeSet.push({effectiveDate, items: regularChanges});
+    }
+
+    if (onDemandChanges.length > 0) {
+      changeSet.push({effectiveDate: onDemandEffectiveDate, items: onDemandChanges});
+    }
   }
 
   return changeSet;
@@ -386,9 +385,7 @@ function PendingChanges({subscription}: any) {
   return (
     <Fragment>
       <Alert.Container>
-        <Alert type="info" showIcon>
-          This account has pending changes to the subscription
-        </Alert>
+        <Alert type="info">This account has pending changes to the subscription</Alert>
       </Alert.Container>
 
       <List>

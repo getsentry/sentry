@@ -1,13 +1,14 @@
 import {Component, Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import type {GridColumn} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumn} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -35,8 +36,7 @@ import {
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
-
-import {getProjectID, getSelectedProjectPlatforms} from '../utils';
+import {getProjectID, getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import {
   getVitalDetailTableMehStatusFunction,
@@ -67,8 +67,9 @@ type Props = {
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
-
   summaryConditions: string;
+
+  theme: Theme;
 };
 
 type State = {
@@ -112,9 +113,10 @@ class Table extends Component<Props, State> {
     dataRow: TableDataRow,
     vitalName: WebVital
   ): React.ReactNode {
-    const {eventView, organization, projects, location, summaryConditions} = this.props;
+    const {eventView, organization, projects, location, summaryConditions, theme} =
+      this.props;
 
-    if (!tableData || !tableData.meta?.fields) {
+    if (!tableData?.meta?.fields) {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta?.fields;
@@ -144,13 +146,15 @@ class Table extends Component<Props, State> {
     }
 
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
-    const rendered = fieldRenderer(dataRow, {organization, location});
+    const rendered = fieldRenderer(dataRow, {organization, location, theme});
 
     const allowActions = [
       Actions.ADD,
       Actions.EXCLUDE,
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
+      Actions.OPEN_EXTERNAL_LINK,
+      Actions.OPEN_INTERNAL_LINK,
     ];
 
     if (field === 'transaction') {
@@ -377,7 +381,7 @@ class Table extends Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           limit={10}
-          referrer="api.performance.vital-detail"
+          referrer="api.insights.vital-detail"
         >
           {({pageLinks, isLoading, tableData}) => (
             <Fragment>

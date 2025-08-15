@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -13,8 +14,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
 
-describe('ErrorsConfig', function () {
-  describe('getCustomFieldRenderer', function () {
+const theme = ThemeFixture();
+
+describe('ErrorsConfig', () => {
+  describe('getCustomFieldRenderer', () => {
     const {organization, router} = initializeOrg();
 
     const baseEventViewOptions: EventViewOptions = {
@@ -35,21 +38,25 @@ describe('ErrorsConfig', function () {
       topEvents: undefined,
     };
 
-    it('links trace ids to performance', async function () {
+    it('links trace ids to performance', async () => {
       const customFieldRenderer = ErrorsConfig.getCustomFieldRenderer!('trace', {});
       render(
-        customFieldRenderer!(
+        customFieldRenderer(
           {trace: 'abcd'},
           {
             organization,
             location: router.location,
+            theme,
             eventView: new EventView({
               ...baseEventViewOptions,
               fields: [{field: 'trace'}],
             }),
           }
         ) as React.ReactElement<any, any>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
       await userEvent.click(await screen.findByText('abcd'));
       expect(router.push).toHaveBeenCalledWith({
@@ -62,15 +69,16 @@ describe('ErrorsConfig', function () {
       });
     });
 
-    it('links event ids to event details', async function () {
+    it('links event ids to event details', async () => {
       const project = ProjectFixture();
       const customFieldRenderer = ErrorsConfig.getCustomFieldRenderer!('id', {});
       render(
-        customFieldRenderer!(
+        customFieldRenderer(
           {id: 'defg', 'project.name': project.slug},
           {
             organization,
             location: router.location,
+            theme,
             eventView: new EventView({
               ...baseEventViewOptions,
               fields: [{field: 'id'}],
@@ -78,7 +86,10 @@ describe('ErrorsConfig', function () {
             }),
           }
         ) as React.ReactElement<any, any>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('defg'));
@@ -105,12 +116,12 @@ describe('ErrorsConfig', function () {
     });
   });
 
-  describe('getEventsRequest', function () {
+  describe('getEventsRequest', () => {
     let api!: Client;
     let organization!: ReturnType<typeof OrganizationFixture>;
     let mockEventsRequest!: jest.Mock;
 
-    beforeEach(function () {
+    beforeEach(() => {
       MockApiClient.clearMockResponses();
 
       api = new MockApiClient();
@@ -124,7 +135,7 @@ describe('ErrorsConfig', function () {
       });
     });
 
-    it('makes a request to the errors dataset', function () {
+    it('makes a request to the errors dataset', () => {
       const pageFilters = PageFiltersFixture();
       const widget = WidgetFixture();
 
@@ -154,12 +165,12 @@ describe('ErrorsConfig', function () {
     });
   });
 
-  describe('getSeriesRequest', function () {
+  describe('getSeriesRequest', () => {
     let api!: Client;
     let organization!: ReturnType<typeof OrganizationFixture>;
     let mockEventsRequest!: jest.Mock;
 
-    beforeEach(function () {
+    beforeEach(() => {
       MockApiClient.clearMockResponses();
 
       api = new MockApiClient();
@@ -173,7 +184,7 @@ describe('ErrorsConfig', function () {
       });
     });
 
-    it('makes a request to the errors dataset', function () {
+    it('makes a request to the errors dataset', () => {
       const pageFilters = PageFiltersFixture();
       const widget = WidgetFixture({
         queries: [

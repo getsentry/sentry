@@ -109,6 +109,7 @@ class ContractSelect extends Component<Props> {
           const price = getReservedTotal({
             plan,
             reserved: formData.reserved,
+            selectedProducts: formData.selectedProducts,
             ...discountData,
           });
 
@@ -124,6 +125,8 @@ class ContractSelect extends Component<Props> {
               priceHeader={priceHeader}
               price={price}
               planWarning={hasWarning ? this.annualContractWarning : undefined}
+              shouldShowDefaultPayAsYouGo={false}
+              shouldShowEventPrice={false}
             />
           );
         })}

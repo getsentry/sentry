@@ -6,7 +6,6 @@ from django.contrib.auth import logout
 from django.db import router, transaction
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
-from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,11 +13,11 @@ from sentry import roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.decorators import sudo_required
-from sentry.api.endpoints.organization_details import post_org_pending_deletion
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.constants import LANGUAGES
+from sentry.core.endpoints.organization_details import post_org_pending_deletion
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -37,25 +36,6 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 TIMEZONE_CHOICES = get_timezone_choices()
-
-
-def validate_prefers_specialized_project_overview(value: dict[str, bool] | None) -> None:
-    invalid_entries = [key for key, value_ in (value or {}).items() if not isinstance(value_, bool)]
-    if len(invalid_entries) > 0:
-        raise ValidationError(
-            f"The enabled values {', '.join(invalid_entries)} should be booleans."
-        )
-
-
-def validate_quick_start_display(value: dict[str, int] | None) -> None:
-    if value is not None:
-        for display_value in value.values():
-            if not isinstance(display_value, int):
-                raise ValidationError("The value should be an integer.")
-            if display_value <= 0:
-                raise ValidationError("The value cannot be less than or equal to 0.")
-            if display_value > 2:
-                raise ValidationError("The value cannot exceed 2.")
 
 
 class UserOptionsSerializer(serializers.Serializer[UserOption]):
@@ -87,20 +67,9 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
         required=False,
     )
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
-    prefersSpecializedProjectOverview = serializers.JSONField(
-        required=False,
-        allow_null=True,
-        validators=[validate_prefers_specialized_project_overview],
-        help_text="Tracks whether the user prefers the new specialized project overview experience (dict of project ids to booleans)",
-    )
+    prefersNextjsInsightsOverview = serializers.BooleanField(required=False)
     prefersStackedNavigation = serializers.BooleanField(required=False)
-
-    quickStartDisplay = serializers.JSONField(
-        required=False,
-        allow_null=True,
-        validators=[validate_quick_start_display],
-        help_text="Tracks whether the quick start guide was already automatically shown to the user during their second visit.",
-    )
+    prefersChonkUI = serializers.BooleanField(required=False)
 
 
 class BaseUserSerializer(CamelSnakeModelSerializer[User]):
@@ -269,34 +238,18 @@ class UserDetailsEndpoint(UserEndpoint):
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
             "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
-            "prefersSpecializedProjectOverview": "prefers_specialized_project_overview",
             "prefersStackedNavigation": "prefers_stacked_navigation",
-            "quickStartDisplay": "quick_start_display",
+            "prefersNextjsInsightsOverview": "prefers_nextjs_insights_overview",
+            "prefersChonkUI": "prefers_chonk_ui",
         }
 
         options_result = serializer_options.validated_data
 
         for key in key_map:
             if key in options_result:
-                if key in ("quickStartDisplay", "prefersSpecializedProjectOverview"):
-                    current_value = UserOption.objects.get_value(
-                        user=user, key=key_map.get(key, key)
-                    )
-
-                    if current_value is None:
-                        current_value = {}
-
-                    new_value = options_result.get(key)
-
-                    current_value.update(new_value)
-
-                    UserOption.objects.set_value(
-                        user=user, key=key_map.get(key, key), value=current_value
-                    )
-                else:
-                    UserOption.objects.set_value(
-                        user=user, key=key_map.get(key, key), value=options_result.get(key)
-                    )
+                UserOption.objects.set_value(
+                    user=user, key=key_map.get(key, key), value=options_result.get(key)
+                )
 
         with transaction.atomic(using=router.db_for_write(User)):
             user = serializer.save()

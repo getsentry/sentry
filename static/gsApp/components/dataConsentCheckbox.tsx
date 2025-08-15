@@ -1,5 +1,5 @@
+import {ExternalLink} from 'sentry/components/core/link';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
 
 export default function DataConsentOrgCreationCheckbox() {

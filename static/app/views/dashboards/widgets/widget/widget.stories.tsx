@@ -1,22 +1,18 @@
 import {Fragment} from 'react';
+import types from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import SizingWindow from 'sentry/components/stories/sizingWindow';
-import storyBook from 'sentry/stories/storyBook';
-
-import {sampleDurationTimeSeries} from '../timeSeriesWidget/fixtures/sampleDurationTimeSeries';
-import {Line} from '../timeSeriesWidget/plottables/line';
-import {TimeSeriesWidgetVisualization} from '../timeSeriesWidget/timeSeriesWidgetVisualization';
+import * as Storybook from 'sentry/stories';
+import {sampleDurationTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import {Widget} from './widget';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
-
-export default storyBook('Widget', (story, APIReference) => {
+export default Storybook.story('Widget', (story, APIReference) => {
   APIReference(types.exported);
 
   story('Getting Started', () => {
@@ -28,9 +24,10 @@ export default storyBook('Widget', (story, APIReference) => {
           line chart), and an optional footer.
         </p>
 
-        <SmallSizingWindow>
+        <SmallStorybookSizingWindow>
           <Widget
             Title={<Widget.WidgetTitle title="epm() : /insights/frontend/assets" />}
+            TitleBadges={[<Tag key="frontend">frontend</Tag>]}
             Actions={
               <Widget.WidgetToolbar>
                 <Button size="xs">Say More</Button>
@@ -48,7 +45,7 @@ export default storyBook('Widget', (story, APIReference) => {
             }
             Footer={<span>This data is incomplete!</span>}
           />
-        </SmallSizingWindow>
+        </SmallStorybookSizingWindow>
       </Fragment>
     );
   });
@@ -57,36 +54,40 @@ export default storyBook('Widget', (story, APIReference) => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="Widget" /> is a component as well as a component namespace. It's
-          designed to make it easy to create widgets of your own.{' '}
+          <Storybook.JSXNode name="Widget" /> is a component as well as a component
+          namespace. It's designed to make it easy to create widgets of your own.{' '}
         </p>
         <p>
-          <JSXNode name="Widget" /> is a layout-only component. It contains no logic, all
-          it does it place the passed sub-components in correct locations in a bordered
-          widget frame. The contents of the <code>Title</code> prop are shown in the top
-          left, and are always visible. The title is truncated to fit. The contents of the{' '}
-          <code>Actions</code> prop are shown in the top right, and only shown on hover.
-          You can set the <code>revealActions</code> prop to <code>"always"</code> to
-          always show the actions. Actions are not truncated. The contents of{' '}
-          <code>Visualization</code> are always visible, shown below the title and
-          actions. The layout expands both horizontally and vertically to fit the parent.
+          <Storybook.JSXNode name="Widget" /> is a layout-only component. It contains no
+          logic, all it does it place the passed sub-components in correct locations in a
+          bordered widget frame. The contents of the <code>Title</code> prop are shown in
+          the top left, and are always visible. The title is truncated to fit. The
+          contents of the <code>Actions</code> prop are shown in the top right, and only
+          shown on hover. You can set the <code>revealActions</code> prop to{' '}
+          <code>"always"</code> to always show the actions. Actions are not truncated. The{' '}
+          <code>TitleBadges</code> prop is shown to the immediate right of the title, and
+          are always visible. The contents of <code>Visualization</code> are always
+          visible, shown below the title and actions. The layout expands both horizontally
+          and vertically to fit the parent.
         </p>
 
         <p>
-          <JSXNode name="Widget" /> also provides a few sub-components:
+          <Storybook.JSXNode name="Widget" /> also provides a few sub-components:
           <ul>
             <li>
-              <JSXNode name="Widget.WidgetTitle" /> is a truncated title string
+              <Storybook.JSXNode name="Widget.WidgetTitle" /> is a truncated title string
             </li>
             <li>
-              <JSXNode name="Widget.WidgetDescription" /> is a description tooltip
+              <Storybook.JSXNode name="Widget.WidgetDescription" /> is a description
+              tooltip
             </li>
             <li>
-              <JSXNode name="Widget.WidgetToolbar" /> is a wrapper for multiple buttons
+              <Storybook.JSXNode name="Widget.WidgetToolbar" /> is a wrapper for multiple
+              buttons
             </li>
             <li>
-              <JSXNode name="Widget.WidgetError" /> is an error panel that takes over the{' '}
-              <code>Visualization</code> if needed
+              <Storybook.JSXNode name="Widget.WidgetError" /> is an error panel that takes
+              over the <code>Visualization</code> if needed
             </li>
           </ul>
         </p>
@@ -105,6 +106,7 @@ import {Widget} from './widget';
 
 <Widget
   Title={<Widget.WidgetTitle title="epm() : /insights/frontend/assets" />}
+  TitleBadges={[<Tag key="frontend">frontend</Tag>]}
   Actions={
     <Widget.WidgetToolbar>
       <Button size="xs">Say More</Button>
@@ -130,6 +132,44 @@ import {Widget} from './widget';
     );
   });
 
+  story('UI Behavior', () => {
+    return (
+      <Fragment>
+        <p>There are a few UI behaviors you should be aware of:</p>
+        <ul>
+          <li>
+            You can remove the padding within areas of the widget by passing the props{' '}
+            <code>noFooterPadding</code>, <code>noHeaderPadding</code>, and{' '}
+            <code>noVisualizationPadding</code>
+          </li>
+          <li>
+            The <code>revealActions</code> prop also controls the hover behavior. If you
+            set it to <code>"hover"</code>, the widget will have a grey hover state, to
+            create some contrast against the controls. If you set it to{' '}
+            <code>"always"</code>, the hover effect will be turned off
+          </li>
+          <li>
+            Avoid the <code>height</code> prop if you can. It's much easier and more
+            robust to place <code>Widget</code> components within a CSS grid or another
+            kind of layout, and size them that way
+          </li>
+        </ul>
+      </Fragment>
+    );
+  });
+
+  story('Connecting Widgets', () => {
+    return (
+      <Fragment>
+        <p>
+          Some widgets (e.g., <code>TimeSeriesWidgetVisualization</code> can be connected.
+          Connecting widgets together synchronizes their axes, and axes pointers. To do
+          this automatically, you can use <code>WidgetSyncContext</code>.
+        </p>
+      </Fragment>
+    );
+  });
+
   story('Managing UI States', () => {
     return (
       <Fragment>
@@ -147,9 +187,9 @@ import {Widget} from './widget';
         </ul>
 
         <p>
-          <JSXNode name="Widget" /> does not handle this, it is up to you to implement
-          those states. Below is an example of this kind of handling, with some guidance
-          on how to do it well.
+          <Storybook.JSXNode name="Widget" /> does not handle this, it is up to you to
+          implement those states. Below is an example of this kind of handling, with some
+          guidance on how to do it well.
         </p>
 
         <CodeSnippet language="jsx">
@@ -256,7 +296,7 @@ function InsightsLineChart() {
   });
 });
 
-const SmallSizingWindow = styled(SizingWindow)`
+const SmallStorybookSizingWindow = styled(Storybook.SizingWindow)`
   width: 400px;
   height: 300px;
 `;

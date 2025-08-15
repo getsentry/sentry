@@ -18,6 +18,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features, options
+from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.db.models.query import create_or_update
@@ -38,6 +39,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import update_group_open_period
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -612,7 +614,7 @@ def process_group_resolution(
     group.substatus = None
     group.resolved_at = now
     if affected and not options.get("groups.enable-post-update-signal"):
-        post_save.send(
+        post_save.send_robust(
             sender=Group,
             instance=group,
             created=False,
@@ -641,6 +643,13 @@ def process_group_resolution(
         if not len(group_list) > 1:
             transaction.on_commit(lambda: activity.send_notification(), router.db_for_write(Group))
 
+        update_group_open_period(
+            group=group,
+            new_status=GroupStatus.RESOLVED,
+            resolution_time=now,
+            resolution_activity=activity,
+        )
+
 
 def merge_groups(
     group_list: Sequence[Group],
@@ -648,8 +657,8 @@ def merge_groups(
     acting_user: RpcUser | User | None,
     referer: str,
 ) -> MergedGroup:
-    issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
-    similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+    issue_stream_regex = r"^(\/organizations\/[^/]+)?\/issues\/$"
+    similar_issues_tab_regex = r"^(\/organizations\/[^/]+)?\/issues\/\d+\/similar\/$"
 
     metrics.incr(
         "grouping.merge_issues",
@@ -694,6 +703,14 @@ def handle_other_status_updates(
             status=new_status, substatus=new_substatus
         )
         GroupResolution.objects.filter(group__in=group_ids).delete()
+        # Also delete commit/PR resolution links when unresolving to prevent
+        # showing old "resolved by commit" after manual re-resolution
+        if new_status in (GroupStatus.UNRESOLVED, GroupStatus.IGNORED):
+            GroupLink.objects.filter(
+                group_id__in=group_ids,
+                linked_type=GroupLink.LinkedType.commit,
+                relationship=GroupLink.Relationship.resolves,
+            ).delete()
         if new_status == GroupStatus.IGNORED:
             if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
                 result["statusDetails"] = handle_archived_until_escalating(
@@ -797,6 +814,9 @@ def prepare_response(
             sender=update_groups,
         )
 
+    # TODO(issues): This type is very fragile since it's fields are updated in quite a few places.
+    # Since this is a public API, we are using assuming a shape of MutateIssueResponse, but this
+    # cannot be enforced currently. If changing fields, please update that type.
     return Response(result)
 
 
@@ -1021,23 +1041,25 @@ def handle_assigned_to(
                 group, resolved_actor, acting_user, extra=extra
             )
             analytics.record(
-                "manual.issue_assignment",
-                organization_id=project_lookup[group.project_id].organization_id,
-                project_id=group.project_id,
-                group_id=group.id,
-                assigned_by=assigned_by,
-                had_to_deassign=assignment["updated_assignment"],
+                ManualIssueAssignment(
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=assignment["updated_assignment"],
+                )
             )
         return serialize(resolved_actor, acting_user, ActorSerializer())
     else:
         for group in group_list:
             GroupAssignee.objects.deassign(group, acting_user)
             analytics.record(
-                "manual.issue_assignment",
-                organization_id=project_lookup[group.project_id].organization_id,
-                project_id=group.project_id,
-                group_id=group.id,
-                assigned_by=assigned_by,
-                had_to_deassign=True,
+                ManualIssueAssignment(
+                    organization_id=project_lookup[group.project_id].organization_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    assigned_by=assigned_by,
+                    had_to_deassign=True,
+                )
             )
         return None

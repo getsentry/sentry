@@ -1,11 +1,12 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -22,7 +23,6 @@ import {
   getHighlightTagData,
   HIGHLIGHT_DOCS_LINK,
 } from 'sentry/components/events/highlights/util';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -31,7 +31,6 @@ import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
-import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -52,6 +51,7 @@ function useOpenEditHighlightsModal({
   event: Event;
   detailedProject?: Project;
 }) {
+  const theme = useTheme();
   const organization = useOrganization();
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
     organization,
@@ -79,9 +79,9 @@ function useOpenEditHighlightsModal({
           {...deps}
         />
       ),
-      {modalCss: highlightModalCss}
+      {modalCss: highlightModalCss(theme)}
     );
-  }, [organization, detailedProject, event]);
+  }, [organization, detailedProject, event, theme]);
 
   return {openEditHighlightsModal, editProps};
 }
@@ -228,7 +228,7 @@ function HighlightsData({
     <HighlightContainer columnCount={columnCount} ref={containerRef}>
       {isPending ? (
         <EmptyHighlights>
-          <HighlightsLoadingIndicator hideMessage size={50} />
+          <HighlightsLoadingIndicator size={50} />
         </EmptyHighlights>
       ) : hasDisabledHighlights ? (
         <EmptyHighlights>
@@ -286,7 +286,7 @@ export default function HighlightsDataSection({
       data-test-id="event-highlights"
       actions={
         <ErrorBoundary mini>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             {viewAllButton}
             <EditHighlightsButton project={project} event={event} />
           </ButtonBar>
@@ -336,15 +336,15 @@ const HighlightColumn = styled(TreeColumn)`
 `;
 
 const HighlightContextContent = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
-export const highlightModalCss = css`
+const highlightModalCss = (theme: Theme) => css`
   width: 850px;
   padding: 0 ${space(2)};
   margin: ${space(2)} 0;
   /* Disable overriding margins with breakpoint on default modal */
-  @media (min-width: ${theme.breakpoints.medium}) {
+  @media (min-width: ${theme.breakpoints.md}) {
     margin: ${space(2)} 0;
     padding: 0 ${space(2)};
   }

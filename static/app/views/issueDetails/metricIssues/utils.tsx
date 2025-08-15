@@ -13,7 +13,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import {type MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {TimePeriod, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
 
@@ -45,7 +45,10 @@ export function useMetricIssueAlertId({groupId}: {groupId: string}): string | un
   );
 
   // Fall back to the fetched event in case the provider doesn't have the detector details
-  return hasMetricDetector ? detectorId : event?.contexts?.metric_alert?.alert_rule_id;
+  const fallback =
+    event?.occurrence?.evidenceData?.alertId ||
+    event?.contexts?.metric_alert?.alert_rule_id;
+  return hasMetricDetector ? detectorId : fallback;
 }
 
 interface UseMetricTimePeriodParams {

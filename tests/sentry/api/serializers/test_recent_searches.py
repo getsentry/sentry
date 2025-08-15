@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestCase
 
 
 class RecentSearchSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         search = RecentSearch.objects.create(
             organization=self.organization,
             user_id=self.user.id,

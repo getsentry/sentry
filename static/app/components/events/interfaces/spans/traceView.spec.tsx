@@ -1,7 +1,7 @@
 import {
+  initializeData as _initializeData,
   generateSampleEvent,
   generateSampleSpan,
-  initializeData as _initializeData,
 } from 'sentry-test/performance/initializePerformanceData';
 import {MockSpan, TransactionEventBuilder} from 'sentry-test/performance/utils';
 import {
@@ -294,9 +294,9 @@ describe('TraceView', () => {
       render(
         <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
           {results => (
-            <QuickTraceContext.Provider value={results}>
+            <QuickTraceContext value={results}>
               <TraceView organization={organization} waterfallModel={waterfallModel} />
-            </QuickTraceContext.Provider>
+            </QuickTraceContext>
           )}
         </QuickTraceQuery>
       );
@@ -424,9 +424,9 @@ describe('TraceView', () => {
       render(
         <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
           {results => (
-            <QuickTraceContext.Provider value={results}>
+            <QuickTraceContext value={results}>
               <TraceView organization={organization} waterfallModel={waterfallModel} />
-            </QuickTraceContext.Provider>
+            </QuickTraceContext>
           )}
         </QuickTraceQuery>
       );

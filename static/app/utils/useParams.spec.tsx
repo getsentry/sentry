@@ -43,9 +43,9 @@ describe('useParams', () => {
       };
 
       render(
-        <TestRouteContext.Provider value={routeContext}>
+        <TestRouteContext value={routeContext}>
           <HomePage />
-        </TestRouteContext.Provider>
+        </TestRouteContext>
       );
 
       expect(params).toEqual({});
@@ -68,20 +68,20 @@ describe('useParams', () => {
       };
 
       render(
-        <TestRouteContext.Provider value={routeContext}>
+        <TestRouteContext value={routeContext}>
           <HomePage />
-        </TestRouteContext.Provider>
+        </TestRouteContext>
       );
       expect(params).toEqual({slug: 'sentry'});
     });
   });
 
-  describe('customer domains', function () {
-    afterEach(function () {
+  describe('customer domains', () => {
+    afterEach(() => {
       jest.resetAllMocks();
     });
 
-    it('populates orgId when customer domain is being used', function () {
+    it('populates orgId when customer domain is being used', () => {
       mockUsingCustomerDomain.mockReturnValue(true);
       mockCustomerDomain.mockReturnValue('albertos-apples');
 
@@ -105,9 +105,9 @@ describe('useParams', () => {
       };
 
       render(
-        <TestRouteContext.Provider value={routeContext}>
+        <TestRouteContext value={routeContext}>
           <Component />
-        </TestRouteContext.Provider>
+        </TestRouteContext>
       );
 
       expect(
@@ -119,7 +119,7 @@ describe('useParams', () => {
       });
     });
 
-    it('does not populate orgId when customer domain is not being used', function () {
+    it('does not populate orgId when customer domain is not being used', () => {
       mockUsingCustomerDomain.mockReturnValue(false);
       mockCustomerDomain.mockReturnValue(undefined);
 
@@ -143,9 +143,9 @@ describe('useParams', () => {
       };
 
       render(
-        <TestRouteContext.Provider value={routeContext}>
+        <TestRouteContext value={routeContext}>
           <Component />
-        </TestRouteContext.Provider>
+        </TestRouteContext>
       );
 
       expect(

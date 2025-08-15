@@ -1,7 +1,7 @@
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -44,9 +44,6 @@ function MissingPerformanceButtons({organization}: Props) {
       duration,
     });
   }
-  const hasPerfLandingRemovalFlag = organization.features?.includes(
-    'insights-performance-landing-removal'
-  );
   const domainView: DomainView | undefined = platformToDomainView(
     projects,
     selectedProjects
@@ -58,7 +55,7 @@ function MissingPerformanceButtons({organization}: Props) {
       features="performance-view"
       organization={organization}
     >
-      <ButtonBar gap={1}>
+      <ButtonBar>
         <Button
           size="sm"
           priority="primary"
@@ -66,7 +63,7 @@ function MissingPerformanceButtons({organization}: Props) {
             event.preventDefault();
             // TODO: add analytics here for this specific action.
             navigateTo(
-              `${hasPerfLandingRemovalFlag ? getPerformanceBaseUrl(organization.slug) : getPerformanceBaseUrl(organization.slug, domainView)}/?project=:project#performance-sidequest`,
+              `${getPerformanceBaseUrl(organization.slug, domainView)}/?project=:project#performance-sidequest`,
               router
             );
           }}

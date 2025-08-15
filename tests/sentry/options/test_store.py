@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid1
 
 import pytest
@@ -34,10 +34,12 @@ class OptionsStoreTest(TestCase):
     def flush_local_cache(self):
         self.store.flush_local_cache()
 
-    def make_key(self, ttl=10, grace=10):
-        return self.manager.make_key(uuid1().hex, "", object, 0, ttl, grace, None)
+    def make_key(self, ttl=10, grace=10, key_name: str | None = None):
+        if key_name is None:
+            key_name = uuid1().hex
+        return self.manager.make_key(key_name, "", object, 0, ttl, grace, None)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         store, key = self.store, self.key
 
         assert store.get(key) is None
@@ -46,23 +48,33 @@ class OptionsStoreTest(TestCase):
         assert store.get_last_update_channel(key) == UpdateChannel.CLI
         assert store.delete(key)
 
-    def test_not_in_store(self):
+    def test_not_in_store(self) -> None:
         assert self.store.get_last_update_channel(self.key) is None
 
-    def test_simple_without_cache(self):
+    def test_simple_without_cache(self) -> None:
         store = OptionsStore(cache=None)
-        key = self.key
+        key = self.make_key(key_name="foo")
 
-        assert store.get(key) is None
+        with pytest.raises(AssertionError) as e:
+            store.get(key)
 
-        with pytest.raises(AssertionError):
+        assert (
+            str(e.value)
+            == "Option 'foo' requested before cache initialization, which could result in excessive store queries"
+        )
+
+        with pytest.raises(AssertionError) as e:
             store.set(key, "bar", UpdateChannel.CLI)
 
-        with pytest.raises(AssertionError):
+        assert str(e.value) == "cache must be configured before mutating options"
+
+        with pytest.raises(AssertionError) as e:
             store.delete(key)
 
+        assert str(e.value) == "cache must be configured before mutating options"
+
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
-    def test_db_and_cache_unavailable(self):
+    def test_db_and_cache_unavailable(self) -> None:
         store, key = self.store, self.key
         with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             # we can't update options if the db is unavailable
@@ -84,7 +96,7 @@ class OptionsStoreTest(TestCase):
 
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     @patch("sentry.options.store.time")
-    def test_key_with_grace(self, mocked_time):
+    def test_key_with_grace(self, mocked_time: MagicMock) -> None:
         store, key = self.store, self.make_key(10, 10)
 
         mocked_time.return_value = 0
@@ -104,7 +116,7 @@ class OptionsStoreTest(TestCase):
 
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     @patch("sentry.options.store.time")
-    def test_key_ttl(self, mocked_time):
+    def test_key_ttl(self, mocked_time: MagicMock) -> None:
         store, key = self.store, self.make_key(10, 0)
 
         mocked_time.return_value = 0
@@ -128,7 +140,7 @@ class OptionsStoreTest(TestCase):
         assert store.get(key) == "lol"
 
     @patch("sentry.options.store.time")
-    def test_clean_local_cache(self, mocked_time):
+    def test_clean_local_cache(self, mocked_time: MagicMock) -> None:
         store = self.store
 
         mocked_time.return_value = 0

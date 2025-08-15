@@ -10,6 +10,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
@@ -17,14 +18,15 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types/group';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
+jest.mock('sentry/views/issueDetails/utils', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/utils'),
+  useHasStreamlinedUI: jest.fn(),
 }));
 
 describe('groupDetails', () => {
@@ -32,33 +34,16 @@ describe('groupDetails', () => {
   const group = GroupFixture({issueCategory: IssueCategory.ERROR});
   const event = EventFixture();
   const project = ProjectFixture({teams: [TeamFixture()]});
+  let hasSeenMock!: jest.Mock;
 
-  const routes = [
-    {path: '/', childRoutes: []},
-    {childRoutes: []},
-    {
-      path: '/organizations/:orgId/issues/:groupId/',
-      childRoutes: [],
-    },
-    {},
-  ];
-
-  const initRouter = {
+  const initialRouterConfig = {
     location: {
       pathname: `/organizations/org-slug/issues/${group.id}/`,
-      query: {},
-      search: '?foo=bar',
-      hash: '#hash',
     },
-    params: {
-      groupId: group.id,
-    },
-    routes,
+    route: '/organizations/:orgId/issues/:groupId/',
   };
 
-  const defaultInit = initializeOrg<{groupId: string}>({
-    router: initRouter,
-  });
+  const defaultInit = initializeOrg<{groupId: string}>({});
 
   const recommendedUser = UserFixture({
     options: {
@@ -83,21 +68,29 @@ describe('groupDetails', () => {
     return <div>Group Details Mock</div>;
   }
 
-  const createWrapper = (init = defaultInit) => {
+  const createWrapper = (
+    routerConfig = initialRouterConfig,
+    organization = defaultInit.organization
+  ) => {
+    // Add project id to the url to skip over the _allp redirect
+    setWindowLocation(`http://localhost/?project=${group.project.id}`);
     return render(
-      <GroupDetails {...init.routerProps}>
+      <GroupDetails>
         <MockComponent />
       </GroupDetails>,
-      {organization: init.organization, router: init.router}
+      {
+        organization,
+        initialRouterConfig: routerConfig,
+      }
     );
   };
 
   beforeEach(() => {
     mockNavigate = jest.fn();
+    jest.mocked(useHasStreamlinedUI).mockReturnValue(false);
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
 
     MockApiClient.addMockResponse({
       url: `/assistant/`,
@@ -114,7 +107,7 @@ describe('groupDetails', () => {
         ...event,
       },
     });
-    MockApiClient.addMockResponse({
+    hasSeenMock = MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/issues/`,
       method: 'PUT',
       body: {
@@ -163,9 +156,10 @@ describe('groupDetails', () => {
     GroupStore.reset();
     PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     act(() => ProjectsStore.reset());
     createWrapper();
 
@@ -177,9 +171,10 @@ describe('groupDetails', () => {
 
     // Sample event alert should not show up
     expect(screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();
+    expect(hasSeenMock).toHaveBeenCalled();
   });
 
-  it('renders error when issue is not found', async function () {
+  it('renders error when issue is not found', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       statusCode: 404,
@@ -200,7 +195,7 @@ describe('groupDetails', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
+  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       statusCode: 403,
@@ -218,22 +213,20 @@ describe('groupDetails', () => {
     ).toBeInTheDocument();
   });
 
-  it('fetches issue details for a given environment', async function () {
+  it('fetches issue details for a given environment', async () => {
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: group,
     });
 
-    const init = initializeOrg({
-      router: {
-        ...initRouter,
-        location: LocationFixture({
-          ...initRouter.location,
-          query: {environment: 'staging'},
-        }),
-      },
-    });
-    createWrapper(init);
+    const routerConfig = {
+      ...initialRouterConfig,
+      location: LocationFixture({
+        ...initialRouterConfig.location,
+        query: {environment: 'staging', project: group.project.id},
+      }),
+    };
+    createWrapper(routerConfig);
 
     await waitFor(() =>
       expect(mock).toHaveBeenCalledWith(
@@ -249,7 +242,7 @@ describe('groupDetails', () => {
     );
   });
 
-  it('renders substatus badge', async function () {
+  it('renders substatus badge', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {
@@ -259,14 +252,11 @@ describe('groupDetails', () => {
         substatus: 'ongoing',
       },
     });
-    createWrapper({
-      ...defaultInit,
-      organization: {...defaultInit.organization},
-    });
+    createWrapper();
     expect(await screen.findByText('Ongoing')).toBeInTheDocument();
   });
 
-  it('renders alert for sample event', async function () {
+  it('renders alert for sample event', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/tags/`,
       body: [{key: 'sample_event'}],
@@ -277,7 +267,7 @@ describe('groupDetails', () => {
     expect(await screen.findByText(SAMPLE_EVENT_ALERT_TEXT)).toBeInTheDocument();
   });
 
-  it('renders error when project does not exist', async function () {
+  it('renders error when project does not exist', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/other-project-slug/issues/`,
       method: 'PUT',
@@ -298,7 +288,7 @@ describe('groupDetails', () => {
     ).toBeInTheDocument();
   });
 
-  it('uses /recommended endpoint when feature flag is on and no event is provided', async function () {
+  it('uses /recommended endpoint when feature flag is on and no event is provided', async () => {
     const recommendedMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       statusCode: 200,
@@ -310,7 +300,7 @@ describe('groupDetails', () => {
     await waitFor(() => expect(recommendedMock).toHaveBeenCalledTimes(1));
   });
 
-  it("refires request when recommended endpoint doesn't return an event", async function () {
+  it("refires request when recommended endpoint doesn't return an event", async () => {
     const recommendedWithSearchMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       query: {
@@ -323,35 +313,30 @@ describe('groupDetails', () => {
       },
     });
 
-    createWrapper({
-      ...defaultInit,
-      router: {
-        ...defaultInit.router,
-        location: LocationFixture({
-          query: {
-            query: 'foo:bar',
-            statsPeriod: '14d',
-          },
-        }),
-      },
-    });
+    const routerConfig = {
+      ...initialRouterConfig,
+      location: LocationFixture({
+        ...initialRouterConfig.location,
+        query: {query: 'foo:bar', statsPeriod: '14d'},
+      }),
+    };
+    const {router} = createWrapper(routerConfig);
 
     await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
 
     await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining(
-          // query and period should be removed
-          {query: {}}
-        ),
-        {
-          replace: true,
-        }
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: routerConfig.location.pathname,
+          // Query has been removed
+          query: {},
+        })
       )
     );
   });
 
-  it('does not refire for request with streamlined UI', async function () {
+  it('does not refire for request with streamlined UI', async () => {
+    jest.mocked(useHasStreamlinedUI).mockReturnValue(true);
     // Bunch of mocks to load streamlined UI
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
@@ -390,8 +375,7 @@ describe('groupDetails', () => {
       url: `/organizations/${defaultInit.organization.slug}/sentry-app-components/`,
       body: [],
     });
-
-    const recommendedWithSearchMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       query: {
         query: 'foo:bar',
@@ -402,26 +386,14 @@ describe('groupDetails', () => {
         detail: 'No matching event',
       },
     });
-
-    createWrapper({
-      ...defaultInit,
-      router: {
-        ...defaultInit.router,
-        location: LocationFixture({
-          query: {
-            query: 'foo:bar',
-            streamline: '1',
-          },
-        }),
-      },
-    });
-
-    await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
-
+    createWrapper();
+    expect(
+      await screen.findByText("We couldn't track down an event")
+    ).toBeInTheDocument();
     await waitFor(() => expect(mockNavigate).not.toHaveBeenCalled());
   });
 
-  it('uses /latest endpoint when default is set to latest', async function () {
+  it('uses /latest endpoint when default is set to latest', async () => {
     ConfigStore.loadInitialData(ConfigFixture({user: latestUser}));
     const latestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/latest/`,
@@ -434,7 +406,7 @@ describe('groupDetails', () => {
     await waitFor(() => expect(latestMock).toHaveBeenCalledTimes(1));
   });
 
-  it('uses /oldest endpoint when default is set to oldest', async function () {
+  it('uses /oldest endpoint when default is set to oldest', async () => {
     ConfigStore.loadInitialData(ConfigFixture({user: oldestUser}));
     const oldestMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/oldest/`,
@@ -447,7 +419,7 @@ describe('groupDetails', () => {
     await waitFor(() => expect(oldestMock).toHaveBeenCalledTimes(1));
   });
 
-  it('uses /recommended endpoint when default is set to recommended', async function () {
+  it('uses /recommended endpoint when default is set to recommended', async () => {
     ConfigStore.loadInitialData(ConfigFixture({user: recommendedUser}));
     const recommendedMock = MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
@@ -458,5 +430,32 @@ describe('groupDetails', () => {
     createWrapper();
 
     await waitFor(() => expect(recommendedMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not send hasSeen request when user is not a project member', async () => {
+    const nonMemberProject = ProjectFixture({
+      teams: [TeamFixture()],
+      isMember: false,
+    });
+
+    // Mock the group to belong to the non-member project
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
+      body: {
+        ...group,
+        project: nonMemberProject,
+        hasSeen: false,
+      },
+    });
+
+    act(() => ProjectsStore.loadInitialData([nonMemberProject]));
+
+    createWrapper();
+
+    // Wait for the component to render
+    expect(await screen.findByText(group.shortId)).toBeInTheDocument();
+
+    // Verify that the hasSeen request was NOT made
+    expect(hasSeenMock).not.toHaveBeenCalled();
   });
 });

@@ -1175,6 +1175,10 @@ class MetricSpecType(Enum):
     DYNAMIC_QUERY = "dynamic_query"
 
 
+class OnDemandMetricSpecError(Exception):
+    pass
+
+
 @dataclass
 class OnDemandMetricSpec:
     """
@@ -1460,7 +1464,7 @@ class OnDemandMetricSpec:
             return None
 
         if len(parsed_field.arguments) == 0:
-            raise Exception(f"The operation {op} supports one or more parameters")
+            raise OnDemandMetricSpecError(f"The operation {op} supports one or more parameters")
 
         arguments = parsed_field.arguments
         return [_map_field_name(arguments[0])] if op not in _MULTIPLE_ARGS_METRICS else arguments
@@ -1478,7 +1482,7 @@ class OnDemandMetricSpec:
         if op is not None:
             return op
 
-        raise Exception(f"Unsupported aggregate function {function}")
+        raise OnDemandMetricSpecError(f"Unsupported aggregate function {function}")
 
     @staticmethod
     def _get_metric_type(function: str) -> str:
@@ -1486,7 +1490,7 @@ class OnDemandMetricSpec:
         if metric_type is not None:
             return metric_type
 
-        raise Exception(f"Unsupported aggregate function {function}")
+        raise OnDemandMetricSpecError(f"Unsupported aggregate function {function}")
 
     @staticmethod
     def _parse_field(value: str) -> FieldParsingResult:
@@ -1499,7 +1503,9 @@ class OnDemandMetricSpec:
             column = query_builder.resolve_column(value)
             return column
         except InvalidSearchQuery as e:
-            raise Exception(f"Unable to parse the field '{value}' in on demand spec: {e}")
+            raise OnDemandMetricSpecError(
+                f"Unable to parse the field '{value}' in on demand spec: {e}"
+            )
 
     @staticmethod
     def _parse_query(value: str) -> QueryParsingResult:
@@ -1515,7 +1521,7 @@ class OnDemandMetricSpec:
 
             return QueryParsingResult(conditions=conditions)
         except InvalidSearchQuery as e:
-            raise Exception(f"Invalid search query '{value}' in on demand spec: {e}")
+            raise OnDemandMetricSpecError(f"Invalid search query '{value}' in on demand spec: {e}")
 
 
 def fetch_on_demand_metric_spec(

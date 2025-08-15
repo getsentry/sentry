@@ -7,7 +7,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -26,7 +25,7 @@ jest.mock('sentry/actionCreators/members', () => ({
   updateMember: jest.fn().mockReturnValue(new Promise(() => {})),
 }));
 
-describe('OrganizationMemberDetail', function () {
+describe('OrganizationMemberDetail', () => {
   const team = TeamFixture();
   const idpTeam = TeamFixture({
     id: '3',
@@ -103,10 +102,10 @@ describe('OrganizationMemberDetail', function () {
     TeamStore.loadInitialData(teams);
   });
 
-  describe('Can Edit', function () {
+  describe('Can Edit', () => {
     const organization = OrganizationFixture({features: ['team-roles']});
 
-    beforeEach(function () {
+    beforeEach(() => {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
 
@@ -139,7 +138,7 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('changes org role to owner', async function () {
+    it('changes org role to owner', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: member.id}},
@@ -148,6 +147,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Should have 5 roles
@@ -171,7 +171,7 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('leaves a team', async function () {
+    it('leaves a team', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: member.id}},
@@ -180,6 +180,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Remove our one team
@@ -198,7 +199,7 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('cannot leave idp-provisioned team', async function () {
+    it('cannot leave idp-provisioned team', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: idpTeamMember.id}},
@@ -207,12 +208,13 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
     });
 
-    it('joins a team and assign a team-role', async function () {
+    it('joins a team and assign a team-role', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: member.id}},
@@ -221,6 +223,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Should have one team enabled
@@ -252,7 +255,7 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('cannot join idp-provisioned team', async function () {
+    it('cannot join idp-provisioned team', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: member.id}},
@@ -261,6 +264,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(await screen.findByText('Add Team'));
@@ -273,10 +277,10 @@ describe('OrganizationMemberDetail', function () {
     });
   });
 
-  describe('Cannot Edit', function () {
+  describe('Cannot Edit', () => {
     const organization = OrganizationFixture({access: ['org:read']});
 
-    beforeEach(function () {
+    beforeEach(() => {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
       jest.resetAllMocks();
@@ -300,7 +304,7 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('can not change roles, teams, or save', async function () {
+    it('can not change roles, teams, or save', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: member.id}},
@@ -309,6 +313,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Should have 4 roles
@@ -320,10 +325,10 @@ describe('OrganizationMemberDetail', function () {
     });
   });
 
-  describe('Display status', function () {
+  describe('Display status', () => {
     const organization = OrganizationFixture({access: ['org:read']});
 
-    beforeEach(function () {
+    beforeEach(() => {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
       jest.resetAllMocks();
@@ -347,7 +352,7 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('display pending status', async function () {
+    it('display pending status', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: pendingMember.id}},
@@ -356,6 +361,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByTestId('member-status')).toHaveTextContent(
@@ -363,7 +369,7 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('display expired status', async function () {
+    it('display expired status', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: expiredMember.id}},
@@ -372,6 +378,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByTestId('member-status')).toHaveTextContent(
@@ -380,10 +387,10 @@ describe('OrganizationMemberDetail', function () {
     });
   });
 
-  describe('Show resend button', function () {
+  describe('Show resend button', () => {
     const organization = OrganizationFixture({access: ['org:read']});
 
-    beforeEach(function () {
+    beforeEach(() => {
       TeamStore.init();
       TeamStore.loadInitialData(teams);
       jest.resetAllMocks();
@@ -407,7 +414,7 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('shows for pending', async function () {
+    it('shows for pending', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: pendingMember.id}},
@@ -416,6 +423,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -423,7 +431,7 @@ describe('OrganizationMemberDetail', function () {
       ).toBeInTheDocument();
     });
 
-    it('does not show for expired', async function () {
+    it('does not show for expired', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: expiredMember.id}},
@@ -432,6 +440,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       await screen.findAllByRole('radio');
@@ -441,7 +450,7 @@ describe('OrganizationMemberDetail', function () {
     });
   });
 
-  describe('Reset member 2FA', function () {
+  describe('Reset member 2FA', () => {
     const fields = {
       roles: OrgRoleListFixture(),
       dateCreated: new Date().toISOString(),
@@ -486,7 +495,7 @@ describe('OrganizationMemberDetail', function () {
 
     const organization = OrganizationFixture();
 
-    beforeEach(function () {
+    beforeEach(() => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${pendingMember.id}/`,
@@ -537,7 +546,7 @@ describe('OrganizationMemberDetail', function () {
       expect(await screen.findByText(title)).toBeInTheDocument();
     };
 
-    it('does not show for pending member', async function () {
+    it('does not show for pending member', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: pendingMember.id}},
@@ -546,6 +555,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -556,7 +566,7 @@ describe('OrganizationMemberDetail', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('shows tooltip for joined member without permission to edit', async function () {
+    it('shows tooltip for joined member without permission to edit', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: noAccess.id}},
@@ -565,11 +575,12 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
       await expectButtonDisabled('You do not have permission to perform this action');
     });
 
-    it('shows tooltip for member without 2fa', async function () {
+    it('shows tooltip for member without 2fa', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: no2fa.id}},
@@ -578,11 +589,12 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
       await expectButtonDisabled('Not enrolled in two-factor authentication');
     });
 
-    it('can reset member 2FA', async function () {
+    it('can reset member 2FA', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: has2fa.id}},
@@ -598,6 +610,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
       renderGlobalModal();
 
@@ -613,7 +626,7 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('shows tooltip for member in multiple orgs', async function () {
+    it('shows tooltip for member in multiple orgs', async () => {
       const {router} = initializeOrg({
         organization,
         router: {params: {memberId: multipleOrgs.id}},
@@ -622,13 +635,14 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
       await expectButtonDisabled(
         'Cannot be reset since user is in more than one organization'
       );
     });
 
-    it('shows tooltip for member in 2FA required org', async function () {
+    it('shows tooltip for member in 2FA required org', async () => {
       organization.require2FA = true;
       const {router} = initializeOrg({
         organization,
@@ -642,6 +656,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
       await expectButtonDisabled(
         'Cannot be reset since two-factor is required for this organization'
@@ -704,6 +719,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Role info box is hidden
@@ -731,10 +747,10 @@ describe('OrganizationMemberDetail', function () {
           organization,
           router: {params: {memberId: testMember.id}},
         });
-        cleanup();
-        render(<OrganizationMemberDetail />, {
+        const {unmount} = render(<OrganizationMemberDetail />, {
           router,
           organization,
+          deprecatedRouterMocks: true,
         });
 
         // Role info box is showed
@@ -750,6 +766,7 @@ describe('OrganizationMemberDetail', function () {
         // Dropdown cannot be opened
         await selectEvent.openMenu(teamRoleSelect);
         expect(screen.queryAllByText('...')).toHaveLength(0);
+        unmount();
       }
 
       for (const role of [admin, manager, owner]) {
@@ -766,6 +783,7 @@ describe('OrganizationMemberDetail', function () {
       render(<OrganizationMemberDetail />, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       // Dropdown has correct value set

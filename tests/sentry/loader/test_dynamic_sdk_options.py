@@ -1,16 +1,17 @@
+from unittest import TestCase
+
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
 from sentry.models.projectkey import ProjectKey
-from sentry.testutils.cases import TestCase
 
 
 class DynamicSdkOptions(TestCase):
-    def test_default_get_dynamic_sdk_loader_option(self):
+    def test_default_get_dynamic_sdk_loader_option(self) -> None:
         key = ProjectKey(project_id=1, public_key="public", secret_key="secret")
         assert not get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_REPLAY)
         assert not get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_PERFORMANCE)
         assert not get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_DEBUG)
 
-    def test_get_dynamic_sdk_loader_option(self):
+    def test_get_dynamic_sdk_loader_option(self) -> None:
         dynamic_sdk_loader_options = {}
         dynamic_sdk_loader_options[DynamicSdkLoaderOption.HAS_REPLAY.value] = True
         dynamic_sdk_loader_options[DynamicSdkLoaderOption.HAS_PERFORMANCE.value] = True

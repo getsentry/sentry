@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import PageOverlay from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -66,11 +66,11 @@ function PageUpsellOverlay({
         <Fragment>
           <Header>{name}</Header>
           <Body>{description}</Body>
-          <Body css={theme => `font-size: ${theme.fontSizeMedium}`}>
+          <Body css={theme => `font-size: ${theme.fontSize.md}`}>
             {requiredPlanContents}
           </Body>
           <Body>
-            <StyledButtonBar gap={1}>
+            <StyledButtonBar>
               {subscription?.canSelfServe && (
                 <UpsellProvider
                   source={source}

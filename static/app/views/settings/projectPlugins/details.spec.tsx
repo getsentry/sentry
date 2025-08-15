@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PluginFixture} from 'sentry-fixture/plugin';
 import {PluginsFixture} from 'sentry-fixture/plugins';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -11,17 +10,24 @@ import ProjectPluginDetailsContainer, {
   ProjectPluginDetails,
 } from 'sentry/views/settings/projectPlugins/details';
 
-describe('ProjectPluginDetails', function () {
+describe('ProjectPluginDetails', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const plugins = PluginsFixture();
   const plugin = PluginFixture();
 
-  beforeAll(function () {
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/plugins/${plugin.id}/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/settings/plugins/:pluginId/',
+  };
+
+  beforeAll(() => {
     jest.spyOn(console, 'info').mockImplementation(() => {});
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,
       method: 'GET',
@@ -49,30 +55,23 @@ describe('ProjectPluginDetails', function () {
     });
   });
 
-  it('renders', async function () {
-    const router = RouterFixture({
-      params: {projectId: project.slug, pluginId: plugin.id},
-    });
+  it('renders', async () => {
     render(
       <ProjectPluginDetailsContainer organization={organization} project={project} />,
-      {router}
+      {initialRouterConfig}
     );
     expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
   });
 
-  it('resets plugin', async function () {
+  it('resets plugin', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
-    const router = RouterFixture({
-      params: {projectId: project.slug, pluginId: plugin.id},
-    });
-
     render(
       <ProjectPluginDetails
         organization={organization}
         project={project}
         plugins={{plugins}}
       />,
-      {router}
+      {initialRouterConfig}
     );
 
     await userEvent.click(
@@ -84,15 +83,11 @@ describe('ProjectPluginDetails', function () {
     );
   });
 
-  it('enables/disables plugin', async function () {
+  it('enables/disables plugin', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
-    const router = RouterFixture({
-      params: {projectId: project.slug, pluginId: plugin.id},
-    });
-
     render(
       <ProjectPluginDetailsContainer organization={organization} project={project} />,
-      {router}
+      {initialRouterConfig}
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Enable Plugin'}));

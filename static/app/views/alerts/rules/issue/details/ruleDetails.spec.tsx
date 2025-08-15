@@ -35,7 +35,11 @@ describe('AlertRuleDetails', () => {
         router={router}
         {...props}
       />,
-      {router, organization: org}
+      {
+        router,
+        organization: org,
+        deprecatedRouterMocks: true,
+      }
     );
   };
 
@@ -205,8 +209,14 @@ describe('AlertRuleDetails', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Edit to enable'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Duplicate'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Mute for me'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Duplicate'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Mute for me'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('rule disabled banner generic', async () => {

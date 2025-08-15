@@ -1,20 +1,23 @@
+import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
+import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {
-  Am3DsEnterpriseSubscriptionFixture,
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
+  SubscriptionWithSeerFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import CustomerOverview from 'admin/components/customers/customerOverview';
-import {PlanTier} from 'getsentry/types';
+import {PlanTier, ReservedBudgetCategoryType} from 'getsentry/types';
 
-describe('CustomerOverview', function () {
-  it('renders DetailLabels for SubscriptionSummary section', function () {
+describe('CustomerOverview', () => {
+  it('renders DetailLabels for SubscriptionSummary section', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization});
     render(
@@ -37,7 +40,7 @@ describe('CustomerOverview', function () {
     expect(screen.getByText('Soft Cap By Category:')).toBeInTheDocument();
   });
 
-  it('renders soft cap type details', function () {
+  it('renders soft cap type details', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -61,7 +64,7 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('Cron Monitors: On Demand')).not.toBeInTheDocument();
   });
 
-  it('renders soft cap type details all categories', function () {
+  it('renders soft cap type details all categories', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -103,7 +106,7 @@ describe('CustomerOverview', function () {
     expect(screen.getByText('Cron monitors: On Demand')).toBeInTheDocument();
   });
 
-  it('renders manually invoiced on-demand details', function () {
+  it('renders manually invoiced on-demand details', () => {
     const organization = OrganizationFixture();
     const subscription = InvoicedSubscriptionFixture({
       organization,
@@ -115,31 +118,31 @@ describe('CustomerOverview', function () {
       categories: {
         errors: MetricHistoryFixture({
           customPrice: 300_000_00,
-          onDemandCpe: 12.345678,
+          paygCpe: 12.345678,
           order: 1,
         }),
         transactions: MetricHistoryFixture({
           category: DataCategory.TRANSACTIONS,
           customPrice: 400_000_00,
-          onDemandCpe: 100,
+          paygCpe: 100,
           order: 2,
         }),
         replays: MetricHistoryFixture({
           category: DataCategory.REPLAYS,
           customPrice: 100_000_00,
-          onDemandCpe: 50,
+          paygCpe: 50,
           order: 4,
         }),
         monitorSeats: MetricHistoryFixture({
           category: DataCategory.MONITOR_SEATS,
           customPrice: 10_000_00,
-          onDemandCpe: 7.55,
+          paygCpe: 7.55,
           order: 7,
         }),
         attachments: MetricHistoryFixture({
           category: DataCategory.ATTACHMENTS,
           customPrice: 150_000_00,
-          onDemandCpe: 20.3,
+          paygCpe: 20.3,
           order: 8,
         }),
       },
@@ -199,7 +202,7 @@ describe('CustomerOverview', function () {
     expect(screen.getByText('$0.07550000')).toBeInTheDocument();
   });
 
-  it('renders partner details for active partner account', function () {
+  it('renders partner details for active partner account', () => {
     const organization = OrganizationFixture();
     const partnerSubscription = SubscriptionFixture({
       organization,
@@ -228,9 +231,10 @@ describe('CustomerOverview', function () {
     expect(screen.getByText('XX')).toBeInTheDocument();
     expect(screen.getByText('XX (active)')).toBeInTheDocument();
     expect(screen.getByText('ID: 123')).toBeInTheDocument();
+    expect(screen.getByText('Deactivate Partner')).toBeInTheDocument();
   });
 
-  it('render partner details for inactive partner account', function () {
+  it('render partner details for inactive partner account', () => {
     const organization = OrganizationFixture();
     const partnerSubscription = SubscriptionFixture({
       organization,
@@ -258,13 +262,57 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('XX')).not.toBeInTheDocument();
     expect(screen.getByText('XX (migrated)')).toBeInTheDocument();
     expect(screen.getByText('ID: 123')).toBeInTheDocument();
+    expect(screen.queryByText('Deactivate Partner')).not.toBeInTheDocument();
   });
 
-  it('renders reserved budget data', function () {
+  it('deactivates partner account with right data', async () => {
     const organization = OrganizationFixture();
-    const subscription = Am3DsEnterpriseSubscriptionFixture({organization});
-    subscription.reservedBudgets![0]!.reservedBudget = 99_000_00;
-    subscription.reservedBudgets![0]!.freeBudget = 1000_00;
+    const partnerSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+      partner: {
+        externalId: '123',
+        name: 'test',
+        partnership: {
+          id: 'XX',
+          displayName: 'XX',
+          supportNote: '',
+        },
+        isActive: true,
+      },
+      sponsoredType: 'XX',
+    });
+
+    const mockOnAction = jest.fn();
+
+    render(
+      <CustomerOverview
+        customer={partnerSubscription}
+        onAction={mockOnAction}
+        organization={organization}
+      />
+    );
+    await userEvent.click(screen.getByText('Deactivate Partner'));
+
+    expect(mockOnAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deactivatePartnerAccount: true,
+      })
+    );
+  });
+
+  it('renders reserved budget data', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionWithSeerFixture({organization});
+    subscription.reservedBudgets = [
+      SeerReservedBudgetFixture({
+        totalReservedSpend: 20_00,
+        freeBudget: 15_00,
+        percentUsed: 0.5,
+      }),
+    ];
+    subscription.reservedBudgets[0]!.categories.seerAutofix!.reservedSpend = 18_00;
+    subscription.reservedBudgets[0]!.categories.seerScanner!.reservedSpend = 2_00;
 
     render(
       <CustomerOverview
@@ -274,33 +322,29 @@ describe('CustomerOverview', function () {
       />
     );
 
-    expect(
-      screen.getByText('Accepted Spans and Stored Spans Reserved Budget')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Seer Budget')).toBeInTheDocument();
     expect(screen.getByText('Reserved Budget:')).toBeInTheDocument();
-    expect(screen.getByText('$99,000.00')).toBeInTheDocument();
+    expect(screen.getByText('$25.00')).toBeInTheDocument();
     expect(screen.getByText('Gifted Budget:')).toBeInTheDocument();
-    expect(screen.getByText('$1,000.00')).toBeInTheDocument();
+    expect(screen.getByText('$15.00')).toBeInTheDocument();
     expect(screen.getByText('Total Used:')).toBeInTheDocument();
-    expect(screen.getByText('$60,000.00 / $100,000.00 (60.00%)')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Accepted spans:')).toBeInTheDocument();
-    expect(
-      screen.getByText('Reserved Cost-Per-Event Accepted spans:')
-    ).toBeInTheDocument();
-    expect(screen.getByText('$0.01000000')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Spend Accepted spans:')).toBeInTheDocument();
-    expect(screen.getByText('$40,000.00')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Stored spans:')).toBeInTheDocument();
+    expect(screen.getByText('$20.00 / $40.00 (50.00%)')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Issue fixes:')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Cost-Per-Event Issue fixes:')).toBeInTheDocument();
+    expect(screen.getByText('$1.00000000')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Spend Issue fixes:')).toBeInTheDocument();
+    expect(screen.getByText('$18.00')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Issue scans:')).toBeInTheDocument();
     expect(screen.getAllByText('N/A')).toHaveLength(2);
-    expect(screen.getByText('Reserved Cost-Per-Event Stored spans:')).toBeInTheDocument();
-    expect(screen.getByText('$0.02000000')).toBeInTheDocument();
-    expect(screen.getByText('Reserved Spend Stored spans:')).toBeInTheDocument();
-    expect(screen.getByText('$20,000.00')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Cost-Per-Event Issue scans:')).toBeInTheDocument();
+    expect(screen.getByText('$0.01000000')).toBeInTheDocument();
+    expect(screen.getByText('Reserved Spend Issue scans:')).toBeInTheDocument();
+    expect(screen.getByText('$2.00')).toBeInTheDocument();
 
     expect(screen.queryByText('Reserved Cost-Per-Event Errors')).not.toBeInTheDocument();
   });
 
-  it('renders no product trials for pre-performance account', function () {
+  it('renders no product trials for pre-performance account', () => {
     const organization = OrganizationFixture();
     const mm2_subscription = SubscriptionFixture({
       organization,
@@ -321,15 +365,15 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
     expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
+    expect(screen.queryByText('Seer:')).not.toBeInTheDocument();
   });
 
-  it('renders no product trials for non-self-serve account', function () {
+  it('renders product trials for non-self-serve account', () => {
     const organization = OrganizationFixture();
-    const enterprise_subscription = SubscriptionFixture({
+    const enterprise_subscription = InvoicedSubscriptionFixture({
       organization,
       plan: 'am3_business_ent_auf',
       planTier: PlanTier.AM3,
-      canSelfServe: false,
     });
 
     render(
@@ -340,65 +384,50 @@ describe('CustomerOverview', function () {
       />
     );
 
-    expect(screen.queryByText('Product Trials')).not.toBeInTheDocument();
-    expect(screen.queryByText('Replays:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
+    expect(screen.getByText('Product Trials')).toBeInTheDocument();
+    expect(screen.getByText('Spans:')).toBeInTheDocument();
+    expect(screen.getByText('Replays:')).toBeInTheDocument();
+    expect(screen.getByText('Seer:')).toBeInTheDocument();
     expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
   });
 
-  it('render product trials for am1 account', function () {
-    const organization = OrganizationFixture();
-    const am1_subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_f',
-      planTier: PlanTier.AM1,
-    });
-
-    render(
-      <CustomerOverview
-        customer={am1_subscription}
-        onAction={jest.fn()}
-        organization={organization}
-      />
-    );
-
-    expect(screen.getByText('Product Trials')).toBeInTheDocument();
-    expect(screen.getByText('Replays:')).toBeInTheDocument();
-    expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
-    expect(screen.getByText('Transactions:')).toBeInTheDocument();
-  });
-
-  it('render product trials for am2 account', function () {
-    const organization = OrganizationFixture();
-    const am2_subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_f',
-      planTier: PlanTier.AM2,
-    });
-
-    render(
-      <CustomerOverview
-        customer={am2_subscription}
-        onAction={jest.fn()}
-        organization={organization}
-      />
-    );
-
-    expect(screen.getByText('Product Trials')).toBeInTheDocument();
-    expect(screen.getByText('Replays:')).toBeInTheDocument();
-    expect(screen.queryByText('Spans:')).not.toBeInTheDocument();
-    expect(screen.getByText('Performance Units:')).toBeInTheDocument();
-    expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
-  });
-
-  it('render product trials for am3 account', function () {
+  it('renders product trials based on current subscription state', () => {
     const organization = OrganizationFixture();
     const am3_subscription = SubscriptionFixture({
       organization,
       plan: 'am3_f',
       planTier: PlanTier.AM3,
+      productTrials: [
+        {
+          category: DataCategory.REPLAYS,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(10, 'days').format(),
+          endDate: moment().utc().add(20, 'days').format(),
+        },
+        {
+          category: DataCategory.SPANS,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(10, 'days').format(),
+          endDate: moment().utc().subtract(1, 'hours').format(),
+        },
+        {
+          category: DataCategory.SEER_AUTOFIX,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(20, 'days').format(),
+          endDate: moment().utc().subtract(10, 'days').format(),
+        },
+        {
+          category: DataCategory.SEER_SCANNER,
+          isStarted: true,
+          reasonCode: 1001,
+          startDate: moment().utc().subtract(20, 'days').format(),
+          endDate: moment().utc().subtract(10, 'days').format(),
+        },
+      ],
     });
 
     render(
@@ -410,13 +439,118 @@ describe('CustomerOverview', function () {
     );
 
     expect(screen.getByText('Product Trials')).toBeInTheDocument();
-    expect(screen.getByText('Replays:')).toBeInTheDocument();
-    expect(screen.getByText('Spans:')).toBeInTheDocument();
-    expect(screen.queryByText('Performance Units:')).not.toBeInTheDocument();
-    expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
+
+    // Find the DetailList containing product trials by finding the heading and its next sibling
+    const productTrialsHeading = screen.getByRole('heading', {
+      name: 'Product Trials',
+    });
+    const productTrialsList = productTrialsHeading.nextElementSibling;
+    expect(productTrialsList).toBeInTheDocument();
+    // Check if productTrialsList is an HTMLElement before using within
+    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
+      throw new Error('Product trials list not found or not an HTMLElement');
+    }
+    expect(productTrialsList.tagName).toBe('DL'); // Verify it's the correct element type
+
+    const possibleTrialCategories = [
+      DataCategory.TRANSACTIONS,
+      DataCategory.REPLAYS,
+      DataCategory.SPANS,
+      DataCategory.PROFILE_DURATION,
+      DataCategory.PROFILE_DURATION_UI,
+      DataCategory.LOG_BYTE,
+      ReservedBudgetCategoryType.SEER,
+    ];
+
+    const assertProductTrialActions = (
+      category: DataCategory | ReservedBudgetCategoryType,
+      formattedDisplayName: string,
+      shouldNotIncludeTrialCategory = false
+    ) => {
+      if (possibleTrialCategories.includes(category) && !shouldNotIncludeTrialCategory) {
+        const termElement = within(productTrialsList).getByText(
+          `${formattedDisplayName}:`
+        );
+        const definition = termElement.nextElementSibling;
+        expect(definition).toBeInTheDocument();
+        if (!definition || !(definition instanceof HTMLElement)) {
+          throw new Error(`${category} definition not found or not an HTMLElement`);
+        }
+
+        const allowTrialButton = within(definition).getByRole('button', {
+          name: 'Allow Trial',
+        });
+        expect(allowTrialButton).toBeInTheDocument();
+        const startTrialButton = within(definition).getByRole('button', {
+          name: 'Start Trial',
+        });
+        expect(startTrialButton).toBeInTheDocument();
+        const stopTrialButton = within(definition).getByRole('button', {
+          name: 'Stop Trial',
+        });
+        expect(stopTrialButton).toBeInTheDocument();
+
+        if (category === DataCategory.REPLAYS) {
+          expect(allowTrialButton).toBeDisabled();
+          expect(startTrialButton).toBeDisabled();
+          expect(stopTrialButton).toBeEnabled();
+          expect(within(definition).getByText('Active')).toBeInTheDocument();
+        } else if (category === DataCategory.SPANS) {
+          expect(allowTrialButton).toBeDisabled();
+          expect(startTrialButton).toBeDisabled();
+          expect(stopTrialButton).toBeDisabled();
+          expect(within(definition).getByText(/Active \(/)).toBeInTheDocument();
+        } else if (category === ReservedBudgetCategoryType.SEER) {
+          expect(allowTrialButton).toBeEnabled();
+          expect(startTrialButton).toBeDisabled();
+          expect(stopTrialButton).toBeDisabled();
+          expect(within(definition).getByText('Used')).toBeInTheDocument();
+        } else {
+          expect(allowTrialButton).toBeDisabled();
+          expect(startTrialButton).toBeEnabled();
+          expect(stopTrialButton).toBeDisabled();
+          expect(within(definition).getByText('Available')).toBeInTheDocument();
+        }
+      } else {
+        expect(
+          within(productTrialsList).queryByText(`${formattedDisplayName}:`)
+        ).not.toBeInTheDocument();
+      }
+    };
+
+    am3_subscription.planDetails.categories.forEach(category => {
+      const formattedDisplayName = toTitleCase(
+        am3_subscription.planDetails.categoryDisplayNames?.[category]?.plural ?? category,
+        {allowInnerUpperCase: true}
+      );
+      assertProductTrialActions(category, formattedDisplayName);
+    });
+    Object.values(am3_subscription.planDetails.availableReservedBudgetTypes).forEach(
+      productGroup => {
+        const formattedDisplayName = toTitleCase(productGroup.productName, {
+          allowInnerUpperCase: true,
+        });
+        assertProductTrialActions(productGroup.apiName, formattedDisplayName);
+      }
+    );
+
+    possibleTrialCategories.forEach(category => {
+      if (
+        !am3_subscription.planDetails.categories.includes(category as DataCategory) &&
+        !Object.keys(am3_subscription.planDetails.availableReservedBudgetTypes).includes(
+          category
+        )
+      ) {
+        assertProductTrialActions(
+          category,
+          toTitleCase(category, {allowInnerUpperCase: true}),
+          true
+        );
+      }
+    });
   });
 
-  it('render dynamic sampling rate for am3 account', function () {
+  it('render dynamic sampling rate for am3 account', () => {
     const organization = OrganizationFixture({
       features: ['dynamic-sampling'],
       desiredSampleRate: 0.75,

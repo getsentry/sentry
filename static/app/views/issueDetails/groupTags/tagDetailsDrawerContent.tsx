@@ -1,14 +1,15 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -17,7 +18,7 @@ import {IconArrow, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {percent} from 'sentry/utils';
+import {escapeIssueTagKey, generateQueryWithTag, percent} from 'sentry/utils';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -156,20 +157,36 @@ function TagDetailsRow({
   tagValue: TagValue;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
 
   const key = tagValue.key ?? tag.key;
   const query =
     key === 'environment'
       ? {
           environment: tagValue.value,
+          query: undefined,
         }
-      : {query: tagValue.query || `${key}:"${tagValue.value}"`};
+      : {
+          query: tagValue.query || `${key}:"${tagValue.value}"`,
+        };
+
   const allEventsLocation = {
-    pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-    query,
+    pathname: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+    query: {
+      ...location.query,
+      ...query,
+    },
   };
-  const percentage = Math.floor(percent(tagValue.count ?? 0, tag.totalValues ?? 0));
-  const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+  const percentage = Math.round(percent(tagValue.count ?? 0, tag.totalValues ?? 0));
+  // Ensure no item shows 100% when there are multiple tag values
+  const hasMultipleItems = (tag.uniqueValues ?? 0) > 1;
+  const cappedPercentage = hasMultipleItems && percentage >= 100 ? 99 : percentage;
+  const displayPercentage =
+    cappedPercentage < 1
+      ? '<1%'
+      : hasMultipleItems && percentage >= 100
+        ? '>99%'
+        : `${cappedPercentage.toFixed(0)}%`;
 
   return (
     <Row>
@@ -200,6 +217,7 @@ function TagDetailsValue({
   tagValue: TagValue;
   valueLocation: LocationDescriptor;
 }) {
+  const theme = useTheme();
   const userValues = getUserTagValue(tagValue);
   const valueComponent =
     tagKey === 'user' ? (
@@ -211,6 +229,7 @@ function TagDetailsValue({
           contextIconProps: {
             size: 'md',
           },
+          theme,
         })}
         <div>{userValues.title}</div>
         {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
@@ -248,8 +267,13 @@ function TagValueActionsMenu({
   const {onClick: handleCopy} = useCopyToClipboard({
     text: tagValue.value,
   });
-  const key = tagValue.key ?? tag.key;
-  const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
+  const referrer = 'tag-details-drawer';
+  const key = escapeIssueTagKey(tagValue.key ?? tag.key);
+  const query = tagValue.query
+    ? {
+        query: tagValue.query,
+      }
+    : generateQueryWithTag({referrer}, {key, value: tagValue.value});
   const eventView = useIssueDetailsEventView({group, queryProps: query});
   const [isVisible, setIsVisible] = useState(false);
 
@@ -308,7 +332,7 @@ const Table = styled('div')`
   row-gap: ${space(0.5)};
   margin: 0 -${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     column-gap: ${space(2)};
   }
 `;
@@ -316,7 +340,7 @@ const Table = styled('div')`
 const ColumnTitle = styled('div')`
   white-space: nowrap;
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const ShareColumnTitle = styled(ColumnTitle)`
@@ -329,7 +353,7 @@ const ColumnSort = styled(Link)`
   align-items: center;
   white-space: nowrap;
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: underline;
   text-decoration-style: dotted;
   text-decoration-color: ${p => p.theme.textColor};
@@ -399,5 +423,5 @@ const ExternalLinkbutton = styled(Button)`
 const UserValue = styled('div')`
   display: flex;
   gap: ${space(0.75)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

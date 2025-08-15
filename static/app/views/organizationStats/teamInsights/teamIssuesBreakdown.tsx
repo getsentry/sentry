@@ -233,7 +233,7 @@ const IssuesChartWrapper = styled(ChartWrapper)`
 
 const StyledPanelTable = styled(PanelTable)<{numActions: number}>`
   grid-template-columns: 1fr ${p => ' 0.2fr'.repeat(p.numActions)} 0.2fr;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;

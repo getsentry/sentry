@@ -1,10 +1,11 @@
 import {useCallback} from 'react';
+import {useBlocker} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import ButtonBar from 'sentry/components/buttonBar';
-import Confirm from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import type {Platform} from 'sentry/data/platformPickerCategories';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -13,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -26,15 +28,13 @@ type Props = {
 
 export function PlatformDocHeader({platform, projectSlug, title}: Props) {
   const organization = useOrganization();
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const router = useRouter();
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
     projectSlug,
   });
-
-  const shallProjectBeDeleted = !isProjectActive;
 
   const handleGoBack = useCallback(async () => {
     if (!recentCreatedProject) {
@@ -45,7 +45,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       organization,
     });
 
-    if (shallProjectBeDeleted) {
+    if (!isProjectActive) {
       trackAnalytics('project_creation.data_removal_modal_confirm_button_clicked', {
         organization,
         platform: recentCreatedProject.slug,
@@ -67,7 +67,10 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
           project_id: recentCreatedProject.id,
         });
       } catch (error) {
-        handleXhrErrorResponse('Unable to delete project in project creation', error);
+        handleXhrErrorResponse(
+          'Unable to delete project in project creation',
+          error as RequestError
+        );
         // we don't give the user any feedback regarding this error as this shall be silent
       }
     }
@@ -75,50 +78,31 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
     router.replace(
       makeProjectsPathname({
         path: '/new/',
-        orgSlug: organization.slug,
+        organization,
       }) + `?referrer=getting-started&project=${recentCreatedProject.id}`
     );
-  }, [api, recentCreatedProject, organization, shallProjectBeDeleted, router]);
+  }, [api, recentCreatedProject, organization, isProjectActive, router]);
+
+  useBlocker(({historyAction}) => {
+    if (historyAction === 'POP') {
+      handleGoBack();
+    }
+    return false;
+  });
 
   return (
     <StyledPageHeader>
       <h2>
         {title ?? t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
       </h2>
-      <ButtonBar gap={1}>
-        <Confirm
-          bypass={!shallProjectBeDeleted}
-          message={t(
-            "Hey, just a heads up - we haven't received any data for this SDK yet and by going back all changes will be discarded. Are you sure you want to head back?"
-          )}
-          priority="danger"
-          confirmText={t("Yes I'm sure")}
-          onConfirm={handleGoBack}
-          onCancel={() => {
-            if (!recentCreatedProject) {
-              return;
-            }
-            trackAnalytics('project_creation.data_removal_modal_dismissed', {
-              organization,
-              platform: recentCreatedProject.slug,
-              project_id: recentCreatedProject.id,
-            });
-          }}
-          onRender={() => {
-            if (!recentCreatedProject) {
-              return;
-            }
-            trackAnalytics('project_creation.data_removal_modal_rendered', {
-              organization,
-              platform: recentCreatedProject.slug,
-              project_id: recentCreatedProject.id,
-            });
-          }}
+      <ButtonBar>
+        <Button
+          size="sm"
+          icon={<IconChevron direction="left" size="xs" />}
+          onClick={handleGoBack}
         >
-          <Button icon={<IconChevron direction="left" size="sm" />} size="sm">
-            {t('Back to Platform Selection')}
-          </Button>
-        </Confirm>
+          {t('Back to Platform Selection')}
+        </Button>
         {platform.key !== 'other' && (
           <LinkButton size="sm" href={platform.link ?? ''} external>
             {t('Full Documentation')}
@@ -138,7 +122,7 @@ const StyledPageHeader = styled('div')`
     margin: 0;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     align-items: flex-start;
 

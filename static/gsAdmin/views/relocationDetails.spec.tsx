@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -9,14 +8,13 @@ import {
 import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import * as useNavigateModule from 'sentry/utils/useNavigate';
 
 import RelocationDetails from 'admin/views/relocationDetails';
 
 jest.mock('sentry/actionCreators/indicator');
 
-describe('Relocation Details', function () {
-  const api = new MockApiClient();
+describe('Relocation Details', () => {
   const in_progress_relocation_uuid = '9f14e990-dd8d-4f45-b759-a8982692e530';
   const paused_relocation_uuid = '589376f2-ab6a-4476-abed-81f0a26446d6';
 
@@ -76,7 +74,7 @@ describe('Relocation Details', function () {
     };
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     ConfigStore.set('regions', [
       {
         name: 'test',
@@ -85,8 +83,7 @@ describe('Relocation Details', function () {
     ]);
   });
 
-  it('renders', function () {
-    const {router, routerProps} = initializeOrg();
+  it('renders', async () => {
     const uuid = in_progress_relocation_uuid;
     const model = get_in_progress_relocation_model();
 
@@ -96,18 +93,16 @@ describe('Relocation Details', function () {
       body: model,
     });
 
-    render(
-      <RelocationDetails
-        {...routerProps}
-        api={api}
-        params={{regionName: 'test', relocationUuid: uuid}}
-      />,
-      {
-        router,
-      }
-    );
+    render(<RelocationDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/admin/relocations/test/${uuid}/`,
+        },
+        route: `/admin/relocations/:regionName/:relocationUuid/`,
+      },
+    });
 
-    expect(screen.getByRole('heading', {name: 'Relocation'})).toBeInTheDocument();
+    expect(await screen.findByRole('heading', {name: 'Relocation'})).toBeInTheDocument();
 
     expect(screen.getAllByText(uuid)).toHaveLength(1);
     expect(screen.getAllByText('SELF_HOSTED')).toHaveLength(1);
@@ -120,8 +115,7 @@ describe('Relocation Details', function () {
     expect(screen.getAllByText('claire, david')).toHaveLength(1);
   });
 
-  it('pauses and unpauses in progress relocation', async function () {
-    const {router, routerProps} = initializeOrg();
+  it('pauses and unpauses in progress relocation', async () => {
     const uuid = in_progress_relocation_uuid;
     const model = get_in_progress_relocation_model();
 
@@ -131,19 +125,17 @@ describe('Relocation Details', function () {
       body: model,
     });
 
-    render(
-      <RelocationDetails
-        {...routerProps}
-        api={api}
-        params={{regionName: 'test', relocationUuid: uuid}}
-      />,
-      {
-        router,
-      }
-    );
+    render(<RelocationDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/admin/relocations/test/${uuid}/`,
+        },
+        route: `/admin/relocations/:regionName/:relocationUuid/`,
+      },
+    });
 
-    expect(screen.getAllByText('Working')).toHaveLength(1);
-    expect(screen.getAllByText('--')).toHaveLength(2);
+    await waitFor(() => expect(screen.getAllByText('Working')).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByText('--')).toHaveLength(2));
 
     const {waitForModalToHide} = renderGlobalModal();
 
@@ -232,8 +224,7 @@ describe('Relocation Details', function () {
     expect(screen.getAllByText('--')).toHaveLength(2);
   });
 
-  it('unpauses paused relocation', async function () {
-    const {router, routerProps} = initializeOrg();
+  it('unpauses paused relocation', async () => {
     const uuid = paused_relocation_uuid;
     const model = get_paused_relocation_model();
 
@@ -243,19 +234,17 @@ describe('Relocation Details', function () {
       body: model,
     });
 
-    render(
-      <RelocationDetails
-        {...routerProps}
-        api={api}
-        params={{regionName: 'test', relocationUuid: uuid}}
-      />,
-      {
-        router,
-      }
-    );
+    render(<RelocationDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/admin/relocations/test/${uuid}/`,
+        },
+        route: `/admin/relocations/:regionName/:relocationUuid/`,
+      },
+    });
 
-    expect(screen.getAllByText('Paused')).toHaveLength(1);
-    expect(screen.getAllByText('--')).toHaveLength(3);
+    await waitFor(() => expect(screen.getAllByText('Paused')).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByText('--')).toHaveLength(3));
 
     const {waitForModalToHide} = renderGlobalModal();
 
@@ -289,8 +278,7 @@ describe('Relocation Details', function () {
     expect(screen.getAllByText('--')).toHaveLength(3);
   });
 
-  it('has only `Show Artifacts` in action menu for already succeeded relocation', async function () {
-    const {router, routerProps} = initializeOrg();
+  it('has only `Show Artifacts` in action menu for already succeeded relocation', async () => {
     const uuid = 'd39f84fc-554a-4d7d-95b7-78f983bcba73';
     const model: Record<string, any> = {
       dateAdded: '2023-12-18T01:02:03:45.678Z',
@@ -322,18 +310,16 @@ describe('Relocation Details', function () {
       body: model,
     });
 
-    render(
-      <RelocationDetails
-        {...routerProps}
-        api={api}
-        params={{regionName: 'test', relocationUuid: uuid}}
-      />,
-      {
-        router,
-      }
-    );
+    render(<RelocationDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/admin/relocations/test/${uuid}/`,
+        },
+        route: `/admin/relocations/:regionName/:relocationUuid/`,
+      },
+    });
 
-    await userEvent.click(screen.getByText('Relocation Actions'));
+    await userEvent.click(await screen.findByText('Relocation Actions'));
     expect(screen.getByText('Show Artifacts')).toBeInTheDocument();
     expect(screen.queryByText('Schedule Pause')).not.toBeInTheDocument();
     expect(screen.queryByText('Unpause')).not.toBeInTheDocument();
@@ -342,8 +328,7 @@ describe('Relocation Details', function () {
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
   });
 
-  it('cancels and aborts incomplete relocation', async function () {
-    const {router, routerProps} = initializeOrg();
+  it('cancels and aborts incomplete relocation', async () => {
     const uuid = in_progress_relocation_uuid;
     const model = get_in_progress_relocation_model();
     model.step = 'PREPROCESSING';
@@ -354,19 +339,17 @@ describe('Relocation Details', function () {
       body: model,
     });
 
-    render(
-      <RelocationDetails
-        {...routerProps}
-        api={api}
-        params={{regionName: 'test', relocationUuid: uuid}}
-      />,
-      {
-        router,
-      }
-    );
+    render(<RelocationDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/admin/relocations/test/${uuid}/`,
+        },
+        route: `/admin/relocations/:regionName/:relocationUuid/`,
+      },
+    });
 
-    expect(screen.getAllByText('Working')).toHaveLength(1);
-    expect(screen.getAllByText('--')).toHaveLength(2);
+    await waitFor(() => expect(screen.getAllByText('Working')).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByText('--')).toHaveLength(2));
 
     const {waitForModalToHide} = renderGlobalModal();
 
@@ -448,8 +431,7 @@ describe('Relocation Details', function () {
     expect(screen.getByText('Some reason')).toBeInTheDocument();
   });
 
-  it('hides cancel and pause actions on penultimate step', async function () {
-    const {router, routerProps} = initializeOrg();
+  it('hides cancel and pause actions on penultimate step', async () => {
     const uuid = paused_relocation_uuid;
     const model = get_paused_relocation_model();
     model.step = 'NOTIFYING';
@@ -460,19 +442,17 @@ describe('Relocation Details', function () {
       body: model,
     });
 
-    render(
-      <RelocationDetails
-        {...routerProps}
-        api={api}
-        params={{regionName: 'test', relocationUuid: uuid}}
-      />,
-      {
-        router,
-      }
-    );
+    render(<RelocationDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/admin/relocations/test/${uuid}/`,
+        },
+        route: `/admin/relocations/:regionName/:relocationUuid/`,
+      },
+    });
 
     // Unpause.
-    await userEvent.click(screen.getByText('Relocation Actions'));
+    await userEvent.click(await screen.findByText('Relocation Actions'));
     expect(screen.queryByText('Schedule Pause')).not.toBeInTheDocument();
     expect(screen.getByText('Unpause')).toBeInTheDocument();
     expect(screen.queryByText('Schedule Cancellation')).not.toBeInTheDocument();
@@ -503,8 +483,10 @@ describe('Relocation Details', function () {
     expect(screen.getByText('Abort')).toBeInTheDocument();
   });
 
-  it('retries failed relocation', async function () {
-    const {router, routerProps} = initializeOrg();
+  it('retries failed relocation', async () => {
+    const navigate = jest.fn();
+    jest.spyOn(useNavigateModule, 'useNavigate').mockReturnValue(navigate);
+
     const old_uuid = paused_relocation_uuid;
     const old_model = get_paused_relocation_model();
     old_model.status = 'FAILURE';
@@ -515,19 +497,17 @@ describe('Relocation Details', function () {
       body: old_model,
     });
 
-    render(
-      <RelocationDetails
-        {...routerProps}
-        api={api}
-        params={{regionName: 'test', relocationUuid: old_uuid}}
-      />,
-      {
-        router,
-      }
-    );
+    render(<RelocationDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/admin/relocations/test/${old_uuid}/`,
+        },
+        route: `/admin/relocations/:regionName/:relocationUuid/`,
+      },
+    });
 
     // Unpause.
-    await userEvent.click(screen.getByText('Relocation Actions'));
+    await userEvent.click(await screen.findByText('Relocation Actions'));
     expect(screen.queryByText('Schedule Pause')).not.toBeInTheDocument();
     expect(screen.queryByText('Unpause')).not.toBeInTheDocument();
     expect(screen.queryByText('Schedule Cancellation')).not.toBeInTheDocument();
@@ -548,8 +528,6 @@ describe('Relocation Details', function () {
     await waitForModalToHide();
     await waitFor(() => expect(retryCall).toHaveBeenCalled());
     expect(retryCall).toHaveBeenCalled();
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      `/_admin/relocations/test/${new_uuid}/`
-    );
+    expect(navigate).toHaveBeenCalledWith(`/_admin/relocations/test/${new_uuid}/`);
   });
 });

@@ -8,7 +8,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
 describe('useRoutes', () => {
-  it('returns the current routes object', function () {
+  it('returns the current routes object', () => {
     let routes: any;
     function HomePage() {
       routes = useRoutes();
@@ -28,9 +28,9 @@ describe('useRoutes', () => {
     };
 
     render(
-      <TestRouteContext.Provider value={routeContext}>
+      <TestRouteContext value={routeContext}>
         <HomePage />
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
     expect(routes).toHaveLength(1);
     expect(routes[0]).toEqual({path: '/', component: HomePage});

@@ -5,28 +5,27 @@ import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Switch} from 'sentry/components/core/switch';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -38,13 +37,21 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
+import {getDashboardTemplates} from 'sentry/views/dashboards/data';
+import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
+import {
+  assignDefaultLayout,
+  getInitialColumnDepths,
+} from 'sentry/views/dashboards/layoutUtils';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
+import OwnedDashboardsTable, {
+  OWNED_CURSOR_KEY,
+} from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
+import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import RouteError from 'sentry/views/routeError';
-
-import {getDashboardTemplates} from '../data';
-import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
-import type {DashboardDetails, DashboardListItem} from '../types';
 
 import DashboardGrid from './dashboardGrid';
 import {
@@ -56,16 +63,6 @@ import {
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from './settings';
 import TemplateCard from './templateCard';
-
-const SORT_OPTIONS: Array<SelectValue<string>> = [
-  {label: t('My Dashboards'), value: 'mydashboards'},
-  {label: t('Dashboard Name (A-Z)'), value: 'title'},
-  {label: t('Dashboard Name (Z-A)'), value: '-title'},
-  {label: t('Date Created (Newest)'), value: '-dateCreated'},
-  {label: t('Date Created (Oldest)'), value: 'dateCreated'},
-  {label: t('Most Popular'), value: 'mostPopular'},
-  {label: t('Recently Viewed'), value: 'recentlyViewed'},
-];
 
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
 export const LAYOUT_KEY = 'dashboards-overview-layout';
@@ -80,9 +77,57 @@ function shouldShowTemplates(): boolean {
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
   const dashboardsLayout = localStorage.getItem(LAYOUT_KEY);
+
+  // There was a bug where the layout was saved as 'list' instead of 'table'
+  // this coerces it back to TABLE in case we still rely on it anywhere
+  if (dashboardsLayout === 'list') {
+    return TABLE;
+  }
+
   return dashboardsLayout === GRID || dashboardsLayout === TABLE
     ? dashboardsLayout
     : GRID;
+}
+
+function getSortOptions({
+  organization,
+  dashboardsLayout,
+}: {
+  dashboardsLayout: DashboardsLayout;
+  organization: Organization;
+}) {
+  return [
+    ...(!organization.features.includes('dashboards-starred-reordering') ||
+    dashboardsLayout === GRID
+      ? [{label: t('My Dashboards'), value: 'mydashboards'}]
+      : []),
+    {label: t('Dashboard Name (A-Z)'), value: 'title'},
+    {label: t('Dashboard Name (Z-A)'), value: '-title'},
+    {label: t('Date Created (Newest)'), value: '-dateCreated'},
+    {label: t('Date Created (Oldest)'), value: 'dateCreated'},
+    {label: t('Most Popular'), value: 'mostPopular'},
+    ...(organization.features.includes('dashboards-starred-reordering')
+      ? [{label: t('Most Starred'), value: 'mostFavorited'}]
+      : []),
+    {label: t('Recently Viewed'), value: 'recentlyViewed'},
+  ];
+}
+
+function getDefaultSort({
+  organization,
+  dashboardsLayout,
+}: {
+  dashboardsLayout: DashboardsLayout;
+  organization: Organization;
+}) {
+  if (
+    organization.features.includes('dashboards-starred-reordering') &&
+    dashboardsLayout === TABLE
+  ) {
+    return 'recentlyViewed';
+  }
+
+  return 'mydashboards';
 }
 
 function ManageDashboards() {
@@ -106,6 +151,11 @@ function ManageDashboards() {
     columnCount: DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
   });
 
+  const sortOptions = getSortOptions({
+    organization,
+    dashboardsLayout,
+  });
+
   const {
     data: dashboards,
     isLoading,
@@ -120,16 +170,29 @@ function ManageDashboards() {
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort()!.value,
-          ...(organization.features.includes('dashboards-favourite')
-            ? {pin: 'favorites'}
-            : {}),
+          pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
         },
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 0,
+      enabled: !(
+        organization.features.includes('dashboards-starred-reordering') &&
+        dashboardsLayout === TABLE
+      ),
+    }
   );
+
+  const ownedDashboards = useOwnedDashboards({
+    query: decodeScalar(location.query.query, ''),
+    cursor: decodeScalar(location.query[OWNED_CURSOR_KEY], ''),
+    sort: getActiveSort()!.value,
+    enabled:
+      organization.features.includes('dashboards-starred-reordering') &&
+      dashboardsLayout === TABLE,
+  });
 
   const dashboardsPageLinks = getResponseHeader?.('Link') ?? '';
 
@@ -167,7 +230,8 @@ function ManageDashboards() {
           const paginationObject = parseLinkHeader(dashboardsPageLinks);
           if (
             dashboards?.length &&
-            paginationObject.next!.results &&
+            paginationObject?.next &&
+            paginationObject?.next?.results &&
             rowCount * columnCount > dashboards.length
           ) {
             refetchDashboards();
@@ -189,9 +253,46 @@ function ManageDashboards() {
     };
   }, [columnCount, dashboards?.length, dashboardsPageLinks, refetchDashboards, rowCount]);
 
+  useEffect(() => {
+    const urlSort = decodeScalar(location.query.sort);
+    const defaultSort = getDefaultSort({
+      organization,
+      dashboardsLayout,
+    });
+    if (urlSort && !sortOptions.some(option => option.value === urlSort)) {
+      // The sort option is not valid, so we need to set the default sort
+      // in the URL
+      navigate({
+        pathname: location.pathname,
+        query: {...location.query, sort: defaultSort},
+      });
+    }
+  }, [
+    dashboardsLayout,
+    location.pathname,
+    location.query,
+    navigate,
+    organization,
+    sortOptions,
+  ]);
+
   function getActiveSort() {
-    const urlSort = decodeScalar(location.query.sort, 'mydashboards');
-    return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
+    const defaultSort = getDefaultSort({
+      organization,
+      dashboardsLayout,
+    });
+    const urlSort = decodeScalar(location.query.sort, defaultSort);
+
+    if (urlSort) {
+      // Check if the URL sort is valid
+      const foundSort = sortOptions.find(item => item.value === urlSort);
+      if (foundSort) {
+        return foundSort;
+      }
+    }
+
+    // If it is not valid, try the default sort, and only if that is not valid, use the first option
+    return sortOptions.find(item => item.value === defaultSort) || sortOptions[0];
   }
 
   function handleSearch(query: string) {
@@ -254,46 +355,45 @@ function ManageDashboards() {
   function renderActions() {
     const activeSort = getActiveSort();
     return (
-      <StyledActions listView={organization.features.includes('dashboards-table-view')}>
+      <StyledActions>
         <SearchBar
           defaultQuery=""
           query={getQuery()}
           placeholder={t('Search Dashboards')}
           onSearch={query => handleSearch(query)}
         />
-        <Feature features={'organizations:dashboards-table-view'}>
-          <SegmentedControl<DashboardsLayout>
-            onChange={newValue => {
-              setDashboardsLayout(newValue);
-              trackAnalytics('dashboards_manage.change_view_type', {
-                organization,
-                view_type: newValue,
-              });
-            }}
-            size="md"
-            value={dashboardsLayout}
-            aria-label={t('Layout Control')}
-          >
-            <SegmentedControl.Item
-              key="grid"
-              textValue="grid"
-              aria-label={t('Grid View')}
-              icon={<IconGrid />}
-            />
-            <SegmentedControl.Item
-              key="list"
-              textValue="list"
-              aria-label={t('List View')}
-              icon={<IconList />}
-            />
-          </SegmentedControl>
-        </Feature>
+        <SegmentedControl<DashboardsLayout>
+          onChange={newValue => {
+            setDashboardsLayout(newValue);
+            trackAnalytics('dashboards_manage.change_view_type', {
+              organization,
+              view_type: newValue,
+            });
+          }}
+          size="md"
+          value={dashboardsLayout}
+          aria-label={t('Layout Control')}
+        >
+          <SegmentedControl.Item
+            key={GRID}
+            textValue={GRID}
+            aria-label={t('Grid View')}
+            icon={<IconGrid />}
+          />
+          <SegmentedControl.Item
+            key={TABLE}
+            textValue={TABLE}
+            aria-label={t('List View')}
+            icon={<IconList />}
+          />
+        </SegmentedControl>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
           value={activeSort!.value}
-          options={SORT_OPTIONS}
+          options={sortOptions}
           onChange={opt => handleSortChange(opt.value)}
           position="bottom-end"
+          data-test-id="sort-by-select"
         />
       </StyledActions>
     );
@@ -303,7 +403,9 @@ function ManageDashboards() {
     return (
       <Layout.Page>
         <Alert.Container>
-          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          <Alert type="warning" showIcon={false}>
+            {t("You don't have access to this feature")}
+          </Alert>
         </Alert.Container>
       </Layout.Page>
     );
@@ -320,6 +422,12 @@ function ManageDashboards() {
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
+      />
+    ) : organization.features.includes('dashboards-starred-reordering') ? (
+      <OwnedDashboardsTable
+        dashboards={ownedDashboards.data ?? []}
+        isLoading={ownedDashboards.isLoading}
+        pageLinks={ownedDashboards.getResponseHeader?.('Link') ?? undefined}
       />
     ) : (
       <DashboardTable
@@ -379,6 +487,8 @@ function ManageDashboards() {
       was_previewed: false,
     });
 
+    addLoadingMessage(t('Adding dashboard from template...'));
+
     const newDashboard = await createDashboard(
       api,
       organization.slug,
@@ -421,7 +531,7 @@ function ManageDashboards() {
       features="dashboards-edit"
       renderDisabled={renderNoAccess}
     >
-      <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
+      <SentryDocumentTitle title={t('All Dashboards')} orgSlug={organization.slug}>
         <ErrorBoundary>
           {isError ? (
             <Layout.Page withPadding>
@@ -433,7 +543,7 @@ function ManageDashboards() {
                 <Layout.Header unified={prefersStackedNav}>
                   <Layout.HeaderContent unified={prefersStackedNav}>
                     <Layout.Title>
-                      {t('Dashboards')}
+                      {t('All Dashboards')}
                       <PageHeadingQuestionTooltip
                         docsUrl="https://docs.sentry.io/product/dashboards/"
                         title={t(
@@ -443,7 +553,7 @@ function ManageDashboards() {
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
-                    <ButtonBar gap={1.5}>
+                    <ButtonBar gap="lg">
                       <TemplateSwitch>
                         {t('Show Templates')}
                         <Switch
@@ -453,18 +563,30 @@ function ManageDashboards() {
                         />
                       </TemplateSwitch>
                       <FeedbackWidgetButton />
-                      <Button
-                        data-test-id="dashboard-create"
-                        onClick={event => {
-                          event.preventDefault();
-                          onCreate();
-                        }}
-                        size="sm"
-                        priority="primary"
-                        icon={<IconAdd isCircled />}
-                      >
-                        {t('Create Dashboard')}
-                      </Button>
+                      <DashboardCreateLimitWrapper>
+                        {({
+                          hasReachedDashboardLimit,
+                          isLoading: isLoadingDashboardsLimit,
+                          limitMessage,
+                        }) => (
+                          <Button
+                            data-test-id="dashboard-create"
+                            onClick={event => {
+                              event.preventDefault();
+                              onCreate();
+                            }}
+                            size="sm"
+                            priority="primary"
+                            icon={<IconAdd />}
+                            disabled={
+                              hasReachedDashboardLimit || isLoadingDashboardsLimit
+                            }
+                            title={limitMessage}
+                          >
+                            {t('Create Dashboard')}
+                          </Button>
+                        )}
+                      </DashboardCreateLimitWrapper>
                       <Feature features="dashboards-import">
                         <Button
                           onClick={() => {
@@ -491,7 +613,10 @@ function ManageDashboards() {
                     <div ref={dashboardGridRef} id="dashboard-list-container">
                       {renderDashboards()}
                     </div>
-                    {renderPagination()}
+                    {!(
+                      organization.features.includes('dashboards-starred-reordering') &&
+                      dashboardsLayout === TABLE
+                    ) && renderPagination()}
                   </Layout.Main>
                 </Layout.Body>
               </NoProjectMessage>
@@ -503,21 +628,20 @@ function ManageDashboards() {
   );
 }
 
-const StyledActions = styled('div')<{listView: boolean}>`
+const StyledActions = styled('div')`
   display: grid;
-  grid-template-columns: ${p =>
-    p.listView ? 'auto max-content max-content' : 'auto max-content'};
+  grid-template-columns: auto max-content max-content;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto;
   }
 `;
 
 const TemplateSwitch = styled('label')`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
   gap: ${space(1)};
@@ -530,11 +654,11 @@ const TemplateContainer = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(0.5)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, minmax(200px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: repeat(4, minmax(200px, 1fr));
   }
 `;

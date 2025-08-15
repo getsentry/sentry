@@ -35,7 +35,7 @@ class PluginSerializer(Serializer):
         self.project = project
 
     def serialize(self, obj, attrs, user, **kwargs):
-        from sentry.api.endpoints.project_releases_token import _get_webhook_url
+        from sentry.releases.endpoints.project_releases_token import _get_webhook_url
 
         doc = ""
 
@@ -65,7 +65,6 @@ class PluginSerializer(Serializer):
             "canDisable": obj.can_disable,
             "isTestable": hasattr(obj, "is_testable") and obj.is_testable(),
             "hasConfiguration": obj.has_project_conf(),
-            "metadata": obj.get_metadata(),
             "contexts": contexts,
             "doc": doc,
             "firstPartyAlternative": getattr(obj, "alternative", None),

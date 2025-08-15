@@ -2,18 +2,18 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {
-  TraceMeta,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {Organization} from 'sentry/types/organization';
+import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import * as useApi from 'sentry/utils/useApi';
-import * as useOrganization from 'sentry/utils/useOrganization';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  makeTraceError,
+  makeTransaction,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-import type {TraceTree} from '../traceModels/traceTree';
-import {makeTraceError, makeTransaction} from '../traceModels/traceTreeTestUtils';
-
-import type {TraceMetaQueryResults} from './useTraceMeta';
 import {useTraceTree} from './useTraceTree';
 
 const getMockedTraceResults = (
@@ -25,30 +25,28 @@ const getMockedTraceResults = (
     data,
   }) as UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any>;
 
-const getMockedMetaResults = (status: string, data: TraceMeta | undefined = undefined) =>
-  ({
-    status,
-    data,
-  }) as TraceMetaQueryResults;
-
 const organization = OrganizationFixture();
 
-describe('useTraceTree', () => {
-  beforeEach(function () {
-    jest.restoreAllMocks();
-    const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
-  });
+const contextWrapper = (org: Organization) => {
+  return function ({children}: {children: React.ReactNode}) {
+    return (
+      <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+        <OrganizationContext value={org}>{children}</OrganizationContext>
+      </TraceStateProvider>
+    );
+  };
+};
 
+describe('useTraceTree', () => {
   it('returns tree for error case', async () => {
-    const {result} = renderHook(() =>
-      useTraceTree({
-        trace: getMockedTraceResults('error'),
-        meta: getMockedMetaResults('error'),
-        traceSlug: 'test-trace',
-        replay: null,
-      })
+    const {result} = renderHook(
+      () =>
+        useTraceTree({
+          trace: getMockedTraceResults('error'),
+          traceSlug: 'test-trace',
+          replay: null,
+        }),
+      {wrapper: contextWrapper(organization)}
     );
 
     await waitFor(() => {
@@ -57,13 +55,14 @@ describe('useTraceTree', () => {
   });
 
   it('returns tree for loading case', async () => {
-    const {result} = renderHook(() =>
-      useTraceTree({
-        trace: getMockedTraceResults('pending'),
-        meta: getMockedMetaResults('pending'),
-        traceSlug: 'test-trace',
-        replay: null,
-      })
+    const {result} = renderHook(
+      () =>
+        useTraceTree({
+          trace: getMockedTraceResults('pending'),
+          traceSlug: 'test-trace',
+          replay: null,
+        }),
+      {wrapper: contextWrapper(organization)}
     );
 
     await waitFor(() => {
@@ -72,26 +71,17 @@ describe('useTraceTree', () => {
   });
 
   it('returns tree for empty success case', async () => {
-    const {result} = renderHook(() =>
-      useTraceTree({
-        trace: getMockedTraceResults('success', {
-          transactions: [],
-          orphan_errors: [],
+    const {result} = renderHook(
+      () =>
+        useTraceTree({
+          trace: getMockedTraceResults('success', {
+            transactions: [],
+            orphan_errors: [],
+          }),
+          traceSlug: 'test-trace',
+          replay: null,
         }),
-        meta: getMockedMetaResults('success', {
-          errors: 1,
-          performance_issues: 2,
-          projects: 1,
-          transactions: 1,
-          transaction_child_count_map: {
-            '1': 1,
-          },
-          span_count: 0,
-          span_count_map: {},
-        }),
-        traceSlug: 'test-trace',
-        replay: null,
-      })
+      {wrapper: contextWrapper(organization)}
     );
 
     await waitFor(() => {
@@ -135,25 +125,14 @@ describe('useTraceTree', () => {
       ],
     };
 
-    const mockedMeta = {
-      errors: 1,
-      performance_issues: 2,
-      projects: 1,
-      transactions: 1,
-      transaction_child_count_map: {
-        '1': 1,
-      },
-      span_count: 0,
-      span_count_map: {},
-    };
-
-    const {result} = renderHook(() =>
-      useTraceTree({
-        trace: getMockedTraceResults('success', mockedTrace),
-        meta: getMockedMetaResults('success', mockedMeta),
-        traceSlug: 'test-trace',
-        replay: null,
-      })
+    const {result} = renderHook(
+      () =>
+        useTraceTree({
+          trace: getMockedTraceResults('success', mockedTrace),
+          traceSlug: 'test-trace',
+          replay: null,
+        }),
+      {wrapper: contextWrapper(organization)}
     );
 
     await waitFor(() => {

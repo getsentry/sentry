@@ -1,12 +1,12 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import IntervalSelector from 'sentry/components/charts/intervalSelector';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 
-describe('IntervalSelector', function () {
+describe('IntervalSelector', () => {
   const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '',
@@ -15,7 +15,7 @@ describe('IntervalSelector', function () {
     fields: ['transaction', 'count()'],
     projects: [parseInt(project.id, 10)],
   });
-  it('resets small interval', function () {
+  it('resets small interval', async () => {
     let interval: string | undefined = '1s';
     eventView.interval = interval;
     eventView.statsPeriod = '90d';
@@ -29,9 +29,14 @@ describe('IntervalSelector', function () {
       />
     );
     render(intervalSelector);
+
+    await waitFor(() => {
+      expect(screen.getByText('Interval')).toBeInTheDocument();
+    });
+
     expect(interval).toBe('4h');
   });
-  it('resets large interval', function () {
+  it('resets large interval', async () => {
     eventView.interval = '1h';
     eventView.statsPeriod = '1h';
     const intervalSelector = (
@@ -42,9 +47,14 @@ describe('IntervalSelector', function () {
       />
     );
     render(intervalSelector);
+
+    await waitFor(() => {
+      expect(screen.getByText('Interval')).toBeInTheDocument();
+    });
+
     expect(eventView.interval).toBe('1m');
   });
-  it('leaves default interval alone', function () {
+  it('leaves default interval alone', async () => {
     eventView.interval = undefined;
     eventView.statsPeriod = '90d';
     let interval = 'not called';
@@ -56,6 +66,11 @@ describe('IntervalSelector', function () {
       />
     );
     render(intervalSelector);
+
+    await waitFor(() => {
+      expect(screen.getByText('Interval')).toBeInTheDocument();
+    });
+
     expect(interval).toBe('not called');
   });
 });

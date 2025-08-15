@@ -1,8 +1,8 @@
-import {forwardRef, useCallback} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import mergeRefs from 'sentry/utils/mergeRefs';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
@@ -14,13 +14,13 @@ type CheckboxConfig = {
   icon: string;
 };
 
-const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
+const checkboxSizeMap: Record<NonNullable<CheckboxProps['size']>, CheckboxConfig> = {
   xs: {box: '12px', borderRadius: '2px', icon: '10px'},
   sm: {box: '16px', borderRadius: '4px', icon: '12px'},
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-export interface CheckboxProps
+interface CheckboxProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'checked' | 'size'> {
   /**
    * Is the checkbox active? Supports 'indeterminate'
@@ -32,54 +32,58 @@ export interface CheckboxProps
   size?: FormSize;
 }
 
-export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
-  ({checked = false, size = 'sm', className, ...props}, ref) => {
-    const nativeCheckBoxRef = useCallback(
-      (node: HTMLInputElement | null) => {
-        if (node) {
-          node.indeterminate = checked === 'indeterminate';
-        }
-      },
-      [checked]
-    );
+export function Checkbox({
+  checked = false,
+  size = 'sm',
+  className,
+  ref,
+  ...props
+}: CheckboxProps & {ref?: React.Ref<HTMLInputElement>}) {
+  const nativeCheckBoxRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      if (node) {
+        node.indeterminate = checked === 'indeterminate';
+      }
+    },
+    [checked]
+  );
 
-    const wrapperProps: React.HTMLAttributes<HTMLDivElement> = {
-      className,
-      style: props.style,
-    };
+  const wrapperProps: React.HTMLAttributes<HTMLDivElement> = {
+    className,
+    style: props.style,
+  };
 
-    return (
-      <CheckboxWrapper size={size} {...wrapperProps}>
-        <NativeHiddenCheckbox
-          ref={mergeRefs([nativeCheckBoxRef, ref])}
-          checked={checked !== 'indeterminate' && checked}
-          type="checkbox"
-          {...props}
-        />
+  return (
+    <CheckboxWrapper size={size} {...wrapperProps}>
+      <NativeHiddenCheckbox
+        ref={mergeRefs(nativeCheckBoxRef, ref)}
+        checked={checked !== 'indeterminate' && checked}
+        type="checkbox"
+        {...props}
+      />
 
-        <FakeCheckbox aria-hidden size={size}>
-          {(checked === true || checked === 'indeterminate') && (
-            <CheckboxIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
-              {checked === 'indeterminate' ? (
-                <path d="M3 8H13" />
-              ) : (
-                <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
-              )}
-            </CheckboxIcon>
-          )}
-        </FakeCheckbox>
-        {!props.disabled && (
-          <InteractionStateLayer
-            higherOpacity={checked === true || checked === 'indeterminate'}
-          />
+      <FakeCheckbox aria-hidden size={size}>
+        {(checked === true || checked === 'indeterminate') && (
+          <CheckboxIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
+            {checked === 'indeterminate' ? (
+              <path d="M3 8H13" />
+            ) : (
+              <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
+            )}
+          </CheckboxIcon>
         )}
-      </CheckboxWrapper>
-    );
-  }
-);
+      </FakeCheckbox>
+      {!props.disabled && (
+        <InteractionStateLayer
+          higherOpacity={checked === true || checked === 'indeterminate'}
+        />
+      )}
+    </CheckboxWrapper>
+  );
+}
 
 const CheckboxWrapper = styled('div')<{
-  size: FormSize;
+  size: NonNullable<CheckboxProps['size']>;
 }>`
   position: relative;
   cursor: pointer;
@@ -103,7 +107,7 @@ const NativeHiddenCheckbox = withChonk(
     & + * {
       box-shadow: ${p => p.theme.dropShadowMedium} inset;
       color: ${p => p.theme.textColor};
-      border: 1px solid ${p => p.theme.gray200};
+      border: 1px solid ${p => p.theme.border};
 
       svg {
         stroke: ${p => p.theme.white};
@@ -140,7 +144,7 @@ const NativeHiddenCheckbox = withChonk(
 );
 
 const FakeCheckbox = styled('div')<{
-  size: FormSize;
+  size: NonNullable<CheckboxProps['size']>;
 }>`
   position: relative;
   display: flex;

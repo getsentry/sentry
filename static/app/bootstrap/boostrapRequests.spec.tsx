@@ -8,7 +8,6 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
-import LatestContextStore from 'sentry/stores/latestContextStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -32,18 +31,18 @@ const wrapper = ({children}: {children?: React.ReactNode}) => (
   <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 );
 
-describe('useBootstrapOrganizationQuery', function () {
+describe('useBootstrapOrganizationQuery', () => {
   const org = OrganizationFixture();
   const orgSlug = 'org-slug';
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     OrganizationStore.reset();
     queryClient.clear();
     localStorageWrapper.clear();
   });
 
-  it('updates organization store with fetched data', async function () {
+  it('updates organization store with fetched data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/`,
       body: org,
@@ -58,7 +57,7 @@ describe('useBootstrapOrganizationQuery', function () {
     );
   });
 
-  it('handles api errors', async function () {
+  it('handles api errors', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/`,
       statusCode: 401,
@@ -75,12 +74,12 @@ describe('useBootstrapOrganizationQuery', function () {
     );
   });
 
-  it('does not fetch when orgSlug is null', function () {
+  it('does not fetch when orgSlug is null', () => {
     const {result} = renderHook(() => useBootstrapOrganizationQuery(null), {wrapper});
     expect(result.current.data).toBeUndefined();
   });
 
-  it('removes the promise from window.__sentry_preload after use', async function () {
+  it('removes the promise from window.__sentry_preload after use', async () => {
     window.__sentry_preload = {
       orgSlug: org.slug,
       organization: Promise.resolve<ApiResult<Organization>>([org, undefined, undefined]),
@@ -90,7 +89,7 @@ describe('useBootstrapOrganizationQuery', function () {
     expect(window.__sentry_preload?.organization).toBeUndefined();
   });
 
-  it('sets feature flags, activates organization, and sets sentry tags', async function () {
+  it('sets feature flags, activates organization, and sets sentry tags', async () => {
     // Feature flag overrides are loaded from localstorage
     localStorageWrapper.setItem('feature-flag-overrides', '{"enable-issues":true}');
 
@@ -111,9 +110,6 @@ describe('useBootstrapOrganizationQuery', function () {
     expect(JSON.stringify(OrganizationStore.get().organization?.features)).toEqual(
       JSON.stringify(['enable-issues'])
     );
-    expect(JSON.stringify(LatestContextStore.get().organization)).toEqual(
-      JSON.stringify({...org, features: ['enable-issues']})
-    );
     expect(FeatureFlagOverrides.singleton().getEnabledFeatureFlagList(org)).toEqual([
       'enable-issues',
     ]);
@@ -126,17 +122,17 @@ describe('useBootstrapOrganizationQuery', function () {
   });
 });
 
-describe('useBootstrapTeamsQuery', function () {
+describe('useBootstrapTeamsQuery', () => {
   const mockTeams = [TeamFixture()];
   const orgSlug = 'org-slug';
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     TeamStore.reset();
     queryClient.clear();
   });
 
-  it('updates team store with fetched data', async function () {
+  it('updates team store with fetched data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/teams/`,
       body: mockTeams,
@@ -152,7 +148,7 @@ describe('useBootstrapTeamsQuery', function () {
     expect(TeamStore.getState().hasMore).toBe(true);
   });
 
-  it('handles api errors', async function () {
+  it('handles api errors', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/teams/`,
       statusCode: 500,
@@ -164,23 +160,23 @@ describe('useBootstrapTeamsQuery', function () {
     expect(TeamStore.getState().teams).toEqual([]);
   });
 
-  it('does not fetch when orgSlug is null', function () {
+  it('does not fetch when orgSlug is null', () => {
     const {result} = renderHook(() => useBootstrapTeamsQuery(null), {wrapper});
     expect(result.current.data).toBeUndefined();
   });
 });
 
-describe('useBootstrapProjectsQuery', function () {
+describe('useBootstrapProjectsQuery', () => {
   const mockProjects = [ProjectFixture()];
   const orgSlug = 'org-slug';
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     queryClient.clear();
   });
 
-  it('updates projects store with fetched data', async function () {
+  it('updates projects store with fetched data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/projects/`,
       body: mockProjects,
@@ -196,7 +192,7 @@ describe('useBootstrapProjectsQuery', function () {
     expect(ProjectsStore.getState().projects).toEqual(mockProjects);
   });
 
-  it('handles api errors', async function () {
+  it('handles api errors', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/projects/`,
       statusCode: 500,
@@ -208,7 +204,7 @@ describe('useBootstrapProjectsQuery', function () {
     expect(ProjectsStore.getState().projects).toEqual([]);
   });
 
-  it('does not fetch when orgSlug is null', function () {
+  it('does not fetch when orgSlug is null', () => {
     const {result} = renderHook(() => useBootstrapProjectsQuery(null), {wrapper});
     expect(result.current.data).toBeUndefined();
   });

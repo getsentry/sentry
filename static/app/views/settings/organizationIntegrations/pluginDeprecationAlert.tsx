@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import type {PluginWithProjectList} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -33,7 +33,6 @@ class PluginDeprecationAlert extends Component<Props, State> {
         <Alert.Container>
           <Alert
             type="warning"
-            showIcon
             trailingItems={
               <UpgradeNowButton
                 href={`${upgradeUrl}${queryParams}`}

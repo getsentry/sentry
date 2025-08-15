@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -122,7 +122,7 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
           <br />
           <p>{secondParagraph}</p>
         </TrialCheckInfo>
-        <StyledButtonBar gap={2}>
+        <StyledButtonBar gap="xl">
           <UpgradeOrTrialButton
             source="force_trial_modal"
             action="upgrade"
@@ -145,7 +145,7 @@ const TrialCheckInfo = styled('div')`
   padding: ${space(3)} 0;
 
   p {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     margin: 0;
   }
 
@@ -170,7 +170,7 @@ const Subheader = styled('h4')`
   text-transform: uppercase;
   font-weight: bold;
   color: ${p => p.theme.purple300};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

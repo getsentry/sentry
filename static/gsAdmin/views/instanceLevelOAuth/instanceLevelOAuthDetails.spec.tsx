@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -8,22 +7,7 @@ import {
 
 import InstanceLevelOAuthDetails from './instanceLevelOAuthDetails';
 
-describe('instance level OAuth client details', function () {
-  const routes = [
-    {path: '/', childRoutes: [], component: undefined},
-    {childRoutes: [], component: undefined},
-    {
-      path: '/_admin/instance-level-oauth/:clientID',
-      indexRoute: undefined,
-      childRoutes: [],
-      component: undefined,
-    },
-    {
-      componentPromise: undefined,
-      component: undefined,
-    },
-  ];
-
+describe('instance level OAuth client details', () => {
   const mockClientDetails = {
     name: 'CodeCov',
     clientID: 'e535bb78-706c-4c3d-816c-95b4d9bc8a04eda5aa18-9ea2-44b2-af38-664512b911b9',
@@ -45,23 +29,12 @@ describe('instance level OAuth client details', function () {
     termsUrl: 'https://new-terms.com',
   };
 
-  const initRouter = {
+  const initialRouterConfig = {
     location: {
       pathname: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`,
-      query: {},
-      search: '',
-      hash: '',
     },
-    params: {
-      clientID: mockClientDetails.clientID,
-    },
-    routes,
+    route: '/_admin/instance-level-oauth/:clientID/',
   };
-
-  const defaultInit = initializeOrg({
-    router: initRouter,
-  });
-
   let mockGetDetailsCall: jest.Mock;
   let mockDeleteCall: jest.Mock;
   let mockPutCall: jest.Mock;
@@ -86,9 +59,9 @@ describe('instance level OAuth client details', function () {
     });
   });
 
-  it('renders client details properly', async function () {
+  it('renders client details properly', async () => {
     render(<InstanceLevelOAuthDetails />, {
-      router: defaultInit.router,
+      initialRouterConfig,
     });
     expect(
       await screen.findByText('Details For Instance Level OAuth Client: CodeCov')
@@ -119,9 +92,9 @@ describe('instance level OAuth client details', function () {
     expect(mockGetDetailsCall).toHaveBeenCalledTimes(1);
   });
 
-  it('allows a client to be updated', async function () {
+  it('allows a client to be updated', async () => {
     render(<InstanceLevelOAuthDetails />, {
-      router: defaultInit.router,
+      initialRouterConfig,
     });
 
     // Wait for page load then clear current client details
@@ -165,9 +138,9 @@ describe('instance level OAuth client details', function () {
     expect(submittedPutRequestBody).toEqual(newClientDetails);
   });
 
-  it('deletes a client correctly', async function () {
+  it('deletes a client correctly', async () => {
     render(<InstanceLevelOAuthDetails />, {
-      router: defaultInit.router,
+      initialRouterConfig,
     });
     await userEvent.click(await screen.findByRole('button', {name: 'Delete client'}));
     renderGlobalModal();

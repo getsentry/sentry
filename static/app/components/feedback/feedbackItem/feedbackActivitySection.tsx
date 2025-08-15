@@ -6,10 +6,10 @@ import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import {
+  GroupActivityType,
   type Group,
   type GroupActivity,
   type GroupActivityNote,
-  GroupActivityType,
 } from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
@@ -88,12 +88,11 @@ function FeedbackActivitySection(props: Props) {
         data: n,
         type: GroupActivityType.NOTE,
         dateCreated: new Date().toISOString(),
-        project: feedbackItem.project,
         user: me,
       };
       mutators.handleCreate(n, [newActivity, ...feedbackItem.activity], createOptions);
     },
-    [createOptions, feedbackItem.activity, mutators, feedbackItem.project]
+    [createOptions, feedbackItem.activity, mutators]
   );
 
   const handleUpdate = useCallback(

@@ -32,6 +32,7 @@ const query: ParseResult = [
         end: {offset: 27, line: 1, column: 28},
         source: {},
       },
+      wildcard: false,
     },
     invalid: null,
     warning: null,
@@ -44,8 +45,8 @@ const query: ParseResult = [
   } satisfies TokenResult<Token.FILTER>,
 ];
 
-describe('SmartSearchBar', function () {
-  it('renders the query', function () {
+describe('SmartSearchBar', () => {
+  it('renders the query', () => {
     render(<HighlightQuery parsedQuery={query} cursorPosition={-1} />);
 
     expect(screen.getByText('user.email:')).toBeInTheDocument();

@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from sentry.integrations.types import ExternalProviders
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
     MemberWriteRoleRecipientStrategy,
@@ -24,7 +25,9 @@ if TYPE_CHECKING:
 class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC):
     RoleBasedRecipientStrategyClass = MemberWriteRoleRecipientStrategy
 
-    def __init__(self, pending_member: OrganizationMember, requester: User):
+    def __init__(
+        self, pending_member: OrganizationMember | OrganizationMemberInvite, requester: User
+    ):
         super().__init__(pending_member.organization, requester)
         self.pending_member = pending_member
 
@@ -60,7 +63,8 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
                 inviter = None
             if inviter:
                 context["inviter_name"] = inviter.get_salutation_name()
-            context["inviter_name"] = inviter_name
+            else:
+                context["inviter_name"] = inviter_name
         return context
 
     def get_message_actions(

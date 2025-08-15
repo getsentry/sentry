@@ -5,14 +5,14 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
 
-describe('OrganizationProjects', function () {
+describe('OrganizationProjects', () => {
   let projectsGetMock: jest.Mock;
   let statsGetMock: jest.Mock;
   let projectsPutMock: jest.Mock;
   const project = ProjectFixture();
   const router = RouterFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     projectsGetMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project],
@@ -29,12 +29,15 @@ describe('OrganizationProjects', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('should render the projects in the store', async function () {
-    render(<OrganizationProjectsContainer />, {router});
+  it('should render the projects in the store', async () => {
+    render(<OrganizationProjectsContainer />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
@@ -62,8 +65,11 @@ describe('OrganizationProjects', function () {
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should search organization projects', async function () {
-    render(<OrganizationProjectsContainer />, {router});
+  it('should search organization projects', async () => {
+    render(<OrganizationProjectsContainer />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 

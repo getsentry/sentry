@@ -1,18 +1,20 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
+  getFeedbackConfigOptions,
+  getFeedbackConfigureMobileDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {
   getReplayMobileConfigureDescription,
@@ -39,10 +41,7 @@ const platformOptions = {
         value: InstallationMode.MANUAL,
       },
     ],
-    defaultValue:
-      navigator.userAgent.indexOf('Win') === -1
-        ? InstallationMode.AUTO
-        : InstallationMode.MANUAL,
+    defaultValue: InstallationMode.AUTO,
   },
 } satisfies BasePlatformOptions;
 
@@ -72,6 +71,14 @@ Sentry.init({
   // profilesSampleRate is relative to tracesSampleRate.
   // Here, we'll capture profiles for 100% of transactions.
   profilesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+  // Record Session Replays for 10% of Sessions and 100% of Errors
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+  integrations: [Sentry.mobileReplayIntegration()],`
       : ''
   }
 });`;
@@ -126,6 +133,148 @@ Sentry.mobileReplayIntegration({
   maskAllVectors: true,
 }),`;
 
+const getFeedbackConfigureSnippet = (params: Params) => `
+import * as Sentry from "@sentry/react-native";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    Sentry.feedbackIntegration({
+      // Additional SDK configuration goes in here, for example:
+      styles: {
+        submitButton: {
+          backgroundColor: "#6a1b9a",
+        },
+      },
+      namePlaceholder: "Fullname",
+      ${getFeedbackConfigOptions(params.feedbackOptions)}
+    }),
+  ],
+});
+`;
+
+const getReactNativeProfilingOnboarding = (): OnboardingConfig => ({
+  install: params => [
+    {
+      title: t('Install'),
+      description: t(
+        'Make sure your Sentry React Native SDK version is at least 5.32.0. If you already have the SDK installed, you can update it to the latest version with:'
+      ),
+      configurations: getInstallConfig(params, {
+        basePackage: '@sentry/react-native',
+      }),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Enable Tracing and Profiling by adding [code:tracesSampleRate] and [code:profilesSampleRate] to your [code:Sentry.init()] call.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'javascript',
+          code: getConfigureSnippet({
+            ...params,
+            platformOptions: {
+              ...params.platformOptions,
+              installationMode: InstallationMode.MANUAL,
+            },
+            isProfilingSelected: true,
+          }),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To confirm that profiling is working correctly, run your application and check the Sentry profiles page for the collected profiles.'
+      ),
+    },
+  ],
+});
+
+const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: t(
+        "If you're using a self-hosted Sentry instance, you'll need to be on version 24.4.2 or higher in order to use the full functionality of the User Feedback feature. Lower versions may have limited functionality."
+      ),
+      configurations: [
+        {
+          description: tct(
+            'To collect user feedback from inside your application, use the [code:showFeedbackWidget] method.',
+            {code: <code />}
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `import * as Sentry from "@sentry/react-native";
+
+Sentry.wrap(RootComponent);
+Sentry.showFeedbackWidget();`,
+            },
+          ],
+        },
+        {
+          description: tct(
+            'You may also use the [code:showFeedbackButton] and [code:hideFeedbackButton] to show and hide a button that opens the Feedback Widget.',
+            {
+              code: <code />,
+            }
+          ),
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: `import * as Sentry from "@sentry/react-native";
+
+Sentry.wrap(RootComponent);
+
+Sentry.showFeedbackWidget();
+Sentry.hideFeedbackButton();`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: getFeedbackConfigureMobileDescription({
+        linkConfig:
+          'https://docs.sentry.io/platforms/react-native/user-feedback/configuration/',
+        linkButton:
+          'https://docs.sentry.io/platforms/react-native/user-feedback/configuration/#feedback-button-customization',
+      }),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getFeedbackConfigureSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
     isAutoInstall(params)
@@ -143,7 +292,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     label: 'npx',
                     value: 'npx',
                     language: 'bash',
-                    code: `npx @sentry/wizard@latest -i reactNative ${params.isSelfHosted ? '' : '--saas'} --org ${params.organization.slug} --project ${params.projectSlug}`,
+                    code: `npx @sentry/wizard@latest -i reactNative ${params.isSelfHosted ? '' : '--saas'} --org ${params.organization.slug} --project ${params.project.slug}`,
                   },
                 ],
               },
@@ -517,10 +666,11 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
 
 const docs: Docs<PlatformOptions> = {
   onboarding,
-  feedbackOnboardingCrashApi,
+  feedbackOnboardingNpm: feedbackOnboarding,
   crashReportOnboarding: feedbackOnboardingCrashApi,
   replayOnboarding,
   platformOptions,
+  profilingOnboarding: getReactNativeProfilingOnboarding(),
 };
 
 export default docs;

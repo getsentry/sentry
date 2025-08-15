@@ -4,6 +4,7 @@ import uuid
 from hashlib import sha256
 from typing import Any, ClassVar
 
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
@@ -18,7 +19,6 @@ from sentry.constants import (
     SentryAppStatus,
 )
 from sentry.db.models import (
-    ArrayField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -31,32 +31,14 @@ from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
+from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION
 from sentry.types.region import find_all_region_names, find_regions_for_sentry_app
 from sentry.utils import metrics
-
-# When a developer selects to receive "<Resource> Webhooks" it really means
-# listening to a list of specific events. This is a mapping of what those
-# specific events are for each resource.
-EVENT_EXPANSION = {
-    "issue": [
-        "issue.created",
-        "issue.resolved",
-        "issue.ignored",
-        "issue.assigned",
-        "issue.unresolved",
-    ],
-    "error": ["error.created"],
-    "comment": ["comment.created", "comment.updated", "comment.deleted"],
-}
-
-# We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
-# per-event-type (issue.created, project.deleted, etc.). These are valid
-# resources a Sentry App may subscribe to.
-VALID_EVENT_RESOURCES = ("issue", "error", "comment")
 
 REQUIRED_EVENT_PERMISSIONS = {
     "issue": "event:read",
     "error": "event:read",
+    "seer": "event:read",
     "project": "project:read",
     "member": "member:read",
     "organization": "org:read",
@@ -141,7 +123,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
     # are successfully installed ?
     verify_install = models.BooleanField(default=True)
 
-    events = ArrayField(of=models.TextField, null=True)
+    events = ArrayField(models.TextField(), default=list)
 
     overview = models.TextField(null=True)
     schema = JSONField(default=dict)

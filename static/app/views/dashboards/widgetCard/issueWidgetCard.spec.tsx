@@ -16,13 +16,12 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-
-import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
-describe('Dashboards > IssueWidgetCard', function () {
+describe('Dashboards > IssueWidgetCard', () => {
   const {router, organization} = initializeOrg({
     organization: OrganizationFixture({
       features: ['dashboards-edit'],
@@ -57,7 +56,11 @@ describe('Dashboards > IssueWidgetCard', function () {
     },
   };
 
-  const BasicProvidersWrapper = makeAllTheProviders({organization, router});
+  const BasicProvidersWrapper = makeAllTheProviders({
+    organization,
+    router,
+    deprecatedRouterMocks: true,
+  });
   function Wrapper({children}: {children: React.ReactNode}) {
     return (
       <BasicProvidersWrapper>
@@ -75,10 +78,10 @@ describe('Dashboards > IssueWidgetCard', function () {
     location: LocationFixture(),
     dashboard: DashboardFixture([widget]),
     organization,
-    router,
+    navigate: jest.fn(),
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [
@@ -106,11 +109,11 @@ describe('Dashboards > IssueWidgetCard', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders with title and issues chart', async function () {
+  it('renders with title and issues chart', async () => {
     MemberListStore.loadInitialData([user]);
     render(
       <WidgetCard
@@ -127,7 +130,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Issues')).toBeInTheDocument();
@@ -143,7 +149,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(await screen.findByText(`Assigned to ${user.name}`)).toBeInTheDocument();
   });
 
-  it('opens in issues page', async function () {
+  it('opens in issues page', async () => {
     render(
       <WidgetCard
         api={api}
@@ -159,19 +165,22 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
 
-    expect(screen.getByRole('link', {name: 'Open in Issues'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?environment=prod&project=1&query=event.type%3Adefault&sort=freq&statsPeriod=14d'
     );
   });
 
-  it('calls onDuplicate when Duplicate Widget is clicked', async function () {
+  it('calls onDuplicate when Duplicate Widget is clicked', async () => {
     const mock = jest.fn();
     render(
       <WidgetCard
@@ -188,7 +197,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -197,7 +209,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
-  it('disables the duplicate widget button if max widgets is reached', async function () {
+  it('disables the duplicate widget button if max widgets is reached', async () => {
     const mock = jest.fn();
     render(
       <WidgetCard
@@ -214,7 +226,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -223,7 +238,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(mock).toHaveBeenCalledTimes(0);
   });
 
-  it('maps lifetimeEvents and lifetimeUsers headers to more human readable', async function () {
+  it('maps lifetimeEvents and lifetimeUsers headers to more human readable', async () => {
     MemberListStore.loadInitialData([user]);
     render(
       <WidgetCard
@@ -248,7 +263,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Lifetime Events')).toBeInTheDocument();

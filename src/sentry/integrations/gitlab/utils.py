@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime
+from urllib.parse import urlencode
 
 from sentry.shared_integrations.response.base import BaseApiResponse
 
@@ -25,6 +26,7 @@ class GitLabApiClientPath:
     blame = "/projects/{project}/repository/files/{path}/blame"
     commit = "/projects/{project}/repository/commits/{sha}"
     commits = "/projects/{project}/repository/commits"
+    commit_merge_requests = "/projects/{project}/repository/commits/{sha}/merge_requests"
     compare = "/projects/{project}/repository/compare"
     diff = "/projects/{project}/repository/commits/{sha}/diff"
     file = "/projects/{project}/repository/files/{path}"
@@ -34,8 +36,11 @@ class GitLabApiClientPath:
     hooks = "/hooks"
     issue = "/projects/{project}/issues/{issue}"
     issues = "/projects/{project}/issues"
-    create_note = "/projects/{project}/issues/{issue_id}/notes"
-    update_note = "/projects/{project}/issues/{issue_id}/notes/{note_id}"
+    create_issue_note = "/projects/{project}/issues/{issue_id}/notes"
+    update_issue_note = "/projects/{project}/issues/{issue_id}/notes/{note_id}"
+    create_pr_note = "/projects/{project}/merge_requests/{pr_key}/notes"
+    update_pr_note = "/projects/{project}/merge_requests/{pr_key}/notes/{note_id}"
+    pr_diffs = "/projects/{project}/merge_requests/{pr_key}/diffs"
     project = "/projects/{project}"
     project_issues = "/projects/{project}/issues"
     project_hooks = "/projects/{project}/hooks"
@@ -46,6 +51,14 @@ class GitLabApiClientPath:
     @staticmethod
     def build_api_url(base_url, path):
         return f"{base_url.rstrip('/')}{API_VERSION}{path}"
+
+    @classmethod
+    def build_pr_diffs(cls, project: str, pr_key: str, unidiff: bool = False) -> str:
+        params = {}
+        if unidiff:
+            params["unidiff"] = "true"
+
+        return f"{cls.pr_diffs.format(project=project, pr_key=pr_key)}?{urlencode(params)}"
 
 
 def get_rate_limit_info_from_response(

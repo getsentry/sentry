@@ -24,10 +24,14 @@ const changeQuery = (router: any, query: any) => ({
 });
 
 function renderComponent(component: any, router: any, organization: any) {
-  return render(component, {router, organization});
+  return render(component, {
+    router,
+    organization,
+    deprecatedRouterMocks: true,
+  });
 }
 
-describe('PageFiltersContainer', function () {
+describe('PageFiltersContainer', () => {
   const {organization, projects, router} = initializeOrg({
     organization: {features: ['global-views']},
     projects: [
@@ -51,13 +55,13 @@ describe('PageFiltersContainer', function () {
     },
   });
 
-  beforeAll(function () {
+  beforeAll(() => {
     jest.spyOn(globalActions, 'updateDateTime');
     jest.spyOn(globalActions, 'updateEnvironments');
     jest.spyOn(globalActions, 'updateProjects');
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData(projects);
     OrganizationStore.onUpdate(organization);
@@ -71,12 +75,12 @@ describe('PageFiltersContainer', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
     PageFiltersStore.reset();
   });
 
-  it('does not update router if org in URL params is different than org in context/props', function () {
+  it('does not update router if org in URL params is different than org in context/props', () => {
     renderComponent(
       <PageFiltersContainer />,
       {
@@ -87,13 +91,13 @@ describe('PageFiltersContainer', function () {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it('does not replace URL with values from store when mounted with no query params', function () {
+  it('does not replace URL with values from store when mounted with no query params', () => {
     renderComponent(<PageFiltersContainer />, router, organization);
 
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('only updates GlobalSelection store when mounted with query params', async function () {
+  it('only updates GlobalSelection store when mounted with query params', async () => {
     renderComponent(
       <PageFiltersContainer />,
       changeQuery(router, {statsPeriod: '7d'}),
@@ -116,7 +120,7 @@ describe('PageFiltersContainer', function () {
     );
   });
 
-  it('updates GlobalSelection store with default period', async function () {
+  it('updates GlobalSelection store with default period', async () => {
     renderComponent(
       <PageFiltersContainer />,
       changeQuery(router, {
@@ -148,7 +152,7 @@ describe('PageFiltersContainer', function () {
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('updates GlobalSelection store with empty dates in URL', async function () {
+  it('updates GlobalSelection store with empty dates in URL', async () => {
     renderComponent(
       <PageFiltersContainer />,
       changeQuery(router, {
@@ -177,7 +181,7 @@ describe('PageFiltersContainer', function () {
     );
   });
 
-  it('resets start&end if showAbsolute prop is false', async function () {
+  it('resets start&end if showAbsolute prop is false', async () => {
     renderComponent(
       <PageFiltersContainer showAbsolute={false} />,
       changeQuery(router, {
@@ -210,7 +214,7 @@ describe('PageFiltersContainer', function () {
   /**
    * I don't think this test is really applicable anymore
    */
-  it('does not update store if url params have not changed', async function () {
+  it('does not update store if url params have not changed', async () => {
     const {rerender} = renderComponent(
       <PageFiltersContainer />,
       changeQuery(router, {statsPeriod: '7d'}),
@@ -247,7 +251,7 @@ describe('PageFiltersContainer', function () {
     });
   });
 
-  it('loads from local storage when no URL parameters and filters are pinned', function () {
+  it('loads from local storage when no URL parameters and filters are pinned', () => {
     jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
       JSON.stringify({
         projects: [3],
@@ -286,7 +290,7 @@ describe('PageFiltersContainer', function () {
     );
   });
 
-  it('does not load from local storage when there are URL params', function () {
+  it('does not load from local storage when there are URL params', () => {
     jest
       .spyOn(localStorage, 'getItem')
       .mockImplementation(() =>
@@ -318,7 +322,7 @@ describe('PageFiltersContainer', function () {
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
   });
 
-  it('updates store when there are query params in URL', function () {
+  it('updates store when there are query params in URL', () => {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -344,7 +348,7 @@ describe('PageFiltersContainer', function () {
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
   });
 
-  it('updates store with default values when there are no query params in URL', function () {
+  it('updates store with default values when there are no query params in URL', () => {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -368,7 +372,7 @@ describe('PageFiltersContainer', function () {
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
   });
 
-  it('updates store with desynced values when url params do not match local storage', async function () {
+  it('updates store with desynced values when url params do not match local storage', async () => {
     jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
       JSON.stringify({
         projects: [1],
@@ -407,7 +411,7 @@ describe('PageFiltersContainer', function () {
     );
   });
 
-  it('does not update local storage when disablePersistence is true', async function () {
+  it('does not update local storage when disablePersistence is true', async () => {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -472,8 +476,8 @@ describe('PageFiltersContainer', function () {
    * single project first IF they don't have required feature (and no project id
    * in URL).
    */
-  describe('Single project selection mode', function () {
-    it('does not do anything while organization is switching in single project', function () {
+  describe('Single project selection mode', () => {
+    it('does not do anything while organization is switching in single project', () => {
       const initialData = initializeOrg({
         organization: {slug: 'old-org-slug'},
         router: {
@@ -529,7 +533,7 @@ describe('PageFiltersContainer', function () {
       );
     });
 
-    it('selects first project if more than one is requested', function () {
+    it('selects first project if more than one is requested', () => {
       const initializationObj = initializeOrg({
         router: {
           // we need this to be set to make sure org in context is same as
@@ -552,7 +556,7 @@ describe('PageFiltersContainer', function () {
       );
     });
 
-    it('selects a project if user is superuser and belongs to no projects', function () {
+    it('selects a project if user is superuser and belongs to no projects', () => {
       ConfigStore.init();
       ConfigStore.loadInitialData(
         ConfigFixture({
@@ -585,7 +589,7 @@ describe('PageFiltersContainer', function () {
       );
     });
 
-    it('selects first project if none (i.e. all) is requested', function () {
+    it('selects first project if none (i.e. all) is requested', () => {
       const project = ProjectFixture({id: '3'});
       const org = OrganizationFixture();
 
@@ -613,7 +617,7 @@ describe('PageFiltersContainer', function () {
     });
   });
 
-  describe('forceProject selection mode', function () {
+  describe('forceProject selection mode', () => {
     const initialData = initializeOrg({
       organization: {features: ['global-views']},
       projects: [
@@ -625,7 +629,7 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    beforeEach(function () {
+    beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [],
@@ -634,7 +638,7 @@ describe('PageFiltersContainer', function () {
       ProjectsStore.loadInitialData(initialData.projects);
     });
 
-    it('replaces URL with project', function () {
+    it('replaces URL with project', () => {
       renderComponent(
         <PageFiltersContainer
           shouldForceProject
@@ -652,8 +656,8 @@ describe('PageFiltersContainer', function () {
     });
   });
 
-  describe('maxPickableDays param', function () {
-    it('applies maxPickableDays if the query parms exceed it', async function () {
+  describe('maxPickableDays param', () => {
+    it('applies maxPickableDays if the query parms exceed it', async () => {
       renderComponent(
         <PageFiltersContainer maxPickableDays={7} />,
         changeQuery(router, {statsPeriod: '14d'}),
@@ -678,7 +682,7 @@ describe('PageFiltersContainer', function () {
       expect(router.push).not.toHaveBeenCalled();
     });
 
-    it('does not use maxPickableDays if the query parms do not exceed it', async function () {
+    it('does not use maxPickableDays if the query parms do not exceed it', async () => {
       renderComponent(
         <PageFiltersContainer maxPickableDays={7} />,
         changeQuery(router, {statsPeriod: '3d'}),
@@ -704,7 +708,7 @@ describe('PageFiltersContainer', function () {
     });
   });
 
-  describe('skipInitializeUrlParams', function () {
+  describe('skipInitializeUrlParams', () => {
     const initialData = initializeOrg({
       organization,
       projects: [{id: '1', slug: 'staging-project', environments: ['staging']}],
@@ -713,7 +717,7 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    beforeEach(function () {
+    beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [],
@@ -721,7 +725,7 @@ describe('PageFiltersContainer', function () {
       ProjectsStore.loadInitialData(initialData.projects);
     });
 
-    it('does not add forced project to URL', async function () {
+    it('does not add forced project to URL', async () => {
       renderComponent(
         <PageFiltersContainer
           skipInitializeUrlParams
@@ -739,8 +743,8 @@ describe('PageFiltersContainer', function () {
     });
   });
 
-  describe('without global-views (multi-project feature)', function () {
-    describe('without existing URL params', function () {
+  describe('without global-views (multi-project feature)', () => {
+    describe('without existing URL params', () => {
       const initialData = initializeOrg({
         projects: [
           {id: '0', slug: 'random project', isMember: true},
@@ -775,14 +779,14 @@ describe('PageFiltersContainer', function () {
         return {...result, rerender};
       }
 
-      beforeEach(function () {
+      beforeEach(() => {
         ProjectsStore.loadInitialData(initialData.projects);
 
         jest.mocked(initialData.router.push).mockClear();
         jest.mocked(initialData.router.replace).mockClear();
       });
 
-      it('uses first project in org projects when mounting', function () {
+      it('uses first project in org projects when mounting', () => {
         renderForNonGlobalView();
 
         // Projects are returned in sorted slug order, so `prod-project` would
@@ -793,7 +797,7 @@ describe('PageFiltersContainer', function () {
         });
       });
 
-      it('appends projectId to URL when `forceProject` becomes available (async)', function () {
+      it('appends projectId to URL when `forceProject` becomes available (async)', () => {
         ProjectsStore.reset();
 
         // forceProject generally starts undefined
@@ -812,7 +816,7 @@ describe('PageFiltersContainer', function () {
         expect(initialData.router.replace).toHaveBeenCalledTimes(1);
       });
 
-      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function () {
+      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async () => {
         // forceProject generally starts undefined
         const {rerender} = renderForNonGlobalView({shouldForceProject: true});
 
@@ -823,7 +827,7 @@ describe('PageFiltersContainer', function () {
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
-      it('appends projectId to URL when mounted with `forceProject`', function () {
+      it('appends projectId to URL when mounted with `forceProject`', () => {
         // forceProject generally starts undefined
         renderForNonGlobalView({
           shouldForceProject: true,
@@ -837,7 +841,7 @@ describe('PageFiltersContainer', function () {
       });
     });
 
-    describe('with existing URL params', function () {
+    describe('with existing URL params', () => {
       const initialData = initializeOrg({
         projects: [
           {id: '0', slug: 'random project', isMember: true},
@@ -850,13 +854,13 @@ describe('PageFiltersContainer', function () {
         },
       });
 
-      beforeEach(function () {
+      beforeEach(() => {
         ProjectsStore.loadInitialData(initialData.projects);
         jest.mocked(initialData.router.push).mockClear();
         jest.mocked(initialData.router.replace).mockClear();
       });
 
-      it('appends projectId to URL when mounted with `forceProject`', function () {
+      it('appends projectId to URL when mounted with `forceProject`', () => {
         // forceProject generally starts undefined
         renderComponent(
           <PageFiltersContainer
@@ -875,8 +879,8 @@ describe('PageFiltersContainer', function () {
     });
   });
 
-  describe('with global-views (multi-project feature)', function () {
-    describe('without existing URL params', function () {
+  describe('with global-views (multi-project feature)', () => {
+    describe('without existing URL params', () => {
       const initialData = initializeOrg({
         organization: {features: ['global-views']},
         projects: [
@@ -915,19 +919,19 @@ describe('PageFiltersContainer', function () {
         return {...result, rerender};
       }
 
-      beforeEach(function () {
+      beforeEach(() => {
         ProjectsStore.loadInitialData(initialData.projects);
 
         jest.mocked(initialData.router.push).mockClear();
         jest.mocked(initialData.router.replace).mockClear();
       });
 
-      it('does not use first project in org projects when mounting (and without localStorage data)', function () {
+      it('does not use first project in org projects when mounting (and without localStorage data)', () => {
         renderForGlobalView();
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
-      it('does not append projectId to URL when `loadingProjects` changes and finishes loading', function () {
+      it('does not append projectId to URL when `loadingProjects` changes and finishes loading', () => {
         ProjectsStore.reset();
 
         const {rerender} = renderForGlobalView();
@@ -940,7 +944,7 @@ describe('PageFiltersContainer', function () {
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
-      it('appends projectId to URL when `forceProject` becomes available (async)', function () {
+      it('appends projectId to URL when `forceProject` becomes available (async)', () => {
         ProjectsStore.reset();
 
         // forceProject generally starts undefined
@@ -959,7 +963,7 @@ describe('PageFiltersContainer', function () {
         expect(initialData.router.replace).toHaveBeenCalledTimes(1);
       });
 
-      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', function () {
+      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', () => {
         // forceProject generally starts undefined
         const {rerender} = renderForGlobalView(
           {shouldForceProject: true},

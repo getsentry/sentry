@@ -6,6 +6,7 @@ from sentry.search.eap.spans.aggregates import (
     SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS,
 )
 from sentry.search.eap.spans.attributes import SPAN_ATTRIBUTE_DEFINITIONS, SPAN_VIRTUAL_CONTEXTS
+from sentry.search.eap.spans.filter_aliases import SPAN_FILTER_ALIAS_DEFINITIONS
 from sentry.search.eap.spans.formulas import SPAN_FORMULA_DEFINITIONS
 
 SPAN_DEFINITIONS = ColumnDefinitions(
@@ -15,4 +16,5 @@ SPAN_DEFINITIONS = ColumnDefinitions(
     columns=SPAN_ATTRIBUTE_DEFINITIONS,
     contexts=SPAN_VIRTUAL_CONTEXTS,
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+    filter_aliases=SPAN_FILTER_ALIAS_DEFINITIONS,
 )

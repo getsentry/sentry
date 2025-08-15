@@ -9,7 +9,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "", "quoted": true}
+        "value": {
+          "type": "valueText",
+          "value": "",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -18,7 +23,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "Chrome", "quoted": true}
+        "value": {
+          "type": "valueText",
+          "value": "Chrome",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -33,7 +43,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "\\\"", "quoted": true}
+        "value": {
+          "type": "valueText",
+          "value": "\\\"",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": " "},
       {
@@ -42,7 +57,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "browser.name", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "Chrome", "quoted": true}
+        "value": {
+          "type": "valueText",
+          "value": "Chrome",
+          "quoted": true,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

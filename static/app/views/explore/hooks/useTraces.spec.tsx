@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {type TraceResult, useTraces} from './useTraces';
+import {useTraces, type TraceResult} from './useTraces';
 
 function createTraceResult(trace?: Partial<TraceResult>): TraceResult {
   return {
@@ -36,15 +36,13 @@ function createWrapper(organization: Organization) {
   return function ({children}: {children?: React.ReactNode}) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext.Provider value={organization}>
-          {children}
-        </OrganizationContext.Provider>
+        <OrganizationContext value={organization}>{children}</OrganizationContext>
       </QueryClientProvider>
     );
   };
 }
 
-describe('useTraces', function () {
+describe('useTraces', () => {
   const project = ProjectFixture();
   const organization = OrganizationFixture();
   const context = initializeOrg({
@@ -59,7 +57,7 @@ describe('useTraces', function () {
     },
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     act(() => {
       ProjectsStore.loadInitialData([project]);
@@ -80,7 +78,7 @@ describe('useTraces', function () {
     });
   });
 
-  it('handles querying the api', async function () {
+  it('handles querying the api', async () => {
     const trace = createTraceResult();
 
     const body = {

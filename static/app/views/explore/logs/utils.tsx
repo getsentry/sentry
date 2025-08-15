@@ -1,28 +1,60 @@
+import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
+import * as qs from 'query-string';
 
+import type {ApiResult} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
-  type ColumnValueType,
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
+  type ColumnValueType,
+  type Sort,
 } from 'sentry/utils/discover/fields';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {TableColumn} from 'sentry/views/discover/table/types';
-import {LogAttributesHumanLabel} from 'sentry/views/explore/logs/constants';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
-  type LogAttributeItem,
+  LOGS_AGGREGATE_FN_KEY,
+  LOGS_AGGREGATE_PARAM_KEY,
+  LOGS_FIELDS_KEY,
+  LOGS_GROUP_BY_KEY,
+  LOGS_QUERY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import type {
+  TraceItemDetailsResponse,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  DeprecatedLogDetailFields,
+  LogAttributesHumanLabel,
+  LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
+} from 'sentry/views/explore/logs/constants';
+import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
+import {
+  OurLogKnownFieldKey,
+  type EventsLogsResult,
   type LogAttributeUnits,
   type LogRowItem,
   type OurLogFieldKey,
-  OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
+import type {PickableDays} from 'sentry/views/explore/utils';
+import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-const {warn, fmt} = Sentry._experiment_log;
+const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(
   severityNumber: number | null,
@@ -101,14 +133,14 @@ export enum SeverityLevel {
  */
 export function severityLevelToText(level: SeverityLevel) {
   return {
-    [SeverityLevel.TRACE]: t('TRACE'),
-    [SeverityLevel.DEBUG]: t('DEBUG'),
-    [SeverityLevel.INFO]: t('INFO'),
-    [SeverityLevel.WARN]: t('WARN'),
-    [SeverityLevel.ERROR]: t('ERROR'),
-    [SeverityLevel.FATAL]: t('FATAL'),
-    [SeverityLevel.DEFAULT]: t('DEFAULT'),
-    [SeverityLevel.UNKNOWN]: t('UNKNOWN'), // Maps to info for now.
+    [SeverityLevel.TRACE]: t('trace'),
+    [SeverityLevel.DEBUG]: t('debug'),
+    [SeverityLevel.INFO]: t('info'),
+    [SeverityLevel.WARN]: t('warn'),
+    [SeverityLevel.ERROR]: t('error'),
+    [SeverityLevel.FATAL]: t('fatal'),
+    [SeverityLevel.DEFAULT]: t('default'),
+    [SeverityLevel.UNKNOWN]: t('unknown'), // Maps to info for now.
   }[level];
 }
 
@@ -126,24 +158,40 @@ export function getLogBodySearchTerms(search: MutableSearch): string[] {
 export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
   const field = args[0];
   if (field === OurLogKnownFieldKey.TIMESTAMP) {
-    return 'right';
+    return 'left';
   }
   return fieldAlignment(...args);
 }
 
-export function removeSentryPrefix(key: string) {
-  return key.replace('sentry.', '');
+export function adjustAliases(attribute: TraceItemResponseAttribute) {
+  switch (attribute.name) {
+    case 'sentry.project_id':
+      warn(
+        fmt`Field ${attribute.name} is deprecated. Please use ${OurLogKnownFieldKey.PROJECT_ID} instead.`
+      );
+      return OurLogKnownFieldKey.PROJECT_ID; // Public alias since int<->string alias reversing is broken. Should be removed in the future.
+    default:
+      return attribute.name;
+  }
 }
 
-export function getTableHeaderLabel(field: OurLogFieldKey) {
-  return LogAttributesHumanLabel[field] ?? removeSentryPrefix(field);
+export function getTableHeaderLabel(
+  field: OurLogFieldKey,
+  stringAttributes?: TagCollection,
+  numberAttributes?: TagCollection
+) {
+  const attribute = stringAttributes?.[field] ?? numberAttributes?.[field] ?? null;
+
+  return (
+    LogAttributesHumanLabel[field] ?? attribute?.name ?? prettifyAttributeName(field)
+  );
 }
 
-export function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {
+function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {
   return (
     unit === null ||
-    unit === `${DurationUnit}` ||
-    unit === `${CurrencyUnit}` ||
+    Object.values(DurationUnit).includes(unit as DurationUnit) ||
+    Object.values(CurrencyUnit).includes(unit as CurrencyUnit) ||
     unit === 'count' ||
     unit === 'percentage' ||
     unit === 'percent_change'
@@ -169,31 +217,290 @@ export function getLogRowItem(
   };
 }
 
-export function getLogAttributeItem(
-  field: OurLogFieldKey,
-  value: OurLogsResponseItem[OurLogFieldKey] | null
-): LogAttributeItem {
-  return {
-    fieldKey: field,
-    value,
-  };
+export function checkSortIsTimeBasedDescending(sortBys: Sort[]) {
+  return (
+    getTimeBasedSortBy(sortBys) !== undefined &&
+    sortBys.some(sortBy => sortBy.kind === 'desc')
+  );
 }
 
-export function logRowItemToTableColumn(
-  item: LogRowItem
-): TableColumn<keyof TableDataRow> {
-  return {
-    key: item.fieldKey,
-    name: item.fieldKey,
-    column: {
-      field: item.fieldKey,
-      kind: 'field',
-    },
-    isSortable: false,
-    type: item.metaFieldType,
-  };
+export function getTimeBasedSortBy(sortBys: Sort[]) {
+  return sortBys.find(
+    sortBy =>
+      sortBy.field === OurLogKnownFieldKey.TIMESTAMP ||
+      sortBy.field === OurLogKnownFieldKey.TIMESTAMP_PRECISE
+  );
 }
 
 export function adjustLogTraceID(traceID: string) {
   return traceID.replace(/-/g, '');
+}
+
+export function logsPickableDays(organization: Organization): PickableDays {
+  const relativeOptions: Array<[string, ReactNode]> = [
+    ['1h', t('Last hour')],
+    ['24h', t('Last 24 hours')],
+    ['7d', t('Last 7 days')],
+  ];
+
+  if (organization.features.includes('visibility-explore-range-high')) {
+    relativeOptions.push(['14d', t('Last 14 days')]);
+  }
+
+  return {
+    defaultPeriod: '24h',
+    maxPickableDays: 14,
+    relativeOptions: ({
+      arbitraryOptions,
+    }: {
+      arbitraryOptions: Record<string, ReactNode>;
+    }) => ({
+      ...arbitraryOptions,
+      ...Object.fromEntries(relativeOptions),
+    }),
+  };
+}
+
+export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
+  if (lastPageLength * 0.25 > LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD) {
+    return Math.floor(lastPageLength * 0.25); // Can be up to 250 on large pages.
+  }
+  return LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD;
+}
+
+export function parseLinkHeaderFromLogsPage(
+  page: InfiniteQueryObserverResult<InfiniteData<ApiResult<EventsLogsResult>>>
+) {
+  const linkHeader = page.data?.pages?.[0]?.[2]?.getResponseHeader('Link');
+  return parseLinkHeader(linkHeader ?? null);
+}
+
+export function getLogRowTimestampMillis(row: OurLogsResponseItem): number {
+  return Number(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]) / 1_000_000;
+}
+
+export function getLogTimestampBucketIndex(
+  rowTimestampMillis: number,
+  periodStartMillis: number,
+  intervalMillis: number
+): number {
+  const relativeRowTimestamp = rowTimestampMillis - periodStartMillis;
+  const bucketIndex = Math.floor(relativeRowTimestamp / intervalMillis);
+  return bucketIndex;
+}
+
+// Null indicates the data is not available yet.
+export function calculateAverageLogsPerSecond(
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>
+): number | null {
+  if (timeseriesResult.isLoading) {
+    return null;
+  }
+
+  if (!timeseriesResult?.data) {
+    return 0;
+  }
+
+  const allSeries = Object.values(timeseriesResult.data)[0];
+  if (!Array.isArray(allSeries) || allSeries.length === 0) {
+    return 0;
+  }
+
+  let totalLogs = 0;
+  let totalDurationSeconds = 0;
+
+  allSeries.forEach(series => {
+    if (!series?.values || !Array.isArray(series.values)) {
+      return;
+    }
+
+    const values = series.values;
+    if (values.length < 2) {
+      return;
+    }
+
+    const seriesTotal = values.reduce((sum, item) => {
+      return sum + (typeof item.value === 'number' ? item.value : 0);
+    }, 0);
+
+    totalLogs += seriesTotal;
+
+    const firstTimestamp = values[0]?.timestamp;
+    const lastTimestamp = values[values.length - 1]?.timestamp;
+
+    if (firstTimestamp && lastTimestamp && lastTimestamp > firstTimestamp) {
+      const durationMs = lastTimestamp - firstTimestamp;
+      const durationSeconds = durationMs / 1000;
+      totalDurationSeconds = Math.max(totalDurationSeconds, durationSeconds);
+    }
+  });
+
+  if (totalDurationSeconds === 0) {
+    return 0;
+  }
+
+  return totalLogs / totalDurationSeconds;
+}
+
+export function hasLogsOnReplays(organization: Organization): boolean {
+  return (
+    organization.features.includes('ourlogs-enabled') &&
+    organization.features.includes('ourlogs-replay-ui')
+  );
+}
+
+export function getLogsUrl({
+  organization,
+  selection,
+  query,
+  field,
+  groupBy,
+  id,
+  interval,
+  mode,
+  referrer,
+  sortBy,
+  title,
+  aggregateFields,
+  aggregateFn,
+  aggregateParam,
+}: {
+  organization: Organization;
+  aggregateFields?: Array<GroupBy | BaseVisualize>;
+  aggregateFn?: string;
+  aggregateParam?: string;
+  field?: string[];
+  groupBy?: string[];
+  id?: number;
+  interval?: string;
+  mode?: Mode;
+  query?: string;
+  referrer?: string;
+  selection?: PageFilters;
+  sortBy?: string;
+  title?: string;
+}) {
+  const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
+  const {environments, projects} = selection ?? {};
+  const queryParams = {
+    project: projects,
+    environment: environments,
+    statsPeriod,
+    start,
+    end,
+    [LOGS_QUERY_KEY]: query,
+    utc,
+    [LOGS_FIELDS_KEY]: field,
+    [LOGS_GROUP_BY_KEY]: groupBy,
+    id,
+    interval,
+    mode,
+    referrer,
+    [LOGS_SORT_BYS_KEY]: sortBy,
+    [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields?.map(aggregateField =>
+      JSON.stringify(aggregateField)
+    ),
+    [LOGS_AGGREGATE_FN_KEY]: aggregateFn,
+    [LOGS_AGGREGATE_PARAM_KEY]: aggregateParam,
+    title,
+  };
+
+  return (
+    makeLogsPathname({organization, path: '/'}) +
+    `?${qs.stringify(queryParams, {skipNull: true})}`
+  );
+}
+
+export function makeLogsPathname({
+  organization,
+  path,
+}: {
+  organization: Organization;
+  path: string;
+}) {
+  return normalizeUrl(`/organizations/${organization.slug}/explore/logs${path}`);
+}
+
+export function getLogsUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const firstQuery = savedQuery.query[0];
+  const visualize = firstQuery.visualize?.[0]?.yAxes?.[0];
+  const aggregateFn = visualize ? visualize.split('(')[0] : undefined;
+  const aggregateParam = visualize ? visualize.split('(')[1]?.split(')')[0] : undefined;
+
+  return getLogsUrl({
+    organization,
+    field: firstQuery.fields,
+    groupBy: defined(firstQuery.aggregateField) ? undefined : firstQuery.groupby,
+    sortBy: firstQuery.orderby,
+    title: savedQuery.name,
+    id: savedQuery.id,
+    interval: savedQuery.interval,
+    mode: firstQuery.mode,
+    query: firstQuery.query,
+    aggregateFn: defined(firstQuery.aggregateField) ? undefined : aggregateFn,
+    aggregateParam: defined(firstQuery.aggregateField) ? undefined : aggregateParam,
+    aggregateFields: firstQuery.aggregateField,
+    selection: {
+      datetime: {
+        end: savedQuery.end ?? null,
+        period: savedQuery.range ?? null,
+        start: savedQuery.start ?? null,
+        utc: null,
+      },
+      environments: savedQuery.environment ? [...savedQuery.environment] : [],
+      projects: savedQuery.projects ? [...savedQuery.projects] : [],
+    },
+  });
+}
+
+export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): string {
+  if (!ourlog) {
+    warn(fmt`cannot copy undefined ourlog`);
+    return '';
+  }
+
+  const copy: Record<string, string | number | boolean> = {
+    ...ourlog.attributes.reduce((it, {name, value}) => ({...it, [name]: value}), {}),
+    id: ourlog.itemId,
+  };
+  let warned = false;
+  const warnAttributeOnce = (key: string) => {
+    if (!warned) {
+      warned = true;
+      warn(
+        fmt`Found sentry. prefix in ${key} while copying [project_id: ${copy.project_id ?? 'unknown'}, user_email: ${copy['user.email'] ?? 'unknown'}]`
+      );
+    }
+  };
+
+  // Trimming any sentry. prefixes
+  for (const key in copy) {
+    if (DeprecatedLogDetailFields.includes(key)) {
+      delete copy[key];
+      continue;
+    }
+    if (key.startsWith('sentry.')) {
+      const value = copy[key];
+      if (value !== undefined) {
+        warnAttributeOnce(key);
+        delete copy[key];
+        copy[key.replace('sentry.', '')] = value;
+      }
+    }
+    if (key.startsWith('tags[sentry.')) {
+      const value = copy[key];
+      if (value !== undefined) {
+        warnAttributeOnce(key);
+        delete copy[key];
+        copy[key.replace('tags[sentry.', 'tags[')] = value;
+      }
+    }
+  }
+  return JSON.stringify(copy, null, 2);
 }

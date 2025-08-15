@@ -15,7 +15,7 @@ pytestmark = [requires_snuba]
 class NotifyEventServiceActionTest(RuleTestCase):
     rule_cls = NotifyEventServiceAction
 
-    def test_applies_correctly_for_plugins(self):
+    def test_applies_correctly_for_plugins(self) -> None:
         event = self.get_event()
 
         plugin = MagicMock()
@@ -33,7 +33,7 @@ class NotifyEventServiceActionTest(RuleTestCase):
         assert plugin.should_notify.call_count == 1
         assert results[0].callback is plugin.rule_notify
 
-    def test_applies_correctly_for_sentry_apps(self):
+    def test_applies_correctly_for_sentry_apps(self) -> None:
         event = self.get_event()
 
         self.create_sentry_app(
@@ -47,7 +47,7 @@ class NotifyEventServiceActionTest(RuleTestCase):
         assert len(results) == 1
         assert results[0].callback is notify_sentry_app
 
-    def test_notify_sentry_app_and_plugin_with_same_slug(self):
+    def test_notify_sentry_app_and_plugin_with_same_slug(self) -> None:
         event = self.get_event()
 
         self.create_sentry_app(organization=event.organization, name="Notify", is_alertable=True)
@@ -68,7 +68,7 @@ class NotifyEventServiceActionTest(RuleTestCase):
         assert results[0].callback is notify_sentry_app
         assert results[1].callback is plugin.rule_notify
 
-    def test_sentry_app_installed(self):
+    def test_sentry_app_installed(self) -> None:
         event = self.get_event()
 
         self.create_sentry_app(

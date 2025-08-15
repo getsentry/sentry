@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from django.db.models import Q
 
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum_from_string
 from sentry.models.commit import Commit
@@ -31,6 +30,7 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.actor import Actor, ActorType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -40,7 +40,7 @@ from sentry.utils import json, metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 logger = logging.getLogger(__name__)
 
@@ -211,23 +211,18 @@ def get_owners(
 
     if event:
         owners, _ = ProjectOwnership.get_owners(project.id, event.data)
+        if not owners:
+            outcome = "empty"
+            recipients = []
+        else:
+            outcome = "match"
+            recipients = owners[-1:]
     else:
-        owners = ProjectOwnership.Everyone
-
-    if not owners:
-        outcome = "empty"
-        recipients: list[Actor] = list()
-
-    elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
         users = user_service.get_many_by_id(
             ids=list(project.member_set.values_list("user_id", flat=True))
         )
         recipients = Actor.many_from_object(users)
-
-    else:
-        outcome = "match"
-        recipients = owners[-1:]
     return (recipients, outcome)
 
 
@@ -523,23 +518,6 @@ def get_notification_recipients(
         key = get_provider_enum_from_string(provider)
         out[key] = actors
     return out
-
-
-# TODO(Steve): Remove once reference is gone from getsentry
-def get_notification_recipients_v2(
-    recipients: Iterable[Actor],
-    type: NotificationSettingEnum,
-    organization_id: int | None = None,
-    project_ids: list[int] | None = None,
-    actor_type: ActorType | None = None,
-) -> Mapping[ExternalProviders, set[Actor]]:
-    return get_notification_recipients(
-        recipients=recipients,
-        type=type,
-        organization_id=organization_id,
-        project_ids=project_ids,
-        actor_type=actor_type,
-    )
 
 
 def _get_recipients_by_provider(

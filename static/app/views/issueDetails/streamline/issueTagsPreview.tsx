@@ -1,19 +1,21 @@
 import type React from 'react';
 import {Fragment, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DeviceName} from 'sentry/components/deviceName';
-import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {backend, frontend} from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {
+  backend,
+  featureFlagDrawerPlatforms,
+  frontend,
+} from 'sentry/data/platformCategories';
+import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,12 +52,13 @@ type Segment = {
   color?: string;
 };
 
-const bgColor = (index: number) =>
-  Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
+const bgColor = (index: number, theme: Theme) =>
+  Color(theme.chart.getColorPalette(4).at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
-  percentage < 1 ? '<1%' : `${Math.floor(percentage)}%`;
+  percentage < 0.5 ? '<1%' : `${Math.round(percentage)}%`;
 
 function SegmentedBar({segments}: {segments: Segment[]}) {
+  const theme = useTheme();
   return (
     <TagBarPlaceholder>
       {segments.map((segment, idx) => (
@@ -64,7 +67,7 @@ function SegmentedBar({segments}: {segments: Segment[]}) {
           style={{
             left: `${segments.slice(0, idx).reduce((sum, s) => sum + s.percentage, 0)}%`,
             width: `${segment.percentage}%`,
-            backgroundColor: bgColor(idx),
+            backgroundColor: bgColor(idx, theme),
           }}
         />
       ))}
@@ -104,9 +107,8 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   const topPercentageString = getRoundedPercentage(topSegment.percentage);
   const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
-  const otherPercentage = Math.floor(
-    percent(tag.totalValues - totalVisible, tag.totalValues)
-  );
+  const otherPercentage =
+    100 - segments.reduce((sum, seg) => sum + Math.round(seg.percentage), 0);
   const otherPercentageString = getRoundedPercentage(otherPercentage);
 
   const tooltipContent = (
@@ -115,7 +117,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
       <LegendGrid>
         {segments.map((segment, idx) => (
           <Fragment key={idx}>
-            <LegendColor style={{backgroundColor: bgColor(idx)}} />
+            <LegendColor style={{backgroundColor: bgColor(idx, theme)}} />
             <LegendText ellipsisDirection={RTL_TAGS.includes(tag.key) ? 'left' : 'right'}>
               {segment.name}
             </LegendText>
@@ -139,7 +141,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
     <Tooltip title={tooltipContent} skipWrapper maxWidth={420}>
       <TagPreviewGrid
         to={{
-          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}${tag.key}/`,
+          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
           query: location.query,
         }}
         onMouseEnter={() => {
@@ -160,11 +162,13 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   );
 }
 
-function IssueTagButton({
+function DistributionsDrawerButton({
   tags,
+  includeFeatureFlags,
   searchQuery,
   isScreenSmall,
 }: {
+  includeFeatureFlags: boolean;
   tags: GroupTag[];
   isScreenSmall?: boolean;
   searchQuery?: string;
@@ -172,39 +176,42 @@ function IssueTagButton({
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const organization = useOrganization();
-  const hasFlagsDistributions = organization.features.includes(
-    'feature-flag-distribution-flyout'
-  );
 
   if (tags.length === 0 || searchQuery || isScreenSmall) {
     return (
-      <VerticalIssueTagsButton
+      <VerticalDistributionsDrawerButton
         aria-label={t('View issue tag distributions')}
         size="xs"
         to={{
-          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
           query: location.query,
         }}
         replace
         disabled={tags.length === 0}
       >
-        {hasFlagsDistributions ? t('View All Tags And Flags') : t('View All Tags')}
-      </VerticalIssueTagsButton>
+        {includeFeatureFlags
+          ? tct('View[nbsp]All Tags[nbsp]&[nbsp]Flags', {
+              nbsp: '\u00A0', // non-breaking space unicode character.
+            })
+          : tct('View All[nbsp]Tags', {
+              nbsp: '\u00A0', // non-breaking space unicode character.
+            })}
+      </VerticalDistributionsDrawerButton>
     );
   }
 
   return (
-    <IssueTagsLink
+    <DistributionsDrawerLink
       to={{
-        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
         query: location.query,
       }}
       onClick={() => {
         trackAnalytics('issue_details.issue_tags_click', {organization});
       }}
     >
-      {hasFlagsDistributions ? t('View all tags and feature flags') : t('View all tags')}
-    </IssueTagsLink>
+      {includeFeatureFlags ? t('View all tags and feature flags') : t('View all tags')}
+    </DistributionsDrawerLink>
   );
 }
 
@@ -220,7 +227,7 @@ export default function IssueTagsPreview({
   const searchQuery = useEventQuery({groupId});
   const organization = useOrganization();
   const theme = useTheme();
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const {data: detailedProject, isPending: isHighlightPending} = useDetailedProject({
     orgSlug: organization.slug,
@@ -252,11 +259,11 @@ export default function IssueTagsPreview({
       .filter(tag => highlightTagKeys.includes(tag.key))
       .sort((a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key));
 
-    const priorityTags = isMobilePlatform(project?.platform)
+    const priorityTags = isMobilePlatform(project.platform)
       ? MOBILE_TAGS
-      : frontend.some(val => val === project?.platform)
+      : frontend.includes(project.platform ?? 'other')
         ? FRONTEND_TAGS
-        : backend.some(val => val === project?.platform)
+        : backend.includes(project.platform ?? 'other')
           ? BACKEND_TAGS
           : DEFAULT_TAGS;
     // Sort tags based on priority order defined in priorityTags array
@@ -268,16 +275,32 @@ export default function IssueTagsPreview({
     const orderedTags = [...highlightTags, ...sortedTags, ...remainingTagKeys];
     const uniqueTags = [...new Set(orderedTags)];
     return uniqueTags.slice(0, 4);
-  }, [tags, project?.platform, highlightTagKeys]);
+  }, [tags, project.platform, highlightTagKeys]);
+
+  const includeFeatureFlags =
+    featureFlagDrawerPlatforms.includes(project.platform ?? 'other') &&
+    organization.features.includes('feature-flag-distribution-flyout');
+
+  if (
+    searchQuery ||
+    isScreenSmall ||
+    (!isPending && !isHighlightPending && tagsToPreview.length === 0)
+  ) {
+    return (
+      <DistributionsDrawerButton
+        tags={tagsToPreview}
+        searchQuery={searchQuery}
+        isScreenSmall={isScreenSmall}
+        includeFeatureFlags={includeFeatureFlags}
+      />
+    );
+  }
 
   if (isPending || isHighlightPending) {
     return (
-      <Fragment>
-        <SectionDivider />
-        <IssueTagPreviewSection>
-          <Placeholder width="340px" height="90px" />
-        </IssueTagPreviewSection>
-      </Fragment>
+      <IssueTagPreviewSection>
+        <Placeholder width="340px" height="90px" />
+      </IssueTagPreviewSection>
     );
   }
 
@@ -285,28 +308,18 @@ export default function IssueTagsPreview({
     return null;
   }
 
-  if (tagsToPreview.length === 0 || searchQuery || isScreenSmall) {
-    return (
-      <IssueTagButton
-        tags={tagsToPreview}
-        searchQuery={searchQuery}
-        isScreenSmall={isScreenSmall}
-      />
-    );
-  }
-
   return (
-    <Fragment>
-      <SectionDivider />
-      <IssueTagPreviewSection>
-        <TagsPreview>
-          {tagsToPreview.map(tag => (
-            <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
-          ))}
-        </TagsPreview>
-        <IssueTagButton tags={tagsToPreview} />
-      </IssueTagPreviewSection>
-    </Fragment>
+    <IssueTagPreviewSection>
+      <TagsPreview>
+        {tagsToPreview.map(tag => (
+          <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
+        ))}
+      </TagsPreview>
+      <DistributionsDrawerButton
+        tags={tagsToPreview}
+        includeFeatureFlags={includeFeatureFlags}
+      />
+    </IssueTagPreviewSection>
   );
 }
 
@@ -314,8 +327,8 @@ const IssueTagPreviewSection = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: ${space(0.5)};
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;
 
 const TagsPreview = styled('div')`
@@ -325,10 +338,10 @@ const TagsPreview = styled('div')`
   align-items: center;
   align-content: center;
   gap: 1px;
-  column-gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  column-gap: ${p => p.theme.space.xs};
+  font-size: ${p => p.theme.fontSize.sm};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
   }
 `;
@@ -347,7 +360,7 @@ const TagBarSegment = styled('div')`
   height: 100%;
   position: absolute;
   top: 0;
-  min-width: ${space(0.25)};
+  min-width: ${p => p.theme.space['2xs']};
   border-right: 1px solid ${p => p.theme.translucentBorder};
 
   &:last-child {
@@ -357,18 +370,18 @@ const TagBarSegment = styled('div')`
 
 const TopPercentage = styled('div')`
   text-align: right;
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space['2xs']};
   font-variant-numeric: tabular-nums;
 `;
 
 const TooltipLegend = styled('div')`
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
 `;
 
 const LegendGrid = styled('div')`
   display: grid;
   grid-template-columns: min-content auto min-content;
-  gap: ${space(0.5)} ${space(1)};
+  gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   align-items: center;
   text-align: left;
 `;
@@ -384,11 +397,11 @@ const TagPreviewGrid = styled(Link)`
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
   align-items: center;
-  padding: 0 ${space(0.75)};
-  margin: 0 -${space(0.75)};
+  padding: 0 ${p => p.theme.space.sm};
+  margin: 0 -${p => p.theme.space.sm};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
@@ -397,12 +410,12 @@ const TagPreviewGrid = styled(Link)`
 `;
 
 const LegendText = styled(TextOverflow)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 
 const LegendPercentage = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
@@ -410,10 +423,10 @@ const LegendPercentage = styled('span')`
 
 const LegendTitle = styled('div')`
   font-weight: 600;
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space.sm};
 `;
 
-const IssueTagsLink = styled(Link)`
+const DistributionsDrawerLink = styled(Link)`
   color: ${p => p.theme.purple300};
   align-self: flex-start;
 
@@ -422,24 +435,17 @@ const IssueTagsLink = styled(Link)`
   }
 `;
 
-const VerticalIssueTagsButton = styled(LinkButton)`
+const VerticalDistributionsDrawerButton = styled(LinkButton)`
   display: block;
   flex: 0;
-  margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
-  padding: ${space(1)} ${space(1.5)};
+  margin: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   text-align: center;
-  width: 58px;
   height: unset;
+  align-self: center;
   span {
     white-space: unset;
   }
-`;
-
-const SectionDivider = styled('div')`
-  border-left: 1px solid ${p => p.theme.translucentBorder};
-  display: flex;
-  align-items: center;
-  margin: ${space(1)};
 `;
 
 const TagKey = styled(TextOverflow)`

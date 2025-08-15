@@ -4,22 +4,24 @@ from urllib.parse import unquote
 import pytest
 from django.test import override_settings
 from django.urls import re_path, reverse
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.api.endpoints.internal.rpc import InternalRpcServiceEndpoint
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.models.apitoken import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
+from sentry.utils.snuba import RateLimitExceeded
 
 
 class DummyEndpoint(Endpoint):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def get(self, request):
         return Response({"ok": True})
@@ -30,6 +32,36 @@ class DummyFailEndpoint(Endpoint):
 
     def get(self, request):
         raise Exception("this is bad yo")
+
+
+class SnubaRateLimitedEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    def get(self, request):
+
+        # Rate limit middleware will set metadata to indicate the request is not limited by the endpoint itself
+        request._request.rate_limit_metadata = RateLimitMeta(
+            rate_limit_type=RateLimitType.NOT_LIMITED,
+            concurrent_limit=123,
+            concurrent_requests=1,
+            reset_time=123,
+            group="test_group",
+            limit=123,
+            window=123,
+            current=1,
+            remaining=122,
+        )
+
+        # However, snuba's 429 will be caught by the custom handler and raise an exception
+        # with the snuba metadata
+        raise RateLimitExceeded(
+            "Query on could not be run due to allocation policies, ... 'rejection_threshold': 40, 'quota_used': 41, ...",
+            policy="ConcurrentRateLimitAllocationPolicy",
+            quota_used=41,
+            rejection_threshold=40,
+            quota_unit="no_units",
+            storage_key="test_storage_key",
+        )
 
 
 class RateLimitedEndpoint(Endpoint):
@@ -82,6 +114,9 @@ urlpatterns = [
     re_path(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
     re_path(r"^api/0/internal/test$", DummyEndpoint.as_view(), name="internal-dummy-endpoint"),
     re_path(r"^/dummyfail$", DummyFailEndpoint.as_view(), name="dummy-fail-endpoint"),
+    re_path(
+        r"^snubaratelimit$", SnubaRateLimitedEndpoint.as_view(), name="snuba-ratelimit-endpoint"
+    ),
     re_path(r"^/dummyratelimit$", RateLimitedEndpoint.as_view(), name="ratelimit-endpoint"),
     re_path(
         r"^/dummyratelimitconcurrent$",
@@ -89,12 +124,12 @@ urlpatterns = [
         name="concurrent-ratelimit-endpoint",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/stats_v2/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/stats_v2/$",
         MyOrganizationEndpoint.as_view(),
         name="sentry-api-0-organization-stats-v2",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/members/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/members/$",
         MyControlOrganizationEndpoint.as_view(),
         name="sentry-api-0-organization-members",
     ),
@@ -106,32 +141,42 @@ urlpatterns = [
     ),
 ]
 
-access_log_fields = (
+required_access_log_fields = (
     "method",
     "view",
     "response",
-    "user_id",
-    "is_app",
-    "token_type",
-    "organization_id",
-    "auth_id",
     "path",
-    "caller_ip",
-    "user_agent",
-    "rate_limited",
-    "rate_limit_category",
-    "request_duration_seconds",
-    "group",
     "rate_limit_type",
+    "rate_limited",
+    "caller_ip",
+    "request_duration_seconds",
+)
+
+# All of these fields may be None, and thus may not appear in every access log
+optional_access_log_fields = (
+    "organization_id",
+    "is_app",
+    "user_id",
+    "token_type",
+    "entity_id",
+    "user_agent",
+    "rate_limit_category",
+    "group",
     "concurrent_limit",
     "concurrent_requests",
     "reset_time",
     "limit",
     "remaining",
+    "snuba_policy",
+    "snuba_quota_unit",
+    "snuba_storage_key",
+    "snuba_quota_used",
+    "snuba_rejection_threshold",
+    "token_last_characters",
 )
 
 
-@override_settings(ROOT_URLCONF="tests.sentry.middleware.test_access_log_middleware")
+@override_settings(ROOT_URLCONF=__name__)
 @override_settings(LOG_API_ACCESS=True)
 class LogCaptureAPITestCase(APITestCase):
     @pytest.fixture(autouse=True)
@@ -141,7 +186,7 @@ class LogCaptureAPITestCase(APITestCase):
     def assert_access_log_recorded(self):
         sentinel = object()
         for record in self.captured_logs:
-            for field in access_log_fields:
+            for field in required_access_log_fields:
                 assert getattr(record, field, sentinel) != sentinel, field
 
     @property
@@ -154,16 +199,44 @@ class LogCaptureAPITestCase(APITestCase):
 
 
 @all_silo_test
+class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
+    endpoint = "snuba-ratelimit-endpoint"
+
+    def test_access_log_snuba_rate_limited(self) -> None:
+        """Test that Snuba rate limits are properly logged by access log middleware."""
+        self._caplog.set_level(logging.INFO, logger="sentry")
+        self.get_error_response(status_code=429)
+        self.assert_access_log_recorded()
+
+        assert self.captured_logs[0].rate_limit_type == "snuba"
+        assert self.captured_logs[0].rate_limited == "True"
+
+        # All the types from the standard rate limit metadata should be set
+        assert self.captured_logs[0].remaining == "122"
+        assert self.captured_logs[0].concurrent_limit == "123"
+        assert self.captured_logs[0].concurrent_requests == "1"
+        assert self.captured_logs[0].limit == "123"
+        assert self.captured_logs[0].reset_time == "123"
+
+        # Snuba rate limit specific fields should be set
+        assert self.captured_logs[0].snuba_policy == "ConcurrentRateLimitAllocationPolicy"
+        assert self.captured_logs[0].snuba_quota_unit == "no_units"
+        assert self.captured_logs[0].snuba_storage_key == "test_storage_key"
+        assert self.captured_logs[0].snuba_quota_used == "41"
+        assert self.captured_logs[0].snuba_rejection_threshold == "40"
+
+
+@all_silo_test
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogRateLimited(LogCaptureAPITestCase):
     endpoint = "ratelimit-endpoint"
 
-    def test_access_log_rate_limited(self):
+    def test_access_log_rate_limited(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_error_response(status_code=429)
         self.assert_access_log_recorded()
         # no token because the endpoint was not hit
-        assert self.captured_logs[0].token_type == "None"
+        assert not hasattr(self.captured_logs[0], "token_type")
         assert self.captured_logs[0].limit == "0"
         assert self.captured_logs[0].remaining == "0"
         assert self.captured_logs[0].group == RateLimitedEndpoint.rate_limits.group
@@ -174,7 +247,7 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
 class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
     endpoint = "concurrent-ratelimit-endpoint"
 
-    def test_concurrent_request_finishes(self):
+    def test_concurrent_request_finishes(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         for i in range(10):
             self.get_success_response()
@@ -182,11 +255,11 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
         # rate limiting
         self.assert_access_log_recorded()
         for i in range(10):
-            assert self.captured_logs[i].token_type == "None"
+            assert not hasattr(self.captured_logs[i], "token_type")
             assert self.captured_logs[0].group == RateLimitedEndpoint.rate_limits.group
             assert self.captured_logs[i].concurrent_requests == "1"
             assert self.captured_logs[i].concurrent_limit == "1"
-            assert self.captured_logs[i].rate_limit_type == "RateLimitType.NOT_LIMITED"
+            assert self.captured_logs[i].rate_limit_type == "not_limited"
             assert self.captured_logs[i].limit == "20"
             # we cannot assert on the exact amount of remaining requests because
             # we may be crossing a second boundary during our test. That would make things
@@ -198,7 +271,7 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
 class TestAccessLogSuccess(LogCaptureAPITestCase):
     endpoint = "dummy-endpoint"
 
-    def test_access_log_success(self):
+    def test_access_log_success(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
@@ -208,8 +281,9 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         tested_log = self.get_tested_log()
         assert tested_log.token_type == "api_token"
         assert tested_log.token_last_characters == token.token_last_characters
+        assert tested_log.entity_id == str(token.id)
 
-    def test_with_subdomain_redirect(self):
+    def test_with_subdomain_redirect(self) -> None:
         # the subdomain middleware is in between this and the access log middelware
         # meaning if a request is rejected between those then it will not have `auth`
         # set up properly
@@ -225,7 +299,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
 class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
     endpoint = "dummy-endpoint"
 
-    def test_access_log_success(self):
+    def test_access_log_success(self) -> None:
         token = None
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
@@ -238,7 +312,7 @@ class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
 class TestAccessLogSkippedForExcludedPath(LogCaptureAPITestCase):
     endpoint = "internal-dummy-endpoint"
 
-    def test_access_log_skipped(self):
+    def test_access_log_skipped(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         token = None
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -252,7 +326,7 @@ class TestAccessLogSkippedForExcludedPath(LogCaptureAPITestCase):
 class TestAccessLogFail(LogCaptureAPITestCase):
     endpoint = "dummy-fail-endpoint"
 
-    def test_access_log_fail(self):
+    def test_access_log_fail(self) -> None:
         self.get_error_response(status_code=500)
         self.assert_access_log_recorded()
 
@@ -260,10 +334,10 @@ class TestAccessLogFail(LogCaptureAPITestCase):
 class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-stats-v2"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
-    def test_org_id_populated(self):
+    def test_org_id_populated(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_success_response(
             self.organization.slug,
@@ -284,10 +358,10 @@ class TestOrganizationIdPresentForRegion(LogCaptureAPITestCase):
 class TestOrganizationIdPresentForControl(LogCaptureAPITestCase):
     endpoint = "sentry-api-0-organization-members"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
-    def test_org_id_populated(self):
+    def test_org_id_populated(self) -> None:
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_success_response(
             self.organization.slug,

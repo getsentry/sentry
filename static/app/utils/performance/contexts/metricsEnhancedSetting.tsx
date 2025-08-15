@@ -48,7 +48,7 @@ export enum MEPState {
   TRANSACTIONS_ONLY = 'transactionsOnly',
 }
 
-export const METRIC_SETTING_PARAM = 'metricSetting';
+const METRIC_SETTING_PARAM = 'metricSetting';
 export const METRIC_SEARCH_SETTING_PARAM = 'metricSearchSetting'; // TODO: Clean this up since we don't need multiple params in practice.
 
 const storageKey = 'performance.metrics-enhanced-setting';
@@ -71,7 +71,7 @@ export const MEPSetting = {
   },
 };
 
-export function canUseMetricsDevUI(organization: Organization) {
+function canUseMetricsDevUI(organization: Organization) {
   return organization.features.includes('performance-use-metrics');
 }
 

@@ -57,12 +57,12 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   height: 100%;
   width: 100%;
   color: ${p => p.theme.chartLabel};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   transition: color 100ms;
   ${p => p.textCss?.(p)}
 `;
 
-const AnimatedText = motion(Text);
+const AnimatedText = motion.create(Text);
 
 const animatedTextDefaultProps = {
   initial: {opacity: 0, y: -10},
@@ -183,7 +183,7 @@ const RingBar = styled('circle')<{
     stroke 100ms;
 `;
 
-const MotionRingBar = motion(RingBar);
+const MotionRingBar = motion.create(RingBar);
 
 export default ProgressRing;
 

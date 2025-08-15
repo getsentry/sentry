@@ -5,7 +5,7 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import RouteError from 'sentry/views/routeError';
 
-describe('RouteError', function () {
+describe('RouteError', () => {
   const {router} = initializeOrg({
     router: {
       routes: [
@@ -18,9 +18,10 @@ describe('RouteError', function () {
     },
   });
 
-  it('captures errors with sentry', async function () {
+  it('captures errors with sentry', async () => {
     render(<RouteError error={new Error('Big Bad Error')} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() =>

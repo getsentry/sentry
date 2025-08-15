@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {
   render,
@@ -15,27 +16,12 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/usePageFilters');
 
-describe('DomainSelector', function () {
+describe('DomainSelector', () => {
   const organization = OrganizationFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    },
-  });
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -53,15 +39,20 @@ describe('DomainSelector', function () {
       headers: {
         Link: '<previous-data>; rel="previous"; results="false"; cursor="0:0:1", <next-data>; rel="next"; results="true"; cursor="0:100:0"',
       },
-      match: [MockApiClient.matchQuery({query: 'has:span.description span.module:db'})],
+      match: [
+        MockApiClient.matchQuery({
+          query:
+            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis]',
+        }),
+      ],
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('allows selecting a domain', async function () {
+  it('allows selecting a domain', async () => {
     render(<DomainSelector domainAlias="Domain" moduleName={ModuleName.DB} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -72,7 +63,7 @@ describe('DomainSelector', function () {
     expect(screen.getByText('sentry_organization')).toBeInTheDocument();
   });
 
-  it('fetches more domains if available', async function () {
+  it('fetches more domains if available', async () => {
     const fetchMoreResponse = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -85,7 +76,8 @@ describe('DomainSelector', function () {
       },
       match: [
         MockApiClient.matchQuery({
-          query: 'has:span.description span.module:db span.domain:*p*',
+          query:
+            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis] span.domain:*p*',
         }),
       ],
     });

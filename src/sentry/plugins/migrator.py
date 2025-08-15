@@ -28,24 +28,20 @@ class Migrator:
                     continue
 
                 if self.all_repos_migrated(plugin.slug):
-                    # Since repos are Org-level, if they're all migrated, we
-                    # can disable the Plugin for all Projects. There'd be no
-                    # Repos left, associated with the Plugin.
-                    self.disable_for_all_projects(plugin)
+                    try:
+                        if plugin.is_enabled(project):
+                            logger.info(
+                                "plugin.disabled",
+                                extra=self._logging_context(
+                                    {"project": project.slug, "plugin": plugin.slug}
+                                ),
+                            )
+                            plugin.disable(project=project)
+                    except NotImplementedError:
+                        pass
 
     def all_repos_migrated(self, provider: str) -> bool:
         return all(r.integration_id is not None for r in self.repos_for_provider(provider))
-
-    def disable_for_all_projects(self, plugin: Plugin2 | Plugin) -> None:
-        for project in self.projects:
-            try:
-                logger.info(
-                    "plugin.disabled",
-                    extra=self._logging_context({"project": project.slug, "plugin": plugin.slug}),
-                )
-                plugin.disable(project=project)
-            except NotImplementedError:
-                pass
 
     def repos_for_provider(self, provider: str) -> list[RpcRepository]:
         return [r for r in self.repositories if r.provider == provider]

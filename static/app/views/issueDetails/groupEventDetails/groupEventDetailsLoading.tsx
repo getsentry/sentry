@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
@@ -24,11 +24,11 @@ export function GroupEventDetailsLoading() {
     <div>
       <LoadingGroupContent>
         <LoadingHeader>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <Placeholder width="100px" height="22px" />
             <Placeholder width="100px" height="22px" />
           </Flex>
-          <Flex align="center" gap={space(1)}>
+          <Flex align="center" gap="md">
             <Placeholder width="80px" height="22px" />
             <Placeholder width="80px" height="22px" />
             <Placeholder width="80px" height="22px" />

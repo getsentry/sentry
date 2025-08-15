@@ -121,6 +121,7 @@ export async function openPartnerPlanEndingModal(options: PartnerPlanModalProps)
 type EditCreditCardOptions = {
   onSuccess: (data: Subscription) => void;
   organization: Organization;
+  subscription: Subscription;
   location?: Location;
 };
 
@@ -258,13 +259,13 @@ export async function openCodecovModal(options: {organization: Organization}) {
 }
 
 const HeaderText = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: bold;
 `;
 
 const Subheader = styled('div')`
   font-weight: bold;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 export async function openDataConsentModal() {

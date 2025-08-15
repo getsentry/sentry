@@ -138,7 +138,7 @@ class KeyResultsTest(TestCase):
 
         assert key_results.get_unmapped_keys(collection).mapping == {}
 
-    def test_merges_with_metadata(self):
+    def test_merges_with_metadata(self) -> None:
         org_id = 1
         cache_mappings = {"cache1": 1, "cache2": 2}
         read_mappings = {"read3": 3, "read4": 4}

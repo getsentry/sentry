@@ -8,7 +8,6 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
@@ -33,7 +32,7 @@ function IssueOwnerDebbuging() {
     event.preventDefault();
     if (!projectSlug || !stacktracePath) {
       addErrorMessage(
-        t('Requires the organization slug, the project slug and the stacktrace path.')
+        'Requires the organization slug, the project slug and the stacktrace path.'
       );
       return;
     }
@@ -62,7 +61,6 @@ function IssueOwnerDebbuging() {
             name="organizaton-slug"
             onChange={e => setOrganizationSlug(e.target.value)}
             value={organizationSlug}
-            required
             minLength={1}
             placeholder="sentry"
           />
@@ -72,7 +70,6 @@ function IssueOwnerDebbuging() {
             name="project-slug"
             onChange={e => setProjectSlug(e.target.value)}
             value={projectSlug}
-            required
             minLength={1}
             placeholder="sentry"
           />
@@ -83,7 +80,6 @@ function IssueOwnerDebbuging() {
             name="stacktrace-path"
             onChange={e => setStacktracePath(e.target.value)}
             value={stacktracePath}
-            required
             minLength={1}
             placeholder="/src/sentry/integrations/github/webhook.py"
           />
@@ -210,7 +206,6 @@ function IssueEscalatingDebugging() {
             name="organizaton-slug"
             onChange={e => setOrganizationSlug(e.target.value)}
             value={organizationSlug}
-            required
             minLength={1}
             placeholder="sentry"
           />
@@ -220,7 +215,6 @@ function IssueEscalatingDebugging() {
             name="group-id"
             onChange={e => setGroupId(e.target.value)}
             value={groupId}
-            required
             minLength={1}
             placeholder="1"
           />

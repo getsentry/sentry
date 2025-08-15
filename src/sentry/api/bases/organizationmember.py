@@ -12,10 +12,12 @@ from sentry.api.permissions import StaffPermissionMixin
 from sentry.db.models.fields.bounded import BoundedAutoField
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )
+from sentry.users.models.user import User
 
 from .organization import OrganizationEndpoint, OrganizationPermission
 
@@ -94,10 +96,12 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         serializer = MemberSerializer(data={"id": member_id})
-        if serializer.is_valid():
+        if request.user.is_authenticated and serializer.is_valid():
             result = serializer.validated_data
             try:
-                kwargs["member"] = self._get_member(request, kwargs["organization"], result["id"])
+                kwargs["member"] = self._get_member(
+                    request.user, kwargs["organization"], result["id"]
+                )
             except OrganizationMember.DoesNotExist:
                 raise ResourceDoesNotExist
 
@@ -107,7 +111,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
 
     def _get_member(
         self,
-        request: Request,
+        request_user: User,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
@@ -115,7 +119,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         kwargs: _FilterKwargs = {"organization": organization}
 
         if member_id == "me":
-            kwargs["user_id"] = request.user.id
+            kwargs["user_id"] = request_user.id
             kwargs["user_is_active"] = True
         else:
             kwargs["id"] = member_id
@@ -123,5 +127,11 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
 
         if invite_status:
             kwargs["invite_status"] = invite_status.value
+
+        om_id = kwargs.get("id")
+        if isinstance(om_id, int):
+            invite = OrganizationMemberInvite.objects.filter(organization_member_id=om_id).first()
+            if invite is not None:
+                raise ResourceDoesNotExist
 
         return OrganizationMember.objects.filter(**kwargs).get()

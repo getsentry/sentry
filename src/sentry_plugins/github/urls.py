@@ -4,7 +4,7 @@ from .webhooks import GithubPluginIntegrationsWebhookEndpoint, GithubPluginWebho
 
 urlpatterns = [
     re_path(
-        r"^organizations/(?P<organization_id>[^\/]+)/webhook/$",
+        r"^organizations/(?P<organization_id>[^/]+)/webhook/$",
         GithubPluginWebhookEndpoint.as_view(),
         name="sentry-plugins-github-webhook",
     ),

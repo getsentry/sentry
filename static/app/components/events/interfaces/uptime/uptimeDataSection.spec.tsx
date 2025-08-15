@@ -5,16 +5,16 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
-  type GroupActivity,
   GroupActivityType,
   GroupStatus,
   IssueCategory,
+  type GroupActivity,
 } from 'sentry/types/group';
 
 import {UptimeDataSection} from './uptimeDataSection';
 
-describe('Uptime Data Section', function () {
-  it('displays downtime according to activity', function () {
+describe('Uptime Data Section', () => {
+  it('displays downtime according to activity', () => {
     const project = ProjectFixture();
 
     const activity: GroupActivity[] = [
@@ -22,14 +22,12 @@ describe('Uptime Data Section', function () {
         data: {},
         id: '2',
         dateCreated: '2024-06-21T20:36:51.884284Z',
-        project,
         type: GroupActivityType.SET_RESOLVED,
       },
       {
         data: {},
         id: '1',
         dateCreated: '2024-06-20T20:36:51.884284Z',
-        project,
         type: GroupActivityType.FIRST_SEEN,
       },
     ];
@@ -59,7 +57,7 @@ describe('Uptime Data Section', function () {
     );
   });
 
-  it('displays downtime according to multiple activities', function () {
+  it('displays downtime according to multiple activities', () => {
     const project = ProjectFixture();
 
     const activity: GroupActivity[] = [
@@ -67,28 +65,24 @@ describe('Uptime Data Section', function () {
         data: {},
         id: '4',
         dateCreated: '2024-06-22T22:36:51.884284Z',
-        project,
         type: GroupActivityType.SET_RESOLVED,
       },
       {
         data: {},
         id: '3',
         dateCreated: '2024-06-22T20:36:51.884284Z',
-        project,
         type: GroupActivityType.SET_REGRESSION,
       },
       {
         data: {},
         id: '2',
         dateCreated: '2024-06-21T20:36:51.884284Z',
-        project,
         type: GroupActivityType.SET_RESOLVED,
       },
       {
         data: {},
         id: '1',
         dateCreated: '2024-06-20T20:36:51.884284Z',
-        project,
         type: GroupActivityType.FIRST_SEEN,
       },
     ];

@@ -15,8 +15,8 @@ import {
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import ConfigStore from 'sentry/stores/configStore';
 
-describe('EventAttachments', function () {
-  const {router, organization, project} = initializeOrg({
+describe('EventAttachments', () => {
+  const {organization, project} = initializeOrg({
     organization: {
       features: ['event-attachments'],
       orgRole: 'member',
@@ -38,14 +38,13 @@ describe('EventAttachments', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows attachments limit reached notice with stripped_crash: true', async function () {
+  it('shows attachments limit reached notice with stripped_crash: true', async () => {
     MockApiClient.addMockResponse({
       url: attachmentsUrl,
       body: [],
     });
     const strippedCrashEvent = {...event, metadata: {stripped_crash: true}};
     render(<EventAttachments {...props} event={strippedCrashEvent} />, {
-      router,
       organization,
     });
 
@@ -71,7 +70,7 @@ describe('EventAttachments', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not render anything if no attachments (nor stripped) are available', async function () {
+  it('does not render anything if no attachments (nor stripped) are available', async () => {
     MockApiClient.addMockResponse({
       url: attachmentsUrl,
       body: [],
@@ -81,7 +80,9 @@ describe('EventAttachments', function () {
         {...props}
         event={{...event, metadata: {stripped_crash: false}}}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     // No loading state to wait for
@@ -90,8 +91,8 @@ describe('EventAttachments', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('displays message when user lacks permission to preview an attachment', async function () {
-    const {router: newRouter, organization: orgWithWrongAttachmentRole} = initializeOrg({
+  it('displays message when user lacks permission to preview an attachment', async () => {
+    const {organization: orgWithWrongAttachmentRole} = initializeOrg({
       organization: {
         features: ['event-attachments'],
         orgRole: 'member',
@@ -117,7 +118,6 @@ describe('EventAttachments', function () {
     });
 
     render(<EventAttachments {...props} />, {
-      router: newRouter,
       organization: orgWithWrongAttachmentRole,
     });
 
@@ -129,7 +129,7 @@ describe('EventAttachments', function () {
     await screen.findByText(/insufficient permissions to preview attachments/i);
   });
 
-  it('can open attachment previews', async function () {
+  it('can open attachment previews', async () => {
     const attachment = EventAttachmentFixture({
       name: 'some_file.txt',
       headers: {
@@ -148,7 +148,9 @@ describe('EventAttachments', function () {
       body: 'file contents',
     });
 
-    render(<EventAttachments {...props} />, {router, organization});
+    render(<EventAttachments {...props} />, {
+      organization,
+    });
 
     expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
 
@@ -157,7 +159,7 @@ describe('EventAttachments', function () {
     expect(await screen.findByText('file contents')).toBeInTheDocument();
   });
 
-  it('can delete attachments', async function () {
+  it('can delete attachments', async () => {
     const attachment1 = EventAttachmentFixture({
       id: '1',
       name: 'pic_1.png',
@@ -175,7 +177,9 @@ describe('EventAttachments', function () {
       method: 'DELETE',
     });
 
-    render(<EventAttachments {...props} />, {router, organization});
+    render(<EventAttachments {...props} />, {
+      organization,
+    });
     renderGlobalModal();
 
     expect(await screen.findByText('Attachments (2)')).toBeInTheDocument();

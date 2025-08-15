@@ -4,7 +4,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Self, TypedDict, Union
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models.base import Model
@@ -53,7 +53,7 @@ class UserIdentityProvider:
     name: str
 
     @classmethod
-    def adapt(cls, provider: PipelineProvider) -> UserIdentityProvider:
+    def adapt(cls, provider: PipelineProvider[Any]) -> Self:
         return cls(provider.key, provider.name)
 
 
@@ -77,8 +77,6 @@ class UserIdentityConfig:
 
     @classmethod
     def wrap(cls, identity: IdentityType, status: Status) -> UserIdentityConfig:
-        provider: PipelineProvider
-
         def base(**kwargs: Any) -> UserIdentityConfig:
             return cls(
                 category=_IDENTITY_CATEGORY_KEYS[type(identity)],
@@ -94,6 +92,7 @@ class UserIdentityConfig:
                 is_login=False,
             )
         elif isinstance(identity, Identity):
+            provider: PipelineProvider[Any]
             try:
                 provider = identity.get_provider()
             except NotRegistered:

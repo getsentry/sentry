@@ -16,7 +16,7 @@ import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transaction
 import type {SpanSort, SpanSortOption} from './types';
 import {SpanSortOthers, SpanSortPercentiles} from './types';
 
-export function generateSpansRoute({
+function generateSpansRoute({
   organization,
   view,
 }: {
@@ -111,7 +111,7 @@ function getSuspectSpanSort(sort: string): SpanSortOption {
   return SPAN_SORT_OPTIONS.find(option => option.field === DEFAULT_SORT)!;
 }
 
-export function getSuspectSpanSortFromLocation(
+function getSuspectSpanSortFromLocation(
   location: Location,
   sortKey = 'sort'
 ): SpanSortOption {

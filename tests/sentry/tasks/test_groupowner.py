@@ -1,9 +1,9 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
@@ -20,7 +20,7 @@ pytestmark = [requires_snuba]
 
 
 class TestGroupOwners(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id
@@ -82,7 +82,7 @@ class TestGroupOwners(TestCase):
             ]
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.set_release_commits(self.user.email)
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
         event_frames = get_frame_paths(self.event)
@@ -100,7 +100,7 @@ class TestGroupOwners(TestCase):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
-    def test_user_deletion_cascade(self):
+    def test_user_deletion_cascade(self) -> None:
         other_user = self.create_user()
         group = self.create_group()
         other_group = self.create_group()
@@ -129,7 +129,7 @@ class TestGroupOwners(TestCase):
 
         assert GroupOwner.objects.count() == 1
 
-    def test_no_matching_user(self):
+    def test_no_matching_user(self) -> None:
         self.set_release_commits("not@real.user")
 
         result = get_serialized_event_file_committers(self.project, self.event)
@@ -149,7 +149,7 @@ class TestGroupOwners(TestCase):
         )
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
 
-    def test_delete_old_entries(self):
+    def test_delete_old_entries(self) -> None:
         # As new events come in associated with new owners, we should delete old ones.
         self.set_release_commits(self.user.email)
         event_frames = get_frame_paths(self.event)
@@ -287,17 +287,18 @@ class TestGroupOwners(TestCase):
         assert not GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).exists()
         assert GroupOwner.objects.filter(group=event_2.group, user_id=self.user_3.id).exists()
 
-    def test_update_existing_entries(self):
+    def test_update_existing_entries(self) -> None:
         # As new events come in associated with existing owners, we should update the date_added of that owner.
         self.set_release_commits(self.user.email)
         event_frames = get_frame_paths(self.event)
-        process_suspect_commits(
-            event_id=self.event.event_id,
-            event_platform=self.event.platform,
-            event_frames=event_frames,
-            group_id=self.event.group_id,
-            project_id=self.event.project_id,
-        )
+        with self.options({"issues.suspect-commit-strategy": True}):
+            process_suspect_commits(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
         go = GroupOwner.objects.get(
             group=self.event.group,
             project=self.event.project,
@@ -306,15 +307,19 @@ class TestGroupOwners(TestCase):
         )
 
         date_added_before_update = go.date_added
-        process_suspect_commits(
-            event_id=self.event.event_id,
-            event_platform=self.event.platform,
-            event_frames=event_frames,
-            group_id=self.event.group_id,
-            project_id=self.event.project_id,
-        )
+        assert go.context == {"suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED}
+
+        with self.options({"issues.suspect-commit-strategy": True}):
+            process_suspect_commits(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
         go.refresh_from_db()
         assert go.date_added > date_added_before_update
+        assert go.context == {"suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED}
         assert GroupOwner.objects.filter(group=self.event.group).count() == 1
         assert GroupOwner.objects.get(
             group=self.event.group,
@@ -323,7 +328,7 @@ class TestGroupOwners(TestCase):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
-    def test_no_release_or_commit(self):
+    def test_no_release_or_commit(self) -> None:
         event_with_no_release = self.store_event(
             data={
                 "message": "BOOM!",
@@ -348,14 +353,14 @@ class TestGroupOwners(TestCase):
         process_suspect_commits(
             event_with_no_release.event_id,
             event_with_no_release.platform,
-            event_with_no_release.data,
+            get_frame_paths(event_with_no_release),
             event_with_no_release.group_id,
             event_with_no_release.project_id,
         )
         assert GroupOwner.objects.filter(group=event_with_no_release.group).count() == 0
 
     @patch("sentry.tasks.groupowner.get_event_file_committers")
-    def test_keep_highest_score(self, patched_committers):
+    def test_keep_highest_score(self, patched_committers: MagicMock) -> None:
         self.user2 = self.create_user(email="user2@sentry.io")
         self.user3 = self.create_user(email="user3@sentry.io")
         patched_committers.return_value = [
@@ -446,7 +451,7 @@ class TestGroupOwners(TestCase):
         assert not GroupOwner.objects.filter(user_id=self.user2.id).exists()
 
     @patch("sentry.tasks.groupowner.get_event_file_committers")
-    def test_low_suspect_committer_score(self, patched_committers):
+    def test_low_suspect_committer_score(self, patched_committers: MagicMock) -> None:
         self.user = self.create_user()
         patched_committers.return_value = [
             {
@@ -468,7 +473,7 @@ class TestGroupOwners(TestCase):
 
         assert not GroupOwner.objects.filter(user_id=self.user.id).exists()
 
-    def test_owners_count(self):
+    def test_owners_count(self) -> None:
         self.set_release_commits(self.user.email)
         self.user = self.create_user()
         event_frames = get_frame_paths(self.event)

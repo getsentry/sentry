@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:11.332812+00:00'
+created: '2025-04-25T21:21:54.336775+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,22 +10,22 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "start"
           frame (non app frame)
             function*
               "stripped_application_code"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "UIApplicationMain"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "-[UIApplication _run]"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "GSEventRunModal"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "objc_release"
         type*

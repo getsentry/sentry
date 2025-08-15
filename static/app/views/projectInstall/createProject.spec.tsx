@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
-import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -27,11 +26,6 @@ function renderFrameworkModalMockRequests({
   organization: Organization;
   teamSlug: string;
 }) {
-  MockApiClient.addMockResponse({
-    url: `/projects/${organization.slug}/rule-conditions/`,
-    body: [],
-  });
-
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/teams/`,
     body: [TeamFixture({slug: teamSlug})],
@@ -65,13 +59,13 @@ function renderFrameworkModalMockRequests({
   const experimentalprojectCreationMockRequest = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/experimental/projects/`,
     method: 'POST',
-    body: {slug: 'testProj', team_slug: 'testTeam'},
+    body: {slug: 'testProj', team: {slug: 'testTeam'}},
   });
 
   return {projectCreationMockRequest, experimentalprojectCreationMockRequest};
 }
 
-describe('CreateProject', function () {
+describe('CreateProject', () => {
   const teamNoAccess = TeamFixture({
     slug: 'test',
     id: '1',
@@ -88,13 +82,6 @@ describe('CreateProject', function () {
     TeamStore.loadUserTeams([teamNoAccess]);
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/rule-conditions/`,
-      body: {},
-      // Not required for these tests
-      statusCode: 500,
-    });
-
-    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/integrations/?integrationType=messaging`,
       body: [
         OrganizationIntegrationsFixture({
@@ -108,7 +95,7 @@ describe('CreateProject', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('should block if you have access to no teams without team-roles', function () {
+  it('should block if you have access to no teams without team-roles', () => {
     const organization = OrganizationFixture({
       id: '1',
       slug: 'org-slug',
@@ -119,7 +106,7 @@ describe('CreateProject', function () {
     render(<CreateProject />, {organization});
   });
 
-  it('can create a new project as member with team-roles', async function () {
+  it('can create a new project as member with team-roles', async () => {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
@@ -142,7 +129,7 @@ describe('CreateProject', function () {
     expect(screen.getByRole('button', {name: 'Create Project'})).toBeEnabled();
   });
 
-  it('should only allow teams which the user is a team-admin', async function () {
+  it('should only allow teams which the user is a team-admin', async () => {
     const {organization} = initializeOrg({
       organization: {
         features: ['team-roles'],
@@ -166,7 +153,7 @@ describe('CreateProject', function () {
     expect(screen.getByText('#team-three')).toBeInTheDocument();
   });
 
-  it('should fill in project name if its empty when platform is chosen', async function () {
+  it('should fill in project name if its empty when platform is chosen', async () => {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
@@ -193,7 +180,7 @@ describe('CreateProject', function () {
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('another');
   });
 
-  it('should display success message on proj creation', async function () {
+  it('should display success message on proj creation', async () => {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
@@ -222,7 +209,7 @@ describe('CreateProject', function () {
     expect(addSuccessMessage).toHaveBeenCalledWith('Created project testProj');
   });
 
-  it('should display error message on proj creation failure', async function () {
+  it('should display error message on proj creation failure', async () => {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
@@ -259,7 +246,7 @@ describe('CreateProject', function () {
     expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
   });
 
-  it('should display success message when using member endpoint', async function () {
+  it('should display success message when using member endpoint', async () => {
     const {organization} = initializeOrg({
       organization: {
         access: ['project:read'],
@@ -288,7 +275,7 @@ describe('CreateProject', function () {
     );
   });
 
-  it('does not render framework selection modal if vanilla js is NOT selected', async function () {
+  it('does not render framework selection modal if vanilla js is NOT selected', async () => {
     const {organization} = initializeOrg({
       organization: {
         features: ['team-roles'],
@@ -330,7 +317,7 @@ describe('CreateProject', function () {
     expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalled();
   });
 
-  it('renders framework selection modal if vanilla js is selected', async function () {
+  it('renders framework selection modal if vanilla js is selected', async () => {
     const {organization} = initializeOrg();
 
     const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
@@ -369,15 +356,10 @@ describe('CreateProject', function () {
     expect(frameWorkModalMockRequests.projectCreationMockRequest).not.toHaveBeenCalled();
   });
 
-  describe('Issue Alerts Options', function () {
+  describe('Issue Alerts Options', () => {
     const organization = OrganizationFixture();
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
-
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/rule-conditions/`,
-        body: MOCK_RESP_VERBOSE,
-      });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
@@ -393,7 +375,7 @@ describe('CreateProject', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('should enabled the submit button if and only if all the required information has been filled', async function () {
+    it('should enabled the submit button if and only if all the required information has been filled', async () => {
       render(<CreateProject />, {organization});
 
       // We need to query for the submit button every time we want to access it
@@ -427,6 +409,51 @@ describe('CreateProject', function () {
 
       await userEvent.click(screen.getByText("I'll create my own alerts later"));
       expect(getSubmitButton()).toBeEnabled();
+    });
+
+    it('should create an issue alert rule by default', async () => {
+      const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      render(<CreateProject />, {organization});
+      expect(screen.getByLabelText(/Alert me on high priority issues/i)).toBeChecked();
+      await userEvent.click(screen.getByTestId('platform-javascript-react'));
+      await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+      expect(projectCreationMockRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+        expect.objectContaining({
+          data: {
+            default_rules: true,
+            name: 'javascript-react',
+            origin: 'ui',
+            platform: 'javascript-react',
+          },
+        })
+      );
+    });
+
+    it('should NOT create alerts if the user opt out', async () => {
+      const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      render(<CreateProject />, {organization});
+      await userEvent.click(screen.getByText(/create my own alerts later/i));
+      expect(screen.getByLabelText(/create my own alerts later/i)).toBeChecked();
+      await userEvent.click(screen.getByTestId('platform-javascript-react'));
+      await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+      expect(projectCreationMockRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+        expect.objectContaining({
+          data: {
+            default_rules: false,
+            name: 'javascript-react',
+            origin: 'ui',
+            platform: 'javascript-react',
+          },
+        })
+      );
     });
   });
 });

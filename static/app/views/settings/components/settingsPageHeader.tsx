@@ -81,13 +81,13 @@ const TitleWrapper = styled('div')`
 `;
 
 const Title = styled('div')<TitleProps>`
-  ${p => !p.styled && `font-size: 20px; font-weight: ${p.theme.fontWeightBold};`};
+  ${p => !p.styled && `font-size: 20px; font-weight: ${p.theme.fontWeight.bold};`};
   margin: ${space(4)} ${space(2)} ${space(3)} 0;
 `;
 const Subtitle = styled('div')<{colorSubtitle?: boolean}>`
   color: ${p => (p.colorSubtitle ? p.theme.purple400 : p.theme.gray400)};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.lg};
   padding: ${space(1.5)} 0 0;
 `;
 
@@ -112,7 +112,7 @@ const BodyWrapper = styled('div')`
 `;
 const TabsWrapper = styled('div')`
   flex: 1;
-  margin: 0; /* sentry/components/navTabs has added margin */
+  margin: 0;
 `;
 
 export default SettingsPageHeader;

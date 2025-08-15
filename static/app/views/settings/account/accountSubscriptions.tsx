@@ -219,7 +219,7 @@ const Heading = styled(PanelItem)`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1.5)} ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
@@ -230,19 +230,19 @@ const SubscriptionDetails = styled('label')`
   padding-right: ${space(2)};
   width: 85%;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 75%;
   }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 50%;
   }
 `;
 
 const SubscriptionName = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.5)};
 `;

@@ -1,9 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import NewTraceDetailsSpanTree from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanTree';
@@ -22,7 +25,6 @@ import {
 } from 'sentry/components/events/interfaces/spans/utils';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
@@ -56,7 +58,6 @@ import {
   getHumanDuration,
 } from 'sentry/components/performance/waterfall/utils';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconZoom} from 'sentry/icons/iconZoom';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -118,6 +119,7 @@ type Props = {
 };
 
 function NewTraceDetailsTransactionBar(props: Props) {
+  const theme = useTheme();
   const hashValues = parseTraceDetailsURLHash(props.location.hash);
   const openPanel = decodeScalar(props.location.query.openPanel);
   const eventIDInQueryParam = !!(
@@ -391,8 +393,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
     );
 
     const embeddedChildrenLength =
-      (embeddedChildren && waterfallModel && waterfallModel.rootSpan.children.length) ??
-      0;
+      (embeddedChildren && waterfallModel?.rootSpan.children.length) ?? 0;
     if (
       hasToggle &&
       (isExpanded || (showEmbeddedChildren && embeddedChildrenLength > 0))
@@ -498,6 +499,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
                           <Observer>
                             {() => (
                               <NewTraceDetailsSpanTree
+                                theme={theme}
                                 measurements={props.measurements}
                                 quickTrace={results}
                                 location={props.location}
@@ -697,7 +699,6 @@ function NewTraceDetailsTransactionBar(props: Props) {
 
     return (
       <DividerLine
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={addDividerLineRef()}
         style={{
           position: 'absolute',
@@ -736,7 +737,6 @@ function NewTraceDetailsTransactionBar(props: Props) {
         }}
       >
         <DividerLine
-          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
           ref={addGhostDividerLineRef()}
           style={{
             right: 0,
