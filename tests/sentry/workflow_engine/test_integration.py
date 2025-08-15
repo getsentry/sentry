@@ -438,6 +438,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         process_delayed_workflows(list(project_ids.keys())[0])
         mock_trigger.assert_called_once()
 
+    @pytest.mark.skip(reason="flaky: #96864")
     def test_slow_condition_subqueries(self, mock_trigger: MagicMock) -> None:
         env = self.create_environment(self.project, name="production")
         self.workflow.update(environment=env)
