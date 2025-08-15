@@ -3,8 +3,13 @@ import {queryOptions, skipToken, type SkipToken} from '@tanstack/react-query';
 import type {ApiResult} from 'sentry/api';
 import {fetchDataQuery, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 
-import type {MaybeApiPath} from './apiDefinition';
-import {getApiUrl, type ExtractPathParams, type OptionalPathParams} from './getApiUrl';
+import type {ApiPath} from './apiDefinition';
+import {
+  getApiUrl,
+  type ExtractPathParams,
+  type OptionalPathParams,
+  type PathParamOptions,
+} from './getApiUrl';
 
 type Options = QueryKeyEndpointOptions & {staleTime: number};
 
@@ -28,7 +33,7 @@ export const selectWithHeaders =
 
 function _apiOptions<
   TManualData = never,
-  TApiPath extends MaybeApiPath = MaybeApiPath,
+  TApiPath extends ApiPath = ApiPath,
   // todo: infer the actual data type from the ApiMapping
   TActualData = TManualData,
 >(
@@ -67,7 +72,7 @@ function _apiOptions<
 export const apiOptions = {
   as:
     <TManualData>() =>
-    <TApiPath extends MaybeApiPath = MaybeApiPath>(
+    <TApiPath extends ApiPath = ApiPath>(
       path: TApiPath,
       options: Options & PathParamOptions<TApiPath>
     ) =>
