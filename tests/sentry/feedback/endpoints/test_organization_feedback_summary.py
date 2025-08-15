@@ -240,6 +240,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 12
 
+    # TODO(vishnupsatish): uncomment the below once we are to EA, this is commented because the cache is disabled for now.
     # @patch(
     #     "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
     #     return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
