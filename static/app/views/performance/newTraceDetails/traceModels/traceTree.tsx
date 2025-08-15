@@ -174,6 +174,7 @@ export declare namespace TraceTree {
     profiler_id: string;
     project_id: number;
     project_slug: string;
+    sdk_name: string;
     start_timestamp: number;
     transaction: string;
     transaction_id: string;
@@ -379,15 +380,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return tree;
   }
 
-  static Loading(metadata: TraceTree.Metadata): TraceTree {
-    const t = makeExampleTrace(metadata);
+  static Loading(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
+    const t = makeExampleTrace(metadata, organization);
     t.type = 'loading';
     t.build();
     return t;
   }
 
-  static Error(metadata: TraceTree.Metadata): TraceTree {
-    const t = makeExampleTrace(metadata);
+  static Error(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
+    const t = makeExampleTrace(metadata, organization);
     t.type = 'error';
     t.build();
     return t;
@@ -396,6 +397,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   static ApplyPreferences(
     root: TraceTreeNode<TraceTree.NodeValue>,
     options: {
+      organization: Organization;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): void {
@@ -408,7 +410,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     if (options?.preferences?.autogroup.sibling) {
-      TraceTree.AutogroupSiblingSpanNodes(root);
+      TraceTree.AutogroupSiblingSpanNodes(root, {organization: options.organization});
     }
   }
 
@@ -416,6 +418,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     trace: TraceTree.Trace,
     options: {
       meta: TraceMetaQueryResults['data'] | null;
+      organization: Organization;
       replay: HydratedReplayRecord | null;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
       // This is used to track the traceslug associated with a trace in a replay.
@@ -882,14 +885,17 @@ export class TraceTree extends TraceTreeEventDispatcher {
     let missingInstrumentationCount = 0;
 
     TraceTree.ForEachChild(root, child => {
+      const childSdkName = getSdkName(child);
+      const previousSdkName = previous ? getSdkName(previous) : undefined;
+
       if (
         previous &&
         child &&
         ((isSpanNode(previous) && isSpanNode(child)) ||
           (isNonTransactionEAPSpanNode(previous) &&
             isNonTransactionEAPSpanNode(child))) &&
-        shouldAddMissingInstrumentationSpan(child.event?.sdk?.name ?? '') &&
-        shouldAddMissingInstrumentationSpan(previous.event?.sdk?.name ?? '') &&
+        shouldAddMissingInstrumentationSpan(childSdkName) &&
+        shouldAddMissingInstrumentationSpan(previousSdkName) &&
         child.space[0] - previous.space[0] - previous.space[1] >=
           TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
       ) {
@@ -1096,7 +1102,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return removeCount;
   }
 
-  static AutogroupSiblingSpanNodes(root: TraceTreeNode<TraceTree.NodeValue>): number {
+  static AutogroupSiblingSpanNodes(
+    root: TraceTreeNode<TraceTree.NodeValue>,
+    options: {
+      organization: Organization;
+    }
+  ): number {
     const queue = [root];
     let autogroupCount = 0;
 
@@ -1138,7 +1149,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
           | TraceTreeNode<TraceTree.EAPSpan>;
         const next = node.children[index + 1] as
           | TraceTreeNode<TraceTree.Span>
-          | TraceTreeNode<TraceTree.EAPSpan>;
+          | TraceTreeNode<TraceTree.EAPSpan>
+          | undefined;
+
+        const areSpanLabelsMatching = options.organization.features.includes(
+          'performance-otel-friendly-ui'
+        )
+          ? areSpanNamesMatching
+          : areSpanDescriptionsMatching;
 
         if (
           next &&
@@ -1148,8 +1166,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
           // skip `op: default` spans as `default` is added to op-less spans
           next.value.op !== 'default' &&
           next.value.op === current.value.op &&
-          next.value.description === current.value.description
+          areSpanLabelsMatching(next, current)
+          // next.value.description === current.value.description
         ) {
+          // console.log('are matching');
           matchCount++;
           // If the next node is the last node in the list, we keep iterating
           if (index + 1 < node.children.length) {
@@ -2315,6 +2335,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
                 replay: null,
                 preferences: options.preferences,
                 replayTraceSlug: traceSlug,
+                organization,
               })
             );
             rerender();
@@ -2577,4 +2598,30 @@ export function getNodeDescriptionPrefix(
   const isPrefetch =
     isSpanNode(node) && node.value.data && !!node.value.data['http.request.prefetch'];
   return isPrefetch ? '(prefetch) ' : '';
+}
+
+function areSpanDescriptionsMatching<
+  T extends TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>,
+>(nodeA: T, nodeB: T): boolean {
+  return nodeA.value.description === nodeB.value.description;
+}
+
+function areSpanNamesMatching<
+  T extends TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>,
+>(nodeA: T, nodeB: T): boolean {
+  return (
+    isEAPSpanNode(nodeA) && isEAPSpanNode(nodeB) && nodeA.value.name === nodeB.value.name
+  );
+}
+
+function getSdkName(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
+  if (isSpanNode(node)) {
+    return node.event?.sdk?.name ?? undefined;
+  }
+
+  if (isEAPSpanNode(node) || isTransactionNode(node)) {
+    return node.value.sdk_name ?? undefined;
+  }
+
+  return undefined;
 }

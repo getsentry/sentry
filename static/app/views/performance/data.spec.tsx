@@ -10,10 +10,10 @@ import {
   generatePerformanceEventView,
 } from 'sentry/views/performance/data';
 
-describe('generatePerformanceEventView()', function () {
+describe('generatePerformanceEventView()', () => {
   const organization = OrganizationFixture();
 
-  it('generates default values', function () {
+  it('generates default values', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {}}),
       [],
@@ -30,7 +30,7 @@ describe('generatePerformanceEventView()', function () {
     expect(result.statsPeriod).toEqual(DEFAULT_STATS_PERIOD);
   });
 
-  it('applies sort from location', function () {
+  it('applies sort from location', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {sort: ['-p50', '-count']}}),
       [],
@@ -42,7 +42,7 @@ describe('generatePerformanceEventView()', function () {
     expect(result.statsPeriod).toEqual(DEFAULT_STATS_PERIOD);
   });
 
-  it('does not override statsPeriod from location', function () {
+  it('does not override statsPeriod from location', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {statsPeriod: ['90d', '45d']}}),
       [],
@@ -54,7 +54,7 @@ describe('generatePerformanceEventView()', function () {
     expect(result.statsPeriod).toBe('90d');
   });
 
-  it('does not apply range when start and end are present', function () {
+  it('does not apply range when start and end are present', () => {
     const result = generatePerformanceEventView(
       LocationFixture({
         query: {start: '2020-04-25T12:00:00', end: '2020-05-25T12:00:00'},
@@ -68,7 +68,7 @@ describe('generatePerformanceEventView()', function () {
     expect(result.statsPeriod).toBeUndefined();
   });
 
-  it('converts bare query into transaction name wildcard', function () {
+  it('converts bare query into transaction name wildcard', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {query: 'things.update'}}),
       [],
@@ -81,7 +81,7 @@ describe('generatePerformanceEventView()', function () {
     );
   });
 
-  it('bare query overwrites transaction condition', function () {
+  it('bare query overwrites transaction condition', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {query: 'things.update transaction:thing.gone'}}),
       [],
@@ -95,7 +95,7 @@ describe('generatePerformanceEventView()', function () {
     expect(result.query).toEqual(expect.not.stringContaining('transaction:thing.gone'));
   });
 
-  it('retains tag filter conditions', function () {
+  it('retains tag filter conditions', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {query: 'key:value tag:value'}}),
       [],
@@ -109,7 +109,7 @@ describe('generatePerformanceEventView()', function () {
     );
   });
 
-  it('gets the right column', function () {
+  it('gets the right column', () => {
     const result = generatePerformanceEventView(
       LocationFixture({query: {query: 'key:value tag:value'}}),
       [],
@@ -127,7 +127,7 @@ describe('generatePerformanceEventView()', function () {
     );
   });
 
-  it('removes unsupported tokens for limited search', function () {
+  it('removes unsupported tokens for limited search', () => {
     const result = generatePerformanceEventView(
       LocationFixture({
         query: {

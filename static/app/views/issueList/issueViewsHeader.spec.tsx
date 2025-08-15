@@ -14,10 +14,10 @@ import {
 import ConfigStore from 'sentry/stores/configStore';
 import IssueViewsHeader from 'sentry/views/issueList/issueViewsHeader';
 
-describe('IssueViewsHeader', function () {
+describe('IssueViewsHeader', () => {
   const view = GroupSearchViewFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -61,8 +61,8 @@ describe('IssueViewsHeader', function () {
     },
   });
 
-  describe('edit menu', function () {
-    it('does not render if not on a view', async function () {
+  describe('edit menu', () => {
+    it('does not render if not on a view', async () => {
       render(<IssueViewsHeader {...defaultProps} />, {
         organization,
 
@@ -73,7 +73,7 @@ describe('IssueViewsHeader', function () {
       expect(screen.queryByRole('button', {name: 'Edit View'})).not.toBeInTheDocument();
     });
 
-    it('can delete a view', async function () {
+    it('can delete a view', async () => {
       const mockDeleteView = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/123/',
         method: 'DELETE',
@@ -115,7 +115,7 @@ describe('IssueViewsHeader', function () {
       expect(mockDeleteView).toHaveBeenCalled();
     });
 
-    it('disables the delete button if the user does not have permission to delete views', async function () {
+    it('disables the delete button if the user does not have permission to delete views', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/123/',
         method: 'GET',

@@ -7,7 +7,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import IntegrationRepos from 'sentry/views/settings/organizationIntegrations/integrationRepos';
 
-describe('IntegrationRepos', function () {
+describe('IntegrationRepos', () => {
   const org = OrganizationFixture();
   const integration = GitHubIntegrationFixture();
   let resetReposSpy: jest.SpyInstance;
@@ -22,8 +22,8 @@ describe('IntegrationRepos', function () {
     resetReposSpy.mockClear();
   });
 
-  describe('Getting repositories', function () {
-    it('handles broken integrations', async function () {
+  describe('Getting repositories', () => {
+    it('handles broken integrations', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
         statusCode: 400,
@@ -48,7 +48,7 @@ describe('IntegrationRepos', function () {
       ).toBeInTheDocument();
     });
 
-    it('does not fetch repositories with empty query', async function () {
+    it('does not fetch repositories with empty query', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
@@ -65,8 +65,8 @@ describe('IntegrationRepos', function () {
     });
   });
 
-  describe('Adding repositories', function () {
-    it('can save successfully', async function () {
+  describe('Adding repositories', () => {
+    it('can save successfully', async () => {
       const addRepo = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
@@ -105,7 +105,7 @@ describe('IntegrationRepos', function () {
       expect(resetReposSpy).toHaveBeenCalled();
     });
 
-    it('handles failure during save', async function () {
+    it('handles failure during save', async () => {
       const addRepo = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
@@ -138,7 +138,7 @@ describe('IntegrationRepos', function () {
       expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
     });
 
-    it('does not disable add repo for members', async function () {
+    it('does not disable add repo for members', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
         body: {
@@ -156,7 +156,7 @@ describe('IntegrationRepos', function () {
     });
   });
 
-  describe('migratable repo', function () {
+  describe('migratable repo', () => {
     it('associates repository with integration', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,

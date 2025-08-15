@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
 import {IssueType} from 'sentry/types/group';
 
-describe('ProfileEventEvidence', function () {
+describe('ProfileEventEvidence', () => {
   const defaultProps = {
     event: EventFixture({
       id: 'event-id',
@@ -33,7 +33,7 @@ describe('ProfileEventEvidence', function () {
     projectSlug: 'project-slug',
   };
 
-  it('displays profile ID and data in evidence display', function () {
+  it('displays profile ID and data in evidence display', () => {
     render(<ProfileEventEvidence {...defaultProps} />);
 
     expect(screen.getByRole('cell', {name: 'Transaction Name'})).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('ProfileEventEvidence', function () {
     expect(screen.getByRole('cell', {name: 'Evidence value'})).toBeInTheDocument();
   });
 
-  it('correctly links to the profile frame', function () {
+  it('correctly links to the profile frame', () => {
     render(<ProfileEventEvidence {...defaultProps} />);
 
     expect(screen.getByRole('button', {name: 'View Profile'})).toHaveAttribute(
@@ -55,7 +55,7 @@ describe('ProfileEventEvidence', function () {
     );
   });
 
-  it('correctly links to the transaction', function () {
+  it('correctly links to the transaction', () => {
     render(<ProfileEventEvidence {...defaultProps} />);
 
     expect(screen.getByRole('button', {name: 'View Transaction'})).toHaveAttribute(
