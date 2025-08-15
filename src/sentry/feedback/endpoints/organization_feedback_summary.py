@@ -38,7 +38,6 @@ SUMMARY_CACHE_TIMEOUT = 86400
 class SummaryRequest(TypedDict):
     """Corresponds to SummarizeFeedbacksRequest in Seer."""
 
-    organization_id: int
     feedbacks: list[str]
 
 
@@ -138,7 +137,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             logger.error("Too few feedbacks to summarize after enforcing the character limit")
 
         seer_request = SummaryRequest(
-            organization_id=organization.id,
             feedbacks=group_feedbacks,
         )
 
