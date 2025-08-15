@@ -336,9 +336,13 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector = self.create_detector(type=self.no_handler_type.slug)
         data_packet = self.build_data_packet()
 
-        with mock.patch("workflow_engine.process_detector") as mock_incr:
+        with mock.patch("sentry.utils.metrics.incr") as mock_incr:
             process_detectors(data_packet, [detector])
-            mock_incr.assert_not_called()
+            # Ensure that mock_incr was not called with "workflow_engine.process_detector"
+            assert not any(
+                call[0][0] == "workflow_engine.process_detector"
+                for call in mock_incr.call_args_list
+            )
 
 
 @django_db_all
