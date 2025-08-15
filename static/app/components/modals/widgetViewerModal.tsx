@@ -70,8 +70,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
@@ -157,13 +155,10 @@ const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 const shouldWidgetCardChartMemo = (prevProps: any, props: any) => {
   const selectionMatches = props.selection === prevProps.selection;
-  const sortMatches =
-    props.location.query[WidgetViewerQueryField.SORT] ===
-    prevProps.location.query[WidgetViewerQueryField.SORT];
   const isNotTopNWidget =
     props.widget.displayType !== DisplayType.TOP_N && !defined(props.widget.limit);
   const legendMatches = isEqual(props.legendOptions, prevProps.legendOptions);
-  return selectionMatches && (sortMatches || isNotTopNWidget) && legendMatches;
+  return selectionMatches && isNotTopNWidget && legendMatches;
 };
 
 // WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
@@ -173,9 +168,7 @@ const MemoizedWidgetCardChartContainer = memo(
   WidgetCardChartContainer,
   shouldWidgetCardChartMemo
 );
-const MemoizedWidgetCardChart = withSentryRouter(
-  memo(WidgetCardChart, shouldWidgetCardChartMemo)
-);
+const MemoizedWidgetCardChart = memo(WidgetCardChart, shouldWidgetCardChartMemo);
 
 async function fetchDiscoverTotal(
   api: Client,
@@ -927,7 +920,6 @@ function WidgetViewerModal(props: Props) {
                 loading={false}
                 widget={widget}
                 selection={selection}
-                organization={organization}
                 onZoom={(_evt, chart) => {
                   onZoom(_evt, chart);
                   setChartUnmodified(false);
@@ -936,7 +928,6 @@ function WidgetViewerModal(props: Props) {
                 legendOptions={{
                   selected: widgetLegendState.getWidgetSelectionState(widget),
                 }}
-                expandNumbers
                 noPadding
                 widgetLegendState={widgetLegendState}
                 showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
