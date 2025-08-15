@@ -9,7 +9,6 @@ import {IconArrow} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 
 interface TableProps extends HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
   ref?: RefObject<HTMLDivElement | null>;
 }
 
