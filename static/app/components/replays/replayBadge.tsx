@@ -18,7 +18,7 @@ interface Props {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 }
 
-export default function ReplaySession({replay}: Props) {
+export default function ReplayBadge({replay}: Props) {
   const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
   if (replay.is_archived) {

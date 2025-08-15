@@ -1,9 +1,9 @@
 import {Stack} from 'sentry/components/core/layout';
-import ReplaySession from 'sentry/components/replays/replaySession';
+import ReplayBadge from 'sentry/components/replays/replayBadge';
 import * as Storybook from 'sentry/stories';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 
-export default Storybook.story('ReplaySession', story => {
+export default Storybook.story('ReplayBadge', story => {
   const ARCHIVED_REPLAY = mapResponseToReplayRecord({
     id: '954df831ab094388ac98eee198584479',
     project_id: '1',
@@ -78,12 +78,12 @@ export default Storybook.story('ReplaySession', story => {
 
   story('Default', () => (
     <Stack gap="md">
-      <ReplaySession replay={HYDRATED_REPLAY} />
-      <ReplaySession replay={HYDRATED_REPLAY} />
-      <ReplaySession replay={ARCHIVED_REPLAY} />
-      <ReplaySession replay={ARCHIVED_REPLAY} />
-      <ReplaySession replay={HYDRATED_REPLAY} />
-      <ReplaySession replay={ARCHIVED_REPLAY} />
+      <ReplayBadge replay={HYDRATED_REPLAY} />
+      <ReplayBadge replay={HYDRATED_REPLAY} />
+      <ReplayBadge replay={ARCHIVED_REPLAY} />
+      <ReplayBadge replay={ARCHIVED_REPLAY} />
+      <ReplayBadge replay={HYDRATED_REPLAY} />
+      <ReplayBadge replay={ARCHIVED_REPLAY} />
     </Stack>
   ));
 });

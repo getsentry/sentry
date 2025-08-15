@@ -8,7 +8,7 @@ import {Flex} from 'sentry/components/core/layout/flex';
 import {Link} from 'sentry/components/core/link/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ReplaySession from 'sentry/components/replays/replaySession';
+import ReplayBadge from 'sentry/components/replays/replayBadge';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
@@ -149,7 +149,7 @@ function ReplayListItem({
       }
     >
       <Flex padding="md xl">
-        <ReplaySession replay={replay} />
+        <ReplayBadge replay={replay} />
       </Flex>
     </Link>
   );

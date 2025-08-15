@@ -11,8 +11,8 @@ import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
+import ReplayBadge from 'sentry/components/replays/replayBadge';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
-import ReplaySession from 'sentry/components/replays/replaySession';
 import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
@@ -515,7 +515,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
     if (replay.is_archived) {
-      return <ReplaySession replay={replay} />;
+      return <ReplayBadge replay={replay} />;
     }
 
     invariant(
@@ -548,7 +548,7 @@ export const ReplaySessionColumn: ReplayTableColumn = {
 
     return (
       <CellLink to={detailsTab()} onClick={trackNavigationEvent}>
-        <ReplaySession replay={replay} />
+        <ReplayBadge replay={replay} />
       </CellLink>
     );
   },
