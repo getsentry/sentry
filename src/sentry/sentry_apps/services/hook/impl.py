@@ -21,17 +21,18 @@ class DatabaseBackedHookService(HookService):
     ) -> list[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):
             hooks = ServiceHook.objects.filter(application_id=application_id)
+            hook_count = hooks.count()
             if webhook_url:
                 expanded_events = expand_events(events)
                 updated_hook_count = hooks.update(url=webhook_url, events=expanded_events)
 
-                if updated_hook_count != hooks.count():
+                if updated_hook_count != hook_count:
                     sentry_sdk.set_context(
                         "hook info",
                         {
                             "application_id": application_id,
                             "updated_hook_count": updated_hook_count,
-                            "expected_hook_count": hooks.count(),
+                            "expected_hook_count": hook_count,
                             "webhook_url": webhook_url,
                         },
                     )
@@ -54,16 +55,18 @@ class DatabaseBackedHookService(HookService):
     ) -> list[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):
             hooks = ServiceHook.objects.filter(application_id=application_id)
+            hook_count = hooks.count()
             if webhook_url:
                 expanded_events = expand_events(events)
                 updated_hook_count = hooks.update(url=webhook_url, events=expanded_events)
-                if hooks.count() != updated_hook_count:
+
+                if hook_count != updated_hook_count:
                     sentry_sdk.set_context(
                         "hook info",
                         {
                             "application_id": application_id,
                             "updated_hook_count": updated_hook_count,
-                            "expected_hook_count": hooks.count(),
+                            "expected_hook_count": hook_count,
                         },
                     )
                     sentry_sdk.capture_message(
