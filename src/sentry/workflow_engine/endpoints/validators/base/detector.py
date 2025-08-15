@@ -17,6 +17,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
+    remove_items_by_api_input,
     toggle_detector,
 )
 from sentry.workflow_engine.models import (
@@ -123,6 +124,47 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 if data_conditions and instance.workflow_condition_group:
                     group_validator = BaseDataConditionGroupValidator()
                     group_validator.update(instance.workflow_condition_group, condition_group)
+
+            if "data_sources" in validated_data:
+                validated_data_sources = validated_data.pop("data_sources", [])
+
+                # Remove any data sources that are not in the input data
+                remove_items_by_api_input(validated_data_sources, instance.datasource_set, "id")
+
+                # create or update the data source
+                for validated_data_source in validated_data_sources:
+                    # TODO - batch the create an update operations
+                    # for now it's less important cause the should only be one data source.
+                    data_source_id = validated_data_source.get("id")
+
+                    if data_source_id is None:
+                        # If the data doesn't include an id, it means this is a new data source.
+                        data_source_creator = validated_data_source.get("_creator")
+                        source = data_source_creator.create()
+                        data_source = DataSource.objects.create(
+                            organization_id=self.context["organization"].id,
+                            source_id=source.id,
+                            type=validated_data_source["data_source_type"],
+                        )
+                        DataSourceDetector.objects.create(
+                            data_source=data_source,
+                            detector=instance,
+                        )
+                    else:
+                        # TODO - figure out why the id isn't being passed into here
+                        data_source = DataSource.objects.get(id=data_source_id)
+
+                        # TODO - figure out a way to get the validator from self.data_sources
+                        import pdb
+
+                        pdb.set_trace()
+
+                        class validator:
+                            @staticmethod
+                            def update(data_source, validated_data_source):
+                                pass
+
+                        validator.update(data_source, validated_data_source)
 
             instance.save()
 

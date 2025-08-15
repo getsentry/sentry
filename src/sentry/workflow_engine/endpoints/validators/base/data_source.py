@@ -22,7 +22,36 @@ class DataSourceCreator(Generic[T]):
         return self._instance
 
 
-class BaseDataSourceValidator(CamelSnakeModelSerializer[T], Generic[T]):
+class DataSourceMetaclass(serializers.SerializerMetaclass):
+    """
+    This Metaclass is used to ensure that all children of `BaseDataSourceValidator`
+    include any properties defined on the base class.
+    """
+
+    def __new__(mcs, name, bases, attrs):
+        cls = super().__new__(mcs, name, bases, attrs)
+
+        if hasattr(cls, "Meta") and hasattr(cls.Meta, "fields"):
+            meta_fields = cls.Meta.fields
+
+            if meta_fields != "__all__":
+                parent_fields = set()
+                for base in bases:
+                    if hasattr(base, "_declared_fields") and base != serializers.Serializer:
+                        parent_fields.update(base._declared_fields.keys())
+
+                child_fields = set(meta_fields)
+                child_fields.update(parent_fields)
+                cls.Meta.fields = list(child_fields)
+
+        return cls
+
+
+class BaseDataSourceValidator(
+    CamelSnakeModelSerializer[T], Generic[T], metaclass=DataSourceMetaclass
+):
+    id = serializers.CharField(required=False)
+
     @property
     def data_source_type_handler(self) -> type[DataSourceTypeHandler]:
         raise NotImplementedError
