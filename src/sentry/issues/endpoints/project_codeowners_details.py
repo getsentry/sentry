@@ -13,20 +13,19 @@ from sentry.analytics.events.codeowners_updated import CodeOwnersUpdated
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
+from sentry.issues.endpoints.bases.codeowners import ProjectCodeOwnersBase
+from sentry.issues.endpoints.serializers import ProjectCodeOwnerSerializer
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
-
-from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 
 logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
+class ProjectCodeOwnersDetailsEndpoint(ProjectCodeOwnersBase):
     owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
