@@ -82,7 +82,7 @@ import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
 
-type TableResultProps = Pick<
+type TableComponentProps = Pick<
   GenericWidgetQueriesChildrenProps,
   'errorMessage' | 'loading' | 'tableResults'
 > & {
@@ -96,7 +96,7 @@ type TableResultProps = Pick<
 };
 
 type WidgetCardChartProps = Pick<GenericWidgetQueriesChildrenProps, 'timeseriesResults'> &
-  TableResultProps & {
+  TableComponentProps & {
     widgetLegendState: WidgetLegendSelectionState;
     chartGroup?: string;
     confidence?: Confidence;
@@ -460,7 +460,7 @@ function TableComponent({
   disableTableActions,
   selection,
   dashboardFilters,
-}: TableResultProps): React.ReactNode {
+}: TableComponentProps): React.ReactNode {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -591,7 +591,7 @@ function BigNumberComponent({
   loading,
   tableResults,
   widget,
-}: TableResultProps): React.ReactNode {
+}: TableComponentProps): React.ReactNode {
   if (typeof tableResults === 'undefined' || loading) {
     return <BigNumber>{'\u2014'}</BigNumber>;
   }
