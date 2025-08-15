@@ -25,7 +25,7 @@ class TestGenerateLabels(TestCase):
         )
 
         labels = generate_labels(
-            "I don't like the new right sidebar, it makes navigating everywhere hard!", 1
+            "I don't like the new right sidebar, it makes navigating everywhere hard!"
         )
 
         test_request = responses.calls[0].request
@@ -34,7 +34,6 @@ class TestGenerateLabels(TestCase):
         assert labels == ["User Interface", "Navigation", "Right Sidebar"]
         assert json.loads(test_request.body) == {
             "feedback_message": "I don't like the new right sidebar, it makes navigating everywhere hard!",
-            "organization_id": 1,
         }
         assert test_response.status_code == 200
 
@@ -47,7 +46,7 @@ class TestGenerateLabels(TestCase):
 
         with pytest.raises(requests.exceptions.HTTPError):
             generate_labels(
-                "I don't like the new right sidebar, it makes navigating everywhere hard!", 1
+                "I don't like the new right sidebar, it makes navigating everywhere hard!"
             )
 
         test_request = responses.calls[0].request
@@ -56,7 +55,6 @@ class TestGenerateLabels(TestCase):
         assert test_response.status_code == 500
         assert json.loads(test_request.body) == {
             "feedback_message": "I don't like the new right sidebar, it makes navigating everywhere hard!",
-            "organization_id": 1,
         }
 
     @responses.activate
@@ -65,7 +63,7 @@ class TestGenerateLabels(TestCase):
 
         with pytest.raises(requests.exceptions.Timeout):
             generate_labels(
-                "I don't like the new right sidebar, it makes navigating everywhere hard!", 1
+                "I don't like the new right sidebar, it makes navigating everywhere hard!"
             )
 
         test_request = responses.calls[0].request
@@ -73,5 +71,4 @@ class TestGenerateLabels(TestCase):
         assert len(responses.calls) == 1
         assert json.loads(test_request.body) == {
             "feedback_message": "I don't like the new right sidebar, it makes navigating everywhere hard!",
-            "organization_id": 1,
         }
