@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
+import {useQueryState} from 'nuqs';
 
-import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
+import {parseAsMailbox} from 'sentry/components/feedback/decodeMailbox';
 import type {Organization} from 'sentry/types/organization';
 import coaleseIssueStatsPeriodQuery from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -20,6 +21,7 @@ export default function useFeedbackListQueryKey({
   organization,
   prefetch,
 }: Props): ApiQueryKey | undefined {
+  const [mailbox] = useQueryState('mailbox', parseAsMailbox);
   const queryView = useLocationQuery({
     fields: {
       limit: PER_PAGE,
@@ -32,11 +34,10 @@ export default function useFeedbackListQueryKey({
       start: decodeScalar,
       statsPeriod: decodeScalar,
       utc: decodeScalar,
-      mailbox: decodeMailbox,
     },
   });
 
-  const queryViewWithStatsPeriod = useMemo(
+  const fixedQueryView = useMemo(
     () =>
       coaleseIssueStatsPeriodQuery({
         defaultStatsPeriod: '0d',
@@ -48,11 +49,9 @@ export default function useFeedbackListQueryKey({
   );
 
   return useMemo(() => {
-    if (!queryViewWithStatsPeriod) {
+    if (!fixedQueryView) {
       return undefined;
     }
-    const {mailbox, ...fixedQueryView} = queryViewWithStatsPeriod;
-
     return [
       `/organizations/${organization.slug}/issues/`,
       {
@@ -72,5 +71,5 @@ export default function useFeedbackListQueryKey({
         },
       },
     ];
-  }, [organization.slug, prefetch, queryViewWithStatsPeriod]);
+  }, [organization.slug, prefetch, fixedQueryView, mailbox]);
 }
