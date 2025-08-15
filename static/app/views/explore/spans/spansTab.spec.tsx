@@ -332,7 +332,7 @@ describe('SpansTabContent', () => {
     });
   });
 
-  describe('Ask Seer', function () {
+  describe('Ask Seer', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/seer/setup-check/',
@@ -345,7 +345,7 @@ describe('SpansTabContent', () => {
       });
     });
 
-    it('brings along only the submitted query', async function () {
+    it('brings along only the submitted query', async () => {
       render(
         <Wrapper>
           <SpansTabContent datePageFilterProps={datePageFilterProps} />
