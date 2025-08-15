@@ -39,8 +39,8 @@ function createEventView(location: Location) {
   );
 }
 
-describe('Performance > Transaction Spans', function () {
-  it('fetches span ops', async function () {
+describe('Performance > Transaction Spans', () => {
+  it('fetches span ops', async () => {
     const eventsSpanOpsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-span-ops/',
       body: [{op: 'op1'}, {op: 'op2'}],
@@ -65,7 +65,7 @@ describe('Performance > Transaction Spans', function () {
     expect(await screen.findByText('op2')).toBeInTheDocument();
   });
 
-  it('handles op change correctly', async function () {
+  it('handles op change correctly', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-span-ops/',
       body: [{op: 'op1'}, {op: 'op2'}],
@@ -94,7 +94,7 @@ describe('Performance > Transaction Spans', function () {
     expect(handleOpChange).toHaveBeenCalledWith('op1');
   });
 
-  it('shows op being filtered on', async function () {
+  it('shows op being filtered on', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-span-ops/',
       body: [{op: 'op1'}, {op: 'op2'}],

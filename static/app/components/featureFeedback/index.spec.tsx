@@ -8,12 +8,12 @@ import {
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import ModalStore from 'sentry/stores/modalStore';
 
-describe('FeatureFeedback', function () {
+describe('FeatureFeedback', () => {
   beforeEach(() => {
     ModalStore.reset();
   });
 
-  it('shows the modal on click', async function () {
+  it('shows the modal on click', async () => {
     render(<FeatureFeedback featureName="test" />);
     renderGlobalModal();
 
@@ -24,7 +24,7 @@ describe('FeatureFeedback', function () {
     expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeInTheDocument();
   });
 
-  it('shows the modal on click with custom "onClick" handler', async function () {
+  it('shows the modal on click with custom "onClick" handler', async () => {
     const mockOnClick = jest.fn();
     render(
       <FeatureFeedback
@@ -43,7 +43,7 @@ describe('FeatureFeedback', function () {
     expect(mockOnClick).toHaveBeenCalled();
   });
 
-  it('Close modal on click', async function () {
+  it('Close modal on click', async () => {
     render(<FeatureFeedback featureName="test" />);
     const {waitForModalToHide} = renderGlobalModal();
 

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import highlightFuseMatches, {getFuseMatches} from 'sentry/utils/highlightFuseMatches';
 
-describe('highlightFuseMatches', function () {
+describe('highlightFuseMatches', () => {
   const matchObj: Fuse.FuseResultMatch = {
     value: 'Authentication tokens allow you to perform actions',
     indices: [
@@ -14,13 +14,13 @@ describe('highlightFuseMatches', function () {
   };
   const Mark = styled('mark')``;
 
-  it('handles no matches', function () {
+  it('handles no matches', () => {
     expect(getFuseMatches({value: 'My long string', indices: []})).toEqual([
       {highlight: false, text: 'My long string'},
     ]);
   });
 
-  it('gets the correct tokens', function () {
+  it('gets the correct tokens', () => {
     expect(getFuseMatches(matchObj)).toEqual([
       {
         highlight: false,
@@ -53,11 +53,11 @@ describe('highlightFuseMatches', function () {
     ]);
   });
 
-  it('renders a highlighted string', function () {
+  it('renders a highlighted string', () => {
     expect(highlightFuseMatches(matchObj, Mark)).toMatchSnapshot();
   });
 
-  it('matches whole word', function () {
+  it('matches whole word', () => {
     expect(
       highlightFuseMatches({value: 'foo', indices: [[0, 2]]}, Mark)
     ).toMatchSnapshot();
