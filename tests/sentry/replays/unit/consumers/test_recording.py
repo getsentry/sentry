@@ -6,8 +6,12 @@ import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.types import FilteredPayload, Message, Value
 
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.projectkey import UseCase
 from sentry.replays.consumers.recording import (
     DropSilently,
+    _get_replay_profiling_project_key,
     commit_message_with_profiling,
     decompress_segment,
     parse_headers,
@@ -576,20 +580,78 @@ def make_valid_processed_event() -> ProcessedEvent:
     )
 
 
-@pytest.mark.parametrize("profiling_enabled", [True, False])
+def make_mock_project_key(dsn: str = "http://test@localhost:8000/1", public_key: str = "test_key"):
+    """Helper function to create a mock project key for testing"""
+    return type(
+        "MockProjectKey",
+        (),
+        {"dsn_public": dsn, "public_key": public_key},
+    )()
+
+
+@django_db_all
+def test_get_replay_profiling_project_key_success():
+    """Test successful retrieval of profiling project key"""
+    org = Organization.objects.create(name="Test Org", slug="test-org")
+    project = Project.objects.create(
+        organization=org, name="Replay Consumer Profiling", slug="sentry-replay-consumer-profiling"
+    )
+
+    result = _get_replay_profiling_project_key()
+
+    assert result is not None
+    assert result.project == project
+    assert result.use_case == UseCase.REPLAY_PROFILING.value
+    assert result.label == "Replay Consumer Profiling"
+
+    # Test that subsequent calls return the same key
+    result2 = _get_replay_profiling_project_key()
+    assert result.public_key == result2.public_key
+
+    # Add another project and test that it still returns the same key
+    Project.objects.create(
+        organization=org,
+        name="Replay Consumer Profiling 2",
+        slug="sentry-replay-consumer-profiling-2",
+    )
+    result3 = _get_replay_profiling_project_key()
+    assert result.public_key == result3.public_key
+
+
+@patch("sentry.replays.consumers.recording.Project.objects.get")
+def test_get_replay_profiling_project_key_no_project(mock_get):
+    """Test behavior when profiling project doesn't exist"""
+    mock_get.side_effect = Project.DoesNotExist()
+    assert _get_replay_profiling_project_key() is None
+
+
+@pytest.mark.parametrize(
+    "profiling_enabled,mock_project_key",
+    [
+        (True, make_mock_project_key()),  # Profiling enabled, project key available
+        (True, None),  # Profiling enabled, no project key
+        (False, None),  # Profiling disabled
+    ],
+)
 @patch("sentry.replays.consumers.recording.options.get")
 @patch("sentry_sdk.profiler.start_profiler")
 @patch("sentry_sdk.profiler.stop_profiler")
+@patch("sentry_sdk.init")
+@patch("sentry.replays.consumers.recording._get_replay_profiling_project_key")
 @patch("sentry.replays.consumers.recording.process_message")
-def test_process_message_with_profiling_profiling(
+def test_process_message_with_profiling(
     mock_process_message,
+    mock_get_project_key,
+    mock_sdk_init,
     mock_stop_profiler,
     mock_start_profiler,
     mock_options_get,
     profiling_enabled,
+    mock_project_key,
 ):
     mock_options_get.return_value = profiling_enabled
     mock_process_message.return_value = FilteredPayload()
+    mock_get_project_key.return_value = mock_project_key
 
     message = make_valid_message()
     result = process_message_with_profiling(message)
@@ -598,26 +660,48 @@ def test_process_message_with_profiling_profiling(
     mock_process_message.assert_called_once_with(message)
 
     if profiling_enabled:
-        mock_start_profiler.assert_called_once()
-        mock_stop_profiler.assert_called_once()
+        mock_get_project_key.assert_called_once()
+        if mock_project_key is not None:
+            mock_sdk_init.assert_called_once()
+            mock_start_profiler.assert_called_once()
+            mock_stop_profiler.assert_called_once()
+        else:
+            mock_sdk_init.assert_not_called()
+            mock_start_profiler.assert_not_called()
+            mock_stop_profiler.assert_not_called()
     else:
+        mock_get_project_key.assert_not_called()
+        mock_sdk_init.assert_not_called()
         mock_start_profiler.assert_not_called()
         mock_stop_profiler.assert_not_called()
 
 
-@pytest.mark.parametrize("profiling_enabled", [True, False])
+@pytest.mark.parametrize(
+    "profiling_enabled,mock_project_key",
+    [
+        (True, make_mock_project_key()),  # Profiling enabled, project key available
+        (True, None),  # Profiling enabled, no project key
+        (False, None),  # Profiling disabled
+    ],
+)
 @patch("sentry.replays.consumers.recording.options.get")
 @patch("sentry_sdk.profiler.start_profiler")
 @patch("sentry_sdk.profiler.stop_profiler")
+@patch("sentry_sdk.init")
+@patch("sentry.replays.consumers.recording._get_replay_profiling_project_key")
 @patch("sentry.replays.consumers.recording.commit_message")
-def test_commit_message_with_profiling_profiling(
+def test_commit_message_with_profiling(
     mock_commit_message,
+    mock_get_project_key,
+    mock_sdk_init,
     mock_stop_profiler,
     mock_start_profiler,
     mock_options_get,
     profiling_enabled,
+    mock_project_key,
 ):
     mock_options_get.return_value = profiling_enabled
+    mock_get_project_key.return_value = mock_project_key
 
     message = make_valid_processed_event()
     commit_message_with_profiling(message)
@@ -625,8 +709,17 @@ def test_commit_message_with_profiling_profiling(
     mock_commit_message.assert_called_once_with(message)
 
     if profiling_enabled:
-        mock_start_profiler.assert_called_once()
-        mock_stop_profiler.assert_called_once()
+        mock_get_project_key.assert_called_once()
+        if mock_project_key is not None:
+            mock_sdk_init.assert_called_once()
+            mock_start_profiler.assert_called_once()
+            mock_stop_profiler.assert_called_once()
+        else:
+            mock_sdk_init.assert_not_called()
+            mock_start_profiler.assert_not_called()
+            mock_stop_profiler.assert_not_called()
     else:
+        mock_get_project_key.assert_not_called()
+        mock_sdk_init.assert_not_called()
         mock_start_profiler.assert_not_called()
         mock_stop_profiler.assert_not_called()

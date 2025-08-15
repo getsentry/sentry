@@ -114,11 +114,11 @@ def process_message_with_profiling(
                 ),
                 profile_lifecycle="manual",
             )
-        sentry_sdk.profiler.start_profiler()
+            sentry_sdk.profiler.start_profiler()
 
     result = process_message(message)
 
-    if profiling_enabled:
+    if profiling_enabled and profiling_project_key is not None:
         sentry_sdk.profiler.stop_profiler()
 
     return result
@@ -232,11 +232,11 @@ def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
                 ),
                 profile_lifecycle="manual",
             )
-        sentry_sdk.profiler.start_profiler()
+            sentry_sdk.profiler.start_profiler()
 
     commit_message(message)
 
-    if profiling_enabled:
+    if profiling_enabled and profiling_project_key is not None:
         sentry_sdk.profiler.stop_profiler()
 
 
