@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
@@ -135,22 +135,15 @@ export function DomainSelector({
     });
   }
 
-  const {options: domainOptions, clear: clearDomainOptionsCache} =
-    useCompactSelectOptionsCache(
-      domainList
-        .filter(domain => Boolean(domain?.label))
-        .filter(domain => domain.value !== EMPTY_OPTION_VALUE)
-    );
+  const projectIds = pageFilters.selection.projects.sort();
+  const cacheKey = [...additionalQuery, ...projectIds].join(' ');
 
-  useEffect(() => {
-    clearDomainOptionsCache();
-  }, [pageFilters.selection.projects, clearDomainOptionsCache]);
-
-  useEffect(() => {
-    if (additionalQuery.length > 0) {
-      clearDomainOptionsCache();
-    }
-  }, [additionalQuery, clearDomainOptionsCache]);
+  const {options: domainOptions} = useCompactSelectOptionsCache(
+    domainList
+      .filter(domain => Boolean(domain?.label))
+      .filter(domain => domain.value !== EMPTY_OPTION_VALUE),
+    cacheKey
+  );
 
   const emptyOption: SelectOption<string> = {
     value: EMPTY_OPTION_VALUE,
