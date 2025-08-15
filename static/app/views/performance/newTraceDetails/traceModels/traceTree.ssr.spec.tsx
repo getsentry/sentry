@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {
   makeEAPSpan,
   makeEAPTrace,
@@ -9,9 +11,10 @@ import {
 
 import {TraceTree} from './traceTree';
 
+const organization = OrganizationFixture();
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
 
-const traceMetadata = {replay: null, meta: null};
+const traceMetadata = {replay: null, meta: null, organization};
 
 const ssrTrace = makeTrace({
   transactions: [

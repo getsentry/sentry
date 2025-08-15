@@ -32,10 +32,13 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
       setTree(t =>
         t.type === 'error'
           ? t
-          : TraceTree.Error({
-              project_slug: projects?.[0]?.slug ?? '',
-              event_id: traceSlug,
-            })
+          : TraceTree.Error(
+              {
+                project_slug: projects?.[0]?.slug ?? '',
+                event_id: traceSlug,
+              },
+              organization
+            )
       );
       traceAnalytics.trackTraceErrorState(organization, traceWaterfallSource);
       return;
@@ -51,10 +54,13 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
       setTree(t =>
         t.type === 'loading'
           ? t
-          : TraceTree.Loading({
-              project_slug: projects?.[0]?.slug ?? '',
-              event_id: traceSlug,
-            })
+          : TraceTree.Loading(
+              {
+                project_slug: projects?.[0]?.slug ?? '',
+                event_id: traceSlug,
+              },
+              organization
+            )
       );
       return;
     }
@@ -64,6 +70,7 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
         meta: null,
         replay,
         preferences: traceState.preferences,
+        organization,
       });
 
       setTree(newTree);

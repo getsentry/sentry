@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {
   makeEAPSpan,
   makeEAPTrace,
@@ -10,8 +12,14 @@ import {
 import {isParentAutogroupedNode, isSiblingAutogroupedNode} from './../traceGuards';
 import {TraceTree} from './traceTree';
 
+const organization = OrganizationFixture();
+
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
-const traceMetadata = {replay: null, meta: null};
+const traceMetadata = {replay: null, meta: null, organization};
+
+const options = {
+  organization,
+};
 
 const singleTransactionTrace = makeTrace({
   transactions: [
@@ -328,7 +336,7 @@ describe('autogrouping', () => {
         makeEventTransaction()
       );
 
-      TraceTree.AutogroupSiblingSpanNodes(tree.root);
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
       TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
       expect(tree.build().serialize()).toMatchSnapshot();
@@ -488,7 +496,7 @@ describe('autogrouping', () => {
         makeEventTransaction()
       );
 
-      TraceTree.AutogroupSiblingSpanNodes(tree.root);
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -501,7 +509,7 @@ describe('autogrouping', () => {
         makeEventTransaction()
       );
 
-      TraceTree.AutogroupSiblingSpanNodes(tree.root);
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -517,7 +525,7 @@ describe('autogrouping', () => {
         makeEventTransaction()
       );
 
-      TraceTree.AutogroupSiblingSpanNodes(tree.root);
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
@@ -530,7 +538,7 @@ describe('autogrouping', () => {
         makeEventTransaction()
       );
 
-      TraceTree.AutogroupSiblingSpanNodes(tree.root);
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
       TraceTree.ForEachChild(tree.root, c => {
         if (isSiblingAutogroupedNode(c)) {
@@ -549,7 +557,7 @@ describe('autogrouping', () => {
         makeEventTransaction()
       );
 
-      TraceTree.AutogroupSiblingSpanNodes(tree.root);
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
       TraceTree.ForEachChild(tree.root, c => {
         if (isSiblingAutogroupedNode(c)) {
@@ -576,7 +584,7 @@ describe('autogrouping', () => {
       const snapshot = tree.build().serialize();
 
       // Add sibling autogroup
-      TraceTree.AutogroupSiblingSpanNodes(tree.root);
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
       expect(TraceTree.Find(tree.root, c => isSiblingAutogroupedNode(c))).not.toBeNull();
 
       // Remove it and assert that the tree is back to the original state
@@ -596,7 +604,76 @@ describe('autogrouping', () => {
           traceMetadata
         );
 
-        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
+        expect(tree.build().serialize()).toMatchSnapshot();
+      });
+
+      it('groups spans with the same op and name if OTel UI is enabled', () => {
+        const OTELOrganization = OrganizationFixture({
+          features: [...OrganizationFixture().features, 'performance-otel-friendly-ui'],
+        });
+
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              op: 'http.server',
+              description: 'redis',
+              event_id: '0000',
+              children: [
+                makeEAPSpan({
+                  event_id: '0001',
+                  op: 'db',
+                  description: 'redis GET x1',
+                  name: 'GET',
+                  start_timestamp: start,
+                  end_timestamp: start + 1,
+                  parent_span_id: '0000',
+                }),
+                makeEAPSpan({
+                  event_id: '0002',
+                  op: 'db',
+                  description: 'redis GET x2',
+                  name: 'GET',
+                  start_timestamp: start,
+                  end_timestamp: start + 1,
+                  parent_span_id: '0000',
+                }),
+                makeEAPSpan({
+                  event_id: '0003',
+                  op: 'db',
+                  description: 'redis GET x3',
+                  name: 'GET',
+                  start_timestamp: start,
+                  end_timestamp: start + 1,
+                  parent_span_id: '0000',
+                }),
+                makeEAPSpan({
+                  event_id: '0003',
+                  op: 'db',
+                  description: 'redis GET x4',
+                  name: 'GET',
+                  start_timestamp: start,
+                  end_timestamp: start + 1,
+                  parent_span_id: '0000',
+                }),
+                makeEAPSpan({
+                  event_id: '0003',
+                  op: 'db',
+                  description: 'redis GET x5',
+                  name: 'GET',
+                  start_timestamp: start,
+                  end_timestamp: start + 1,
+                  parent_span_id: '0000',
+                }),
+              ],
+            }),
+          ]),
+          traceMetadata
+        );
+
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, {
+          organization: OTELOrganization,
+        });
         expect(tree.build().serialize()).toMatchSnapshot();
       });
 
@@ -638,7 +715,7 @@ describe('autogrouping', () => {
           traceMetadata
         );
 
-        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
         expect(tree.build().serialize()).toMatchSnapshot();
       });
@@ -649,7 +726,7 @@ describe('autogrouping', () => {
           traceMetadata
         );
 
-        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
         TraceTree.ForEachChild(tree.root, c => {
           if (isSiblingAutogroupedNode(c)) {
@@ -666,7 +743,7 @@ describe('autogrouping', () => {
           traceMetadata
         );
 
-        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
 
         TraceTree.ForEachChild(tree.root, c => {
           if (isSiblingAutogroupedNode(c)) {
@@ -691,7 +768,7 @@ describe('autogrouping', () => {
         const snapshot = tree.build().serialize();
 
         // Add sibling autogroup
-        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
         expect(
           TraceTree.Find(tree.root, c => isSiblingAutogroupedNode(c))
         ).not.toBeNull();
