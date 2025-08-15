@@ -74,7 +74,11 @@ function ReserveAdditionalVolume({
           )}
           <Button
             icon={<IconChevron direction={showSliders ? 'up' : 'down'} />}
-            aria-label={showSliders ? t('Hide sliders') : t('Show sliders')}
+            aria-label={
+              showSliders
+                ? t('Hide reserved volume sliders')
+                : t('Show reserved volume sliders')
+            }
             onClick={() => setShowSliders(!showSliders)}
           />
         </Flex>
