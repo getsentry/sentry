@@ -45,7 +45,7 @@ def catch_raised_errors(func):
         try:
             return func(self, *args, **kwargs)
         except BadRequest as e:
-            return Response({"detail": str(e)}, status=400)
+            return Response({"detail": e.message}, status=400)
 
     return wrapped
 
