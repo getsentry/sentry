@@ -9,14 +9,14 @@ import type {Organization} from 'sentry/types/organization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
-describe('AddIntegrationButton', function () {
+describe('AddIntegrationButton', () => {
   let org: Organization,
     provider: IntegrationProvider,
     hasAccess: boolean,
     externalInstallText: string | undefined;
   const project = ProjectFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     provider = GitHubIntegrationProviderFixture();
     org = OrganizationFixture();
     hasAccess = true;
@@ -46,7 +46,7 @@ describe('AddIntegrationButton', function () {
     </IntegrationContext>
   );
 
-  it('Opens the setup dialog on click', async function () {
+  it('Opens the setup dialog on click', async () => {
     const focus = jest.fn();
     const open = jest.fn().mockReturnValue({focus, close: jest.fn()});
     // any is needed here because getSentry has different types for global
@@ -62,7 +62,7 @@ describe('AddIntegrationButton', function () {
     );
   });
 
-  it('Renders request button when user does not have access', async function () {
+  it('Renders request button when user does not have access', async () => {
     hasAccess = false;
 
     render(getComponent(), {organization: org});
@@ -70,7 +70,7 @@ describe('AddIntegrationButton', function () {
     await userEvent.click(screen.getByText('Request Installation'));
   });
 
-  it('Handles external installations with default button text', async function () {
+  it('Handles external installations with default button text', async () => {
     provider.canAdd = false;
     provider.metadata.aspects = {
       externalInstall: {
@@ -86,7 +86,7 @@ describe('AddIntegrationButton', function () {
     await userEvent.click(screen.getByText('Teams Marketplace'));
   });
 
-  it('Handles external installations with custom button text', async function () {
+  it('Handles external installations with custom button text', async () => {
     provider.canAdd = false;
     provider.metadata.aspects = {
       externalInstall: {

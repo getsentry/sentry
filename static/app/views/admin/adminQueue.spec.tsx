@@ -4,8 +4,8 @@ import AdminQueue from 'sentry/views/admin/adminQueue';
 
 // TODO(dcramer): this doesnt really test anything as we need to
 // mock the API Response/wait on it
-describe('AdminQueue', function () {
-  describe('render()', function () {
+describe('AdminQueue', () => {
+  describe('render()', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/internal/queue/tasks/',
@@ -47,7 +47,7 @@ describe('AdminQueue', function () {
       });
     });
 
-    it('renders', function () {
+    it('renders', () => {
       MockApiClient.addMockResponse({
         url: '/internal/stats/',
         body: [],

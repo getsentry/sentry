@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectExpectCtReports from 'sentry/views/settings/projectSecurityHeaders/expectCt';
 
-describe('ProjectExpectCtReports', function () {
+describe('ProjectExpectCtReports', () => {
   const {organization, project} = initializeOrg();
   const keysUrl = `/projects/${organization.slug}/${project.slug}/keys/`;
 
@@ -14,7 +14,7 @@ describe('ProjectExpectCtReports', function () {
     route: '/settings/:orgId/projects/:projectId/settings/security-headers/expect-ct/',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: keysUrl,
@@ -23,7 +23,7 @@ describe('ProjectExpectCtReports', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<ProjectExpectCtReports />, {
       organization,
       initialRouterConfig,
@@ -35,7 +35,7 @@ describe('ProjectExpectCtReports', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders loading error', async function () {
+  it('renders loading error', async () => {
     MockApiClient.addMockResponse({
       url: keysUrl,
       method: 'GET',

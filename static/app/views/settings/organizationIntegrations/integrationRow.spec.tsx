@@ -3,11 +3,11 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationRow from 'sentry/views/settings/organizationIntegrations/integrationRow';
 
-describe('IntegrationRow', function () {
+describe('IntegrationRow', () => {
   const {organization: org} = initializeOrg();
 
-  describe('SentryApp', function () {
-    it('is an internal SentryApp', function () {
+  describe('SentryApp', () => {
+    it('is an internal SentryApp', () => {
       render(
         <IntegrationRow
           organization={org}
@@ -25,7 +25,7 @@ describe('IntegrationRow', function () {
       expect(screen.getByText('internal')).toBeInTheDocument();
     });
 
-    it('is a published SentryApp', function () {
+    it('is a published SentryApp', () => {
       render(
         <IntegrationRow
           organization={org}
@@ -46,8 +46,8 @@ describe('IntegrationRow', function () {
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
     });
   });
-  describe('First Party Integration', function () {
-    it('has been installed (1 configuration)', function () {
+  describe('First Party Integration', () => {
+    it('has been installed (1 configuration)', () => {
       render(
         <IntegrationRow
           organization={org}
@@ -68,7 +68,7 @@ describe('IntegrationRow', function () {
       expect(screen.getByText('1 Configuration')).toBeInTheDocument();
     });
 
-    it('has been installed (3 configurations)', function () {
+    it('has been installed (3 configurations)', () => {
       render(
         <IntegrationRow
           organization={org}
@@ -89,7 +89,7 @@ describe('IntegrationRow', function () {
       expect(screen.getByText('3 Configurations')).toBeInTheDocument();
     });
 
-    it('has not been installed', function () {
+    it('has not been installed', () => {
       render(
         <IntegrationRow
           organization={org}
@@ -109,8 +109,8 @@ describe('IntegrationRow', function () {
       );
     });
   });
-  describe('Plugin', function () {
-    it('has been installed (1 project)', function () {
+  describe('Plugin', () => {
+    it('has been installed (1 project)', () => {
       render(
         <IntegrationRow
           organization={org}
@@ -131,7 +131,7 @@ describe('IntegrationRow', function () {
       );
     });
 
-    it('has been installed (3 projects)', function () {
+    it('has been installed (3 projects)', () => {
       render(
         <IntegrationRow
           organization={org}
@@ -152,7 +152,7 @@ describe('IntegrationRow', function () {
       );
     });
 
-    it('has not been installed', function () {
+    it('has not been installed', () => {
       render(
         <IntegrationRow
           organization={org}
