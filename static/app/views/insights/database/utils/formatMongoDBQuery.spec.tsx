@@ -4,8 +4,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {formatMongoDBQuery} from 'sentry/views/insights/database/utils/formatMongoDBQuery';
 
-describe('formatMongoDBQuery', function () {
-  it('correctly formats MongoDB JSON strings and can handle all primitive types', function () {
+describe('formatMongoDBQuery', () => {
+  it('correctly formats MongoDB JSON strings and can handle all primitive types', () => {
     const query =
       '{"stringKey":"test","insert":"my_collection","numericKey":7,"booleanKey":true,"nullKey":null}';
 
@@ -29,7 +29,7 @@ describe('formatMongoDBQuery', function () {
     expect(nullToken).toContainHTML('<span>"nullKey": null</span>');
   });
 
-  it('correctly formats MongoDB JSON strings that includes nested objects', function () {
+  it('correctly formats MongoDB JSON strings that includes nested objects', () => {
     const query =
       '{"objectKey":{"nestedObject":{"deeplyNested":{}}},"somethingElse":100,"find":"my_collection"}';
 
@@ -48,7 +48,7 @@ describe('formatMongoDBQuery', function () {
     );
   });
 
-  it('correctly formats MongoDB JSON strings that include arrays', function () {
+  it('correctly formats MongoDB JSON strings that include arrays', () => {
     const query =
       '{"arrayKey":[1,2,{"objInArray":{"objInObjInArray":{}}},3,4],"somethingElse":100,"delete":"my_collection"}';
 
@@ -66,7 +66,7 @@ describe('formatMongoDBQuery', function () {
     );
   });
 
-  it('correctly formats MongoDB JSON strings that include nested arrays', function () {
+  it('correctly formats MongoDB JSON strings that include nested arrays', () => {
     const query =
       '{"deeplyNestedArrayWithObjects":[1,2,3,[1,2,[null,true,[{},{},{"test":[[1,2],[3,4]]},{}]]],4],"findOneAndDelete":"my_collection"}';
 
@@ -87,7 +87,7 @@ describe('formatMongoDBQuery', function () {
     );
   });
 
-  it('handles truncated MongoDB query strings by repairing the JSON', function () {
+  it('handles truncated MongoDB query strings by repairing the JSON', () => {
     const query = `{"_id":{},"test":"?","insert":"some_collection","address":"?","details":{"email":"?","nam*`;
     const tokenizedQuery = formatMongoDBQuery(query, 'insert');
     render(<Fragment>{tokenizedQuery}</Fragment>);
@@ -102,7 +102,7 @@ describe('formatMongoDBQuery', function () {
     expect(truncatedEntry).toBeInTheDocument();
   });
 
-  it('properly handles formatting MongoDB queries when the operation entry is the last entry', function () {
+  it('properly handles formatting MongoDB queries when the operation entry is the last entry', () => {
     const query = `{"first_key":"first_value","second_key":"second_value","findOne":"my_collection"}`;
     const tokenizedQuery = formatMongoDBQuery(query, 'findOne');
     render(<Fragment>{tokenizedQuery}</Fragment>);

@@ -2,8 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EditableText from 'sentry/components/editableText';
 
-describe('EditableText', function () {
-  it('edit value and click outside of the component', async function () {
+describe('EditableText', () => {
+  it('edit value and click outside of the component', async () => {
     const handleChange = jest.fn();
 
     render(<EditableText value="foo" onChange={handleChange} />);
@@ -27,7 +27,7 @@ describe('EditableText', function () {
     expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
-  it('clear value and show error message', async function () {
+  it('clear value and show error message', async () => {
     const handleChange = jest.fn();
 
     render(<EditableText value="foo" onChange={handleChange} />);
@@ -44,7 +44,7 @@ describe('EditableText', function () {
     expect(handleChange).toHaveBeenCalledTimes(0);
   });
 
-  it('displays a disabled value', async function () {
+  it('displays a disabled value', async () => {
     render(<EditableText value="foo" onChange={jest.fn()} isDisabled />);
 
     // Click on the input
@@ -53,7 +53,7 @@ describe('EditableText', function () {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('edit value and press escape', async function () {
+  it('edit value and press escape', async () => {
     const handleChange = jest.fn();
 
     render(<EditableText value="foo" onChange={handleChange} />);
@@ -72,7 +72,7 @@ describe('EditableText', function () {
     expect(screen.getByText('foo')).toBeInTheDocument();
   });
 
-  it('enforces a max length if provided', async function () {
+  it('enforces a max length if provided', async () => {
     render(<EditableText value="foo" onChange={jest.fn()} maxLength={4} />);
 
     // Click on the input

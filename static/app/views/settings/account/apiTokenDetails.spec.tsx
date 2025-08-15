@@ -5,10 +5,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import * as indicators from 'sentry/actionCreators/indicator';
 import ApiTokenDetails from 'sentry/views/settings/account/apiTokenDetails';
 
-describe('ApiNewToken', function () {
+describe('ApiNewToken', () => {
   MockApiClient.clearMockResponses();
 
-  it('renames token to new name', async function () {
+  it('renames token to new name', async () => {
     MockApiClient.clearMockResponses();
     jest.spyOn(indicators, 'addSuccessMessage');
 
@@ -53,7 +53,7 @@ describe('ApiNewToken', function () {
     expect(indicators.addSuccessMessage).toHaveBeenCalled();
   });
 
-  it('removes token name', async function () {
+  it('removes token name', async () => {
     MockApiClient.clearMockResponses();
     jest.spyOn(indicators, 'addSuccessMessage');
 
@@ -98,7 +98,7 @@ describe('ApiNewToken', function () {
     expect(indicators.addSuccessMessage).toHaveBeenCalled();
   });
 
-  it('does not accept long name', async function () {
+  it('does not accept long name', async () => {
     MockApiClient.clearMockResponses();
     jest.spyOn(indicators, 'addErrorMessage');
 

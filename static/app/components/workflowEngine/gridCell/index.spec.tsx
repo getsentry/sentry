@@ -6,8 +6,8 @@ import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {ActionCell} from './actionCell';
 import {TimeAgoCell} from './timeAgoCell';
 
-describe('Action Cell Component', function () {
-  it('renders', function () {
+describe('Action Cell Component', () => {
+  it('renders', () => {
     render(
       <ActionCell actions={[ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL]} />
     );
@@ -16,7 +16,7 @@ describe('Action Cell Component', function () {
     expect(text).toBeInTheDocument();
   });
 
-  it('renders tooltip', async function () {
+  it('renders tooltip', async () => {
     const container = document.createElement('div');
     render(
       <TooltipContext value={{container}}>
@@ -31,7 +31,7 @@ describe('Action Cell Component', function () {
   });
 });
 
-describe('Time Ago Cell Component', function () {
+describe('Time Ago Cell Component', () => {
   it('renders', () => {
     render(<TimeAgoCell date={new Date()} />);
 
