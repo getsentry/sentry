@@ -348,7 +348,7 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   };
 
   const handleRef = (nextRef: ReactEchartsRef): void => {
-    if (chartRef && !chartRef.current) {
+    if (nextRef && !chartRef.current) {
       chartRef.current = nextRef;
       // add chart to the group so that it has synced cursors
       const instance = nextRef.getEchartsInstance?.();
