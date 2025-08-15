@@ -435,7 +435,7 @@ describe('replaceFreeTextTokens', () => {
       },
     ];
 
-    it.each(testCases)('$description', function ({input, expected}) {
+    it.each(testCases)('$description', ({input, expected}) => {
       const result = replaceFreeTextTokens(
         input.action,
         input.getFieldDefinition,
