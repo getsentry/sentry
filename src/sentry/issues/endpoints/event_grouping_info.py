@@ -48,22 +48,7 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         )
         grouping_config.initial_context["reverse_stacktraces"] = should_reverse_stacktraces
 
-        _grouping_info = get_grouping_info(grouping_config, project, event)
-
-        # TODO: All of the below is a temporary hack to preserve compatibility between the BE and FE as
-        # we transition from using dashes in the keys/variant types to using underscores. For now, until
-        # we change the FE, we switch back to dashes before sending the data.
-        grouping_info = {}
-
-        for key, variant_dict in _grouping_info.items():
-            new_key = key.replace("_", "-")
-            new_type = variant_dict.get("type", "").replace("_", "-")
-
-            variant_dict["key"] = new_key
-            if "type" in variant_dict:
-                variant_dict["type"] = new_type
-
-            grouping_info[new_key] = variant_dict
+        grouping_info = get_grouping_info(grouping_config, project, event)
 
         return HttpResponse(
             orjson.dumps(grouping_info, option=orjson.OPT_UTC_Z), content_type="application/json"
