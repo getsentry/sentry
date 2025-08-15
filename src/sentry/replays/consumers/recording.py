@@ -17,8 +17,6 @@ from sentry_sdk import set_tag
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.models.project import Project
-from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.replays.usecases.ingest import (
     DropEvent,
     Event,
@@ -81,21 +79,6 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 # Processing Task
 
 
-def _get_replay_profiling_project_key() -> ProjectKey | None:
-    """Get or create a project key specifically for replay consumer profiling data."""
-    try:
-        internal_project = Project.objects.get(slug="sentry-replay-consumer-profiling")
-        profiling_key, _ = ProjectKey.objects.get_or_create(
-            use_case=UseCase.PROFILING.value,
-            project=internal_project,
-            defaults={"label": "Replay Consumer Profiling"},
-        )
-        return profiling_key
-    except Project.DoesNotExist:
-        logger.warning("Replay profiling project is not configured")
-        return None
-
-
 def process_message_with_profiling(
     message: Message[KafkaPayload],
 ) -> ProcessedEvent | FilteredPayload:
@@ -104,13 +87,17 @@ def process_message_with_profiling(
     )
 
     if profiling_enabled:
-        profiling_project_key = _get_replay_profiling_project_key()
-        if profiling_project_key is not None:
+        profiling_dsn = getattr(
+            settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
+        )
+        if profiling_dsn is not None:
             sentry_sdk.init(
-                dsn=profiling_project_key.dsn_public,
-                traces_sample_rate=1.0,
+                dsn=profiling_dsn,
+                traces_sample_rate=getattr(
+                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
+                ),
                 profile_session_sample_rate=getattr(
-                    settings, "SENTRY_REPLAY_CONSUMER_PROFILING_SAMPLE_RATE", 0
+                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
                 ),
                 profile_lifecycle="manual",
             )
@@ -118,7 +105,7 @@ def process_message_with_profiling(
 
     result = process_message(message)
 
-    if profiling_enabled and profiling_project_key is not None:
+    if profiling_enabled and profiling_dsn is not None:
         sentry_sdk.profiler.stop_profiler()
 
     return result
@@ -222,13 +209,17 @@ def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
     )
 
     if profiling_enabled:
-        profiling_project_key = _get_replay_profiling_project_key()
-        if profiling_project_key is not None:
+        profiling_dsn = getattr(
+            settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
+        )
+        if profiling_dsn is not None:
             sentry_sdk.init(
-                dsn=profiling_project_key.dsn_public,
-                traces_sample_rate=1.0,
+                dsn=profiling_dsn,
+                traces_sample_rate=getattr(
+                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
+                ),
                 profile_session_sample_rate=getattr(
-                    settings, "SENTRY_REPLAY_CONSUMER_PROFILING_SAMPLE_RATE", 0
+                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
                 ),
                 profile_lifecycle="manual",
             )
@@ -236,7 +227,7 @@ def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
 
     commit_message(message)
 
-    if profiling_enabled and profiling_project_key is not None:
+    if profiling_enabled and profiling_dsn is not None:
         sentry_sdk.profiler.stop_profiler()
 
 
