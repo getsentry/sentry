@@ -177,7 +177,7 @@ def evaluate_workflow_triggers(
                 an activity update is meant to respond to a previous event.
                 """
                 metrics_incr("process_workflows.enqueue_workflow.activity")
-                logger.info(
+                logger.debug(
                     "workflow_engine.process_workflows.enqueue_workflow.activity",
                     extra={
                         "event_id": event_data.event.id,
@@ -206,7 +206,7 @@ def evaluate_workflow_triggers(
         if isinstance(event_data.event, GroupEvent)
         else event_data.event.id
     )
-    logger.info(
+    logger.debug(
         "workflow_engine.process_workflows.triggered_workflows",
         extra={
             "group_id": event_data.group.id,
@@ -278,7 +278,7 @@ def evaluate_workflows_action_filters(
                 # this is because the actions should always be triggered if this condition is met.
                 # The original snuba queries would have to be over threshold to create this event
                 metrics_incr("process_workflows.enqueue_workflow.activity")
-                logger.info(
+                logger.debug(
                     "workflow_engine.process_workflows.enqueue_workflow.activity",
                     extra={
                         "event_id": event_data.event.id,
@@ -370,7 +370,7 @@ def _get_associated_workflows(
             if isinstance(event_data.event, GroupEvent)
             else event_data.event.id
         )
-        logger.info(
+        logger.debug(
             "workflow_engine.process_workflows",
             extra={
                 "payload": event_data,
@@ -435,9 +435,7 @@ def process_workflows(
     except Environment.DoesNotExist:
         return set()
 
-    if features.has(
-        "organizations:workflow-engine-metric-alert-dual-processing-logs", organization
-    ):
+    if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
 
     workflows = _get_associated_workflows(detector, environment, event_data)

@@ -405,20 +405,6 @@ class RuleProcessor:
                 )
             )
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows-logs",
-            rule.project.organization,
-        ):
-            logger.info(
-                "post_process.process_rules.triggered_rule",
-                extra={
-                    "rule_id": rule.id,
-                    "payload": state.__dict__,
-                    "group_id": self.group.id,
-                    "event_id": self.event.event_id,
-                },
-            )
-
         notification_uuid = str(uuid.uuid4())
         metrics.timing(
             "rule_fire_history.latency",
