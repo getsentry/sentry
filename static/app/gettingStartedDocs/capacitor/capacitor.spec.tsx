@@ -3,8 +3,8 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs, {SiblingOption} from './capacitor';
 
-describe('capacitor onboarding docs', function () {
-  it('renders docs correctly', function () {
+describe('capacitor onboarding docs', () => {
+  it('renders docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -14,7 +14,7 @@ describe('capacitor onboarding docs', function () {
   });
 
   for (const enumMember in SiblingOption) {
-    it(`renders capacitor docs correctly with sibling ${enumMember}`, function () {
+    it(`renders capacitor docs correctly with sibling ${enumMember}`, () => {
       renderWithOnboardingLayout(docs, {
         selectedOptions: {
           siblingOption: enumMember,

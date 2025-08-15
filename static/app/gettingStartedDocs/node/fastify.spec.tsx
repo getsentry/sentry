@@ -8,7 +8,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './fastify';
 
-describe('fastify onboarding docs', function () {
+describe('fastify onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 

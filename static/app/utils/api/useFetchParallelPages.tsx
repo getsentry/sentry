@@ -113,63 +113,60 @@ export default function useFetchParallelPages<Data>({
     isFetching: enabled && Boolean(cursors.length),
   });
 
-  const fetch = useCallback(
-    async function () {
-      await Promise.allSettled(
-        cursors.map(async cursor => {
-          try {
-            responsePages.current.set(cursor, {
-              data: undefined,
-              error: undefined,
-              getResponseHeader: undefined,
-              status: 'pending',
-              isError: false,
-              isFetching: true,
-            });
+  const fetch = useCallback(async () => {
+    await Promise.allSettled(
+      cursors.map(async cursor => {
+        try {
+          responsePages.current.set(cursor, {
+            data: undefined,
+            error: undefined,
+            getResponseHeader: undefined,
+            status: 'pending',
+            isError: false,
+            isFetching: true,
+          });
 
-            const [data, , resp] = await queryClient.fetchQuery({
-              queryKey: getQueryKey({cursor, per_page: perPage}),
-              queryFn: fetchDataQuery<Data>,
-              staleTime: Infinity,
-            });
+          const [data, , resp] = await queryClient.fetchQuery({
+            queryKey: getQueryKey({cursor, per_page: perPage}),
+            queryFn: fetchDataQuery<Data>,
+            staleTime: Infinity,
+          });
 
-            responsePages.current.set(cursor, {
-              data,
-              error: undefined,
-              getResponseHeader: resp?.getResponseHeader,
-              status: 'success',
-              isError: false,
-              isFetching: false,
-            });
-          } catch (error) {
-            responsePages.current.set(cursor, {
-              data: undefined,
-              error: error as RequestError,
-              getResponseHeader: undefined,
-              status: 'error',
-              isError: true,
-              isFetching: false,
-            });
-          } finally {
-            const values = Array.from(responsePages.current.values());
-            setState({
-              pages: values.map(value => value.data).filter(defined),
-              error: values.map(value => value.error).filter(defined),
-              getLastResponseHeader: values.slice(-1)[0]?.getResponseHeader,
-              status: values.some(value => value.status === 'error')
-                ? 'error'
-                : values.some(value => value.status === 'pending')
-                  ? 'pending'
-                  : 'success',
-              isError: values.map(value => value.isError).some(Boolean),
-              isFetching: values.map(value => value.isFetching).some(Boolean),
-            });
-          }
-        })
-      );
-    },
-    [cursors, getQueryKey, perPage, queryClient]
-  );
+          responsePages.current.set(cursor, {
+            data,
+            error: undefined,
+            getResponseHeader: resp?.getResponseHeader,
+            status: 'success',
+            isError: false,
+            isFetching: false,
+          });
+        } catch (error) {
+          responsePages.current.set(cursor, {
+            data: undefined,
+            error: error as RequestError,
+            getResponseHeader: undefined,
+            status: 'error',
+            isError: true,
+            isFetching: false,
+          });
+        } finally {
+          const values = Array.from(responsePages.current.values());
+          setState({
+            pages: values.map(value => value.data).filter(defined),
+            error: values.map(value => value.error).filter(defined),
+            getLastResponseHeader: values.slice(-1)[0]?.getResponseHeader,
+            status: values.some(value => value.status === 'error')
+              ? 'error'
+              : values.some(value => value.status === 'pending')
+                ? 'pending'
+                : 'success',
+            isError: values.map(value => value.isError).some(Boolean),
+            isFetching: values.map(value => value.isFetching).some(Boolean),
+          });
+        }
+      })
+    );
+  }, [cursors, getQueryKey, perPage, queryClient]);
 
   useEffect(() => {
     if (enabled) {

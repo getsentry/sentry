@@ -6,7 +6,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './cloudflare-pages';
 
-describe('express onboarding docs', function () {
+describe('express onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 

@@ -33,7 +33,7 @@ const mockProfileData = {
   },
 } as Profiling.ProfileInput;
 
-it('renders CPU Usage as a chart', function () {
+it('renders CPU Usage as a chart', () => {
   render(
     <ProfilingMeasurements profileData={mockProfileData} transactionDuration={2000} />
   );
@@ -42,7 +42,7 @@ it('renders CPU Usage as a chart', function () {
   expect(screen.getByTestId('profile-measurements-chart-cpu_usage')).toBeInTheDocument();
 });
 
-it('can toggle between CPU Usage and Memory charts', async function () {
+it('can toggle between CPU Usage and Memory charts', async () => {
   render(
     <ProfilingMeasurements profileData={mockProfileData} transactionDuration={2000} />
   );

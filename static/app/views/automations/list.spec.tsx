@@ -18,10 +18,10 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
 
-describe('AutomationsList', function () {
+describe('AutomationsList', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
@@ -38,7 +38,7 @@ describe('AutomationsList', function () {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
   });
 
-  it('displays all automation info correctly', async function () {
+  it('displays all automation info correctly', async () => {
     render(<AutomationsList />, {organization});
     await screen.findByText('Automation 1');
 
@@ -52,7 +52,7 @@ describe('AutomationsList', function () {
     expect(within(row).getByText('1 monitor')).toBeInTheDocument();
   });
 
-  it('displays connected detectors', async function () {
+  it('displays connected detectors', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']})],
@@ -81,7 +81,7 @@ describe('AutomationsList', function () {
     expect(await screen.findByText('project-1')).toBeInTheDocument();
   });
 
-  it('can filter by project', async function () {
+  it('can filter by project', async () => {
     const mockAutomationsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [AutomationFixture({name: 'Automation 1'})],
@@ -101,7 +101,7 @@ describe('AutomationsList', function () {
     );
   });
 
-  it('can sort the table', async function () {
+  it('can sort the table', async () => {
     const mockAutomationsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [AutomationFixture({name: 'Automation 1'})],
@@ -150,8 +150,8 @@ describe('AutomationsList', function () {
     expect(router.location.query.sort).toBe('-name');
   });
 
-  describe('search', function () {
-    it('can filter by action', async function () {
+  describe('search', () => {
+    it('can filter by action', async () => {
       const mockAutomationActionSlack = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
         body: [AutomationFixture({name: 'Slack Automation'})],
@@ -171,8 +171,8 @@ describe('AutomationsList', function () {
     });
   });
 
-  describe('bulk actions', function () {
-    beforeEach(function () {
+  describe('bulk actions', () => {
+    beforeEach(() => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
@@ -208,7 +208,7 @@ describe('AutomationsList', function () {
       );
     });
 
-    it('can select automations', async function () {
+    it('can select automations', async () => {
       render(<AutomationsList />, {organization});
       await screen.findByText('Enabled Automation');
 
@@ -254,7 +254,7 @@ describe('AutomationsList', function () {
       expect(screen.getByRole('button', {name: 'Delete'})).toBeInTheDocument();
     });
 
-    it('can enable selected automations with confirmation', async function () {
+    it('can enable selected automations with confirmation', async () => {
       const updateRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
         method: 'PUT',
@@ -296,7 +296,7 @@ describe('AutomationsList', function () {
       });
     });
 
-    it('can disable selected automations with confirmation', async function () {
+    it('can disable selected automations with confirmation', async () => {
       const updateRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
         method: 'PUT',
@@ -335,7 +335,7 @@ describe('AutomationsList', function () {
       });
     });
 
-    it('can delete selected automations with confirmation', async function () {
+    it('can delete selected automations with confirmation', async () => {
       const deleteRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
         method: 'DELETE',
@@ -372,7 +372,7 @@ describe('AutomationsList', function () {
       });
     });
 
-    it('shows option to select all query results when page is selected', async function () {
+    it('shows option to select all query results when page is selected', async () => {
       const deleteRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',
         method: 'DELETE',

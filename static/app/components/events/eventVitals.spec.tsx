@@ -4,14 +4,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventVitals from 'sentry/components/events/eventVitals';
 
-describe('EventVitals', function () {
-  it('should not render anything', function () {
+describe('EventVitals', () => {
+  it('should not render anything', () => {
     const event = EventFixture();
     const {container} = render(<EventVitals event={event} />);
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('should not render non web vitals', function () {
+  it('should not render non web vitals', () => {
     const event = EventFixture({
       measurements: {
         'mark.stuff': {value: 123},
@@ -22,7 +22,7 @@ describe('EventVitals', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('should render some web vitals with a header', function () {
+  it('should render some web vitals with a header', () => {
     const event = EventFixture({
       measurements: {
         fp: {value: 1},
@@ -49,7 +49,7 @@ describe('EventVitals', function () {
     ].forEach(vital => expect(screen.getByText(vital)).toBeInTheDocument());
   });
 
-  it('should render some web vitals with a heading and a sdk warning', function () {
+  it('should render some web vitals with a heading and a sdk warning', () => {
     const event = EventFixture({
       measurements: {
         fp: {value: 1},
@@ -70,7 +70,7 @@ describe('EventVitals', function () {
     expect(screen.getByTestId('outdated-sdk-warning')).toBeInTheDocument();
   });
 
-  it('should show fire icon if vital failed threshold', function () {
+  it('should show fire icon if vital failed threshold', () => {
     const event = EventFixture({
       measurements: {
         fp: {value: 5000},

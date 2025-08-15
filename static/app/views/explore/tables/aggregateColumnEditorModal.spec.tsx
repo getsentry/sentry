@@ -65,8 +65,8 @@ const numberTags: TagCollection = {
   },
 };
 
-describe('AggregateColumnEditorModal', function () {
-  it('allows closes modal on apply', async function () {
+describe('AggregateColumnEditorModal', () => {
+  it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
 
     renderGlobalModal();
@@ -91,7 +91,7 @@ describe('AggregateColumnEditorModal', function () {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('can delete aggregate fields until there is 1 of the type left', async function () {
+  it('can delete aggregate fields until there is 1 of the type left', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();
@@ -158,7 +158,7 @@ describe('AggregateColumnEditorModal', function () {
     ]);
   });
 
-  it('allows adding a column', async function () {
+  it('allows adding a column', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();
@@ -221,7 +221,7 @@ describe('AggregateColumnEditorModal', function () {
     ]);
   });
 
-  it('allows changing a column', async function () {
+  it('allows changing a column', async () => {
     const onColumnsChange = jest.fn();
 
     renderGlobalModal();
@@ -270,7 +270,7 @@ describe('AggregateColumnEditorModal', function () {
     ]);
   });
 
-  it('allows adding an equation', async function () {
+  it('allows adding an equation', async () => {
     const {organization} = initializeOrg({
       organization: {
         features: ['visibility-explore-equations'],

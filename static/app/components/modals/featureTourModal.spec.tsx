@@ -20,7 +20,7 @@ const steps = [
   {title: 'Second', body: 'Second step'},
 ];
 
-describe('FeatureTourModal', function () {
+describe('FeatureTourModal', () => {
   let onAdvance!: jest.Mock;
   let onCloseModal!: jest.Mock;
 
@@ -48,13 +48,13 @@ describe('FeatureTourModal', function () {
     await userEvent.click(screen.getByTestId('reveal'));
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     ModalStore.reset();
     onAdvance = jest.fn();
     onCloseModal = jest.fn();
   });
 
-  it('shows the modal on click', async function () {
+  it('shows the modal on click', async () => {
     createWrapper();
 
     // No modal showing
@@ -65,7 +65,7 @@ describe('FeatureTourModal', function () {
     expect(screen.getByTestId('feature-tour')).toBeInTheDocument();
   });
 
-  it('advances on click', async function () {
+  it('advances on click', async () => {
     createWrapper();
 
     await clickModal();
@@ -81,7 +81,7 @@ describe('FeatureTourModal', function () {
     expect(onAdvance).toHaveBeenCalled();
   });
 
-  it('shows step content', async function () {
+  it('shows step content', async () => {
     createWrapper();
 
     await clickModal();
@@ -93,7 +93,7 @@ describe('FeatureTourModal', function () {
     expect(screen.getByText('1 of 2')).toBeInTheDocument();
   });
 
-  it('last step shows done', async function () {
+  it('last step shows done', async () => {
     createWrapper();
 
     await clickModal();
@@ -109,7 +109,7 @@ describe('FeatureTourModal', function () {
     expect(onCloseModal).toHaveBeenCalledTimes(1);
   });
 
-  it('last step shows doneText and uses doneUrl', async function () {
+  it('last step shows doneText and uses doneUrl', async () => {
     const props = {doneText: 'Finished', doneUrl: 'http://example.org'};
     createWrapper(props);
 
@@ -129,7 +129,7 @@ describe('FeatureTourModal', function () {
     expect(onCloseModal).toHaveBeenCalledTimes(1);
   });
 
-  it('close button dismisses modal', async function () {
+  it('close button dismisses modal', async () => {
     createWrapper();
 
     await clickModal();

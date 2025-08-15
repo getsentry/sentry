@@ -27,13 +27,13 @@ function renderQuickTrace({isLoading, error, trace, type}: any) {
   );
 }
 
-describe('TraceLiteQuery', function () {
+describe('TraceLiteQuery', () => {
   let location: any,
     event: any,
     traceLiteMock: any,
     traceFullMock: any,
     traceMetaMock: any;
-  beforeEach(function () {
+  beforeEach(() => {
     location = {
       pathname: '/',
       query: {},
@@ -66,7 +66,7 @@ describe('TraceLiteQuery', function () {
     });
   });
 
-  it('fetches data on mount and passes the event id', async function () {
+  it('fetches data on mount and passes the event id', async () => {
     render(
       <QuickTraceQuery event={event} location={location} orgSlug="test-org">
         {renderQuickTrace}
@@ -78,7 +78,7 @@ describe('TraceLiteQuery', function () {
     expect(await screen.findByTestId('type')).toHaveTextContent('partial');
   });
 
-  it('doesnt fetch meta when not needed', async function () {
+  it('doesnt fetch meta when not needed', async () => {
     render(
       <QuickTraceQuery event={event} location={location} orgSlug="test-org">
         {renderQuickTrace}
@@ -91,7 +91,7 @@ describe('TraceLiteQuery', function () {
     expect(await screen.findByTestId('type')).toHaveTextContent('partial');
   });
 
-  it('uses lite results when it cannot find current event in full results', async function () {
+  it('uses lite results when it cannot find current event in full results', async () => {
     render(
       <QuickTraceQuery event={event} location={location} orgSlug="test-org">
         {renderQuickTrace}
@@ -101,7 +101,7 @@ describe('TraceLiteQuery', function () {
     expect(await screen.findByTestId('type')).toHaveTextContent('partial');
   });
 
-  it('uses full results when it finds current event', async function () {
+  it('uses full results when it finds current event', async () => {
     traceLiteMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace-light/0${traceId}/`,
       body: [],
@@ -133,7 +133,7 @@ describe('TraceLiteQuery', function () {
     expect(await screen.findByTestId('type')).toHaveTextContent('full');
   });
 
-  it('uses trace full response with tracing without performance enabled', async function () {
+  it('uses trace full response with tracing without performance enabled', async () => {
     traceLiteMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace-light/0${traceId}/`,
       body: [],

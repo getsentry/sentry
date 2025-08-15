@@ -21,7 +21,7 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
-describe('Dashboards > IssueWidgetCard', function () {
+describe('Dashboards > IssueWidgetCard', () => {
   const {router, organization} = initializeOrg({
     organization: OrganizationFixture({
       features: ['dashboards-edit'],
@@ -81,7 +81,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     navigate: jest.fn(),
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [
@@ -109,11 +109,11 @@ describe('Dashboards > IssueWidgetCard', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders with title and issues chart', async function () {
+  it('renders with title and issues chart', async () => {
     MemberListStore.loadInitialData([user]);
     render(
       <WidgetCard
@@ -149,7 +149,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(await screen.findByText(`Assigned to ${user.name}`)).toBeInTheDocument();
   });
 
-  it('opens in issues page', async function () {
+  it('opens in issues page', async () => {
     render(
       <WidgetCard
         api={api}
@@ -180,7 +180,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     );
   });
 
-  it('calls onDuplicate when Duplicate Widget is clicked', async function () {
+  it('calls onDuplicate when Duplicate Widget is clicked', async () => {
     const mock = jest.fn();
     render(
       <WidgetCard
@@ -209,7 +209,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
-  it('disables the duplicate widget button if max widgets is reached', async function () {
+  it('disables the duplicate widget button if max widgets is reached', async () => {
     const mock = jest.fn();
     render(
       <WidgetCard
@@ -238,7 +238,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(mock).toHaveBeenCalledTimes(0);
   });
 
-  it('maps lifetimeEvents and lifetimeUsers headers to more human readable', async function () {
+  it('maps lifetimeEvents and lifetimeUsers headers to more human readable', async () => {
     MemberListStore.loadInitialData([user]);
     render(
       <WidgetCard

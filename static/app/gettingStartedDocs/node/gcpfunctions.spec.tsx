@@ -8,7 +8,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './gcpfunctions';
 
-describe('gcpfunctions onboarding docs', function () {
+describe('gcpfunctions onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 

@@ -9,7 +9,7 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import TokenRegenerationConfirmationModal from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 
-describe('TokenRegenerationConfirmationModal', function () {
+describe('TokenRegenerationConfirmationModal', () => {
   function renderComponent(token: string) {
     renderGlobalModal();
     act(() =>
@@ -19,13 +19,13 @@ describe('TokenRegenerationConfirmationModal', function () {
     );
   }
 
-  it('renders modal with correct header', function () {
+  it('renders modal with correct header', () => {
     renderComponent('test-token-12345');
 
     expect(screen.getByRole('heading', {name: 'Token created'})).toBeInTheDocument();
   });
 
-  it('displays warning alert with token safety message', function () {
+  it('displays warning alert with token safety message', () => {
     renderComponent('test-token-12345');
 
     expect(
@@ -35,7 +35,7 @@ describe('TokenRegenerationConfirmationModal', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays both token inputs with correct values', function () {
+  it('displays both token inputs with correct values', () => {
     const testToken = 'test-token-12345';
     renderComponent(testToken);
 
@@ -49,13 +49,13 @@ describe('TokenRegenerationConfirmationModal', function () {
     expect(screen.getByLabelText('Token')).toBeInTheDocument();
   });
 
-  it('renders Done button', function () {
+  it('renders Done button', () => {
     renderComponent('test-token-12345');
 
     expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
   });
 
-  it('closes modal when Done button is clicked', async function () {
+  it('closes modal when Done button is clicked', async () => {
     renderComponent('test-token-12345');
 
     await userEvent.click(screen.getByRole('button', {name: 'Done'}));
@@ -67,7 +67,7 @@ describe('TokenRegenerationConfirmationModal', function () {
     });
   });
 
-  it('renders copy buttons for both tokens', function () {
+  it('renders copy buttons for both tokens', () => {
     const testToken = 'test-token-12345';
     renderComponent(testToken);
 

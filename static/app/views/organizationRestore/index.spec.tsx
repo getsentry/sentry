@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationRestore from 'sentry/views/organizationRestore';
 
-describe('OrganizationRestore', function () {
+describe('OrganizationRestore', () => {
   let mockUpdate!: jest.Mock;
   let mockGet!: jest.Mock;
   const pendingDeleteOrg = OrganizationFixture({

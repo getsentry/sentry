@@ -12,14 +12,14 @@ import WebVitalsLandingPage from 'sentry/views/insights/browser/webVitals/views/
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('WebVitalsLandingPage', function () {
+describe('WebVitalsLandingPage', () => {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
   });
 
   let eventsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.loadInitialData([
       ProjectFixture({hasInsightsVitals: true, firstTransactionEvent: true}),
     ]);
@@ -61,7 +61,7 @@ describe('WebVitalsLandingPage', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 

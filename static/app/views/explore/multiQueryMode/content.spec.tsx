@@ -21,12 +21,12 @@ jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
 
-describe('MultiQueryModeContent', function () {
+describe('MultiQueryModeContent', () => {
   const {organization, project} = initializeOrg();
   let eventsRequest: any;
   let eventsStatsRequest: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     PageFiltersStore.init();
@@ -107,7 +107,7 @@ describe('MultiQueryModeContent', function () {
     });
   });
 
-  it('disables changing fields for count', async function () {
+  it('disables changing fields for count', async () => {
     function Component() {
       return <MultiQueryModeContent />;
     }
@@ -124,7 +124,7 @@ describe('MultiQueryModeContent', function () {
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
-  it('changes to count(span.duration) when using count', async function () {
+  it('changes to count(span.duration) when using count', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -195,7 +195,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('disables changing fields for epm', async function () {
+  it('disables changing fields for epm', async () => {
     function Component() {
       return <MultiQueryModeContent />;
     }
@@ -214,7 +214,7 @@ describe('MultiQueryModeContent', function () {
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
-  it('changes to epm() when using epm', async function () {
+  it('changes to epm() when using epm', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -285,7 +285,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('changes to failure_rate() when using failure_rate', async function () {
+  it('changes to failure_rate() when using failure_rate', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -356,7 +356,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('disables changing fields for failure_rate', async function () {
+  it('disables changing fields for failure_rate', async () => {
     function Component() {
       return <MultiQueryModeContent />;
     }
@@ -375,7 +375,7 @@ describe('MultiQueryModeContent', function () {
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
-  it('defaults count_unique argument to span.op', async function () {
+  it('defaults count_unique argument to span.op', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -464,7 +464,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('updates visualization and outdated sorts', async function () {
+  it('updates visualization and outdated sorts', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -518,7 +518,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('explicitly selecting visualization persists it', async function () {
+  it('explicitly selecting visualization persists it', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -560,7 +560,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('updates sorts', async function () {
+  it('updates sorts', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -608,7 +608,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('updates group bys and outdated sorts', async function () {
+  it('updates group bys and outdated sorts', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -656,7 +656,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('allows changing a query', async function () {
+  it('allows changing a query', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -707,7 +707,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('allows adding a query', async function () {
+  it('allows adding a query', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -767,7 +767,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('allows duplicating a query', async function () {
+  it('allows duplicating a query', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -834,7 +834,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('allows deleting a query', async function () {
+  it('allows deleting a query', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -944,7 +944,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('calls events and stats APIs', async function () {
+  it('calls events and stats APIs', async () => {
     let queries: any;
     function Component() {
       queries = useReadQueriesFromLocation();
@@ -1069,7 +1069,7 @@ describe('MultiQueryModeContent', function () {
     );
   });
 
-  it('unstacking group by puts you in sample mode', async function () {
+  it('unstacking group by puts you in sample mode', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -1145,7 +1145,7 @@ describe('MultiQueryModeContent', function () {
     ]);
   });
 
-  it('sets interval correctly', async function () {
+  it('sets interval correctly', async () => {
     const router = RouterFixture({
       location: {
         pathname: '/traces/compare',
@@ -1187,7 +1187,7 @@ describe('MultiQueryModeContent', function () {
     });
   });
 
-  it('renders a save query button', async function () {
+  it('renders a save query button', async () => {
     render(<MultiQueryModeContent />, {
       organization,
       deprecatedRouterMocks: true,
@@ -1197,7 +1197,7 @@ describe('MultiQueryModeContent', function () {
     expect(await screen.findByText('A New Query')).toBeInTheDocument();
   });
 
-  it('highlights save button when query has changes', async function () {
+  it('highlights save button when query has changes', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/123/`,
       method: 'GET',

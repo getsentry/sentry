@@ -17,7 +17,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 jest.mock('sentry/utils/useReleaseStats');
 
-describe('DatabaseSpanSummaryPage', function () {
+describe('DatabaseSpanSummaryPage', () => {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
   });
@@ -61,15 +61,15 @@ describe('DatabaseSpanSummaryPage', function () {
     releases: [],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const eventsRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',

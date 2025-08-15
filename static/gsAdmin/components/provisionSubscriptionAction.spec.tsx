@@ -22,7 +22,7 @@ import {DataCategory} from 'sentry/types/core';
 import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 
-describe('provisionSubscriptionAction', function () {
+describe('provisionSubscriptionAction', () => {
   const onSuccess = jest.fn();
   const mockOrg = OrganizationFixture();
   const mockSub = SubscriptionFixture({organization: mockOrg});
@@ -82,12 +82,12 @@ describe('provisionSubscriptionAction', function () {
     return modal;
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     ModalStore.reset();
   });
 
-  it('renders modal with form', async function () {
+  it('renders modal with form', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -153,7 +153,7 @@ describe('provisionSubscriptionAction', function () {
     ).toBeInTheDocument();
   });
 
-  it('shows SKUs based on plan chosen', async function () {
+  it('shows SKUs based on plan chosen', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -193,7 +193,7 @@ describe('provisionSubscriptionAction', function () {
     expect(screen.getByLabelText('Price for Spans')).toBeInTheDocument();
   });
 
-  it('select coterm disables effectiveAt and atPeriodEnd', async function () {
+  it('select coterm disables effectiveAt and atPeriodEnd', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -213,7 +213,7 @@ describe('provisionSubscriptionAction', function () {
     expect(screen.getByRole('textbox', {name: 'Billing Interval'})).toBeDisabled();
   });
 
-  it('select atPeriodEnd disables coterm and effectiveAt', async function () {
+  it('select atPeriodEnd disables coterm and effectiveAt', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -230,7 +230,7 @@ describe('provisionSubscriptionAction', function () {
     ).toBeDisabled();
   });
 
-  it('hides manually invoiced on-demand fields when credit card type is selected', async function () {
+  it('hides manually invoiced on-demand fields when credit card type is selected', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -266,7 +266,7 @@ describe('provisionSubscriptionAction', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('shows manually invoiced on-demand type field when invoiced type is selected', async function () {
+  it('shows manually invoiced on-demand type field when invoiced type is selected', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -302,7 +302,7 @@ describe('provisionSubscriptionAction', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('shows or hides on-demand CPE fields based on setting', async function () {
+  it('shows or hides on-demand CPE fields based on setting', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -343,7 +343,7 @@ describe('provisionSubscriptionAction', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('disables soft cap fields when enabling on-demand', async function () {
+  it('disables soft cap fields when enabling on-demand', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -373,7 +373,7 @@ describe('provisionSubscriptionAction', function () {
     disabledSoftCapFields.forEach(field => expect(field).toBeDisabled());
   });
 
-  it('does not disable soft cap fields when on-demand is disabled', async function () {
+  it('does not disable soft cap fields when on-demand is disabled', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -399,7 +399,7 @@ describe('provisionSubscriptionAction', function () {
     enabledSoftCapFields.forEach(field => expect(field).toBeEnabled());
   });
 
-  it('renders spans fields based on selected plan', async function () {
+  it('renders spans fields based on selected plan', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -462,7 +462,7 @@ describe('provisionSubscriptionAction', function () {
     expect(within(container).getByLabelText('Price for Stored Spans')).toBeDisabled();
   });
 
-  it('reserved CPE fields are cleared when non-DS plan is selected', async function () {
+  it('reserved CPE fields are cleared when non-DS plan is selected', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -502,7 +502,7 @@ describe('provisionSubscriptionAction', function () {
     expect(screen.queryByLabelText('Reserved Stored Spans')).not.toBeInTheDocument();
   });
 
-  it('prefills the form based on the enterprise subscription', async function () {
+  it('prefills the form based on the enterprise subscription', async () => {
     const mockInvoicedSub = InvoicedSubscriptionFixture({
       organization: mockOrg,
       plan: 'am3_business_ent_auf',
@@ -1945,7 +1945,7 @@ describe('provisionSubscriptionAction', function () {
     );
   }, 15_000);
 
-  it('confirms byte field has (in GB) suffix', async function () {
+  it('confirms byte field has (in GB) suffix', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: mockSub.slug,
@@ -1966,7 +1966,7 @@ describe('provisionSubscriptionAction', function () {
     ).toBeInTheDocument();
   });
 
-  it('confirms non-byte categories do not have (in GB) suffix', async function () {
+  it('confirms non-byte categories do not have (in GB) suffix', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: mockSub.slug,

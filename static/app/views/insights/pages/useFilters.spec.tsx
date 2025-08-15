@@ -21,14 +21,14 @@ describe('useDomainViewFilters', () => {
     );
   });
 
-  it('should return correct domain view based on the url', function () {
+  it('should return correct domain view based on the url', () => {
     mockUseLocation.mockReturnValue(LocationFixture({pathname: frontendBasePath}));
     const {isInDomainView, view} = useDomainViewFilters();
     expect(isInDomainView).toBe(true);
     expect(view).toBe(FRONTEND_LANDING_SUB_PATH);
   });
 
-  it('should return correct domain view if in nested url', function () {
+  it('should return correct domain view if in nested url', () => {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: `${backendBasePath}/http/`})
     );
@@ -37,7 +37,7 @@ describe('useDomainViewFilters', () => {
     expect(view).toBe(BACKEND_LANDING_SUB_PATH);
   });
 
-  it('should not return isInDomainView if not in domain view', function () {
+  it('should not return isInDomainView if not in domain view', () => {
     mockUseLocation.mockReturnValue(LocationFixture({pathname: '/performance/'}));
     const {isInDomainView, view} = useDomainViewFilters();
     expect(isInDomainView).toBe(false);

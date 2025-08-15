@@ -30,7 +30,7 @@ jest.mock('sentry/utils/useReleaseStats');
 
 const requestMocks: Record<string, jest.Mock> = {};
 
-describe('ResourcesLandingPage', function () {
+describe('ResourcesLandingPage', () => {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
   });
@@ -40,7 +40,7 @@ describe('ResourcesLandingPage', function () {
     setupMockRequests(organization);
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.resetAllMocks();
   });
 

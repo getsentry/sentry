@@ -18,16 +18,16 @@ describe('utils.escapeIssueTagKey', () => {
   });
 });
 
-describe('utils.extractMultilineFields', function () {
-  it('should work for basic, simple values', function () {
+describe('utils.extractMultilineFields', () => {
+  it('should work for basic, simple values', () => {
     expect(extractMultilineFields('one\ntwo\nthree')).toEqual(['one', 'two', 'three']);
   });
 
-  it('should return an empty array if only whitespace', function () {
+  it('should return an empty array if only whitespace', () => {
     expect(extractMultilineFields('    \n    \n\n\n   \n')).toEqual([]);
   });
 
-  it('should trim values and ignore empty lines', function () {
+  it('should trim values and ignore empty lines', () => {
     expect(
       extractMultilineFields(
         `one
@@ -42,13 +42,13 @@ five`
   });
 });
 
-describe('utils.explodeSlug', function () {
-  it('replaces slug special chars with whitespace', function () {
+describe('utils.explodeSlug', () => {
+  it('replaces slug special chars with whitespace', () => {
     expect(explodeSlug('test--slug__replace-')).toBe('test slug replace');
   });
 });
 
-describe('utils.descopeFeatureName', function () {
+describe('utils.descopeFeatureName', () => {
   it('descopes the feature name', () => {
     [
       ['organizations:feature', 'feature'],
@@ -59,10 +59,10 @@ describe('utils.descopeFeatureName', function () {
   });
 });
 
-describe('utils.escapeDoubleQuotes', function () {
+describe('utils.escapeDoubleQuotes', () => {
   // test cases from https://gist.github.com/getify/3667624
 
-  it('should escape any unescaped double quotes', function () {
+  it('should escape any unescaped double quotes', () => {
     const cases = [
       ['a"b', 'a\\"b'], //
       ['a\\"b', 'a\\"b'], //

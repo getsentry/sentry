@@ -15,7 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import ProjectTeams from 'sentry/views/settings/project/projectTeams';
 
-describe('ProjectTeams', function () {
+describe('ProjectTeams', () => {
   let org: Organization;
   let project: Project;
 
@@ -37,7 +37,7 @@ describe('ProjectTeams', function () {
     access: ['team:read'],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     const initialData = initializeOrg();
     org = initialData.organization;
     project = {
@@ -64,12 +64,12 @@ describe('ProjectTeams', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     ModalStore.reset();
   });
 
-  it('can remove a team from project', async function () {
+  it('can remove a team from project', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
@@ -125,7 +125,7 @@ describe('ProjectTeams', function () {
     });
   });
 
-  it('cannot remove a team without admin scopes', async function () {
+  it('cannot remove a team without admin scopes', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
@@ -169,7 +169,7 @@ describe('ProjectTeams', function () {
     expect(mock3).not.toHaveBeenCalled();
   });
 
-  it('removes team from project when project team is not in org list', async function () {
+  it('removes team from project when project team is not in org list', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/teams/`,
       method: 'GET',
@@ -233,7 +233,7 @@ describe('ProjectTeams', function () {
     });
   });
 
-  it('can associate a team with project', async function () {
+  it('can associate a team with project', async () => {
     const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2WithAdmin.slug}/`;
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
@@ -261,7 +261,7 @@ describe('ProjectTeams', function () {
     });
   });
 
-  it('creates a new team adds it to current project using the "create team modal" in dropdown', async function () {
+  it('creates a new team adds it to current project using the "create team modal" in dropdown', async () => {
     MockApiClient.addMockResponse({
       url: '/assistant/',
       body: {},

@@ -13,13 +13,13 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
-describe('PlanSelect', function () {
+describe('PlanSelect', () => {
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
   const params = {};
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
@@ -49,7 +49,7 @@ describe('PlanSelect', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const freeSubscription = SubscriptionFixture({
       organization,
       plan: 'am2_f',
@@ -72,7 +72,7 @@ describe('PlanSelect', function () {
     expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
   });
 
-  it('renders for checkout v3', async function () {
+  it('renders for checkout v3', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
@@ -116,7 +116,7 @@ describe('PlanSelect', function () {
     expect(within(businessPlan).getByText(/Excess usage/)).toBeInTheDocument();
   });
 
-  it('renders checkmarks on team plan', async function () {
+  it('renders checkmarks on team plan', async () => {
     const org = OrganizationFixture();
     const teamSubscription = SubscriptionFixture({
       organization: org,
@@ -145,7 +145,7 @@ describe('PlanSelect', function () {
     expect(within(businessPlan).queryByTestId('icon-check-mark')).not.toBeInTheDocument();
   });
 
-  it('marks business as the current plan', async function () {
+  it('marks business as the current plan', async () => {
     const org = OrganizationFixture();
     const businessSubscription = SubscriptionFixture({
       organization: org,
@@ -221,7 +221,7 @@ describe('PlanSelect', function () {
     expect(screen.getByText(warningText)).toBeInTheDocument();
   });
 
-  it('renders with correct default prices and errors on-demand pricing', async function () {
+  it('renders with correct default prices and errors on-demand pricing', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -245,7 +245,7 @@ describe('PlanSelect', function () {
     expect(businessPlan).not.toHaveTextContent(/\/ span/);
   });
 
-  it('renders with correct default prices and errors and spans on-demand pricing', async function () {
+  it('renders with correct default prices and errors and spans on-demand pricing', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
@@ -275,7 +275,7 @@ describe('PlanSelect', function () {
     expect(businessPlan).toHaveTextContent('$0.000004 / span');
   });
 
-  it('renders with default plan selected', async function () {
+  it('renders with default plan selected', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -294,7 +294,7 @@ describe('PlanSelect', function () {
     expect(within(businessPlan).getByRole('radio')).toBeChecked();
   });
 
-  it('can select plan', async function () {
+  it('can select plan', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -318,7 +318,7 @@ describe('PlanSelect', function () {
     expect(within(businessPlan).getByRole('radio')).not.toBeChecked();
   });
 
-  it('can continue', async function () {
+  it('can continue', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -336,7 +336,7 @@ describe('PlanSelect', function () {
     expect(screen.queryByTestId('body-choose-your-plan')).not.toBeInTheDocument();
   });
 
-  it('can edit', async function () {
+  it('can edit', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -358,7 +358,7 @@ describe('PlanSelect', function () {
     expect(screen.getByTestId('body-choose-your-plan')).toBeInTheDocument();
   });
 
-  it('selects business for am2 monthly plans', async function () {
+  it('selects business for am2 monthly plans', async () => {
     const teamOrganization = OrganizationFixture();
     const teamSubscription = SubscriptionFixture({
       organization: teamOrganization,
@@ -392,7 +392,7 @@ describe('PlanSelect', function () {
     expect(teamPlan).toHaveTextContent('Current plan');
   });
 
-  it('selects business for am2 annual plans', async function () {
+  it('selects business for am2 annual plans', async () => {
     const teamOrganization = OrganizationFixture();
     const teamSubscription = SubscriptionFixture({
       organization: teamOrganization,
@@ -427,7 +427,7 @@ describe('PlanSelect', function () {
     expect(teamPlan).toHaveTextContent('Current plan');
   });
 
-  it('selects team for non upsell referrers', async function () {
+  it('selects team for non upsell referrers', async () => {
     const teamOrganization = OrganizationFixture();
     const teamSubscription = SubscriptionFixture({
       organization: teamOrganization,
@@ -461,7 +461,7 @@ describe('PlanSelect', function () {
     expect(teamPlan).toHaveTextContent('Current plan');
   });
 
-  it('shows plan hint', async function () {
+  it('shows plan hint', async () => {
     const teamOrganization = OrganizationFixture();
 
     const teamSubscription = SubscriptionFixture({
@@ -498,7 +498,7 @@ describe('PlanSelect', function () {
     expect(businessPlan).toHaveTextContent('You trialed this plan');
   });
 
-  it('shows trial expires', async function () {
+  it('shows trial expires', async () => {
     const teamOrganization = OrganizationFixture();
 
     const teamSubscription = SubscriptionFixture({
@@ -532,7 +532,7 @@ describe('PlanSelect', function () {
     expect(businessPlan).toHaveTextContent('Trial expires in 2 days');
   });
 
-  it('shows plan trialed', async function () {
+  it('shows plan trialed', async () => {
     const teamOrganization = OrganizationFixture();
 
     const teamSubscription = SubscriptionFixture({
@@ -566,7 +566,7 @@ describe('PlanSelect', function () {
     expect(businessPlan).toHaveTextContent('You trialed this plan');
   });
 
-  it('calls prompts activity when business to team downgrade', async function () {
+  it('calls prompts activity when business to team downgrade', async () => {
     const mockPromptUpdate = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       method: 'PUT',

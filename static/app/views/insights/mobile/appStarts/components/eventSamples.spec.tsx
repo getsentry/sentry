@@ -15,12 +15,12 @@ import {
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/views/insights/common/queries/useReleases');
 
-describe('ScreenLoadEventSamples', function () {
+describe('ScreenLoadEventSamples', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
   let mockEventsRequest!: jest.Mock;
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(usePageFilters).mockReturnValue(
       PageFilterStateFixture({
         selection: {
@@ -102,7 +102,7 @@ describe('ScreenLoadEventSamples', function () {
     });
   });
 
-  it('makes a request for the release and transaction passed as props', async function () {
+  it('makes a request for the release and transaction passed as props', async () => {
     render(
       <EventSamples
         release="com.example.vu.android@2.10.5"

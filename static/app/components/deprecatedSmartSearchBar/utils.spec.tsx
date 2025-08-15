@@ -7,35 +7,35 @@ import {
 } from 'sentry/components/deprecatedSmartSearchBar/utils';
 import {FieldKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
-describe('addSpace()', function () {
-  it('should add a space when there is no trailing space', function () {
+describe('addSpace()', () => {
+  it('should add a space when there is no trailing space', () => {
     expect(addSpace('one')).toBe('one ');
   });
 
-  it('should not add another space when there is already one', function () {
+  it('should not add another space when there is already one', () => {
     expect(addSpace('one ')).toBe('one ');
   });
 
-  it('should leave the empty string alone', function () {
+  it('should leave the empty string alone', () => {
     expect(addSpace('')).toBe('');
   });
 });
 
-describe('removeSpace()', function () {
-  it('should remove a trailing space', function () {
+describe('removeSpace()', () => {
+  it('should remove a trailing space', () => {
     expect(removeSpace('one ')).toBe('one');
   });
 
-  it('should not remove the last character if it is not a space', function () {
+  it('should not remove the last character if it is not a space', () => {
     expect(removeSpace('one')).toBe('one');
   });
 
-  it('should leave the empty string alone', function () {
+  it('should leave the empty string alone', () => {
     expect(removeSpace('')).toBe('');
   });
 });
 
-describe('getTagItemsFromKeys()', function () {
+describe('getTagItemsFromKeys()', () => {
   it('gets items from tags', () => {
     const supportedTags = {
       browser: {

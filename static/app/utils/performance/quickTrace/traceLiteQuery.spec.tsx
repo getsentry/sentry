@@ -26,16 +26,16 @@ function renderTraceLite({isLoading, error, trace, type}: any) {
   );
 }
 
-describe('TraceLiteQuery', function () {
+describe('TraceLiteQuery', () => {
   let location: any;
-  beforeEach(function () {
+  beforeEach(() => {
     location = {
       pathname: '/',
       query: {},
     };
   });
 
-  it('fetches data on mount and passes the event id', async function () {
+  it('fetches data on mount and passes the event id', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace-light/${traceId}/`,
       body: [],

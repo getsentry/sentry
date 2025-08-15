@@ -31,7 +31,7 @@ describe('TraceDetailsContent', () => {
       });
     });
 
-    afterEach(function () {
+    afterEach(() => {
       MockApiClient.clearMockResponses();
       ProjectsStore.reset();
     });

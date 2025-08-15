@@ -45,7 +45,7 @@ function getProps(props?: Parameters<typeof initializeOrg>[0]) {
   };
 }
 
-describe('Custom Repositories', function () {
+describe('Custom Repositories', () => {
   const httpRepository: CustomRepo = {
     id: '7ebdb871-eb65-0183-8001-ea7df90613a7',
     layout: {type: 'native', casing: 'default'},
@@ -60,13 +60,13 @@ describe('Custom Repositories', function () {
     ModalStore.reset();
   });
 
-  beforeAll(async function () {
+  beforeAll(async () => {
     // TODO: figure out why this transpile is so slow
     // transpile the modal upfront so the test runs fast
     await import('sentry/components/modals/debugFileCustomRepository');
   });
 
-  it('renders with custom-symbol-sources feature enabled', async function () {
+  it('renders with custom-symbol-sources feature enabled', async () => {
     const props = getProps();
     const newOrganization = {...props.organization, features: ['custom-symbol-sources']};
 

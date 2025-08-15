@@ -25,8 +25,8 @@ const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
 
-describe('Add Modal', function () {
-  it('open Add Rule Modal', async function () {
+describe('Add Modal', () => {
+  it('open Add Rule Modal', async () => {
     const handleCloseModal = jest.fn();
 
     render(
@@ -105,7 +105,7 @@ describe('Add Modal', function () {
     expect(handleCloseModal).toHaveBeenCalled();
   });
 
-  it('Display placeholder field', async function () {
+  it('Display placeholder field', async () => {
     render(
       <Add
         Header={makeClosableHeader(jest.fn())}
@@ -139,7 +139,7 @@ describe('Add Modal', function () {
     ).toBeInTheDocument();
   });
 
-  it('Display regex field', async function () {
+  it('Display regex field', async () => {
     render(
       <Add
         Header={makeClosableHeader(jest.fn())}
@@ -175,7 +175,7 @@ describe('Add Modal', function () {
     ).toBeInTheDocument();
   });
 
-  it('Display Event Id', async function () {
+  it('Display Event Id', async () => {
     const eventId = '12345678901234567890123456789012';
 
     MockApiClient.addMockResponse({

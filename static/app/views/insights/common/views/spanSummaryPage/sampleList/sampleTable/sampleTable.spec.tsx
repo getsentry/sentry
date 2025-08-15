@@ -29,7 +29,7 @@ jest.mock('sentry/utils/usePageFilters', () => {
   };
 });
 
-describe('SampleTable', function () {
+describe('SampleTable', () => {
   beforeEach(() => {
     initializeMockRequests();
   });

@@ -28,16 +28,16 @@ function renderMeta({isLoading, error, meta}: any) {
   );
 }
 
-describe('TraceMetaQuery', function () {
+describe('TraceMetaQuery', () => {
   let location: any;
-  beforeEach(function () {
+  beforeEach(() => {
     location = {
       pathname: '/',
       query: {},
     };
   });
 
-  it('fetches data on mount', async function () {
+  it('fetches data on mount', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: `/organizations/test-org/events-trace-meta/${traceId}/`,
       body: {

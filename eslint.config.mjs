@@ -355,6 +355,7 @@ export default typescript.config([
       'no-sequences': 'error',
       'no-throw-literal': 'error',
       'object-shorthand': ['error', 'properties'],
+      'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       radix: 'error',
       'require-await': 'error', // Enabled in favor of @typescript-eslint/require-await, which requires type info
       'spaced-comment': [

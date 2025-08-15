@@ -19,8 +19,8 @@ const props = {
   ],
 };
 
-describe('ProjectPageFilter', function () {
-  it('renders', async function () {
+describe('ProjectPageFilter', () => {
+  it('renders', async () => {
     render(<HybridFilter {...props} value={[]} defaultValue={[]} onChange={() => {}} />);
 
     // Open menu, search input is focused & all the options are there
@@ -31,7 +31,7 @@ describe('ProjectPageFilter', function () {
     expect(screen.getByRole('row', {name: 'Option Three'})).toBeInTheDocument();
   });
 
-  it('handles both single and multiple selection', async function () {
+  it('handles both single and multiple selection', async () => {
     const onChange = jest.fn();
     const {rerender} = render(
       <HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />
@@ -55,7 +55,7 @@ describe('ProjectPageFilter', function () {
     expect(onChange).toHaveBeenCalledWith(['two']);
   });
 
-  it('handles multiple selection', async function () {
+  it('handles multiple selection', async () => {
     const onChange = jest.fn();
     const {rerender} = render(
       <HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />
@@ -105,7 +105,7 @@ describe('ProjectPageFilter', function () {
     expect(onChange).toHaveBeenCalledWith([]);
   });
 
-  it('can cancel', async function () {
+  it('can cancel', async () => {
     const onChange = jest.fn();
     render(<HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />);
 
@@ -123,7 +123,7 @@ describe('ProjectPageFilter', function () {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('can reset', async function () {
+  it('can reset', async () => {
     const onChange = jest.fn();
     const onReset = jest.fn();
     render(
@@ -156,7 +156,7 @@ describe('ProjectPageFilter', function () {
     expect(onReset).toHaveBeenCalled();
   });
 
-  it('supports keyboard navigation', async function () {
+  it('supports keyboard navigation', async () => {
     const onChange = jest.fn();
     render(<HybridFilter {...props} value={[]} defaultValue={[]} onChange={onChange} />);
 

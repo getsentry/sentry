@@ -5,12 +5,12 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {TermsAndConditions} from 'getsentry/views/legalAndCompliance/termsAndConditions';
 
-describe('TermsAndConditions', function () {
+describe('TermsAndConditions', () => {
   const {organization, routerProps} = initializeOrg({});
   const subscription = SubscriptionFixture({organization});
   const policies = PoliciesFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${subscription.slug}/policies/`,
@@ -28,7 +28,7 @@ describe('TermsAndConditions', function () {
     });
   });
 
-  it('renders redesign changes', async function () {
+  it('renders redesign changes', async () => {
     render(<TermsAndConditions {...routerProps} subscription={subscription} />);
     expect(await screen.findByText('Terms of Service')).toBeInTheDocument();
 

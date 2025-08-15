@@ -31,8 +31,8 @@ const api = new MockApiClient();
 
 jest.mock('sentry/views/settings/components/dataScrubbing/submitRules');
 
-describe('Edit Modal', function () {
-  it('open Edit Rule Modal', async function () {
+describe('Edit Modal', () => {
+  it('open Edit Rule Modal', async () => {
     const handleCloseModal = jest.fn();
 
     render(
@@ -128,7 +128,7 @@ describe('Edit Modal', function () {
     expect(handleCloseModal).toHaveBeenCalled();
   });
 
-  it('edit Rule Modal', async function () {
+  it('edit Rule Modal', async () => {
     render(
       <Edit
         Body={ModalBody}

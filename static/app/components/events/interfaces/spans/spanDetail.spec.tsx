@@ -8,7 +8,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import SpanDetail from 'sentry/components/events/interfaces/spans/spanDetail';
 import type {EventTransaction} from 'sentry/types/event';
 
-describe('SpanDetail', function () {
+describe('SpanDetail', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
@@ -52,8 +52,8 @@ describe('SpanDetail', function () {
     );
   }
 
-  describe('resource spans', function () {
-    it('shows size fields', function () {
+  describe('resource spans', () => {
+    it('shows size fields', () => {
       render(
         renderSpanDetail({
           span: SpanFixture({
@@ -77,8 +77,8 @@ describe('SpanDetail', function () {
     });
   });
 
-  describe('http.client spans', function () {
-    it('shows size fields for integer and string values', function () {
+  describe('http.client spans', () => {
+    it('shows size fields for integer and string values', () => {
       render(
         renderSpanDetail({
           span: SpanFixture({
@@ -100,8 +100,8 @@ describe('SpanDetail', function () {
     });
   });
 
-  describe('db spans', function () {
-    it('renders "Similar Span" button but no Query Details button by default', function () {
+  describe('db spans', () => {
+    it('renders "Similar Span" button but no Query Details button by default', () => {
       render(
         renderSpanDetail({
           span: SpanFixture({
@@ -122,7 +122,7 @@ describe('SpanDetail', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('renders "View Query Details" button if "Queries" view is enabled and span group is available', function () {
+    it('renders "View Query Details" button if "Queries" view is enabled and span group is available', () => {
       render(
         renderSpanDetail({
           span: SpanFixture({

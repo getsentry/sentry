@@ -6,15 +6,15 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs from './tryton';
 
-describe('tryton onboarding docs', function () {
-  it('renders doc correctly', function () {
+describe('tryton onboarding docs', () => {
+  it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
   });
 
-  it('renders without tracing', function () {
+  it('renders without tracing', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });
@@ -30,7 +30,7 @@ describe('tryton onboarding docs', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders transaction profiling', function () {
+  it('renders transaction profiling', () => {
     renderWithOnboardingLayout(docs);
 
     // Does not render continuous profiling config
@@ -47,7 +47,7 @@ describe('tryton onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders continuous profiling', function () {
+  it('renders continuous profiling', () => {
     const organization = OrganizationFixture({
       features: ['continuous-profiling'],
     });

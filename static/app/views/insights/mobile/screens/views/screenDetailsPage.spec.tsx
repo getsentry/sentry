@@ -12,7 +12,7 @@ import ScreenDetailsPage from 'sentry/views/insights/mobile/screens/views/screen
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
-describe('ScreenDetailsPage', function () {
+describe('ScreenDetailsPage', () => {
   const organization = OrganizationFixture({
     features: ['insights-addon-modules'],
   });
@@ -46,7 +46,7 @@ describe('ScreenDetailsPage', function () {
     })
   );
 
-  describe('Tabs', function () {
+  describe('Tabs', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-stats/`,
@@ -66,7 +66,7 @@ describe('ScreenDetailsPage', function () {
       jest.clearAllMocks();
     });
 
-    it('renders the tabs correctly', async function () {
+    it('renders the tabs correctly', async () => {
       jest.mocked(useLocation).mockReturnValue({
         action: 'PUSH',
         hash: '',

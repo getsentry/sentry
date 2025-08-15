@@ -89,12 +89,12 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
   meta: undefined,
 };
 
-describe('ExceptionStacktraceContent', function () {
-  it('default behaviour', function () {
+describe('ExceptionStacktraceContent', () => {
+  it('default behaviour', () => {
     render(<ExceptionStacktraceContent {...props} />);
   });
 
-  it('should return an emptyRender', function () {
+  it('should return an emptyRender', () => {
     const {container} = render(
       <ExceptionStacktraceContent {...props} stacktrace={null} />
     );
@@ -102,7 +102,7 @@ describe('ExceptionStacktraceContent', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows stack trace', function () {
+  it('shows stack trace', () => {
     render(
       <ExceptionStacktraceContent
         {...props}
@@ -117,7 +117,7 @@ describe('ExceptionStacktraceContent', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not show stack trace', function () {
+  it('does not show stack trace', () => {
     render(
       <ExceptionStacktraceContent
         {...props}
@@ -129,7 +129,7 @@ describe('ExceptionStacktraceContent', function () {
     ).toBeInTheDocument();
   });
 
-  it('should render system frames if "stackView: app" and there are no inApp frames and is a chained exceptions', function () {
+  it('should render system frames if "stackView: app" and there are no inApp frames and is a chained exceptions', () => {
     render(
       <ExceptionStacktraceContent {...props} stackView={StackView.APP} chainedException />
     );

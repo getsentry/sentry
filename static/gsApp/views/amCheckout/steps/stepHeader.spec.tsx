@@ -8,11 +8,11 @@ describe('StepHeader', () => {
   const mockTitle = 'Mock Title';
   const stepNumber = 1;
 
-  beforeEach(function () {
+  beforeEach(() => {
     onEdit = jest.fn();
   });
 
-  it('renders active', function () {
+  it('renders active', () => {
     render(
       <StepHeader
         isActive
@@ -30,7 +30,7 @@ describe('StepHeader', () => {
     expect(screen.queryByLabelText('Expand section')).not.toBeInTheDocument();
   });
 
-  it('renders complete', async function () {
+  it('renders complete', async () => {
     render(
       <StepHeader
         isCompleted
@@ -51,7 +51,7 @@ describe('StepHeader', () => {
     expect(onEdit).toHaveBeenCalled();
   });
 
-  it('renders not active, not complete, and can skip to step', async function () {
+  it('renders not active, not complete, and can skip to step', async () => {
     render(
       <StepHeader
         canSkip
@@ -70,7 +70,7 @@ describe('StepHeader', () => {
     expect(onEdit).toHaveBeenCalled();
   });
 
-  it('renders not active, not complete, and cannot skip to step', async function () {
+  it('renders not active, not complete, and cannot skip to step', async () => {
     render(
       <StepHeader
         title={mockTitle}
@@ -88,7 +88,7 @@ describe('StepHeader', () => {
     await userEvent.click(screen.getByText(mockTitle));
   });
 
-  it('renders for new checkout', function () {
+  it('renders for new checkout', () => {
     render(
       <StepHeader
         isNewCheckout

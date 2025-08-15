@@ -11,14 +11,14 @@ import PageOverview from 'sentry/views/insights/browser/webVitals/views/pageOver
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('PageOverview', function () {
+describe('PageOverview', () => {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
   });
 
   let eventsMock: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -58,7 +58,7 @@ describe('PageOverview', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 

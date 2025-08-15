@@ -14,7 +14,7 @@ import {
 describe('incremental trace fetch', () => {
   const organization = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
