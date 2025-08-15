@@ -128,9 +128,6 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def timestamp(self) -> str:
-        column = self._get_column_name(Columns.TIMESTAMP)
-        if column in self._snuba_data:
-            return cast(str, self._snuba_data[column])
         return self.datetime.isoformat()
 
     @property
