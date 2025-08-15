@@ -161,8 +161,13 @@ def _call_seer(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
+    url = settings.SEER_AUTOFIX_URL
+    # Route to summarization URL based on rollout rate
+    if in_random_rollout("issues.summary.summarization-url-rollout-rate"):
+        url = settings.SEER_SUMMARIZATION_URL
+
     response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
+        f"{url}{path}",
         data=body,
         headers={
             "content-type": "application/json;charset=utf-8",
