@@ -17,6 +17,7 @@ import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 export default function ReplayIndexContainer() {
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   const {sortQuery} = useReplayTableSort();
   const query = useLocationQuery({
@@ -55,32 +56,23 @@ export default function ReplayIndexContainer() {
         hasMoreResults={Boolean(hasNextResultsPage || hasPrevResultsPage)}
         queryKey={queryKey}
       />
-      <Paginate pageLinks={pageLinks} />
+      <PaginationNoMargin
+        pageLinks={pageLinks}
+        onCursor={(cursor, path, searchQuery) => {
+          trackAnalytics('replay.list-paginated', {
+            organization,
+            direction: cursor?.endsWith(':1') ? 'prev' : 'next',
+          });
+          navigate({
+            pathname: path,
+            query: {...searchQuery, cursor},
+          });
+        }}
+      />
     </Fragment>
   );
 }
 
-function Paginate({pageLinks}: {pageLinks: string | null}) {
-  const organization = useOrganization();
-  const navigate = useNavigate();
-
-  return (
-    <ReplayPagination
-      pageLinks={pageLinks}
-      onCursor={(cursor, path, searchQuery) => {
-        trackAnalytics('replay.list-paginated', {
-          organization,
-          direction: cursor?.endsWith(':1') ? 'prev' : 'next',
-        });
-        navigate({
-          pathname: path,
-          query: {...searchQuery, cursor},
-        });
-      }}
-    />
-  );
-}
-
-const ReplayPagination = styled(Pagination)`
+const PaginationNoMargin = styled(Pagination)`
   margin-top: 0;
 `;
