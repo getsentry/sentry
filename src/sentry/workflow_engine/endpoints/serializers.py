@@ -33,6 +33,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, DataSourceTypeHandler
@@ -661,5 +662,17 @@ class DetectorWorkflowSerializer(Serializer):
         return {
             "id": str(obj.id),
             "detectorId": str(obj.detector.id),
+            "workflowId": str(obj.workflow.id),
+        }
+
+
+@register(AlertRuleWorkflow)
+class AlertRuleWorkflowSerializer(Serializer):
+    def serialize(
+        self, obj: AlertRuleWorkflow, attrs: Mapping[str, Any], user, **kwargs
+    ) -> dict[str, Any]:
+        return {
+            "ruleId": str(obj.rule_id) if obj.rule_id else None,
+            "alertRuleId": str(obj.alert_rule_id) if obj.alert_rule_id else None,
             "workflowId": str(obj.workflow.id),
         }
