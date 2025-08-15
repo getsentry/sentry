@@ -4,10 +4,10 @@ import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 
-describe('getLogsUrlFromSavedQueryUrl', function () {
+describe('getLogsUrlFromSavedQueryUrl', () => {
   const organization = OrganizationFixture();
 
-  it('uses aggregate fn, aggregate param, and group by', function () {
+  it('uses aggregate fn, aggregate param, and group by', () => {
     const target = getLogsUrlFromSavedQueryUrl({
       organization,
       savedQuery: new SavedQuery({
@@ -47,7 +47,7 @@ describe('getLogsUrlFromSavedQueryUrl', function () {
     );
   });
 
-  it('uses aggregate fields', function () {
+  it('uses aggregate fields', () => {
     const target = getLogsUrlFromSavedQueryUrl({
       organization,
       savedQuery: new SavedQuery({
