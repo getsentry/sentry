@@ -65,8 +65,8 @@ async function closeSection() {
   );
 }
 
-describe('ReserveAdditionalVolume', function () {
-  describe('Legacy Plans', function () {
+describe('ReserveAdditionalVolume', () => {
+  describe('Legacy Plans', () => {
     const {organization} = initializeOrg();
     const subscription = SubscriptionFixture({
       organization,
@@ -95,7 +95,7 @@ describe('ReserveAdditionalVolume', function () {
       prevStepCompleted: true,
     };
 
-    beforeEach(function () {
+    beforeEach(() => {
       SubscriptionStore.set(organization.slug, subscription);
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
@@ -114,7 +114,7 @@ describe('ReserveAdditionalVolume', function () {
       });
     });
 
-    it('renders with event volumes', async function () {
+    it('renders with event volumes', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/promotions/trigger-check/`,
         method: 'POST',
@@ -155,7 +155,7 @@ describe('ReserveAdditionalVolume', function () {
       ]);
     });
 
-    it('displays performance unit types with feature', async function () {
+    it('displays performance unit types with feature', async () => {
       const org = OrganizationFixture({features: ['profiling-billing']});
       const props = {
         ...stepProps,
@@ -179,7 +179,7 @@ describe('ReserveAdditionalVolume', function () {
       expect(transactions).toContain('Sentry Performance');
     });
 
-    it('does not display performance unit types without feature', async function () {
+    it('does not display performance unit types without feature', async () => {
       const props = {
         ...stepProps,
         organization,
@@ -202,7 +202,7 @@ describe('ReserveAdditionalVolume', function () {
       expect(transactions).not.toContain('Sentry Performance');
     });
 
-    it('can hide sliders', async function () {
+    it('can hide sliders', async () => {
       render(<ReserveAdditionalVolume {...stepProps} />);
       await openSection();
       expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
@@ -211,7 +211,7 @@ describe('ReserveAdditionalVolume', function () {
     });
   });
 
-  describe('Modern Plans', function () {
+  describe('Modern Plans', () => {
     const {organization} = initializeOrg();
     const subscription = SubscriptionFixture({organization});
 
@@ -237,7 +237,7 @@ describe('ReserveAdditionalVolume', function () {
       prevStepCompleted: true,
     };
 
-    beforeEach(function () {
+    beforeEach(() => {
       SubscriptionStore.set(organization.slug, subscription);
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
@@ -256,7 +256,7 @@ describe('ReserveAdditionalVolume', function () {
       });
     });
 
-    it('renders with event volumes', async function () {
+    it('renders with event volumes', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/promotions/trigger-check/`,
         method: 'POST',
@@ -297,7 +297,7 @@ describe('ReserveAdditionalVolume', function () {
       ]);
     });
 
-    it('can hide sliders', async function () {
+    it('can hide sliders', async () => {
       render(<ReserveAdditionalVolume {...stepProps} />);
       await openSection();
       expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument();
