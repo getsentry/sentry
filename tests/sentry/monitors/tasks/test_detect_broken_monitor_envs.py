@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.grouping.utils import hash_from_values
+from sentry.issues.grouping.utils import hash_from_values
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,

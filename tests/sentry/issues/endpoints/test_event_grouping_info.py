@@ -4,9 +4,9 @@ import orjson
 from django.urls import reverse
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.grouping.api import _load_default_grouping_config, load_grouping_config
-from sentry.grouping.grouping_info import get_grouping_info
 from sentry.interfaces.stacktrace import StacktraceOrder
+from sentry.issues.grouping.api import _load_default_grouping_config, load_grouping_config
+from sentry.issues.grouping.grouping_info import get_grouping_info
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
@@ -173,7 +173,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         event = self.store_event(data=data, project_id=self.project.id)
 
         with mock.patch(
-            "sentry.grouping.api.get_grouping_variants_for_event"
+            "sentry.issues.grouping.api.get_grouping_variants_for_event"
         ) as mock_get_grouping_variants:
             event.data["grouping_config"]["id"] = "fake-config"
             grouping_config = load_grouping_config(event.get_grouping_config())
@@ -184,8 +184,8 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             assert mock_get_grouping_variants.call_args.args[0] == event
             assert mock_get_grouping_variants.call_args.args[1].id == DEFAULT_GROUPING_CONFIG
 
-    @mock.patch("sentry.grouping.grouping_info.logger")
-    @mock.patch("sentry.grouping.grouping_info.metrics")
+    @mock.patch("sentry.issues.grouping.grouping_info.logger")
+    @mock.patch("sentry.issues.grouping.grouping_info.metrics")
     def test_get_grouping_info_hash_mismatch(
         self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock
     ) -> None:

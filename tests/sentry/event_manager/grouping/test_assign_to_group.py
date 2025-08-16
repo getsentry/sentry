@@ -9,12 +9,12 @@ import pytest
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import _create_group
-from sentry.grouping.ingest.hashing import (
+from sentry.issues.grouping.ingest.hashing import (
     _calculate_primary_hashes_and_variants,
     _calculate_secondary_hashes,
     find_grouphash_with_group,
 )
-from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
+from sentry.issues.grouping.ingest.metrics import record_hash_calculation_metrics
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
@@ -22,7 +22,7 @@ from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import capture_results
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
+from tests.sentry.issues.grouping import NO_MSG_PARAM_CONFIG
 
 pytestmark = [requires_snuba]
 
@@ -41,11 +41,11 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
             wraps=wrapped_find_grouphash_with_group,
         ) as find_grouphash_with_group_spy,
         mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
+            "sentry.issues.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
             wraps=wrapped_calculate_primary_hashes,
         ) as calculate_primary_hashes_spy,
         mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
+            "sentry.issues.grouping.ingest.hashing._calculate_secondary_hashes",
             wraps=wrapped_calculate_secondary_hashes,
         ) as calculate_secondary_hashes_spy,
         mock.patch(

@@ -6,9 +6,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.grouping.api import load_grouping_config
-from sentry.grouping.grouping_info import get_grouping_info
 from sentry.interfaces.stacktrace import StacktraceOrder
+from sentry.issues.grouping.api import load_grouping_config
+from sentry.issues.grouping.grouping_info import get_grouping_info
 from sentry.services import eventstore
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
