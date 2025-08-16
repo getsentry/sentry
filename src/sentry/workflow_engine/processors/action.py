@@ -123,16 +123,19 @@ def update_workflow_action_group_statuses(
     )
 
 
-def deduplicate_actions(
+def get_unique_active_actions(
     actions_queryset: BaseQuerySet[Action],  # decorated with the workflow_ids
 ) -> BaseQuerySet[Action]:
     """
-    Deduplicates actions based on their handler's dedup_key method.
-    Returns a de-duplicated queryset of actions.
+    Returns a queryset of unique active actions based on their handler's dedup_key method.
     """
     dedup_key_to_action_id: dict[str, int] = {}
 
     for action in actions_queryset:
+        # We only want to fire active actions
+        if action.status != ObjectStatus.ACTIVE:
+            continue
+
         # workflow_id is annotated in the queryset
         workflow_id = getattr(action, "workflow_id")
         dedup_key = action.get_dedup_key(workflow_id)
@@ -144,7 +147,8 @@ def deduplicate_actions(
 def fire_actions(
     actions: BaseQuerySet[Action], detector: Detector, event_data: WorkflowEventData
 ) -> None:
-    deduped_actions = deduplicate_actions(actions)
+    deduped_actions = get_unique_active_actions(actions)
+
     for action in deduped_actions:
         task_params = build_trigger_action_task_params(action, detector, event_data)
         trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
