@@ -25,6 +25,7 @@ from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_m
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
@@ -75,7 +76,7 @@ def process_commit_context(
     sdk_name: str | None = None,
 ) -> None:
     """
-    For a given event, look at the first in_app frame, and if we can find who modified the line, we can then update who is assigned to the issue.
+    For a given event, look at ALL in_app frames, and if we can find who modified the line, we can then update who is assigned to the issue.
     """
     lock = locks.get(
         f"process-commit-context:{group_id}", duration=10, name="process_commit_context"
@@ -87,6 +88,7 @@ def process_commit_context(
             set_current_event_project(project_id)
 
             project = Project.objects.get_from_cache(id=project_id)
+            group = Group.objects.get_from_cache(id=group_id)
             set_tag("organization.slug", project.organization.slug)
 
             basic_logging_details = {
@@ -150,6 +152,7 @@ def process_commit_context(
                     project_id=project_id,
                     platform=event_platform,
                     sdk_name=sdk_name,
+                    group_first_seen=group.first_seen,
                     extra=basic_logging_details,
                 )
             except ApiError:
