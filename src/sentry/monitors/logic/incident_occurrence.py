@@ -27,6 +27,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
 )
+from sentry.monitors.utils import get_detector_for_monitor
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -144,6 +145,11 @@ def send_incident_occurrence(
     if last_successful_checkin:
         last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
 
+    detector = get_detector_for_monitor(monitor_env.monitor)
+    evidence_data = {}
+    if detector:
+        evidence_data["detector_id"] = detector.id
+
     occurrence = IssueOccurrence(
         id=uuid.uuid4().hex,
         resource_id=None,
@@ -170,7 +176,7 @@ def send_incident_occurrence(
                 important=False,
             ),
         ],
-        evidence_data={},
+        evidence_data=evidence_data,
         culprit="",
         detection_time=current_timestamp,
         level="error",
