@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 from django.utils.datastructures import OrderedSet
@@ -36,6 +36,9 @@ from sentry.utils.event_frames import EventFrame
 logger = logging.getLogger("sentry.tasks.process_commit_context")
 
 
+MAX_COMMIT_AGE_DAYS = 60
+
+
 def find_commit_context_for_event_all_frames(
     code_mappings: Sequence[RepositoryProjectPathConfig],
     frames: Sequence[Mapping[str, Any]],
@@ -43,6 +46,7 @@ def find_commit_context_for_event_all_frames(
     project_id: int,
     platform: str,
     sdk_name: str | None,
+    group_first_seen: datetime,
     extra: dict[str, Any],
 ) -> tuple[FileBlameInfo | None, IntegrationInstallation | None]:
     """
@@ -79,14 +83,23 @@ def find_commit_context_for_event_all_frames(
         extra=extra,
     )
 
-    most_recent_blame = max(file_blames, key=lambda blame: blame.commit.committedDate, default=None)
-    # Only return suspect commits that are less than 2 months old
-    selected_blame = (
-        most_recent_blame
-        if most_recent_blame
-        and is_date_less_than_two_months(most_recent_blame.commit.committedDate)
-        else None
-    )
+    # Sort blames by commit date (most recent first)
+    sorted_blames = sorted(file_blames, key=lambda blame: blame.commit.committedDate, reverse=True)
+
+    selected_blame = None
+    for blame in sorted_blames:
+        commit_date = blame.commit.committedDate
+
+        if is_too_young(group_first_seen, commit_date):
+            # Skip commits that happened after the issue was first seen
+            continue
+        elif is_too_old(group_first_seen, commit_date):
+            # Stop checking - all remaining commits will be even older
+            break
+        else:
+            # Found a valid commit within the time window
+            selected_blame = blame
+            break
 
     selected_install, selected_provider = (
         integration_to_install_mapping[selected_blame.code_mapping.organization_integration_id]
@@ -96,7 +109,7 @@ def find_commit_context_for_event_all_frames(
 
     _record_commit_context_all_frames_analytics(
         selected_blame=selected_blame,
-        most_recent_blame=most_recent_blame,
+        most_recent_blame=sorted_blames[0] if sorted_blames else None,
         organization_id=organization_id,
         project_id=project_id,
         extra=extra,
@@ -111,8 +124,23 @@ def find_commit_context_for_event_all_frames(
     return (selected_blame, selected_install)
 
 
-def is_date_less_than_two_months(date: datetime) -> bool:
-    return date > datetime.now(tz=timezone.utc) - timedelta(days=60)
+def is_too_young(group_first_seen: datetime, commit_date: datetime) -> bool:
+    """
+    Returns True if the commit happened after the issue was first seen.
+    These commits cannot have caused the issue.
+    """
+    return commit_date > group_first_seen
+
+
+def is_too_old(
+    group_first_seen: datetime, commit_date: datetime, max_age_days: int = MAX_COMMIT_AGE_DAYS
+) -> bool:
+    """
+    Returns True if the commit is too old to be considered relevant.
+    Commits older than max_age_days before the issue was first seen are ignored.
+    """
+    time_threshold = group_first_seen - timedelta(days=max_age_days)
+    return commit_date < time_threshold
 
 
 def get_or_create_commit_from_blame(
