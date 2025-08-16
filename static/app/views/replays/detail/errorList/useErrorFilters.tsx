@@ -4,15 +4,20 @@ import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export interface ErrorSelectOption extends SelectOption<string> {
-  qs: 'f_e_project';
+  qs: 'f_e_level' | 'f_e_project';
 }
 
-const DEFAULT_FILTERS = {f_e_project: []} as Record<ErrorSelectOption['qs'], string[]>;
+const DEFAULT_FILTERS = {
+  f_e_level: [],
+  f_e_project: [],
+} as Record<ErrorSelectOption['qs'], string[]>;
 
 export type FilterFields = {
+  f_e_level: string[];
   f_e_project: string[];
   f_e_search: string;
 };
@@ -22,6 +27,7 @@ type Options = {
 };
 
 type Return = {
+  getLevelOptions: () => ErrorSelectOption[];
   getProjectOptions: () => ErrorSelectOption[];
   items: ErrorFrame[];
   searchTerm: string;
@@ -31,6 +37,9 @@ type Return = {
 };
 
 const FILTERS = {
+  level: (item: ErrorFrame, levels: string[]) =>
+    levels.length === 0 || levels.includes(item.data.level.toLowerCase()),
+
   project: (item: ErrorFrame, projects: string[]) =>
     projects.length === 0 || projects.includes(item.data.projectSlug),
 
@@ -40,9 +49,10 @@ const FILTERS = {
     ),
 };
 
-function useErrorFilters({errorFrames}: Options): Return {
+export default function useErrorFilters({errorFrames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
+  const level = useMemo(() => decodeList(query.f_e_level), [query.f_e_level]);
   const project = useMemo(() => decodeList(query.f_e_project), [query.f_e_project]);
   const searchTerm = decodeScalar(query.f_e_search, '').toLowerCase();
 
@@ -51,9 +61,24 @@ function useErrorFilters({errorFrames}: Options): Return {
       filterItems({
         items: errorFrames,
         filterFns: FILTERS,
-        filterVals: {project, searchTerm},
+        filterVals: {project, level, searchTerm},
       }),
-    [errorFrames, project, searchTerm]
+    [errorFrames, project, level, searchTerm]
+  );
+
+  const getLevelOptions = useCallback(
+    () =>
+      Array.from(new Set(errorFrames.map(crumb => crumb.data.level).concat(level)))
+        .filter(Boolean)
+        .sort()
+        .map(
+          (value): ErrorSelectOption => ({
+            value: value.toLowerCase(),
+            label: toTitleCase(value),
+            qs: 'f_e_level',
+          })
+        ),
+    [errorFrames, level]
   );
 
   const getProjectOptions = useCallback(
@@ -93,12 +118,11 @@ function useErrorFilters({errorFrames}: Options): Return {
 
   return {
     getProjectOptions,
+    getLevelOptions,
     items,
     searchTerm,
-    selectValue: project,
+    selectValue: [...project, ...level],
     setFilters,
     setSearchTerm,
   };
 }
-
-export default useErrorFilters;
