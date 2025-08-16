@@ -37,4 +37,5 @@ class FeedbackCreationSource(Enum):
 
 
 def is_in_feedback_denylist(organization):
+    # Note option queries are cached.
     return organization.slug in options.get("feedback.organizations.slug-denylist")
