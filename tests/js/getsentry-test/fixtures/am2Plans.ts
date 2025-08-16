@@ -5047,7 +5047,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: -1,
-    metricDetectorLimit: 20,
+    metricDetectorLimit: -1,
   },
 };
 
