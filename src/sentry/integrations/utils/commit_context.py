@@ -79,10 +79,11 @@ def find_commit_context_for_event_all_frames(
     )
 
     most_recent_blame = max(file_blames, key=lambda blame: blame.commit.committedDate, default=None)
-    # Only return suspect commits that are less than a year old
+    # Only return suspect commits that are less than 2 months old
     selected_blame = (
         most_recent_blame
-        if most_recent_blame and is_date_less_than_year(most_recent_blame.commit.committedDate)
+        if most_recent_blame
+        and is_date_less_than_two_months(most_recent_blame.commit.committedDate)
         else None
     )
 
@@ -109,8 +110,8 @@ def find_commit_context_for_event_all_frames(
     return (selected_blame, selected_install)
 
 
-def is_date_less_than_year(date: datetime) -> bool:
-    return date > datetime.now(tz=timezone.utc) - timedelta(days=365)
+def is_date_less_than_two_months(date: datetime) -> bool:
+    return date > datetime.now(tz=timezone.utc) - timedelta(days=60)
 
 
 def get_or_create_commit_from_blame(
