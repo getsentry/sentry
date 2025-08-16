@@ -1,9 +1,8 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Shortcut, ShortcutRegistry} from 'sentry/utils/keyboardShortcuts/types';
@@ -26,8 +25,6 @@ export function ShortcutsHelpModal({
   activeShortcuts,
   registry,
 }: ShortcutsHelpModalProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-
   // Always get fresh shortcuts from registry
   const currentShortcuts = registry.getShortcuts();
 
@@ -76,34 +73,6 @@ export function ShortcutsHelpModal({
     return result;
   }, [activeShortcuts, currentShortcuts]);
 
-  // Filter shortcuts based on search term
-  const filteredCategories = useMemo(() => {
-    if (!searchTerm) {
-      return shortcutsByCategory;
-    }
-
-    const filtered = new Map<string, Shortcut[]>();
-    const lowerSearch = searchTerm.toLowerCase();
-
-    shortcutsByCategory.forEach((shortcuts, category) => {
-      const matchingShortcuts = shortcuts.filter(shortcut => {
-        const descMatch = shortcut.description.toLowerCase().includes(lowerSearch);
-        const keyMatch = (
-          Array.isArray(shortcut.key) ? shortcut.key : [shortcut.key]
-        ).some(k => k.toLowerCase().includes(lowerSearch));
-        const categoryMatch = category.toLowerCase().includes(lowerSearch);
-
-        return descMatch || keyMatch || categoryMatch;
-      });
-
-      if (matchingShortcuts.length > 0) {
-        filtered.set(category, matchingShortcuts);
-      }
-    });
-
-    return filtered;
-  }, [shortcutsByCategory, searchTerm]);
-
   const getCategoryTitle = (category: string): string => {
     const titles: Record<string, string> = {
       global: t('Global'),
@@ -127,47 +96,31 @@ export function ShortcutsHelpModal({
       </Header>
 
       <Body>
-        <SearchContainer>
-          <StyledInput
-            type="search"
-            placeholder={t('Search shortcuts...')}
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            autoFocus
-          />
-        </SearchContainer>
-
         <ShortcutsList>
-          {filteredCategories.size === 0 ? (
-            <EmptyMessage>
-              {t('No shortcuts found matching "%s"', searchTerm)}
-            </EmptyMessage>
-          ) : (
-            Array.from(filteredCategories.entries()).map(([category, shortcuts]) => (
-              <CategorySection key={category}>
-                <CategoryTitle>{getCategoryTitle(category)}</CategoryTitle>
-                <ShortcutsGrid>
-                  {shortcuts.map(shortcut => (
-                    <ShortcutRow key={shortcut.id}>
-                      <ShortcutDescription>{shortcut.description}</ShortcutDescription>
-                      <ShortcutKeys>
-                        {Array.isArray(shortcut.key) ? (
-                          shortcut.key.map((key, index) => (
-                            <span key={index}>
-                              <KeyboardShortcut shortcut={key} />
-                              {index < shortcut.key.length - 1 && <OrText>or</OrText>}
-                            </span>
-                          ))
-                        ) : (
-                          <KeyboardShortcut shortcut={shortcut.key} />
-                        )}
-                      </ShortcutKeys>
-                    </ShortcutRow>
-                  ))}
-                </ShortcutsGrid>
-              </CategorySection>
-            ))
-          )}
+          {Array.from(shortcutsByCategory.entries()).map(([category, shortcuts]) => (
+            <CategorySection key={category}>
+              <CategoryTitle>{getCategoryTitle(category)}</CategoryTitle>
+              <ShortcutsGrid>
+                {shortcuts.map(shortcut => (
+                  <ShortcutRow key={shortcut.id}>
+                    <ShortcutDescription>{shortcut.description}</ShortcutDescription>
+                    <ShortcutKeys>
+                      {Array.isArray(shortcut.key) ? (
+                        shortcut.key.map((key, index) => (
+                          <span key={index}>
+                            <KeyboardShortcut shortcut={key} />
+                            {index < shortcut.key.length - 1 && <OrText>or</OrText>}
+                          </span>
+                        ))
+                      ) : (
+                        <KeyboardShortcut shortcut={shortcut.key} />
+                      )}
+                    </ShortcutKeys>
+                  </ShortcutRow>
+                ))}
+              </ShortcutsGrid>
+            </CategorySection>
+          ))}
         </ShortcutsList>
       </Body>
 
@@ -180,14 +133,6 @@ export function ShortcutsHelpModal({
 
 const Container = styled('div')`
   max-width: 90vw;
-`;
-
-const SearchContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
-const StyledInput = styled(Input)`
-  width: 100%;
 `;
 
 const ShortcutsList = styled('div')`
@@ -267,11 +212,4 @@ const OrText = styled('span')`
   font-size: 12px;
   font-style: italic;
   margin: 0 ${space(0.5)};
-`;
-
-const EmptyMessage = styled('div')`
-  text-align: center;
-  color: ${p => p.theme.gray300};
-  padding: ${space(4)} 0;
-  font-size: 14px;
 `;
