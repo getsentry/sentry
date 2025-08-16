@@ -135,7 +135,7 @@ type Props = {
   useTeamDefaultIfOnlyOne?: boolean;
 } & ControlProps;
 
-type TeamActor = {
+export type TeamActor = {
   id: string;
   name: string;
   type: 'team';

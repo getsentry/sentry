@@ -1,16 +1,16 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {User} from '@sentry/types';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import type {TimeWindowConfig} from 'sentry/components/timeline/types';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import type {User} from 'sentry/types/user';
 import type {
   RotationPeriod,
   RotationSchedule,
 } from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
-import type {TimeWindowConfig} from 'sentry/views/monitors/components/timeline/types';
 
 interface Props {
   schedule: RotationSchedule;
@@ -25,16 +25,16 @@ function fillGapsInRotations(rotationPeriods: RotationPeriod[], start: Date, end
   rotationPeriods = rotationPeriods.slice(
     Math.min(firstPeriodIndex, rotationPeriods.length - 1)
   );
-  for (let i = 0; i < rotationPeriods.length; i++) {
-    if (rotationPeriods[i].startTime > start) {
+  for (const period of rotationPeriods) {
+    if (period.startTime > start) {
       filledRotations.push({
-        endTime: rotationPeriods[i].startTime,
+        endTime: period.startTime,
         startTime: start,
         userId: null,
       });
     }
-    filledRotations.push(rotationPeriods[i]);
-    start = rotationPeriods[i].endTime;
+    filledRotations.push(period);
+    start = period.endTime;
   }
   if (start < end) {
     filledRotations.push({
@@ -57,14 +57,16 @@ export function ScheduleTimelineRow({schedule, totalWidth, timeWindowConfig}: Pr
     theme.purple100,
     theme.red100,
   ];
-  const users = {};
-  const userColors = {};
+  const users: Record<string, User> = {};
+  const userColors: Record<string, string> = {};
   let i = 0;
   schedule.scheduleLayers.forEach(layer => {
     layer.users.forEach(user => {
-      users[user.id] = user;
-      if (!userColors[user.id]) {
-        userColors[user.id] = themeColors[i % themeColors.length];
+      if (user.id) {
+        users[user.id] = user;
+      }
+      if (user.id && !userColors[user.id]) {
+        userColors[user.id] = themeColors[i % themeColors.length] ?? '';
         i++;
       }
     });
@@ -153,15 +155,19 @@ function ScheduleTimeline({
             style={{
               left: currPosition - periodWidth,
               width: currPosition,
-              backgroundColor: userColors[userId],
+              backgroundColor: userColors[userId as keyof typeof userColors],
             }}
             key={index}
           >
             <UserAvatar
               style={{fillOpacity: 1.0}}
-              user={users[userId]}
+              user={users[userId as keyof typeof users]}
               hasTooltip
-              tooltip={tooltipContent(users[userId].name, startTime, endTime)}
+              tooltip={tooltipContent(
+                users[userId as keyof typeof users]?.name ?? '',
+                startTime,
+                endTime
+              )}
             />
             {/* {userId && <ScheduleName>{users[userId].name}</ScheduleName>} */}
           </SchedulePeriod>
@@ -211,15 +217,15 @@ const DetailsHeadline = styled('div')`
 `;
 
 const Name = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   word-break: break-word;
   margin-bottom: ${space(0.5)};
 `;
 const Description = styled('h3')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   word-break: break-word;
   margin-bottom: ${space(0.5)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.subText};
 `;
 
@@ -227,7 +233,7 @@ const ScheduleTitle = styled('h6')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
 `;
 
@@ -257,7 +263,7 @@ const ScheduleContainer = styled('div')`
 
 const ScheduleOuterContainer = styled('div')`
   position: relative;
-  height: calc(${p => p.theme.fontSizeLarge} * ${p => p.theme.text.lineHeightHeading});
+  height: calc(${p => p.theme.fontSize.lg} * ${p => p.theme.text.lineHeightHeading});
   opacity: var(--disabled-opacity);
 `;
 

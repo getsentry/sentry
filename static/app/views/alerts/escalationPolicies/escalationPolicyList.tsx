@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Timeline from 'sentry/components/timeline';
+import type {TeamActor} from 'sentry/components/teamSelector';
+import {Timeline} from 'sentry/components/timeline';
 import {IconClock, IconExclamation, IconMegaphone, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Team, User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -21,6 +21,7 @@ import {
   useFetchEscalationPolicies,
 } from 'sentry/views/escalationPolicies/queries/useFetchEscalationPolicies';
 import type {RotationSchedule} from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
+import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
 
 function NotifyItem({recipients}: {recipients: EscalationPolicyStepRecipient[]}) {
   const users: User[] =
@@ -29,12 +30,12 @@ function NotifyItem({recipients}: {recipients: EscalationPolicyStepRecipient[]})
         return r.type === 'user';
       })
       .map(r => r.data as User) || [];
-  const teams: Team[] =
+  const teams: TeamActor[] =
     recipients
       .filter(r => {
         return r.type === 'team';
       })
-      .map(r => r.data as Team) || [];
+      .map(r => r.data as TeamActor) || [];
   const schedules: RotationSchedule[] =
     recipients
       .filter(r => {
@@ -166,7 +167,7 @@ function EscalationPolicyList() {
       <SentryDocumentTitle title={t('Escalation Policies')} orgSlug={organization.slug} />
 
       <PageFiltersContainer>
-        <AlertHeader router={router} activeTab="policies" />
+        <AlertHeader activeTab="policies" />
         <Layout.Body>
           <Layout.Main fullWidth>
             <EscalationPolicyTimelineList>
@@ -248,7 +249,7 @@ const SideBarTitle = styled('h6')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(1)} 0 0;
 `;
 

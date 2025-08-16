@@ -73,16 +73,24 @@ function AvatarList({
   renderCollapsedAvatars,
 }: Props) {
   let remaining = maxVisibleAvatars;
-  const visibleAvatarsByType = {
+  type AvatarTypeKey = 'schedules' | 'teams' | 'users';
+  type VisibleAvatarsByType = {
+    schedules: RotationSchedule[];
+    teams: Team[];
+    users: Array<AvatarUser | Actor>;
+  };
+
+  const visibleAvatarsByType: VisibleAvatarsByType = {
     schedules,
     teams,
     users,
   };
-  ['schedules', 'teams', 'users'].forEach(key => {
+
+  (['schedules', 'teams', 'users'] as AvatarTypeKey[]).forEach(key => {
     if (remaining - visibleAvatarsByType[key].length > 0) {
       remaining -= visibleAvatarsByType[key].length;
     } else {
-      visibleAvatarsByType[key] = visibleAvatarsByType[key].slice(0, remaining);
+      visibleAvatarsByType[key] = visibleAvatarsByType[key].slice(0, remaining) as any;
       remaining = 0;
     }
   });
@@ -100,7 +108,7 @@ function AvatarList({
     tooltipOptions.position = 'top';
   }
 
-  const users = visibleAvatarsByType.users.map(user => (
+  const userAvatars = visibleAvatarsByType.users.map(user => (
     <StyledUserAvatar
       key={user.id}
       user={user}
@@ -110,7 +118,7 @@ function AvatarList({
       hasTooltip
     />
   ));
-  const teams = visibleAvatarsByType.teams.map(team => (
+  const teamAvatars = visibleAvatarsByType.teams.map(team => (
     <StyledTeamAvatar
       key={`${team.id}-${team.name}`}
       team={team}
@@ -119,7 +127,7 @@ function AvatarList({
       hasTooltip
     />
   ));
-  const schedules = visibleAvatarsByType.schedules.map(schedule => (
+  const scheduleAvatars = visibleAvatarsByType.schedules.map(schedule => (
     <StyledScheduleAvatar
       key={`${schedule.id}-${schedule.name}`}
       schedule={schedule}
@@ -146,7 +154,9 @@ function AvatarList({
           </Tooltip>
         ))}
 
-      {renderUsersFirst ? schedules + teams + users : users + schedules + teams}
+      {renderUsersFirst
+        ? [...scheduleAvatars, ...teamAvatars, ...userAvatars]
+        : [...userAvatars, ...scheduleAvatars, ...teamAvatars]}
     </AvatarListWrapper>
   );
 }

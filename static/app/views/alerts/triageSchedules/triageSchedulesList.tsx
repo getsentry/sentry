@@ -1,7 +1,14 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
+import {DateNavigator} from 'sentry/components/checkInTimeline/dateNavigator';
+import {
+  GridLineLabels,
+  GridLineOverlay,
+} from 'sentry/components/checkInTimeline/gridLines';
+import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDateNavigation';
+import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
@@ -10,7 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,13 +28,6 @@ import {
   type RotationSchedule,
   useFetchRotationSchedules,
 } from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
-import {DateNavigator} from 'sentry/views/monitors/components/timeline/dateNavigator';
-import {
-  GridLineLabels,
-  GridLineOverlay,
-} from 'sentry/views/monitors/components/timeline/gridLines';
-import {useDateNavigation} from 'sentry/views/monitors/components/timeline/hooks/useDateNavigation';
-import {getConfigFromTimeRange} from 'sentry/views/monitors/components/timeline/utils/getConfigFromTimeRange';
 
 export interface UserSchedulePeriod {
   backgroundColor: string;
@@ -71,7 +71,7 @@ function ScheduleList() {
     <Fragment>
       <SentryDocumentTitle title={t('Escalation Policies')} orgSlug={organization.slug} />
       <PageFiltersContainer>
-        <AlertHeader router={router} activeTab="schedules" />
+        <AlertHeader activeTab="schedules" />
         <Layout.Body>
           <Layout.Main fullWidth>
             <MonitorListPanel role="region">
@@ -99,7 +99,6 @@ function ScheduleList() {
                 stickyCursor
                 allowZoom
                 showCursor={!isLoading}
-                showIncidents={!isLoading}
                 timeWindowConfig={timeWindowConfig}
               />
 
@@ -139,8 +138,8 @@ const Header = styled(Sticky)`
 
   z-index: 1;
   background: ${p => p.theme.background};
-  border-top-left-radius: ${p => p.theme.panelBorderRadius};
-  border-top-right-radius: ${p => p.theme.panelBorderRadius};
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
   box-shadow: 0 1px ${p => p.theme.translucentBorder};
 
   &[data-stuck] {

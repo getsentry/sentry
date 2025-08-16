@@ -54,7 +54,7 @@ export const useDeleteEscalationPolicy = (
     onMutate: async variables => {
       // Delete escalation policy from FE cache
       await queryClient.cancelQueries(
-        makeFetchEscalationPoliciesKey({orgSlug: variables.orgSlug})
+        makeFetchEscalationPoliciesKey({orgSlug: variables.orgSlug}) as any
       );
 
       const previousEscalationPolicies = getApiQueryData<EscalationPolicy[]>(

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
@@ -27,13 +27,13 @@ const StyledLoadingError = styled(LoadingError)`
   border-width: 1px 0;
 `;
 const StyledPanelTable = styled(PanelTable)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     overflow: initial;
   }
 
   grid-template-columns: 500px 150px auto auto 100px;
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const StyledSortLink = styled(Link)`
@@ -83,7 +83,7 @@ function OccurrencesPage() {
       <SentryDocumentTitle title={t('Occurrences')} orgSlug={organization.slug} />
 
       <PageFiltersContainer>
-        <AlertHeader router={router} activeTab="occurrences" />
+        <AlertHeader activeTab="occurrences" />
         <Layout.Body>
           <Layout.Main fullWidth>
             <StyledPanelTable
@@ -96,11 +96,11 @@ function OccurrencesPage() {
                   key="status"
                   role="columnheader"
                   aria-sort={
-                    sort.field !== 'status'
-                      ? 'none'
-                      : sort.asc
+                    sort.field === 'status'
+                      ? sort.asc
                         ? 'ascending'
                         : 'descending'
+                      : 'none'
                   }
                   to={{
                     pathname: location.pathname,

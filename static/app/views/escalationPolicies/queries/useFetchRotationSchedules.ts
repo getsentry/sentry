@@ -1,10 +1,10 @@
+import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import type {User} from 'sentry/types/user';
 import {
   type ApiQueryKey,
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type {TimeWindowConfig} from 'sentry/views/monitors/components/timeline/types';
 
 export interface RotationPeriod {
   endTime: Date;
@@ -27,7 +27,7 @@ export interface ScheduleLayer {
   handoffTime: string;
   rotationPeriods: RotationPeriod[];
   rotationType: string;
-  scheduleLayerRestrictions: object;
+  scheduleLayerRestrictions: Record<PropertyKey, unknown>;
   startTime: string;
   users: User[];
 }

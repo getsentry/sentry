@@ -1,4 +1,4 @@
-import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {RotationSchedule} from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
 
 interface Props extends BaseAvatarProps {

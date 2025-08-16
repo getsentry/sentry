@@ -47,7 +47,7 @@ export const useUpdateEscalationPolicyState = (
         {
           method: 'PUT',
           data: {
-            state: state,
+            state,
           },
         }
       ),

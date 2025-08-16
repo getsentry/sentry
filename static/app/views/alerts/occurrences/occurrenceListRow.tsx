@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Tag from 'sentry/components/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Link} from 'sentry/components/core/link/link';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Text from 'sentry/components/text';
 import TimeSince from 'sentry/components/timeSince';
@@ -37,14 +37,13 @@ type Props = {
 export function OccurrenceListRow({escalationPolicyState}: Props) {
   const org = useOrganization();
 
-  const {mutateAsync: updateEscalationPolicyState, isLoading: isStatusLoading} =
-    useUpdateEscalationPolicyState({});
+  const {mutateAsync: updateEscalationPolicyState} = useUpdateEscalationPolicyState({});
 
   const handleStatusChange = async (id: number, state: EscalationPolicyStateTypes) => {
     await updateEscalationPolicyState({
       escalationPolicyStateId: id,
       orgSlug: org.slug,
-      state: state,
+      state,
     });
 
     return id + status;
@@ -142,7 +141,7 @@ function EscalationPolicyStateBadge({
         icon={
           loading && (
             <Fragment>
-              <StyledLoadingIndicator mini hideMessage relative size={16} />
+              <StyledLoadingIndicator mini relative size={16} />
             </Fragment>
           )
         }

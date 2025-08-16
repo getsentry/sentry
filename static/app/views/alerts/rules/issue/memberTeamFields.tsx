@@ -53,8 +53,10 @@ class MemberTeamFields extends Component<Props> {
     this.handleChange('targetType', optionRecord.value);
   };
 
-  handleChangeActorId = (optionRecord: OptionRecord & Record<string, any>) => {
-    this.handleChange('targetIdentifier', optionRecord.value);
+  handleChangeActorId = (optionRecord: any) => {
+    if (optionRecord?.value) {
+      this.handleChange('targetIdentifier', optionRecord.value);
+    }
   };
 
   render(): React.ReactElement {
@@ -119,7 +121,7 @@ class MemberTeamFields extends Component<Props> {
               />
             ) : policySelected ? (
               <PolicySelector
-                onChange={this.handleChangeActorId}
+                onChange={this.handleChangeActorId as any}
                 organization={organization}
                 key={policyValue}
                 value={`${ruleData.targetIdentifier}`}

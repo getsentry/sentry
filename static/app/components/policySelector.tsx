@@ -1,23 +1,18 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {createFilter} from 'react-select';
 import type {Theme} from '@emotion/react';
 
 import type {
   ControlProps,
   GeneralSelectValue,
   StylesConfig,
-} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {
   type EscalationPolicy,
   useFetchEscalationPolicies,
 } from 'sentry/views/escalationPolicies/queries/useFetchEscalationPolicies';
-
-const optionFilter = createFilter({
-  stringify: option => `${option.label} ${option.value}`,
-});
 
 const getOptionValue = (option: PolicyOption) => option.value;
 
@@ -84,12 +79,12 @@ function PolicySelector(props: Props) {
     (newValue: PolicyOption | PolicyOption[]) => {
       if (multiple) {
         const options = newValue as PolicyOption[];
-        onChange?.(options);
+        onChange?.(options as any);
         return;
       }
 
       const option = newValue as PolicyOption;
-      onChange?.(option);
+      onChange?.(option as any);
     },
     [multiple, onChange]
   );
@@ -107,7 +102,7 @@ function PolicySelector(props: Props) {
   );
 
   return (
-    <SelectControl
+    <Select
       ref={selectRef}
       options={options}
       getOptionValue={getOptionValue}

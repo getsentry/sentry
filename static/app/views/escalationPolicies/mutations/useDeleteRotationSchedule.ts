@@ -53,9 +53,9 @@ export const useDeleteRotationSchedule = (
       ),
     onMutate: async variables => {
       // Delete rotation schedule from FE cache
-      await queryClient.cancelQueries(
-        makeFetchRotationSchedulesKey({orgSlug: variables.orgSlug})
-      );
+      await queryClient.cancelQueries({
+        queryKey: makeFetchRotationSchedulesKey({orgSlug: variables.orgSlug}),
+      } as any);
 
       const previousRotationSchedules = getApiQueryData<RotationSchedule[]>(
         queryClient,
