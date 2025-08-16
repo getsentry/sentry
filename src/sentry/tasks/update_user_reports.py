@@ -118,6 +118,9 @@ def update_user_reports(
                             project,
                             FeedbackCreationSource.UPDATE_USER_REPORTS_TASK,
                         )
+                    else:
+                        metrics.incr("feedback.ingest.denylist")
+
                 # XXX(aliu): If a report has environment_id but not group_id, this report was shimmed from a feedback issue, so no need to shim again.
                 report.update(group_id=event.group_id, environment_id=event.get_environment().id)
                 updated_reports += 1
