@@ -268,6 +268,7 @@ const AM3_PLANS: Record<string, Plan> = {
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     dashboardLimit: -1,
+    metricDetectorLimit: -1,
     planCategories: {
       errors: [
         {
@@ -1470,6 +1471,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent: {
     id: 'am3_business_ent',
@@ -1575,6 +1577,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent_auf: {
     id: 'am3_business_ent_auf',
@@ -1680,6 +1683,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent_ds: {
     id: 'am3_business_ent_ds',
@@ -1793,6 +1797,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_business_ent_ds_auf: {
     id: 'am3_business_ent_ds_auf',
@@ -1906,6 +1911,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am3_f: {
     id: 'am3_f',
@@ -2011,6 +2017,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: 10,
+    metricDetectorLimit: 20,
   },
   am3_t_ent: {
     id: 'am3_t_ent',
@@ -2116,6 +2123,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am3_t_ent_ds: {
     id: 'am3_t_ent_ds',
@@ -2229,6 +2237,7 @@ const AM3_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
     availableReservedBudgetTypes: AM3_DS_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am3_team: {
     id: 'am3_team',
@@ -2257,6 +2266,7 @@ const AM3_PLANS: Record<string, Plan> = {
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     dashboardLimit: 20,
+    metricDetectorLimit: 20,
     planCategories: {
       errors: [
         {
@@ -2764,6 +2774,7 @@ const AM3_PLANS: Record<string, Plan> = {
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     dashboardLimit: 20,
+    metricDetectorLimit: 20,
     planCategories: {
       errors: [
         {
@@ -3271,6 +3282,7 @@ const AM3_PLANS: Record<string, Plan> = {
     hasOnDemandModes: false,
     budgetTerm: BUDGET_TERM,
     dashboardLimit: 20,
+    metricDetectorLimit: 20,
     planCategories: {
       errors: [
         {
