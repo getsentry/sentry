@@ -34,6 +34,7 @@ from sentry.replays.usecases.query import (
     make_full_aggregation_query,
     query_using_optimized_search,
 )
+from sentry.search.events.types import SnubaParams
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -902,3 +903,50 @@ def compute_has_viewed(viewed_by_id: int | None) -> Function:
         ],
         alias="has_viewed",
     )
+
+
+def build_replay_events_query(
+    dataset,
+    selected_columns: list[str],
+    query: str | None,
+    snuba_params: SnubaParams,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int = 0,
+    limit: int = 10,
+    referrer: str = "api.replay.details-page",
+) -> dict[str, Any]:
+    """
+    Build a reusable query configuration for replay events.
+
+    Args:
+        dataset: The Snuba dataset to query against
+        selected_columns: List of columns to select
+        query: Optional query string
+        snuba_params: Snuba parameters including project IDs, time range, etc.
+        equations: Optional list of equations
+        orderby: Optional ordering specification
+        offset: Pagination offset
+        limit: Pagination limit
+        referrer: Referrer string for tracking
+
+    Returns:
+        Query result from the dataset
+    """
+    query_details = {
+        "selected_columns": selected_columns,
+        "query": query,
+        "snuba_params": snuba_params,
+        "equations": equations,
+        "orderby": orderby,
+        "offset": offset,
+        "limit": limit,
+        "referrer": referrer,
+        "auto_fields": True,
+        "auto_aggregations": True,
+        "use_aggregate_conditions": True,
+        "allow_metric_aggregates": False,
+        "transform_alias_to_input_format": True,
+    }
+
+    return dataset.query(**query_details)
