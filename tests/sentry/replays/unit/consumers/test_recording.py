@@ -5,17 +5,17 @@ import msgpack
 import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.types import FilteredPayload, Message, Value
+from django.test import override_settings
 
 from sentry.replays.consumers.recording import (
     DropSilently,
-    commit_message,
-    commit_message_with_options,
+    commit_message_with_profiling,
     decompress_segment,
     parse_headers,
     parse_recording_event,
     parse_request_message,
     process_message,
-    process_message_with_options,
+    process_message_with_profiling,
 )
 from sentry.replays.usecases.ingest import ProcessedEvent
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
@@ -530,26 +530,28 @@ def make_processed_event_message(processed_event: ProcessedEvent) -> Message[Pro
     return Message(Value(processed_event, {}))
 
 
-def make_valid_message() -> dict:
+def make_valid_message() -> Message[KafkaPayload]:
     original_payload = b'[{"type": "test", "data": "some event data"}]'
     compressed_payload = zlib.compress(original_payload)
     segment_id = 42
     headers = json.dumps({"segment_id": segment_id}).encode()
     recording_payload = headers + b"\n" + compressed_payload
 
-    return {
-        "type": "replay_recording_not_chunked",
-        "org_id": 3,
-        "project_id": 4,
-        "replay_id": "1",
-        "received": 2,
-        "retention_days": 30,
-        "payload": recording_payload,
-        "key_id": 1,
-        "replay_event": b"{}",
-        "replay_video": b"",
-        "version": 0,
-    }
+    return make_kafka_message(
+        {
+            "type": "replay_recording_not_chunked",
+            "org_id": 3,
+            "project_id": 4,
+            "replay_id": "1",
+            "received": 2,
+            "retention_days": 30,
+            "payload": recording_payload,
+            "key_id": 1,
+            "replay_event": b"{}",
+            "replay_video": b"",
+            "version": 0,
+        }
+    )
 
 
 def make_valid_processed_event() -> ProcessedEvent:
@@ -577,95 +579,95 @@ def make_valid_processed_event() -> ProcessedEvent:
     )
 
 
-@patch("sentry.replays.consumers.recording.sentry_sdk.profiler")
-@pytest.mark.parametrize("profiling_enabled", [True, False])
-def test_process_message_profiling(mock_profiler, profiling_enabled) -> None:
-    """Test that profiling is started and stopped when enabled, and not when disabled."""
-    message = make_valid_message()
-    kafka_message = make_kafka_message(message)
-    result = process_message(kafka_message, profiling_enabled=profiling_enabled)
-
-    assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
-    assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
-
-    assert isinstance(result, ProcessedEvent)
-
-
-@patch("sentry.replays.consumers.recording.sentry_sdk.profiler")
-@pytest.mark.parametrize("profiling_enabled", [True, False])
-def test_commit_message_profiling(mock_profiler, profiling_enabled) -> None:
-    """Test that profiling is started and stopped when enabled, and not when disabled."""
-    processed_event = make_valid_processed_event()
-    commit_message(
-        make_processed_event_message(processed_event), profiling_enabled=profiling_enabled
-    )
-
-    assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
-    assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
-
-
-@patch("sentry.replays.consumers.recording.sentry_sdk.profiler")
-@patch("sentry.replays.consumers.recording.parse_recording_event")
-@pytest.mark.parametrize("profiling_enabled", [True, False])
-def test_process_message_profiling_on_error(
-    mock_parse_recording_event, mock_profiler, profiling_enabled
-) -> None:
-    """Test that profiling is started and stopped when enabled, and not when disabled, even on error."""
-    mock_parse_recording_event.side_effect = Exception("test error")
-
-    message = make_valid_message()
-    kafka_message = make_kafka_message(message)
-    result = process_message(kafka_message, profiling_enabled=profiling_enabled)
-
-    assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
-    assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
-    assert result == FilteredPayload()
-
-
-@patch("sentry.replays.consumers.recording.sentry_sdk.profiler")
-@patch("sentry.replays.consumers.recording.commit_recording_message")
-@pytest.mark.parametrize("profiling_enabled", [True, False])
-def test_commit_message_profiling_on_error(
-    mock_commit_recording_message, mock_profiler, profiling_enabled
-) -> None:
-    """Test that profiling is started and stopped when enabled, and not when disabled, even on error."""
-    mock_commit_recording_message.side_effect = Exception("test error")
-
-    processed_event = make_valid_processed_event()
-    commit_message(
-        make_processed_event_message(processed_event), profiling_enabled=profiling_enabled
-    )
-
-    assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
-    assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
-
-
-@patch("sentry.replays.consumers.recording.options.get")
-@patch("sentry.replays.consumers.recording.commit_message")
-@pytest.mark.parametrize("profiling_enabled", [True, False])
-def test_commit_message_with_options(mock_commit_message, mock_options, profiling_enabled) -> None:
-    """Test that commit_message_with_options calls commit_message with the correct profiling_enabled value."""
-    mock_options.return_value = profiling_enabled
-
-    processed_event = make_valid_processed_event()
-    commit_message_with_options(make_processed_event_message(processed_event))
-
-    assert mock_commit_message.call_count == 1
-    assert mock_commit_message.call_args[1]["profiling_enabled"] == profiling_enabled
-
-
-@patch("sentry.replays.consumers.recording.options.get")
+@pytest.mark.parametrize(
+    "mock_dsn,sample_rate",
+    [
+        ("http://test@localhost:8000/1", 1.0),  # Profiling active: DSN and sample rate > 0
+        ("http://test@localhost:8000/1", 0),  # Profiling inactive: DSN but sample rate = 0
+        (None, 1.0),  # Profiling inactive: no DSN
+        (None, 0),  # Profiling inactive: no DSN and sample rate = 0
+    ],
+)
+@patch("sentry_sdk.profiler.start_profiler")
+@patch("sentry_sdk.profiler.stop_profiler")
+@patch("sentry_sdk.init")
 @patch("sentry.replays.consumers.recording.process_message")
-@pytest.mark.parametrize("profiling_enabled", [True, False])
-def test_process_message_with_options(
-    mock_process_message, mock_options, profiling_enabled
-) -> None:
-    """Test that process_message_with_options calls process_message with the correct profiling_enabled value."""
-    mock_options.return_value = profiling_enabled
+def test_process_message_with_profiling(
+    mock_process_message,
+    mock_sdk_init,
+    mock_stop_profiler,
+    mock_start_profiler,
+    mock_dsn,
+    sample_rate,
+):
+    mock_process_message.return_value = FilteredPayload()
 
     message = make_valid_message()
-    kafka_message = make_kafka_message(message)
-    process_message_with_options(kafka_message)
 
-    assert mock_process_message.call_count == 1
-    assert mock_process_message.call_args[1]["profiling_enabled"] == profiling_enabled
+    settings_overrides = {
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": mock_dsn,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE": 0,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": sample_rate,
+    }
+
+    with override_settings(**settings_overrides):
+        result = process_message_with_profiling(message)
+
+    assert result == FilteredPayload()
+    mock_process_message.assert_called_once_with(message)
+
+    profiling_active = mock_dsn is not None and sample_rate > 0
+    if profiling_active:
+        mock_sdk_init.assert_called_once()
+        mock_start_profiler.assert_called_once()
+        mock_stop_profiler.assert_called_once()
+    else:
+        mock_sdk_init.assert_not_called()
+        mock_start_profiler.assert_not_called()
+        mock_stop_profiler.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "mock_dsn,sample_rate",
+    [
+        ("http://test@localhost:8000/1", 1.0),  # Profiling active: DSN and sample rate > 0
+        ("http://test@localhost:8000/1", 0),  # Profiling inactive: sample rate = 0
+        (None, 1.0),  # Profiling inactive: no DSN
+        (None, 0),  # Profiling inactive: no DSN and sample rate = 0
+    ],
+)
+@patch("sentry_sdk.profiler.start_profiler")
+@patch("sentry_sdk.profiler.stop_profiler")
+@patch("sentry_sdk.init")
+@patch("sentry.replays.consumers.recording.commit_message")
+def test_commit_message_with_profiling(
+    mock_commit_message,
+    mock_sdk_init,
+    mock_stop_profiler,
+    mock_start_profiler,
+    mock_dsn,
+    sample_rate,
+):
+    processed_event = make_valid_processed_event()
+    message = make_processed_event_message(processed_event)
+
+    settings_overrides = {
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": mock_dsn,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE": 0,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": sample_rate,
+    }
+
+    with override_settings(**settings_overrides):
+        commit_message_with_profiling(message)
+
+    mock_commit_message.assert_called_once_with(message)
+
+    profiling_active = mock_dsn is not None and sample_rate > 0
+    if profiling_active:
+        mock_sdk_init.assert_called_once()
+        mock_start_profiler.assert_called_once()
+        mock_stop_profiler.assert_called_once()
+    else:
+        mock_sdk_init.assert_not_called()
+        mock_start_profiler.assert_not_called()
+        mock_stop_profiler.assert_not_called()
