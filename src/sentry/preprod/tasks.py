@@ -105,14 +105,7 @@ def assemble_preprod_artifact(
             project_id=project_id,
             organization_id=org_id,
             artifact_id=artifact_id,
-            head_sha=kwargs.get("head_sha"),
-            base_sha=kwargs.get("base_sha"),
-            provider=kwargs.get("provider"),
-            head_repo_name=kwargs.get("head_repo_name"),
-            base_repo_name=kwargs.get("base_repo_name"),
-            head_ref=kwargs.get("head_ref"),
-            base_ref=kwargs.get("base_ref"),
-            pr_number=kwargs.get("pr_number"),
+            **kwargs,
         )
 
     except Exception as e:
