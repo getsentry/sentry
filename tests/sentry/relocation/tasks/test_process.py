@@ -416,7 +416,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
 
     # -1 minutes guarantees a timeout, even during synchronous execution.
-    @patch("sentry.relocation.tasks.process.CROSS_REGION_EXPORT_TIMEOUT", timedelta(minutes=-1))
+    @patch("sentry.relocation.tasks.process.CROSS_REGION_EXPORT_TIMEOUT", timedelta(minutes=0))
     def test_fail_due_to_timeout(
         self, uploading_complete_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
