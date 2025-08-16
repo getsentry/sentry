@@ -147,6 +147,14 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                 checksum=checksum,
                 build_configuration=data.get("build_configuration"),
                 release_notes=data.get("release_notes"),
+                head_sha=data.get("head_sha"),
+                base_sha=data.get("base_sha"),
+                provider=data.get("provider"),
+                head_repo_name=data.get("head_repo_name"),
+                base_repo_name=data.get("base_repo_name"),
+                head_ref=data.get("head_ref"),
+                base_ref=data.get("base_ref"),
+                pr_number=data.get("pr_number"),
             )
 
             if artifact_id is None:
@@ -165,15 +173,6 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                     "chunks": chunks,
                     "artifact_id": artifact_id,
                     "build_configuration": data.get("build_configuration"),
-                    # VCS parameters
-                    "head_sha": data.get("head_sha"),
-                    "base_sha": data.get("base_sha"),
-                    "provider": data.get("provider"),
-                    "head_repo_name": data.get("head_repo_name"),
-                    "base_repo_name": data.get("base_repo_name"),
-                    "head_ref": data.get("head_ref"),
-                    "base_ref": data.get("base_ref"),
-                    "pr_number": data.get("pr_number"),
                 }
             )
             if is_org_auth_token_auth(request.auth):
