@@ -7,8 +7,8 @@ import PreventAIOnboarding from './onboarding';
 
 jest.mock('sentry-images/features/prevent-hero.svg', () => 'prevent-hero-mock.svg');
 jest.mock(
-  'sentry-images/features/prevent-pr-comment.png',
-  () => 'prevent-pr-comment-mock.png'
+  'sentry-images/features/prevent-pr-comments.png',
+  () => 'prevent-pr-comments-mock.png'
 );
 
 describe('PreventAIOnboarding', () => {
@@ -131,9 +131,9 @@ describe('PreventAIOnboarding', () => {
     const heroImage = screen.getByAltText('Prevent AI Hero');
     expect(heroImage).toBeInTheDocument();
 
-    const prCommentImage = screen.getByAltText('Prevent PR Comment');
-    expect(prCommentImage).toBeInTheDocument();
-    expect(prCommentImage).toHaveAttribute('src', 'prevent-pr-comment-mock.png');
+    const prCommentsImage = screen.getByAltText('Prevent PR Comments');
+    expect(prCommentsImage).toBeInTheDocument();
+    expect(prCommentsImage).toHaveAttribute('src', 'prevent-pr-comments-mock.png');
   });
 
   it('renders admin notice text', () => {
