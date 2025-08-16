@@ -738,7 +738,6 @@ from .endpoints.project_profiling_profile import (
     ProjectProfilingRawProfileEndpoint,
 )
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
-from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_actions import ProjectRuleActionsEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
 from .endpoints.project_rule_enable import ProjectRuleEnableEndpoint
@@ -2923,11 +2922,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/user-stats/$",
         ProjectUserStatsEndpoint.as_view(),
         name="sentry-api-0-project-userstats",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/reprocessing/$",
-        ProjectReprocessingEndpoint.as_view(),
-        name="sentry-api-0-project-reprocessing",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/ownership/$",
