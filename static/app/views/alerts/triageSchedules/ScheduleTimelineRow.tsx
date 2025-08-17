@@ -1,8 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import type {TimeWindowConfig} from 'sentry/components/timeline/types';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';

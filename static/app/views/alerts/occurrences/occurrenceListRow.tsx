@@ -86,7 +86,7 @@ export function OccurrenceListRow({escalationPolicyState}: Props) {
       </OccurrenceNameWrapper>
       <EscalationPolicyStateBadge
         state={escalationPolicyState.state}
-        loading={isStatusLoading}
+        loading={false} /* TODO: re-add loading state */
       />
       <StyledTimeSince date={escalationPolicyState.dateAdded} />
       <StyledText>{escalationPolicyState.escalationPolicy.name}</StyledText>

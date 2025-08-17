@@ -5,11 +5,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import type {TeamActor} from 'sentry/components/teamSelector';
 import {Timeline} from 'sentry/components/timeline';
 import {IconClock, IconExclamation, IconMegaphone, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -30,12 +30,12 @@ function NotifyItem({recipients}: {recipients: EscalationPolicyStepRecipient[]})
         return r.type === 'user';
       })
       .map(r => r.data as User) || [];
-  const teams: TeamActor[] =
+  const teams: Team[] =
     recipients
       .filter(r => {
         return r.type === 'team';
       })
-      .map(r => r.data as TeamActor) || [];
+      .map(r => r.data as Team) || [];
   const schedules: RotationSchedule[] =
     recipients
       .filter(r => {
