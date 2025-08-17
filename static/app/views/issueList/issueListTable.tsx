@@ -21,6 +21,7 @@ interface IssueListTableProps {
   displayReprocessingActions: boolean;
   error: string | null;
   groupIds: string[];
+  isIssueListLoaded: boolean;
   issuesLoading: boolean;
   issuesSuccessfullyLoaded: boolean;
   memberList: IndexedMembersByProject;
@@ -29,6 +30,7 @@ interface IssueListTableProps {
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
   pageLinks: string;
+  pageSize: number;
   paginationAnalyticsEvent: (direction: string) => void;
   paginationCaption: React.ReactNode;
   query: string;
@@ -59,6 +61,8 @@ function IssueListTable({
   onCursor,
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
+  isIssueListLoaded,
+  pageSize,
 }: IssueListTableProps) {
   const location = useLocation();
 
@@ -110,10 +114,12 @@ function IssueListTable({
                 displayReprocessingLayout={displayReprocessingActions}
                 query={query}
                 selectedProjectIds={selection.projects}
+                isIssueListLoaded={isIssueListLoaded}
                 loading={issuesLoading}
                 error={error}
                 refetchGroups={refetchGroups}
                 onActionTaken={onActionTaken}
+                pageSize={pageSize}
               />
             </VisuallyCompleteWithData>
           </PanelBody>

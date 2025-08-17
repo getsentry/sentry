@@ -64,6 +64,14 @@ import {
 } from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+const DEFAULT_STREAM_GROUP_COLUMNS: GroupListColumn[] = [
+  'graph',
+  'event',
+  'users',
+  'priority',
+  'assignee',
+  'lastTriggered',
+];
 
 type Props = {
   id: string;
@@ -141,11 +149,7 @@ function GroupCheckbox({
 }
 
 function GroupLastSeen({group}: {group: Group}) {
-  if (!group.lifetime) {
-    return <Placeholder height="18px" width="70px" />;
-  }
-
-  if (!group.lifetime.lastSeen) {
+  if (!group.lifetime?.lastSeen) {
     return null;
   }
 
@@ -161,11 +165,7 @@ function GroupLastSeen({group}: {group: Group}) {
 }
 
 function GroupFirstSeen({group}: {group: Group}) {
-  if (!group.lifetime) {
-    return <Placeholder height="18px" width="30px" />;
-  }
-
-  if (!group.lifetime.firstSeen) {
+  if (!group.lifetime?.firstSeen) {
     return null;
   }
 
@@ -177,6 +177,80 @@ function GroupFirstSeen({group}: {group: Group}) {
       aria-label={t('First Seen')}
       tooltipPrefix={t('First Seen')}
     />
+  );
+}
+
+export function LoadingStreamGroup({
+  displayReprocessingLayout,
+  withChart = true,
+  withColumns = DEFAULT_STREAM_GROUP_COLUMNS,
+  showLastTriggered = false,
+}: Pick<
+  Props,
+  'displayReprocessingLayout' | 'withChart' | 'withColumns' | 'showLastTriggered'
+>) {
+  return (
+    <Wrapper data-test-id="group" useTintRow={false} reviewed={false}>
+      <GroupSummary canSelect={false}>
+        <Placeholder height="58px" />
+      </GroupSummary>
+      {withColumns.includes('lastSeen') && (
+        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+          <Placeholder height="18px" width="70px" />
+        </LastSeenWrapper>
+      )}
+      {withColumns.includes('firstSeen') && (
+        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+          <Placeholder height="18px" width="30px" />
+        </FirstSeenWrapper>
+      )}
+      {withChart && !displayReprocessingLayout && (
+        <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
+          <Placeholder height="36px" />
+        </ChartWrapper>
+      )}
+      {displayReprocessingLayout ? (
+        <Fragment>
+          <StartedColumn>
+            <Placeholder height="17px" />
+          </StartedColumn>
+          <EventsReprocessedColumn>
+            <Placeholder height="17px" />
+          </EventsReprocessedColumn>
+          <ProgressColumn>
+            <Placeholder height="17px" />
+          </ProgressColumn>
+        </Fragment>
+      ) : (
+        <Fragment>
+          {showLastTriggered && (
+            <LastTriggeredWrapper>
+              <Placeholder height="18px" />
+            </LastTriggeredWrapper>
+          )}
+          {withColumns.includes('event') && (
+            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+              <Placeholder height="18px" width="40px" />
+            </NarrowEventsOrUsersCountsWrapper>
+          )}
+          {withColumns.includes('users') && (
+            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
+              <Placeholder height="18px" width="40px" />
+            </NarrowEventsOrUsersCountsWrapper>
+          )}
+          {withColumns.includes('priority') && (
+            <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+              <Placeholder height="24px" />
+            </PriorityWrapper>
+          )}
+          {withColumns.includes('assignee') && (
+            <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+              <Placeholder height="24px" />
+            </AssigneeWrapper>
+          )}
+        </Fragment>
+      )}
+    </Wrapper>
   );
 }
 
@@ -312,6 +386,55 @@ function StreamGroup({
     return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
 
+  // Use data.filtered to decide on which value to use
+  // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
+  // we use useFilteredStats param passed to Group for deciding
+  const primaryCount = group?.filtered ? group.filtered.count : group?.count;
+  const secondaryCount = group?.filtered ? group.count : undefined;
+  const primaryUserCount = group?.filtered ? group.filtered.userCount : group?.userCount;
+  const secondaryUserCount = group?.filtered ? group.userCount : undefined;
+  // preview stats
+  const lastTriggeredDate = group?.lastTriggered;
+  const issueTypeConfig = group ? getConfigForIssueType(group, group.project) : undefined;
+
+  const isLoading = useMemo(() => {
+    const result =
+      (withColumns.includes('firstSeen') && !defined(group?.lifetime)) || // firstseen is loading
+      (withColumns.includes('lastSeen') && !defined(group?.lifetime)) || // lastseen is loading
+      (withColumns.includes('event') &&
+        issueTypeConfig?.stats?.enabled &&
+        !defined(primaryCount)) || // counts is loading
+      (withColumns.includes('assignee') && assigneeLoading) || // assignee selector is loading
+      (withChart &&
+        !displayReprocessingLayout &&
+        issueTypeConfig?.stats?.enabled &&
+        !defined(groupStats)) || // groupstats chart is loading
+      (showLastTriggered && !defined(lastTriggeredDate)); // last triggered is loading
+    return result;
+  }, [
+    group,
+    issueTypeConfig,
+    groupStats,
+    showLastTriggered,
+    lastTriggeredDate,
+    primaryCount,
+    assigneeLoading,
+    withColumns,
+    withChart,
+    displayReprocessingLayout,
+  ]);
+
+  if (isLoading) {
+    return (
+      <LoadingStreamGroup
+        displayReprocessingLayout={displayReprocessingLayout}
+        withChart={withChart}
+        withColumns={withColumns}
+        showLastTriggered={showLastTriggered}
+      />
+    );
+  }
+
   if (!group) {
     return null;
   }
@@ -410,7 +533,6 @@ function StreamGroup({
     );
   };
 
-  const issueTypeConfig = getConfigForIssueType(group, group.project);
   const reviewed =
     // Original state had an inbox reason
     originalInboxState.current?.reason !== undefined &&
@@ -419,113 +541,8 @@ function StreamGroup({
     // Only apply reviewed on the "for review" tab
     isForReviewQuery(query);
 
-  // Use data.filtered to decide on which value to use
-  // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
-  // we use useFilteredStats param passed to Group for deciding
-  const primaryCount = group.filtered ? group.filtered.count : group.count;
-  const secondaryCount = group.filtered ? group.count : undefined;
-  const primaryUserCount = group.filtered ? group.filtered.userCount : group.userCount;
-  const secondaryUserCount = group.filtered ? group.userCount : undefined;
-  // preview stats
-  const lastTriggeredDate = group.lastTriggered;
-
   const showSecondaryPoints = Boolean(
     withChart && group?.filtered && statsPeriod && useFilteredStats
-  );
-
-  const groupCount = defined(primaryCount) ? (
-    <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
-      <Tooltip
-        disabled={!useFilteredStats}
-        isHoverable
-        title={
-          <CountTooltipContent>
-            <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
-            {group.filtered && (
-              <Fragment>
-                <div>{queryFilterDescription ?? t('Matching filters')}</div>
-                <Link to={getDiscoverUrl(true)}>
-                  <Count value={group.filtered?.count} />
-                </Link>
-              </Fragment>
-            )}
-            <Fragment>
-              <div>{t('Total in %s', summary)}</div>
-              <Link to={getDiscoverUrl()}>
-                <Count value={group.count} />
-              </Link>
-            </Fragment>
-            {group.lifetime && (
-              <Fragment>
-                <div>{t('Since issue began')}</div>
-                <Count value={group.lifetime.count} />
-              </Fragment>
-            )}
-          </CountTooltipContent>
-        }
-      >
-        <CountsWrapper>
-          <PrimaryCount value={primaryCount} />
-          {secondaryCount !== undefined && useFilteredStats && (
-            <SecondaryCount value={secondaryCount} />
-          )}
-        </CountsWrapper>
-      </Tooltip>
-    </GuideAnchor>
-  ) : (
-    <Placeholder height="18px" width="40px" />
-  );
-
-  const groupUsersCount = defined(primaryUserCount) ? (
-    <Tooltip
-      isHoverable
-      disabled={!usePageFilters}
-      title={
-        <CountTooltipContent>
-          <h4>{t('Affected Users')}</h4>
-          {group.filtered && (
-            <Fragment>
-              <div>{queryFilterDescription ?? t('Matching filters')}</div>
-              <Link to={getDiscoverUrl(true)}>
-                <Count value={group.filtered?.userCount} />
-              </Link>
-            </Fragment>
-          )}
-          <Fragment>
-            <div>{t('Total in %s', summary)}</div>
-            <Link to={getDiscoverUrl()}>
-              <Count value={group.userCount} />
-            </Link>
-          </Fragment>
-          {group.lifetime && (
-            <Fragment>
-              <div>{t('Since issue began')}</div>
-              <Count value={group.lifetime.userCount} />
-            </Fragment>
-          )}
-        </CountTooltipContent>
-      }
-    >
-      <CountsWrapper>
-        <PrimaryCount value={primaryUserCount} />
-        {secondaryUserCount !== undefined && useFilteredStats && (
-          <SecondaryCount value={secondaryUserCount} />
-        )}
-      </CountsWrapper>
-    </Tooltip>
-  ) : (
-    <Placeholder height="18px" width="40px" />
-  );
-
-  const lastTriggered = defined(lastTriggeredDate) ? (
-    <PositionedTimeSince
-      tooltipPrefix={t('Last Triggered')}
-      date={lastTriggeredDate}
-      suffix={t('ago')}
-      unitStyle="short"
-    />
-  ) : (
-    <Placeholder height="18px" />
   );
 
   const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -598,10 +615,9 @@ function StreamGroup({
 
       {withChart && !displayReprocessingLayout ? (
         <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
-          {issueTypeConfig.stats.enabled ? (
+          {issueTypeConfig?.stats.enabled ? (
             <GroupStatusChart
               hideZeros
-              loading={!defined(groupStats)}
               stats={groupStats}
               secondaryStats={groupSecondaryStats}
               showSecondaryPoints={showSecondaryPoints}
@@ -615,17 +631,102 @@ function StreamGroup({
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          {showLastTriggered && (
-            <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
+          {showLastTriggered && lastTriggeredDate && (
+            <LastTriggeredWrapper>
+              <PositionedTimeSince
+                tooltipPrefix={t('Last Triggered')}
+                date={lastTriggeredDate}
+                suffix={t('ago')}
+                unitStyle="short"
+              />
+            </LastTriggeredWrapper>
           )}
           {withColumns.includes('event') ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              {issueTypeConfig.stats.enabled ? groupCount : null}
+              {issueTypeConfig?.stats.enabled ? (
+                <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
+                  <Tooltip
+                    disabled={!useFilteredStats}
+                    isHoverable
+                    title={
+                      <CountTooltipContent>
+                        <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
+                        {group.filtered && (
+                          <Fragment>
+                            <div>{queryFilterDescription ?? t('Matching filters')}</div>
+                            <Link to={getDiscoverUrl(true)}>
+                              <Count value={group.filtered?.count} />
+                            </Link>
+                          </Fragment>
+                        )}
+                        <Fragment>
+                          <div>{t('Total in %s', summary)}</div>
+                          <Link to={getDiscoverUrl()}>
+                            <Count value={group.count} />
+                          </Link>
+                        </Fragment>
+                        {group.lifetime && (
+                          <Fragment>
+                            <div>{t('Since issue began')}</div>
+                            <Count value={group.lifetime.count} />
+                          </Fragment>
+                        )}
+                      </CountTooltipContent>
+                    }
+                  >
+                    <CountsWrapper>
+                      {defined(primaryCount) && <PrimaryCount value={primaryCount} />}
+                      {defined(secondaryCount) && useFilteredStats && (
+                        <SecondaryCount value={secondaryCount} />
+                      )}
+                    </CountsWrapper>
+                  </Tooltip>
+                </GuideAnchor>
+              ) : null}
             </NarrowEventsOrUsersCountsWrapper>
           ) : null}
           {withColumns.includes('users') ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              {issueTypeConfig.stats.enabled ? groupUsersCount : null}
+              {issueTypeConfig?.stats.enabled ? (
+                <Tooltip
+                  isHoverable
+                  disabled={!usePageFilters}
+                  title={
+                    <CountTooltipContent>
+                      <h4>{t('Affected Users')}</h4>
+                      {group.filtered && (
+                        <Fragment>
+                          <div>{queryFilterDescription ?? t('Matching filters')}</div>
+                          <Link to={getDiscoverUrl(true)}>
+                            <Count value={group.filtered?.userCount} />
+                          </Link>
+                        </Fragment>
+                      )}
+                      <Fragment>
+                        <div>{t('Total in %s', summary)}</div>
+                        <Link to={getDiscoverUrl()}>
+                          <Count value={group.userCount} />
+                        </Link>
+                      </Fragment>
+                      {group.lifetime && (
+                        <Fragment>
+                          <div>{t('Since issue began')}</div>
+                          <Count value={group.lifetime.userCount} />
+                        </Fragment>
+                      )}
+                    </CountTooltipContent>
+                  }
+                >
+                  <CountsWrapper>
+                    {defined(primaryUserCount) && (
+                      <PrimaryCount value={primaryUserCount} />
+                    )}
+                    {defined(secondaryUserCount) && useFilteredStats && (
+                      <SecondaryCount value={secondaryUserCount} />
+                    )}
+                  </CountsWrapper>
+                </Tooltip>
+              ) : null}
             </NarrowEventsOrUsersCountsWrapper>
           ) : null}
           {withColumns.includes('priority') ? (
