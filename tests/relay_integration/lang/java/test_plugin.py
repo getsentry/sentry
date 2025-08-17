@@ -432,6 +432,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert response.status_code == 201, response.content
         assert len(response.json()) == 1
 
+    @pytest.mark.skip(reason="flaky: #97856")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_basic_resolving(self) -> None:
