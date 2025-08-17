@@ -12,34 +12,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   group: Group;
-  handleLoading?: (loading: boolean) => void;
 }
 
 /**
  * Show the count of how many replays are associated to an issue.
  */
-function IssueReplayCount({group, handleLoading}: Props) {
+function IssueReplayCount({group}: Props) {
   const organization = useOrganization();
   const {getReplayCountForIssue} = useReplayCountForIssues();
   const count = getReplayCountForIssue(group.id, group.issueCategory);
 
-  // Show loading state when count is undefined
-  if (count === undefined) {
-    if (handleLoading) {
-      handleLoading(true);
-    }
+  if (count === undefined || count === 0) {
     return null;
-  }
-
-  if (count === 0) {
-    if (handleLoading) {
-      handleLoading(false);
-    }
-    return null;
-  }
-
-  if (handleLoading) {
-    handleLoading(false);
   }
 
   const countDisplay = count > 50 ? '50+' : count;
