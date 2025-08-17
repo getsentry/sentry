@@ -87,7 +87,7 @@ function IssueListTable({
         disabled={issuesLoading}
       >
         <ContainerPanel>
-          {(groupIds.length !== 0 || issuesLoading) && (
+          {(groupIds.length !== 0 || (issuesLoading && !isIssueListLoaded)) && (
             <IssueListActions
               selection={selection}
               query={query}
