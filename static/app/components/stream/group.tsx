@@ -34,7 +34,6 @@ import type {TimeseriesValue} from 'sentry/types/core';
 import type {
   Group,
   GroupReprocessing,
-  GroupStats,
   InboxDetails,
   PriorityLevel,
 } from 'sentry/types/group';
@@ -265,10 +264,6 @@ export function LoadingStreamGroup({
   );
 }
 
-function isUnhandledLoaded(group: GroupStats) {
-  return 'isUnhandled' in group;
-}
-
 function StreamGroup({
   id,
   customStatsPeriod,
@@ -318,6 +313,10 @@ function StreamGroup({
       was_shown_suggestion: owners.length > 0,
     };
   }, [organization, group, query]);
+
+  const isUnhandledLoading = useMemo(() => {
+    return group && !('isUnhandled' in group);
+  }, [group]);
 
   const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation<
     AssignableEntity | null,
@@ -657,7 +656,11 @@ function StreamGroup({
       useTintRow={useTintRow ?? true}
     >
       <InteractionStateLayer />
-      {isUnhandledLoaded(group) ? (
+      {isUnhandledLoading ? (
+        <GroupSummary canSelect={false}>
+          <Placeholder height="58px" />
+        </GroupSummary>
+      ) : (
         <Fragment>
           {canSelect && (
             <GroupCheckbox
@@ -670,10 +673,6 @@ function StreamGroup({
             <EventOrGroupExtraDetails data={group} showLifetime={false} />
           </GroupSummary>
         </Fragment>
-      ) : (
-        <GroupSummary canSelect={false}>
-          <Placeholder height="58px" />
-        </GroupSummary>
       )}
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
 
@@ -689,7 +688,7 @@ function StreamGroup({
         </FirstSeenWrapper>
       )}
 
-      {withChart && !displayReprocessingLayout ? (
+      {withChart && !displayReprocessingLayout && (
         <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
           {issueTypeConfig.stats.enabled && defined(groupStats) ? (
             <GroupStatusChart
@@ -700,11 +699,11 @@ function StreamGroup({
               groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
               showMarkLine
             />
-          ) : (
+          ) : issueTypeConfig.stats.enabled ? (
             <Placeholder height="36px" />
-          )}
+          ) : null}
         </ChartWrapper>
-      ) : null}
+      )}
       {displayReprocessingLayout ? (
         renderReprocessingColumns()
       ) : (
@@ -712,24 +711,24 @@ function StreamGroup({
           {showLastTriggered && (
             <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
           )}
-          {withColumns.includes('event') ? (
+          {withColumns.includes('event') && (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
               {issueTypeConfig.stats.enabled && defined(primaryCount) ? (
                 groupCount
-              ) : (
+              ) : issueTypeConfig.stats.enabled ? (
                 <Placeholder height="18px" width="40px" />
-              )}
+              ) : null}
             </NarrowEventsOrUsersCountsWrapper>
-          ) : null}
-          {withColumns.includes('users') ? (
+          )}
+          {withColumns.includes('users') && (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
               {issueTypeConfig.stats.enabled && defined(primaryUserCount) ? (
                 groupUsersCount
-              ) : (
+              ) : issueTypeConfig.stats.enabled ? (
                 <Placeholder height="18px" width="40px" />
-              )}
+              ) : null}
             </NarrowEventsOrUsersCountsWrapper>
-          ) : null}
+          )}
           {withColumns.includes('priority') ? (
             <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
               {group.priority ? (
