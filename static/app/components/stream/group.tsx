@@ -314,10 +314,6 @@ function StreamGroup({
     };
   }, [organization, group, query]);
 
-  const isUnhandledLoading = useMemo(() => {
-    return group && !('isUnhandled' in group);
-  }, [group]);
-
   const {mutate: handleAssigneeChange, isPending: assigneeLoading} = useMutation<
     AssignableEntity | null,
     RequestError,
@@ -656,11 +652,8 @@ function StreamGroup({
       useTintRow={useTintRow ?? true}
     >
       <InteractionStateLayer />
-      {isUnhandledLoading ? (
-        <GroupSummary canSelect={false}>
-          <Placeholder height="58px" />
-        </GroupSummary>
-      ) : (
+      {/* isUnhandled will be either undefined or boolean, but here we check if it exists at all, telling us that group stats data has loaded */}
+      {'isUnhandled' in group ? (
         <Fragment>
           {canSelect && (
             <GroupCheckbox
@@ -673,6 +666,10 @@ function StreamGroup({
             <EventOrGroupExtraDetails data={group} showLifetime={false} />
           </GroupSummary>
         </Fragment>
+      ) : (
+        <GroupSummary canSelect={false}>
+          <Placeholder height="58px" />
+        </GroupSummary>
       )}
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
 
