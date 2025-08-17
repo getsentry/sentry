@@ -3,8 +3,8 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.group_index import get_first_last_release
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
