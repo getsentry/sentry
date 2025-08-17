@@ -34,6 +34,7 @@ import type {TimeseriesValue} from 'sentry/types/core';
 import type {
   Group,
   GroupReprocessing,
+  GroupStats,
   InboxDetails,
   PriorityLevel,
 } from 'sentry/types/group';
@@ -64,6 +65,14 @@ import {
 } from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+const COLUMNS: GroupListColumn[] = [
+  'graph',
+  'event',
+  'users',
+  'priority',
+  'assignee',
+  'lastTriggered',
+];
 
 type Props = {
   id: string;
@@ -180,6 +189,86 @@ function GroupFirstSeen({group}: {group: Group}) {
   );
 }
 
+type LoadingSteamGroupProps = Pick<
+  Props,
+  'displayReprocessingLayout' | 'withChart' | 'withColumns' | 'showLastTriggered'
+>;
+
+export function LoadingStreamGroup({
+  displayReprocessingLayout,
+  withChart = true,
+  withColumns = COLUMNS,
+  showLastTriggered = false,
+}: LoadingSteamGroupProps) {
+  return (
+    <Wrapper data-test-id="group" useTintRow={false} reviewed={false}>
+      <GroupSummary canSelect={false}>
+        <Placeholder height="58px" />
+      </GroupSummary>
+      {withColumns.includes('lastSeen') && (
+        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+          <Placeholder height="18px" width="70px" />
+        </LastSeenWrapper>
+      )}
+      {withColumns.includes('firstSeen') && (
+        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+          <Placeholder height="18px" width="30px" />
+        </FirstSeenWrapper>
+      )}
+      {withChart && !displayReprocessingLayout && (
+        <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
+          <Placeholder height="36px" />
+        </ChartWrapper>
+      )}
+      {displayReprocessingLayout ? (
+        <Fragment>
+          <StartedColumn>
+            <Placeholder height="17px" />
+          </StartedColumn>
+          <EventsReprocessedColumn>
+            <Placeholder height="17px" />
+          </EventsReprocessedColumn>
+          <ProgressColumn>
+            <Placeholder height="17px" />
+          </ProgressColumn>
+        </Fragment>
+      ) : (
+        <Fragment>
+          {showLastTriggered && (
+            <LastTriggeredWrapper>
+              <Placeholder height="18px" />
+            </LastTriggeredWrapper>
+          )}
+          {withColumns.includes('event') && (
+            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+              <Placeholder height="18px" width="40px" />
+            </NarrowEventsOrUsersCountsWrapper>
+          )}
+          {withColumns.includes('users') && (
+            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
+              <Placeholder height="18px" width="40px" />
+            </NarrowEventsOrUsersCountsWrapper>
+          )}
+          {withColumns.includes('assignee') && (
+            <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+              <Placeholder height="24px" />
+            </AssigneeWrapper>
+          )}
+          {withColumns.includes('priority') && (
+            <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+              <Placeholder height="24px" />
+            </PriorityWrapper>
+          )}
+        </Fragment>
+      )}
+    </Wrapper>
+  );
+}
+
+function isUnhandledLoaded(group: GroupStats) {
+  return 'isUnhandled' in group;
+}
+
 function StreamGroup({
   id,
   customStatsPeriod,
@@ -192,7 +281,7 @@ function StreamGroup({
   statsPeriod = DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect = true,
   withChart = true,
-  withColumns = ['graph', 'event', 'users', 'priority', 'assignee', 'lastTriggered'],
+  withColumns = COLUMNS,
   useFilteredStats = false,
   useTintRow = true,
   showLastTriggered = false,
@@ -433,7 +522,7 @@ function StreamGroup({
     withChart && group?.filtered && statsPeriod && useFilteredStats
   );
 
-  const groupCount = defined(primaryCount) ? (
+  const groupCount = (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
       <Tooltip
         disabled={!useFilteredStats}
@@ -472,11 +561,9 @@ function StreamGroup({
         </CountsWrapper>
       </Tooltip>
     </GuideAnchor>
-  ) : (
-    <Placeholder height="18px" width="40px" />
   );
 
-  const groupUsersCount = defined(primaryUserCount) ? (
+  const groupUsersCount = (
     <Tooltip
       isHoverable
       disabled={!usePageFilters}
@@ -513,8 +600,6 @@ function StreamGroup({
         )}
       </CountsWrapper>
     </Tooltip>
-  ) : (
-    <Placeholder height="18px" width="40px" />
   );
 
   const lastTriggered = defined(lastTriggeredDate) ? (
@@ -572,16 +657,24 @@ function StreamGroup({
       useTintRow={useTintRow ?? true}
     >
       <InteractionStateLayer />
-      {canSelect && (
-        <GroupCheckbox
-          group={group}
-          displayReprocessingLayout={displayReprocessingLayout}
-        />
+      {isUnhandledLoaded(group) ? (
+        <Fragment>
+          {canSelect && (
+            <GroupCheckbox
+              group={group}
+              displayReprocessingLayout={displayReprocessingLayout}
+            />
+          )}
+          <GroupSummary canSelect={canSelect}>
+            <EventOrGroupHeader data={group} query={query} source={referrer} />
+            <EventOrGroupExtraDetails data={group} showLifetime={false} />
+          </GroupSummary>
+        </Fragment>
+      ) : (
+        <GroupSummary canSelect={false}>
+          <Placeholder height="58px" />
+        </GroupSummary>
       )}
-      <GroupSummary canSelect={canSelect}>
-        <EventOrGroupHeader data={group} query={query} source={referrer} />
-        <EventOrGroupExtraDetails data={group} showLifetime={false} />
-      </GroupSummary>
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
 
       {withColumns.includes('lastSeen') && (
@@ -598,17 +691,18 @@ function StreamGroup({
 
       {withChart && !displayReprocessingLayout ? (
         <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
-          {issueTypeConfig.stats.enabled ? (
+          {issueTypeConfig.stats.enabled && defined(groupStats) ? (
             <GroupStatusChart
               hideZeros
-              loading={!defined(groupStats)}
               stats={groupStats}
               secondaryStats={groupSecondaryStats}
               showSecondaryPoints={showSecondaryPoints}
               groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
               showMarkLine
             />
-          ) : null}
+          ) : (
+            <Placeholder height="36px" />
+          )}
         </ChartWrapper>
       ) : null}
       {displayReprocessingLayout ? (
@@ -620,31 +714,45 @@ function StreamGroup({
           )}
           {withColumns.includes('event') ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-              {issueTypeConfig.stats.enabled ? groupCount : null}
+              {issueTypeConfig.stats.enabled && defined(primaryCount) ? (
+                groupCount
+              ) : (
+                <Placeholder height="18px" width="40px" />
+              )}
             </NarrowEventsOrUsersCountsWrapper>
           ) : null}
           {withColumns.includes('users') ? (
             <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-              {issueTypeConfig.stats.enabled ? groupUsersCount : null}
+              {issueTypeConfig.stats.enabled && defined(primaryUserCount) ? (
+                groupUsersCount
+              ) : (
+                <Placeholder height="18px" width="40px" />
+              )}
             </NarrowEventsOrUsersCountsWrapper>
           ) : null}
           {withColumns.includes('priority') ? (
             <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
               {group.priority ? (
                 <GroupPriority group={group} onChange={onPriorityChange} />
-              ) : null}
+              ) : (
+                <Placeholder height="24px" />
+              )}
             </PriorityWrapper>
           ) : null}
-          {withColumns.includes('assignee') && (
+          {withColumns.includes('assignee') ? (
             <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
-              <AssigneeSelector
-                group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
-                memberList={memberList}
-              />
+              {assigneeLoading ? (
+                <Placeholder height="24px" />
+              ) : (
+                <AssigneeSelector
+                  group={group}
+                  assigneeLoading={false}
+                  handleAssigneeChange={handleAssigneeChange}
+                  memberList={memberList}
+                />
+              )}
             </AssigneeWrapper>
-          )}
+          ) : null}
         </Fragment>
       )}
     </Wrapper>
