@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PlanTier} from 'getsentry/types';
-import {isAmPlan} from 'getsentry/utils/billing';
+import {isAmPlan, isDeveloperPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import VolumeSliders from 'getsentry/views/amCheckout/steps/volumeSliders';
@@ -92,6 +92,10 @@ function AddDataVolume({
       </Button>
     </StepFooter>
   );
+
+  if (isDeveloperPlan(activePlan)) {
+    return null;
+  }
 
   return (
     <Panel data-test-id="step-add-data-volume">
