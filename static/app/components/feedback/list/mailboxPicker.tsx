@@ -4,12 +4,10 @@ import {Badge} from 'sentry/components/core/badge';
 import {Flex} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
+import type {Mailbox} from 'sentry/components/feedback/decodeMailbox';
 import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-
-type Mailbox = ReturnType<typeof decodeMailbox>;
 
 interface Props {
   onChange: (next: Mailbox) => void;

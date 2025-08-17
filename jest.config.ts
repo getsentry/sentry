@@ -253,7 +253,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2'];
+const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs'];
 
 const config: Config.InitialOptions = {
   verbose: false,
