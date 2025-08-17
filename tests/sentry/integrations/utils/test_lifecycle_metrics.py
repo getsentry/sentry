@@ -5,6 +5,7 @@ import pytest
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import no_silo_test
 
 
@@ -474,3 +475,20 @@ class IntegrationEventLifecycleMetricTest(TestCase):
 
         # Should log since default is 1.0
         mock_logger.info.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.random")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    @override_options({"integration.debugging.org-ids": [123]})
+    def test_integration_debugging_org_id_override(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock, mock_random: mock.MagicMock
+    ) -> None:
+        mock_random.random.return_value = 0.5
+        metric_obj = self.TestLifecycleMetric()
+
+        with metric_obj.capture(sample_log_rate=0.1) as lifecycle:
+            lifecycle.add_extra("organization_id", 123)
+            lifecycle.record_failure("test failure")
+
+        # Should log due to override
+        mock_logger.warning.assert_called_once()
