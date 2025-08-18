@@ -89,32 +89,32 @@ export function getPythonAiocontextvarsConfig({
 
 export const getPythonLogsOnboarding = ({
   packageName = 'sentry-sdk',
-  minimumVersion = '2.35.0',
 }: {
-  minimumVersion?: string;
   packageName?: string;
 } = {}): OnboardingConfig => ({
   install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install our Python SDK with a minimum version that supports logs ([code:{minimumVersion}] or higher).',
+        'Install our Python SDK with a minimum version that supports logs ([code:2.35.0] or higher).',
         {
           code: <code />,
-          minimumVersion,
         }
       ),
       configurations: getPythonInstallConfig({
         packageName,
-        minimumVersion,
+        minimumVersion: '2.35.0',
       }),
     },
   ],
   configure: (params: DocsParams) => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'Configure the Sentry SDK to capture logs by setting enable_logs=True in your Sentry.init() call:'
+      description: tct(
+        'Configure the Sentry SDK to capture logs by setting [code:enable_logs=True] in your [code:sentry_sdk.init()] call:',
+        {
+          code: <code />,
+        }
       ),
       configurations: [
         {

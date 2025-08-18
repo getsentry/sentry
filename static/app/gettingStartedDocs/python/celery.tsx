@@ -11,13 +11,14 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   agentMonitoringOnboarding,
-  AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
+  AlternativeConfiguration,
   getPythonInstallConfig,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -31,6 +32,12 @@ sentry_sdk.init(
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
     send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
@@ -168,7 +175,7 @@ def init_sentry(**_kwargs):
       ),
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: (
@@ -184,14 +191,55 @@ def init_sentry(**_kwargs):
         </Fragment>
       ),
     },
+    ...(params.isLogsSelected
+      ? [
+          {
+            type: StepType.VERIFY,
+            configurations: [
+              {
+                description: t(
+                  'You can send logs to Sentry using the Sentry logging APIs:'
+                ),
+                language: 'python',
+                code: `import sentry_sdk
+
+# Send logs directly to Sentry
+sentry_sdk.logger.info('This is an info log message')
+sentry_sdk.logger.warning('This is a warning message')
+sentry_sdk.logger.error('This is an error message')`,
+              },
+              {
+                description: t(
+                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+                ),
+                language: 'python',
+                code: `import logging
+
+# Your existing logging setup
+logger = logging.getLogger(__name__)
+
+# These logs will be automatically sent to Sentry
+logger.info('This will be sent to Sentry')
+logger.warning('User login failed')
+logger.error('Something went wrong')`,
+              },
+            ],
+          },
+        ]
+      : []),
   ],
 };
+
+const logsOnboarding = getPythonLogsOnboarding({
+  basePackage: 'sentry-sdk[celery]',
+} as any);
 
 const docs: Docs = {
   onboarding,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[celery]'}),
   crashReportOnboarding: crashReportOnboardingPython,
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;
