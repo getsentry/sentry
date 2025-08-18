@@ -275,5 +275,3 @@ const ItemRow = styled('div')`
     transition: all 0.1s ease-out;
   }
 `;
-
-export default OmniSearchPalette;
