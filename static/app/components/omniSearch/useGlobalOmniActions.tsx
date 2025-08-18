@@ -2,13 +2,13 @@ import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indica
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import {
+  IconAdd,
   IconDashboard,
   IconDiscord,
   IconDocs,
   IconGithub,
   IconGraph,
   IconIssues,
-  IconMoon,
   IconPrevent,
   IconSearch,
   IconSettings,
@@ -16,8 +16,6 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
@@ -286,10 +284,10 @@ function useNavigationActions() {
  * Registers globally-available OmniSearch areas and actions.
  */
 export function useGlobalOmniActions() {
+  const organization = useOrganization();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const navigateActions = useNavigationActions();
-
-  const config = useLegacyStore(ConfigStore);
+  const navPrefix = `/organizations/${organization.slug}`;
 
   useOmniActions([
     ...navigateActions,
@@ -321,7 +319,31 @@ export function useGlobalOmniActions() {
       onAction: () =>
         window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
     },
-    // Add: Invite members
+    // Add (create new entitty)
+    {
+      key: 'add-dashboard',
+      areaKey: 'global',
+      section: GlobalActionSection.ADD,
+      label: t('Create Dashboard'),
+      actionIcon: <IconAdd />,
+      to: `${navPrefix}/dashboards/new/`,
+    },
+    {
+      key: 'add-alert',
+      areaKey: 'global',
+      section: GlobalActionSection.ADD,
+      label: t('Create Alert'),
+      actionIcon: <IconAdd />,
+      to: `${navPrefix}/issues/alerts/wizard/`,
+    },
+    {
+      key: 'add-project',
+      areaKey: 'global',
+      section: GlobalActionSection.ADD,
+      label: t('Create Project'),
+      actionIcon: <IconAdd />,
+      to: `${navPrefix}/projects/new/`,
+    },
     {
       key: 'add-invite-members',
       areaKey: 'global',
@@ -329,20 +351,6 @@ export function useGlobalOmniActions() {
       label: t('Invite Members'),
       actionIcon: <IconUser />,
       onAction: () => openInviteMembersModal(),
-    },
-    // Other: Toggle theme
-    {
-      key: 'other-toggle-theme',
-      areaKey: 'global',
-      section: GlobalActionSection.OTHER,
-      label: t(
-        'Toggle Theme (%s → %s)',
-        config.theme === 'light' ? 'Light' : 'Dark',
-        config.theme === 'light' ? 'Dark' : 'Light'
-      ),
-      actionIcon: <IconMoon />,
-      onAction: () =>
-        ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light'),
     },
     {
       key: 'account-theme-preference',
