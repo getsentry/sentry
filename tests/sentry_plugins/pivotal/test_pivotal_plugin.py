@@ -13,7 +13,7 @@ def test_conf_key() -> None:
 
 class PivotalPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> PivotalPlugin:
         return PivotalPlugin()
 
     def test_get_issue_label(self) -> None:

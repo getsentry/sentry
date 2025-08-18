@@ -23,7 +23,7 @@ def test_conf_key() -> None:
 
 class SessionStackPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> SessionStackPlugin:
         return SessionStackPlugin()
 
     @responses.activate

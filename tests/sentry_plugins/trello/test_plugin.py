@@ -14,7 +14,7 @@ def test_conf_key() -> None:
 
 class TrelloPluginTestBase(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> TrelloPlugin:
         return TrelloPlugin()
 
 
@@ -45,7 +45,7 @@ class TrelloPluginTest(TrelloPluginTestBase):
 
 
 class TrelloPluginApiTests(TrelloPluginTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group = self.create_group(message="Hello world", culprit="foo.bar")
         self.plugin.set_option("token", "7c8951d1", self.project)
         self.plugin.set_option("key", "39g", self.project)

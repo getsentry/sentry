@@ -15,11 +15,11 @@ def test_conf_key() -> None:
 
 class GitLabPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> GitLabPlugin:
         return GitLabPlugin()
 
     @cached_property
-    def request(self):
+    def request(self) -> RequestFactory:
         return RequestFactory()
 
     def test_get_issue_label(self) -> None:

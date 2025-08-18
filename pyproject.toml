@@ -795,6 +795,7 @@ module = [
     "tests.sentry.workflow_engine.endpoints.utils.*",
     "tests.sentry.workflow_engine.handlers.action.*",
     "tests.sentry.workflow_engine.models.*",
+    "tests.sentry_plugins.*",
     "tools.*",
 ]
 disallow_any_generics = true

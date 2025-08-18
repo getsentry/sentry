@@ -213,11 +213,11 @@ user_search_response: list[dict[str, Any]] = [
 
 class JiraPluginTest(TestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> JiraPlugin:
         return JiraPlugin()
 
     @cached_property
-    def request(self):
+    def request(self) -> RequestFactory:
         return RequestFactory()
 
     def test_conf_key(self) -> None:
@@ -318,7 +318,7 @@ class JiraPluginTest(TestCase):
             }
         ) == {"id": "robot", "text": "robot (robot)"}
 
-    def _setup_autocomplete_jira(self):
+    def _setup_autocomplete_jira(self) -> None:
         self.plugin.set_option("instance_url", "https://getsentry.atlassian.net", self.project)
         self.plugin.set_option("default_project", "SEN", self.project)
         self.login_as(user=self.user)
