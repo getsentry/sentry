@@ -29,6 +29,8 @@ export type OmniAction = {
   fullLabel?: string;
   /** Whether this action should be hidden from results */
   hidden?: boolean;
+  /** Whether this action should keep the modal open after execution */
+  keepOpen?: boolean;
   /** Optional keywords to improve searchability */
   keywords?: string[];
   /** Execute an imperative action */

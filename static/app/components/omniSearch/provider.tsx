@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {OmniConfigContext, OmniSearchStoreContext} from './context';
 import type {OmniAction, OmniArea, OmniSearchStore} from './types';
@@ -6,36 +6,48 @@ import type {OmniAction, OmniArea, OmniSearchStore} from './types';
 type Props = {children: React.ReactNode};
 
 export function OmniSearchProvider({children}: Props) {
-  const actionsByKeyRef = useRef<Map<string, OmniAction>>(new Map());
-  const areasByKeyRef = useRef<Map<string, OmniArea>>(new Map());
+  const [actionsByKey, setActionsByKey] = useState<Map<string, OmniAction>>(new Map());
+  const [areasByKey, setAreasByKey] = useState<Map<string, OmniArea>>(new Map());
   const [areaPriority, setAreaPriority] = useState<string[]>([]);
 
   const registerActions = useCallback((actions: OmniAction[]) => {
-    const map = actionsByKeyRef.current;
-    for (const action of actions) {
-      map.set(action.key, action);
-    }
+    setActionsByKey(prev => {
+      const map = new Map(prev);
+      for (const action of actions) {
+        map.set(action.key, action);
+      }
+      return map;
+    });
   }, []);
 
   const unregisterActions = useCallback((keys: string[]) => {
-    const map = actionsByKeyRef.current;
-    for (const key of keys) {
-      map.delete(key);
-    }
+    setActionsByKey(prev => {
+      const map = new Map(prev);
+      for (const key of keys) {
+        map.delete(key);
+      }
+      return map;
+    });
   }, []);
 
   const registerAreas = useCallback((areas: OmniArea[]) => {
-    const map = areasByKeyRef.current;
-    for (const area of areas) {
-      map.set(area.key, area);
-    }
+    setAreasByKey(prev => {
+      const map = new Map(prev);
+      for (const area of areas) {
+        map.set(area.key, area);
+      }
+      return map;
+    });
   }, []);
 
   const unregisterAreas = useCallback((keys: string[]) => {
-    const map = areasByKeyRef.current;
-    for (const key of keys) {
-      map.delete(key);
-    }
+    setAreasByKey(prev => {
+      const map = new Map(prev);
+      for (const key of keys) {
+        map.delete(key);
+      }
+      return map;
+    });
   }, []);
 
   const registerAreaPriority = useCallback((priority: string[]) => {
@@ -61,11 +73,11 @@ export function OmniSearchProvider({children}: Props) {
 
   const store: OmniSearchStore = useMemo(
     () => ({
-      actionsByKey: actionsByKeyRef.current,
-      areasByKey: areasByKeyRef.current,
+      actionsByKey,
+      areasByKey,
       areaPriority,
     }),
-    [areaPriority]
+    [areaPriority, actionsByKey, areasByKey]
   );
 
   return (

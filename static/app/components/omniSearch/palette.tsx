@@ -14,7 +14,7 @@ import type {OmniAction} from './types';
  *
  * NOTE: This is intentionally minimal and will be iterated on.
  */
-export function OmniSearchPalette({onBarrelRoll}: {onBarrelRoll: () => void}) {
+export function OmniSearchPalette() {
   const {
     focusedArea,
     actions: availableActions,
@@ -26,28 +26,8 @@ export function OmniSearchPalette({onBarrelRoll}: {onBarrelRoll: () => void}) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const funActions: OmniAction[] = useMemo(
-    () => [
-      {
-        key: 'barrel-roll',
-        label: 'Do a barrel roll! 🛩️',
-        details: 'Spin 360 degrees',
-        areaKey: 'system',
-        actionIcon: undefined,
-        hidden: false,
-        disabled: false,
-        onAction: () => {
-          onBarrelRoll();
-        },
-      },
-    ],
-    [onBarrelRoll]
-  );
-
   const grouped = useMemo(() => {
-    const actions = [...availableActions, ...funActions].filter(
-      (a: OmniAction) => !a.hidden
-    );
+    const actions = availableActions.filter((a: OmniAction) => !a.hidden);
 
     // Group by section label
     const bySection = new Map<string, OmniAction[]>();
@@ -85,7 +65,7 @@ export function OmniSearchPalette({onBarrelRoll}: {onBarrelRoll: () => void}) {
         .sort((a, b) => a.label.localeCompare(b.label));
       return {sectionKey, label, items};
     });
-  }, [availableActions, funActions, query]);
+  }, [availableActions, query]);
 
   const handleSelect = (action: OmniAction) => {
     if (action.disabled) {
@@ -104,11 +84,9 @@ export function OmniSearchPalette({onBarrelRoll}: {onBarrelRoll: () => void}) {
 
     // TODO: Any other action handlers?
 
-    if (action.key === 'barrel-roll') {
-      // Keep modal open for barrel roll
-      return;
+    if (!action.keepOpen) {
+      closeModal();
     }
-    closeModal();
   };
 
   // When an action has been selected, clear the query and focus the input

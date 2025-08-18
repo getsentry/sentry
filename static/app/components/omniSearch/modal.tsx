@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {OmniSearchPalette} from 'sentry/components/omniSearch/palette';
+import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 function OmniSearchModal({Body}: ModalRenderProps) {
@@ -35,10 +37,27 @@ function OmniSearchModal({Body}: ModalRenderProps) {
     docEl.addEventListener('animationend', handleAnimationEnd);
   }, []);
 
+  useOmniActions([
+    {
+      key: 'barrel-roll',
+      label: 'Do a barrel roll! 🛩️',
+      details: 'Spin 360 degrees',
+      areaKey: 'global',
+      section: t('System'),
+      actionIcon: undefined,
+      hidden: false,
+      disabled: false,
+      keepOpen: true,
+      onAction: () => {
+        doBarrelRoll();
+      },
+    },
+  ]);
+
   return (
     <Body>
       <div ref={containerRef}>
-        <OmniSearchPalette onBarrelRoll={doBarrelRoll} />
+        <OmniSearchPalette />
       </div>
     </Body>
   );
