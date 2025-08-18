@@ -1,6 +1,5 @@
 from unittest.mock import Mock
 
-from sentry import features
 from sentry.testutils.cases import APITestCase
 
 
@@ -44,14 +43,6 @@ class OrganizationCodingAgentsEndpointTest(APITestCase):
         mock_integration.id = 1
         mock_integration.name = "Test Coding Agent"
         mock_integration.provider = "test_provider"
-        mock_integration.metadata = {"api_key": "test_key", "domain_name": "test.example.com"}
-
-        mock_installation = Mock()
-        mock_installation.get_webhook_url.return_value = "https://example.com/webhook/"
-
-        mock_integration.get_installation.return_value = mock_installation
-
-        from sentry.integrations.services.integration import integration_service
 
         with (
             self.feature({"organizations:seer-coding-agent-integrations": True}),
@@ -69,15 +60,13 @@ class OrganizationCodingAgentsEndpointTest(APITestCase):
         assert integration_data["id"] == "1"
         assert integration_data["name"] == "Test Coding Agent"
         assert integration_data["provider"] == "test_provider"
-        assert integration_data["status"] == "active"
-        assert integration_data["metadata"]["has_api_key"] is True
-        assert integration_data["metadata"]["domain_name"] == "test.example.com"
-        assert integration_data["webhook_url"] == "https://example.com/webhook/"
 
     def mock_integration_service_calls(self, org_integrations=None, integration=None):
         """Helper to mock integration service calls."""
         import contextlib
         from unittest.mock import patch
+
+        from sentry.integrations.services.integration import integration_service
 
         org_integrations = org_integrations or []
 

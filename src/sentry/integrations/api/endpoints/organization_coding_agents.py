@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import cast
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,7 +11,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.constants import ObjectStatus
-from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.services.integration import integration_service
 
@@ -52,34 +50,18 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                     if not integration:
                         continue
 
-                    installation = cast(
-                        CodingAgentIntegration, integration.get_installation(organization.id)
-                    )
-
                     integrations_data.append(
                         {
                             "id": str(integration.id),
                             "name": integration.name,
                             "provider": integration.provider,
-                            "status": (
-                                "active"
-                                if org_integration.status == ObjectStatus.ACTIVE
-                                else "inactive"
-                            ),
-                            "metadata": {
-                                "has_api_key": bool(integration.metadata.get("api_key")),
-                                "domain_name": integration.metadata.get("domain_name"),
-                            },
-                            "webhook_url": installation.get_webhook_url(),
                         }
                     )
-                except Exception as e:
+                except Exception:
                     logger.exception(
                         "coding_agent.integration_processing_error",
                         extra={
                             "organization_id": organization.id,
-                            "integration_id": getattr(integration, "id", "unknown"),
-                            "error": str(e),
                         },
                     )
                     # Continue processing other integrations
@@ -92,10 +74,10 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
             return self.respond({"integrations": integrations_data})
 
-        except Exception as e:
+        except Exception:
             logger.exception(
                 "coding_agent.list_error",
-                extra={"organization_id": organization.id, "error": str(e)},
+                extra={"organization_id": organization.id},
             )
             return self.respond(
                 {"error": "Failed to retrieve coding agent integrations"}, status=500
