@@ -11,8 +11,12 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 import type {OmniAction} from './types';
 import {useApiDynamicActions} from './useApiDynamicActions';
+import {useCommandDynamicActions} from './useCommandDynamicActions';
+import {useFormDynamicActions} from './useFormDynamicActions';
 import {useOmniActions} from './useOmniActions';
 import {useOmniSearchState} from './useOmniSearchState';
+import {useOrganizationsDynamicActions} from './useOrganizationsDynamicActions';
+import {useRouteDynamicActions} from './useRouteDynamicActions';
 
 /**
  * Very basic palette UI using cmdk that lists all registered actions.
@@ -33,7 +37,26 @@ export function OmniSearchPalette() {
 
   const debouncedQuery = useDebouncedValue(query, 300);
 
-  const dynamicActions = useApiDynamicActions(debouncedQuery);
+  // Get dynamic actions from all sources
+  const apiActions = useApiDynamicActions(debouncedQuery);
+  const formActions = useFormDynamicActions(debouncedQuery);
+  const routeActions = useRouteDynamicActions(debouncedQuery);
+  const orgActions = useOrganizationsDynamicActions(debouncedQuery);
+  const commandActions = useCommandDynamicActions(debouncedQuery);
+
+  // Combine all dynamic actions
+  const dynamicActions = useMemo(
+    () => [
+      ...apiActions,
+      ...formActions,
+      ...routeActions,
+      ...orgActions,
+      ...commandActions,
+    ],
+    [apiActions, formActions, routeActions, orgActions, commandActions]
+  );
+
+  // Register all dynamic actions
   useOmniActions(dynamicActions);
 
   const [filteredAvailableActions, setFilteredAvailableActions] = useState<OmniAction[]>(
