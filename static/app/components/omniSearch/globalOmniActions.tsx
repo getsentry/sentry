@@ -1,10 +1,19 @@
+import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import {useOmniAreas} from 'sentry/components/omniSearch/useOmniAreas';
-import {IconDiamond, IconDiscord, IconDocs, IconGithub, IconUser} from 'sentry/icons';
+import {
+  IconDiscord,
+  IconDocs,
+  IconGithub,
+  IconMoon,
+  IconSettings,
+  IconUser,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 
 const GlobalActionSection = {
   HELP: t('Help'),
@@ -17,6 +26,8 @@ const GlobalActionSection = {
  * Registers globally-available OmniSearch areas and actions.
  */
 export function useGlobalOmniActions() {
+  const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
+
   // Define high-level areas for organization
   useOmniAreas([
     {key: 'add', label: t('Add')},
@@ -34,7 +45,7 @@ export function useGlobalOmniActions() {
       areaKey: 'global',
       section: GlobalActionSection.HELP,
       label: t('Open Documentation'),
-      actionIcon: IconDocs,
+      actionIcon: <IconDocs />,
       onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
     },
     // Help: Discord
@@ -43,7 +54,7 @@ export function useGlobalOmniActions() {
       areaKey: 'global',
       section: GlobalActionSection.HELP,
       label: t('Join Discord'),
-      actionIcon: IconDiscord,
+      actionIcon: <IconDiscord />,
       onAction: () => window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
     },
     // Help: GitHub
@@ -52,7 +63,7 @@ export function useGlobalOmniActions() {
       areaKey: 'global',
       section: GlobalActionSection.HELP,
       label: t('Open GitHub Repository'),
-      actionIcon: IconGithub,
+      actionIcon: <IconGithub />,
       onAction: () =>
         window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
     },
@@ -62,7 +73,7 @@ export function useGlobalOmniActions() {
       areaKey: 'global',
       section: GlobalActionSection.ADD,
       label: t('Invite Members'),
-      actionIcon: IconUser,
+      actionIcon: <IconUser />,
       onAction: () => openInviteMembersModal(),
     },
     // Other: Toggle theme
@@ -75,10 +86,48 @@ export function useGlobalOmniActions() {
         config.theme === 'light' ? 'Light' : 'Dark',
         config.theme === 'light' ? 'Dark' : 'Light'
       ),
-      actionIcon: IconDiamond,
-      actionHotkey: 'command+shift+l',
+      actionIcon: <IconMoon />,
       onAction: () =>
         ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light'),
+    },
+    {
+      key: 'account-theme-preference',
+      areaKey: 'global',
+      section: GlobalActionSection.OTHER,
+      label: t('Theme Preference'),
+      actionIcon: <IconSettings />,
+      children: [
+        {
+          key: 'account-theme-preference-system',
+          areaKey: 'global',
+          label: t('System'),
+          onAction: async () => {
+            addLoadingMessage(t('Saving…'));
+            await mutateUserOptions({theme: 'system'});
+            addSuccessMessage(t('Theme preference saved: System'));
+          },
+        },
+        {
+          key: 'account-theme-preference-light',
+          areaKey: 'global',
+          label: t('Light'),
+          onAction: async () => {
+            addLoadingMessage(t('Saving…'));
+            await mutateUserOptions({theme: 'light'});
+            addSuccessMessage(t('Theme preference saved: Light'));
+          },
+        },
+        {
+          key: 'account-theme-preference-dark',
+          areaKey: 'global',
+          label: t('Dark'),
+          onAction: async () => {
+            addLoadingMessage(t('Saving…'));
+            await mutateUserOptions({theme: 'dark'});
+            addSuccessMessage(t('Theme preference saved: Dark'));
+          },
+        },
+      ],
     },
   ]);
 }

@@ -1,8 +1,9 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
 
+import {closeModal} from 'sentry/actionCreators/modal';
 import {useOmniSearchState} from 'sentry/components/omniSearch/useOmniSearchState';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
@@ -13,15 +14,17 @@ import type {OmniAction} from './types';
  *
  * NOTE: This is intentionally minimal and will be iterated on.
  */
-
-type Props = {
-  onBarrelRoll: () => void;
-};
-
-export function OmniSearchPalette({onBarrelRoll}: Props) {
-  const {focusedArea, actions: availableActions} = useOmniSearchState();
+export function OmniSearchPalette({onBarrelRoll}: {onBarrelRoll: () => void}) {
+  const {
+    focusedArea,
+    actions: availableActions,
+    selectedAction,
+    selectAction,
+    clearSelection,
+  } = useOmniSearchState();
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const funActions: OmniAction[] = useMemo(
     () => [
@@ -88,6 +91,10 @@ export function OmniSearchPalette({onBarrelRoll}: Props) {
     if (action.disabled) {
       return;
     }
+    if (action.children && action.children.length > 0) {
+      selectAction(action);
+      return;
+    }
     if (action.onAction) {
       action.onAction();
     }
@@ -96,7 +103,21 @@ export function OmniSearchPalette({onBarrelRoll}: Props) {
     }
 
     // TODO: Any other action handlers?
+
+    if (action.key === 'barrel-roll') {
+      // Keep modal open for barrel roll
+      return;
+    }
+    closeModal();
   };
+
+  // When an action has been selected, clear the query and focus the input
+  useEffect(() => {
+    if (selectedAction) {
+      setQuery('');
+      inputRef.current?.focus();
+    }
+  }, [selectedAction]);
 
   return (
     <Container>
@@ -104,9 +125,16 @@ export function OmniSearchPalette({onBarrelRoll}: Props) {
         <Header>
           {focusedArea && <div>{focusedArea.label}</div>}
           <CommandPrimitive.Command.Input
+            ref={inputRef}
             autoFocus
             value={query}
             onValueChange={setQuery}
+            onKeyDown={e => {
+              if (e.key === 'Backspace' && query === '' && selectedAction) {
+                clearSelection();
+                e.preventDefault();
+              }
+            }}
             placeholder="Start typing…"
           />
         </Header>

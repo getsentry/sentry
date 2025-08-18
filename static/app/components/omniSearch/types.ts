@@ -19,6 +19,8 @@ export type OmniAction = {
   actionIcon?: ReactNode;
   /** Action type grouping, useful for ordering (e.g. "navigate", "copy") */
   actionType?: string;
+  /** Nested actions to show when this action is selected */
+  children?: OmniAction[];
   /** Additional context or description */
   details?: string;
   /** Whether this action should be disabled */
