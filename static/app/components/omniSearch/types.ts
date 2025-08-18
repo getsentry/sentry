@@ -16,21 +16,23 @@ export type OmniAction = {
   /** Keyboard shortcut (e.g. "cmd+k", "shift+r") */
   actionHotkey?: string;
   /** Icon to render for this action */
-  actionIcon?: React.ComponentType<any>;
+  actionIcon?: ReactNode;
   /** Action type grouping, useful for ordering (e.g. "navigate", "copy") */
   actionType?: string;
   /** Additional context or description */
-  details?: string | ReactNode;
+  details?: string;
   /** Whether this action should be disabled */
   disabled?: boolean;
   /** Optional longer label or subtitle */
-  fullLabel?: string | ReactNode;
+  fullLabel?: string;
   /** Whether this action should be hidden from results */
   hidden?: boolean;
   /** Optional keywords to improve searchability */
   keywords?: string[];
   /** Execute an imperative action */
   onAction?: () => void;
+  /** Section to group the action in the palette */
+  section?: string;
   /** Navigate to a route when selected */
   to?: string | Record<string, any>;
 };

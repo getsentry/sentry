@@ -6,6 +6,13 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
+const GlobalActionSection = {
+  HELP: t('Help'),
+  ADD: t('Add'),
+  NAVIGATE: t('Go to…'),
+  OTHER: t('Other'),
+};
+
 /**
  * Registers globally-available OmniSearch areas and actions.
  */
@@ -24,7 +31,8 @@ export function useGlobalOmniActions() {
     // Help: Documentation
     {
       key: 'help-docs',
-      areaKey: 'help',
+      areaKey: 'global',
+      section: GlobalActionSection.HELP,
       label: t('Open Documentation'),
       actionIcon: IconDocs,
       onAction: () => window.open('https://docs.sentry.io', '_blank', 'noreferrer'),
@@ -32,7 +40,8 @@ export function useGlobalOmniActions() {
     // Help: Discord
     {
       key: 'help-discord',
-      areaKey: 'help',
+      areaKey: 'global',
+      section: GlobalActionSection.HELP,
       label: t('Join Discord'),
       actionIcon: IconDiscord,
       onAction: () => window.open('https://discord.gg/sentry', '_blank', 'noreferrer'),
@@ -40,7 +49,8 @@ export function useGlobalOmniActions() {
     // Help: GitHub
     {
       key: 'help-github',
-      areaKey: 'help',
+      areaKey: 'global',
+      section: GlobalActionSection.HELP,
       label: t('Open GitHub Repository'),
       actionIcon: IconGithub,
       onAction: () =>
@@ -49,7 +59,8 @@ export function useGlobalOmniActions() {
     // Add: Invite members
     {
       key: 'add-invite-members',
-      areaKey: 'add',
+      areaKey: 'global',
+      section: GlobalActionSection.ADD,
       label: t('Invite Members'),
       actionIcon: IconUser,
       onAction: () => openInviteMembersModal(),
@@ -57,7 +68,8 @@ export function useGlobalOmniActions() {
     // Other: Toggle theme
     {
       key: 'other-toggle-theme',
-      areaKey: 'other',
+      areaKey: 'global',
+      section: GlobalActionSection.OTHER,
       label: t(
         'Toggle Theme (%s → %s)',
         config.theme === 'light' ? 'Light' : 'Dark',

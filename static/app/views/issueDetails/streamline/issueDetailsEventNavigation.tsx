@@ -6,7 +6,7 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
-import {IconChevron, IconNext, IconPrevious} from 'sentry/icons';
+import {IconChevron, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -134,8 +134,9 @@ export function IssueDetailsEventNavigation({
       key: 'issue-oldest-event',
       label: t('Go to Previous Event'),
       areaKey: 'issue',
+      section: t('Navigate Events'),
       actionType: 'navigate',
-      actionIcon: IconPrevious,
+      actionIcon: <IconChevron direction="left" />,
       to: previousEventPath,
       hidden: !defined(event?.previousEventID),
     },
@@ -143,8 +144,9 @@ export function IssueDetailsEventNavigation({
       key: 'issue-next-event',
       label: t('Go to Next Event'),
       areaKey: 'issue',
+      section: t('Navigate Events'),
       actionType: 'navigate',
-      actionIcon: IconNext,
+      actionIcon: <IconChevron direction="right" />,
       to: nextEventPath,
       hidden: !defined(event?.nextEventID),
     },
@@ -152,8 +154,17 @@ export function IssueDetailsEventNavigation({
       key: `issue-${option}-event`,
       label: t('Go to %s Event', EventNavLabels[option]),
       areaKey: 'issue',
+      section: t('Navigate Events'),
       actionType: 'navigate',
-      actionIcon: IconChevron,
+      actionIcon:
+        option === EventNavOptions.RECOMMENDED ? (
+          <IconStar />
+        ) : (
+          <IconChevron
+            direction={option === EventNavOptions.OLDEST ? 'left' : 'right'}
+            isDouble
+          />
+        ),
       to: {
         pathname: normalizeUrl(baseEventsPath + option + '/'),
         query: {...location.query, referrer: `${option}-event`},

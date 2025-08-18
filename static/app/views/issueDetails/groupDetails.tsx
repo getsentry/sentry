@@ -887,7 +887,11 @@ function GroupDetails() {
   const config = group && getConfigForIssueType(group, group.project);
 
   return (
-    <OmniSearchArea areaKey="issue" label={getGroupDetailsTitle()} focused>
+    <OmniSearchArea
+      areaKey="issue"
+      label={(group ? getTitle(group).title : null) ?? t('Issue')}
+      focused
+    >
       {isSampleError && group && (
         <SampleEventAlert project={group.project} organization={organization} />
       )}

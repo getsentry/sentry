@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
 
 import {useOmniSearchState} from 'sentry/components/omniSearch/useOmniSearchState';
+import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
-import {useOmniSearchStore} from './context';
 import type {OmniAction} from './types';
 
 /**
@@ -19,18 +19,12 @@ type Props = {
 };
 
 export function OmniSearchPalette({onBarrelRoll}: Props) {
-  const {actionsByKey, areasByKey, areaPriority} = useOmniSearchStore();
-  const {focusedArea} = useOmniSearchState();
+  const {focusedArea, actions: availableActions} = useOmniSearchState();
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
 
-  const grouped = useMemo(() => {
-    const actions = Array.from(actionsByKey.values()).filter(
-      (a: OmniAction) => !a.hidden
-    );
-
-    // Add fun actions
-    const funActions: OmniAction[] = [
+  const funActions: OmniAction[] = useMemo(
+    () => [
       {
         key: 'barrel-roll',
         label: 'Do a barrel roll! 🛩️',
@@ -43,31 +37,26 @@ export function OmniSearchPalette({onBarrelRoll}: Props) {
           onBarrelRoll();
         },
       },
-    ];
+    ],
+    [onBarrelRoll]
+  );
 
-    const allActions = [...actions, ...funActions];
-    const byArea = new Map<string, OmniAction[]>();
-    for (const action of allActions) {
-      const list = byArea.get(action.areaKey) ?? [];
+  const grouped = useMemo(() => {
+    const actions = [...availableActions, ...funActions].filter(
+      (a: OmniAction) => !a.hidden
+    );
+
+    // Group by section label
+    const bySection = new Map<string, OmniAction[]>();
+    for (const action of actions) {
+      const sectionLabel = action.section ?? '';
+      const list = bySection.get(sectionLabel) ?? [];
       list.push(action);
-      byArea.set(action.areaKey, list);
+      bySection.set(sectionLabel, list);
     }
 
-    const sortAreaKeys = () => {
-      const existingKeys = new Set(byArea.keys());
-      const prioritized = areaPriority.filter(k => existingKeys.has(k));
-      const remaining = Array.from(existingKeys).filter(
-        (k: string) => !prioritized.includes(k)
-      );
-      remaining.sort((a, b) => {
-        const aLabel = areasByKey.get(a)?.label ?? a;
-        const bLabel = areasByKey.get(b)?.label ?? b;
-        return aLabel.localeCompare(bLabel);
-      });
-      return [...prioritized, ...remaining];
-    };
-
-    const areaKeys = sortAreaKeys();
+    // Sort sections alphabetically by label
+    const sectionKeys = Array.from(bySection.keys()).sort((a, b) => a.localeCompare(b));
 
     // Simple text filter across label/fullLabel/details
     const matches = (action: OmniAction) => {
@@ -76,19 +65,24 @@ export function OmniSearchPalette({onBarrelRoll}: Props) {
         return true;
       }
       const parts: string[] = [];
-      if (typeof action.label === 'string') parts.push(action.label);
-      if (typeof action.details === 'string') parts.push(action.details);
-      return parts.join(' \n ').toLowerCase().includes(q);
+      parts.push(action.label);
+      if (action.fullLabel) {
+        parts.push(action.fullLabel);
+      }
+      if (action.details) {
+        parts.push(action.details);
+      }
+      return parts.join(' ').toLowerCase().includes(q);
     };
 
-    return areaKeys.map(areaKey => {
-      const label = areasByKey.get(areaKey)?.label ?? areaKey;
-      const items = (byArea.get(areaKey) ?? [])
+    return sectionKeys.map(sectionKey => {
+      const label = sectionKey;
+      const items = (bySection.get(sectionKey) ?? [])
         .filter(matches)
         .sort((a, b) => a.label.localeCompare(b.label));
-      return {areaKey, label, items};
+      return {sectionKey, label, items};
     });
-  }, [actionsByKey, areasByKey, areaPriority, query, onBarrelRoll]);
+  }, [availableActions, funActions, query]);
 
   const handleSelect = (action: OmniAction) => {
     if (action.disabled) {
@@ -121,7 +115,7 @@ export function OmniSearchPalette({onBarrelRoll}: Props) {
             <CommandPrimitive.Command.Empty>No results</CommandPrimitive.Command.Empty>
           ) : (
             grouped.map(group => (
-              <Fragment key={group.areaKey}>
+              <Fragment key={group.sectionKey}>
                 {group.items.length > 0 && (
                   <CommandPrimitive.Command.Group heading={group.label}>
                     {group.items.map(item => (
@@ -131,7 +125,11 @@ export function OmniSearchPalette({onBarrelRoll}: Props) {
                         disabled={item.disabled}
                       >
                         <ItemRow>
-                          {item.actionIcon && <item.actionIcon size="sm" />}
+                          {item.actionIcon && (
+                            <IconDefaultsProvider size="sm">
+                              {item.actionIcon}
+                            </IconDefaultsProvider>
+                          )}
                           <span>{item.label}</span>
                         </ItemRow>
                       </CommandPrimitive.Command.Item>
