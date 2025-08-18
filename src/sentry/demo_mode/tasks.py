@@ -40,10 +40,7 @@ def sync_debug_artifacts() -> None:
         return
 
     source_org_id = options.get("sentry.demo_mode.sync_debug_artifacts.source_org_id")
-    try:
-        source_org = Organization.objects.get(id=source_org_id)
-    except Organization.DoesNotExist:
-        source_org = None
+    source_org = Organization.objects.get(id=source_org_id)
 
     target_org = get_demo_org()
 
