@@ -14,6 +14,7 @@ import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {openOmniSearch} from 'sentry/components/omniSearch';
+import {useGlobalOmniActions} from 'sentry/components/omniSearch/globalOmniActions';
 import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
@@ -54,6 +55,7 @@ const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
  */
 function App({children, params}: Props) {
   useColorscheme();
+  useGlobalOmniActions();
 
   const api = useApi();
   const user = useUser();
