@@ -177,6 +177,7 @@ function HomeScreen({cards, onOpenCards}: HomeScreenProps) {
             <Text size="lg" bold>
               {cards.length} item{cards.length === 1 ? '' : 's'} to review
             </Text>
+            <KeyHint>↵</KeyHint>
           </CardPreviewFront>
         </CardStackPreview>
       </CardStackPreviewContainer>
@@ -297,6 +298,10 @@ const ProjectFilterContainer = styled('div')`
   width: 100%;
   justify-content: flex-start;
   margin-bottom: -${space(3)};
+`;
+
+const KeyHint = styled('span')`
+  margin-top: ${space(0.5)};
 `;
 
 export default HomeScreen;

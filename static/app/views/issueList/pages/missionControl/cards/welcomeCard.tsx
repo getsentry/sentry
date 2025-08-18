@@ -82,25 +82,25 @@ function WelcomeCardRenderer({
 
           <KeyboardHints>
             <HintRow>
-              <KeyBadge>←</KeyBadge>
+              <KeyBadge>⌫</KeyBadge>
               <Text size="xs" variant="muted">
                 Dismiss
               </Text>
             </HintRow>
             <HintRow>
-              <KeyBadge>↑</KeyBadge>
+              <KeyBadge>⇧+⌫</KeyBadge>
               <Text size="xs" variant="muted">
                 Move to back
               </Text>
             </HintRow>
             <HintRow>
-              <KeyBadge>↓</KeyBadge>
+              <KeyBadge>⇧+↵</KeyBadge>
               <Text size="xs" variant="muted">
-                Navigate
+                View full details
               </Text>
             </HintRow>
             <HintRow>
-              <KeyBadge>→</KeyBadge>
+              <KeyBadge>↵</KeyBadge>
               <Text size="xs" variant="muted">
                 Take action
               </Text>
