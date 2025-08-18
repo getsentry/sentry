@@ -329,7 +329,7 @@ def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
-    pass
+    return
     sdk_options, dsns = _get_sdk_options()
     if settings.SPOTLIGHT:
         sdk_options["spotlight"] = (
