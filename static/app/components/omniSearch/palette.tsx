@@ -114,14 +114,26 @@ export function OmniSearchPalette() {
 
     const areaKeys = sortAreaKeys();
 
+    // Simple text filter across label/fullLabel/details
+    const matches = (action: OmniAction) => {
+      const q = query.trim().toLowerCase();
+      if (!q) {
+        return true;
+      }
+      const parts: string[] = [];
+      if (typeof action.label === 'string') parts.push(action.label);
+      if (typeof action.details === 'string') parts.push(action.details);
+      return parts.join(' \n ').toLowerCase().includes(q);
+    };
+
     return areaKeys.map(areaKey => {
       const label = areasByKey.get(areaKey)?.label ?? areaKey;
-      const items = (byArea.get(areaKey) ?? []).sort((a, b) =>
-        a.label.localeCompare(b.label)
-      );
+      const items = (byArea.get(areaKey) ?? [])
+        .filter(matches)
+        .sort((a, b) => a.label.localeCompare(b.label));
       return {areaKey, label, items};
     });
-  }, [availableActions, areasByKey, areaPriority]);
+  }, [availableActions, areasByKey, areaPriority, query]);
 
   const handleSelect = (action: OmniAction) => {
     if (action.disabled) {
