@@ -56,8 +56,9 @@ export interface User extends Omit<AvatarUser, 'options'> {
     prefersNextjsInsightsOverview: boolean;
     prefersStackedNavigation: boolean | null;
     stacktraceOrder: StacktraceOrder;
-    theme: 'system' | 'light' | 'dark';
+    theme: 'system' | 'light' | 'dark' | 'custom';
     timezone: string;
+    customTheme?: string;
   };
   permissions: Set<string>;
   authenticators?: UserEnrolledAuthenticator[];

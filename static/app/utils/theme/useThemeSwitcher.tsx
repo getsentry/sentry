@@ -8,7 +8,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {User} from 'sentry/types/user';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 // eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import {createCustomTheme, darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {
   DO_NOT_USE_darkChonkTheme,
   DO_NOT_USE_lightChonkTheme,
@@ -29,8 +29,23 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
 
   const {mutate: mutateUserOptions} = useMutateUserOptions();
 
-  let theme: Theme | DO_NOT_USE_ChonkTheme =
-    config.theme === 'dark' ? darkTheme : lightTheme;
+  // Handle custom theme
+  const userTheme = user?.options?.theme;
+  const customTheme = user?.options?.customTheme;
+
+  let theme: Theme | DO_NOT_USE_ChonkTheme;
+
+  // Check if user has selected custom theme and provided a custom color
+  if (userTheme === 'custom' && customTheme) {
+    // Create custom theme based on the user's color choice
+    // Use current config.theme to determine if it should be light or dark base
+    const baseTheme = config.theme === 'dark' ? 'dark' : 'light';
+    theme = createCustomTheme(customTheme, baseTheme);
+  } else {
+    // Default theme logic
+    theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  }
+
   // Check feature access and if chonk theme is enabled
   if (organization?.features?.includes('chonk-ui') && user?.options?.prefersChonkUI) {
     theme =
