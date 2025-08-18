@@ -94,13 +94,6 @@ function MissionControlSections() {
         <ThemesSection />
       </FoldSection>
       <FoldSection
-        sectionKey={SectionKey.SEER_MISSION_CONTROL_NEW_ISSUES}
-        title={t('New Issues')}
-        actions={createViewAllButton('is:unresolved is:new', 'date', 'New Issues')}
-      >
-        <NewIssuesSection />
-      </FoldSection>
-      <FoldSection
         sectionKey={SectionKey.SEER_MISSION_CONTROL_ESCALATING_ISSUES}
         title={t('Escalating Issues')}
         actions={createViewAllButton(
@@ -110,6 +103,13 @@ function MissionControlSections() {
         )}
       >
         <EscalatingIssuesSection />
+      </FoldSection>
+      <FoldSection
+        sectionKey={SectionKey.SEER_MISSION_CONTROL_NEW_ISSUES}
+        title={t('New Issues')}
+        actions={createViewAllButton('is:unresolved is:new', 'date', 'New Issues')}
+      >
+        <NewIssuesSection />
       </FoldSection>
       <FoldSection
         sectionKey={SectionKey.SEER_MISSION_CONTROL_TOP_ISSUES}
@@ -245,7 +245,7 @@ const CardPreviewBack = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
   transform: rotate(2deg);
   z-index: 1;
 

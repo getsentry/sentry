@@ -137,7 +137,7 @@ function UltragroupCardRenderer({
         <Content>
           <HeaderSection>
             <Text size="xl" bold>
-              {t('Recurring Issue Pattern Detected')}
+              {t('A core problem has been detected')}
             </Text>
             <Text size="xl">{title}</Text>
             <Text size="md">{description}</Text>
@@ -154,7 +154,7 @@ function UltragroupCardRenderer({
         <Content>
           <HeaderSection>
             <Text size="xl" bold>
-              {t('Recurring Issue Pattern Detected')}
+              {t('A core problem has been detected')}
             </Text>
             <Text size="xl">{title}</Text>
             <Text size="md">{description}</Text>
@@ -176,7 +176,7 @@ function UltragroupCardRenderer({
       <Content>
         <HeaderSection>
           <Text size="xl" bold>
-            {t('Recurring Issue Pattern Detected')}
+            {t('A core problem has been detected')}
           </Text>
           <Text size="xl">{title}</Text>
           <Text size="md">{description}</Text>
