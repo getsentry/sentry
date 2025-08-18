@@ -195,10 +195,15 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
         return autofix_state
 
-    def _extract_repos_from_solution(self, autofix_state: AutofixState) -> set[str]:
+    def _extract_repos_from_solution(self, autofix_state: AutofixState) -> list[str]:
         """Extract repository names from autofix state solution."""
         repos = set()
-        solution_step = next(step for step in autofix_state.steps if step["key"] == "solution")
+        solution_step = next(
+            (step for step in autofix_state.steps if step["key"] == "solution"), None
+        )
+
+        if not solution_step:
+            return []
 
         for solution_item in solution_step["solution"]:
             if (
@@ -207,7 +212,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             ):
                 repos.add(solution_item["relevant_code_file"]["repo_name"])
 
-        return repos
+        return list(repos)
 
     def _launch_agents_for_repos(
         self,
@@ -219,6 +224,28 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
     ) -> list[dict]:
         """Launch coding agents for all repositories in the solution."""
         repos = self._extract_repos_from_solution(autofix_state)
+
+        if not repos:
+            logger.error(
+                "coding_agent.post.no_repos_found_in_solution",
+                extra={
+                    "organization_id": organization.id,
+                    "run_id": run_id,
+                },
+            )
+
+            # Fallback to run on all repos
+            repos = autofix_state.request["repos"]
+
+            if not repos:
+                logger.error(
+                    "coding_agent.post.no_repos_found_in_request",
+                    extra={
+                        "organization_id": organization.id,
+                        "run_id": run_id,
+                    },
+                )
+                return []
 
         results = []
 
