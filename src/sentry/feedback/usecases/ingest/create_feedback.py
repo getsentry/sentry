@@ -338,6 +338,7 @@ def create_feedback_issue(
         }
     )
 
+    should_query_seer = True
     # Generating labels using Seer, which will later be used to categorize feedbacks
     if should_query_seer and features.has(
         "organizations:user-feedback-ai-categorization", project.organization
