@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {useGlobalOmniActions} from 'sentry/components/omniSearch/globalOmniActions';
+import {useGlobalOmniActions} from 'sentry/components/omniSearch/useGlobalOmniActions';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
