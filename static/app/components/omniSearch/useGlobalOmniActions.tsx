@@ -3,12 +3,14 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import {
   IconAdd,
+  IconChevron,
   IconDashboard,
   IconDiscord,
   IconDocs,
   IconGithub,
   IconGraph,
   IconIssues,
+  IconOpen,
   IconPrevent,
   IconSearch,
   IconSettings,
@@ -20,6 +22,7 @@ import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
+import {useNavContext} from 'sentry/views/nav/context';
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 
 const GlobalActionSection = {
@@ -280,6 +283,23 @@ function useNavigationActions() {
   ];
 }
 
+function useNavigationToggleCollapsed() {
+  const {isCollapsed, setIsCollapsed} = useNavContext();
+
+  return {
+    key: 'toggle-navigation-collapsed',
+    areaKey: 'global',
+    section: GlobalActionSection.OTHER,
+    label: isCollapsed
+      ? t('Expand Navigation Sidebar')
+      : t('Collapse Navigation Sidebar'),
+    actionIcon: <IconChevron isDouble direction={isCollapsed ? 'right' : 'left'} />,
+    onAction: () => {
+      setIsCollapsed(!isCollapsed);
+    },
+  };
+}
+
 /**
  * Registers globally-available OmniSearch areas and actions.
  */
@@ -287,6 +307,8 @@ export function useGlobalOmniActions() {
   const organization = useOrganization();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const navigateActions = useNavigationActions();
+  const navigationToggleAction = useNavigationToggleCollapsed();
+
   const navPrefix = `/organizations/${organization.slug}`;
 
   useOmniActions([
@@ -318,6 +340,14 @@ export function useGlobalOmniActions() {
       actionIcon: <IconGithub />,
       onAction: () =>
         window.open('https://github.com/getsentry/sentry', '_blank', 'noreferrer'),
+    },
+    {
+      key: 'help-changelog',
+      areaKey: 'global',
+      section: GlobalActionSection.HELP,
+      label: t('View Changelog'),
+      actionIcon: <IconOpen />,
+      onAction: () => window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
     },
     // Add (create new entitty)
     {
@@ -352,6 +382,8 @@ export function useGlobalOmniActions() {
       actionIcon: <IconUser />,
       onAction: () => openInviteMembersModal(),
     },
+    // Actions
+    navigationToggleAction,
     {
       key: 'account-theme-preference',
       areaKey: 'global',
