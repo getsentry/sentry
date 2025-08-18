@@ -273,23 +273,38 @@ function VisualizeDropdown({
   );
 }
 
-function ToolbarGroupBy({stringTags}: LogsToolbarProps) {
+function ToolbarGroupBy({numberTags, stringTags}: LogsToolbarProps) {
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
 
   const options = useMemo(
-    () => [
-      {
-        label: '\u2014',
-        value: '',
-        textValue: '\u2014',
-      },
-      ...Object.keys(stringTags ?? {}).map(key => ({
-        label: key,
-        value: key,
-      })),
-    ],
-    [stringTags]
+    () =>
+      [
+        {
+          label: '\u2014',
+          value: '',
+          textValue: '\u2014',
+        },
+        ...Object.keys(numberTags ?? {}).map(key => ({
+          label: prettifyTagKey(key),
+          value: key,
+        })),
+        ...Object.keys(stringTags ?? {}).map(key => ({
+          label: prettifyTagKey(key),
+          value: key,
+        })),
+      ].toSorted((a, b) => {
+        if (a.label < b.label) {
+          return -1;
+        }
+
+        if (a.label > b.label) {
+          return 1;
+        }
+
+        return 0;
+      }),
+    [numberTags, stringTags]
   );
 
   const setGroupBysWithOp = useCallback(
