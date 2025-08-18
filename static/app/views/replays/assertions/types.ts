@@ -12,6 +12,10 @@ export type AssertionSpanMatcher = {
 
 export type AssertionAction =
   | {
+      matcher: null;
+      type: 'null';
+    }
+  | {
       matcher: AssertionBreadcrumbMatcher;
       type: 'breadcrumb';
     }

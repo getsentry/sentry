@@ -14,6 +14,7 @@ type ParamKeys =
   | 'apiKey'
   | 'appId'
   | 'appSlug'
+  | 'assertionSlug'
   | 'authId'
   | 'automationId'
   | 'codeId'

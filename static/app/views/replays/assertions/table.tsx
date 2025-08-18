@@ -1,13 +1,16 @@
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Input} from 'sentry/components/core/input';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -19,13 +22,18 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCursorArrow, IconLocation, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useQuery} from 'sentry/utils/queryClient';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import AssertionDatabase from 'sentry/views/replays/assertions/database';
 import type {AssertionFlow} from 'sentry/views/replays/assertions/types';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 export default function ReplayOverview() {
+  const navigate = useNavigate();
   const organization = useOrganization();
+  const {projects} = useProjects();
 
   const {data: flows} = useQuery({
     queryKey: ['/assertions/flows'],
@@ -49,6 +57,17 @@ export default function ReplayOverview() {
               />
             </Layout.Title>
           </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <LinkButton
+              priority="primary"
+              to={makeReplaysPathname({
+                path: '/assertions/new/',
+                organization,
+              })}
+            >
+              New Assertion
+            </LinkButton>
+          </Layout.HeaderActions>
         </Layout.Header>
         <PageFiltersContainer>
           <Layout.Body>
@@ -57,6 +76,7 @@ export default function ReplayOverview() {
                 <Flex gap="lg" align="center">
                   <PageFilterBar condensed>
                     <ProjectPageFilter resetParamsOnChange={['cursor']} />
+                    <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
                   </PageFilterBar>
                   <Input placeholder={t('Search for assertions')} style={{flex: '1'}} />
                 </Flex>
@@ -71,18 +91,60 @@ export default function ReplayOverview() {
                     <SimpleTable.HeaderCell>Assignee</SimpleTable.HeaderCell>
                   </SimpleTable.Header>
                   {flows?.map(row => (
-                    <SimpleTable.Row key={row.name} onClick={() => {}}>
+                    <SimpleTable.Row
+                      key={row.name}
+                      onClick={() => {
+                        navigate(
+                          makeReplaysPathname({
+                            path: `/assertions/details/${row.name}/`,
+                            organization,
+                          })
+                        );
+                      }}
+                    >
                       <InteractionStateLayer />
                       <SimpleTable.RowCell>
-                        <Flex gap="md" align="center">
-                          <FlowIcon flow={row} />
-                          <Flex direction="column" gap="xs">
-                            <Text size="md" bold>
-                              {row.name}
-                            </Text>
-                            <Text size="sm">{row.description}</Text>
+                        <FullRowButton
+                          priority="link"
+                          to={makeReplaysPathname({
+                            path: `/assertions/details/${row.name}/`,
+                            organization,
+                          })}
+                        >
+                          <Flex gap="md" align="center">
+                            <FlowIcon flow={row} />
+                            <Flex direction="column" gap="xs">
+                              <Text size="md" bold>
+                                {row.name}
+                              </Text>
+                              <Text size="sm" ellipsis>
+                                {row.description}
+                              </Text>
+                              <Flex gap="lg">
+                                <Flex gap="xs" align="center">
+                                  <ProjectAvatar
+                                    size={12}
+                                    project={
+                                      projects.find(
+                                        project => project.id === row.project_id
+                                      )!
+                                    }
+                                  />
+                                  <Text size="sm" variant="muted">
+                                    {
+                                      projects.find(
+                                        project => project.id === row.project_id
+                                      )!.slug
+                                    }
+                                  </Text>
+                                </Flex>
+                                <Text size="sm" variant="muted">
+                                  {row.environment}
+                                </Text>
+                              </Flex>
+                            </Flex>
                           </Flex>
-                        </Flex>
+                        </FullRowButton>
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
                         <Grid
@@ -131,7 +193,7 @@ export default function ReplayOverview() {
                   ))}
                 </SimpleTableWithColumns>
 
-                <PaginationNoMargin pageLinks={null} />
+                <PaginationNoMargin pageLinks={''} />
               </Grid>
             </Layout.Main>
           </Layout.Body>
@@ -165,6 +227,18 @@ function FlowIcon({flow}: {flow: AssertionFlow}) {
 
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr repeat(5, max-content);
+`;
+
+const FullRowButton = styled(LinkButton)`
+  font-weight: normal;
+  width: 100%;
+  text-align: left;
+  align-items: flex-start;
+  flex-direction: column;
+  flex: 1;
+
+  margin: -${p => p.theme.space.lg} -${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const PaginationNoMargin = styled(Pagination)`

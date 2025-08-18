@@ -1738,13 +1738,17 @@ function buildRoutes(): RouteObject[] {
       path: 'assertions/',
       children: [
         {
-          index: true,
-          component: make(() => import('sentry/views/replays/assertions')),
+          path: 'table/',
+          component: make(() => import('sentry/views/replays/assertions/table')),
         },
-        // {
-        //   path: ':assertionSlug/',
-        //   component: make(() => import('sentry/views/replays/assertions/details')),
-        // },
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/replays/assertions/new')),
+        },
+        {
+          path: 'details/:assertionSlug/',
+          component: make(() => import('sentry/views/replays/assertions/details')),
+        },
       ],
     },
   ];
