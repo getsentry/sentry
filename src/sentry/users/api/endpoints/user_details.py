@@ -243,6 +243,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "prefersStackedNavigation": "prefers_stacked_navigation",
             "prefersNextjsInsightsOverview": "prefers_nextjs_insights_overview",
             "prefersChonkUI": "prefers_chonk_ui",
+            "customTheme": "custom_theme",
         }
 
         options_result = serializer_options.validated_data
