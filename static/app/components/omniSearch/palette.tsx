@@ -3,14 +3,14 @@ import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
 
-import {IconSearch} from 'sentry/icons';
-
 import {closeModal} from 'sentry/actionCreators/modal';
 import {strGetFn} from 'sentry/components/search/sources/utils';
+import {IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+
 import type {OmniAction} from './types';
 import {useApiDynamicActions} from './useApiDynamicActions';
 import {useCommandDynamicActions} from './useCommandDynamicActions';
@@ -124,7 +124,8 @@ export function OmniSearchPalette() {
 
   return (
     <StyledCommand label="OmniSearch" shouldFilter={false}>
-      <Header>{focusedArea && <div>{focusedArea.label}</div>}
+      <Header>
+        {focusedArea && <div>{focusedArea.label}</div>}
         <IconSearch size="sm" style={{marginRight: 8}} />
         <CommandPrimitive.Command.Input
           autoFocus
@@ -132,12 +133,12 @@ export function OmniSearchPalette() {
           value={query}
           onValueChange={setQuery}
           onKeyDown={e => {
-              if (e.key === 'Backspace' && query === '') {
-                clearSelection();
-                e.preventDefault();
-              }
-            }}
-            placeholder="Search for projects, issues, settings, and more…"
+            if (e.key === 'Backspace' && query === '') {
+              clearSelection();
+              e.preventDefault();
+            }
+          }}
+          placeholder="Search for projects, issues, settings, and more…"
         />
       </Header>
       <CommandPrimitive.Command.List>
@@ -156,10 +157,10 @@ export function OmniSearchPalette() {
                     >
                       <ItemRow>
                         {item.actionIcon && (
-                            <IconDefaultsProvider size="sm">
-                              {item.actionIcon}
-                            </IconDefaultsProvider>
-                          )}
+                          <IconDefaultsProvider size="sm">
+                            {item.actionIcon}
+                          </IconDefaultsProvider>
+                        )}
                         <span>{item.label}</span>
                       </ItemRow>
                     </CommandPrimitive.Command.Item>
@@ -173,7 +174,6 @@ export function OmniSearchPalette() {
     </StyledCommand>
   );
 }
-
 
 const Header = styled('div')`
   position: relative;
@@ -255,7 +255,10 @@ const StyledCommand = styled(CommandPrimitive.Command)`
 
       > * {
         > *:first-child {
-          transform: scale(1.1);
+          /* Only scale if the first child is an svg (icon) */
+          &:is(svg, [data-icon], .icon) {
+            transform: scale(1.1);
+          }
         }
       }
     }
