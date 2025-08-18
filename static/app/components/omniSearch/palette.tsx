@@ -20,6 +20,7 @@ import type {ResultItem} from 'sentry/components/search/sources/types';
 import {IconDocs} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {OmniAction} from './types';
@@ -46,6 +47,8 @@ export function OmniSearchPalette() {
 
   const [results, setResults] = useState<ResultItem[]>([]);
 
+  const debouncedQuery = useDebouncedValue(query, 300);
+
   const handleSearch = useCallback(async () => {
     const pendingResults: Array<Promise<ResultItem[] | null>> = [];
 
@@ -53,7 +56,7 @@ export function OmniSearchPalette() {
       const org = organization;
       const slug = organization.slug;
 
-      const q = (url: string) => queryResults(api, url, query);
+      const q = (url: string) => queryResults(api, url, debouncedQuery);
 
       const searchQueries = [
         createProjectResults(q(`/organizations/${slug}/projects/`), org),
@@ -69,7 +72,7 @@ export function OmniSearchPalette() {
 
     const resolvedResults = await Promise.all(pendingResults);
     setResults(resolvedResults.flat().filter(i => i !== null));
-  }, [api, query, organization]);
+  }, [api, debouncedQuery, organization]);
 
   useEffect(() => {
     void handleSearch();
