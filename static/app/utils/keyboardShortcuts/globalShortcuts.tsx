@@ -1,6 +1,5 @@
 import * as React from 'react';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
@@ -146,6 +145,7 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
 export function GlobalShortcuts({router}: {router: InjectedRouter}) {
   const {openHelpModal, registerContext} = useShortcuts();
   const routerRef = React.useRef(router);
+  const registeredRef = React.useRef(false);
 
   // Update router ref when it changes
   React.useEffect(() => {
@@ -153,6 +153,11 @@ export function GlobalShortcuts({router}: {router: InjectedRouter}) {
   }, [router]);
 
   React.useEffect(() => {
+    // Only register once to prevent infinite loops
+    if (registeredRef.current) {
+      return;
+    }
+
     // Override the help shortcut to use our modal
     const shortcuts = initializeGlobalShortcuts(routerRef.current).map(shortcut => {
       if (shortcut.id === 'global-help') {
@@ -164,15 +169,11 @@ export function GlobalShortcuts({router}: {router: InjectedRouter}) {
       return shortcut;
     });
 
-    // Split shortcuts by context and register separately
-    const globalShortcuts = shortcuts.filter(s => s.id === 'global-help');
-    const navigationShortcuts = shortcuts.filter(s => s.id !== 'global-help');
-
-    registerContext('global', globalShortcuts);
-    registerContext('navigation', navigationShortcuts);
+    // Register all shortcuts under 'global' context
+    registerContext('global', shortcuts);
+    registeredRef.current = true;
 
     // No cleanup needed since global shortcuts persist
-    // Only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty to prevent re-registration
 

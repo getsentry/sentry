@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Shortcut, ShortcutRegistry} from 'sentry/utils/keyboardShortcuts/types';
@@ -20,8 +19,6 @@ interface ShortcutsHelpModalProps extends ModalRenderProps {
 export function ShortcutsHelpModal({
   Header,
   Body,
-  Footer,
-  closeModal,
   activeShortcuts,
   registry,
 }: ShortcutsHelpModalProps) {
@@ -45,7 +42,7 @@ export function ShortcutsHelpModal({
     });
 
     // Sort categories with contextual shortcuts first, global last
-    // Order: Issue Details contexts > Issues List > Navigation (g shortcuts) > Global
+    // Order: Issue Details contexts > Issues List > Global (includes navigation)
     const categoryOrder = [
       'issue-details-navigation',
       'issue-details-actions',
@@ -53,7 +50,6 @@ export function ShortcutsHelpModal({
       'issue-details-drawers',
       'issue-details-workflow',
       'issues-list',
-      'navigation',
       'global',
     ];
     const sortedCategories = Array.from(grouped.keys()).sort((a, b) => {
@@ -76,7 +72,6 @@ export function ShortcutsHelpModal({
   const getCategoryTitle = (category: string): string => {
     const titles: Record<string, string> = {
       global: t('Global'),
-      navigation: t('Navigation'),
       'issues-list': t('Issues'),
       'issue-details-navigation': t('Issue Details - Navigation'),
       'issue-details-actions': t('Issue Details - Actions'),
@@ -123,22 +118,29 @@ export function ShortcutsHelpModal({
           ))}
         </ShortcutsList>
       </Body>
-
-      <Footer>
-        <Button onClick={closeModal}>{t('Close')}</Button>
-      </Footer>
     </Container>
   );
 }
 
 const Container = styled('div')`
-  max-width: 90vw;
+  max-width: min(90vw, 1200px);
+  min-width: 600px;
+  width: 100%;
 `;
 
 const ShortcutsList = styled('div')`
-  max-height: 60vh;
+  max-height: 70vh;
   overflow-y: auto;
   padding-right: ${space(1)};
+
+  /* Responsive column layout */
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: ${space(3)};
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    grid-template-columns: 1fr 1fr;
+  }
 
   /* Custom scrollbar styling */
   &::-webkit-scrollbar {
@@ -161,7 +163,8 @@ const ShortcutsList = styled('div')`
 `;
 
 const CategorySection = styled('div')`
-  margin-bottom: ${space(3)};
+  break-inside: avoid;
+  margin-bottom: ${space(2)};
 
   &:last-child {
     margin-bottom: 0;

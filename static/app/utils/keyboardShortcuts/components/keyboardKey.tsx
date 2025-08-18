@@ -1,7 +1,7 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {getKeyCode} from 'sentry/utils/getKeyCode';
 
 interface KeyboardKeyProps {
   /** The key or key name to display */
@@ -33,17 +33,58 @@ const KEY_SYMBOLS: Record<string, string> = {
   tab: '⇥',
 };
 
+// Mapping of keys to their shifted equivalents
+const SHIFTED_CHARACTERS: Record<string, string> = {
+  '1': '!',
+  '2': '@',
+  '3': '#',
+  '4': '$',
+  '5': '%',
+  '6': '^',
+  '7': '&',
+  '8': '*',
+  '9': '(',
+  '0': ')',
+  '-': '_',
+  '=': '+',
+  '[': '{',
+  ']': '}',
+  '\\': '|',
+  ';': ':',
+  "'": '"',
+  ',': '<',
+  '.': '>',
+  '/': '?',
+  '`': '~',
+};
+
 /**
  * Component to display a keyboard key with proper styling
  */
 export function KeyboardKey({keyName, size = 'sm'}: KeyboardKeyProps) {
   // Check if we have a symbol for this key
-  const displayKey = KEY_SYMBOLS[keyName.toLowerCase()] || keyName.toUpperCase();
+  const normalizedKey = keyName.toLowerCase();
 
-  // For single letters, always show uppercase
-  const finalDisplay = displayKey.length === 1 ? displayKey.toUpperCase() : displayKey;
+  if (KEY_SYMBOLS[normalizedKey]) {
+    return <StyledKey size={size}>{KEY_SYMBOLS[normalizedKey]}</StyledKey>;
+  }
 
-  return <StyledKey size={size}>{finalDisplay}</StyledKey>;
+  // For single characters, show lowercase unless it's a special case
+  if (keyName.length === 1) {
+    // Check if this is already an uppercase letter or shifted character
+    const isUppercase = keyName >= 'A' && keyName <= 'Z';
+    const isShiftedChar = Object.values(SHIFTED_CHARACTERS).includes(keyName);
+
+    if (isUppercase || isShiftedChar) {
+      return <StyledKey size={size}>{keyName}</StyledKey>;
+    }
+
+    // Default to lowercase for single letters
+    return <StyledKey size={size}>{keyName.toLowerCase()}</StyledKey>;
+  }
+
+  // For multi-character keys, preserve original casing
+  return <StyledKey size={size}>{keyName}</StyledKey>;
 }
 
 interface KeyboardShortcutProps {
@@ -51,6 +92,56 @@ interface KeyboardShortcutProps {
   shortcut: string;
   /** Size variant */
   size?: 'xs' | 'sm' | 'md';
+}
+
+/**
+ * Helper function to render a key combination without recursion
+ */
+function renderKeyCombination(combination: string, size: KeyboardKeyProps['size']) {
+  const keys = combination.split('+');
+
+  // Check if this is a shift combination with a single character/symbol
+  const shiftIndex = keys.findIndex(key => key.toLowerCase() === 'shift');
+  if (shiftIndex !== -1 && keys.length === 2) {
+    const otherKey = keys[shiftIndex === 0 ? 1 : 0];
+
+    if (!otherKey) {
+      // Fallback if key is undefined
+      return (
+        <React.Fragment>
+          {keys.map((key, index) => (
+            <span key={index}>
+              <KeyboardKey keyName={key} size={size} />
+              {index < keys.length - 1 && '+'}
+            </span>
+          ))}
+        </React.Fragment>
+      );
+    }
+
+    // If the other key has a shifted equivalent, show that instead
+    const shiftedChar = SHIFTED_CHARACTERS[otherKey.toLowerCase()];
+    if (shiftedChar) {
+      return <KeyboardKey keyName={shiftedChar} size={size} />;
+    }
+
+    // For letters with shift, show uppercase
+    if (otherKey.length === 1 && /[a-zA-Z]/.test(otherKey)) {
+      return <KeyboardKey keyName={otherKey.toUpperCase()} size={size} />;
+    }
+  }
+
+  // Default behavior for other combinations
+  return (
+    <React.Fragment>
+      {keys.map((key, index) => (
+        <span key={index}>
+          <KeyboardKey keyName={key} size={size} />
+          {index < keys.length - 1 && '+'}
+        </span>
+      ))}
+    </React.Fragment>
+  );
 }
 
 /**
@@ -64,7 +155,7 @@ export function KeyboardShortcut({shortcut, size = 'sm'}: KeyboardShortcutProps)
       <ShortcutContainer>
         {parts.map((part, index) => (
           <span key={index}>
-            <KeyboardKey keyName={part} size={size} />
+            {renderKeyCombination(part, size)}
             {index < parts.length - 1 && <ThenText>then</ThenText>}
           </span>
         ))}
@@ -72,35 +163,24 @@ export function KeyboardShortcut({shortcut, size = 'sm'}: KeyboardShortcutProps)
     );
   }
 
-  // Handle combined shortcuts (e.g., "cmd+k")
-  const keys = shortcut.split('+');
-
-  return (
-    <ShortcutContainer>
-      {keys.map((key, index) => (
-        <span key={index}>
-          <KeyboardKey keyName={key} size={size} />
-          {index < keys.length - 1 && '+'}
-        </span>
-      ))}
-    </ShortcutContainer>
-  );
+  // Handle single combinations
+  return <ShortcutContainer>{renderKeyCombination(shortcut, size)}</ShortcutContainer>;
 }
 
 const sizeStyles = {
   xs: {
     fontSize: '11px',
-    padding: `1px ${space(0.5)}`,
+    padding: `1px ${(p: any) => p.theme.space.xs}`,
     minWidth: '18px',
   },
   sm: {
     fontSize: '12px',
-    padding: `2px ${space(0.75)}`,
+    padding: `2px ${(p: any) => p.theme.space.sm}`,
     minWidth: '24px',
   },
   md: {
     fontSize: '14px',
-    padding: `4px ${space(1)}`,
+    padding: `4px ${(p: any) => p.theme.space.md}`,
     minWidth: '32px',
   },
 };

@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {css} from '@emotion/react';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -30,7 +31,7 @@ export function ShortcutsProvider({children}: ShortcutsProviderProps) {
     return shortcutRegistry.getShortcuts();
   });
   const [sequenceKeysState, setSequenceKeys] = useState<string[]>([]);
-  const sequenceTimeoutRef = useRef<number>();
+  const sequenceTimeoutRef = useRef<number | null>(null);
 
   // Handle sequential key combinations (e.g., "g" then "i")
   const handleSequenceKey = useCallback((key: string) => {
@@ -50,7 +51,15 @@ export function ShortcutsProvider({children}: ShortcutsProviderProps) {
   const registerContext = useCallback((context: string, shortcuts: Shortcut[]) => {
     shortcutRegistry.registerContext(context, shortcuts);
     const allShortcuts = shortcutRegistry.getShortcuts();
-    setActiveShortcuts(allShortcuts);
+
+    // Use functional update to prevent dependencies on activeShortcuts
+    setActiveShortcuts(prevShortcuts => {
+      // Only update if the shortcuts actually changed
+      if (JSON.stringify(prevShortcuts) === JSON.stringify(allShortcuts)) {
+        return prevShortcuts;
+      }
+      return allShortcuts;
+    });
   }, []);
 
   const unregisterContext = useCallback((context: string) => {
@@ -61,13 +70,20 @@ export function ShortcutsProvider({children}: ShortcutsProviderProps) {
   const openHelpModal = useCallback(() => {
     // Get the current shortcuts from the registry instead of using stale state
     const currentShortcuts = shortcutRegistry.getShortcuts();
-    openModal(modalProps => (
-      <ShortcutsHelpModal
-        {...modalProps}
-        activeShortcuts={currentShortcuts}
-        registry={shortcutRegistry}
-      />
-    ));
+    openModal(
+      modalProps => (
+        <ShortcutsHelpModal
+          {...modalProps}
+          activeShortcuts={currentShortcuts}
+          registry={shortcutRegistry}
+        />
+      ),
+      {
+        modalCss: css`
+          width: auto;
+        `,
+      }
+    );
   }, []);
 
   // Track which keys are part of sequences

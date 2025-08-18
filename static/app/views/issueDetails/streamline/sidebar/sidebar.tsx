@@ -44,18 +44,18 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const {isSidebarOpen} = useIssueDetails();
 
   // Initialize drawer hooks
-  const {openActivityDrawer} = useIssueActivityDrawer({group, project});
+  const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
   const {openDistributionsDrawer} = useGroupDistributionsDrawer({
     group,
     includeFeatureFlagsTab: true, // Enable feature flags tab
   });
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
-  const openSeerDrawer = useOpenSeerDrawer({group, project, event: event ?? null});
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project, event: event ?? null});
 
   // Initialize drawer shortcuts
   useDrawerShortcuts({
-    onOpenActivityDrawer: openActivityDrawer,
+    onOpenActivityDrawer: openIssueActivityDrawer,
     onOpenDistributionsDrawer: openDistributionsDrawer,
     onOpenSimilarIssuesDrawer: openSimilarIssuesDrawer,
     onOpenMergedIssuesDrawer: openMergedIssuesDrawer,
