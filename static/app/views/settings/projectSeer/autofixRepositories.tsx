@@ -18,6 +18,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -244,12 +245,22 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
             items={[
               {
                 key: 'github',
-                label: t('GitHub'),
+                label: (
+                  <Flex gap="sm" align="center">
+                    <PluginIcon pluginId="github" size={16} />
+                    <div>{t('GitHub')}</div>
+                  </Flex>
+                ),
                 to: `/settings/${organization.slug}/integrations/github/`,
               },
               {
                 key: 'github_enterprise',
-                label: t('GitHub Enterprise'),
+                label: (
+                  <Flex gap="sm" align="center">
+                    <PluginIcon pluginId="github_enterprise" size={16} />
+                    <div>{t('GitHub Enterprise')}</div>
+                  </Flex>
+                ),
                 to: `/settings/${organization.slug}/integrations/github_enterprise/`,
               },
             ]}
