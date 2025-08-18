@@ -17,6 +17,8 @@ interface IssueListKeyboardNavigationProps {
   groupIds: string[];
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
+  onOpenArchiveDropdown?: () => void;
+  onOpenResolveDropdown?: () => void;
 }
 
 /**
@@ -27,6 +29,8 @@ export function IssueListKeyboardNavigation({
   query,
   onActionTaken,
   children,
+  onOpenResolveDropdown,
+  onOpenArchiveDropdown,
 }: IssueListKeyboardNavigationProps) {
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -174,6 +178,18 @@ export function IssueListKeyboardNavigation({
       key: 'e',
       description: 'Archive issue',
       handler: archiveFocusedIssue,
+    },
+    {
+      id: 'open-resolve-dropdown',
+      key: 'shift+r',
+      description: 'Open resolve dropdown',
+      handler: () => onOpenResolveDropdown?.(),
+    },
+    {
+      id: 'open-archive-dropdown',
+      key: 'shift+e',
+      description: 'Open archive dropdown',
+      handler: () => onOpenArchiveDropdown?.(),
     },
   ]);
 

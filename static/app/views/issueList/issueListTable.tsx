@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
@@ -63,6 +63,29 @@ function IssueListTable({
 }: IssueListTableProps) {
   const location = useLocation();
 
+  // Handlers for opening dropdown menus via keyboard shortcuts
+  const handleOpenResolveDropdown = useCallback(() => {
+    console.log('handle open resolve');
+    // Find the resolve dropdown trigger button and click it
+    const resolveDropdownTrigger = document.querySelector(
+      '[aria-label="More resolve options"]'
+    );
+    if (resolveDropdownTrigger instanceof HTMLElement) {
+      resolveDropdownTrigger.click();
+    }
+  }, []);
+
+  const handleOpenArchiveDropdown = useCallback(() => {
+    console.log('handle open archive');
+    // Find the archive dropdown trigger button and click it
+    const archiveDropdownTrigger = document.querySelector(
+      '[aria-label="Archive options"]'
+    );
+    if (archiveDropdownTrigger instanceof HTMLElement) {
+      archiveDropdownTrigger.click();
+    }
+  }, []);
+
   const isNewViewEmptyStateActive =
     location.query.new === 'true' &&
     !issuesLoading &&
@@ -108,6 +131,8 @@ function IssueListTable({
                 groupIds={groupIds}
                 query={query}
                 onActionTaken={onActionTaken}
+                onOpenResolveDropdown={handleOpenResolveDropdown}
+                onOpenArchiveDropdown={handleOpenArchiveDropdown}
               >
                 <GroupListBody
                   memberList={memberList}
