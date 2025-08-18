@@ -16,12 +16,12 @@ export function useRelease({
 }) {
   return useQuery({
     ...apiOptions.as<Release>()(
-      '/projects/$orgSlug/$projectSlug/releases/$releaseVersion/',
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/',
       {
         path: {
-          orgSlug,
-          projectSlug,
-          releaseVersion,
+          organizationIdOrSlug: orgSlug,
+          projectIdOrSlug: projectSlug,
+          version: releaseVersion,
         },
         staleTime: Infinity,
       }
