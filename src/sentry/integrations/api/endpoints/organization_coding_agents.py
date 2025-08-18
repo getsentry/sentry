@@ -20,6 +20,7 @@ from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.services.integration import integration_service
+from sentry.models.organization import Organization
 from sentry.seer.autofix.utils import (
     AutofixState,
     CodingAgentState,
@@ -179,7 +180,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
         return integration, installation
 
-    def _get_autofix_state(self, run_id: int, organization) -> AutofixState:
+    def _get_autofix_state(self, run_id: int, organization: Organization) -> AutofixState | None:
         """Extract and validate run_id and get autofix state."""
         autofix_state = get_autofix_state(run_id=run_id)
 
@@ -236,7 +237,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             )
 
             # Fallback to run on all repos
-            repos = autofix_state.request["repos"]
+            repos = [f"{repo['owner']}/{repo['name']}" for repo in autofix_state.request["repos"]]
 
             if not repos:
                 logger.error(
