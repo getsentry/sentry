@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, DefaultDict
+from typing import TYPE_CHECKING, Any, DefaultDict, TypedDict
 
 from django.db.models import F, Q
 from django.http import HttpResponse
@@ -49,7 +49,17 @@ if TYPE_CHECKING:
     from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
 
-class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
+class ReleaseThresholdStatusIndexData(TypedDict, total=False):
+    start: datetime
+    end: datetime
+    environment: list[str]
+    projectSlug: list[str]
+    release: list[str]
+
+
+class ReleaseThresholdStatusIndexSerializer(
+    serializers.Serializer[ReleaseThresholdStatusIndexData]
+):
     start = serializers.DateTimeField(
         help_text="The start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds. "
         "Use along with `end`.",
@@ -81,7 +91,7 @@ class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
         help_text=("A list of release versions to filter your results by."),
     )
 
-    def validate(self, data):
+    def validate(self, data: ReleaseThresholdStatusIndexData) -> ReleaseThresholdStatusIndexData:
         if data["start"] >= data["end"]:
             raise serializers.ValidationError("Start datetime must be after End")
         return data
@@ -195,7 +205,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         # ========================================================================
         # Step 3: flatten thresholds and compile projects/release-thresholds by type
         # ========================================================================
-        thresholds_by_type: DefaultDict[int, dict[str, list]] = defaultdict()
+        thresholds_by_type: DefaultDict[int, dict[str, list[Any]]] = defaultdict()
         query_windows_by_type: DefaultDict[int, dict[str, datetime]] = defaultdict()
         for release in queryset:
             # TODO:
