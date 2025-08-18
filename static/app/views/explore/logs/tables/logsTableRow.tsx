@@ -14,6 +14,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,7 +35,9 @@ import {
   useLogsAddSearchFilter,
   useLogsAnalyticsPageSource,
   useLogsFields,
+  useLogsIsTableFrozen,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH,
@@ -368,7 +372,6 @@ function LogRowDetails({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const addSearchFilter = useLogsAddSearchFilter();
   const project = useProjectFromId({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
@@ -383,25 +386,14 @@ function LogRowDetails({
     typeof severityText === 'string' ? severityText : null
   );
   const missingLogId = !dataRow[OurLogKnownFieldKey.ID];
-  const {data, isPending, isError} = useExploreLogsTableRow({
+  const fullLogDataResult = useExploreLogsTableRow({
     logId: String(dataRow[OurLogKnownFieldKey.ID] ?? ''),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? ''),
     enabled: !missingLogId,
   });
 
-  const {onClick: betterCopyToClipboard} = useCopyToClipboard({
-    text: isPending || isError ? '' : ourlogToJson(data),
-    onCopy: () => {
-      trackAnalytics('logs.table.row_copied_as_json', {
-        log_id: String(dataRow[OurLogKnownFieldKey.ID]),
-        organization,
-      });
-    },
-
-    successMessage: t('Copied!'),
-    errorMessage: t('Failed to copy'),
-  });
+  const {data, isPending, isError} = fullLogDataResult;
 
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
@@ -481,53 +473,97 @@ function LogRowDetails({
             flexDirection: 'row',
           }}
         >
-          <LogDetailTableActionsButtonBar>
-            <Button
-              priority="link"
-              size="sm"
-              borderless
-              onClick={() => {
-                addSearchFilter({
-                  key: OurLogKnownFieldKey.MESSAGE,
-                  value: dataRow[OurLogKnownFieldKey.MESSAGE],
-                });
-              }}
-            >
-              <IconAdd size="md" style={{paddingRight: space(0.5)}} />
-              {t('Add to filter')}
-            </Button>
-            <Button
-              priority="link"
-              size="sm"
-              borderless
-              onClick={() => {
-                addSearchFilter({
-                  key: OurLogKnownFieldKey.MESSAGE,
-                  value: dataRow[OurLogKnownFieldKey.MESSAGE],
-                  negated: true,
-                });
-              }}
-            >
-              <IconSubtract size="md" style={{paddingRight: space(0.5)}} />
-              {t('Exclude from filter')}
-            </Button>
-          </LogDetailTableActionsButtonBar>
-
-          <LogDetailTableActionsButtonBar>
-            <Button
-              priority="link"
-              size="sm"
-              borderless
-              onClick={() => {
-                betterCopyToClipboard();
-              }}
-            >
-              <IconJson size="md" style={{paddingRight: space(0.5)}} />
-              {t('Copy as JSON')}
-            </Button>
-          </LogDetailTableActionsButtonBar>
+          <LogRowDetailsActions
+            fullLogDataResult={fullLogDataResult}
+            tableDataRow={dataRow}
+          />
         </LogDetailTableActionsCell>
       )}
     </DetailsWrapper>
+  );
+}
+
+function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: OurLogsResponseItem}) {
+  const addSearchFilter = useLogsAddSearchFilter();
+  return (
+    <LogDetailTableActionsButtonBar>
+      <Button
+        priority="link"
+        size="sm"
+        borderless
+        onClick={() => {
+          addSearchFilter({
+            key: OurLogKnownFieldKey.MESSAGE,
+            value: tableDataRow[OurLogKnownFieldKey.MESSAGE],
+          });
+        }}
+      >
+        <IconAdd size="md" style={{paddingRight: space(0.5)}} />
+        {t('Add to filter')}
+      </Button>
+      <Button
+        priority="link"
+        size="sm"
+        borderless
+        onClick={() => {
+          addSearchFilter({
+            key: OurLogKnownFieldKey.MESSAGE,
+            value: tableDataRow[OurLogKnownFieldKey.MESSAGE],
+            negated: true,
+          });
+        }}
+      >
+        <IconSubtract size="md" style={{paddingRight: space(0.5)}} />
+        {t('Exclude from filter')}
+      </Button>
+    </LogDetailTableActionsButtonBar>
+  );
+}
+
+function LogRowDetailsActions({
+  fullLogDataResult,
+  tableDataRow,
+}: {
+  fullLogDataResult: UseApiQueryResult<TraceItemDetailsResponse, RequestError>;
+  tableDataRow: OurLogsResponseItem;
+}) {
+  const {data, isPending, isError} = fullLogDataResult;
+  const isTableFrozen = useLogsIsTableFrozen();
+  const organization = useOrganization();
+  const showFilterButtons = !isTableFrozen;
+
+  const {onClick: betterCopyToClipboard} = useCopyToClipboard({
+    text: isPending || isError ? '' : ourlogToJson(data),
+    onCopy: () => {
+      trackAnalytics('logs.table.row_copied_as_json', {
+        log_id: String(tableDataRow[OurLogKnownFieldKey.ID]),
+        organization,
+      });
+    },
+
+    successMessage: t('Copied!'),
+    errorMessage: t('Failed to copy'),
+  });
+  return (
+    <Fragment>
+      {showFilterButtons ? (
+        <LogRowDetailsFilterActions tableDataRow={tableDataRow} />
+      ) : (
+        <span />
+      )}
+      <LogDetailTableActionsButtonBar>
+        <Button
+          priority="link"
+          size="sm"
+          borderless
+          onClick={() => {
+            betterCopyToClipboard();
+          }}
+        >
+          <IconJson size="md" style={{paddingRight: space(0.5)}} />
+          {t('Copy as JSON')}
+        </Button>
+      </LogDetailTableActionsButtonBar>
+    </Fragment>
   );
 }
