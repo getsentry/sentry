@@ -38,7 +38,7 @@ export function OmniSearchPalette() {
   const debouncedQuery = useDebouncedValue(query, 300);
 
   // Get dynamic actions from all sources (no filtering - palette handles the search)
-  const apiActions = useApiDynamicActions();
+  const apiActions = useApiDynamicActions(debouncedQuery);
   const formActions = useFormDynamicActions();
   const routeActions = useRouteDynamicActions();
   const orgActions = useOrganizationsDynamicActions();
