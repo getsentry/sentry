@@ -526,6 +526,7 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
+from sentry.smokey.endpoints.urls import smokey_organization_urlpatterns
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
@@ -2476,6 +2477,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         include(PREVENT_URLS),
     ),
     *workflow_urls.organization_urlpatterns,
+    *smokey_organization_urlpatterns,
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [

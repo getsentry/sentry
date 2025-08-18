@@ -41,7 +41,7 @@ class SlackIncidentManagementEndpoint(SlackDMEndpoint):
                             "type": "mrkdwn",
                             "text": (
                                 ":bear: *Smokey is here to help you fight the fire!* :fire:\n\n"
-                                "Here are the available commands you can use to manage incidents:\n"
+                                "Here are the available commands you can use to manage incidents:"
                             ),
                         },
                     },
