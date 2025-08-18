@@ -71,6 +71,7 @@ type AutofixRootCauseProps = {
   runId: string;
   agentCommentThread?: CommentThread;
   isRootCauseFirstAppearance?: boolean;
+  preview?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   terminationReason?: string;
@@ -238,6 +239,7 @@ function AutofixRootCauseDisplay({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
+  preview = false,
 }: AutofixRootCauseProps) {
   const cause = causes[0];
   const iconFocusRef = useRef<HTMLDivElement>(null);
@@ -322,10 +324,16 @@ function AutofixRootCauseDisplay({
             </HeaderText>
           </HeaderWrapper>
           <CauseDescription>{rootCauseSelection.custom_root_cause}</CauseDescription>
-          <BottomDivider />
-          <BottomButtonContainer>
-            <CopyRootCauseButton customRootCause={rootCauseSelection.custom_root_cause} />
-          </BottomButtonContainer>
+          {!preview && (
+            <React.Fragment>
+              <BottomDivider />
+              <BottomButtonContainer>
+                <CopyRootCauseButton
+                  customRootCause={rootCauseSelection.custom_root_cause}
+                />
+              </BottomButtonContainer>
+            </React.Fragment>
+          )}
         </CustomRootCausePadding>
       </CausesContainer>
     );
@@ -339,20 +347,22 @@ function AutofixRootCauseDisplay({
             <IconFocus size="md" color="pink400" />
           </IconWrapper>
           {t('Root Cause')}
-          <Button
-            size="zero"
-            borderless
-            title={t('Chat with Seer')}
-            onClick={handleSelectDescription}
-            analyticsEventName="Autofix: Root Cause Chat"
-            analyticsEventKey="autofix.root_cause.chat"
-          >
-            <IconChat />
-          </Button>
+          {!preview && (
+            <Button
+              size="zero"
+              borderless
+              title={t('Chat with Seer')}
+              onClick={handleSelectDescription}
+              analyticsEventName="Autofix: Root Cause Chat"
+              analyticsEventKey="autofix.root_cause.chat"
+            >
+              <IconChat />
+            </Button>
+          )}
         </HeaderText>
       </HeaderWrapper>
       <AnimatePresence>
-        {agentCommentThread && iconFocusRef.current && (
+        {!preview && agentCommentThread && iconFocusRef.current && (
           <AutofixHighlightPopup
             selectedText=""
             referenceElement={iconFocusRef.current}
@@ -381,73 +391,77 @@ function AutofixRootCauseDisplay({
           />
         </Fragment>
       </Content>
-      <BottomDivider />
-      <BottomButtonContainer>
-        {isProvidingSolution ? (
-          <SolutionInputContainer>
-            <form onSubmit={handleSubmitSolution}>
-              <SolutionFormRow>
-                <SolutionInput
-                  autosize
-                  value={solutionText}
-                  maxLength={4096}
-                  onChange={e => setSolutionText(e.target.value)}
-                  placeholder={t('Provide a solution for Seer to follow...')}
-                  autoFocus
-                  maxRows={5}
+      {!preview && (
+        <Fragment>
+          <BottomDivider />
+          <BottomButtonContainer>
+            {isProvidingSolution ? (
+              <SolutionInputContainer>
+                <form onSubmit={handleSubmitSolution}>
+                  <SolutionFormRow>
+                    <SolutionInput
+                      autosize
+                      value={solutionText}
+                      maxLength={4096}
+                      onChange={e => setSolutionText(e.target.value)}
+                      placeholder={t('Provide a solution for Seer to follow...')}
+                      autoFocus
+                      maxRows={5}
+                      size="sm"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSubmitSolution(e);
+                        } else if (e.key === 'Escape') {
+                          handleCancelSolution();
+                        }
+                      }}
+                    />
+                    <ButtonBar merged gap="0">
+                      <Button type="button" size="sm" onClick={handleCancelSolution}>
+                        <IconClose size="sm" />
+                      </Button>
+                      <Button
+                        type="submit"
+                        priority="primary"
+                        size="sm"
+                        busy={isSelectingRootCause}
+                        disabled={!solutionText.trim()}
+                      >
+                        <IconArrow direction="right" />
+                      </Button>
+                    </ButtonBar>
+                  </SolutionFormRow>
+                </form>
+              </SolutionInputContainer>
+            ) : (
+              <ButtonBar>
+                <CopyRootCauseButton cause={cause} />
+                <Button
                   size="sm"
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmitSolution(e);
-                    } else if (e.key === 'Escape') {
-                      handleCancelSolution();
-                    }
-                  }}
-                />
-                <ButtonBar merged gap="0">
-                  <Button type="button" size="sm" onClick={handleCancelSolution}>
-                    <IconClose size="sm" />
-                  </Button>
-                  <Button
-                    type="submit"
-                    priority="primary"
-                    size="sm"
-                    busy={isSelectingRootCause}
-                    disabled={!solutionText.trim()}
-                  >
-                    <IconArrow direction="right" />
-                  </Button>
-                </ButtonBar>
-              </SolutionFormRow>
-            </form>
-          </SolutionInputContainer>
-        ) : (
-          <ButtonBar>
-            <CopyRootCauseButton cause={cause} />
-            <Button
-              size="sm"
-              onClick={handleMySolution}
-              title={t('Specify your own solution for Seer to follow')}
-            >
-              {t('Give Solution')}
-            </Button>
-            <Button
-              size="sm"
-              priority={
-                rootCauseSelection && 'cause_id' in rootCauseSelection
-                  ? 'default'
-                  : 'primary'
-              }
-              busy={isSelectingRootCause}
-              onClick={handleSelectRootCause}
-              title={t('Let Seer plan a solution to this issue')}
-            >
-              {t('Find Solution')}
-            </Button>
-          </ButtonBar>
-        )}
-      </BottomButtonContainer>
+                  onClick={handleMySolution}
+                  title={t('Specify your own solution for Seer to follow')}
+                >
+                  {t('Give Solution')}
+                </Button>
+                <Button
+                  size="sm"
+                  priority={
+                    rootCauseSelection && 'cause_id' in rootCauseSelection
+                      ? 'default'
+                      : 'primary'
+                  }
+                  busy={isSelectingRootCause}
+                  onClick={handleSelectRootCause}
+                  title={t('Let Seer plan a solution to this issue')}
+                >
+                  {t('Find Solution')}
+                </Button>
+              </ButtonBar>
+            )}
+          </BottomButtonContainer>
+        </Fragment>
+      )}
     </CausesContainer>
   );
 }

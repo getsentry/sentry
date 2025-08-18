@@ -1,10 +1,17 @@
-import {useCallback, useEffect} from 'react';
+import React, {useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import {Text} from 'sentry/components/core/text';
-import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
+import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
+import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
+import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
+import {
+  AutofixStepType,
+  type AutofixChangesStep,
+} from 'sentry/components/events/autofix/types';
+import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
@@ -24,7 +31,6 @@ import type {StacktraceType} from 'sentry/types/stacktrace';
 import {StackView} from 'sentry/types/stacktrace';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 /**
@@ -166,7 +172,6 @@ export type IssueCard = TypedMissionControlCard<'issue', IssueCardData>;
  * Issue card component - displays Sentry issues fetched from the API
  */
 function IssueCardRenderer({card, onSetPrimaryAction}: CardRendererProps<IssueCardData>) {
-  const organization = useOrganization();
   const {issueId, reason} = card.data;
 
   // Get the appropriate reason message
@@ -175,7 +180,7 @@ function IssueCardRenderer({card, onSetPrimaryAction}: CardRendererProps<IssueCa
       case 'escalating':
         return t('This issue is escalating.');
       case 'new':
-        return t('This issue is new and relevant to you.');
+        return t('This issue just started happening.');
       case 'quick fix':
         return t('This issue is probably a quick fix.');
       default:
@@ -198,6 +203,12 @@ function IssueCardRenderer({card, onSetPrimaryAction}: CardRendererProps<IssueCa
     enabled: !!issue, // Only fetch when we have issue data
   });
 
+  // Fetch autofix data
+  const {data: autofixData, isPending: isAutofixPending} = useAutofixData({
+    groupId: issueId,
+    isUserWatching: false,
+  });
+
   // Use the proper autofix hook with fallback objects to prevent undefined errors
   const {triggerAutofix} = useAiAutofix(
     issue || ({id: issueId} as any),
@@ -210,51 +221,227 @@ function IssueCardRenderer({card, onSetPrimaryAction}: CardRendererProps<IssueCa
   // Find the project for this issue
   const project: Project | undefined = issue?.project;
 
+  // Helper function to determine the autofix state and last step
+  const getAutofixState = useCallback(() => {
+    if (!autofixData?.steps?.length) {
+      return {state: 'no_autofix', lastStep: null};
+    }
+
+    const lastStep = autofixData.steps[autofixData.steps.length - 1];
+
+    if (lastStep?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS) {
+      return {state: 'root_cause', lastStep};
+    }
+
+    if (lastStep?.type === AutofixStepType.SOLUTION) {
+      return {state: 'solution', lastStep};
+    }
+
+    if (lastStep?.type === AutofixStepType.CHANGES) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+      const changesStep = lastStep as AutofixChangesStep;
+      const hasPR = changesStep.changes?.some(change => change.pull_request?.pr_url);
+      return {
+        state: hasPR ? 'changes_with_pr' : 'changes',
+        lastStep: changesStep,
+      };
+    }
+
+    return {state: 'no_autofix', lastStep: null};
+  }, [autofixData]);
+
   // Determine the autofix action based on current state
   const getAutofixAction = useCallback(() => {
     if (!issue || !triggerAutofix) {
       return null;
     }
 
-    // Always show "Find Root Cause" action to trigger a new autofix run
-    return {
-      label: 'Find root cause for me',
-      handler: async () => {
-        // Use the proper autofix hook to trigger autofix
-        await triggerAutofix('');
-        addSuccessMessage(
-          t('Analysis started. It will be added to this stack when complete.')
-        );
-      },
-      loadingLabel: 'Starting issue fix...',
-    };
-  }, [issue, triggerAutofix]);
+    // Don't show action while autofix data is loading
+    if (isAutofixPending) {
+      return null;
+    }
 
-  // Determine which preview component to render based on issue configuration
+    const {state, lastStep} = getAutofixState();
+
+    switch (state) {
+      case 'no_autofix':
+        return {
+          label: 'Find root cause for me',
+          handler: async () => {
+            await triggerAutofix('');
+            addSuccessMessage(
+              t('Analysis started. It will be added to this stack when complete.')
+            );
+          },
+          loadingLabel: 'Starting issue fix...',
+        };
+
+      case 'root_cause':
+        return {
+          label: 'Find solution',
+          handler: () => {
+            // Trigger solution finding (equivalent to clicking "Find Solution" button)
+            // This would need to be implemented based on the actual autofix API
+            addSuccessMessage(t('Finding solution...'));
+            return Promise.resolve();
+          },
+          loadingLabel: 'Finding solution...',
+        };
+
+      case 'solution':
+        return {
+          label: 'Code it up',
+          handler: () => {
+            // Trigger code generation (equivalent to clicking "Code It Up" button)
+            // This would need to be implemented based on the actual autofix API
+            addSuccessMessage(t('Generating code changes...'));
+            return Promise.resolve();
+          },
+          loadingLabel: 'Generating code...',
+        };
+
+      case 'changes':
+        return {
+          label: 'Draft PR',
+          handler: () => {
+            // Trigger PR creation (equivalent to clicking "Draft PR" button)
+            // This would need to be implemented based on the actual autofix API
+            addSuccessMessage(t('Creating pull request...'));
+            return Promise.resolve();
+          },
+          loadingLabel: 'Creating PR...',
+        };
+
+      case 'changes_with_pr': {
+        const changesStep = lastStep as AutofixChangesStep;
+        const firstPR = changesStep.changes?.find(change => change.pull_request?.pr_url);
+        return {
+          label: 'View PR',
+          handler: () => {
+            if (firstPR?.pull_request?.pr_url) {
+              window.open(firstPR.pull_request.pr_url, '_blank', 'noopener,noreferrer');
+            }
+            return Promise.resolve();
+          },
+          loadingLabel: 'Opening PR...',
+        };
+      }
+
+      default:
+        return null;
+    }
+  }, [issue, triggerAutofix, getAutofixState, isAutofixPending]);
+
+  // Determine which preview component to render based on autofix state
   const renderIssuePreview = () => {
     if (!issue?.issueCategory) {
       return null;
     }
 
-    const issueTypeConfig = project
-      ? getConfigForIssueType(
-          {
-            issueCategory: issue.issueCategory,
-            issueType: issue.issueType,
-          },
-          project
-        )
-      : null;
-
-    if (issueTypeConfig?.spanEvidence.enabled) {
-      return <DirectSpanEvidencePreview groupId={issue.id} />;
+    // Show loading indicator while autofix data is being fetched
+    if (isAutofixPending) {
+      return <LoadingIndicator size={32} />;
     }
 
-    if (issueTypeConfig?.usesIssuePlatform) {
-      return <DirectEvidencePreview groupId={issue.id} />;
-    }
+    const {state, lastStep} = getAutofixState();
 
-    return <DirectStackTracePreview groupId={issue.id} />;
+    // Show autofix components based on state
+    switch (state) {
+      case 'root_cause': {
+        const rootCauseStep = lastStep;
+        return (
+          <AutofixRootCause
+            causes={(rootCauseStep as any)?.causes || []}
+            groupId={issue.id}
+            runId={autofixData?.run_id || ''}
+            rootCauseSelection={(rootCauseStep as any)?.selection || {}}
+            isRootCauseFirstAppearance={false}
+            preview
+          />
+        );
+      }
+
+      case 'solution': {
+        const solutionStep = lastStep;
+        const rootCauseStepForSolution = autofixData?.steps?.find(
+          step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
+        );
+
+        return (
+          <React.Fragment>
+            {rootCauseStepForSolution && (
+              <AutofixRootCause
+                causes={(rootCauseStepForSolution as any)?.causes || []}
+                groupId={issue.id}
+                runId={autofixData?.run_id || ''}
+                rootCauseSelection={(rootCauseStepForSolution as any)?.selection || {}}
+                isRootCauseFirstAppearance={false}
+                preview
+              />
+            )}
+            <AutofixSolution
+              solution={(solutionStep as any)?.solution || []}
+              groupId={issue.id}
+              runId={autofixData?.run_id || ''}
+              solutionSelected={!!(solutionStep as any)?.selection}
+              description={(solutionStep as any)?.description}
+              customSolution={(solutionStep as any)?.selection?.custom_solution}
+              isSolutionFirstAppearance={false}
+              preview
+            />
+          </React.Fragment>
+        );
+      }
+
+      case 'changes':
+      case 'changes_with_pr': {
+        const changesStep = lastStep as AutofixChangesStep;
+        return (
+          <AutofixChanges
+            step={changesStep}
+            groupId={issue.id}
+            runId={autofixData?.run_id || ''}
+            isChangesFirstAppearance={false}
+          />
+        );
+      }
+
+      case 'no_autofix':
+      default: {
+        // Show original stack trace/evidence preview
+        const issueTypeConfig = project
+          ? getConfigForIssueType(
+              {
+                issueCategory: issue.issueCategory,
+                issueType: issue.issueType,
+              },
+              project
+            )
+          : null;
+
+        if (issueTypeConfig?.spanEvidence.enabled) {
+          return (
+            <Card>
+              <DirectSpanEvidencePreview groupId={issue.id} />
+            </Card>
+          );
+        }
+
+        if (issueTypeConfig?.usesIssuePlatform) {
+          return (
+            <Card>
+              <DirectEvidencePreview groupId={issue.id} />
+            </Card>
+          );
+        }
+
+        return (
+          <Card>
+            <DirectStackTracePreview groupId={issue.id} />
+          </Card>
+        );
+      }
+    }
   };
 
   // Calculate 24h event count from stats
@@ -276,7 +463,7 @@ function IssueCardRenderer({card, onSetPrimaryAction}: CardRendererProps<IssueCa
     }
 
     return () => onSetPrimaryAction(null);
-  }, [onSetPrimaryAction, issue, organization.slug, getAutofixAction]);
+  }, [onSetPrimaryAction, issue, autofixData, getAutofixAction, isAutofixPending]);
 
   if (isLoading) {
     return (
@@ -501,11 +688,14 @@ const IssuePreviewContainer = styled('div')`
   gap: ${space(1)};
   max-height: 500px;
   overflow-y: auto;
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     order: 2;
   }
+`;
+
+const Card = styled('div')`
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 export default IssueCardRenderer;

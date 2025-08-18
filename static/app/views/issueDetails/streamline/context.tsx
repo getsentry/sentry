@@ -18,6 +18,12 @@ export const enum SectionKey {
 
   USER_FEEDBACK = 'user-feedback',
   SEER = 'seer',
+  SEER_MISSION_CONTROL_THEMES = 'seer-mission-control-themes',
+  SEER_MISSION_CONTROL_CORE_PROBLEMS = 'seer-mission-control-core-problems',
+  SEER_MISSION_CONTROL_NEW_ISSUES = 'seer-mission-control-new-issues',
+  SEER_MISSION_CONTROL_ESCALATING_ISSUES = 'seer-mission-control-escalating-issues',
+  SEER_MISSION_CONTROL_TOP_ISSUES = 'seer-mission-control-top-issues',
+  SEER_MISSION_CONTROL_ASSIGNED_TO_ME = 'seer-mission-control-assigned-to-me',
   EXTERNAL_ISSUES = 'external-issues',
   PEOPLE = 'people',
   ACTIVITY = 'activity',

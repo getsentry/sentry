@@ -3,13 +3,15 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {IconClose} from 'sentry/icons/iconClose';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {CardPrimaryAction, MissionControlCard} from 'sentry/types/missionControl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {getCardRenderer} from './missionControl/cardRenderers';
+import HomeScreen from './missionControl/homeScreen';
 
 // Hardcoded example changelog cards for demo
 const EXAMPLE_CARDS: MissionControlCard[] = [
@@ -44,10 +46,25 @@ const EXAMPLE_CARDS: MissionControlCard[] = [
     type: 'issue',
     createdAt: '2024-01-20T16:45:00Z',
     priority: 15,
-    url: '/issues/6564458657/',
+    url: '/issues/6564458657/?seerDrawer=true',
     data: {
       issueId: '6564458657',
       reason: 'escalating',
+    },
+    metadata: {
+      source: 'hardcoded-demo',
+      tags: ['error'],
+    },
+  },
+  {
+    id: '9',
+    type: 'issue',
+    createdAt: '2024-01-21T12:30:00Z',
+    priority: 14,
+    url: '/issues/6678410850/?seerDrawer=true',
+    data: {
+      issueId: '6678410850',
+      reason: 'new',
     },
     metadata: {
       source: 'hardcoded-demo',
@@ -92,6 +109,9 @@ function MissionControl() {
   const user = ConfigStore.get('user');
   const userName = user?.name || user?.email || 'there';
 
+  // View state management
+  const [currentView, setCurrentView] = useState<'home' | 'cards'>('home');
+
   // Create welcome card if there are items in the queue
   const welcomeCard: MissionControlCard | null =
     EXAMPLE_CARDS.length > 0
@@ -127,6 +147,14 @@ function MissionControl() {
 
   const currentCard: MissionControlCard | null = cards[currentIndex] || null;
   const nextCard: MissionControlCard | null = cards[currentIndex + 1] || null;
+
+  const handleOpenCards = useCallback(() => {
+    setCurrentView('cards');
+  }, []);
+
+  const handleBackToHome = useCallback(() => {
+    setCurrentView('home');
+  }, []);
 
   const handleDismiss = useCallback(() => {
     if (dismissDirection || !currentCard || isTransitioning) return;
@@ -246,26 +274,36 @@ function MissionControl() {
 
       if (!isActionLoading && !isTransitioning) {
         switch (event.key) {
-          case 'ArrowLeft':
+          case 'Escape':
             event.preventDefault();
-            handleDismiss();
+            handleBackToHome();
             break;
-          case 'ArrowRight':
-            if (primaryAction) {
-              event.preventDefault();
-              handlePrimaryAction();
+          case 'Enter':
+            if (event.shiftKey) {
+              // Shift + Enter = view full details
+              if (currentCard?.url) {
+                event.preventDefault();
+                handleNavigate();
+              }
+            } else {
+              // Enter = act (primary action)
+              if (primaryAction) {
+                event.preventDefault();
+                handlePrimaryAction();
+              }
             }
             break;
-          case 'ArrowUp':
-            if (currentCard && currentCard.type !== 'welcome') {
+          case 'Backspace':
+            if (event.shiftKey) {
+              // Shift + Backspace = move to back
+              if (currentCard && currentCard.type !== 'welcome') {
+                event.preventDefault();
+                handleMoveToBack();
+              }
+            } else {
+              // Backspace = dismiss
               event.preventDefault();
-              handleMoveToBack();
-            }
-            break;
-          case 'ArrowDown':
-            if (currentCard?.url) {
-              event.preventDefault();
-              handleNavigate();
+              handleDismiss();
             }
             break;
           default:
@@ -278,6 +316,7 @@ function MissionControl() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [
+    handleBackToHome,
     handlePrimaryAction,
     handleDismiss,
     handleMoveToBack,
@@ -288,25 +327,21 @@ function MissionControl() {
     isTransitioning,
   ]);
 
-  // Show completion message when all cards are done
-  if (currentIndex >= cards.length) {
+  // Go directly back to home when all cards are done
+  if (currentView === 'cards' && currentIndex >= cards.length) {
+    setCurrentIndex(0);
+    setPrimaryAction(null);
+    setCurrentView('home');
+  }
+
+  // Render home screen
+  if (currentView === 'home') {
     return (
-      <Container>
-        <CompletionContainer>
-          <Text size="2xl" bold>
-            All caught up! 🎉
-          </Text>
-          <Text size="md">You've reviewed all the latest updates.</Text>
-          <Button
-            onClick={() => {
-              setCurrentIndex(0);
-              setPrimaryAction(null);
-            }}
-          >
-            Reset Demo
-          </Button>
-        </CompletionContainer>
-      </Container>
+      <PageFiltersContainer>
+        <HomeScreenContainer>
+          <HomeScreen cards={EXAMPLE_CARDS} onOpenCards={handleOpenCards} />
+        </HomeScreenContainer>
+      </PageFiltersContainer>
     );
   }
 
@@ -314,86 +349,97 @@ function MissionControl() {
   const NextCardRenderer = nextCard ? getCardRenderer(nextCard.type) : null;
 
   return (
-    <Container>
-      <CardStack>
-        {/* Fixed container for next card */}
-        <CardContainer
-          key="next-card-container"
-          isNext={!!nextCard}
-          isTransitioning={isTransitioning}
-          style={{display: nextCard ? 'block' : 'none'}}
-        >
-          {nextCard && NextCardRenderer && (
-            <NextCardRenderer card={nextCard} onSetPrimaryAction={() => {}} />
-          )}
-        </CardContainer>
+    <PageFiltersContainer>
+      <Container>
+        <CloseButtonContainer>
+          <CloseButton
+            size="sm"
+            borderless
+            icon={<IconClose />}
+            aria-label="Back to home"
+            onClick={handleBackToHome}
+          />
+        </CloseButtonContainer>
+        <CardStack>
+          {/* Fixed container for next card */}
+          <CardContainer
+            key="next-card-container"
+            isNext={!!nextCard}
+            isTransitioning={isTransitioning}
+            style={{display: nextCard ? 'block' : 'none'}}
+          >
+            {nextCard && NextCardRenderer && (
+              <NextCardRenderer card={nextCard} onSetPrimaryAction={() => {}} />
+            )}
+          </CardContainer>
 
-        {/* Fixed container for current card */}
-        <CardContainer
-          key="current-card-container"
-          isCurrent={!!currentCard}
-          isTransitioning={isTransitioning}
-          dismissDirection={dismissDirection}
-          style={{display: currentCard ? 'block' : 'none'}}
-        >
-          {currentCard && CardRenderer && (
-            <CardRenderer
-              card={currentCard}
-              onSetPrimaryAction={handleSetPrimaryAction}
-            />
-          )}
-        </CardContainer>
-      </CardStack>
+          {/* Fixed container for current card */}
+          <CardContainer
+            key="current-card-container"
+            isCurrent={!!currentCard}
+            isTransitioning={isTransitioning}
+            dismissDirection={dismissDirection}
+            style={{display: currentCard ? 'block' : 'none'}}
+          >
+            {currentCard && CardRenderer && (
+              <CardRenderer
+                card={currentCard}
+                onSetPrimaryAction={handleSetPrimaryAction}
+              />
+            )}
+          </CardContainer>
+        </CardStack>
 
-      <ButtonContainer>
-        <Button
-          size="md"
-          onClick={handleDismiss}
-          disabled={isActionLoading || dismissDirection !== null}
-        >
-          Dismiss
-          <KeyHint>←</KeyHint>
-        </Button>
+        <ButtonContainer>
+          <Button
+            size="md"
+            onClick={handleDismiss}
+            disabled={isActionLoading || dismissDirection !== null}
+          >
+            Dismiss
+            <KeyHint>⌫</KeyHint>
+          </Button>
 
-        <Button
-          size="md"
-          onClick={handleMoveToBack}
-          disabled={
-            !currentCard ||
-            currentCard.type === 'welcome' ||
-            isActionLoading ||
-            dismissDirection !== null
-          }
-        >
-          Move to back
-          <KeyHint>↑</KeyHint>
-        </Button>
+          <Button
+            size="md"
+            onClick={handleMoveToBack}
+            disabled={
+              !currentCard ||
+              currentCard.type === 'welcome' ||
+              isActionLoading ||
+              dismissDirection !== null
+            }
+          >
+            Move to back
+            <KeyHint>⇧+⌫</KeyHint>
+          </Button>
 
-        <Button
-          size="md"
-          onClick={handleNavigate}
-          disabled={!currentCard?.url || isActionLoading || dismissDirection !== null}
-        >
-          View full details
-          <KeyHint>↓</KeyHint>
-        </Button>
+          <Button
+            size="md"
+            onClick={handleNavigate}
+            disabled={!currentCard?.url || isActionLoading || dismissDirection !== null}
+          >
+            View full details
+            <KeyHint>⇧+↵</KeyHint>
+          </Button>
 
-        <Button
-          size="md"
-          priority="primary"
-          onClick={handlePrimaryAction}
-          disabled={!primaryAction || isActionLoading || dismissDirection !== null}
-          busy={isActionLoading}
-        >
-          {primaryAction
-            ? isActionLoading && primaryAction.loadingLabel
-              ? primaryAction.loadingLabel
-              : primaryAction.label
-            : 'No Action'}
-          <KeyHint>→</KeyHint>
-        </Button>
-      </ButtonContainer>
-    </Container>
+          <Button
+            size="md"
+            priority="primary"
+            onClick={handlePrimaryAction}
+            disabled={!primaryAction || isActionLoading || dismissDirection !== null}
+            busy={isActionLoading}
+          >
+            {primaryAction
+              ? isActionLoading && primaryAction.loadingLabel
+                ? primaryAction.loadingLabel
+                : primaryAction.label
+              : 'No Action'}
+            <KeyHint>↵</KeyHint>
+          </Button>
+        </ButtonContainer>
+      </Container>
+    </PageFiltersContainer>
   );
 }
 
@@ -458,6 +504,14 @@ const Container = styled('div')`
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;
+`;
+
+const HomeScreenContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  width: 100%;
 `;
 
 const CardStack = styled('div')`
@@ -540,20 +594,26 @@ const ButtonContainer = styled('div')`
   }
 `;
 
-const CompletionContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: ${space(3)};
-  text-align: center;
-`;
-
 const KeyHint = styled('span')`
   margin-left: ${space(1)};
   opacity: 0.6;
   font-size: 0.8em;
+`;
+
+const CloseButtonContainer = styled('div')`
+  position: absolute;
+  top: ${space(3)};
+  right: ${space(3)};
+  z-index: 10;
+`;
+
+const CloseButton = styled(Button)`
+  color: ${p => p.theme.textColor};
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 export default MissionControl;

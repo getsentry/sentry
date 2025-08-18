@@ -120,6 +120,7 @@ type AutofixSolutionProps = {
   customSolution?: string;
   description?: string;
   isSolutionFirstAppearance?: boolean;
+  preview?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -338,6 +339,7 @@ function AutofixSolutionDisplay({
   customSolution,
   solutionSelected,
   agentCommentThread,
+  preview = false,
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const organization = useOrganization();
   const {data: group} = useGroup({groupId});
@@ -471,11 +473,15 @@ function AutofixSolutionDisplay({
           <Content>
             <SolutionDescriptionWrapper>{customSolution}</SolutionDescriptionWrapper>
           </Content>
-          <BottomDivider />
-          <BottomFooter>
-            <div style={{flex: 1}} />
-            <CopySolutionButton solution={solution} customSolution={customSolution} />
-          </BottomFooter>
+          {!preview && (
+            <React.Fragment>
+              <BottomDivider />
+              <BottomFooter>
+                <div style={{flex: 1}} />
+                <CopySolutionButton solution={solution} customSolution={customSolution} />
+              </BottomFooter>
+            </React.Fragment>
+          )}
         </CustomSolutionPadding>
       </SolutionContainer>
     );
@@ -489,20 +495,22 @@ function AutofixSolutionDisplay({
             <IconFix size="md" color="green400" />
           </HeaderIconWrapper>
           {t('Solution')}
-          <Button
-            size="zero"
-            borderless
-            title={t('Chat with Seer')}
-            onClick={handleSelectDescription}
-            analyticsEventName="Autofix: Solution Chat"
-            analyticsEventKey="autofix.solution.chat"
-          >
-            <IconChat />
-          </Button>
+          {!preview && (
+            <Button
+              size="zero"
+              borderless
+              title={t('Chat with Seer')}
+              onClick={handleSelectDescription}
+              analyticsEventName="Autofix: Solution Chat"
+              analyticsEventKey="autofix.solution.chat"
+            >
+              <IconChat />
+            </Button>
+          )}
         </HeaderText>
       </HeaderWrapper>
       <AnimatePresence>
-        {agentCommentThread && iconFixRef.current && (
+        {!preview && agentCommentThread && iconFixRef.current && (
           <AutofixHighlightPopup
             selectedText=""
             referenceElement={iconFixRef.current}
@@ -532,82 +540,86 @@ function AutofixSolutionDisplay({
           ref={descriptionRef}
         />
       </Content>
-      <BottomDivider />
-      <BottomFooter>
-        <AddInstructionWrapper>
-          <InstructionsInputWrapper onSubmit={handleFormSubmit}>
-            <InstructionsInput
-              type="text"
-              name="additional-instructions"
-              placeholder={t('Add more instructions...')}
-              value={instructions}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setInstructions(e.target.value)
-              }
-              size="sm"
-            />
-            <SubmitButton
-              size="zero"
-              type="submit"
-              borderless
-              disabled={!instructions.trim()}
-              aria-label={t('Add to solution')}
-            >
-              <IconAdd size="xs" />
-            </SubmitButton>
-          </InstructionsInputWrapper>
-        </AddInstructionWrapper>
-        <ButtonBar>
-          <CopySolutionButton solution={solution} />
-          <Tooltip
-            isHoverable
-            title={
-              codingDisabled
-                ? t(
-                    'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
-                  )
-                : hasNoRepos
-                  ? tct(
-                      'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
-                      {
-                        link: (
-                          <Link
-                            to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
-                          />
-                        ),
-                      }
-                    )
-                  : cantReadRepos
+      {!preview && (
+        <React.Fragment>
+          <BottomDivider />
+          <BottomFooter>
+            <AddInstructionWrapper>
+              <InstructionsInputWrapper onSubmit={handleFormSubmit}>
+                <InstructionsInput
+                  type="text"
+                  name="additional-instructions"
+                  placeholder={t('Add more instructions...')}
+                  value={instructions}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setInstructions(e.target.value)
+                  }
+                  size="sm"
+                />
+                <SubmitButton
+                  size="zero"
+                  type="submit"
+                  borderless
+                  disabled={!instructions.trim()}
+                  aria-label={t('Add to solution')}
+                >
+                  <IconAdd size="xs" />
+                </SubmitButton>
+              </InstructionsInputWrapper>
+            </AddInstructionWrapper>
+            <ButtonBar>
+              <CopySolutionButton solution={solution} />
+              <Tooltip
+                isHoverable
+                title={
+                  codingDisabled
                     ? t(
-                        "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
+                        'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
                       )
-                    : undefined
-            }
-          >
-            <Button
-              size="sm"
-              priority={
-                !solutionSelected || !valueIsEqual(solutionItems, solution, true)
-                  ? 'primary'
-                  : 'default'
-              }
-              busy={isPending}
-              disabled={hasNoRepos || cantReadRepos || codingDisabled}
-              onClick={() => {
-                handleContinue({
-                  mode: 'fix',
-                  solution: solutionItems,
-                });
-              }}
-              analyticsEventName="Autofix: Code It Up"
-              analyticsEventKey="autofix.solution.code"
-              title={t('Implement this solution in code with Seer')}
-            >
-              {t('Code It Up')}
-            </Button>
-          </Tooltip>
-        </ButtonBar>
-      </BottomFooter>
+                    : hasNoRepos
+                      ? tct(
+                          'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
+                          {
+                            link: (
+                              <Link
+                                to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
+                              />
+                            ),
+                          }
+                        )
+                      : cantReadRepos
+                        ? t(
+                            "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
+                          )
+                        : undefined
+                }
+              >
+                <Button
+                  size="sm"
+                  priority={
+                    !solutionSelected || !valueIsEqual(solutionItems, solution, true)
+                      ? 'primary'
+                      : 'default'
+                  }
+                  busy={isPending}
+                  disabled={hasNoRepos || cantReadRepos || codingDisabled}
+                  onClick={() => {
+                    handleContinue({
+                      mode: 'fix',
+                      solution: solutionItems,
+                    });
+                  }}
+                  analyticsEventName="Autofix: Code It Up"
+                  analyticsEventKey="autofix.solution.code"
+                  title={t('Implement this solution in code with Seer')}
+                >
+                  {t('Code It Up')}
+                </Button>
+              </Tooltip>
+            </ButtonBar>
+          </BottomFooter>
+        </React.Fragment>
+      )}
     </SolutionContainer>
   );
 }

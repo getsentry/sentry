@@ -17,7 +17,7 @@ interface WelcomeCardData {
 const FUNNY_GREETINGS = [
   'Howdy',
   'Good day to debug',
-  'Fires are normal',
+  "We'll get through this",
   'Hello',
   'Hi there',
 ];
