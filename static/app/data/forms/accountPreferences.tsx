@@ -28,11 +28,35 @@ const formGroups: JsonFormObject[] = [
           {value: 'light', label: t('Light')},
           {value: 'dark', label: t('Dark')},
           {value: 'system', label: t('Default to system')},
+          {value: 'custom', label: t('Custom')},
         ],
         getData: transformOptions,
         onChange: () => {
           removeBodyTheme();
         },
+        validate: ({form}) => {
+          const theme = form?.theme;
+          const customTheme = form?.customTheme;
+
+          if (theme === 'custom' && (!customTheme || customTheme.trim() === '')) {
+            return [
+              [
+                'theme',
+                'Please provide a custom theme input when selecting custom theme',
+              ],
+            ];
+          }
+
+          return [];
+        },
+      },
+      {
+        name: 'customTheme',
+        type: 'string',
+        label: t('Custom Theme Color'),
+        help: t('Enter a custom theme color in hex format'),
+        placeholder: '#000000',
+        getData: transformOptions,
       },
       {
         name: 'language',

@@ -55,9 +55,11 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
             ("light", _("Light")),
             ("dark", _("Dark")),
             ("system", _("Default to system")),
+            ("custom", _("Custom")),
         ),
         required=False,
     )
+    customTheme = serializers.CharField(required=False)
     defaultIssueEvent = serializers.ChoiceField(
         choices=(
             ("recommended", _("Recommended")),
