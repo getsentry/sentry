@@ -1,6 +1,6 @@
-import enum
 import logging
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import TypedDict
 
 import orjson
@@ -39,7 +39,7 @@ class FileChange(BaseModel):
     is_deleted: bool = False
 
 
-class CodingAgentStatus(str, enum.Enum):
+class CodingAgentStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -78,6 +78,7 @@ class AutofixState(BaseModel):
     actor_ids: list[str] | None = None
     codebases: dict[str, CodebaseState] = {}
     steps: list[dict] = []
+    coding_agents: dict[str, CodingAgentState] = {}
 
     class Config:
         extra = "allow"
