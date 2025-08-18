@@ -155,6 +155,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "brand": "Samsung",
         }
 
+    @pytest.mark.skip(reason="flaky: #97993")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_adds_contexts_with_ps4_device(self) -> None:
