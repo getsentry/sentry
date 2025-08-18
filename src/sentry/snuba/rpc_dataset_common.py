@@ -150,7 +150,10 @@ class RPCBase:
         meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
         where, having, query_contexts = resolver.resolve_query(query.query_string)
 
-        if has_top_level_trace_condition(where):
+        trace_column, _ = resolver.resolve_column("trace")
+        if isinstance(trace_column, ResolvedAttribute) and has_top_level_trace_condition(
+            where, trace_column
+        ):
             # We noticed that the query has a top level condition for trace id, in this situation,
             # we want to force the query to to highest accuracy mode to ensure we get an accurate
             # response as the different tiers are sampled based on trace id and is likely to contain
@@ -466,7 +469,10 @@ class RPCBase:
         meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
         query, _, query_contexts = search_resolver.resolve_query(query_string)
 
-        if has_top_level_trace_condition(query):
+        trace_column, _ = search_resolver.resolve_column("trace")
+        if isinstance(trace_column, ResolvedAttribute) and has_top_level_trace_condition(
+            query, trace_column
+        ):
             # We noticed that the query has a top level condition for trace id, in this situation,
             # we want to force the query to to highest accuracy mode to ensure we get an accurate
             # response as the different tiers are sampled based on trace id and is likely to contain
@@ -760,15 +766,17 @@ class RPCBase:
         raise NotImplementedError()
 
 
-def has_top_level_trace_condition(where: TraceItemFilter | None) -> bool:
+def has_top_level_trace_condition(
+    where: TraceItemFilter | None, trace_column: ResolvedAttribute
+) -> bool:
     if where is None:
         return False
 
     if where.HasField("and_filter"):
-        return any(has_top_level_trace_condition(f) for f in where.and_filter.filters)
+        return any(has_top_level_trace_condition(f, trace_column) for f in where.and_filter.filters)
 
     if where.HasField("or_filter"):
-        return all(has_top_level_trace_condition(f) for f in where.or_filter.filters)
+        return all(has_top_level_trace_condition(f, trace_column) for f in where.or_filter.filters)
 
     if where.HasField("not_filter"):
         return False
@@ -777,7 +785,7 @@ def has_top_level_trace_condition(where: TraceItemFilter | None) -> bool:
         attribute_key = where.comparison_filter.key
         if attribute_key.type != AttributeKey.TYPE_STRING:
             return False
-        if attribute_key.name != "sentry.trace_id":
+        if attribute_key.name != trace_column.internal_name:
             return False
         op = where.comparison_filter.op
         if op != ComparisonFilter.Op.OP_EQUALS:
