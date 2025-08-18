@@ -811,7 +811,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.commit_context",
     "sentry.tasks.digests",
     "sentry.tasks.email",
-    "sentry.tasks.escalation_check",
+    "sentry.escalation_policies.tasks.escalation_check",
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.merge",

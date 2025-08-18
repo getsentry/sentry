@@ -6,4 +6,6 @@ class Config(AppConfig):
 
     def ready(self) -> None:
         # Import any signals or other initialization code here if needed
+        import sentry.escalation_policies.tasks.escalation_check  # NOQA
+
         pass

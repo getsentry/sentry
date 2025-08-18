@@ -143,6 +143,10 @@ workflow_engine_tasks = taskregistry.create_namespace(
     "workflow_engine", app_feature="workflow_engine"
 )
 
+escalation_policy_tasks = taskregistry.create_namespace(
+    "escalation_policies", app_feature="escalation_policies"
+)
+
 
 # Namespaces for testing taskworker tasks
 exampletasks = taskregistry.create_namespace(name="examples")

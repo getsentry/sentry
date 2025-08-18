@@ -3,13 +3,17 @@ from datetime import UTC, datetime, timedelta
 
 from django.db import router, transaction
 
-from sentry.escalation_policies import (
-    EscalationNotification,
+from sentry.escalation_policies.escalation_notification import EscalationNotification
+from sentry.escalation_policies.models.escalation_policy import EscalationPolicyStep
+from sentry.escalation_policies.models.escalation_policy_state import (
     EscalationPolicyState,
     EscalationPolicyStateType,
 )
-from sentry.escalation_policies.models.escalation_policy import EscalationPolicyStep
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import escalation_policy_tasks
+from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +21,18 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name="sentry.tasks.escalation_check",
+    name="sentry.escalation_policies.tasks.escalation_check",
     queue="escalation",
     max_retries=3,
+    default_retry_delay=60 * 5,
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=escalation_policy_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+    ),
 )
 def escalation_check(*args, escalation_policy_state_id: int, **kwds):
     try:

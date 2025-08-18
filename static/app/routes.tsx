@@ -1525,6 +1525,10 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
+      path: 'occurrences/',
+      component: make(() => import('sentry/views/alerts/occurrences/occurrenceList')),
+    },
+    {
       path: 'rules/',
       children: [
         {
