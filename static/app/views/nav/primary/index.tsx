@@ -178,7 +178,7 @@ export function PrimaryNavigationItems() {
       <SidebarFooter>
         <SidebarButton
           analyticsKey="command-palette"
-          label={t('Search…')}
+          label={t('Search (⌘ + k)')}
           onClick={() => openOmniSearch()}
         >
           <IconSearch />
