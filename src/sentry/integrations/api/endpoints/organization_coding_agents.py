@@ -208,6 +208,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         for solution_item in solution_step["solution"]:
             if (
                 solution_item["relevant_code_file"]
+                and "repo_name" in solution_item["relevant_code_file"]
                 and solution_item["relevant_code_file"]["repo_name"]
             ):
                 repos.add(solution_item["relevant_code_file"]["repo_name"])
