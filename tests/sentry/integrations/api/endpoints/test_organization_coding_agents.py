@@ -56,9 +56,8 @@ class OrganizationCodingAgentsEndpointTest(APITestCase):
         with (
             self.feature({"organizations:seer-coding-agent-integrations": True}),
             self.mock_integration_service_calls(
-                org_integrations=[mock_org_integration],
-                integration=mock_integration
-            )
+                org_integrations=[mock_org_integration], integration=mock_integration
+            ),
         ):
             response = self.get_response(organization.slug)
 
@@ -87,15 +86,14 @@ class OrganizationCodingAgentsEndpointTest(APITestCase):
             with (
                 patch.object(
                     integration_service,
-                    'get_organization_integrations',
-                    return_value=org_integrations
+                    "get_organization_integrations",
+                    return_value=org_integrations,
                 ),
-                patch.object(
-                    integration_service,
-                    'get_integration',
-                    return_value=integration
+                patch.object(integration_service, "get_integration", return_value=integration),
+                patch(
+                    "sentry.integrations.coding_agent.utils.get_coding_agent_providers",
+                    return_value=["test_provider"],
                 ),
-                patch('sentry.integrations.coding_agent.utils.get_coding_agent_providers', return_value=['test_provider'])
             ):
                 yield
 
