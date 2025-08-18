@@ -5,7 +5,7 @@ from typing import Generic, TypeVar
 
 from django import forms
 
-from sentry.escalation_policies import EscalationPolicy
+from sentry.escalation_policies.models.escalation_policy import EscalationPolicy
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.users.services.user.service import user_service

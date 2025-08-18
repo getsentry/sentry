@@ -2,11 +2,20 @@ from datetime import UTC, date, datetime, timedelta
 from time import strptime
 from typing import TypedDict
 
+from django.db import router, transaction
+
+from sentry.escalation_policies.models.escalation_policy import EscalationPolicy
+from sentry.escalation_policies.models.escalation_policy_state import (
+    EscalationPolicyState,
+    EscalationPolicyStateType,
+)
 from sentry.escalation_policies.models.rotation_schedule import (
+    RotationSchedule,
     RotationScheduleLayer,
     ScheduleLayerRestriction,
     rotation_schedule_layer_rotation_type_to_days,
 )
+from sentry.models.group import Group
 
 
 class RotationPeriod(TypedDict):
@@ -217,3 +226,44 @@ def coalesce_schedule_layers(
             if period["start_time"] > end_time:
                 break
     return schedule
+
+
+# Take a rotation schedule and a time and return the user ID for the oncall user
+def determine_schedule_oncall(
+    schedule: RotationSchedule, time: datetime | None = None
+) -> int | None:
+    if time is None:
+        time = datetime.now(UTC)
+    rotation_periods = coalesce_schedule_layers(schedule.layers.all(), time, time)
+
+    if len(rotation_periods) == 0:
+        return None
+
+    return rotation_periods[0]["user_id"]
+
+
+def trigger_escalation_policy(policy: EscalationPolicy, group: Group) -> EscalationPolicyState:
+    from sentry.tasks.escalation_check import escalation_check
+
+    with transaction.atomic(router.db_for_write(EscalationPolicy)):
+        state = EscalationPolicyState.objects.create(
+            escalation_policy=policy,
+            state=EscalationPolicyStateType.UNACKNOWLEDGED,
+            run_step_n=0,
+            run_step_at=datetime.now(UTC),
+            group=group,
+        )
+        transaction.on_commit(
+            lambda: escalation_check.apply_async(kwargs=dict(escalation_policy_state_id=state.id)),
+            using=router.db_for_write(EscalationPolicyState),
+        )
+    return state
+
+
+# TODO: cleanup any outstanding scheduled jobs for this policy state
+def alter_escalation_policy_state(
+    policy_state: EscalationPolicyState, new_state: EscalationPolicyStateType
+) -> EscalationPolicyState:
+    policy_state.state = new_state
+    policy_state.save()
+    return policy_state

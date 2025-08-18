@@ -438,6 +438,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.relocation",
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
+    "sentry.escalation_policies.apps.Config",
     "sentry.workflow_engine",
     "sentry.explore",
     "sentry.insights",

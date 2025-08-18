@@ -2,7 +2,8 @@ from collections.abc import Callable, Generator, Sequence
 
 from django import forms
 
-from sentry.escalation_policies import EscalationPolicy, trigger_escalation_policy
+from sentry.escalation_policies.logic import trigger_escalation_policy
+from sentry.escalation_policies.models.escalation_policy import EscalationPolicy
 from sentry.eventstore.models import GroupEvent
 from sentry.mail.actions import NotifyEmailTarget
 from sentry.mail.forms.member_team import MemberTeamForm

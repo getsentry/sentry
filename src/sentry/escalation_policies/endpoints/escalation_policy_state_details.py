@@ -12,7 +12,6 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.base import serialize
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EscalationPolicyParams, GlobalParams
-from sentry.escalation_policies import alter_escalation_policy_state
 from sentry.escalation_policies.endpoints.serializers.escalation_policy import (
     EscalationPolicySerializerResponse,
 )
@@ -20,6 +19,7 @@ from sentry.escalation_policies.endpoints.serializers.escalation_policy_state im
     EscalationPolicyStatePutSerializer,
     EscalationPolicyStateSerializer,
 )
+from sentry.escalation_policies.logic import alter_escalation_policy_state
 from sentry.escalation_policies.models.escalation_policy_state import (
     EscalationPolicyState,
     EscalationPolicyStateType,

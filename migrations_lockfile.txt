@@ -7,6 +7,8 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 discover: 0003_discover_json_field
 
+escalation_policies: 0001_escalation_policies_baseline
+
 explore: 0006_add_changed_reason_field_explore
 
 feedback: 0001_squashed_0004_index_together
@@ -36,5 +38,3 @@ tempest: 0001_squashed_0002_make_message_type_nullable
 uptime: 0043_uptime_django_json_field
 
 workflow_engine: 0083_add_status_to_action
-
-escalation_policies: 0004_escalation_policies3
