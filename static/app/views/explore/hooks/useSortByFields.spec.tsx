@@ -36,7 +36,7 @@ function createWrapper(organization: Organization) {
 describe('useSortByFields', () => {
   const organization = OrganizationFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({

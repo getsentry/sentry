@@ -42,7 +42,7 @@ export class Visualize {
   chartType: ChartType;
   yAxis: string;
   stack?: string;
-  private selectedChartType?: ChartType;
+  selectedChartType?: ChartType;
 
   constructor(yAxis: string, options?: VisualizeOptions) {
     this.yAxis = yAxis;

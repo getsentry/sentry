@@ -7,14 +7,14 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
-describe('SaveQueryModal', function () {
+describe('SaveQueryModal', () => {
   let initialData!: ReturnType<typeof initializeOrg>;
 
   beforeEach(() => {
     initialData = initializeOrg();
   });
 
-  it('should render', function () {
+  it('should render', () => {
     const saveQuery = jest.fn();
     render(
       <SaveQueryModal
@@ -36,7 +36,7 @@ describe('SaveQueryModal', function () {
     expect(screen.getByRole('checkbox', {name: 'Starred'})).toBeInTheDocument();
   });
 
-  it('should call saveQuery', async function () {
+  it('should call saveQuery', async () => {
     const saveQuery = jest.fn();
     render(
       <SaveQueryModal
@@ -61,7 +61,7 @@ describe('SaveQueryModal', function () {
     await waitFor(() => expect(saveQuery).toHaveBeenCalledWith('Query Name', true));
   });
 
-  it('should call saveQuery without starring the query', async function () {
+  it('should call saveQuery without starring the query', async () => {
     const saveQuery = jest.fn();
     render(
       <SaveQueryModal
@@ -87,7 +87,7 @@ describe('SaveQueryModal', function () {
     await waitFor(() => expect(saveQuery).toHaveBeenCalledWith('Query Name', false));
   });
 
-  it('should render rename ui', function () {
+  it('should render rename ui', () => {
     const saveQuery = jest.fn();
     render(
       <SaveQueryModal
@@ -108,7 +108,7 @@ describe('SaveQueryModal', function () {
     expect(screen.getByText('Save Changes')).toBeInTheDocument();
   });
 
-  it('should render ui with logs dataset', function () {
+  it('should render ui with logs dataset', () => {
     const saveQuery = jest.fn();
     render(
       <SaveQueryModal

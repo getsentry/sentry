@@ -54,7 +54,7 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
     jest.clearAllMocks();
   });
 
-  it('renders with creator and everyone options', async function () {
+  it('renders with creator and everyone options', async () => {
     renderTestComponent();
 
     await userEvent.click(await screen.findByText('Edit Access:'));
@@ -62,13 +62,13 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
     expect(screen.getByText('All users')).toBeInTheDocument();
   });
 
-  it('renders All badge when dashboards has no perms defined', async function () {
+  it('renders All badge when dashboards has no perms defined', async () => {
     renderTestComponent();
     await userEvent.click(await screen.findByText('Edit Access:'));
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
-  it('renders All badge when perms is set to everyone', async function () {
+  it('renders All badge when perms is set to everyone', async () => {
     const mockDashboard = DashboardFixture([], {
       id: '1',
       createdBy: UserFixture({id: '1'}),
@@ -80,7 +80,7 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
-  it('renders All badge when All users is selected', async function () {
+  it('renders All badge when All users is selected', async () => {
     const mockDashboard = DashboardFixture([], {
       id: '1',
       createdBy: UserFixture({id: '1'}),
@@ -106,7 +106,7 @@ describe('When EditAccessSelector is rendered with no Teams', () => {
     expect(screen.getByText('All')).toBeInTheDocument();
   });
 
-  it('renders User badge when creator-only is selected', async function () {
+  it('renders User badge when creator-only is selected', async () => {
     const mockDashboard = DashboardFixture([], {
       id: '1',
       createdBy: UserFixture({id: '1', name: 'Lorem Ipsum'}),
@@ -138,10 +138,10 @@ const teamData = [
   },
 ];
 
-describe('When EditAccessSelector is rendered with Teams', function () {
+describe('When EditAccessSelector is rendered with Teams', () => {
   const teams = teamData.map(data => TeamFixture(data));
 
-  beforeEach(function () {
+  beforeEach(() => {
     TeamStore.loadInitialData(teams);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -176,7 +176,7 @@ describe('When EditAccessSelector is rendered with Teams', function () {
     jest.clearAllMocks();
   });
 
-  it('renders all teams', async function () {
+  it('renders all teams', async () => {
     renderTestComponent();
     await userEvent.click(await screen.findByText('Edit Access:'));
 
@@ -186,7 +186,7 @@ describe('When EditAccessSelector is rendered with Teams', function () {
     expect(screen.getByText('#team3')).toBeInTheDocument();
   });
 
-  it('selects all teams when all users is selected', async function () {
+  it('selects all teams when all users is selected', async () => {
     const mockDashboard = DashboardFixture([], {
       id: '1',
       createdBy: UserFixture({id: '1'}),
@@ -225,7 +225,7 @@ describe('When EditAccessSelector is rendered with Teams', function () {
     );
   });
 
-  it('searches teams', async function () {
+  it('searches teams', async () => {
     const org = OrganizationFixture();
     OrganizationStore.onUpdate(org, {replace: true});
     MockApiClient.addMockResponse({

@@ -7,8 +7,8 @@ import docs, {
   InstallationMode,
 } from 'sentry/gettingStartedDocs/react-native/react-native';
 
-describe('getting started with react-native', function () {
-  it('renders manual installation docs correctly', function () {
+describe('getting started with react-native', () => {
+  it('renders manual installation docs correctly', () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {
         installationMode: InstallationMode.MANUAL,
@@ -23,7 +23,7 @@ describe('getting started with react-native', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 
-  it('renders auto installation docs correctly', function () {
+  it('renders auto installation docs correctly', () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {
         installationMode: InstallationMode.AUTO,
@@ -38,7 +38,7 @@ describe('getting started with react-native', function () {
     expect(screen.queryByRole('heading', {name: 'Verify'})).not.toBeInTheDocument();
   });
 
-  it('renders errors onboarding docs correctly', function () {
+  it('renders errors onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {
         installationMode: InstallationMode.MANUAL,
@@ -57,7 +57,7 @@ describe('getting started with react-native', function () {
     expect(screen.getByRole('heading', {name: 'Source Context'})).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', function () {
+  it('renders performance onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
       selectedOptions: {
@@ -70,7 +70,7 @@ describe('getting started with react-native', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders profiling onboarding docs correctly', function () {
+  it('renders profiling onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.PERFORMANCE_MONITORING,

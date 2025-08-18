@@ -6,10 +6,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
-describe('AddIntegrationButton', function () {
+describe('AddIntegrationButton', () => {
   const provider = GitHubIntegrationProviderFixture();
 
-  it('Opens the setup dialog on click', async function () {
+  it('Opens the setup dialog on click', async () => {
     const focus = jest.fn();
     const open = jest.fn().mockReturnValue({focus, close: jest.fn()});
     // any is needed here because getSentry has different types for global

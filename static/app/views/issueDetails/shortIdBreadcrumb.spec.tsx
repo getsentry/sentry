@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ShortIdBreadcrumb} from './shortIdBreadcrumb';
 
-describe('ShortIdBreadcrumb', function () {
+describe('ShortIdBreadcrumb', () => {
   const {organization, project} = initializeOrg();
   const group = GroupFixture({shortId: 'ABC-123'});
 
@@ -15,13 +15,13 @@ describe('ShortIdBreadcrumb', function () {
     });
   });
 
-  it('renders short ID', function () {
+  it('renders short ID', () => {
     render(<ShortIdBreadcrumb {...{organization, project, group}} />);
 
     expect(screen.getByText('ABC-123')).toBeInTheDocument();
   });
 
-  it('supports copy', async function () {
+  it('supports copy', async () => {
     render(<ShortIdBreadcrumb {...{organization, project, group}} />);
 
     async function clickMenuItem(name: string) {

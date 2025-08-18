@@ -176,7 +176,7 @@ class TestProcessWorkflowActivity(TestCase):
             group=self.group,
         )
 
-        mock_evaluate.assert_called_once_with({self.workflow}, event_data)
+        mock_evaluate.assert_called_once_with({self.workflow}, event_data, mock.ANY)
         assert mock_eval_actions.call_count == 0
 
     @mock.patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
