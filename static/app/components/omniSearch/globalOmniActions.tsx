@@ -12,6 +12,7 @@ import {
   IconPrevent,
   IconSearch,
   IconSettings,
+  IconStar,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -20,6 +21,8 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
+import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
+import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 
 const GlobalActionSection = {
   HELP: t('Help'),
@@ -34,6 +37,7 @@ function useNavigationActions() {
   const prefix = `/organizations/${slug}`;
   const features = new Set(organization.features ?? []);
   const exploreDefault = getDefaultExploreRoute(organization);
+  const {starredViews} = useStarredIssueViews();
 
   const issuesChildren = [
     {
@@ -42,6 +46,12 @@ function useNavigationActions() {
       label: t('Feed'),
       to: `${prefix}/issues/`,
     },
+    ...Object.values(ISSUE_TAXONOMY_CONFIG).map(config => ({
+      key: `nav-issues-${config.key}`,
+      areaKey: 'navigate',
+      label: config.label,
+      to: `${prefix}/issues/${config.key}/`,
+    })),
     {
       key: 'nav-issues-feedback',
       areaKey: 'navigate',
@@ -54,6 +64,13 @@ function useNavigationActions() {
       label: t('All Views'),
       to: `${prefix}/issues/views/`,
     },
+    ...starredViews.map(view => ({
+      key: `nav-issues-starred-${view.id}`,
+      areaKey: 'navigate',
+      label: view.label,
+      actionIcon: <IconStar />,
+      to: `${prefix}/issues/views/${view.id}/`,
+    })),
   ];
 
   const exploreChildren = [
