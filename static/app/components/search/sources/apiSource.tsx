@@ -25,13 +25,13 @@ import type {ChildProps, ResultItem} from './types';
 import {makeResolvedTs, strGetFn} from './utils';
 
 // event ids must have string length of 32
-const shouldSearchEventIds = (query?: string) =>
+export const shouldSearchEventIds = (query?: string) =>
   typeof query === 'string' && query.length === 32;
 
 // STRING-HEXVAL
-const shouldSearchShortIds = (query: string) => /[\w\d]+-[\w\d]+/.test(query);
+export const shouldSearchShortIds = (query: string) => /[\w\d]+-[\w\d]+/.test(query);
 
-async function createProjectResults(
+export async function createProjectResults(
   projectsPromise: Promise<Project[]>,
   organization?: Organization
 ): Promise<ResultItem[]> {
@@ -85,7 +85,7 @@ async function createProjectResults(
     return projectResults;
   });
 }
-async function createTeamResults(
+export async function createTeamResults(
   teamsPromise: Promise<Team[]>,
   org: Organization
 ): Promise<ResultItem[]> {
@@ -103,7 +103,7 @@ async function createTeamResults(
   }));
 }
 
-async function createMemberResults(
+export async function createMemberResults(
   membersPromise: Promise<Member[]>,
   org: Organization
 ): Promise<ResultItem[]> {
@@ -121,7 +121,7 @@ async function createMemberResults(
   }));
 }
 
-async function createPluginResults(
+export async function createPluginResults(
   pluginsPromise: Promise<PluginWithProjectList[]>,
   org: Organization
 ): Promise<ResultItem[]> {
@@ -150,7 +150,7 @@ async function createPluginResults(
     }));
 }
 
-async function createIntegrationResults(
+export async function createIntegrationResults(
   integrationsPromise: Promise<{providers: IntegrationProvider[]}>,
   org: Organization
 ): Promise<ResultItem[]> {
@@ -177,7 +177,7 @@ async function createIntegrationResults(
   );
 }
 
-async function createSentryAppResults(
+export async function createSentryAppResults(
   sentryAppPromise: Promise<SentryApp[]>,
   org: Organization
 ): Promise<ResultItem[]> {
@@ -201,7 +201,7 @@ async function createSentryAppResults(
   }));
 }
 
-async function createDocIntegrationResults(
+export async function createDocIntegrationResults(
   docIntegrationPromise: Promise<DocIntegration[]>,
   org: Organization
 ): Promise<ResultItem[]> {
@@ -225,7 +225,7 @@ async function createDocIntegrationResults(
   }));
 }
 
-async function createShortIdResult(
+export async function createShortIdResult(
   shortIdLookupPromise: Promise<ShortIdResponse>
 ): Promise<ResultItem[] | null> {
   const shortIdLookup = await shortIdLookupPromise;
@@ -249,7 +249,7 @@ async function createShortIdResult(
   ];
 }
 
-async function createEventIdResult(
+export async function createEventIdResult(
   eventIdLookupPromise: Promise<EventIdResponse>
 ): Promise<ResultItem[] | null> {
   const eventIdLookup = await eventIdLookupPromise;
@@ -289,7 +289,7 @@ interface Props {
   searchOptions?: Fuse.IFuseOptions<ResultItem>;
 }
 
-async function queryResults(
+export async function queryResults(
   api: Client,
   url: string,
   query?: string
