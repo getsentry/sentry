@@ -26,7 +26,7 @@ export function useOmniSearchState() {
 
   const displayedActions = useMemo(() => {
     if (selectedAction?.children?.length) {
-      return sortBy(selectedAction.children, action => action.label);
+      return selectedAction.children;
     }
 
     if (focusedArea) {

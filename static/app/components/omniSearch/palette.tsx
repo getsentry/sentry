@@ -66,9 +66,7 @@ export function OmniSearchPalette() {
 
     return sectionKeys.map(sectionKey => {
       const label = sectionKey;
-      const items = (bySection.get(sectionKey) ?? []).sort((a, b) =>
-        a.label.localeCompare(b.label)
-      );
+      const items = bySection.get(sectionKey) ?? [];
       return {sectionKey, label, items};
     });
   }, [availableActions, debouncedQuery, filteredAvailableActions]);
