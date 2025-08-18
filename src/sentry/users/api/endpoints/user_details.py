@@ -55,9 +55,11 @@ class UserOptionsSerializer(serializers.Serializer[UserOption]):
             ("light", _("Light")),
             ("dark", _("Dark")),
             ("system", _("Default to system")),
+            ("custom", _("Custom")),
         ),
         required=False,
     )
+    customTheme = serializers.CharField(required=False)
     defaultIssueEvent = serializers.ChoiceField(
         choices=(
             ("recommended", _("Recommended")),
@@ -241,6 +243,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "prefersStackedNavigation": "prefers_stacked_navigation",
             "prefersNextjsInsightsOverview": "prefers_nextjs_insights_overview",
             "prefersChonkUI": "prefers_chonk_ui",
+            "customTheme": "custom_theme",
         }
 
         options_result = serializer_options.validated_data
