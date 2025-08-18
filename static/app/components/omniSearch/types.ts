@@ -1,0 +1,58 @@
+import type {ReactNode} from 'react';
+
+export type OmniArea = {
+  key: string;
+  label: string;
+  focused?: boolean;
+};
+
+export type OmniAction = {
+  /** Logical area grouping for the action (e.g. navigate, issue, add) */
+  areaKey: string;
+  /** Unique identifier for this action */
+  key: string;
+  /** Primary text shown to the user */
+  label: string;
+  /** Keyboard shortcut (e.g. "cmd+k", "shift+r") */
+  actionHotkey?: string;
+  /** Icon to render for this action */
+  actionIcon?: React.ComponentType<any>;
+  /** Action type grouping, useful for ordering (e.g. "navigate", "copy") */
+  actionType?: string;
+  /** Additional context or description */
+  details?: string | ReactNode;
+  /** Whether this action should be disabled */
+  disabled?: boolean;
+  /** Optional longer label or subtitle */
+  fullLabel?: string | ReactNode;
+  /** Whether this action should be hidden from results */
+  hidden?: boolean;
+  /** Optional keywords to improve searchability */
+  keywords?: string[];
+  /** Execute an imperative action */
+  onAction?: () => void;
+  /** Navigate to a route when selected */
+  to?: string | Record<string, any>;
+};
+
+export type OmniSearchStore = {
+  /** All registered actions keyed by action key */
+  actionsByKey: Map<string, OmniAction>;
+  /** Priority order of areas, usually provided by focused contexts */
+  areaPriority: string[];
+  /** All registered areas keyed by area key */
+  areasByKey: Map<string, OmniArea>;
+};
+
+export type OmniSearchConfig = {
+  /** Register actions; existing keys will be replaced */
+  registerActions: (actions: OmniAction[]) => void;
+  /** Update current priority list for areas */
+  registerAreaPriority: (priority: string[]) => void;
+  /** Register areas */
+  registerAreas: (areas: OmniArea[]) => void;
+  /** Unregister actions by key */
+  unregisterActions: (keys: string[]) => void;
+  /** Unregister areas by key */
+  unregisterAreas: (keys: string[]) => void;
+};
