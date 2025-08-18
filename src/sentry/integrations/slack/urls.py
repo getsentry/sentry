@@ -4,6 +4,7 @@ from .spec import SlackMessagingSpec
 from .webhooks.action import SlackActionEndpoint
 from .webhooks.command import SlackCommandsEndpoint
 from .webhooks.event import SlackEventEndpoint
+from .webhooks.incident import SlackIncidentManagementEndpoint
 from .webhooks.options_load import SlackOptionsLoadEndpoint
 
 urlpatterns = [
@@ -16,6 +17,11 @@ urlpatterns = [
         r"^commands/$",
         SlackCommandsEndpoint.as_view(),
         name="sentry-integration-slack-commands",
+    ),
+    re_path(
+        r"^incident-management/$",
+        SlackIncidentManagementEndpoint.as_view(),
+        name="sentry-integration-slack-incident-management",
     ),
     re_path(
         r"^event/$",
