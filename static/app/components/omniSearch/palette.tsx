@@ -13,17 +13,41 @@ import type {OmniAction} from './types';
  *
  * NOTE: This is intentionally minimal and will be iterated on.
  */
-export function OmniSearchPalette() {
-  const {areasByKey, areaPriority} = useOmniSearchStore();
-  const {focusedArea, actions: availableActions} = useOmniSearchState();
+
+type Props = {
+  onBarrelRoll: () => void;
+};
+
+export function OmniSearchPalette({onBarrelRoll}: Props) {
+  const {actionsByKey, areasByKey, areaPriority} = useOmniSearchStore();
+  const {focusedArea} = useOmniSearchState();
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
 
   const grouped = useMemo(() => {
-    const actions = availableActions.filter(a => !a.hidden);
+    const actions = Array.from(actionsByKey.values()).filter(
+      (a: OmniAction) => !a.hidden
+    );
 
+    // Add fun actions
+    const funActions: OmniAction[] = [
+      {
+        key: 'barrel-roll',
+        label: 'Do a barrel roll! 🛩️',
+        details: 'Spin 360 degrees',
+        areaKey: 'system',
+        actionIcon: undefined,
+        hidden: false,
+        disabled: false,
+        onAction: () => {
+          onBarrelRoll();
+        },
+      },
+    ];
+
+    const allActions = [...actions, ...funActions];
     const byArea = new Map<string, OmniAction[]>();
-    for (const action of actions) {
+    for (const action of allActions) {
       const list = byArea.get(action.areaKey) ?? [];
       list.push(action);
       byArea.set(action.areaKey, list);
@@ -32,7 +56,9 @@ export function OmniSearchPalette() {
     const sortAreaKeys = () => {
       const existingKeys = new Set(byArea.keys());
       const prioritized = areaPriority.filter(k => existingKeys.has(k));
-      const remaining = Array.from(existingKeys).filter(k => !prioritized.includes(k));
+      const remaining = Array.from(existingKeys).filter(
+        (k: string) => !prioritized.includes(k)
+      );
       remaining.sort((a, b) => {
         const aLabel = areasByKey.get(a)?.label ?? a;
         const bLabel = areasByKey.get(b)?.label ?? b;
@@ -62,7 +88,7 @@ export function OmniSearchPalette() {
         .sort((a, b) => a.label.localeCompare(b.label));
       return {areaKey, label, items};
     });
-  }, [availableActions, areasByKey, areaPriority, query]);
+  }, [actionsByKey, areasByKey, areaPriority, query, onBarrelRoll]);
 
   const handleSelect = (action: OmniAction) => {
     if (action.disabled) {
