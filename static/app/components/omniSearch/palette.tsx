@@ -17,8 +17,10 @@ import {
   queryResults,
 } from 'sentry/components/search/sources/apiSource';
 import type {ResultItem} from 'sentry/components/search/sources/types';
+import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconDocs} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -101,8 +103,22 @@ export function OmniSearchPalette() {
 
   useOmniActions(dynamicActions);
 
+  const [filteredAvailableActions, setFilteredAvailableActions] = useState<OmniAction[]>(
+    []
+  );
+
+  useEffect(() => {
+    createFuzzySearch(availableActions, {
+      keys: ['label', 'fullLabel', 'details'],
+      getFn: strGetFn,
+    }).then(f => {
+      setFilteredAvailableActions(f.search(debouncedQuery).map(r => r.item));
+    });
+  }, [availableActions, debouncedQuery]);
+
   const grouped = useMemo(() => {
-    const actions = availableActions.filter((a: OmniAction) => !a.hidden);
+    // const actions = availableActions.filter((a: OmniAction) => !a.hidden);
+    const actions = debouncedQuery ? filteredAvailableActions : availableActions;
 
     // Group by section label
     const bySection = new Map<string, OmniAction[]>();
@@ -116,31 +132,14 @@ export function OmniSearchPalette() {
     // Sort sections alphabetically by label
     const sectionKeys = Array.from(bySection.keys()).sort((a, b) => a.localeCompare(b));
 
-    // Simple text filter across label/fullLabel/details
-    const matches = (action: OmniAction) => {
-      const q = query.trim().toLowerCase();
-      if (!q) {
-        return true;
-      }
-      const parts: string[] = [];
-      parts.push(action.label);
-      if (action.fullLabel) {
-        parts.push(action.fullLabel);
-      }
-      if (action.details) {
-        parts.push(action.details);
-      }
-      return parts.join(' ').toLowerCase().includes(q);
-    };
-
     return sectionKeys.map(sectionKey => {
       const label = sectionKey;
-      const items = (bySection.get(sectionKey) ?? [])
-        .filter(matches)
-        .sort((a, b) => a.label.localeCompare(b.label));
+      const items = (bySection.get(sectionKey) ?? []).sort((a, b) =>
+        a.label.localeCompare(b.label)
+      );
       return {sectionKey, label, items};
     });
-  }, [availableActions, query]);
+  }, [availableActions, debouncedQuery, filteredAvailableActions]);
 
   const handleSelect = (action: OmniAction) => {
     if (action.disabled) {
