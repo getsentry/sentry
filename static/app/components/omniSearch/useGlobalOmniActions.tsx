@@ -43,31 +43,31 @@ function useNavigationActions() {
   const issuesChildren = [
     {
       key: 'nav-issues-feed',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('Feed'),
       to: `${prefix}/issues/`,
     },
     ...Object.values(ISSUE_TAXONOMY_CONFIG).map(config => ({
       key: `nav-issues-${config.key}`,
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: config.label,
       to: `${prefix}/issues/${config.key}/`,
     })),
     {
       key: 'nav-issues-feedback',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('User Feedback'),
       to: `${prefix}/issues/feedback/`,
     },
     {
       key: 'nav-issues-all-views',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('All Views'),
       to: `${prefix}/issues/views/`,
     },
     ...starredViews.map(view => ({
       key: `nav-issues-starred-${view.id}`,
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: view.label,
       actionIcon: <IconStar />,
       to: `${prefix}/issues/views/${view.id}/`,
@@ -77,7 +77,7 @@ function useNavigationActions() {
   const exploreChildren = [
     {
       key: 'nav-explore-traces',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('Traces'),
       to: `${prefix}/explore/traces/`,
     },
@@ -85,7 +85,7 @@ function useNavigationActions() {
       ? [
           {
             key: 'nav-explore-logs',
-            areaKey: 'navigate',
+            areaKey: 'global',
             label: t('Logs'),
             to: `${prefix}/explore/logs/`,
           },
@@ -93,7 +93,7 @@ function useNavigationActions() {
       : []),
     {
       key: 'nav-explore-discover',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('Discover'),
       to: `${prefix}/explore/discover/homepage/`,
     },
@@ -101,7 +101,7 @@ function useNavigationActions() {
       ? [
           {
             key: 'nav-explore-profiles',
-            areaKey: 'navigate',
+            areaKey: 'global',
             label: t('Profiles'),
             to: `${prefix}/explore/profiling/`,
           },
@@ -111,7 +111,7 @@ function useNavigationActions() {
       ? [
           {
             key: 'nav-explore-replays',
-            areaKey: 'navigate',
+            areaKey: 'global',
             label: t('Replays'),
             to: `${prefix}/explore/replays/`,
           },
@@ -119,13 +119,13 @@ function useNavigationActions() {
       : []),
     {
       key: 'nav-explore-releases',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('Releases'),
       to: `${prefix}/explore/releases/`,
     },
     {
       key: 'nav-explore-all-queries',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('All Queries'),
       to: `${prefix}/explore/saved-queries/`,
     },
@@ -221,7 +221,7 @@ function useNavigationActions() {
   return [
     {
       key: 'nav-issues',
-      areaKey: 'navigate',
+      areaKey: 'global',
       section: GlobalActionSection.NAVIGATE,
       label: t('Issues'),
       actionIcon: <IconIssues />,
@@ -230,7 +230,7 @@ function useNavigationActions() {
     },
     {
       key: 'nav-explore',
-      areaKey: 'navigate',
+      areaKey: 'global',
       section: GlobalActionSection.NAVIGATE,
       label: t('Explore'),
       actionIcon: <IconSearch />,
@@ -239,7 +239,7 @@ function useNavigationActions() {
     },
     {
       key: 'nav-dashboards',
-      areaKey: 'navigate',
+      areaKey: 'global',
       section: GlobalActionSection.NAVIGATE,
       label: t('Dashboards'),
       actionIcon: <IconDashboard />,
@@ -250,7 +250,7 @@ function useNavigationActions() {
       ? [
           {
             key: 'nav-insights',
-            areaKey: 'navigate',
+            areaKey: 'global',
             section: GlobalActionSection.NAVIGATE,
             label: t('Insights'),
             actionIcon: <IconGraph type="area" />,
@@ -263,7 +263,7 @@ function useNavigationActions() {
       ? [
           {
             key: 'nav-prevent',
-            areaKey: 'navigate',
+            areaKey: 'global',
             section: GlobalActionSection.NAVIGATE,
             label: t('Prevent'),
             actionIcon: <IconPrevent />,
@@ -274,7 +274,7 @@ function useNavigationActions() {
       : []),
     {
       key: 'nav-settings',
-      areaKey: 'navigate',
+      areaKey: 'global',
       section: GlobalActionSection.NAVIGATE,
       label: t('Settings'),
       actionIcon: <IconSettings />,
