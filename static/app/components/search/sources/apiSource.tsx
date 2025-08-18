@@ -225,7 +225,7 @@ export async function createDocIntegrationResults(
   }));
 }
 
-export async function createShortIdResult(
+async function createShortIdResult(
   shortIdLookupPromise: Promise<ShortIdResponse>
 ): Promise<ResultItem[] | null> {
   const shortIdLookup = await shortIdLookupPromise;
@@ -249,7 +249,7 @@ export async function createShortIdResult(
   ];
 }
 
-export async function createEventIdResult(
+async function createEventIdResult(
   eventIdLookupPromise: Promise<EventIdResponse>
 ): Promise<ResultItem[] | null> {
   const eventIdLookup = await eventIdLookupPromise;
