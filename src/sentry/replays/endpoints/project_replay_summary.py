@@ -19,9 +19,8 @@ from sentry.replays.lib.summarize import (
     fetch_trace_connected_errors,
     get_summary_logs,
 )
-from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replay_instance
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
+from sentry.replays.usecases.replay import get_replay
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
@@ -175,20 +174,16 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             num_segments = MAX_SEGMENTS_TO_SUMMARIZE
 
         # Fetch the replay's error and trace IDs from the replay_id.
-        snuba_response = query_replay_instance(
-            project_id=project.id,
+        replay = get_replay(
+            project_ids=[project.id],
             replay_id=replay_id,
-            start=filter_params["start"],
-            end=filter_params["end"],
-            organization=project.organization,
-            request_user_id=request.user.id,
+            timestamp_start=filter_params["start"],
+            timestamp_end=filter_params["end"],
+            referrer="project.replay_summary.post",
+            organization_id=project.organization_id,
         )
-        processed_response = process_raw_response(
-            snuba_response,
-            fields=request.query_params.getlist("field"),
-        )
-        error_ids = processed_response[0].get("error_ids", []) if processed_response else []
-        trace_ids = processed_response[0].get("trace_ids", []) if processed_response else []
+        error_ids = replay["error_ids"] if replay else []
+        trace_ids = replay["trace_ids"] if replay else []
 
         # Fetch error details.
         replay_errors = fetch_error_details(project_id=project.id, error_ids=error_ids)
@@ -202,7 +197,9 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
         # Download segment data.
         # XXX: For now this is capped to 100 and blocking. DD shows no replays with >25 segments, but we should still stress test and figure out how to deal with large replays.
-        segment_md = fetch_segments_metadata(project.id, replay_id, 0, num_segments)
+        segment_md = fetch_segments_metadata(
+            project.organization_id, project.id, replay_id, 0, num_segments
+        )
         segment_data = iter_segment_data(segment_md)
 
         # Combine replay and error data and parse into logs.

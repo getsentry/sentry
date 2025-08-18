@@ -12,10 +12,8 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.models.project import Project
-from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replay_instance
 from sentry.replays.tasks import delete_replay
-from sentry.replays.usecases.reader import has_archived_segment
+from sentry.replays.usecases.replay import get_replay
 
 
 class ReplayDetailsPermission(ProjectPermission):
@@ -51,24 +49,18 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         except ValueError:
             return Response(status=404)
 
-        snuba_response = query_replay_instance(
-            project_id=project.id,
+        replay = get_replay(
+            project_ids=[project.id],
             replay_id=replay_id,
-            start=filter_params["start"],
-            end=filter_params["end"],
-            organization=project.organization,
-            request_user_id=request.user.id,
+            timestamp_start=filter_params["start"],
+            timestamp_end=filter_params["end"],
+            referrer="project.replay.details",
+            organization_id=project.organization_id,
         )
-
-        response = process_raw_response(
-            snuba_response,
-            fields=request.query_params.getlist("field"),
-        )
-
-        if len(response) == 0:
+        if not replay:
             return Response(status=404)
-        else:
-            return Response({"data": response[0]}, status=200)
+
+        return Response({"data": replay}, status=200)
 
     @extend_schema(
         operation_id="Delete a Replay Instance",
@@ -93,13 +85,21 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
-        if has_archived_segment(project.id, replay_id):
+        replay = get_replay(
+            project_ids=[project.id],
+            replay_id=replay_id,
+            only_query_for={"is_archived"},
+            referrer="project.replay.details",
+            organization_id=project.organization_id,
+        )
+        if not replay or replay["is_archived"]:
             return Response(status=404)
 
         # We don't check Seer features because an org may have previously had them on, then turned them off.
         has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
 
         delete_replay.delay(
+            organization_id=project.organization_id,
             project_id=project.id,
             replay_id=replay_id,
             has_seer_data=has_seer_data,

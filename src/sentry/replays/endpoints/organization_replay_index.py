@@ -18,7 +18,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
+from sentry.replays.post_process import ReplayDetailsResponse
 from sentry.replays.query import query_replays_collection_paginated, replay_url_parser_config
 from sentry.replays.usecases.errors import handled_snuba_exceptions
 from sentry.replays.usecases.query import PREFERRED_SOURCE, QueryResponse
@@ -93,6 +93,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 sort = None
 
             response = query_replays_collection_paginated(
+                organization_id=organization.id,
                 project_ids=filter_params["project_id"],
                 start=filter_params["start"],
                 end=filter_params["end"],
@@ -103,7 +104,6 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 offset=offset,
                 search_filters=search_filters,
                 preferred_source=preferred_source,
-                organization=organization,
                 actor=request.user,
             )
 
@@ -116,12 +116,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         response = self.paginate(
             request=request,
             paginator=ReplayPaginator(data_fn=data_fn),
-            on_results=lambda results: {
-                "data": process_raw_response(
-                    results,
-                    fields=request.query_params.getlist("field"),
-                )
-            },
+            on_results=lambda results: {"data": results},
         )
 
         for header, value in headers.items():

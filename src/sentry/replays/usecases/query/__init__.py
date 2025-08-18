@@ -16,25 +16,12 @@ found in the function.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Literal, cast
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
-from snuba_sdk import (
-    And,
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Function,
-    Granularity,
-    Op,
-    Or,
-    OrderBy,
-    Query,
-    Request,
-)
+from snuba_sdk import And, Column, Condition, Direction, Function, Op, Or, OrderBy, Query, Request
 from snuba_sdk.expressions import Expression
 
 from sentry import options
@@ -51,6 +38,7 @@ from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotS
 from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
 from sentry.replays.usecases.query.errors import RetryAggregated
 from sentry.replays.usecases.query.fields import ComputedField, TagField
+from sentry.replays.usecases.replay import get_replay_ids, get_replays
 from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
 
 VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
@@ -228,15 +216,13 @@ def query_using_optimized_search(
     environments: list[str],
     sort: str | None,
     pagination: Paginators,
-    organization: Organization | None,
+    organization_id: int,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
     request_user_id: int | None = None,
     preferred_source: PREFERRED_SOURCE = "scalar",
 ):
-    tenant_id = _make_tenant_id(organization)
-
     # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
     # the values in that parameter so let's shove it inside and process it like any other filter.
     if environments:
@@ -256,35 +242,35 @@ def query_using_optimized_search(
         search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
     if preferred_source == "aggregated":
-        query, referrer, source = _query_using_aggregated_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
+        replay_ids, source = _query_using_aggregated_strategy(
+            search_filters=search_filters,
+            sort=sort,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+            limit=pagination.limit,
+            offset=pagination.offset,
         )
     else:
-        query, referrer, source = _query_using_scalar_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
+        replay_ids, source = _query_using_scalar_strategy(
+            search_filters=search_filters,
+            sort=sort,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+            limit=pagination.limit,
+            offset=pagination.offset,
         )
-
-    query = query.set_limit(pagination.limit)
-    query = query.set_offset(pagination.offset)
-
-    subquery_response = execute_query(query, tenant_id, referrer)
 
     # The query "has more rows" if the number of rows found matches the limit (which is
     # the requested limit + 1).
-    has_more = len(subquery_response.get("data", [])) == pagination.limit
+    has_more = len(replay_ids) == pagination.limit
     if has_more:
-        subquery_response["data"].pop()
+        replay_ids.pop()
 
     # These replay_ids are ordered by the OrderBy expression in the query above.
-    replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
     if not replay_ids:
         return QueryResponse(
             response=[],
@@ -294,24 +280,19 @@ def query_using_optimized_search(
 
     # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
     # we select everything and use as much memory as we need to complete the operation.
-    #
-    # If this step runs out of memory your pagination size is about 1,000,000 rows too large.
-    # That's a joke.  This will complete very quickly at normal pagination sizes.
-    results = execute_query(
-        make_full_aggregation_query(
-            fields=fields,
-            replay_ids=replay_ids,
-            project_ids=project_ids,
-            period_start=period_start,
-            period_end=period_stop,
-            request_user_id=request_user_id,
-        ),
-        tenant_id,
+    replays = get_replays(
+        project_ids,
+        replay_ids,
+        organization_id=organization_id,
+        timestamp_start=period_start,
+        timestamp_end=period_stop,
+        only_query_for=set(fields),
+        requesting_user_id=request_user_id,
         referrer="replays.query.browse_query",
-    )["data"]
+    )
 
     return QueryResponse(
-        response=_make_ordered(replay_ids, results),
+        response=_make_ordered(replay_ids, replays),
         has_more=has_more,
         source=source,
     )
@@ -320,19 +301,25 @@ def query_using_optimized_search(
 def _query_using_scalar_strategy(
     search_filters: Sequence[QueryToken],
     sort: str | None,
+    organization_id: int,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-):
+    limit: int,
+    offset: int,
+) -> tuple[list[str], str]:
     can_scalar_search = can_scalar_search_subquery(search_filters, period_start)
     can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
     if not can_scalar_search or not can_scalar_sort:
         return _query_using_aggregated_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
+            search_filters=search_filters,
+            sort=sort,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+            limit=limit,
+            offset=offset,
         )
 
     # NOTE: This query may return replay-ids which do not have a segment_id 0 row. These replays
@@ -347,100 +334,60 @@ def _query_using_scalar_strategy(
         orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
     except RetryAggregated:
         return _query_using_aggregated_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
+            search_filters=search_filters,
+            sort=sort,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+            limit=limit,
+            offset=offset,
         )
 
-    query = Query(
-        match=Entity("replays"),
-        select=[Column("replay_id")],
-        where=[
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("timestamp"), Op.LT, period_stop),
-            Condition(Column("timestamp"), Op.GTE, period_start),
-            *where,
-        ],
-        orderby=orderby,
-        groupby=[Column("replay_id")],
-        granularity=Granularity(3600),
+    return (
+        get_replay_ids(
+            organization_id,
+            project_ids,
+            timestamp_start=period_start,
+            timestamp_end=period_stop,
+            where=where,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            referrer="organization.replay.index.scalar_search",
+        ),
+        "scalar-subquery",
     )
-
-    return (query, "replays.query.browse_scalar_conditions_subquery", "scalar-subquery")
 
 
 def _query_using_aggregated_strategy(
     search_filters: Sequence[QueryToken],
     sort: str | None,
+    organization_id: int,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-):
+    limit: int,
+    offset: int,
+) -> tuple[list[str], str]:
     orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
 
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
     having.append(Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0))
 
-    query = Query(
-        match=Entity("replays"),
-        select=[Column("replay_id")],
-        where=[
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("timestamp"), Op.LT, period_stop),
-            Condition(Column("timestamp"), Op.GTE, period_start),
-        ],
-        having=having,
-        orderby=orderby,
-        groupby=[Column("replay_id")],
-        granularity=Granularity(3600),
-    )
-
-    return (query, "replays.query.browse_aggregated_conditions_subquery", "aggregated-subquery")
-
-
-def make_full_aggregation_query(
-    fields: list[str],
-    replay_ids: list[str],
-    project_ids: list[int],
-    period_start: datetime,
-    period_end: datetime,
-    request_user_id: int | None,
-) -> Query:
-    """Return a query to fetch every replay in the set.
-
-    Arguments:
-        fields -- if non-empty, used to query a subset of fields. Corresponds to the keys in QUERY_ALIAS_COLUMN_MAP.
-    """
-    from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, compute_has_viewed, select_from_fields
-
-    def _select_from_fields() -> list[Column | Function]:
-        if fields:
-            return select_from_fields(list(set(fields)), user_id=request_user_id)
-        else:
-            return list(QUERY_ALIAS_COLUMN_MAP.values()) + [compute_has_viewed(request_user_id)]
-
-    return Query(
-        match=Entity("replays"),
-        select=_select_from_fields(),
-        where=[
-            Condition(Column("project_id"), Op.IN, project_ids),
-            # Replay-ids were pre-calculated so no having clause and no aggregating significant
-            # amounts of data.
-            Condition(Column("replay_id"), Op.IN, replay_ids),
-            # We can scan an extended time range to account for replays which span either end of
-            # the range.  These timestamps are an optimization and could be removed with minimal
-            # performance impact.  It's a point query.  Its super fast.
-            Condition(Column("timestamp"), Op.GTE, period_start - timedelta(hours=1)),
-            Condition(Column("timestamp"), Op.LT, period_end + timedelta(hours=1)),
-        ],
-        # NOTE: Refer to this note: "make_scalar_search_conditions_query".
-        #
-        # This condition ensures that every replay shown to the user is valid.
-        having=[Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0)],
-        groupby=[Column("replay_id")],
-        granularity=Granularity(3600),
+    return (
+        get_replay_ids(
+            organization_id,
+            project_ids,
+            timestamp_start=period_start,
+            timestamp_end=period_stop,
+            having=having,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            referrer="organization.replay.index.scalar_search",
+        ),
+        "aggregated-subquery",
     )
 
 
@@ -485,6 +432,7 @@ def _make_tenant_id(organization: Organization | None) -> dict[str, int]:
 
 
 def _make_ordered(replay_ids: list[str], results: Any) -> list[Any]:
+    replay_ids = [replay_id.replace("-", "") for replay_id in replay_ids]
     if not replay_ids:
         return []
     elif not results:
@@ -499,7 +447,7 @@ def _make_ordered(replay_ids: list[str], results: Any) -> list[Any]:
 
     ordered_results = [None] * len(replay_id_to_index)
     for result in results:
-        index = replay_id_to_index[result["replay_id"]]
+        index = replay_id_to_index[result["id"]]
         ordered_results[index] = result
 
     return list(filter(None, ordered_results))
