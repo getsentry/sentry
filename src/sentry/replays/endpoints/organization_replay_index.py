@@ -93,6 +93,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 sort = None
 
             response = query_replays_collection_paginated(
+                organization_id=organization.id,
                 project_ids=filter_params["project_id"],
                 start=filter_params["start"],
                 end=filter_params["end"],
@@ -103,7 +104,6 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 offset=offset,
                 search_filters=search_filters,
                 preferred_source=preferred_source,
-                organization=organization,
                 actor=request.user,
             )
 

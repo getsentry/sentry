@@ -76,7 +76,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
             timestamp_start=filter_params["start"],
             timestamp_end=filter_params["end"],
             referrer="organization.replay.details",
-            tenant_ids={"organization": organization.id},
+            organization_id=organization.id,
         )
         if replay is None:
             return Response(status=404)

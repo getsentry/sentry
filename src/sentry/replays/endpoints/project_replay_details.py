@@ -55,7 +55,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             timestamp_start=filter_params["start"],
             timestamp_end=filter_params["end"],
             referrer="project.replay.details",
-            tenant_ids={"organization": project.organization_id},
+            organization_id=project.organization_id,
         )
         if not replay:
             return Response(status=404)
@@ -90,7 +90,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             replay_id=replay_id,
             only_query_for={"is_archived"},
             referrer="project.replay.details",
-            tenant_ids={"organization": project.organization_id},
+            organization_id=project.organization_id,
         )
         if not replay or replay["is_archived"]:
             return Response(status=404)
@@ -99,6 +99,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
 
         delete_replay.delay(
+            organization_id=project.organization_id,
             project_id=project.id,
             replay_id=replay_id,
             has_seer_data=has_seer_data,

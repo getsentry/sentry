@@ -59,13 +59,13 @@ def get_replay_counts(
         return {}
 
     replays = get_replays(
+        organization_id=snuba_params.organization.id,
         project_ids=[p.id for p in snuba_params.projects],
         replay_ids=list(replay_ids_mapping.keys()),
-        tiimestamp_start=snuba_params.start,
-        tiimestamp_end=snuba_params.end,
+        timestamp_start=snuba_params.start,
+        timestamp_end=snuba_params.end,
         only_query_for={"id", "is_archived"},
         referrer="replay.get_replay_counts",
-        tenant_ids={"organization_id": snuba_params.organization.id},
     )
 
     replay_results = {

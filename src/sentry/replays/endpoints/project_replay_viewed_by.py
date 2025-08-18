@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -75,7 +74,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             only_query_for={"viewed_by_ids"},
             requesting_user_id=request.user.id,
             referrer="project.replay_viewed_by.details",
-            tenant_ids={"organization_id": project.organization_id},
+            organization_id=project.organization_id,
         )
         if not replay:
             return Response(status=404)
@@ -120,19 +119,18 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             requesting_user_id=request.user.id,
             only_query_for={"finished_at"},
             referrer="project.replay.viewed_by.create",
-            tenant_ids={"organization_id": project.organization_id},
+            organization_id=project.organization_id,
         )
         if not replay:
             return Response(status=404)
 
         finished_at = replay["finished_at"]
-        finished_at_ts = datetime.fromisoformat(finished_at).timestamp()
 
         message = viewed_event(
             project.id,
             replay_id,
             request.user.id,
-            finished_at_ts,
+            finished_at.timestamp(),
         )
         publish_replay_event(message, is_async=False)
         return Response(status=204)

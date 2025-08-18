@@ -216,7 +216,7 @@ def query_using_optimized_search(
     environments: list[str],
     sort: str | None,
     pagination: Paginators,
-    organization: Organization | None,
+    organization_id: int,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
@@ -243,23 +243,25 @@ def query_using_optimized_search(
 
     if preferred_source == "aggregated":
         replay_ids, source = _query_using_aggregated_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
-            pagination.limit,
-            pagination.offset,
+            search_filters=search_filters,
+            sort=sort,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+            limit=pagination.limit,
+            offset=pagination.offset,
         )
     else:
         replay_ids, source = _query_using_scalar_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
-            pagination.limit,
-            pagination.offset,
+            search_filters=search_filters,
+            sort=sort,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+            limit=pagination.limit,
+            offset=pagination.offset,
         )
 
     # The query "has more rows" if the number of rows found matches the limit (which is
@@ -281,12 +283,12 @@ def query_using_optimized_search(
     replays = get_replays(
         project_ids,
         replay_ids,
+        organization_id=organization_id,
         timestamp_start=period_start,
         timestamp_end=period_stop,
         only_query_for=set(fields),
         requesting_user_id=request_user_id,
         referrer="replays.query.browse_query",
-        tenant_ids={"organization_id": organization.id},
     )
 
     return QueryResponse(
@@ -299,6 +301,7 @@ def query_using_optimized_search(
 def _query_using_scalar_strategy(
     search_filters: Sequence[QueryToken],
     sort: str | None,
+    organization_id: int,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
@@ -309,13 +312,14 @@ def _query_using_scalar_strategy(
     can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
     if not can_scalar_search or not can_scalar_sort:
         return _query_using_aggregated_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
-            limit,
-            offset,
+            search_filters=search_filters,
+            sort=sort,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+            limit=limit,
+            offset=offset,
         )
 
     # NOTE: This query may return replay-ids which do not have a segment_id 0 row. These replays
@@ -330,17 +334,19 @@ def _query_using_scalar_strategy(
         orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
     except RetryAggregated:
         return _query_using_aggregated_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
-            limit,
-            offset,
+            search_filters=search_filters,
+            sort=sort,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            period_start=period_start,
+            period_stop=period_stop,
+            limit=limit,
+            offset=offset,
         )
 
     return (
         get_replay_ids(
+            organization_id,
             project_ids,
             timestamp_start=period_start,
             timestamp_end=period_stop,
@@ -357,6 +363,7 @@ def _query_using_scalar_strategy(
 def _query_using_aggregated_strategy(
     search_filters: Sequence[QueryToken],
     sort: str | None,
+    organization_id: int,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
@@ -370,6 +377,7 @@ def _query_using_aggregated_strategy(
 
     return (
         get_replay_ids(
+            organization_id,
             project_ids,
             timestamp_start=period_start,
             timestamp_end=period_stop,

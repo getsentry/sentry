@@ -20,7 +20,6 @@ from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import QueryToken, SearchConfig
-from sentry.models.organization import Organization
 from sentry.replays.lib.query import all_values_for_tag_key
 from sentry.replays.usecases.query import PREFERRED_SOURCE, Paginators, query_using_optimized_search
 from sentry.utils.snuba import raw_snql_query
@@ -36,6 +35,7 @@ def query_replays_collection(*args, **kwargs):
 
 
 def query_replays_collection_paginated(
+    organization_id: int,
     project_ids: list[int],
     start: datetime,
     end: datetime,
@@ -46,7 +46,6 @@ def query_replays_collection_paginated(
     offset: int,
     search_filters: Sequence[QueryToken],
     preferred_source: PREFERRED_SOURCE,
-    organization: Organization | None = None,
     actor: Any | None = None,
 ):
     """Query aggregated replay collection."""
@@ -58,7 +57,7 @@ def query_replays_collection_paginated(
         environments=environment,
         sort=sort,
         pagination=paginators,
-        organization=organization,
+        organization_id=organization_id,
         project_ids=project_ids,
         period_start=start,
         period_stop=end,

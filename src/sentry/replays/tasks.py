@@ -48,13 +48,17 @@ logger = logging.getLogger()
     ),
 )
 def delete_replay(
-    project_id: int, replay_id: str, has_seer_data: bool = False, **kwargs: Any
+    project_id: int,
+    replay_id: str,
+    has_seer_data: bool = False,
+    organization_id: int = 0,
+    **kwargs: Any,
 ) -> None:
     """Asynchronously delete a replay."""
     metrics.incr("replays.delete_replay", amount=1, tags={"status": "started"})
     publisher = initialize_replays_publisher(is_async=False)
     archive_replay(publisher, project_id, replay_id)
-    delete_replay_recording(project_id, replay_id)
+    delete_replay_recording(organization_id, project_id, replay_id)
     if has_seer_data:
         delete_seer_replay_data(project_id, [replay_id])
     metrics.incr("replays.delete_replay", amount=1, tags={"status": "finished"})
@@ -106,28 +110,11 @@ def delete_replays_script_async(
         segment_model.delete()
 
 
-@instrumented_task(
-    name="sentry.replays.tasks.delete_replay_recording_async",
-    queue="replays.delete_replay",
-    default_retry_delay=5,
-    max_retries=5,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=replays_tasks,
-        processing_deadline_duration=120,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
-)
-def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
-    delete_replay_recording(project_id, replay_id)
-
-
-def delete_replay_recording(project_id: int, replay_id: str) -> None:
+def delete_replay_recording(organization_id: int, project_id: int, replay_id: str) -> None:
     """Delete all recording-segments associated with a Replay."""
-    segments_from_metadata = fetch_segments_metadata(project_id, replay_id, offset=0, limit=10000)
+    segments_from_metadata = fetch_segments_metadata(
+        organization_id, project_id, replay_id, offset=0, limit=10000
+    )
     metrics.distribution("replays.num_segments_deleted", value=len(segments_from_metadata))
 
     # Fetch any recording-segment models that may have been written.

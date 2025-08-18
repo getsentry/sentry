@@ -180,7 +180,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             timestamp_start=filter_params["start"],
             timestamp_end=filter_params["end"],
             referrer="project.replay_summary.post",
-            tenant_ids={"organization_id": project.organization_id},
+            organization_id=project.organization_id,
         )
         error_ids = replay["error_ids"] if replay else []
         trace_ids = replay["trace_ids"] if replay else []
@@ -197,7 +197,9 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
         # Download segment data.
         # XXX: For now this is capped to 100 and blocking. DD shows no replays with >25 segments, but we should still stress test and figure out how to deal with large replays.
-        segment_md = fetch_segments_metadata(project.id, replay_id, 0, num_segments)
+        segment_md = fetch_segments_metadata(
+            project.organization_id, project.id, replay_id, 0, num_segments
+        )
         segment_data = iter_segment_data(segment_md)
 
         # Combine replay and error data and parse into logs.

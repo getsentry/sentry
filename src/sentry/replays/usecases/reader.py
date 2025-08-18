@@ -27,6 +27,7 @@ from sentry.replays.usecases.replay import (
 
 @sentry_sdk.trace
 def fetch_segments_metadata(
+    organization_id: int,
     project_id: int,
     replay_id: str,
     offset: int,
@@ -40,10 +41,11 @@ def fetch_segments_metadata(
 
     # If the setting wasn't enabled or no segments were found attempt to lookup using
     # the default storage method.
-    return fetch_direct_storage_segments_meta(project_id, replay_id, offset, limit)
+    return fetch_direct_storage_segments_meta(organization_id, project_id, replay_id, offset, limit)
 
 
 def fetch_segment_metadata(
+    organization_id: int,
     project_id: int,
     replay_id: str,
     segment_id: int,
@@ -56,7 +58,7 @@ def fetch_segment_metadata(
 
     # If the setting wasn't enabled or no segments were found attempt to lookup using
     # the default storage method.
-    return fetch_direct_storage_segment_meta(project_id, replay_id, segment_id)
+    return fetch_direct_storage_segment_meta(organization_id, project_id, replay_id, segment_id)
 
 
 @sentry_sdk.trace
@@ -124,6 +126,7 @@ def fetch_filestore_segment_meta(
 
 @sentry_sdk.trace
 def fetch_direct_storage_segments_meta(
+    organization_id: int,
     project_id: int,
     replay_id: str,
     offset: int,
@@ -135,6 +138,7 @@ def fetch_direct_storage_segments_meta(
         replay_id=replay_id,
         only_query_for={"is_archived"},
         referrer="project.recording_segments.index.has_archived",
+        organization_id=organization_id,
     )
     if not replay or replay["is_archived"]:
         return []
@@ -142,8 +146,9 @@ def fetch_direct_storage_segments_meta(
     return [
         segment_row_to_storage_meta(segment)
         for segment in get_replay_segments(
-            project_id,
-            replay_id,
+            organization_id=organization_id,
+            project_id=project_id,
+            replay_id=replay_id,
             segment_id=None,
             limit=limit,
             offset=offset,
@@ -153,6 +158,7 @@ def fetch_direct_storage_segments_meta(
 
 
 def fetch_direct_storage_segment_meta(
+    organization_id: int,
     project_id: int,
     replay_id: str,
     segment_id: int,
@@ -163,14 +169,16 @@ def fetch_direct_storage_segment_meta(
         replay_id=replay_id,
         only_query_for={"is_archived"},
         referrer="project.recording_segments.details.has_archived",
+        organization_id=organization_id,
     )
     if not replay or replay["is_archived"]:
         return None
 
     segment = get_replay_segment(
-        project_id,
-        replay_id,
-        segment_id,
+        organization_id=organization_id,
+        project_id=project_id,
+        replay_id=replay_id,
+        segment_id=segment_id,
         referrer="project.recording_segments.details.get_replay_segment",
     )
     if segment:
@@ -185,7 +193,7 @@ def segment_row_to_storage_meta(segment: RecordingSegment) -> RecordingSegmentSt
         replay_id=segment["replay_id"],
         segment_id=segment["segment_id"],
         retention_days=segment["retention_days"],
-        date_added=datetime.fromisoformat(segment["timestamp"]),
+        date_added=datetime.fromtimestamp(segment["timestamp"]),
         file_id=None,
     )
 

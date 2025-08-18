@@ -1,5 +1,4 @@
 import collections
-from collections.abc import MutableMapping
 from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
 
@@ -379,11 +378,11 @@ class Replay(TypedDict):
     ota_updates: OTAUpdates
     os: NamedAndVersioned
     platform: str
-    project_id: int
+    project_id: str
     releases: list[str]
     sdk: NamedAndVersioned
     started_at: datetime
-    tags: dict[str, str]
+    tags: dict[str, list[str]]
     trace_ids: list[str]
     urls: list[str]
     user: User
@@ -395,22 +394,22 @@ class Replay(TypedDict):
 def get_replay(
     project_ids: list[int],
     replay_id: str,
+    organization_id: int,
     timestamp_start: datetime | None = None,
     timestamp_end: datetime | None = None,
     only_query_for: set[str] | None = None,
     requesting_user_id: int | None = None,
     referrer: str = "replays.get_replay_unknown",
-    tenant_ids: MutableMapping[str, Any] | None = None,
 ) -> Replay | None:
     replays = get_replays(
         project_ids=project_ids,
         replay_ids=[replay_id],
+        organization_id=organization_id,
         timestamp_start=timestamp_start,
         timestamp_end=timestamp_end,
         only_query_for=only_query_for,
         requesting_user_id=requesting_user_id,
         referrer=referrer,
-        tenant_ids=tenant_ids,
     )
     if len(replays) != 1:
         return None
@@ -421,12 +420,12 @@ def get_replay(
 def get_replays(
     project_ids: list[int],
     replay_ids: list[str],
+    organization_id: int,
     timestamp_start: datetime | None = None,
     timestamp_end: datetime | None = None,
     only_query_for: set[str] | None = None,
     requesting_user_id: int | None = None,
     referrer: str = "replays.get_replays_unknown",
-    tenant_ids: MutableMapping[str, Any] | None = None,
 ) -> list[Replay]:
     timestamp_start = timestamp_start or (datetime.now(tz=timezone.utc) - timedelta(days=90))
     timestamp_end = timestamp_end or datetime.now(tz=timezone.utc)
@@ -471,7 +470,12 @@ def get_replays(
         groupby=[Column("replay_id")],
     )
 
-    return list(map(as_replay, execute_query(query, tenant_ids=tenant_ids, referrer=referrer)))
+    return list(
+        map(
+            as_replay,
+            execute_query(query, organization_id=organization_id, referrer=referrer),
+        )
+    )
 
 
 def as_replay(data: dict[str, Any]) -> Replay:
@@ -485,7 +489,7 @@ def as_replay(data: dict[str, Any]) -> Replay:
         # Unique tag set.
         tags_set = collections.defaultdict(set)
         for v in get("tags", []):
-            tags_set[v[0]].add(v[1])
+            tags_set[str(v[0])].add(str(v[1]))
 
         return {
             "activity": get("activity", 0),
@@ -572,32 +576,32 @@ class RecordingSegment(TypedDict):
 
 
 def get_replay_segment(
+    organization_id: int,
     project_id: int,
     replay_id: str,
     segment_id: int,
     referrer: str = "replays.get_replay_segments_unknown",
-    tenant_ids: dict[str, Any] | None = None,
 ) -> RecordingSegment | None:
     segments = get_replay_segments(
+        organization_id,
         project_id,
         replay_id,
         segment_id,
         limit=1,
         offset=0,
         referrer=referrer,
-        tenant_ids=tenant_ids,
     )
     return segments[0] if segments else None
 
 
 def get_replay_segments(
+    organization_id: int,
     project_id: int,
     replay_id: str,
     segment_id: int | None,
     limit: int = 100,
     offset: int = 0,
     referrer: str = "replays.get_replay_segments_unknown",
-    tenant_ids: dict[str, Any] | None = None,
 ) -> list[RecordingSegment]:
     query = Query(
         match=Entity("replays"),
@@ -632,11 +636,12 @@ def get_replay_segments(
             "segment_id": result["segment_id"],
             "timestamp": result["timestamp"],
         }
-        for result in execute_query(query, tenant_ids=tenant_ids, referrer=referrer)
+        for result in execute_query(query, organization_id=organization_id, referrer=referrer)
     ]
 
 
 def get_replay_ids(
+    organization_id: int,
     project_ids: list[int],
     timestamp_start: datetime | None = None,
     timestamp_end: datetime | None = None,
@@ -646,7 +651,6 @@ def get_replay_ids(
     limit: int = 50,
     offset: int = 0,
     referrer: str = "replays.get_replay_ids_unknown",
-    tenant_ids: dict[str, Any] | None = None,
 ) -> list[str]:
     where = where or []
     having = having or []
@@ -668,5 +672,5 @@ def get_replay_ids(
         offset=Offset(offset),
     )
 
-    results = execute_query(query, tenant_ids=tenant_ids, referrer=referrer)
+    results = execute_query(query, organization_id=organization_id, referrer=referrer)
     return [result["replay_id"] for result in results]
