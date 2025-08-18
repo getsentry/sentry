@@ -32,5 +32,5 @@ class SentryAppAvatarEndpoint(AvatarMixin[SentryAppAvatar], SentryAppBaseEndpoin
             request, access=request.access, serializer=SentryAppSerializer(), **kwargs
         )
 
-    def get_avatar_filename(self, obj):
+    def get_avatar_filename(self, obj) -> str:
         return f"{obj.slug}.png"

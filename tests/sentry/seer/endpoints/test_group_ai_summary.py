@@ -16,7 +16,7 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
         self.url = self._get_url(self.group.id)
         self.login_as(user=self.user)
 
-    def _get_url(self, group_id: int):
+    def _get_url(self, group_id: int) -> str:
         return f"/api/0/issues/{group_id}/summarize/"
 
     @patch("sentry.seer.endpoints.group_ai_summary.get_issue_summary")

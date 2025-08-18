@@ -59,7 +59,7 @@ class AvatarMixin(Generic[AvatarT]):
     def get_serializer_context(self, obj, **kwargs: Any):
         return {"type": self.model, "kwargs": {self.object_type: obj}}
 
-    def get_avatar_filename(self, obj):
+    def get_avatar_filename(self, obj) -> str:
         return f"{obj.id}.png"
 
     def parse(self, request: Request, **kwargs: Any) -> tuple[Any, serializers.Serializer]:

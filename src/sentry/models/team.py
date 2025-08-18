@@ -143,7 +143,7 @@ class Team(ReplicatedRegionModel):
 
     __repr__ = sane_repr("name", "slug")
 
-    def class_name(self):
+    def class_name(self) -> str:
         return "Team"
 
     def __str__(self) -> str:

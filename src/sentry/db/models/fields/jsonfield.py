@@ -96,10 +96,10 @@ class JSONField(models.TextField):
             return json.loads(self.json_dumps(default))
         return super().get_default()
 
-    def get_internal_type(self):
+    def get_internal_type(self) -> str:
         return "TextField"
 
-    def db_type(self, connection):
+    def db_type(self, connection) -> str:
         return "text"
 
     def to_python(self, value):

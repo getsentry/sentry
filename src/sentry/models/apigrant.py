@@ -107,7 +107,7 @@ class ApiGrant(Model):
         return uri == self.redirect_uri
 
     @classmethod
-    def get_lock_key(cls, grant_id):
+    def get_lock_key(cls, grant_id) -> str:
         return f"api_grant:{grant_id}"
 
     @classmethod

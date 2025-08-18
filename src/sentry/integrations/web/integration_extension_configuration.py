@@ -134,7 +134,7 @@ class IntegrationExtensionConfigurationView(BaseView):
     def map_params_to_state(self, params):
         return params
 
-    def is_enabled_for_org(self, _org, _user):
+    def is_enabled_for_org(self, _org, _user) -> bool:
         return True
 
     def has_one_required_feature(self, org, user):

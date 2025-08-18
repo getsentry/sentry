@@ -65,7 +65,7 @@ class Environment(Model):
         return OK_NAME_PATTERN.match(value) is not None
 
     @classmethod
-    def get_cache_key(cls, organization_id, name):
+    def get_cache_key(cls, organization_id, name) -> str:
         return f"env:2:{organization_id}:{md5_text(name).hexdigest()}"
 
     @classmethod

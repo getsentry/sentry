@@ -18,14 +18,14 @@ class SlackIdentityProvider(OAuth2Provider):
     # user_scope, needed for unfurling.
     user_scopes = ()
 
-    def get_oauth_authorize_url(self):
+    def get_oauth_authorize_url(self) -> str:
         return "https://slack.com/oauth/v2/authorize"
 
     # XXX(epurkhiser): While workspace tokens _do_ support the oauth.access
     # endpoint, it will not include the authorizing_user, so we continue to use
     # the deprecated oauth.token endpoint until we are able to migrate to a bot
     # app which uses oauth.access.
-    def get_oauth_access_token_url(self):
+    def get_oauth_access_token_url(self) -> str:
         return "https://slack.com/api/oauth.v2.access"
 
     def get_oauth_client_id(self):

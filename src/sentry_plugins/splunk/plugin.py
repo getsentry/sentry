@@ -168,7 +168,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
 
         self.project_source = self.get_option("source", event.project) or "sentry"
 
-    def get_rl_key(self, event):
+    def get_rl_key(self, event) -> str:
         return f"{self.conf_key}:{md5_text(self.project_token).hexdigest()}"
 
     def is_ratelimited(self, event):

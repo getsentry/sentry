@@ -45,7 +45,7 @@ class MockConditionTrue(EventCondition):
     id = "tests.sentry.rules.processing.test_processor.MockConditionTrue"
     label = "Mock condition which always passes."
 
-    def passes(self, event, state):
+    def passes(self, event, state) -> bool:
         return True
 
 
@@ -679,7 +679,7 @@ class MockFilterTrue(EventFilter):
     id = "tests.sentry.rules.processing.test_processor.MockFilterTrue"
     label = "Mock filter which always passes."
 
-    def passes(self, event, state):
+    def passes(self, event, state) -> bool:
         return True
 
 
@@ -687,7 +687,7 @@ class MockFilterFalse(EventFilter):
     id = "tests.sentry.rules.processing.test_processor.MockFilterFalse"
     label = "Mock filter which never passes."
 
-    def passes(self, event, state):
+    def passes(self, event, state) -> bool:
         return False
 
 

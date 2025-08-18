@@ -38,10 +38,10 @@ class ArrayField(models.Field):
         super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, name, Creator(self))
 
-    def db_type(self, connection):
+    def db_type(self, connection) -> str:
         return f"{self.of.db_type(connection)}[]"
 
-    def get_internal_type(self):
+    def get_internal_type(self) -> str:
         return "TextField"
 
     def get_prep_value(self, value):

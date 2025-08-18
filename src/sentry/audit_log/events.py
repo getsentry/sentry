@@ -230,7 +230,7 @@ class ProjectOwnershipRuleEditAuditLogEvent(AuditLogEvent):
             event_id=179, name="PROJECT_OWNERSHIPRULE_EDIT", api_name="project.ownership-rule.edit"
         )
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         return "modified ownership rules"
 
 

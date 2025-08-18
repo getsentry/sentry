@@ -84,5 +84,5 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
         assert {e.text for e in elements} == {p.slug for p in projects}
 
     @staticmethod
-    def url_creator(page_path, org_slug):
+    def url_creator(page_path, org_slug) -> str:
         return f"organizations/{org_slug}/{page_path}/"

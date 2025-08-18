@@ -9,7 +9,7 @@ class OrganizationIntegrationMigrateOpsgenieTest(APITestCase):
         self.login_as(self.user)
         self.organization = self.create_organization(owner=self.user)
 
-    def get_path(self, integration_id):
+    def get_path(self, integration_id) -> str:
         return f"/api/0/organizations/{self.organization.slug}/integrations/{integration_id}/migrate-opsgenie/"
 
     def test_no_integration(self) -> None:

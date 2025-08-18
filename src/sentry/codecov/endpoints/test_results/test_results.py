@@ -31,7 +31,7 @@ class TestResultsEndpoint(CodecovEndpoint):
     }
 
     # Disable pagination requirement for this endpoint
-    def has_pagination(self, response):
+    def has_pagination(self, response) -> bool:
         return True
 
     @extend_schema(

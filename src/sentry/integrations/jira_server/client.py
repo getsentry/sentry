@@ -73,7 +73,7 @@ class JiraServerClient(ApiClient):
             logging_context=logging_context,
         )
 
-    def get_cache_prefix(self):
+    def get_cache_prefix(self) -> str:
         return "sentry-jira-server:"
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
@@ -95,13 +95,13 @@ class JiraServerClient(ApiClient):
         prepared_request.prepare_auth(auth=auth_scheme)
         return prepared_request
 
-    def user_id_get_param(self):
+    def user_id_get_param(self) -> str:
         return "username"
 
-    def user_id_field(self):
+    def user_id_field(self) -> str:
         return "name"
 
-    def user_query_param(self):
+    def user_query_param(self) -> str:
         return "username"
 
     def get_issue(self, issue_id):

@@ -86,7 +86,7 @@ class JiraCloudClient(ApiClient):
         prepared_request.headers["Authorization"] = f"JWT {encoded_jwt}"
         return prepared_request
 
-    def get_cache_prefix(self):
+    def get_cache_prefix(self) -> str:
         return "sentry-jira-2:"
 
     def user_id_get_param(self):

@@ -19,7 +19,7 @@ from sentry.testutils.helpers.options import override_options
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(namespace=test_tasks),
 )
-def region_task(param):
+def region_task(param) -> str:
     return f"Region task {param}"
 
 
@@ -28,7 +28,7 @@ def region_task(param):
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(namespace=test_tasks),
 )
-def control_task(param):
+def control_task(param) -> str:
     return f"Control task {param}"
 
 

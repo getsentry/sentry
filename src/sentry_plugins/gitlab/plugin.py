@@ -100,7 +100,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
 
         return (("", "(Unassigned)"),) + users
 
-    def get_new_issue_title(self, **kwargs):
+    def get_new_issue_title(self, **kwargs) -> str:
         return "Create GitLab Issue"
 
     def get_client(self, project):
