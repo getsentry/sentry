@@ -1513,14 +1513,12 @@ function buildRoutes(): RouteObject[] {
       deprecatedRouteProps: true,
     },
     {
-      index: true,
       path: 'policies/',
       component: make(
         () => import('sentry/views/alerts/escalationPolicies/escalationPolicyList')
       ),
     },
     {
-      index: true,
       path: 'schedules/',
       component: make(
         () => import('sentry/views/alerts/triageSchedules/triageSchedulesList')
