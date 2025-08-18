@@ -7,6 +7,7 @@ import {closeModal} from 'sentry/actionCreators/modal';
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 import type {OmniAction} from './types';
@@ -106,7 +107,7 @@ export function OmniSearchPalette() {
       action.onAction();
     }
     if (action.to) {
-      navigate(action.to);
+      navigate(normalizeUrl(action.to));
     }
 
     // TODO: Any other action handlers?
