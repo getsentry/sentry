@@ -1,8 +1,8 @@
 from functools import cached_property
+from unittest.mock import MagicMock
 
 import orjson
 import responses
-from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.testutils.cases import PluginTestCase
@@ -15,16 +15,12 @@ def test_conf_key() -> None:
 
 class GitLabPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> GitLabPlugin:
         return GitLabPlugin()
-
-    @cached_property
-    def request(self):
-        return RequestFactory()
 
     def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        assert self.plugin.get_issue_label(group, 1) == "GL-1"
+        assert self.plugin.get_issue_label(group, "1") == "GL-1"
 
     def test_get_issue_url(self) -> None:
         self.plugin.set_option("gitlab_url", "https://gitlab.com", self.project)
@@ -57,7 +53,7 @@ class GitLabPluginTest(PluginTestCase):
         self.plugin.set_option("gitlab_token", "abcdefg", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = self.request.get("/")
+        request = MagicMock()
         request.user = self.user
         form_data = {"title": "Hello", "description": "Fix this."}
 
@@ -91,7 +87,7 @@ class GitLabPluginTest(PluginTestCase):
         self.plugin.set_option("gitlab_token", "abcdefg", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = self.request.get("/")
+        request = MagicMock()
         request.user = self.user
         form_data = {"comment": "Hello", "issue_id": "1"}
 
