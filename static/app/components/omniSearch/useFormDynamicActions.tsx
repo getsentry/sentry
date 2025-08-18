@@ -1,10 +1,7 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
 import type {Field, FieldObject, JsonFormObject} from 'sentry/components/forms/types';
-import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconSettings} from 'sentry/icons';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
-import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 
 import type {OmniAction} from './types';
 
@@ -86,48 +83,29 @@ function getSearchMap() {
 }
 
 /**
- * Hook that fetches form field results and converts them to dynamic actions
- * for the OmniSearch palette.
+ * Hook that provides all form fields as OmniActions for the OmniSearch palette.
+ * No filtering is done here - palette.tsx handles the search.
  *
- * @param query - The search query string (should be debounced)
- * @returns Array of dynamic actions based on form fields
+ * @returns Array of all available form field actions
  */
-export function useFormDynamicActions(query: string): OmniAction[] {
-  const [fuzzy, setFuzzy] = useState<Fuse<FormSearchField> | null>(null);
-
-  const createSearch = useCallback(async () => {
-    setFuzzy(
-      await createFuzzySearch(getSearchMap(), {
-        keys: ['title', 'description'],
-        getFn: strGetFn,
-      })
-    );
-  }, []);
+export function useFormDynamicActions(): OmniAction[] {
+  const [formFields, setFormFields] = useState<FormSearchField[]>([]);
 
   useEffect(() => {
-    void createSearch();
-  }, [createSearch]);
+    setFormFields(getSearchMap());
+  }, []);
 
   const dynamicActions = useMemo(() => {
-    if (!query || !fuzzy) {
-      return [];
-    }
-
-    const results = fuzzy.search(query);
-
-    return results.map((result, index) => {
-      const item = result.item;
-      return {
-        key: `form-${index}`,
-        areaKey: 'settings',
-        label: item.title as string,
-        details: item.description as string,
-        section: 'Settings',
-        actionIcon: <IconSettings />,
-        to: {pathname: item.route, hash: `#${encodeURIComponent(item.field.name)}`},
-      } as OmniAction;
-    });
-  }, [query, fuzzy]);
+    return formFields.map((item, index) => ({
+      key: `form-${index}`,
+      areaKey: 'settings',
+      label: item.title as string,
+      details: item.description as string,
+      section: 'Settings',
+      actionIcon: <IconSettings />,
+      to: {pathname: item.route, hash: `#${encodeURIComponent(item.field.name)}`},
+    }));
+  }, [formFields]);
 
   return dynamicActions;
 }

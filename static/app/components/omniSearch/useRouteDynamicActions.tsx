@@ -1,12 +1,9 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
-import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconSettings} from 'sentry/icons';
 import HookStore from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
-import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -45,25 +42,28 @@ const mapFunc = (config: Config, context: Context | null = null) =>
   );
 
 /**
- * Hook that fetches route results and converts them to dynamic actions
- * for the OmniSearch palette.
+ * Hook that provides all navigation routes as OmniActions for the OmniSearch palette.
+ * No filtering is done here - palette.tsx handles the search.
  *
- * @param query - The search query string (should be debounced)
- * @returns Array of dynamic actions based on routes
+ * @returns Array of all available route actions
  */
-export function useRouteDynamicActions(query: string): OmniAction[] {
+export function useRouteDynamicActions(): OmniAction[] {
   const organization = useOrganization({allowNull: true});
   const params = useParams<{orgId: string; projectId?: string}>();
-  const project = useProjectFromSlug({organization, projectSlug: params.projectId});
-  const [fuzzy, setFuzzy] = useState<Fuse<NavigationItem> | null>(null);
+  const project = useProjectFromSlug({
+    organization: organization!,
+    projectSlug: params.projectId,
+  });
+  const [navigationItems, setNavigationItems] = useState<NavigationItem[]>([]);
 
-  const createSearch = useCallback(async () => {
+  useEffect(() => {
     if (!organization) {
+      setNavigationItems([]);
       return;
     }
 
     const context = {
-      project,
+      project: project ?? undefined,
       organization,
       access: new Set(organization?.access ?? []),
       features: new Set(project?.features ?? []),
@@ -90,39 +90,26 @@ export function useRouteDynamicActions(query: string): OmniAction[] {
           ]
     ).flat(2);
 
-    const search = await createFuzzySearch(searchMap, {
-      keys: ['title', 'description'],
-      getFn: strGetFn,
-    });
-
-    setFuzzy(search);
+    setNavigationItems(searchMap);
   }, [organization, project]);
 
-  useEffect(() => {
-    void createSearch();
-  }, [createSearch]);
-
   const dynamicActions = useMemo(() => {
-    if (!query || !fuzzy || !organization) {
+    if (!organization) {
       return [];
     }
 
     const replaceParams = {...params, orgId: organization.slug};
-    const results = fuzzy.search(query);
 
-    return results.map((result, index) => {
-      const item = result.item;
-      return {
-        key: `route-${index}`,
-        areaKey: 'navigate',
-        label: item.title,
-        details: item.description as string,
-        section: 'Navigation',
-        actionIcon: <IconSettings />,
-        to: replaceRouterParams(item.path, replaceParams),
-      } as OmniAction;
-    });
-  }, [query, fuzzy, organization, params]);
+    return navigationItems.map((item, index) => ({
+      key: `route-${index}`,
+      areaKey: 'navigate',
+      label: item.title,
+      details: item.description as string,
+      section: 'Navigation',
+      actionIcon: <IconSettings />,
+      to: replaceRouterParams(item.path, replaceParams),
+    }));
+  }, [navigationItems, organization, params]);
 
   return dynamicActions;
 }

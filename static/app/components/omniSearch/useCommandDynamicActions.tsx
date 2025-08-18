@@ -1,18 +1,15 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useMemo} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {Client} from 'sentry/api';
-import {makeResolvedTs} from 'sentry/components/search/sources/utils';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {IconTerminal} from 'sentry/icons';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {ProjectKey} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
-import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
@@ -25,15 +22,6 @@ type Action = {
   requiresSuperuser: boolean;
   title: string;
   isHidden?: () => boolean;
-};
-
-type CommandItem = {
-  action: () => void;
-  description: string;
-  resolvedTs: number;
-  resultType: string;
-  sourceType: string;
-  title: string;
 };
 
 function getActions(params: {orgId?: string; projectId?: string}): Action[] {
@@ -147,20 +135,18 @@ function getActions(params: {orgId?: string; projectId?: string}): Action[] {
 }
 
 /**
- * Hook that fetches command results and converts them to dynamic actions
- * for the OmniSearch palette.
+ * Hook that provides all commands as OmniActions for the OmniSearch palette.
+ * No filtering is done here - palette.tsx handles the search.
  *
- * @param query - The search query string (should be debounced)
- * @returns Array of dynamic actions based on commands
+ * @returns Array of all available command actions
  */
-export function useCommandDynamicActions(query: string): OmniAction[] {
+export function useCommandDynamicActions(): OmniAction[] {
   const params = useParams<{orgId: string; projectId?: string}>();
   const user = useUser();
-  const [fuzzy, setFuzzy] = useState<Fuse<CommandItem> | null>(null);
 
-  const createSearch = useCallback(async () => {
+  const dynamicActions = useMemo(() => {
     if (!user) {
-      return;
+      return [];
     }
 
     const isSuperuser = user?.isSuperuser ?? false;
@@ -176,47 +162,16 @@ export function useCommandDynamicActions(query: string): OmniAction[] {
       return true;
     });
 
-    const resolvedTs = makeResolvedTs();
-    const searchItems = filteredActions.map<CommandItem>(command => ({
-      title: command.title,
-      description: command.description,
-      action: command.action,
-      sourceType: 'command',
-      resultType: 'command',
-      resolvedTs,
+    return filteredActions.map((command, index) => ({
+      key: `command-${index}`,
+      areaKey: 'command',
+      label: command.title,
+      details: command.description,
+      section: 'Commands',
+      actionIcon: <IconTerminal />,
+      onAction: command.action,
     }));
-
-    const search = await createFuzzySearch<CommandItem>(searchItems, {
-      keys: ['title', 'description'],
-    });
-
-    setFuzzy(search);
   }, [params, user]);
-
-  useEffect(() => {
-    void createSearch();
-  }, [createSearch]);
-
-  const dynamicActions = useMemo(() => {
-    if (!query || !fuzzy) {
-      return [];
-    }
-
-    const results = fuzzy.search(query);
-
-    return results.map((result, index) => {
-      const item = result.item;
-      return {
-        key: `command-${index}`,
-        areaKey: 'command',
-        label: item.title,
-        details: item.description,
-        section: 'Commands',
-        actionIcon: <IconTerminal />,
-        onAction: item.action,
-      } as OmniAction;
-    });
-  }, [query, fuzzy]);
 
   return dynamicActions;
 }
