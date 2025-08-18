@@ -5,16 +5,12 @@ import * as CommandPrimitive from 'cmdk';
 import {useOmniSearchStore} from './context';
 import type {OmniAction} from './types';
 
-type Props = {
-  onSelect?: (action: OmniAction) => void;
-};
-
 /**
  * Very basic palette UI using cmdk that lists all registered actions.
  *
  * NOTE: This is intentionally minimal and will be iterated on.
  */
-export function OmniSearchPalette({onSelect}: Props) {
+export function OmniSearchPalette() {
   const {actionsByKey, areasByKey, areaPriority} = useOmniSearchStore();
   const [query, setQuery] = useState('');
 
@@ -58,7 +54,7 @@ export function OmniSearchPalette({onSelect}: Props) {
       const label = areasByKey.get(areaKey)?.label ?? areaKey;
       const items = (byArea.get(areaKey) ?? [])
         .filter(matches)
-        .sort((a, b) => String(a.label).localeCompare(String(b.label)));
+        .sort((a, b) => a.label.localeCompare(b.label));
       return {areaKey, label, items};
     });
   }, [actionsByKey, areasByKey, areaPriority, query]);
@@ -70,8 +66,8 @@ export function OmniSearchPalette({onSelect}: Props) {
     if (action.onAction) {
       action.onAction();
     }
-    // Navigation is deliberately left to the consumer for now
-    onSelect?.(action);
+
+    // TODO: Any other action handlers?
   };
 
   return (

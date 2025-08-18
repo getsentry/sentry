@@ -12,7 +12,7 @@ export type OmniAction = {
   /** Unique identifier for this action */
   key: string;
   /** Primary text shown to the user */
-  label: string | ReactNode;
+  label: string;
   /** Keyboard shortcut (e.g. "cmd+k", "shift+r") */
   actionHotkey?: string;
   /** Icon to render for this action */
