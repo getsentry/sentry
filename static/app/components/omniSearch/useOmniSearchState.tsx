@@ -30,12 +30,19 @@ export function useOmniSearchState() {
     }
 
     if (focusedArea) {
-      return sortBy(
+      const areaActions = sortBy(
         Array.from(actionsByKey.values()).filter(
           action => action.areaKey === focusedArea.key
         ),
         action => action.label
       );
+
+      const otherActions = sortBy(
+        Array.from(actionsByKey.values()).filter(action => action.areaKey === 'global'),
+        action => action.label
+      );
+
+      return [...areaActions, ...otherActions];
     }
 
     return sortBy(Array.from(actionsByKey.values()), action => action.label);

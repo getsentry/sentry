@@ -129,8 +129,7 @@ export function OmniSearchPalette() {
       bySection.set(sectionLabel, list);
     }
 
-    // Sort sections alphabetically by label
-    const sectionKeys = Array.from(bySection.keys()).sort((a, b) => a.localeCompare(b));
+    const sectionKeys = Array.from(bySection.keys());
 
     return sectionKeys.map(sectionKey => {
       const label = sectionKey;
@@ -182,7 +181,7 @@ export function OmniSearchPalette() {
             value={query}
             onValueChange={setQuery}
             onKeyDown={e => {
-              if (e.key === 'Backspace' && query === '' && selectedAction) {
+              if (e.key === 'Backspace' && query === '') {
                 clearSelection();
                 e.preventDefault();
               }
