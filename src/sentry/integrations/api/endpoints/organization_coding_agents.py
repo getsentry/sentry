@@ -179,31 +179,21 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
         return integration, installation
 
-    def _get_autofix_state(
-        self, request: Request, organization
-    ) -> tuple[int | None, AutofixState | None]:
+    def _get_autofix_state(self, run_id: int, organization) -> AutofixState:
         """Extract and validate run_id and get autofix state."""
-        run_id_raw = request.data.get("run_id")
-
-        # Convert run_id to integer for autofix state lookup
-        try:
-            run_id = int(run_id_raw) if run_id_raw is not None else None
-        except (ValueError, TypeError):
-            return None, None
-
         autofix_state = get_autofix_state(run_id=run_id)
 
         if not autofix_state:
             logger.warning(
-                "coding_agent.autofix_state_not_found",
+                "coding_agent.post.autofix_state_not_found",
                 extra={
                     "organization_id": organization.id,
                     "run_id": run_id,
                 },
             )
-            return run_id, None
+            return None
 
-        return run_id, autofix_state
+        return autofix_state
 
     def _extract_repos_from_solution(self, autofix_state: AutofixState) -> set[str]:
         """Extract repository names from autofix state solution."""
@@ -327,9 +317,16 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             integration, installation = validation_result
 
             # Get autofix state
-            run_id, autofix_state = self._get_autofix_state(request, organization)
+            run_id = request.data.get("run_id")
             if run_id is None:
-                return Response({"error": "Invalid run_id format"}, status=400)
+                return Response({"error": "run_id is required"}, status=400)
+
+            try:
+                run_id = int(run_id)
+            except (ValueError, TypeError):
+                return Response({"error": "Invalid run_id"}, status=400)
+
+            autofix_state = self._get_autofix_state(run_id, organization)
             if autofix_state is None:
                 return Response({"error": "Autofix state not found"}, status=400)
 

@@ -387,7 +387,7 @@ class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCoding
             response = self.get_error_response(
                 self.organization.slug, method="post", status_code=400, **data
             )
-            assert response.data["error"] == "Invalid run_id format"
+            assert response.data["error"] == "Invalid run_id"
 
     @patch(
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
@@ -415,7 +415,7 @@ class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCoding
             response = self.get_error_response(
                 self.organization.slug, method="post", status_code=400, **data
             )
-            assert response.data["error"] == "Invalid run_id format"
+            assert response.data["error"] == "run_id is required"
 
     @patch(
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
@@ -440,7 +440,7 @@ class OrganizationCodingAgentsPostParameterValidationTest(BaseOrganizationCoding
             response = self.get_error_response(
                 self.organization.slug, method="post", status_code=400, **data
             )
-            assert response.data["error"] == "Invalid run_id format"
+            assert response.data["error"] == "Invalid run_id"
 
     @patch(
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
