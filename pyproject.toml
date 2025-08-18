@@ -657,6 +657,7 @@ module = [
     "social_auth.admin",
     "social_auth.migrations.*",
     "sudo.*",
+    "tests.apidocs.*",
     "tests.sentry.api.endpoints.issues.*",
     "tests.sentry.api.endpoints.release_thresholds.utils.*",
     "tests.sentry.api.endpoints.secret_scanning.*",
