@@ -1,16 +1,6 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useMemo,
-  useState,
-  useState,
-} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
-import styled from '@emotion/styled';
-import * as CommandPrimitive from 'cmdk';
 import * as CommandPrimitive from 'cmdk';
 
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
@@ -26,9 +16,7 @@ import {
   queryResults,
 } from 'sentry/components/search/sources/apiSource';
 import type {ResultItem} from 'sentry/components/search/sources/types';
-import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconDocs} from 'sentry/icons';
-import {createFuzzySearch, type Fuse} from 'sentry/utils/fuzzySearch';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -49,9 +37,6 @@ export function OmniSearchPalette() {
   const organization = useOrganization({allowNull: true});
 
   const [results, setResults] = useState<ResultItem[]>([]);
-  const [fuzzyResults, setFuzzyResults] = useState<Array<Fuse.FuseResult<ResultItem>>>(
-    []
-  );
 
   const handleSearch = useCallback(async () => {
     const pendingResults: Array<Promise<ResultItem[] | null>> = [];
@@ -78,42 +63,16 @@ export function OmniSearchPalette() {
     setResults(resolvedResults.flat().filter(i => i !== null));
   }, [api, query, organization]);
 
-  const handleFuzzySearch = useCallback(async () => {
-    const fuzzy = await createFuzzySearch(results, {
-      keys: ['title', 'description', 'model.id', 'model.shortId'],
-      getFn: strGetFn,
-    });
-    setFuzzyResults(fuzzy.search(query));
-  }, [results, query]);
-
   useEffect(() => {
     void handleSearch();
   }, [handleSearch]);
 
-  useEffect(() => {
-    void handleFuzzySearch();
-  }, [handleFuzzySearch]);
-
   const dynamicActions = useMemo(() => {
     const actions: OmniAction[] = [];
-
-    // Add actual results that match the query (case-insensitive)
     if (query) {
-      const actualMatches = results.filter(result => {
-        if (!result.to || typeof result.title !== 'string') {
-          return false;
-        }
-        const titleMatch = result.title.toLowerCase().includes(query.toLowerCase());
-        const descriptionMatch =
-          result.description &&
-          typeof result.description === 'string' &&
-          result.description.toLowerCase().includes(query.toLowerCase());
-        return titleMatch || descriptionMatch;
-      });
-
-      actualMatches.forEach((result, index) => {
+      results.forEach((result, index) => {
         actions.push({
-          key: `actual-${index}`,
+          key: `api-${index}`,
           areaKey: 'navigate',
           label: result.title as string,
           actionIcon: IconDocs,
@@ -126,25 +85,8 @@ export function OmniSearchPalette() {
       });
     }
 
-    // Add fuzzy results
-    fuzzyResults
-      .filter(result => result.item.to && typeof result.item.title === 'string')
-      .forEach((result, index) => {
-        actions.push({
-          key: `fuzzy-${index}`,
-          areaKey: 'navigate',
-          label: result.item.title as string,
-          actionIcon: IconDocs,
-          onAction: () => {
-            if (typeof result.item.to === 'string') {
-              window.open(result.item.to, '_blank', 'noreferrer');
-            }
-          },
-        });
-      });
-
     return actions.slice(0, 10);
-  }, [fuzzyResults, results, query]);
+  }, [results, query]);
 
   useOmniActions(dynamicActions);
 
