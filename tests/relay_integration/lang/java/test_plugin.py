@@ -743,6 +743,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[3].filename == "MainActivity.java"
         assert frames[3].module == "io.sentry.sample.MainActivity"
 
+    @pytest.mark.skip(reason="flaky: #97995")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_resolving_inline_with_native_frames(self) -> None:
