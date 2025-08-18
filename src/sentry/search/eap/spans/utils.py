@@ -22,7 +22,7 @@ def operate_multiple_columns(
     if len(columns) < 2:
         raise ValueError("No columns to operate")
 
-    def _operate_multiple_columns(idx: int):
+    def _operate_multiple_columns(idx: int) -> Column.BinaryFormula:
         two_columns_left = idx == len(columns) - 2
         if two_columns_left:
             return Column.BinaryFormula(
