@@ -8,7 +8,7 @@ class Foo:
 
 
 class FooSerializer(Serializer):
-    def serialize(self, *args, **kwargs):
+    def serialize(self, *args, **kwargs) -> str:
         return "lol"
 
 

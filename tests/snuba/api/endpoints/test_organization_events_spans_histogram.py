@@ -58,7 +58,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         return self.store_event(data, project_id=self.project.id)
 
-    def format_span(self, op, group):
+    def format_span(self, op, group) -> str:
         return f"{op}:{group}"
 
     def do_request(self, query, with_feature=True):

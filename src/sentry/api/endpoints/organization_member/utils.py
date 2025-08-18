@@ -50,5 +50,5 @@ class RelaxedMemberPermission(OrganizationPermission):
 
     # Allow deletions to happen for disabled members so they can remove themselves
     # allowing other methods should be fine as well even if we don't strictly need to allow them
-    def is_member_disabled_from_limit(self, request: Request, organization):
+    def is_member_disabled_from_limit(self, request: Request, organization) -> bool:
         return False
