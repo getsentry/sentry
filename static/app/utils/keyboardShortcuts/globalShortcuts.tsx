@@ -84,12 +84,14 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       },
     },
     {
-      id: 'go-to-performance',
-      key: 'g e',
-      description: 'Go to Performance',
+      id: 'go-to-frontend-insights',
+      key: 'g n',
+      description: 'Go to Frontend Insights',
       handler: () => {
         if (organizationSlug) {
-          router.push(normalizeUrl(`/organizations/${organizationSlug}/performance/`));
+          router.push(
+            normalizeUrl(`/organizations/${organizationSlug}/insights/frontend/`)
+          );
         }
       },
     },
@@ -104,12 +106,24 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       },
     },
     {
-      id: 'go-to-monitors',
-      key: 'g m',
-      description: 'Go to Monitors',
+      id: 'go-to-crons',
+      key: 'g c',
+      description: 'Go to Crons',
       handler: () => {
         if (organizationSlug) {
-          router.push(normalizeUrl(`/organizations/${organizationSlug}/monitors/`));
+          router.push(normalizeUrl(`/organizations/${organizationSlug}/insights/crons/`));
+        }
+      },
+    },
+    {
+      id: 'go-to-uptime',
+      key: 'g u',
+      description: 'Go to Uptime',
+      handler: () => {
+        if (organizationSlug) {
+          router.push(
+            normalizeUrl(`/organizations/${organizationSlug}/insights/uptime/`)
+          );
         }
       },
     },
@@ -120,16 +134,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       handler: () => {
         if (organizationSlug) {
           router.push(normalizeUrl(`/settings/${organizationSlug}/teams/`));
-        }
-      },
-    },
-    {
-      id: 'go-to-organization',
-      key: 'g o',
-      description: 'Go to Organization Home',
-      handler: () => {
-        if (organizationSlug) {
-          router.push(normalizeUrl(`/organizations/${organizationSlug}/`));
         }
       },
     },
