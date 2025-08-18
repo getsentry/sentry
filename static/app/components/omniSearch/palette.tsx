@@ -1,6 +1,9 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
+
+import {useOmniSearchState} from 'sentry/components/omniSearch/useOmniSearchState';
 
 import {useOmniSearchStore} from './context';
 import type {OmniAction} from './types';
@@ -11,11 +14,13 @@ import type {OmniAction} from './types';
  * NOTE: This is intentionally minimal and will be iterated on.
  */
 export function OmniSearchPalette() {
-  const {actionsByKey, areasByKey, areaPriority} = useOmniSearchStore();
+  const {areasByKey, areaPriority} = useOmniSearchStore();
+  const {focusedArea, actions: availableActions} = useOmniSearchState();
   const [query, setQuery] = useState('');
+  const navigate = useNavigate();
 
   const grouped = useMemo(() => {
-    const actions = Array.from(actionsByKey.values()).filter(a => !a.hidden);
+    const actions = availableActions.filter(a => !a.hidden);
 
     const byArea = new Map<string, OmniAction[]>();
     for (const action of actions) {
@@ -57,7 +62,7 @@ export function OmniSearchPalette() {
         .sort((a, b) => a.label.localeCompare(b.label));
       return {areaKey, label, items};
     });
-  }, [actionsByKey, areasByKey, areaPriority, query]);
+  }, [availableActions, areasByKey, areaPriority, query]);
 
   const handleSelect = (action: OmniAction) => {
     if (action.disabled) {
@@ -65,6 +70,9 @@ export function OmniSearchPalette() {
     }
     if (action.onAction) {
       action.onAction();
+    }
+    if (action.to) {
+      navigate(action.to);
     }
 
     // TODO: Any other action handlers?
@@ -74,6 +82,7 @@ export function OmniSearchPalette() {
     <Container>
       <CommandPrimitive.Command label="OmniSearch" filter={() => 1}>
         <Header>
+          {focusedArea && <div>{focusedArea.label}</div>}
           <CommandPrimitive.Command.Input
             autoFocus
             value={query}

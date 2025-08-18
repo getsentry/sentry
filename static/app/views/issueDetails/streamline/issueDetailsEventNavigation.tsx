@@ -5,7 +5,8 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {IconChevron} from 'sentry/icons';
+import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
+import {IconChevron, IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -118,6 +119,48 @@ export function IssueDetailsEventNavigation({
     font-weight: ${theme.fontWeight.normal};
   `;
 
+  const previousEventPath = {
+    pathname: `${baseEventsPath}${event?.previousEventID}/`,
+    query: {...location.query, referrer: 'previous-event'},
+  };
+
+  const nextEventPath = {
+    pathname: `${baseEventsPath}${event?.nextEventID}/`,
+    query: {...location.query, referrer: 'next-event'},
+  };
+
+  useOmniActions([
+    {
+      key: 'issue-oldest-event',
+      label: t('Go to Previous Event'),
+      areaKey: 'issue',
+      actionType: 'navigate',
+      actionIcon: IconPrevious,
+      to: previousEventPath,
+      hidden: !defined(event?.previousEventID),
+    },
+    {
+      key: 'issue-next-event',
+      label: t('Go to Next Event'),
+      areaKey: 'issue',
+      actionType: 'navigate',
+      actionIcon: IconNext,
+      to: nextEventPath,
+      hidden: !defined(event?.nextEventID),
+    },
+    ...EventNavOrder.filter(option => option !== EventNavOptions.CUSTOM).map(option => ({
+      key: `issue-${option}-event`,
+      label: t('Go to %s Event', EventNavLabels[option]),
+      areaKey: 'issue',
+      actionType: 'navigate',
+      actionIcon: IconChevron,
+      to: {
+        pathname: normalizeUrl(baseEventsPath + option + '/'),
+        query: {...location.query, referrer: `${option}-event`},
+      },
+    })),
+  ]);
+
   return (
     <Fragment>
       <Navigation>
@@ -130,10 +173,7 @@ export function IssueDetailsEventNavigation({
           disabled={!defined(event?.previousEventID)}
           analyticsEventKey="issue_details.previous_event_clicked"
           analyticsEventName="Issue Details: Previous Event Clicked"
-          to={{
-            pathname: `${baseEventsPath}${event?.previousEventID}/`,
-            query: {...location.query, referrer: 'previous-event'},
-          }}
+          to={previousEventPath}
           preventScrollReset
           css={grayText}
           onMouseEnter={handleHoverPagination(
@@ -154,10 +194,7 @@ export function IssueDetailsEventNavigation({
           disabled={!defined(event?.nextEventID)}
           analyticsEventKey="issue_details.next_event_clicked"
           analyticsEventName="Issue Details: Next Event Clicked"
-          to={{
-            pathname: `${baseEventsPath}${event?.nextEventID}/`,
-            query: {...location.query, referrer: 'next-event'},
-          }}
+          to={nextEventPath}
           preventScrollReset
           css={grayText}
           onMouseEnter={handleHoverPagination('next', defined(event?.nextEventID))}
