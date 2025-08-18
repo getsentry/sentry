@@ -61,9 +61,12 @@ class CodingAgentIntegration(IntegrationInstallation, abc.ABC):
 
         return absolute_uri(f"/extensions/{provider}/webhook/")
 
-    def launch(self, request: CodingAgentLaunchRequest, **kwargs) -> CodingAgentState:
+    def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent with webhook callback URL."""
         webhook_url = self.get_webhook_url()
         client = self.get_client()
 
-        return client.launch(request=request, webhook_url=webhook_url, **kwargs)
+        return client.launch(
+            webhook_url=webhook_url,
+            request=request,
+        )

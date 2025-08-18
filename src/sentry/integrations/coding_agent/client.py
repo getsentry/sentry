@@ -20,6 +20,6 @@ class CodingAgentClient(ApiClient, abc.ABC):
         super().__init__()
 
     @abc.abstractmethod
-    def launch(self, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
+    def launch(self, *, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Launch coding agent with webhook callback."""
         pass
