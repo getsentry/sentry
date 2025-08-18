@@ -44,6 +44,7 @@ type Props = {
   group: Group;
   organization: Organization;
   project: Project;
+  refetchData?: () => void;
 };
 
 interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'project'> {
@@ -184,7 +185,7 @@ function GroupHeaderTabs({
   );
 }
 
-function GroupHeader({baseUrl, group, organization, event, project}: Props) {
+function GroupHeader({baseUrl, group, organization, event, project, refetchData}: Props) {
   const location = useLocation();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
@@ -230,6 +231,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
             project={project}
             disabled={disableActions}
             event={event}
+            refetchData={refetchData}
           />
         </BreadcrumbActionWrapper>
         <HeaderRow>

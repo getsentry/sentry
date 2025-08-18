@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
@@ -12,10 +13,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import QueryCount from 'sentry/components/queryCount';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconPause, IconPlay} from 'sentry/icons';
+import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
@@ -39,7 +41,10 @@ type IssueListHeaderProps = {
   router: InjectedRouter;
   selectedProjectIds: number[];
   sort: string;
+  backgroundRefreshing?: boolean;
+  manualRefresh?: () => void;
   queryCount?: number;
+  refetchGroups?: () => void;
 };
 
 type IssueListHeaderTabProps = {
@@ -83,6 +88,9 @@ function IssueListHeader({
   onRealtimeChange,
   router,
   displayReprocessingTab,
+  refetchGroups,
+  manualRefresh,
+  backgroundRefreshing,
 }: IssueListHeaderProps) {
   const tabs = getTabs();
   const visibleTabs = displayReprocessingTab
@@ -97,6 +105,50 @@ function IssueListHeader({
   const realtimeTitle = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
+
+  // Auto-refresh state
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const refreshInterval = 10000; // Fixed 10 seconds interval
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefresh || !refetchGroups) return;
+
+    const interval = setInterval(() => {
+      refetchGroups();
+    }, refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, refetchGroups]);
+
+  // Manual refresh handler
+  const handleManualRefresh = useCallback(() => {
+    if (manualRefresh) {
+      manualRefresh();
+      trackAnalytics('issues_stream.manual_refresh.clicked', {
+        organization,
+        enabled: true,
+      });
+    }
+  }, [manualRefresh, organization]);
+
+  // Auto-refresh toggle handler
+  const handleAutoRefreshToggle = useCallback(() => {
+    const newAutoRefresh = !autoRefresh;
+    setAutoRefresh(newAutoRefresh);
+
+    if (newAutoRefresh) {
+      trackAnalytics('issues_stream.auto_refresh.enabled', {
+        organization,
+        enabled: true,
+      });
+    } else {
+      trackAnalytics('issues_stream.auto_refresh.disabled', {
+        organization,
+        enabled: false,
+      });
+    }
+  }, [autoRefresh, organization]);
 
   return (
     <Layout.Header noActionWrap>
@@ -114,16 +166,40 @@ function IssueListHeader({
       <Layout.HeaderActions>
         <ButtonBar>
           <IssueListSetAsDefault {...{sort, query, organization}} />
-          <DisableInDemoMode>
-            <Button
-              size="sm"
-              data-test-id="real-time"
-              title={realtimeTitle}
-              aria-label={realtimeTitle}
-              icon={realtimeActive ? <IconPause /> : <IconPlay />}
-              onClick={() => onRealtimeChange(!realtimeActive)}
-            />
-          </DisableInDemoMode>
+          {/* Refresh Controls */}
+          {refetchGroups && (
+            <React.Fragment>
+              {backgroundRefreshing && (
+                <div style={{fontSize: '12px', color: '#6b7280', marginRight: '8px'}}>
+                  {t('Refreshing...')}
+                </div>
+              )}
+              <Tooltip
+                title={autoRefresh ? t('Pause auto-refresh') : t('Start auto-refresh')}
+              >
+                <Button
+                  size="sm"
+                  onClick={handleAutoRefreshToggle}
+                  icon={autoRefresh ? <IconPause /> : <IconPlay />}
+                  aria-label={
+                    autoRefresh ? t('Pause auto-refresh') : t('Start auto-refresh')
+                  }
+                  priority="default"
+                  style={autoRefresh ? {border: '2px solid #7c3aed'} : {}}
+                />
+              </Tooltip>
+              <Tooltip title={t('Refresh issue list now')}>
+                <Button
+                  size="sm"
+                  onClick={handleManualRefresh}
+                  icon={<IconRefresh />}
+                  aria-label={t('Refresh')}
+                  priority="default"
+                  disabled={backgroundRefreshing}
+                />
+              </Tooltip>
+            </React.Fragment>
+          )}
         </ButtonBar>
       </Layout.HeaderActions>
       <StyledTabs value={tabValues.has(query) ? query : CUSTOM_TAB_VALUE}>

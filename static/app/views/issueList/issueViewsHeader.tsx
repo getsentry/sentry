@@ -1,12 +1,14 @@
 import type {ReactNode} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
+import {IconEllipsis, IconPause, IconPlay, IconRefresh, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -14,7 +16,6 @@ import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {EditableIssueViewHeader} from 'sentry/views/issueList/editableIssueViewHeader';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
@@ -34,8 +35,11 @@ type IssueViewsHeaderProps = {
   realtimeActive: boolean;
   selectedProjectIds: number[];
   title: ReactNode;
+  backgroundRefreshing?: boolean;
   description?: ReactNode;
   headerActions?: ReactNode;
+  manualRefresh?: () => void;
+  refetchGroups?: () => void;
 };
 
 function PageTitle({title, description}: {title: ReactNode; description?: ReactNode}) {
@@ -215,14 +219,61 @@ function IssueViewEditMenu() {
 function IssueViewsHeader({
   title,
   description,
-  realtimeActive,
-  onRealtimeChange,
   headerActions,
+  onRealtimeChange,
+  realtimeActive,
+  refetchGroups,
+  manualRefresh,
+  backgroundRefreshing,
 }: IssueViewsHeaderProps) {
   const prefersStackedNav = usePrefersStackedNav();
-  const {viewId} = useParams<{viewId?: string}>();
+  const organization = useOrganization();
 
-  const realtimeLabel = realtimeActive
+  // Auto-refresh state
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const refreshInterval = 10000; // Fixed 10 seconds interval
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefresh || !refetchGroups) return;
+
+    const interval = setInterval(() => {
+      refetchGroups();
+    }, refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, refetchGroups]);
+
+  // Manual refresh handler
+  const handleManualRefresh = useCallback(() => {
+    if (manualRefresh) {
+      manualRefresh();
+      trackAnalytics('issues_stream.manual_refresh.clicked', {
+        organization,
+        enabled: true,
+      });
+    }
+  }, [manualRefresh, organization]);
+
+  // Auto-refresh toggle handler
+  const handleAutoRefreshToggle = useCallback(() => {
+    const newAutoRefresh = !autoRefresh;
+    setAutoRefresh(newAutoRefresh);
+
+    if (newAutoRefresh) {
+      trackAnalytics('issues_stream.auto_refresh.enabled', {
+        organization,
+        enabled: true,
+      });
+    } else {
+      trackAnalytics('issues_stream.auto_refresh.disabled', {
+        organization,
+        enabled: false,
+      });
+    }
+  }, [autoRefresh, organization]);
+
+  const realtimeTitle = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
 
@@ -233,23 +284,49 @@ function IssueViewsHeader({
           <PageTitle title={title} description={description} />
           <Actions>
             {headerActions}
-            {!viewId && (
-              <DisableInDemoMode>
-                <Button
-                  size="sm"
-                  title={realtimeLabel}
-                  aria-label={realtimeLabel}
-                  icon={realtimeActive ? <IconPause /> : <IconPlay />}
-                  onClick={() => onRealtimeChange(!realtimeActive)}
-                />
-              </DisableInDemoMode>
-            )}
             <IssueViewStarButton />
             <IssueViewEditMenu />
           </Actions>
         </StyledLayoutTitle>
       </Layout.HeaderContent>
-      <Layout.HeaderActions />
+      <Layout.HeaderActions>
+        <ButtonBar>
+          {/* Refresh Controls */}
+          {refetchGroups && (
+            <React.Fragment>
+              {backgroundRefreshing && (
+                <div style={{fontSize: '12px', color: '#6b7280', marginRight: '8px'}}>
+                  {t('Refreshing...')}
+                </div>
+              )}
+              <Tooltip
+                title={autoRefresh ? t('Pause auto-refresh') : t('Start auto-refresh')}
+              >
+                <Button
+                  size="sm"
+                  onClick={handleAutoRefreshToggle}
+                  icon={autoRefresh ? <IconPause /> : <IconPlay />}
+                  aria-label={
+                    autoRefresh ? t('Pause auto-refresh') : t('Start auto-refresh')
+                  }
+                  priority="default"
+                  style={autoRefresh ? {border: '2px solid #7c3aed'} : {}}
+                />
+              </Tooltip>
+              <Tooltip title={t('Refresh issue list now')}>
+                <Button
+                  size="sm"
+                  onClick={handleManualRefresh}
+                  icon={<IconRefresh />}
+                  aria-label={t('Refresh')}
+                  priority="default"
+                  disabled={backgroundRefreshing}
+                />
+              </Tooltip>
+            </React.Fragment>
+          )}
+        </ButtonBar>
+      </Layout.HeaderActions>
     </Layout.Header>
   );
 }

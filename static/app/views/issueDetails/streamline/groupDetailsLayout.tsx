@@ -41,6 +41,7 @@ interface GroupDetailsLayoutProps {
   event: Event | undefined;
   group: Group;
   project: Project;
+  refetchData?: () => void;
 }
 
 export function GroupDetailsLayout({
@@ -48,6 +49,7 @@ export function GroupDetailsLayout({
   event,
   project,
   children,
+  refetchData,
 }: GroupDetailsLayoutProps) {
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
@@ -55,7 +57,12 @@ export function GroupDetailsLayout({
 
   return (
     <IssueDetailsContextProvider>
-      <StreamlinedGroupHeader group={group} event={event ?? null} project={project} />
+      <StreamlinedGroupHeader
+        group={group}
+        event={event ?? null}
+        project={project}
+        refetchData={refetchData}
+      />
       <GroupLayoutBody>
         <div>
           <SharedTourElement<IssueDetailsTour>

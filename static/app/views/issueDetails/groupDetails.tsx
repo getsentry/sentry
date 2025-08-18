@@ -98,6 +98,7 @@ interface GroupDetailsContentProps {
   event: Event | null;
   group: Group;
   project: Project;
+  refetchData?: () => void;
 }
 
 function getFetchDataRequestErrorType(status?: number | null): Error {
@@ -643,6 +644,7 @@ function GroupDetailsContent({
   group,
   project,
   event,
+  refetchData,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
   const includeFlagDistributions =
@@ -714,7 +716,12 @@ function GroupDetailsContent({
   ].includes(currentTab);
 
   return hasStreamlinedUI ? (
-    <GroupDetailsLayout group={group} event={event ?? undefined} project={project}>
+    <GroupDetailsLayout
+      group={group}
+      event={event ?? undefined}
+      project={project}
+      refetchData={refetchData}
+    >
       {isDisplayingEventDetails ? (
         // The router displays a loading indicator when switching to any of these tabs
         // Avoid lazy loading spinner by force rendering the GroupEventDetails component
@@ -734,6 +741,7 @@ function GroupDetailsContent({
         group={group}
         baseUrl={baseUrl}
         project={project}
+        refetchData={refetchData}
       />
       <GroupTabPanels>
         <TabPanels.Item key={currentTab}>{children}</TabPanels.Item>
@@ -852,6 +860,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
         project={projectWithFallback}
         group={props.group}
         event={props.event ?? injectedEvent}
+        refetchData={props.refetchData}
       >
         {props.children}
       </GroupDetailsContent>

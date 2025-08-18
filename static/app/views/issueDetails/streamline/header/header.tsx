@@ -58,12 +58,14 @@ interface GroupHeaderProps {
   event: Event | null;
   group: Group;
   project: Project;
+  refetchData?: () => void;
 }
 
 export default function StreamlinedGroupHeader({
   event,
   group,
   project,
+  refetchData,
 }: GroupHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -291,6 +293,7 @@ export default function StreamlinedGroupHeader({
             project={project}
             disabled={disableActions}
             event={event}
+            refetchData={refetchData}
           />
           <WorkflowActions>
             <Workflow>

@@ -188,6 +188,7 @@ function IssueListOverview({
   const [error, setError] = useState<string | null>(null);
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
+  const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
   const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
     {}
   );
@@ -614,38 +615,68 @@ function IssueListOverview({
             organization,
             search_type: 'issues',
             search_source: 'main_search',
-            error: parseApiError(err),
+            error: parseApiError(err as RequestError),
           });
-
-          setError(parseApiError(err));
+          setError(parseApiError(err as RequestError));
           setIssuesLoading(false);
-          setIssuesSuccessfullyLoaded(false);
-        },
-        complete: () => {
-          resumePolling();
-
-          if (!realtimeActive) {
-            actionTakenRef.current = false;
-            undoRef.current = false;
-          }
         },
       });
     },
     [
       resetNewViewQueryParam,
       realtimeActive,
+      actionTakenRef,
+      undoRef,
+      getCurrentSentryReactRootSpan,
       sort,
       api,
-      organization,
+      pollerRef,
+      organization.slug,
       requestParams,
+      navigate,
+      extractSelectionParameters,
+      location.query,
       fetchCounts,
       fetchStats,
-      navigate,
-      location.query,
-      query,
-      resumePolling,
+      IssueListCacheStore,
+      trackAnalytics,
+      parseApiError,
     ]
   );
+
+  // Background refresh function for auto-refresh (no loading states)
+  const backgroundRefresh = useCallback(async () => {
+    try {
+      setBackgroundRefreshing(true);
+
+      const response = await api.requestPromise(
+        `/organizations/${organization.slug}/issues/`,
+        {
+          method: 'GET',
+          data: qs.stringify(requestParams),
+        }
+      );
+
+      if (response && Array.isArray(response)) {
+        // Replace the existing data to maintain proper order
+        GroupStore.loadInitialData(response);
+
+        // Update counts if available
+        const hits = response.length;
+        if (hits !== undefined) {
+          setQueryCount(hits);
+        }
+
+        // Fetch stats in background
+        fetchStats(response.map((group: BaseGroup) => group.id));
+      }
+    } catch (error) {
+      // Silently fail for background refreshes - don't show errors
+      console.warn('Background refresh failed:', error);
+    } finally {
+      setBackgroundRefreshing(false);
+    }
+  }, [api, organization.slug, requestParams, fetchStats]);
 
   useDisableRouteAnalytics(issuesLoading);
   useRouteAnalyticsEventNames('issues.viewed', 'Issues: Viewed');
@@ -1093,6 +1124,9 @@ function IssueListOverview({
           realtimeActive={realtimeActive}
           onRealtimeChange={onRealtimeChange}
           headerActions={headerActions}
+          refetchGroups={backgroundRefresh}
+          manualRefresh={backgroundRefresh}
+          backgroundRefreshing={backgroundRefreshing}
         />
       ) : (
         <IssueListHeader
@@ -1106,6 +1140,9 @@ function IssueListOverview({
           displayReprocessingTab={showReprocessingTab}
           selectedProjectIds={selection.projects}
           onRealtimeChange={onRealtimeChange}
+          refetchGroups={backgroundRefresh}
+          manualRefresh={backgroundRefresh}
+          backgroundRefreshing={backgroundRefreshing}
         />
       )}
       <StyledBody>

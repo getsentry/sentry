@@ -1,5 +1,5 @@
 import type {MouseEvent} from 'react';
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
@@ -20,12 +20,16 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
   IconEllipsis,
+  IconPause,
+  IconPlay,
+  IconRefresh,
   IconSubscribed,
   IconUnsubscribed,
   IconUpload,
@@ -79,9 +83,16 @@ interface GroupActionsProps {
   event: Event | null;
   group: Group;
   project: Project;
+  refetchData?: () => void;
 }
 
-export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+export function GroupActions({
+  group,
+  project,
+  disabled,
+  event,
+  refetchData,
+}: GroupActionsProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -89,6 +100,11 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const hasStreamlinedUI = useHasStreamlinedUI();
   const queryClient = useQueryClient();
   const environments = useEnvironmentsFromUrl();
+
+  // Auto-refresh state
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [backgroundRefreshing, setBackgroundRefreshing] = useState(false);
+  const refreshInterval = 5000; // Fixed 5 seconds interval
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
   const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
@@ -99,6 +115,114 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const isIgnored = group.status === 'ignored';
 
   const hasDeleteAccess = organization.access.includes('event:admin');
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefresh || !refetchData) return;
+
+    const interval = setInterval(() => {
+      setBackgroundRefreshing(true);
+
+      // Call refetchData (it's not async)
+      refetchData();
+
+      // Also invalidate graph queries to ensure they refresh
+      queryClient.invalidateQueries({
+        predicate: (query: any) => {
+          const queryKey = query?.queryKey;
+          if (!Array.isArray(queryKey)) {
+            return false;
+          }
+          const hasRouteKey = queryKey.some(
+            (key: unknown) =>
+              typeof key === 'string' &&
+              (key === 'events-stats' || key === 'issue_details.streamline_graph')
+          );
+          const hasIssueFilter = queryKey.some((key: any) => {
+            return (
+              key &&
+              typeof key === 'object' &&
+              typeof key.query === 'string' &&
+              key.query.includes(`issue:${group.shortId}`)
+            );
+          });
+          return hasRouteKey || hasIssueFilter;
+        },
+      });
+
+      // Reset the refreshing state after a short delay to show feedback
+      setTimeout(() => {
+        setBackgroundRefreshing(false);
+      }, 1000);
+    }, refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, refetchData, queryClient, group.shortId]);
+
+  // Manual refresh handler
+  const handleManualRefresh = useCallback(() => {
+    if (refetchData) {
+      setBackgroundRefreshing(true);
+
+      // Call refetchData (it's not async)
+      refetchData();
+
+      // Also invalidate graph queries to ensure they refresh
+      queryClient.invalidateQueries({
+        predicate: (query: any) => {
+          const queryKey = query?.queryKey;
+          if (!Array.isArray(queryKey)) {
+            return false;
+          }
+          const hasRouteKey = queryKey.some(
+            (key: unknown) =>
+              typeof key === 'string' &&
+              (key === 'events-stats' || key === 'issue_details.streamline_graph')
+          );
+          const hasIssueFilter = queryKey.some((key: any) => {
+            return (
+              key &&
+              typeof key === 'object' &&
+              typeof key.query === 'string' &&
+              key.query.includes(`issue:${group.shortId}`)
+            );
+          });
+          return hasRouteKey || hasIssueFilter;
+        },
+      });
+
+      trackAnalytics('issue_details.manual_refresh.clicked', {
+        organization,
+        project_id: project.id,
+        group_id: group.id,
+      });
+
+      // Reset the refreshing state after a short delay to show feedback
+      setTimeout(() => {
+        setBackgroundRefreshing(false);
+      }, 1000);
+    }
+  }, [refetchData, organization, project.id, group.id, queryClient, group.shortId]);
+
+  // Auto-refresh toggle handler
+  const handleAutoRefreshToggle = useCallback(() => {
+    const newAutoRefresh = !autoRefresh;
+    setAutoRefresh(newAutoRefresh);
+
+    if (newAutoRefresh) {
+      trackAnalytics('issue_details.auto_refresh.enabled', {
+        organization,
+        project_id: project.id,
+        group_id: group.id,
+      });
+    } else {
+      trackAnalytics('issue_details.auto_refresh.disabled', {
+        organization,
+        project_id: project.id,
+        group_id: group.id,
+      });
+    }
+  }, [autoRefresh, organization, project.id, group.id]);
 
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
 
@@ -486,6 +610,39 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             analyticsEventKey="issue_details.share_action_clicked"
             analyticsEventName="Issue Details: Share Action Clicked"
           />
+
+          {/* Refresh Controls */}
+          {refetchData && (
+            <Fragment>
+              <RefreshControlsContainer>
+                <Tooltip
+                  title={autoRefresh ? t('Pause auto-refresh') : t('Start auto-refresh')}
+                >
+                  <Button
+                    size="sm"
+                    onClick={handleAutoRefreshToggle}
+                    icon={autoRefresh ? <IconPause /> : <IconPlay />}
+                    aria-label={
+                      autoRefresh ? t('Pause auto-refresh') : t('Start auto-refresh')
+                    }
+                    disabled={disabled}
+                    priority="default"
+                    style={autoRefresh ? {border: '2px solid #7c3aed'} : {}}
+                  />
+                </Tooltip>
+                <Tooltip title={t('Refresh issue data now')}>
+                  <Button
+                    size="sm"
+                    onClick={handleManualRefresh}
+                    icon={<IconRefresh />}
+                    aria-label={t('Refresh')}
+                    disabled={disabled || backgroundRefreshing}
+                    priority="default"
+                  />
+                </Tooltip>
+              </RefreshControlsContainer>
+            </Fragment>
+          )}
         </Fragment>
       )}
       <DropdownMenu
@@ -558,23 +715,24 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             key: 'delete-issue',
             priority: 'danger',
             label: t('Delete'),
-            disabled: !hasDeleteAccess || !deleteCap.enabled,
-            details: hasDeleteAccess
-              ? deleteCap.disabledReason
-              : t('Only admins can delete issues'),
             onAction: openDeleteModal,
-          },
-          {
-            key: 'delete-and-discard',
-            priority: 'danger',
-            label: t('Delete and discard future events'),
-            hidden: !hasDeleteAccess,
-            disabled: !deleteDiscardCap.enabled,
-            details: deleteDiscardCap.disabledReason,
-            onAction: openDiscardModal,
+            disabled: !hasDeleteAccess || disabled,
           },
         ]}
       />
+      {backgroundRefreshing && (
+        <div
+          style={{
+            fontSize: '12px',
+            color: '#6b7280',
+            marginLeft: '8px',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          {t('Refreshing...')}
+        </div>
+      )}
       {!hasStreamlinedUI && (
         <Fragment>
           <NewIssueExperienceButton />
@@ -689,4 +847,10 @@ const ReasonBanner = styled('div')`
   font-weight: normal;
   color: ${p => p.theme.green400};
   font-size: ${p => p.theme.fontSize.sm};
+`;
+
+const RefreshControlsContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
