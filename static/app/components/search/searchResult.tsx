@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import IdBadge from 'sentry/components/idBadge';
-import {IconInput, IconLink, IconSettings} from 'sentry/icons';
+import {IconInput, IconKeyDown, IconLink, IconSettings} from 'sentry/icons';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
@@ -20,7 +20,7 @@ type Props = {
 
 const DEFAULT_AVATAR_SIZE = 24;
 
-function renderResultType({resultType, model}: Result['item']) {
+function renderResultType({resultType, model, extra}: Result['item']) {
   switch (resultType) {
     case 'settings':
       return <IconSettings />;
@@ -28,6 +28,13 @@ function renderResultType({resultType, model}: Result['item']) {
       return <IconInput />;
     case 'route':
       return <IconLink />;
+    case 'keyboard-shortcut':
+      return (
+        <KeyboardShortcutContainer>
+          <IconKeyDown size="sm" />
+          {extra}
+        </KeyboardShortcutContainer>
+      );
     case 'integration':
       return <StyledPluginIcon size={DEFAULT_AVATAR_SIZE} pluginId={model.slug} />;
     case 'sentryApp':
@@ -85,7 +92,9 @@ function SearchResult({item, matches, highlighted}: Props) {
       <Fragment>
         <div>{title}</div>
         {description && <SearchDetail>{description}</SearchDetail>}
-        {extra && <ExtraDetail>{extra}</ExtraDetail>}
+        {extra && item.resultType !== 'keyboard-shortcut' && (
+          <ExtraDetail>{extra}</ExtraDetail>
+        )}
       </Fragment>
     );
   }
@@ -131,6 +140,13 @@ const Content = styled('div')`
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
+  flex-shrink: 0;
+`;
+
+const KeyboardShortcutContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
   flex-shrink: 0;
 `;
 
