@@ -45,7 +45,7 @@ def get_demo_org() -> Organization | None:
     return Organization.objects.get(id=org_id)
 
 
-def get_demo_user() -> User | AnonymousUser | None:
+def get_demo_user() -> User | None:
     if not is_demo_mode_enabled():
         return None
 
