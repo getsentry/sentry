@@ -1,6 +1,6 @@
+import enum
 import logging
 from datetime import UTC, datetime
-from enum import StrEnum
 from typing import TypedDict
 
 import orjson
@@ -25,12 +25,14 @@ logger = logging.getLogger(__name__)
 
 class AutofixIssue(TypedDict):
     id: int
+    title: str
 
 
 class AutofixRequest(TypedDict):
     organization_id: int
     project_id: int
     issue: AutofixIssue
+    repos: list[dict]
 
 
 class FileChange(BaseModel):
@@ -39,26 +41,7 @@ class FileChange(BaseModel):
     is_deleted: bool = False
 
 
-class CodebaseState(BaseModel):
-    repo_external_id: str | None = None
-    file_changes: list[FileChange] = []
-    is_readable: bool | None = None
-    is_writeable: bool | None = None
-
-
-class AutofixState(BaseModel):
-    run_id: int
-    request: AutofixRequest
-    updated_at: datetime
-    status: AutofixStatus
-    actor_ids: list[str] | None = None
-    codebases: dict[str, CodebaseState] = {}
-
-    class Config:
-        extra = "allow"
-
-
-class CodingAgentStatus(StrEnum):
+class CodingAgentStatus(str, enum.Enum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -79,6 +62,27 @@ class CodingAgentState(BaseModel):
     name: str
     started_at: datetime
     results: list[CodingAgentResult] = []
+
+
+class CodebaseState(BaseModel):
+    repo_external_id: str | None = None
+    file_changes: list[FileChange] = []
+    is_readable: bool | None = None
+    is_writeable: bool | None = None
+    coding_agent_state: CodingAgentState | None = None
+
+
+class AutofixState(BaseModel):
+    run_id: int
+    request: AutofixRequest
+    updated_at: datetime
+    status: AutofixStatus
+    actor_ids: list[str] | None = None
+    codebases: dict[str, CodebaseState] = {}
+    steps: list[dict] = []
+
+    class Config:
+        extra = "allow"
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
@@ -294,3 +298,64 @@ def is_seer_autotriggered_autofix_rate_limited(
             category=DataCategory.SEER_AUTOFIX,
         )
     return is_rate_limited
+
+
+def get_autofix_prompt(run_id: int, trigger_source: str) -> str | None:
+    """Get the autofix prompt from Seer API."""
+    try:
+        include_root_cause = trigger_source in ["root_cause", "solution"]
+        include_solution = trigger_source == "solution"
+
+        path = "/v1/automation/autofix/prompt"
+        body = orjson.dumps(
+            {
+                "run_id": run_id,
+                "include_root_cause": include_root_cause,
+                "include_solution": include_solution,
+            }
+        )
+
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+            timeout=30,
+        )
+
+        response.raise_for_status()
+        response_data = response.json()
+
+        logger.info(
+            "coding_agent.prompt_fetched_from_seer",
+            extra={
+                "run_id": run_id,
+                "trigger_source": trigger_source,
+                "status_code": response.status_code,
+            },
+        )
+
+        return response_data.get("prompt")
+
+    except Exception as e:
+        logger.warning(
+            "coding_agent.seer_prompt_error",
+            extra={
+                "run_id": run_id,
+                "trigger_source": trigger_source,
+                "error": str(e),
+            },
+        )
+        return None
+
+
+def get_coding_agent_prompt(run_id: int, trigger_source: str) -> str | None:
+    """Get the coding agent prompt with prefix from Seer API."""
+    autofix_prompt = get_autofix_prompt(run_id, trigger_source)
+
+    if autofix_prompt is None:
+        return None
+
+    return f"Please fix the following issue:\n\n{autofix_prompt}"
