@@ -167,6 +167,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-taxonomy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:metric-issue-poc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("projects:metric-issue-creation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable writing to the IncidentGroupOpenPeriod model
+    manager.add("organizations:incident-group-open-period-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:issue-open-periods", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:mep-use-default-tags", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -294,6 +296,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:preprod-frontend-routes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables Prevent AI in the Sentry UI
+    manager.add("organizations:prevent-ai", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables Prevent team Replay Assertions (Flows) POC
     manager.add("organizations:prevent-flows-poc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable profiling
@@ -364,6 +368,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:feature-flag-distribution-flyout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable suspect feature flags endpoint.
     manager.add("organizations:feature-flag-suspect-flags", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable suspect commit information in workflow notification emails
+    manager.add("organizations:suspect-commits-in-emails", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable suspect feature tags endpoint.
     manager.add("organizations:issues-suspect-tags", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable suspect score display in distributions drawer (internal only)
@@ -394,6 +400,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-mobile-screens-module", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Removes performance landing page from sidebar and updates transaction summary breadcrumbs for insights
     manager.add("organizations:insights-performance-landing-removal", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Seer Webhooks to be sent and listened to
+    manager.add("organizations:seer-webhooks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new SentryApp webhook request endpoint
     manager.add("organizations:sentry-app-webhook-requests", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable standalone span ingestion

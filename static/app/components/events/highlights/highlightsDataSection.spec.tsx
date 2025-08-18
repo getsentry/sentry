@@ -18,7 +18,7 @@ import * as analytics from 'sentry/utils/analytics';
 
 import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
-describe('HighlightsDataSection', function () {
+describe('HighlightsDataSection', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const event = EventFixture({
@@ -44,7 +44,7 @@ describe('HighlightsDataSection', function () {
     jest.clearAllMocks();
   });
 
-  it('renders an empty state', async function () {
+  it('renders an empty state', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: {...project, highlightTags: [], highlightContext: {}},
@@ -75,7 +75,7 @@ describe('HighlightsDataSection', function () {
     expect(modalSpy).toHaveBeenCalled();
   });
 
-  it('renders highlights from the detailed project API response', async function () {
+  it('renders highlights from the detailed project API response', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: {...project, highlightTags, highlightContext},

@@ -38,7 +38,9 @@ export function JetpackComposePiiNotice() {
               <ExternalLink href="https://github.com/getsentry/sentry-java/security/advisories/GHSA-7cjh-xx4r-qh3f" />
             ),
             link: (
-              <ExternalLink href={MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX.changelog} />
+              <ExternalLink
+                href={MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX.releaseNotes}
+              />
             ),
           }
         )}

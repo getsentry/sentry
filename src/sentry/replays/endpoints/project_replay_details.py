@@ -95,10 +95,13 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         if not replay or replay["is_archived"]:
             return Response(status=404)
 
+        # We don't check Seer features because an org may have previously had them on, then turned them off.
+        has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
+
         delete_replay.delay(
             project_id=project.id,
             replay_id=replay_id,
-            has_seer_data=features.has("organizations:replay-ai-summaries", project.organization),
+            has_seer_data=has_seer_data,
         )
 
         return Response(status=204)

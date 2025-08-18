@@ -155,20 +155,6 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert "base_sha" in error
         assert result == {}
 
-    def test_provider_too_long(self) -> None:
-        """Test provider field too long returns error."""
-        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "provider": "a" * 65})
-        result, error = validate_preprod_artifact_schema(body)
-        assert error is not None
-        assert result == {}
-
-    def test_head_repo_name_too_long(self) -> None:
-        """Test head_repo_name field too long returns error."""
-        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "head_repo_name": "a" * 256})
-        result, error = validate_preprod_artifact_schema(body)
-        assert error is not None
-        assert result == {}
-
     def test_pr_number_invalid(self) -> None:
         """Test invalid pr_number returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "pr_number": 0})
@@ -376,7 +362,9 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = f"/organizations/{self.organization.slug}/preprod/internal/{artifact_id}"
+        expected_url = (
+            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
+        )
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
@@ -384,6 +372,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -394,14 +391,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
                 "build_configuration": None,
-                "head_sha": None,
-                "base_sha": None,
-                "provider": None,
-                "head_repo_name": None,
-                "base_repo_name": None,
-                "head_ref": None,
-                "base_ref": None,
-                "pr_number": None,
             }
         )
 
@@ -443,7 +432,9 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = f"/organizations/{self.organization.slug}/preprod/internal/{artifact_id}"
+        expected_url = (
+            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
+        )
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
@@ -451,6 +442,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration="release",
+            release_notes=None,
+            head_sha="e" * 40,
+            base_sha="f" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/xyz",
+            base_ref="main",
+            pr_number=123,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -461,14 +461,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
                 "build_configuration": "release",
-                "head_sha": "e" * 40,
-                "base_sha": "f" * 40,
-                "provider": "github",
-                "head_repo_name": "owner/repo",
-                "base_repo_name": "owner/repo",
-                "head_ref": "feature/xyz",
-                "base_ref": "main",
-                "pr_number": 123,
             }
         )
 
@@ -736,4 +728,13 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
         )

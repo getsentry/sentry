@@ -35,14 +35,14 @@ import {
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
 import {
-  type BillingConfig,
   CheckoutType,
-  type EventBucket,
   OnDemandBudgetMode,
-  type OnDemandBudgets,
-  type Plan,
   PlanName,
   PlanTier,
+  type BillingConfig,
+  type EventBucket,
+  type OnDemandBudgets,
+  type Plan,
   type PromotionData,
   type Subscription,
 } from 'getsentry/types';
@@ -76,7 +76,7 @@ import type {
   SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {SelectableProduct} from 'getsentry/views/amCheckout/types';
-import {getBucket} from 'getsentry/views/amCheckout/utils';
+import {getBucket, hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
@@ -229,7 +229,7 @@ class AMCheckout extends Component<Props, State> {
       const formData = this.getInitialData(billingConfig);
 
       this.setState({billingConfig, formData});
-    } catch (error) {
+    } catch (error: any) {
       this.setState({error, loading: false});
       if (error.status !== 401 && error.status !== 403) {
         Sentry.captureException(error);
@@ -652,6 +652,7 @@ class AMCheckout extends Component<Props, State> {
       const isActive = currentStep === stepNumber;
       const isCompleted = !isActive && completedSteps.has(stepNumber);
       const prevStepCompleted = completedSteps.has(stepNumber - 1);
+      const isNewCheckout = hasCheckoutV3(organization); // TODO(checkout-v3): remove post-GA
 
       return (
         <CheckoutStep
@@ -662,6 +663,7 @@ class AMCheckout extends Component<Props, State> {
           isCompleted={isCompleted}
           prevStepCompleted={prevStepCompleted}
           referrer={this.referrer}
+          isNewCheckout={isNewCheckout}
         />
       );
     });

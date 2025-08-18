@@ -38,7 +38,7 @@ from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 
 logger = logging.getLogger(__name__)
@@ -370,9 +370,6 @@ def frame(
         ):
             frame_component.update(contributes=False, hint="ignored low quality javascript frame")
 
-    if context["is_recursion"]:
-        frame_component.update(contributes=False, hint="ignored due to recursion")
-
     return {variant_name: frame_component}
 
 
@@ -437,9 +434,9 @@ def _single_stacktrace_variant(
     found_in_app_frame = False
 
     for frame in frames:
-        with context:
-            context["is_recursion"] = _is_recursive_frame(frame, prev_frame)
-            frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
+        frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
+        if _is_recursive_frame(frame, prev_frame):
+            frame_component.update(contributes=False, hint="ignored due to recursion")
 
         if variant_name == "app":
             if frame.in_app:
@@ -642,11 +639,9 @@ def chained_exception(
     # exceptions. Either way, we need to wrap our exception components in a chained exception component.
     exception_components_by_variant: dict[str, list[ExceptionGroupingComponent]] = {}
 
-    # Check for cases in which we want to switch the `main_exception_id` in order to use a different
+    # Handle cases in which we want to switch the `main_exception_id` in order to use a different
     # exception than normal for the event title
-    main_exception_id = determine_main_exception_id(exceptions)
-    if main_exception_id:
-        event.data["main_exception_id"] = main_exception_id
+    _maybe_override_main_exception_id(event, exceptions)
 
     for exception in exceptions:
         for variant_name, component in exception_components_by_exception[id(exception)].items():
@@ -900,11 +895,12 @@ MAIN_EXCEPTION_ID_FUNCS = [
 ]
 
 
-def determine_main_exception_id(exceptions: list[SingleException]) -> int | None:
+def _maybe_override_main_exception_id(event: Event, exceptions: list[SingleException]) -> None:
     main_exception_id = None
     for func in MAIN_EXCEPTION_ID_FUNCS:
         main_exception_id = func(exceptions)
         if main_exception_id is not None:
             break
 
-    return main_exception_id
+    if main_exception_id:
+        event.data["main_exception_id"] = main_exception_id

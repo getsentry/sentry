@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -22,6 +24,8 @@ const search = (query: string, tree: TraceTree, cb: any) => {
   );
 };
 
+const organization = OrganizationFixture();
+
 describe('TraceSearchEvaluator', () => {
   it('empty string', async () => {
     const list = TraceTree.FromTrace(
@@ -35,6 +39,7 @@ describe('TraceSearchEvaluator', () => {
       {
         meta: null,
         replay: null,
+        organization,
       }
     );
 
@@ -69,6 +74,7 @@ describe('TraceSearchEvaluator', () => {
       {
         meta: null,
         replay: null,
+        organization,
       }
     );
 
@@ -94,6 +100,7 @@ describe('TraceSearchEvaluator', () => {
       {
         meta: null,
         replay: null,
+        organization,
       }
     );
     tree.build();
@@ -121,6 +128,7 @@ describe('TraceSearchEvaluator', () => {
       {
         meta: null,
         replay: null,
+        organization,
       }
     );
     tree.build();
@@ -150,6 +158,7 @@ describe('TraceSearchEvaluator', () => {
       {
         meta: null,
         replay: null,
+        organization,
       }
     );
     tree.build();
@@ -184,6 +193,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
@@ -204,6 +214,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
@@ -227,6 +238,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
@@ -250,6 +262,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
@@ -273,6 +286,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
@@ -297,6 +311,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
       TraceTree.FromSpans(
@@ -322,6 +337,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
       TraceTree.FromSpans(
@@ -347,6 +363,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
       TraceTree.FromSpans(
@@ -375,6 +392,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
       TraceTree.FromSpans(
@@ -403,6 +421,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
       TraceTree.FromSpans(
@@ -430,6 +449,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
       TraceTree.FromSpans(
@@ -454,6 +474,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
       TraceTree.FromSpans(
@@ -478,6 +499,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
       TraceTree.FromSpans(
@@ -503,6 +525,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
@@ -520,6 +543,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
@@ -540,6 +564,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
@@ -560,6 +585,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
@@ -580,11 +606,69 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
       const cb = jest.fn();
       search('span.total_time:>0.5s', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('name filter', async () => {
+      const tree = TraceTree.FromTrace(
+        [makeEAPSpan({name: 'authentication'}), makeEAPSpan({name: 'database'})],
+        {
+          meta: null,
+          replay: null,
+          organization,
+        }
+      );
+
+      const cb = jest.fn();
+      search('name:authentication', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('name filter with prefix', async () => {
+      const tree = TraceTree.FromTrace(
+        [makeEAPSpan({name: 'authentication'}), makeEAPSpan({name: 'database'})],
+        {
+          meta: null,
+          replay: null,
+          organization,
+        }
+      );
+
+      const cb = jest.fn();
+      search('span.name:authentication', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
+      expect(cb.mock.calls[0][0][2]).toBeNull();
+    });
+
+    it('name free text search', async () => {
+      const tree = TraceTree.FromTrace(
+        [
+          makeEAPSpan({name: 'user_authentication_service', op: 'http'}),
+          makeEAPSpan({name: 'database_query', op: 'db'}),
+        ],
+        {
+          meta: null,
+          replay: null,
+          organization,
+        }
+      );
+
+      const cb = jest.fn();
+      search('authentication', tree, cb);
       await waitFor(() => expect(cb).toHaveBeenCalled());
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
@@ -608,6 +692,7 @@ describe('TraceSearchEvaluator', () => {
           {
             meta: null,
             replay: null,
+            organization,
           }
         );
         tree.build();
@@ -636,6 +721,7 @@ describe('TraceSearchEvaluator', () => {
           {
             meta: null,
             replay: null,
+            organization,
           }
         );
         tree.build();
@@ -665,6 +751,7 @@ describe('TraceSearchEvaluator', () => {
           {
             meta: null,
             replay: null,
+            organization,
           }
         );
         tree.build();
@@ -693,6 +780,7 @@ describe('TraceSearchEvaluator', () => {
           {
             meta: null,
             replay: null,
+            organization,
           }
         );
         tree.build();
@@ -717,6 +805,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
       tree.build();
@@ -737,6 +826,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 

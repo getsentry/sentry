@@ -1,4 +1,5 @@
 import collections
+from collections.abc import MutableMapping
 from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
 
@@ -399,7 +400,7 @@ def get_replay(
     only_query_for: set[str] | None = None,
     requesting_user_id: int | None = None,
     referrer: str = "replays.get_replay_unknown",
-    tenant_ids: dict[str, Any] | None = None,
+    tenant_ids: MutableMapping[str, Any] | None = None,
 ) -> Replay | None:
     replays = get_replays(
         project_ids=project_ids,
@@ -425,7 +426,7 @@ def get_replays(
     only_query_for: set[str] | None = None,
     requesting_user_id: int | None = None,
     referrer: str = "replays.get_replays_unknown",
-    tenant_ids: dict[str, Any] | None = None,
+    tenant_ids: MutableMapping[str, Any] | None = None,
 ) -> list[Replay]:
     timestamp_start = timestamp_start or (datetime.now(tz=timezone.utc) - timedelta(days=90))
     timestamp_end = timestamp_end or datetime.now(tz=timezone.utc)
