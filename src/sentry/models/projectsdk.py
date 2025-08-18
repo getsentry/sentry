@@ -53,11 +53,11 @@ class ProjectSDK(DefaultFieldsModel):
     __repr__ = sane_repr("project", "event_type", "sdk_name", "sdk_version")
 
     @classmethod
-    def get_lock_key(cls, project: Project, event_type: EventType, sdk_name: str):
+    def get_lock_key(cls, project: Project, event_type: EventType, sdk_name: str) -> str:
         return f"lprojectsdk:{project.id}:{event_type.value}:{md5_text(sdk_name).hexdigest()}"
 
     @classmethod
-    def get_cache_key(cls, project: Project, event_type: EventType, sdk_name: str):
+    def get_cache_key(cls, project: Project, event_type: EventType, sdk_name: str) -> str:
         return f"projectsdk:{project.id}:{event_type.value}:{md5_text(sdk_name).hexdigest()}"
 
     @classmethod

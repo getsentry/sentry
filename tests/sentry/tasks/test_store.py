@@ -40,7 +40,7 @@ class BasicPreprocessorPlugin(Plugin2):
 
         return []
 
-    def is_enabled(self, project=None):
+    def is_enabled(self, project=None) -> bool:
         return True
 
 
@@ -258,7 +258,7 @@ def test_scrubbing_after_processing(
 
             return [more_extra]
 
-        def is_enabled(self, project=None):
+        def is_enabled(self, project=None) -> bool:
             return True
 
     register_plugin(globals(), TestPlugin)
