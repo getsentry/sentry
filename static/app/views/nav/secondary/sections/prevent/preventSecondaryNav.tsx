@@ -10,6 +10,7 @@ import {makePreventPathname} from 'sentry/views/prevent/pathnames';
 import {
   COVERAGE_BASE_URL,
   PREVENT_AI_BASE_URL,
+  PULL_REQUESTS_BASE_URL,
   TESTS_BASE_URL,
   TOKENS_BASE_URL,
 } from 'sentry/views/prevent/settings';
@@ -31,6 +32,10 @@ function PreventSecondaryNav() {
   const preventAIPathName = makePreventPathname({
     organization,
     path: `/${PREVENT_AI_BASE_URL}/`,
+  });
+  const pullRequestsPathName = makePreventPathname({
+    organization,
+    path: `/${PULL_REQUESTS_BASE_URL}/`,
   });
 
   return (
@@ -58,6 +63,9 @@ function PreventSecondaryNav() {
             activeTo={`${preventAIPathName}new/`}
           >
             {t('Prevent AI')}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item to={pullRequestsPathName} activeTo={pullRequestsPathName}>
+            {t('Pull Requests')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <Feature features={['codecov-ui']}>

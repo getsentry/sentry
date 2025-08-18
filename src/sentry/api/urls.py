@@ -265,6 +265,10 @@ from sentry.issues.endpoints import (
     OrganizationGroupSearchViewsStarredEndpoint,
     OrganizationGroupSearchViewVisitEndpoint,
     OrganizationIssuesCountEndpoint,
+    OrganizationPrCommentsEndpoint,
+    OrganizationPrDataEndpoint,
+    OrganizationPrIssuesEndpoint,
+    OrganizationPullRequestsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
     ProjectEventDetailsEndpoint,
@@ -1828,6 +1832,26 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issues-metrics/$",
         OrganizationIssueMetricsEndpoint.as_view(),
         name="sentry-api-0-organization-issue-metrics",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pr-data/$",
+        OrganizationPrDataEndpoint.as_view(),
+        name="sentry-api-0-organization-pr-data",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pr-issues/$",
+        OrganizationPrIssuesEndpoint.as_view(),
+        name="sentry-api-0-organization-pr-issues",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pr-comments/$",
+        OrganizationPrCommentsEndpoint.as_view(),
+        name="sentry-api-0-organization-pr-comments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/pull-requests/$",
+        OrganizationPullRequestsEndpoint.as_view(),
+        name="sentry-api-0-organization-pull-requests",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/$",

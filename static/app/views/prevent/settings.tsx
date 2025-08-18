@@ -13,3 +13,6 @@ export const TOKENS_BASE_URL = 'tokens';
 
 export const PREVENT_AI_PAGE_TITLE = t('Prevent AI');
 export const PREVENT_AI_BASE_URL = 'prevent-ai';
+
+export const PULL_REQUESTS_PAGE_TITLE = t('Pull Requests');
+export const PULL_REQUESTS_BASE_URL = 'pull-requests';

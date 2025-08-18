@@ -23,6 +23,12 @@ from .organization_group_search_view_visit import OrganizationGroupSearchViewVis
 from .organization_group_search_views import OrganizationGroupSearchViewsEndpoint
 from .organization_group_search_views_starred import OrganizationGroupSearchViewsStarredEndpoint
 from .organization_issues_count import OrganizationIssuesCountEndpoint
+from .organization_pr_issues import (
+    OrganizationPrCommentsEndpoint,
+    OrganizationPrDataEndpoint,
+    OrganizationPrIssuesEndpoint,
+)
+from .organization_pull_requests import OrganizationPullRequestsEndpoint
 from .organization_release_previous_commits import OrganizationReleasePreviousCommitsEndpoint
 from .organization_searches import OrganizationSearchesEndpoint
 from .organization_shortid import ShortIdLookupEndpoint
@@ -61,6 +67,10 @@ __all__ = (
     "OrganizationGroupSearchViewVisitEndpoint",
     "OrganizationGroupSearchViewsStarredEndpoint",
     "OrganizationIssuesCountEndpoint",
+    "OrganizationPrCommentsEndpoint",
+    "OrganizationPrDataEndpoint",
+    "OrganizationPrIssuesEndpoint",
+    "OrganizationPullRequestsEndpoint",
     "OrganizationReleasePreviousCommitsEndpoint",
     "OrganizationSearchesEndpoint",
     "ProjectEventDetailsEndpoint",

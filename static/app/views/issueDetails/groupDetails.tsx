@@ -864,6 +864,28 @@ function GroupDetails() {
   const {group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
   const isSampleError = useIsSampleEvent();
 
+  // Dogfooding: Add errors for testing Sentry in issue details page
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (Math.random() < 0.06) {
+        // 6% chance to trigger
+        // Simulate error accessing undefined object properties
+        const undefinedGroup = undefined;
+        try {
+          // @ts-ignore - intentional error for dogfooding
+          const projectName = undefinedGroup.project.name;
+          console.log('Project name:', projectName);
+        } catch (e) {
+          throw new Error(
+            'Dogfooding test: Cannot read properties of undefined in issue details'
+          );
+        }
+      }
+    }, 2500);
+
+    return () => clearTimeout(timeout);
+  }, [group]);
+
   const getGroupDetailsTitle = () => {
     const defaultTitle = 'Sentry';
 
