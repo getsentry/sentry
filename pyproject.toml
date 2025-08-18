@@ -386,6 +386,7 @@ module = [
     "sentry.db.models.utils",
     "sentry.db.pending_deletion",
     "sentry.deletions.*",
+    "sentry.demo_mode.*",
     "sentry.digests.*",
     "sentry.dynamic_sampling.models.*",
     "sentry.dynamic_sampling.rules.biases.*",
