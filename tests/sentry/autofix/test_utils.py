@@ -50,11 +50,7 @@ class TestGetAutofixStateFromPrId(TestCase):
         mock_response.json.return_value = {
             "state": {
                 "run_id": 123,
-                "request": {
-                    "project_id": 456,
-                    "issue": {"id": 789, "title": "Test Issue"},
-                    "repos": [],
-                },
+                "request": {"project_id": 456, "issue": {"id": 789}},
                 "updated_at": "2023-07-18T12:00:00Z",
                 "status": "PROCESSING",
             }
@@ -66,11 +62,7 @@ class TestGetAutofixStateFromPrId(TestCase):
         # Assertions
         assert result is not None
         assert result.run_id == 123
-        assert result.request == {
-            "project_id": 456,
-            "issue": {"id": 789, "title": "Test Issue"},
-            "repos": [],
-        }
+        assert result.request == {"project_id": 456, "issue": {"id": 789}}
         assert result.updated_at == datetime(2023, 7, 18, 12, 0, tzinfo=timezone.utc)
         assert result.status == AutofixStatus.PROCESSING
 
@@ -117,11 +109,7 @@ class TestGetAutofixState(TestCase):
             "group_id": 123,
             "state": {
                 "run_id": 456,
-                "request": {
-                    "project_id": 789,
-                    "issue": {"id": 123, "title": "Test Issue"},
-                    "repos": [],
-                },
+                "request": {"project_id": 789, "issue": {"id": 123}},
                 "updated_at": "2023-07-18T12:00:00Z",
                 "status": "PROCESSING",
             },
@@ -133,11 +121,7 @@ class TestGetAutofixState(TestCase):
         # Assertions
         assert isinstance(result, AutofixState)
         assert result.run_id == 456
-        assert result.request == {
-            "project_id": 789,
-            "issue": {"id": 123, "title": "Test Issue"},
-            "repos": [],
-        }
+        assert result.request == {"project_id": 789, "issue": {"id": 123}}
         assert result.updated_at == datetime(2023, 7, 18, 12, 0, tzinfo=timezone.utc)
         assert result.status == AutofixStatus.PROCESSING
 
@@ -156,11 +140,7 @@ class TestGetAutofixState(TestCase):
             "run_id": 456,
             "state": {
                 "run_id": 456,
-                "request": {
-                    "project_id": 789,
-                    "issue": {"id": 123, "title": "Test Issue"},
-                    "repos": [],
-                },
+                "request": {"project_id": 789, "issue": {"id": 123}},
                 "updated_at": "2023-07-18T12:00:00Z",
                 "status": "COMPLETED",
             },
@@ -172,11 +152,7 @@ class TestGetAutofixState(TestCase):
         # Assertions
         assert isinstance(result, AutofixState)
         assert result.run_id == 456
-        assert result.request == {
-            "project_id": 789,
-            "issue": {"id": 123, "title": "Test Issue"},
-            "repos": [],
-        }
+        assert result.request == {"project_id": 789, "issue": {"id": 123}}
         assert result.updated_at == datetime(2023, 7, 18, 12, 0, tzinfo=timezone.utc)
         assert result.status == AutofixStatus.COMPLETED
 

@@ -17,7 +17,7 @@ class TestCheckAutofixStatus(TestCase):
         # Mock the get_autofix_state function to return a state that's been processing for too long
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789, "title": "Test Issue"}, "repos": []},
+            request={"project_id": 456, "issue": {"id": 789}},
             updated_at=datetime.now() - timedelta(minutes=10),  # Naive datetime
             status=AutofixStatus.PROCESSING,
         )
@@ -38,7 +38,7 @@ class TestCheckAutofixStatus(TestCase):
         # Mock the get_autofix_state function to return a state that's still within the time limit
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789, "title": "Test Issue"}, "repos": []},
+            request={"project_id": 456, "issue": {"id": 789}},
             updated_at=datetime.now() - timedelta(minutes=3),  # Naive datetime
             status=AutofixStatus.PROCESSING,
         )
@@ -57,7 +57,7 @@ class TestCheckAutofixStatus(TestCase):
         # Mock the get_autofix_state function to return a completed state
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789, "title": "Test Issue"}, "repos": []},
+            request={"project_id": 456, "issue": {"id": 789}},
             updated_at=datetime.now() - timedelta(minutes=10),  # Naive datetime
             status=AutofixStatus.COMPLETED,
         )

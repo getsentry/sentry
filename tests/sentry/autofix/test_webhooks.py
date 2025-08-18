@@ -16,14 +16,9 @@ class AutofixPrWebhookTest(APITestCase):
         "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=AutofixState(
             run_id=1,
-            request={
-                "project_id": 2,
-                "issue": {"id": 3, "title": "Test issue"},
-                "repos": [{"owner": "test", "name": "test"}],
-            },
+            request={"project_id": 2, "issue": {"id": 3}},
             updated_at=datetime.now(timezone.utc),
             status=AutofixStatus.PROCESSING,
-            steps=[],
         ),
     )
     @patch("sentry.seer.autofix.webhooks.analytics.record")
@@ -53,14 +48,9 @@ class AutofixPrWebhookTest(APITestCase):
         "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=AutofixState(
             run_id=1,
-            request={
-                "project_id": 2,
-                "issue": {"id": 3, "title": "Test issue"},
-                "repos": [{"owner": "test", "name": "test"}],
-            },
+            request={"project_id": 2, "issue": {"id": 3}},
             updated_at=datetime.now(timezone.utc),
             status=AutofixStatus.PROCESSING,
-            steps=[],
         ),
     )
     @patch("sentry.seer.autofix.webhooks.analytics.record")
@@ -90,14 +80,9 @@ class AutofixPrWebhookTest(APITestCase):
         "sentry.seer.autofix.webhooks.get_autofix_state_from_pr_id",
         return_value=AutofixState(
             run_id=1,
-            request={
-                "project_id": 2,
-                "issue": {"id": 3, "title": "Test issue"},
-                "repos": [{"owner": "test", "name": "test"}],
-            },
+            request={"project_id": 2, "issue": {"id": 3}},
             updated_at=datetime.now(timezone.utc),
             status=AutofixStatus.PROCESSING,
-            steps=[],
         ),
     )
     @patch("sentry.seer.autofix.webhooks.analytics.record")
