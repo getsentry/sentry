@@ -3,13 +3,14 @@ import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
 
+import {IconSearch} from 'sentry/icons';
+
 import {closeModal} from 'sentry/actionCreators/modal';
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-
 import type {OmniAction} from './types';
 import {useApiDynamicActions} from './useApiDynamicActions';
 import {useCommandDynamicActions} from './useCommandDynamicActions';
@@ -122,73 +123,154 @@ export function OmniSearchPalette() {
   }, [selectedAction]);
 
   return (
-    <Container>
-      <CommandPrimitive.Command label="OmniSearch" shouldFilter={false}>
-        <Header>
-          {focusedArea && <div>{focusedArea.label}</div>}
-          <CommandPrimitive.Command.Input
-            ref={inputRef}
-            autoFocus
-            value={query}
-            onValueChange={setQuery}
-            onKeyDown={e => {
+    <StyledCommand label="OmniSearch" shouldFilter={false}>
+      <Header>{focusedArea && <div>{focusedArea.label}</div>}
+        <IconSearch size="sm" style={{marginRight: 8}} />
+        <CommandPrimitive.Command.Input
+          autoFocus
+          ref={inputRef}
+          value={query}
+          onValueChange={setQuery}
+          onKeyDown={e => {
               if (e.key === 'Backspace' && query === '') {
                 clearSelection();
                 e.preventDefault();
               }
             }}
-            placeholder="Start typing…"
-          />
-        </Header>
-        <CommandPrimitive.Command.List>
-          {grouped.every(g => g.items.length === 0) ? (
-            <CommandPrimitive.Command.Empty>No results</CommandPrimitive.Command.Empty>
-          ) : (
-            grouped.map(group => (
-              <Fragment key={group.sectionKey}>
-                {group.items.length > 0 && (
-                  <CommandPrimitive.Command.Group heading={group.label}>
-                    {group.items.map(item => (
-                      <CommandPrimitive.Command.Item
-                        key={item.key}
-                        onSelect={() => handleSelect(item)}
-                        disabled={item.disabled}
-                      >
-                        <ItemRow>
-                          {item.actionIcon && (
+            placeholder="Search for projects, issues, settings, and more…"
+        />
+      </Header>
+      <CommandPrimitive.Command.List>
+        {grouped.every(g => g.items.length === 0) ? (
+          <CommandPrimitive.Command.Empty>No results</CommandPrimitive.Command.Empty>
+        ) : (
+          grouped.map(group => (
+            <Fragment key={group.sectionKey}>
+              {group.items.length > 0 && (
+                <CommandPrimitive.Command.Group heading={group.label}>
+                  {group.items.map(item => (
+                    <CommandPrimitive.Command.Item
+                      key={item.key}
+                      onSelect={() => handleSelect(item)}
+                      disabled={item.disabled}
+                    >
+                      <ItemRow>
+                        {item.actionIcon && (
                             <IconDefaultsProvider size="sm">
                               {item.actionIcon}
                             </IconDefaultsProvider>
                           )}
-                          <span>{item.label}</span>
-                        </ItemRow>
-                      </CommandPrimitive.Command.Item>
-                    ))}
-                  </CommandPrimitive.Command.Group>
-                )}
-              </Fragment>
-            ))
-          )}
-        </CommandPrimitive.Command.List>
-      </CommandPrimitive.Command>
-    </Container>
+                        <span>{item.label}</span>
+                      </ItemRow>
+                    </CommandPrimitive.Command.Item>
+                  ))}
+                </CommandPrimitive.Command.Group>
+              )}
+            </Fragment>
+          ))
+        )}
+      </CommandPrimitive.Command.List>
+    </StyledCommand>
   );
 }
 
-const Container = styled('div')`
-  width: 640px;
-  max-width: 100%;
-`;
 
 const Header = styled('div')`
-  padding: 8px;
-  border-bottom: 1px solid ${p => p.theme.border};
+  position: relative;
+
+  > *:first-child {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+  }
+`;
+
+const StyledCommand = styled(CommandPrimitive.Command)`
+  &[cmdk-root] {
+    width: 100%;
+    background: ${p => p.theme.background};
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  [cmdk-input] {
+    position: relative;
+    background-color: ${p => p.theme.background};
+    width: 100%;
+    outline: none;
+    border: none;
+    padding: 16px 16px 16px 40px;
+    border-bottom: 1px solid ${p => p.theme.border};
+    font-size: ${p => p.theme.fontSize.lg};
+    line-height: 1;
+  }
+
+  [cmdk-list] {
+    padding: 6px;
+    min-height: 150px;
+    max-height: 500px;
+    overflow-y: auto;
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  [cmdk-group] {
+    margin-top: 8px;
+
+    + * {
+      [cmdk-group-heading] {
+        padding-top: 12px;
+        border-top: 1px solid ${p => p.theme.border};
+      }
+    }
+  }
+
+  [cmdk-group-heading] {
+    text-transform: uppercase;
+    font-size: ${p => p.theme.fontSize.xs};
+    letter-spacing: 0.02em;
+    font-weight: 600;
+    color: ${p => p.theme.subText};
+    padding-bottom: 4px;
+    margin: 0 12px;
+  }
+
+  [cmdk-item] {
+    text-transform: none;
+    padding: 12px;
+    font-size: ${p => p.theme.fontSize.md};
+    color: ${p => p.theme.textColor};
+    cursor: pointer;
+    border-radius: 4px;
+    position: relative;
+    transition: all 0.1s ease-out;
+
+    &[data-selected='true'] {
+      background-color: ${p => p.theme.backgroundSecondary};
+      color: ${p => p.theme.purple400};
+
+      > * {
+        > *:first-child {
+          transform: scale(1.1);
+        }
+      }
+    }
+  }
 `;
 
 const ItemRow = styled('div')`
   display: flex;
   gap: 8px;
   align-items: center;
+
+  > *:first-child {
+    opacity: 0.75;
+    transition: all 0.1s ease-out;
+  }
 `;
 
 export default OmniSearchPalette;
