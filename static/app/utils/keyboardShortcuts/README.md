@@ -25,19 +25,19 @@ Try these navigation shortcuts (press `g` followed by the second key):
 - `g` then `t` - Navigate to Traces
 - `g` then `v` - Navigate to Discover
 - `g` then `l` - Navigate to Logs
-- `g` then `Shift+P` - Navigate to Profiles
+- `g` then `P` - Navigate to Profiles
 - `g` then `y` - Navigate to Replays
 - `g` then `r` - Navigate to Releases
 - `g` then `e` - Navigate to Alerts
 - `g` then `n` - Navigate to Frontend Insights
 - `g` then `b` - Navigate to Backend Insights
-- `g` then `Shift+M` - Navigate to Mobile Insights
+- `g` then `M` - Navigate to Mobile Insights
 - `g` then `a` - Navigate to AI Insights
 - `g` then `c` - Navigate to Crons
 - `g` then `u` - Navigate to Uptime
 - `g` then `s` - Navigate to Settings
 - `g` then `m` - Navigate to Members
-- `g` then `Shift+T` - Navigate to Teams
+- `g` then `T` - Navigate to Teams
 
 ### 4. Test Issues List Navigation
 
