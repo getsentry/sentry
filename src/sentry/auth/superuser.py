@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
-from collections.abc import Container
+from collections.abc import Container, Iterable
 from datetime import datetime, timedelta, timezone
 from typing import Any, Never, TypeIs, overload
 
@@ -21,7 +21,7 @@ import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
@@ -184,10 +184,22 @@ class Superuser(ElevatedMode):
                 return False
         return self._is_active
 
-    def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
+    def __init__(
+        self,
+        request: HttpRequest,
+        allowed_ips: Iterable[Any] | object = UNSET,
+        org_id: int | object = UNSET,
+        current_datetime: datetime | None = None,
+    ) -> None:
         self.uid: str | None = None
         self.request = request
-        if allowed_ips is not UNSET:
+        self.expires: datetime | None = None
+        self.token: str | None = None
+        self._is_active: bool = False
+        self._inactive_reason: InactiveReason = InactiveReason.NONE
+        self.is_valid: bool = False
+
+        if isinstance(allowed_ips, Iterable):
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
             )
@@ -246,7 +258,7 @@ class Superuser(ElevatedMode):
             return False, InactiveReason.INVALID_IP
         return True, InactiveReason.NONE
 
-    def get_session_data(self, current_datetime=None):
+    def get_session_data(self, current_datetime: datetime | None = None) -> dict[str, Any] | None:
         """
         Return the current session data, with native types coerced.
         """
@@ -254,14 +266,17 @@ class Superuser(ElevatedMode):
 
         try:
             cookie_token = request.get_signed_cookie(
-                key=COOKIE_NAME, default=None, salt=COOKIE_SALT, max_age=MAX_AGE.total_seconds()
+                key=COOKIE_NAME,
+                default=None,
+                salt=COOKIE_SALT,
+                max_age=int(MAX_AGE.total_seconds()),
             )
         except BadSignature:
             logger.exception(
                 "superuser.bad-cookie-signature",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return
+            return None
 
         data = request.session.get(SESSION_KEY)
         if not cookie_token:
@@ -270,13 +285,13 @@ class Superuser(ElevatedMode):
                     "superuser.missing-cookie-token",
                     extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 )
-            return
+            return None
         elif not data:
             logger.warning(
                 "superuser.missing-session-data",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return
+            return None
 
         session_token = data.get("tok")
         if not session_token:
@@ -284,14 +299,14 @@ class Superuser(ElevatedMode):
                 "superuser.missing-session-token",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return
+            return None
 
         if not constant_time_compare(cookie_token, session_token):
             logger.warning(
                 "superuser.invalid-token",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return
+            return None
 
         if data["uid"] != str(request.user.id):
             logger.warning(
@@ -302,7 +317,7 @@ class Superuser(ElevatedMode):
                     "expected_user_id": data["uid"],
                 },
             )
-            return
+            return None
 
         if current_datetime is None:
             current_datetime = django_timezone.now()
@@ -315,14 +330,14 @@ class Superuser(ElevatedMode):
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 exc_info=True,
             )
-            return
+            return None
 
         if data["idl"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return
+            return None
 
         try:
             data["exp"] = datetime.fromtimestamp(float(data["exp"]), timezone.utc)
@@ -332,23 +347,24 @@ class Superuser(ElevatedMode):
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 exc_info=True,
             )
-            return
+            return None
 
         if data["exp"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return
+            return None
 
         return data
 
-    def _populate(self, current_datetime=None) -> None:
+    def _populate(self, current_datetime: datetime | None = None) -> None:
         if current_datetime is None:
             current_datetime = django_timezone.now()
 
         request = self.request
-        user = getattr(request, "user", None)
+        user: User | AnonymousUser | None = getattr(request, "user", None)
+        assert user is not None
         if not hasattr(request, "session"):
             data = None
         elif not (user and user.is_superuser):
@@ -380,7 +396,13 @@ class Superuser(ElevatedMode):
                         },
                     )
 
-    def _set_logged_in(self, expires, token, user, current_datetime=None) -> None:
+    def _set_logged_in(
+        self,
+        expires: datetime,
+        token: str,
+        user: User | AnonymousUser,
+        current_datetime: datetime | None = None,
+    ) -> None:
         # we bind uid here, as if you change users in the same request
         # we wouldn't want to still support superuser auth (given
         # the superuser check happens right here)
@@ -414,9 +436,9 @@ class Superuser(ElevatedMode):
 
     def set_logged_in(
         self,
-        user: User | AnonymousUser,
+        user: User,
         current_datetime: datetime | None = None,
-        prefilled_su_modal=None,
+        prefilled_su_modal: dict[str, Any] | None = None,
     ) -> None:
         """
         Mark a session as superuser-enabled.
@@ -427,7 +449,7 @@ class Superuser(ElevatedMode):
 
         token = get_random_string(12)
 
-        def enable_and_log_superuser_access():
+        def enable_and_log_superuser_access() -> None:
             self._set_logged_in(
                 expires=current_datetime + MAX_AGE,
                 token=token,
@@ -474,7 +496,7 @@ class Superuser(ElevatedMode):
                 extra={
                     "superuser_token_id": token,
                     "user_id": request.user.id,
-                    "user_email": request.user.email,
+                    "user_email": request.user.email if isinstance(request.user, User) else None,
                     "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
                     "reason_for_su": su_access_info.validated_data["superuserReason"],
                 },
@@ -495,14 +517,14 @@ class Superuser(ElevatedMode):
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
         )
 
-    def on_response(self, response) -> None:
+    def on_response(self, response: HttpResponse) -> None:
         request = self.request
 
         # always re-bind the cookie to update the idle expiration window
         if self.is_active:
             response.set_signed_cookie(
                 COOKIE_NAME,
-                self.token,
+                self.token or "",
                 salt=COOKIE_SALT,
                 # set max_age to None, as we want this cookie to expire on browser close
                 max_age=None,

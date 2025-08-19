@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
@@ -5,6 +7,7 @@ from sentry.auth.providers.saml2.forms import URLMetadataForm
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.auth.providers.saml2.views import make_simple_setup
 from sentry.auth.view import AuthView
+from sentry.pipeline.base import Pipeline
 
 SelectIdP = make_simple_setup(URLMetadataForm, "sentry_auth_rippling/select-idp.html")
 
@@ -18,7 +21,7 @@ class WaitForCompletion(AuthView):
     This is simply an extra step to wait for them to complete that.
     """
 
-    def handle(self, request: HttpRequest, pipeline) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, pipeline: Pipeline[Any, Any]) -> HttpResponseBase:
         if "continue_setup" in request.POST:
             return pipeline.next_step()
 
