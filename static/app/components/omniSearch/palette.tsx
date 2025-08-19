@@ -197,7 +197,7 @@ export function OmniSearchPalette() {
   return (
     <Fragment>
       <SeeryCharacter animationData={serryLottieAnimation} size={200} />
-      <StyledCommand label="OmniSearch" shouldFilter={false} value={firstItemKey}>
+      <StyledCommand key={firstItemKey} label="OmniSearch" shouldFilter={false}>
         <Header>
           {focusedArea && (
             <FocusedAreaContainer>
