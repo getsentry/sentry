@@ -95,11 +95,6 @@ export interface LogRowItem {
   value: OurLogsResponseItem[OurLogFieldKey];
 }
 
-export interface LogAttributeItem {
-  fieldKey: OurLogFieldKey;
-  value: OurLogsResponseItem[OurLogFieldKey] | null;
-}
-
 export interface EventsLogsResult {
   data: OurLogsResponseItem[];
   meta?: EventsMetaType;
