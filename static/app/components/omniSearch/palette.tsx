@@ -271,13 +271,11 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     background: ${p => p.theme.background};
     border-radius: 6px;
     overflow: hidden;
-    height: 520px;
   }
 
   [cmdk-list] {
     padding: 6px;
-    min-height: 150px;
-    max-height: 500px;
+    height: 500px;
     overflow-y: auto;
 
     &:focus {
@@ -336,6 +334,7 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     color: ${p => p.theme.subText};
     text-align: center;
     padding: 24px 12px;
+    height: 400px;
 
     img {
       width: 100%;
