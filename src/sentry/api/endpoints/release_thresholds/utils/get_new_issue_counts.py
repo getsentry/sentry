@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 
 
 class GroupCountsAnnotation(TypedDict):
-    count: Any
-    threshold_id: Any
+    count: object
+    threshold_id: object
 
 
 GroupWithCounts = Annotated[Group, GroupCountsAnnotation]
