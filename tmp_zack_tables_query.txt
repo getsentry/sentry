@@ -1,9 +1,9 @@
 SQL queries to list tables in tmp_zack schema:
 
 === For PostgreSQL/Redshift ===
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_schema = 'tmp_zack' 
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'tmp_zack'
 ORDER BY table_name;
 
 === For BigQuery ===
@@ -21,18 +21,18 @@ ORDER BY table_name;
 SHOW TABLES FROM tmp_zack;
 
 === Alternative PostgreSQL query ===
-SELECT schemaname, tablename 
-FROM pg_tables 
-WHERE schemaname = 'tmp_zack' 
+SELECT schemaname, tablename
+FROM pg_tables
+WHERE schemaname = 'tmp_zack'
 ORDER BY tablename;
 
 === To get more detailed information (PostgreSQL) ===
-SELECT 
+SELECT
     table_name,
     table_type,
     is_insertable_into
-FROM information_schema.tables 
-WHERE table_schema = 'tmp_zack' 
+FROM information_schema.tables
+WHERE table_schema = 'tmp_zack'
 ORDER BY table_name;
 
 Instructions:
