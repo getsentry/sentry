@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 from django.urls import reverse
 from pytest import fixture
 from rest_framework import status
@@ -229,7 +231,7 @@ class ApiTokensStaffTest(APITestCase):
     url = reverse("sentry-api-0-api-tokens")
 
     @fixture(autouse=True)
-    def _set_staff_option(self):
+    def _set_staff_option(self) -> Generator[None]:
         with override_options({"staff.ga-rollout": True}):
             yield
 

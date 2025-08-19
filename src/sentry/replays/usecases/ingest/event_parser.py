@@ -584,7 +584,7 @@ class HighlightedEvents(TypedDict, total=False):
 
 class HighlightedEventsBuilder:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.events: HighlightedEvents = {
             "canvas_sizes": [],
             "clicks": [],
