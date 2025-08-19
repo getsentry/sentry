@@ -25,6 +25,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
+import {addNavigationEntry} from 'sentry/utils/navigationStorage';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -142,6 +143,11 @@ function App({children, params}: Props) {
   // Update guide store on location change
   const location = useLocation();
   useEffect(() => GuideStore.onURLChange(), [location]);
+
+  // Track navigation history for omni search
+  useEffect(() => {
+    addNavigationEntry(location);
+  }, [location]);
 
   useEffect(() => {
     // Skip loading organization-related data before the user is logged in,

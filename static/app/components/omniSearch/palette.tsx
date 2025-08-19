@@ -8,9 +8,11 @@ import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
 import {strGetFn} from 'sentry/components/search/sources/utils';
+import {IconClock} from 'sentry/icons/iconClock';
 import {IconDocs} from 'sentry/icons/iconDocs';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {useNavigationHistory} from 'sentry/utils/navigationStorage';
 import {useSeenIssues} from 'sentry/utils/seenIssuesStorage';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -44,13 +46,14 @@ export function OmniSearchPalette() {
   const debouncedQuery = useDebouncedValue(query, 300);
 
   const {getSeenIssues} = useSeenIssues();
+  const {getRecentNavigationHistory} = useNavigationHistory();
 
   // Get ALL seen issues (no limit here)
   const allRecentIssueActions: OmniAction[] = useMemo(() => {
     return getSeenIssues().map(issue => ({
       key: `recent-issue-${issue.id}`,
       areaKey: 'recent',
-      section: 'Recently Viewed',
+      section: 'Recently Viewed Issues',
       label: issue.issue.title || issue.issue.id,
       actionIcon: <IconDocs />,
       onAction: () => {
@@ -58,6 +61,23 @@ export function OmniSearchPalette() {
       },
     }));
   }, [navigate, getSeenIssues]);
+
+  // Get recent navigation history (excluding current path to avoid self-navigation)
+  const allNavigationHistoryActions: OmniAction[] = useMemo(() => {
+    return getRecentNavigationHistory(20)
+      .filter(entry => entry.path !== window.location.pathname + window.location.search)
+      .map(entry => ({
+        key: `nav-history-${entry.id}`,
+        areaKey: 'navigation',
+        section: 'Navigation History',
+        label: entry.title,
+        details: entry.path,
+        actionIcon: <IconClock />,
+        onAction: () => {
+          navigate(normalizeUrl(entry.path));
+        },
+      }));
+  }, [navigate, getRecentNavigationHistory]);
 
   // Get dynamic actions from all sources (no filtering - palette handles the search)
   const apiActions = useApiDynamicActions(debouncedQuery);
@@ -84,6 +104,9 @@ export function OmniSearchPalette() {
     []
   );
   const [filteredRecentIssues, setFilteredRecentIssues] = useState<OmniAction[]>([]);
+  const [filteredNavigationHistory, setFilteredNavigationHistory] = useState<
+    OmniAction[]
+  >([]);
 
   // Fuzzy search for general actions
   useEffect(() => {
@@ -115,11 +138,33 @@ export function OmniSearchPalette() {
     }
   }, [allRecentIssueActions, debouncedQuery]);
 
+  // Fuzzy search for navigation history separately to control the limit
+  useEffect(() => {
+    if (debouncedQuery) {
+      createFuzzySearch(allNavigationHistoryActions, {
+        keys: ['label', 'details'],
+        getFn: strGetFn,
+        shouldSort: false,
+      }).then(f => {
+        // Fuzzy search ALL navigation history, then limit to max 8
+        const searchResults = f.search(debouncedQuery).map(r => r.item);
+        setFilteredNavigationHistory(searchResults.slice(0, 8));
+      });
+    } else {
+      // When no query, show first 8 navigation history entries
+      setFilteredNavigationHistory(allNavigationHistoryActions.slice(0, 8));
+    }
+  }, [allNavigationHistoryActions, debouncedQuery]);
+
   const grouped = useMemo(() => {
     // Filter actions based on query
     const actions = debouncedQuery
-      ? [...filteredAvailableActions, ...filteredRecentIssues]
-      : [...filteredRecentIssues, ...availableActions];
+      ? [
+          ...filteredAvailableActions,
+          ...filteredRecentIssues,
+          ...filteredNavigationHistory,
+        ]
+      : [...filteredRecentIssues, ...filteredNavigationHistory, ...availableActions];
 
     // always include the llm routing actions if possible
     actions.push(...llmRoutingActions);
@@ -145,6 +190,7 @@ export function OmniSearchPalette() {
     debouncedQuery,
     filteredAvailableActions,
     filteredRecentIssues,
+    filteredNavigationHistory,
     llmRoutingActions,
   ]);
 
@@ -182,6 +228,7 @@ export function OmniSearchPalette() {
       setQuery('');
       inputRef.current?.focus();
       setFilteredAvailableActions([]);
+      setFilteredNavigationHistory([]);
     }
   }, [selectedAction]);
 
