@@ -1,5 +1,9 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 
+import MemberBadge from 'sentry/components/idBadge/memberBadge';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import {
   createDocIntegrationResults,
   createIntegrationResults,
@@ -13,25 +17,92 @@ import {
 import type {ResultItem} from 'sentry/components/search/sources/types';
 import {IconDocs} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {OmniAction} from './types';
 
 function createOmniAction(result: ResultItem, index: number): OmniAction {
-  return {
-    key: `api-${result.resultType}-${index}`,
-    areaKey: 'global',
-    label: result.title as string,
-    details: (result.description || result.model?.description) ?? '',
-    section: t('Documentation'),
-    actionIcon: <IconDocs />,
-    onAction: () => {
-      if (typeof result.to === 'string') {
-        window.open(result.to, '_blank', 'noreferrer');
-      }
-    },
-  };
+  switch (result.sourceType) {
+    case 'project':
+      return {
+        key: `project-${result.model?.id}`,
+        areaKey: 'global',
+        label: result.title as string,
+        details: (result.description || result.model?.description) ?? '',
+        section: t('Projects'),
+        actionIcon: <ProjectBadge project={result.model} avatarSize={16} hideName />,
+      };
+    case 'team':
+      return {
+        key: `team-${result.model?.id}`,
+        areaKey: 'global',
+        label: result.title as string,
+        details: (result.description || result.model?.description) ?? '',
+        section: t('Teams'),
+        actionIcon: <TeamBadge team={result.model} avatarSize={16} hideName />,
+      };
+    case 'member':
+      return {
+        key: `member-${result.model?.id}`,
+        areaKey: 'global',
+        label: result.title as string,
+        details: (result.description || result.model?.description) ?? '',
+        section: t('Members'),
+        actionIcon: (
+          <MemberBadge member={result.model} avatarSize={16} hideName hideEmail />
+        ),
+      };
+    case 'plugin':
+      return {
+        key: `plugin-${result.model?.id}`,
+        areaKey: 'global',
+        label: result.title as string,
+        details: (result.description || result.model?.description) ?? '',
+        section: t('Plugins'),
+        actionIcon: <PluginIcon pluginId={result.model?.id} size={16} />,
+        onAction: () => {
+          if (typeof result.to === 'string') {
+            window.open(result.to, '_blank', 'noreferrer');
+          }
+        },
+      };
+    case 'integration':
+      return {
+        key: `integration-${result.model?.id}`,
+        areaKey: 'global',
+        label: result.title as string,
+        details: (result.description || result.model?.description) ?? '',
+        section: t('Integrations'),
+      };
+    case 'sentryApp':
+      return {
+        key: `sentry-app-${result.model?.id}`,
+        areaKey: 'global',
+        label: result.title as string,
+        details: (result.description || result.model?.description) ?? '',
+        section: t('Sentry Apps'),
+      };
+    case 'docIntegration':
+      return {
+        key: `doc-integration-${result.model?.id}`,
+        areaKey: 'global',
+        label: result.title as string,
+        details: (result.description || result.model?.description) ?? '',
+        section: t('Doc Integrations'),
+        actionIcon: <IconDocs />,
+      };
+    default:
+      return {
+        key: `api-${result.resultType}-${index}`,
+        areaKey: 'global',
+        label: result.title as string,
+        details: (result.description || result.model?.description) ?? '',
+        section: t('Documentation'),
+        actionIcon: <IconDocs />,
+      };
+  }
 }
 
 /**
@@ -44,6 +115,7 @@ function createOmniAction(result: ResultItem, index: number): OmniAction {
 export function useApiDynamicActions(query: string): OmniAction[] {
   const api = useApi();
   const organization = useOrganization({allowNull: true});
+  const navigate = useNavigate();
   const [results, setResults] = useState<ResultItem[]>([]);
 
   const handleSearch = useCallback(async () => {
@@ -79,12 +151,19 @@ export function useApiDynamicActions(query: string): OmniAction[] {
     const actions: OmniAction[] = [];
     if (query) {
       results.forEach((result, index) => {
-        actions.push(createOmniAction(result, index));
+        actions.push({
+          ...createOmniAction(result, index),
+          onAction: () => {
+            if (result.to) {
+              navigate(result.to);
+            }
+          },
+        });
       });
     }
 
     return actions;
-  }, [query, results]);
+  }, [navigate, query, results]);
 
   return dynamicActions;
 }
