@@ -64,11 +64,18 @@ export function OmniSearchPalette() {
   const [funfact, setFunfact] = useState('');
 
   const handleFunfact = useCallback(() => {
-    fetch('https://cmdkllm-12459da2e71a.herokuapp.com/call', {
+    const url =
+      process.env.NODE_ENV === 'development'
+        ? 'http://localhost:5000/call'
+        : 'https://cmdkllm-12459da2e71a.herokuapp.com/call';
+    fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        message: 'test',
+      }),
     })
       .then(res => res.json())
       .then(data => {
@@ -137,34 +144,6 @@ export function OmniSearchPalette() {
     }
   }, [selectedAction]);
 
-  if (query === 'llm fun fact') {
-    handleFunfact();
-    return (
-      <StyledCommand label="OmniSearch" shouldFilter={false}>
-        <Header>
-          {focusedArea && <div>{focusedArea.label}</div>}
-          <IconSearch size="sm" style={{marginRight: 8}} />
-          <CommandPrimitive.Command.Input
-            autoFocus
-            ref={inputRef}
-            value={query}
-            onValueChange={setQuery}
-            onKeyDown={e => {
-              if (e.key === 'Backspace') {
-                clearSelection();
-                e.preventDefault();
-              }
-            }}
-            placeholder="Search for projects, issues, settings, and more…"
-          />
-        </Header>
-        <CommandPrimitive.Command.List>
-          <CommandPrimitive.Command.Item>{funfact}</CommandPrimitive.Command.Item>
-        </CommandPrimitive.Command.List>
-      </StyledCommand>
-    );
-  }
-
   return (
     <StyledCommand label="OmniSearch" shouldFilter={false}>
       <Header>
@@ -214,6 +193,10 @@ export function OmniSearchPalette() {
           ))
         )}
       </CommandPrimitive.Command.List>
+      <button onClick={handleFunfact}>Get Fun Fact</button>
+      {funfact && (
+        <CommandPrimitive.Command.Item>{funfact}</CommandPrimitive.Command.Item>
+      )}
     </StyledCommand>
   );
 }
