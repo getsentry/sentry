@@ -102,7 +102,7 @@ export function useRouteDynamicActions(): OmniAction[] {
 
     return navigationItems.map((item, index) => ({
       key: `route-${index}`,
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: item.title,
       details: item.description as string,
       section: 'Navigation',

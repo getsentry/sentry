@@ -12,10 +12,27 @@ import {
 } from 'sentry/components/search/sources/apiSource';
 import type {ResultItem} from 'sentry/components/search/sources/types';
 import {IconDocs} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {OmniAction} from './types';
+
+function createOmniAction(result: ResultItem, index: number): OmniAction {
+  return {
+    key: `api-${result.resultType}-${index}`,
+    areaKey: 'global',
+    label: result.title as string,
+    details: (result.description || result.model?.description) ?? '',
+    section: t('Documentation'),
+    actionIcon: <IconDocs />,
+    onAction: () => {
+      if (typeof result.to === 'string') {
+        window.open(result.to, '_blank', 'noreferrer');
+      }
+    },
+  };
+}
 
 /**
  * Hook that fetches API results and converts them to dynamic actions
@@ -62,17 +79,7 @@ export function useApiDynamicActions(query: string): OmniAction[] {
     const actions: OmniAction[] = [];
     if (query) {
       results.forEach((result, index) => {
-        actions.push({
-          key: `api-${index}`,
-          areaKey: 'navigate',
-          label: result.title as string,
-          actionIcon: <IconDocs />,
-          onAction: () => {
-            if (typeof result.to === 'string') {
-              window.open(result.to, '_blank', 'noreferrer');
-            }
-          },
-        });
+        actions.push(createOmniAction(result, index));
       });
     }
 

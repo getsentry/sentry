@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {IconBusiness} from 'sentry/icons';
+import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -16,14 +16,14 @@ import type {OmniAction} from './types';
 export function useOrganizationsDynamicActions(): OmniAction[] {
   const {organizations} = useLegacyStore(OrganizationsStore);
 
-  const dynamicActions = useMemo(() => {
+  const dynamicActions = useMemo<OmniAction[]>(() => {
     return organizations.map((org, index) => ({
       key: `org-${index}`,
       areaKey: 'navigate',
       label: org.name,
       details: t('Switch to the %s organization', org.slug),
       section: 'Organizations',
-      actionIcon: <IconBusiness />,
+      actionIcon: <OrganizationBadge organization={org} hideName avatarSize={16} />,
       to: `/${org.slug}/`,
     }));
   }, [organizations]);

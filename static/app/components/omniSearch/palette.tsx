@@ -48,11 +48,11 @@ export function OmniSearchPalette() {
   // Combine all dynamic actions
   const dynamicActions = useMemo(
     () => [
-      ...apiActions,
-      ...formActions,
       ...routeActions,
       ...orgActions,
       ...commandActions,
+      ...formActions,
+      ...apiActions,
     ],
     [apiActions, formActions, routeActions, orgActions, commandActions]
   );
@@ -158,10 +158,13 @@ export function OmniSearchPalette() {
                       <ItemRow>
                         {item.actionIcon && (
                           <IconDefaultsProvider size="sm">
-                            {item.actionIcon}
+                            <IconWrapper>{item.actionIcon}</IconWrapper>
                           </IconDefaultsProvider>
                         )}
-                        <span>{item.label}</span>
+                        <OverflowHidden>
+                          <div>{item.label}</div>
+                          {item.details && <ItemDetails>{item.details}</ItemDetails>}
+                        </OverflowHidden>
                       </ItemRow>
                     </CommandPrimitive.Command.Item>
                   ))}
@@ -185,6 +188,14 @@ const Header = styled('div')`
     transform: translateY(-50%);
     z-index: 1;
   }
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  width: 18px;
 `;
 
 const StyledCommand = styled(CommandPrimitive.Command)`
@@ -254,25 +265,33 @@ const StyledCommand = styled(CommandPrimitive.Command)`
       background-color: ${p => p.theme.backgroundSecondary};
       color: ${p => p.theme.purple400};
 
-      > * {
-        > *:first-child {
-          /* Only scale if the first child is an svg (icon) */
-          &:is(svg, [data-icon], .icon) {
-            transform: scale(1.1);
-          }
-        }
+      ${IconWrapper} {
+        transform: scale(1.1);
       }
     }
   }
 `;
 
 const ItemRow = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
   gap: 8px;
-  align-items: center;
+  align-items: start;
+  justify-content: start;
+  overflow: hidden;
 
   > *:first-child {
     opacity: 0.75;
     transition: all 0.1s ease-out;
   }
+`;
+
+const ItemDetails = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const OverflowHidden = styled('div')`
+  overflow: hidden;
 `;
