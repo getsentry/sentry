@@ -372,15 +372,17 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
 
       {/* Root Cause Analysis Section */}
       {rootCauseData && (
-        <RootCauseSection>
-          <AutofixRootCause
-            causes={rootCauseData.causes}
-            groupId={group.id}
-            runId={rootCauseData.runId}
-            rootCauseSelection={null}
-            event={event}
-          />
-        </RootCauseSection>
+        <RootCauseWrapper>
+          <RootCauseCard>
+            <AutofixRootCause
+              causes={rootCauseData.causes}
+              groupId={group.id}
+              runId={rootCauseData.runId}
+              rootCauseSelection={null}
+              event={event}
+            />
+          </RootCauseCard>
+        </RootCauseWrapper>
       )}
     </AIContainer>
   );
@@ -391,6 +393,7 @@ const AIContainer = styled('div')`
   flex-wrap: wrap;
   gap: ${space(3)};
   padding: ${space(2)} 0;
+  align-items: stretch;
   
   @media (max-width: 1600px) {
     flex-direction: column;
@@ -400,7 +403,7 @@ const AIContainer = styled('div')`
 const SeverityCard = styled(Card)`
   max-width: 768px;
   flex: 1 1 auto;
-  align-self: flex-start;
+  min-height: 500px;
 `;
 
 const AnalysisCard = styled(Card)`
@@ -635,9 +638,38 @@ const VolumeItem = styled('div')`
   color: ${p => p.theme.textColor};
 `;
 
-const RootCauseSection = styled('div')`
+const RootCauseWrapper = styled('div')`
   max-width: 768px;
   flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+`;
+
+const RootCauseCard = styled(Card)`
+  width: 100%;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+  
+  /* Make the AutofixRootCause component flex */
+  > div {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    
+    /* Make the content area flex */
+    > div {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      
+      /* Push the last child (button container) to bottom */
+      > *:last-child {
+        margin-top: auto;
+        padding-top: ${space(2)};
+      }
+    }
+  }
 `;
 
 const CollapsibleSectionHeader = styled('button')`
