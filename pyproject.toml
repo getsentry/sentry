@@ -354,7 +354,7 @@ module = [
     "sentry.api.endpoints.organization_events_spans_performance",
     "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.project_rules_configuration",
-    "sentry.api.endpoints.release_thresholds.health_checks.*",
+    "sentry.api.endpoints.release_thresholds.*",
     "sentry.api.event_search",
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.environments",
