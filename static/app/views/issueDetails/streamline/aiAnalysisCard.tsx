@@ -394,19 +394,8 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   return (
     <AILayoutContainer>
       <MainContent>
-        <SeverityCard>
-          <CardHeader>
-            <HeaderLeft>
-              <CardTitle>
-                <IconSeer size="md" />
-                {t('Severity')}
-              </CardTitle>
-              <SeverityPill colors={getSeverityColor(analysisData.analysis.severity)}>
-                {analysisData.analysis.severity}
-              </SeverityPill>
-            </HeaderLeft>
-          </CardHeader>
-          
+        {/* Header Section */}
+        <HeaderCard>
           <CardContent>
             {analysisData.success ? (
               <Fragment>
@@ -428,14 +417,6 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                   
                   <MetricsSection>
                     <MetricItem>
-                      <MetricLabel>{t('Events')}</MetricLabel>
-                      <MetricValue>
-                        {analysisData.analysis.metrics.events.count.toLocaleString()}
-                        <MetricSubtitle>over {analysisData.analysis.metrics.events.timeframe}</MetricSubtitle>
-                      </MetricValue>
-                    </MetricItem>
-                    
-                    <MetricItem>
                       <MetricLabel>{t('Failure Rate')}</MetricLabel>
                       <MetricValue>{analysisData.analysis.metrics.failureRate.percentage}%</MetricValue>
                     </MetricItem>
@@ -446,7 +427,31 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                     </MetricItem>
                   </MetricsSection>
                 </TimelineMetricsRow>
+              </Fragment>
+            ) : (
+              <ErrorMessage>
+                {t('Failed to load issue details: %s', analysisData.error || 'Unknown error')}
+              </ErrorMessage>
+            )}
+          </CardContent>
+        </HeaderCard>
 
+        <SeverityCard>
+          <CardHeader>
+            <HeaderLeft>
+              <CardTitle>
+                <IconSeer size="md" />
+                {t('Severity')}
+              </CardTitle>
+              <SeverityPill colors={getSeverityColor(analysisData.analysis.severity)}>
+                {analysisData.analysis.severity}
+              </SeverityPill>
+            </HeaderLeft>
+          </CardHeader>
+          
+          <CardContent>
+            {analysisData.success ? (
+              <Fragment>
                 {/* Analysis Sections */}
                 <AnalysisSection>
                   <SectionTitle>{t('Impact')}</SectionTitle>
@@ -763,6 +768,11 @@ const SidebarCard = styled(Card)`
   flex-direction: column;
 `;
 
+const HeaderCard = styled(Card)`
+  max-width: 768px;
+  width: 100%;
+`;
+
 const SeverityCard = styled(Card)`
   max-width: 768px;
 `;
@@ -888,7 +898,7 @@ const SeverityPill = styled('span')<{colors: {background: string; text: string}}
 
 const IssueTitle = styled('h4')`
   margin: 0 0 ${space(2)} 0;
-  font-size: ${p => p.theme.fontSize.lg};
+  font-size: ${p => p.theme.fontSize.xl};
   font-weight: 600;
   color: ${p => p.theme.textColor};
   line-height: 1.3;
