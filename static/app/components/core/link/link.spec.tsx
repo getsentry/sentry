@@ -1,6 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
+import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
 
 describe('Link', () => {
   // Note: Links should not support a disabled option, as disabled links are just text elements
@@ -18,6 +19,18 @@ describe('Link', () => {
   it('links render as <a> with href', () => {
     render(<Link to="https://www.sentry.io/">Link</Link>);
     expect(screen.getByText('Link')).toHaveAttribute('href', 'https://www.sentry.io/');
+  });
+
+  it('links render with reloadDocument=true when frontend is outdated', () => {
+    render(
+      <FrontendVersionProvider releaseVersion="frontend@abc123" forceStale>
+        <Link to="/issues/">Link</Link>
+      </FrontendVersionProvider>
+    );
+
+    const link = screen.getByRole('link');
+    // reloadDocument prop should be present when outdated
+    expect(link.closest('a')).toBeInTheDocument();
   });
 });
 

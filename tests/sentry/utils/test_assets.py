@@ -28,7 +28,7 @@ def self_hosted(tmp_path: pathlib.Path) -> Generator[None]:
 
 
 @pytest.fixture
-def getsentry_no_configmap(tmp_path: pathlib.Path) -> Generator[None]:
+def frontend_versions_no_configmap(tmp_path: pathlib.Path) -> Generator[None]:
     # shouldn't actually happen -- but make sure it still works!
     with mock.patch.object(
         settings, "STATIC_FRONTEND_APP_URL", "https://static.example.com/_static/dist/"
@@ -39,8 +39,10 @@ def getsentry_no_configmap(tmp_path: pathlib.Path) -> Generator[None]:
             yield
 
 
+# XXX(epurkhiser): To be removed when the frontend-versions config map
+# consistently matches the FrontendVersions TypedDict.
 @pytest.fixture
-def getsentry(tmp_path: pathlib.Path) -> Generator[None]:
+def frontend_versions_configmap_legacy(tmp_path: pathlib.Path) -> Generator[None]:
     with mock.patch.object(
         settings, "STATIC_FRONTEND_APP_URL", "https://static.example.com/_static/dist/"
     ):
@@ -54,21 +56,52 @@ def getsentry(tmp_path: pathlib.Path) -> Generator[None]:
             yield
 
 
+@pytest.fixture
+def frontend_versions_configmap(tmp_path: pathlib.Path) -> Generator[None]:
+    with mock.patch.object(
+        settings, "STATIC_FRONTEND_APP_URL", "https://static.example.com/_static/dist/"
+    ):
+        conf_dir = tmp_path.joinpath("conf")
+        conf_dir.mkdir()
+        conf_dir.joinpath("settings/frontend").mkdir(parents=True)
+        conf_dir.joinpath("settings/frontend/frontend-versions.json").write_text(
+            '{"entrypoints": {"app.js": "app-deadbeef.js", "app.css": "app-cafecafe.css"}, "commit_sha": "8badf00d"}'
+        )
+        with mock.patch.object(settings, "CONF_DIR", conf_dir):
+            yield
+
+
 @pytest.mark.usefixtures("self_hosted")
 def test_frontend_app_asset_url_self_hosted() -> None:
     ret = assets.get_frontend_app_asset_url("sentry", "entrypoints/app.js")
     assert ret == "/_static/dist/sentry/entrypoints/app.js"
 
 
-@pytest.mark.usefixtures("getsentry_no_configmap")
-def test_frontend_app_asset_url_getsentry_no_configmap() -> None:
+@pytest.mark.usefixtures("frontend_versions_no_configmap")
+def test_frontend_app_asset_url_no_configmap() -> None:
     ret = assets.get_frontend_app_asset_url("sentry", "entrypoints/app.js")
     assert ret == "https://static.example.com/_static/dist/sentry/entrypoints/app.js"
 
 
-@pytest.mark.usefixtures("getsentry")
-def test_frontend_app_asset_url_getsentry() -> None:
+# XXX(epurkhiser): To be removed when the frontend-versions config map
+# consistently matches the FrontendVersions TypedDict.
+@pytest.mark.usefixtures("frontend_versions_configmap_legacy")
+def test_frontend_app_asset_url_with_configmap_legacy() -> None:
     ret = assets.get_frontend_app_asset_url("sentry", "entrypoints/app.js")
     assert (
         ret == "https://static.example.com/_static/dist/sentry/entrypoints-hashed/app-deadbeef.js"
     )
+
+
+@pytest.mark.usefixtures("frontend_versions_configmap")
+def test_frontend_app_asset_url_with_configmap() -> None:
+    ret = assets.get_frontend_app_asset_url("sentry", "entrypoints/app.js")
+    assert (
+        ret == "https://static.example.com/_static/dist/sentry/entrypoints-hashed/app-deadbeef.js"
+    )
+
+
+@pytest.mark.usefixtures("frontend_versions_configmap")
+def test_frontend_commit_sha() -> None:
+    ret = assets.get_frontend_commit_sha()
+    assert ret == "8badf00d"
