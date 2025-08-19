@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 from uuid import uuid4
 
 import jsonschema
+import sentry_sdk
 
 from sentry import features
 from sentry.constants import DataCategory
@@ -61,215 +62,287 @@ class FeedbackCreationSource(Enum):
 
 
 def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
-    evidence_data = {}
-    evidence_display = []
-    if feedback.get("associated_event_id"):
-        evidence_data["associated_event_id"] = feedback["associated_event_id"]
-        evidence_display.append(
-            IssueEvidence(
-                name="associated_event_id", value=feedback["associated_event_id"], important=False
+    with sentry_sdk.start_span(
+        op="feedback.evidence.create",
+        description="Creating feedback evidence",
+    ) as span:
+        span.set_tag("feedback.source", source.value)
+        span.set_tag("feedback.has_associated_event", bool(feedback.get("associated_event_id")))
+        span.set_tag("feedback.has_contact_email", bool(feedback.get("contact_email")))
+        span.set_tag("feedback.is_spam", is_message_spam)
+        
+        evidence_data = {}
+        evidence_display = []
+        if feedback.get("associated_event_id"):
+            evidence_data["associated_event_id"] = feedback["associated_event_id"]
+            evidence_display.append(
+                IssueEvidence(
+                    name="associated_event_id", value=feedback["associated_event_id"], important=False
+                )
             )
-        )
-    if feedback.get("contact_email"):
-        evidence_data["contact_email"] = feedback["contact_email"]
-        evidence_display.append(
-            IssueEvidence(name="contact_email", value=feedback["contact_email"], important=False)
-        )
-    if feedback.get("message"):
-        evidence_data["message"] = feedback["message"]
-        evidence_display.append(
-            IssueEvidence(name="message", value=feedback["message"], important=True)
-        )
-    if feedback.get("name"):
-        evidence_data["name"] = feedback["name"]
-        evidence_display.append(IssueEvidence(name="name", value=feedback["name"], important=False))
+        if feedback.get("contact_email"):
+            evidence_data["contact_email"] = feedback["contact_email"]
+            evidence_display.append(
+                IssueEvidence(name="contact_email", value=feedback["contact_email"], important=False)
+            )
+        if feedback.get("message"):
+            evidence_data["message"] = feedback["message"]
+            evidence_display.append(
+                IssueEvidence(name="message", value=feedback["message"], important=True)
+            )
+        if feedback.get("name"):
+            evidence_data["name"] = feedback["name"]
+            evidence_display.append(IssueEvidence(name="name", value=feedback["name"], important=False))
 
-    evidence_data["source"] = source.value
-    evidence_display.append(IssueEvidence(name="source", value=source.value, important=False))
+        evidence_data["source"] = source.value
+        evidence_display.append(IssueEvidence(name="source", value=source.value, important=False))
 
-    if is_message_spam is True:
-        evidence_data["is_spam"] = str(is_message_spam)
-        evidence_display.append(
-            IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
-        )
+        if is_message_spam is True:
+            evidence_data["is_spam"] = str(is_message_spam)
+            evidence_display.append(
+                IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
+            )
 
-    return evidence_data, evidence_display
+        span.set_data("evidence.count", len(evidence_display))
+        return evidence_data, evidence_display
 
 
 def fix_for_issue_platform(event_data):
-    # the issue platform has slightly different requirements than ingest
-    # for event schema, so we need to massage the data a bit
-    ret_event: dict[str, Any] = {}
+    with sentry_sdk.start_span(
+        op="feedback.event.transform",
+        description="Transforming event data for issue platform",
+    ) as span:
+        project_id = event_data.get("project_id")
+        span.set_tag("feedback.project_id", project_id)
+        span.set_tag("feedback.has_replay", bool(
+            event_data.get("contexts", {}).get("feedback", {}).get("replay_id")
+        ))
+        
+        # the issue platform has slightly different requirements than ingest
+        # for event schema, so we need to massage the data a bit
+        ret_event: dict[str, Any] = {}
 
-    ret_event["timestamp"] = datetime.fromtimestamp(event_data["timestamp"], UTC).isoformat()
+        ret_event["timestamp"] = datetime.fromtimestamp(event_data["timestamp"], UTC).isoformat()
 
-    ret_event["received"] = event_data["received"]
+        ret_event["received"] = event_data["received"]
 
-    ret_event["project_id"] = event_data["project_id"]
+        ret_event["project_id"] = event_data["project_id"]
 
-    ret_event["contexts"] = event_data.get("contexts", {})
+        ret_event["contexts"] = event_data.get("contexts", {})
 
-    # TODO: remove this once feedback_ingest API deprecated
-    # as replay context will be filled in
-    if not event_data["contexts"].get("replay") and event_data["contexts"].get("feedback", {}).get(
-        "replay_id"
-    ):
-        ret_event["contexts"]["replay"] = {
-            "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
-        }
-    ret_event["event_id"] = event_data["event_id"]
-    ret_event["tags"] = event_data.get("tags", [])
+        # TODO: remove this once feedback_ingest API deprecated
+        # as replay context will be filled in
+        if not event_data["contexts"].get("replay") and event_data["contexts"].get("feedback", {}).get(
+            "replay_id"
+        ):
+            ret_event["contexts"]["replay"] = {
+                "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
+            }
+        ret_event["event_id"] = event_data["event_id"]
+        ret_event["tags"] = event_data.get("tags", [])
 
-    ret_event["platform"] = event_data.get("platform", "other")
-    ret_event["level"] = event_data.get("level", "info")
+        ret_event["platform"] = event_data.get("platform", "other")
+        ret_event["level"] = event_data.get("level", "info")
 
-    ret_event["environment"] = event_data.get("environment", "production")
-    if event_data.get("sdk"):
-        ret_event["sdk"] = event_data["sdk"]
-    ret_event["request"] = event_data.get("request", {})
+        ret_event["environment"] = event_data.get("environment", "production")
+        if event_data.get("sdk"):
+            ret_event["sdk"] = event_data["sdk"]
+        ret_event["request"] = event_data.get("request", {})
 
-    ret_event["user"] = event_data.get("user", {})
+        ret_event["user"] = event_data.get("user", {})
 
-    if event_data.get("dist") is not None:
-        del event_data["dist"]
-    if event_data.get("user", {}).get("name") is not None:
-        del event_data["user"]["name"]
-    if event_data.get("user", {}).get("isStaff") is not None:
-        del event_data["user"]["isStaff"]
+        if event_data.get("dist") is not None:
+            del event_data["dist"]
+        if event_data.get("user", {}).get("name") is not None:
+            del event_data["user"]["name"]
+        if event_data.get("user", {}).get("isStaff") is not None:
+            del event_data["user"]["isStaff"]
 
-    if event_data.get("user", {}).get("id") is not None:
-        event_data["user"]["id"] = str(event_data["user"]["id"])
+        if event_data.get("user", {}).get("id") is not None:
+            event_data["user"]["id"] = str(event_data["user"]["id"])
 
-    # If no user email was provided specify the contact-email as the user-email.
-    feedback_obj = event_data.get("contexts", {}).get("feedback", {})
-    contact_email = feedback_obj.get("contact_email")
-    if not ret_event["user"].get("email", ""):
-        ret_event["user"]["email"] = contact_email
+        # If no user email was provided specify the contact-email as the user-email.
+        feedback_obj = event_data.get("contexts", {}).get("feedback", {})
+        contact_email = feedback_obj.get("contact_email")
+        if not ret_event["user"].get("email", ""):
+            ret_event["user"]["email"] = contact_email
 
-    # Set the event message to the feedback message.
-    ret_event["logentry"] = {"message": feedback_obj.get("message")}
+        # Set the event message to the feedback message.
+        ret_event["logentry"] = {"message": feedback_obj.get("message")}
 
-    return ret_event
+        span.set_data("event.platform", ret_event["platform"])
+        span.set_data("event.level", ret_event["level"])
+        span.set_data("event.environment", ret_event["environment"])
+        
+        return ret_event
 
 
 def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
-    # Right now all unreal error events without a feedback
-    # actually get a sent a feedback with this message
-    # signifying there is no feedback. Let's go ahead and filter these.
+    with sentry_sdk.start_span(
+        op="feedback.filter.check",
+        description="Checking if feedback should be filtered",
+    ) as span:
+        span.set_tag("feedback.project_id", project_id)
+        span.set_tag("feedback.source", source.value)
+        
+        # Right now all unreal error events without a feedback
+        # actually get a sent a feedback with this message
+        # signifying there is no feedback. Let's go ahead and filter these.
 
-    if (
-        event.get("contexts") is None
-        or event["contexts"].get("feedback") is None
-        or event["contexts"]["feedback"].get("message") is None
-    ):
-        metrics.incr(
-            "feedback.create_feedback_issue.filtered",
-            tags={"reason": "missing_context"},
-        )
-        return True
+        if (
+            event.get("contexts") is None
+            or event["contexts"].get("feedback") is None
+            or event["contexts"]["feedback"].get("message") is None
+        ):
+            span.set_tag("feedback.filter_reason", "missing_context")
+            span.set_tag("feedback.filtered", True)
+            metrics.incr(
+                "feedback.create_feedback_issue.filtered",
+                tags={"reason": "missing_context"},
+            )
+            return True
 
-    if event["contexts"]["feedback"]["message"] == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
-        metrics.incr(
-            "feedback.create_feedback_issue.filtered",
-            tags={"reason": "unreal.unattended"},
-        )
-        return True
+        if event["contexts"]["feedback"]["message"] == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
+            span.set_tag("feedback.filter_reason", "unreal.unattended")
+            span.set_tag("feedback.filtered", True)
+            metrics.incr(
+                "feedback.create_feedback_issue.filtered",
+                tags={"reason": "unreal.unattended"},
+            )
+            return True
 
-    if event["contexts"]["feedback"]["message"].strip() == "":
-        metrics.incr("feedback.create_feedback_issue.filtered", tags={"reason": "empty"})
-        return True
+        if event["contexts"]["feedback"]["message"].strip() == "":
+            span.set_tag("feedback.filter_reason", "empty")
+            span.set_tag("feedback.filtered", True)
+            metrics.incr("feedback.create_feedback_issue.filtered", tags={"reason": "empty"})
+            return True
 
-    return False
+        span.set_tag("feedback.filtered", False)
+        return False
 
 
 def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
-    metrics.incr("feedback.create_feedback_issue.entered")
+    with sentry_sdk.start_span(
+        op="feedback.issue.create",
+        description="Creating feedback issue",
+    ) as span:
+        span.set_tag("feedback.project_id", project_id)
+        span.set_tag("feedback.source", source.value)
+        
+        metrics.incr("feedback.create_feedback_issue.entered")
 
-    if should_filter_feedback(event, project_id, source):
-        return
+        if should_filter_feedback(event, project_id, source):
+            span.set_tag("feedback.result", "filtered")
+            return
 
-    project = Project.objects.get_from_cache(id=project_id)
+        project = Project.objects.get_from_cache(id=project_id)
+        span.set_tag("feedback.organization_id", project.organization_id)
 
-    is_message_spam = None
-    if features.has(
-        "organizations:user-feedback-spam-filter-ingest", project.organization
-    ) and project.get_option("sentry:feedback_ai_spam_detection"):
-        try:
-            is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
-        except Exception:
-            # until we have LLM error types ironed out, just catch all exceptions
-            logger.exception("Error checking if message is spam")
+        is_message_spam = None
+        if features.has(
+            "organizations:user-feedback-spam-filter-ingest", project.organization
+        ) and project.get_option("sentry:feedback_ai_spam_detection"):
+            try:
+                with sentry_sdk.start_span(
+                    op="feedback.spam.check",
+                    description="Checking feedback for spam",
+                ) as spam_span:
+                    is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
+                    spam_span.set_tag("feedback.is_spam", is_message_spam)
+            except Exception:
+                # until we have LLM error types ironed out, just catch all exceptions
+                logger.exception("Error checking if message is spam")
 
-    # Note that some of the fields below like title and subtitle
-    # are not used by the feedback UI, but are required.
-    event["event_id"] = event.get("event_id") or uuid4().hex
-    detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
-    evidence_data, evidence_display = make_evidence(
-        event["contexts"]["feedback"], source, is_message_spam
-    )
-    issue_fingerprint = [uuid4().hex]
-    occurrence = IssueOccurrence(
-        id=uuid4().hex,
-        event_id=event.get("event_id") or uuid4().hex,
-        project_id=project_id,
-        fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
-        issue_title="User Feedback",
-        subtitle=event["contexts"]["feedback"]["message"],
-        resource_id=None,
-        evidence_data=evidence_data,
-        evidence_display=evidence_display,
-        type=FeedbackGroup,
-        detection_time=detection_time,
-        culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
-        level=event.get("level", "info"),
-    )
-    now = datetime.now()
+        # Note that some of the fields below like title and subtitle
+        # are not used by the feedback UI, but are required.
+        event["event_id"] = event.get("event_id") or uuid4().hex
+        detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
+        evidence_data, evidence_display = make_evidence(
+            event["contexts"]["feedback"], source, is_message_spam
+        )
+        issue_fingerprint = [uuid4().hex]
+        occurrence = IssueOccurrence(
+            id=uuid4().hex,
+            event_id=event.get("event_id") or uuid4().hex,
+            project_id=project_id,
+            fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
+            issue_title="User Feedback",
+            subtitle=event["contexts"]["feedback"]["message"],
+            resource_id=None,
+            evidence_data=evidence_data,
+            evidence_display=evidence_display,
+            type=FeedbackGroup,
+            detection_time=detection_time,
+            culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
+            level=event.get("level", "info"),
+        )
+        now = datetime.now()
 
-    event_data = {
-        "project_id": project_id,
-        "received": now.isoformat(),
-        "tags": event.get("tags", {}),
-        **event,
-    }
-    event_fixed = fix_for_issue_platform(event_data)
+        event_data = {
+            "project_id": project_id,
+            "received": now.isoformat(),
+            "tags": event.get("tags", {}),
+            **event,
+        }
+        event_fixed = fix_for_issue_platform(event_data)
 
-    # make sure event data is valid for issue platform
-    validate_issue_platform_event_schema(event_fixed)
+        # make sure event data is valid for issue platform
+        with sentry_sdk.start_span(
+            op="feedback.event.validate",
+            description="Validating event schema",
+        ) as validate_span:
+            validate_issue_platform_event_schema(event_fixed)
+            validate_span.set_tag("validation.success", True)
 
-    if not project.flags.has_feedbacks:
-        first_feedback_received.send_robust(project=project, sender=Project)
+        if not project.flags.has_feedbacks:
+            first_feedback_received.send_robust(project=project, sender=Project)
+            span.set_tag("feedback.first_feedback", True)
 
-    if (
-        source
-        in [
-            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT,
-        ]
-        and not project.flags.has_new_feedbacks
-    ):
-        first_new_feedback_received.send_robust(project=project, sender=Project)
+        if (
+            source
+            in [
+                FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+                FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT,
+            ]
+            and not project.flags.has_new_feedbacks
+        ):
+            first_new_feedback_received.send_robust(project=project, sender=Project)
+            span.set_tag("feedback.first_new_feedback", True)
 
-    produce_occurrence_to_kafka(
-        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
-    )
-    if is_message_spam:
-        auto_ignore_spam_feedbacks(project, issue_fingerprint)
-    metrics.incr(
-        "feedback.create_feedback_issue.produced_occurrence",
-        tags={"referrer": source.value},
-        sample_rate=1.0,
-    )
-    track_outcome(
-        org_id=project.organization_id,
-        project_id=project_id,
-        key_id=None,
-        outcome=Outcome.ACCEPTED,
-        reason=None,
-        timestamp=detection_time,
-        event_id=event["event_id"],
-        category=DataCategory.USER_REPORT_V2,
-        quantity=1,
-    )
+        with sentry_sdk.start_span(
+            op="feedback.kafka.produce",
+            description="Producing occurrence to Kafka",
+        ) as kafka_span:
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
+            )
+            kafka_span.set_tag("kafka.payload_type", "occurrence")
+            
+        if is_message_spam:
+            auto_ignore_spam_feedbacks(project, issue_fingerprint)
+            span.set_tag("feedback.auto_ignored_spam", True)
+            
+        metrics.incr(
+            "feedback.create_feedback_issue.produced_occurrence",
+            tags={"referrer": source.value},
+            sample_rate=1.0,
+        )
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project_id,
+            key_id=None,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=detection_time,
+            event_id=event["event_id"],
+            category=DataCategory.USER_REPORT_V2,
+            quantity=1,
+        )
+        
+        span.set_tag("feedback.result", "created")
+        span.set_tag("feedback.event_id", event["event_id"])
+        span.set_data("feedback.message_length", len(event["contexts"]["feedback"]["message"]))
+        span.set_data("feedback.has_replay", bool(event.get("contexts", {}).get("replay", {}).get("replay_id")))
 
 
 def validate_issue_platform_event_schema(event_data):
@@ -277,14 +350,23 @@ def validate_issue_platform_event_schema(event_data):
     The issue platform schema validation does not run in dev atm so we have to do the validation
     ourselves, or else our tests are not representative of what happens in prod.
     """
-    try:
-        jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
-    except jsonschema.exceptions.ValidationError:
+    with sentry_sdk.start_span(
+        op="feedback.schema.validate",
+        description="Validating event schema against issue platform",
+    ) as span:
         try:
-            jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+            jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
+            span.set_tag("schema.type", "current")
+            span.set_tag("schema.valid", True)
         except jsonschema.exceptions.ValidationError:
-            metrics.incr("feedback.create_feedback_issue.invalid_schema")
-            raise
+            try:
+                jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
+                span.set_tag("schema.type", "legacy")
+                span.set_tag("schema.valid", True)
+            except jsonschema.exceptions.ValidationError:
+                span.set_tag("schema.valid", False)
+                metrics.incr("feedback.create_feedback_issue.invalid_schema")
+                raise
 
 
 class UserReportShimDict(TypedDict):
@@ -308,58 +390,95 @@ def shim_to_feedback(
     User feedbacks are an event type, so we try and grab as much from the
     legacy user report and event to create the new feedback.
     """
-    try:
-        feedback_event: dict[str, Any] = {
-            "contexts": {
-                "feedback": {
-                    "name": report.get("name", ""),
-                    "contact_email": report["email"],
-                    "message": report["comments"],
+    with sentry_sdk.start_span(
+        op="feedback.shim.convert",
+        description="Converting user report to feedback",
+    ) as span:
+        span.set_tag("feedback.project_id", project.id)
+        span.set_tag("feedback.organization_id", project.organization_id)
+        span.set_tag("feedback.source", source.value)
+        span.set_tag("feedback.has_event", bool(event))
+        
+        try:
+            feedback_event: dict[str, Any] = {
+                "contexts": {
+                    "feedback": {
+                        "name": report.get("name", ""),
+                        "contact_email": report["email"],
+                        "message": report["comments"],
+                    },
                 },
-            },
-        }
+            }
 
-        if event:
-            feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
+            if event:
+                feedback_event["contexts"]["feedback"]["associated_event_id"] = event.event_id
+                span.set_tag("feedback.event_id", event.event_id)
 
-            if get_path(event.data, "contexts", "replay", "replay_id"):
-                feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
-                feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"][
-                    "replay"
-                ]["replay_id"]
-            feedback_event["timestamp"] = event.datetime.timestamp()
-            feedback_event["level"] = event.data["level"]
-            feedback_event["platform"] = event.platform
-            feedback_event["level"] = event.data["level"]
-            feedback_event["environment"] = event.get_environment().name
-            feedback_event["tags"] = [list(item) for item in event.tags]
+                if get_path(event.data, "contexts", "replay", "replay_id"):
+                    feedback_event["contexts"]["replay"] = event.data["contexts"]["replay"]
+                    feedback_event["contexts"]["feedback"]["replay_id"] = event.data["contexts"][
+                        "replay"
+                    ]["replay_id"]
+                    span.set_tag("feedback.has_replay", True)
+                    
+                feedback_event["timestamp"] = event.datetime.timestamp()
+                feedback_event["level"] = event.data["level"]
+                feedback_event["platform"] = event.platform
+                feedback_event["level"] = event.data["level"]
+                feedback_event["environment"] = event.get_environment().name
+                feedback_event["tags"] = [list(item) for item in event.tags]
+                
+                span.set_data("event.platform", event.platform)
+                span.set_data("event.level", event.data["level"])
 
-        else:
-            metrics.incr("feedback.user_report.missing_event", sample_rate=1.0)
+            else:
+                metrics.incr("feedback.user_report.missing_event", sample_rate=1.0)
 
-            feedback_event["timestamp"] = datetime.utcnow().timestamp()
-            feedback_event["platform"] = "other"
-            feedback_event["level"] = report.get("level", "info")
+                feedback_event["timestamp"] = datetime.utcnow().timestamp()
+                feedback_event["platform"] = "other"
+                feedback_event["level"] = report.get("level", "info")
 
-            if report.get("event_id"):
-                feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
+                if report.get("event_id"):
+                    feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
+                    span.set_tag("feedback.event_id", report["event_id"])
 
-        create_feedback_issue(feedback_event, project.id, source)
-    except Exception:
-        logger.exception(
-            "Error attempting to create new User Feedback from Shiming old User Report"
-        )
+            span.set_data("feedback.message_length", len(report["comments"]))
+            create_feedback_issue(feedback_event, project.id, source)
+            span.set_tag("feedback.conversion_success", True)
+            
+        except Exception:
+            span.set_tag("feedback.conversion_success", False)
+            logger.exception(
+                "Error attempting to create new User Feedback from Shiming old User Report"
+            )
 
 
 def auto_ignore_spam_feedbacks(project, issue_fingerprint):
-    if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
-        metrics.incr("feedback.spam-detection-actions.set-ignored")
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.STATUS_CHANGE,
-            status_change=StatusChangeMessage(
-                fingerprint=issue_fingerprint,
-                project_id=project.id,
-                new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
-                new_substatus=None,
-            ),
-        )
+    with sentry_sdk.start_span(
+        op="feedback.spam.auto_ignore",
+        description="Auto-ignoring spam feedback",
+    ) as span:
+        span.set_tag("feedback.project_id", project.id)
+        span.set_tag("feedback.organization_id", project.organization_id)
+        
+        if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
+            metrics.incr("feedback.spam-detection-actions.set-ignored")
+            span.set_tag("feedback.auto_ignore_enabled", True)
+            
+            with sentry_sdk.start_span(
+                op="feedback.kafka.produce_status_change",
+                description="Producing status change to Kafka",
+            ) as kafka_span:
+                produce_occurrence_to_kafka(
+                    payload_type=PayloadType.STATUS_CHANGE,
+                    status_change=StatusChangeMessage(
+                        fingerprint=issue_fingerprint,
+                        project_id=project.id,
+                        new_status=GroupStatus.IGNORED,  # we use ignored in the UI for the spam tab
+                        new_substatus=None,
+                    ),
+                )
+                kafka_span.set_tag("kafka.payload_type", "status_change")
+                kafka_span.set_tag("status_change.new_status", "ignored")
+        else:
+            span.set_tag("feedback.auto_ignore_enabled", False)

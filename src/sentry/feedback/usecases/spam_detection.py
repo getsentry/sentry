@@ -1,5 +1,7 @@
 import logging
 
+import sentry_sdk
+
 from sentry.llm.usecases import LLMUseCase, complete_prompt
 from sentry.utils import metrics
 
@@ -31,40 +33,79 @@ def make_input_prompt(input):
 
 @metrics.wraps("feedback.spam_detection", sample_rate=1.0)
 def is_spam(message):
-    is_spam = False
-    trimmed_response = ""
-    response = complete_prompt(
-        usecase=LLMUseCase.SPAM_DETECTION,
-        message=make_input_prompt(message),
-        temperature=0,
-        max_output_tokens=20,
-    )
-    if response:
-        is_spam, trimmed_response = trim_response(response)
+    with sentry_sdk.start_span(
+        op="feedback.spam.detection",
+        description="Detecting spam in feedback message",
+    ) as span:
+        span.set_data("message.length", len(message))
+        span.set_data("message.preview", message[:100] if len(message) > 100 else message)
+        
+        is_spam = False
+        trimmed_response = ""
+        
+        with sentry_sdk.start_span(
+            op="feedback.spam.llm_call",
+            description="Calling LLM for spam detection",
+        ) as llm_span:
+            llm_span.set_tag("llm.usecase", "spam_detection")
+            llm_span.set_data("llm.temperature", 0)
+            llm_span.set_data("llm.max_output_tokens", 20)
+            
+            response = complete_prompt(
+                usecase=LLMUseCase.SPAM_DETECTION,
+                message=make_input_prompt(message),
+                temperature=0,
+                max_output_tokens=20,
+            )
+            
+            llm_span.set_data("llm.response_received", bool(response))
+            if response:
+                llm_span.set_data("llm.response_length", len(response))
+        
+        if response:
+            with sentry_sdk.start_span(
+                op="feedback.spam.parse_response",
+                description="Parsing LLM response",
+            ) as parse_span:
+                is_spam, trimmed_response = trim_response(response)
+                parse_span.set_tag("spam.detected", is_spam)
+                parse_span.set_data("response.trimmed", trimmed_response)
 
-    logger.info(
-        "Spam detection",
-        extra={
-            "feedback_message": message,
-            "is_spam": is_spam,
-            "response": response,
-            "trimmed_response": trimmed_response,
-        },
-    )
-    metrics.incr("spam-detection", tags={"is_spam": is_spam}, sample_rate=1.0)
-    return is_spam
+        span.set_tag("spam.detected", is_spam)
+        span.set_data("llm.raw_response", response)
+        span.set_data("llm.trimmed_response", trimmed_response)
+
+        logger.info(
+            "Spam detection",
+            extra={
+                "feedback_message": message,
+                "is_spam": is_spam,
+                "response": response,
+                "trimmed_response": trimmed_response,
+            },
+        )
+        metrics.incr("spam-detection", tags={"is_spam": is_spam}, sample_rate=1.0)
+        return is_spam
 
 
 def trim_response(text):
-    trimmed_text = text.strip().lower()
+    with sentry_sdk.start_span(
+        op="feedback.spam.trim_response",
+        description="Trimming and parsing LLM response",
+    ) as span:
+        span.set_data("original_text", text)
+        
+        trimmed_text = text.strip().lower()
+        trimmed_text.replace("`", "")
 
-    trimmed_text.replace("`", "")
+        import re
+        
+        trimmed_text = re.sub(r"\W+", "", trimmed_text)
+        
+        span.set_data("trimmed_text", trimmed_text)
+        
+        is_spam_result = trimmed_text in ("spam", "[spam]")
+        span.set_tag("is_spam", is_spam_result)
+        span.set_data("matched_patterns", ("spam", "[spam]"))
 
-    import re
-
-    trimmed_text = re.sub(r"\W+", "", trimmed_text)
-
-    if trimmed_text in ("spam", "[spam]"):
-        return True, trimmed_text
-    else:
-        return False, trimmed_text
+        return is_spam_result, trimmed_text
