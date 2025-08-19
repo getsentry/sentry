@@ -88,7 +88,7 @@ export function validateSequenceInitializerConflicts(shortcuts: any[]): void {
       const keyParts = key.split(' ');
 
       // Check if this is a single-key shortcut that conflicts with predefined sequence initializers
-      if (keyParts.length === 1 && predefinedSequenceInitializers.has(key as any)) {
+      if (keyParts.length === 1 && predefinedSequenceInitializers.has(key)) {
         throw new Error(
           `Keyboard shortcut conflict: Single-key shortcut "${key}" (${shortcut.id}) conflicts with sequence initializer key. ` +
             `Sequence initializer keys (${Array.from(predefinedSequenceInitializers).join(', ')}) are reserved for sequences only.`

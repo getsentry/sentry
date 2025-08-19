@@ -29,8 +29,8 @@ import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
-  type EventSearchRef,
   useEventQuery,
+  type EventSearchRef,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
