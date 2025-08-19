@@ -350,6 +350,7 @@ module = [
     "fixtures.schema_validation",
     "sentry.analytics.*",
     "sentry.api.bases.avatar",
+    "sentry.api.bases.group",
     "sentry.api.decorators",
     "sentry.api.endpoints.integrations.sentry_apps.installation.external_issue.*",
     "sentry.api.endpoints.organization_events_spans_performance",
