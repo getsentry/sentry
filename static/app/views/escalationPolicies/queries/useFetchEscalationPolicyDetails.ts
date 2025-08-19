@@ -24,7 +24,7 @@ export const makeFetchEscalationPoliciesKey = ({
   },
 ];
 
-export const useFetchEscalationPolicies = (
+export const useFetchEscalationPolicyDetails = (
   params: FetchEscalationPolicyDetailsParams,
   options: Partial<UseApiQueryOptions<FetchEscalationPolicyDetailsResponse>> = {}
 ) => {

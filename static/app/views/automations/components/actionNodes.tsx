@@ -19,6 +19,11 @@ import {
   validateEmailAction,
 } from 'sentry/views/automations/components/actions/email';
 import {
+  EscalationPolicyDetails,
+  EscalationPolicyNode,
+  validateEscalationPolicyAction,
+} from 'sentry/views/automations/components/actions/escalation_policy';
+import {
   GithubDetails,
   GithubNode,
 } from 'sentry/views/automations/components/actions/github';
@@ -109,6 +114,15 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       details: EmailDetails,
       defaultData: {fallthroughType: 'ActiveMembers'},
       validate: validateEmailAction,
+    },
+  ],
+  [
+    ActionType.ESCALATION_POLICY,
+    {
+      label: t('Trigger an escalation policy'),
+      action: EscalationPolicyNode,
+      details: EscalationPolicyDetails,
+      validate: validateEscalationPolicyAction,
     },
   ],
   [

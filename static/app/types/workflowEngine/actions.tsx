@@ -30,6 +30,7 @@ export enum ActionTarget {
   TEAM = 2,
   SENTRY_APP = 3,
   ISSUE_OWNERS = 4,
+  ESCALATION_POLICY = 5,
 }
 
 export enum ActionType {
@@ -44,6 +45,7 @@ export enum ActionType {
   JIRA_SERVER = 'jira_server',
   AZURE_DEVOPS = 'vsts',
   EMAIL = 'email',
+  ESCALATION_POLICY = 'escalation_policy',
   SENTRY_APP = 'sentry_app',
   PLUGIN = 'plugin',
   WEBHOOK = 'webhook',

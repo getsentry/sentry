@@ -243,7 +243,7 @@ def determine_schedule_oncall(
 
 
 def trigger_escalation_policy(policy: EscalationPolicy, group: Group) -> EscalationPolicyState:
-    from sentry.tasks.escalation_check import escalation_check
+    from sentry.escalation_policies.tasks.escalation_check import escalation_check
 
     with transaction.atomic(router.db_for_write(EscalationPolicy)):
         state = EscalationPolicyState.objects.create(

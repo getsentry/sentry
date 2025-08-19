@@ -62,6 +62,7 @@ class ActionType(StrEnum):
 
     PLUGIN = "plugin"
     WEBHOOK = "webhook"
+    ESCALATION_POLICY = "escalation_policy"
 
 
 @dataclass
@@ -163,6 +164,10 @@ ACTION_FIELD_MAPPINGS: dict[str, ActionFieldMapping] = {
         id="sentry.mail.actions.NotifyEmailAction",
         target_identifier_key="targetIdentifier",
     ),
+    # ActionType.ESCALATION_POLICY: ActionFieldMapping(
+    #     id="sentry.escalation_policies.NotifyEscalationPolicyAction",
+    #     target_identifier_key="targetIdentifier",
+    # ),
     ActionType.PLUGIN: ActionFieldMapping(
         id="sentry.rules.actions.notify_event.NotifyEventAction",
     ),

@@ -19,7 +19,7 @@ export type EscalationPolicyStep = {
 
 export type EscalationPolicy = {
   description: string;
-  id: string;
+  id: number;
   name: string;
   organization: string;
   repeatNTimes: number;

@@ -61,6 +61,8 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         PLUGIN = "plugin"
         WEBHOOK = "webhook"
 
+        ESCALATION_POLICY = "escalation_policy"
+
         def is_integration(self) -> bool:
             """
             Returns True if the action is an integration action.
