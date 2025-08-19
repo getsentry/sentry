@@ -15,7 +15,7 @@ export function useSidebarShortcuts({onFocusComment}: UseSidebarShortcutsProps) 
     onFocusComment?.();
   }, [onFocusComment]);
 
-  useComponentShortcuts('issue-details-sidebar', [
+  useComponentShortcuts('issue-details-general', [
     {
       id: 'focus-comment',
       key: 'c',

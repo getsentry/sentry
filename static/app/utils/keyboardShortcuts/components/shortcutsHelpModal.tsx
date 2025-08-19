@@ -44,6 +44,7 @@ export function ShortcutsHelpModal({
     // Sort categories with contextual shortcuts first, global last
     // Order: Issue Details contexts > Issues List > Global (includes navigation)
     const categoryOrder = [
+      'issue-details-general',
       'issue-details-navigation',
       'issue-details-actions',
       'issue-details-events',
@@ -74,6 +75,7 @@ export function ShortcutsHelpModal({
       global: t('Global'),
       'issues-list': t('Issues'),
       'issue-details-navigation': t('Issue Details - Navigation'),
+      'issue-details-general': t('Issue Details - General'),
       'issue-details-actions': t('Issue Details - Actions'),
       'issue-details-events': t('Issue Details - Events'),
       'issue-details-drawers': t('Issue Details - Drawers'),

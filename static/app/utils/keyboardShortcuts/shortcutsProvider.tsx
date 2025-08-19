@@ -14,6 +14,11 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 import {ShortcutsHelpModal} from './components/shortcutsHelpModal';
 import {shortcutRegistry} from './registry';
+import {
+  getSequenceInitializerKeysFromShortcuts,
+  SEQUENCE_INITIALIZER_KEYS,
+  validateSequenceInitializerConflicts,
+} from './sequenceInitializers';
 import type {Shortcut, ShortcutsContextValue} from './types';
 
 const ShortcutsContext = createContext<ShortcutsContextValue | null>(null);
@@ -103,10 +108,60 @@ export function ShortcutsProvider({children}: ShortcutsProviderProps) {
 
   // Convert our shortcuts to the format expected by useHotkeys
   const hotkeyConfig = useMemo(() => {
+    // Validate sequence initializer conflicts in development
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        validateSequenceInitializerConflicts(activeShortcuts);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('❌ Keyboard shortcut validation failed:', error);
+        // Don't throw in production to avoid breaking the app
+      }
+    }
+
     const hotkeys: Parameters<typeof useHotkeys>[0] = [];
     const processedKeys = new Set<string>();
+    const detectedSequenceInitializers =
+      getSequenceInitializerKeysFromShortcuts(activeShortcuts);
+    const allSequenceInitializers = new Set([
+      ...SEQUENCE_INITIALIZER_KEYS,
+      ...detectedSequenceInitializers,
+    ]);
 
-    // First, handle single key shortcuts
+    // First, prioritize ALL sequence initializer keys - these should NEVER be single key shortcuts
+    allSequenceInitializers.forEach(key => {
+      if (!processedKeys.has(key)) {
+        processedKeys.add(key);
+        hotkeys.push({
+          match: key,
+          includeInputs: false,
+          skipPreventDefault: false,
+          callback: (e: KeyboardEvent) => {
+            // If we already have a sequence started, check for completion
+            if (sequenceKeysState.length > 0) {
+              const potentialSequence = [...sequenceKeysState, key].join(' ');
+              const matchingShortcut =
+                shortcutRegistry.getShortcutForKey(potentialSequence);
+
+              if (matchingShortcut && matchingShortcut.enabled !== false) {
+                e.preventDefault();
+                matchingShortcut.handler(e);
+                setSequenceKeys([]);
+                if (sequenceTimeoutRef.current) {
+                  window.clearTimeout(sequenceTimeoutRef.current);
+                }
+                return;
+              }
+            }
+
+            // Start or continue sequence
+            handleSequenceKey(key);
+          },
+        });
+      }
+    });
+
+    // Then, handle all other keys with sequence-aware logic
     activeShortcuts.forEach(shortcut => {
       if (!shortcut.enabled) return;
 
@@ -115,20 +170,44 @@ export function ShortcutsProvider({children}: ShortcutsProviderProps) {
       keys.forEach(key => {
         const keyParts = key.split(' ');
 
-        if (keyParts.length === 1 && !processedKeys.has(key)) {
-          // Single key shortcut
+        if (
+          keyParts.length === 1 &&
+          !processedKeys.has(key) &&
+          !allSequenceInitializers.has(key)
+        ) {
+          // Single key shortcut - but needs to be sequence-aware
           processedKeys.add(key);
           hotkeys.push({
             match: key,
             includeInputs: shortcut.allowInInputs,
             skipPreventDefault: !shortcut.preventDefault,
-            callback: shortcut.handler,
+            callback: (e: KeyboardEvent) => {
+              // FIRST: Check if we're completing a sequence
+              if (sequenceKeysState.length > 0) {
+                const potentialSequence = [...sequenceKeysState, key].join(' ');
+                const matchingShortcut =
+                  shortcutRegistry.getShortcutForKey(potentialSequence);
+
+                if (matchingShortcut && matchingShortcut.enabled !== false) {
+                  e.preventDefault();
+                  matchingShortcut.handler(e);
+                  setSequenceKeys([]);
+                  if (sequenceTimeoutRef.current) {
+                    window.clearTimeout(sequenceTimeoutRef.current);
+                  }
+                  return;
+                }
+              }
+
+              // SECOND: Handle as single key shortcut
+              shortcut.handler(e);
+            },
           });
         }
       });
     });
 
-    // Then, handle all keys that are part of sequences
+    // Finally, handle remaining sequence keys (those not covered by single shortcuts)
     sequenceKeys.forEach(key => {
       if (!processedKeys.has(key)) {
         processedKeys.add(key);

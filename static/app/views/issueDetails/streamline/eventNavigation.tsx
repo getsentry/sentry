@@ -58,7 +58,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   // Initialize content navigation shortcuts (t sequence)
-  useContentNavigationShortcuts({event});
+  useContentNavigationShortcuts({project: group.project, issueTypeConfig});
 
   const hideDropdownButton =
     !issueTypeConfig.pages.attachments.enabled &&

@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useImperativeHandle, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -40,6 +40,10 @@ interface EventSearchProps {
   query: string;
   className?: string;
   queryBuilderProps?: Partial<SearchQueryBuilderProps>;
+}
+
+export interface EventSearchRef {
+  focus: () => void;
 }
 
 export function useEventQuery({groupId}: {groupId: string}): string {
@@ -145,7 +149,8 @@ export function EventSearch({
   environments,
   handleSearch,
   queryBuilderProps = {},
-}: EventSearchProps) {
+  ref,
+}: EventSearchProps & {ref?: React.Ref<EventSearchRef>}) {
   const api = useApi();
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -202,6 +207,23 @@ export function EventSearch({
     : hasStreamlinedUI
       ? 'issue_details_header'
       : 'issue_events_tab';
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => {
+        // Find the SearchQueryBuilder input by its test id or input/textarea elements
+        const searchBuilder = document.querySelector(
+          '[data-test-id="search-query-builder"]'
+        );
+        const input = searchBuilder?.querySelector('input, textarea') as HTMLElement;
+        if (input) {
+          input.focus();
+        }
+      },
+    }),
+    []
+  );
 
   return (
     <SearchQueryBuilder

@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -16,6 +16,7 @@ import type {Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts/hooks/useComponentShortcuts';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -28,6 +29,7 @@ import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
+  type EventSearchRef,
   useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
@@ -50,6 +52,7 @@ interface EventDetailsHeaderProps {
 }
 
 export function EventDetailsHeader({group, event, project}: EventDetailsHeaderProps) {
+  const eventSearchRef = useRef<EventSearchRef>(null);
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -87,8 +90,20 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     }
   }, [event, organization, project, dispatch]);
 
+  // Register keyboard shortcut to focus the filter events input
+  useComponentShortcuts('issue-details-general', [
+    {
+      id: 'focus-filter-events',
+      key: '/',
+      description: 'Focus Filter events input',
+      handler: () => {
+        eventSearchRef.current?.focus();
+      },
+    },
+  ]);
+
   const searchText = t(
-    'Filter %s\u2026',
+    'Filter %s\u2026 (/)',
     issueTypeConfig.customCopy.eventUnits.toLocaleLowerCase()
   );
 
@@ -174,6 +189,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                   />
                 </FilterBar>
                 <EventSearch
+                  ref={eventSearchRef}
                   group={group}
                   handleSearch={query => {
                     navigate(

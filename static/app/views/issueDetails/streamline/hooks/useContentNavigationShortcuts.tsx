@@ -1,60 +1,100 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 
-import type {Event} from 'sentry/types/event';
+import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
+import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {Tab} from 'sentry/views/issueDetails/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 interface UseContentNavigationShortcutsProps {
-  event: Event | undefined;
+  issueTypeConfig: IssueTypeConfig;
+  project: Project;
 }
 
 /**
- * Hook for content navigation shortcuts (t sequence)
- * Use this in components that handle tab/content navigation
+ * Content navigation shortcuts use 't' as a sequence initializer
+ * This ensures that 't' cannot be used as a single-key shortcut
+ * and prioritizes sequence handling for navigation
  */
+
 export function useContentNavigationShortcuts({
-  event,
+  project,
+  issueTypeConfig,
 }: UseContentNavigationShortcutsProps) {
+  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const {baseUrl} = useGroupDetailsRoute();
 
   const navigateToTab = useCallback(
     (tab: Tab) => {
-      const tabPath = tab === Tab.DETAILS ? '' : `${tab}/`;
-      const eventId = event?.id ? `events/${event.id}/` : '';
-      navigate(`${baseUrl}${eventId}${tabPath}${location.search}`);
+      // Use the same navigation pattern as the dropdown menu
+      // Don't include event ID for tab navigation - go to the tab at the issue level
+      const issueBaseUrl = baseUrl.replace(/\/events\/[^/]+\//, '/');
+      const tabPath = TabPaths[tab];
+      navigate({
+        ...location,
+        pathname: `${issueBaseUrl}${tabPath}`,
+        hash: undefined,
+      });
     },
-    [baseUrl, event?.id, location.search, navigate]
+    [baseUrl, location, navigate]
   );
 
-  useComponentShortcuts('issue-details-navigation', [
-    {
+  const shortcuts = useMemo(() => {
+    const availableShortcuts = [];
+
+    // Check for replay support (same logic as header tabs)
+    const organizationFeatures = new Set(organization?.features || []);
+    const hasReplaySupport =
+      organizationFeatures.has('session-replay') &&
+      projectCanLinkToReplay(organization, project);
+
+    // Always include details navigation
+    availableShortcuts.push({
       id: 'navigate-details',
-      key: 't d',
-      description: 'Go to Details view',
+      key: 't e',
+      description: `View ${issueTypeConfig.customCopy.eventUnits.toLowerCase()} in this issue`,
       handler: () => navigateToTab(Tab.DETAILS),
-    },
-    {
-      id: 'navigate-replays',
-      key: 't r',
-      description: 'Go to Replays view',
-      handler: () => navigateToTab(Tab.REPLAYS),
-    },
-    {
-      id: 'navigate-attachments',
-      key: 't a',
-      description: 'Go to Attachments view',
-      handler: () => navigateToTab(Tab.ATTACHMENTS),
-    },
-    {
-      id: 'navigate-feedback',
-      key: 't f',
-      description: 'Go to User Feedback view',
-      handler: () => navigateToTab(Tab.USER_FEEDBACK),
-    },
-  ]);
+    });
+
+    // Add replays if both config enabled AND has replay support
+    if (issueTypeConfig.pages.replays.enabled && hasReplaySupport) {
+      availableShortcuts.push({
+        id: 'navigate-replays',
+        key: 't r',
+        description: `View ${t('replays').toLowerCase()} in this issue`,
+        handler: () => navigateToTab(Tab.REPLAYS),
+      });
+    }
+
+    // Add attachments if enabled
+    if (issueTypeConfig.pages.attachments.enabled) {
+      availableShortcuts.push({
+        id: 'navigate-attachments',
+        key: 't a',
+        description: `View ${t('attachments').toLowerCase()} in this issue`,
+        handler: () => navigateToTab(Tab.ATTACHMENTS),
+      });
+    }
+
+    // Add user feedback if enabled
+    if (issueTypeConfig.pages.userFeedback.enabled) {
+      availableShortcuts.push({
+        id: 'navigate-feedback',
+        key: 't f',
+        description: `View ${t('feedback').toLowerCase()} in this issue`,
+        handler: () => navigateToTab(Tab.USER_FEEDBACK),
+      });
+    }
+
+    return availableShortcuts;
+  }, [issueTypeConfig, navigateToTab, organization, project]);
+
+  useComponentShortcuts('issue-details-navigation', shortcuts);
 }
