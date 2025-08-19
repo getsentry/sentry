@@ -31,6 +31,7 @@ import {
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useContentNavigationShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useContentNavigationShortcuts';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useSectionNavigationShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useSectionNavigationShortcuts';
 import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/streamline/issueDetailsEventNavigation';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -59,6 +60,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
 
   // Initialize content navigation shortcuts (t sequence)
   useContentNavigationShortcuts({project: group.project, issueTypeConfig});
+
+  // Initialize section navigation shortcuts (j/k for next/previous section)
+  useSectionNavigationShortcuts();
 
   const hideDropdownButton =
     !issueTypeConfig.pages.attachments.enabled &&

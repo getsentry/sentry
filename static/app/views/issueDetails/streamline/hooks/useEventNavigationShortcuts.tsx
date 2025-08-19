@@ -44,32 +44,32 @@ export function useEventNavigationShortcuts({
   useComponentShortcuts('issue-details-events', [
     {
       id: 'next-event',
-      key: 'j',
+      key: 'l',
       description: 'Next event',
       handler: handleNextEvent,
     },
     {
       id: 'previous-event',
-      key: 'k',
+      key: 'h',
       description: 'Previous event',
       handler: handlePreviousEvent,
     },
     {
       id: 'recommended-event',
-      key: '1',
+      key: ';',
       description: 'Go to Recommended event',
       handler: handleRecommendedEvent,
     },
     {
       id: 'latest-event',
-      key: '2',
-      description: 'Go to Latest event',
+      key: 'shift+l',
+      description: 'Go to newest event matching filters',
       handler: handleLatestEvent,
     },
     {
       id: 'oldest-event',
-      key: '3',
-      description: 'Go to Oldest event',
+      key: 'shift+h',
+      description: 'Go to earliest event matching filters',
       handler: handleOldestEvent,
     },
   ]);
