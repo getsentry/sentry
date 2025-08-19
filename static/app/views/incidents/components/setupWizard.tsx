@@ -9,11 +9,12 @@ import {Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {
   IconArrow,
+  IconChat,
   IconCheckmark,
-  IconDashboard,
+  IconFix,
   IconLightning,
+  IconRuler,
   IconSettings,
-  IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ComponentStep} from 'sentry/views/incidents/components/componentStep';
@@ -33,7 +34,6 @@ interface SetupStep {
   description: string;
   icon: React.ComponentType<any>;
   title: string;
-  optional?: boolean;
 }
 
 interface SetupStepConfig {
@@ -68,21 +68,22 @@ const INCIDENT_SETUP_STEPS: Record<IncidentSetupStep, SetupStep> = {
   },
   [IncidentSetupStep.COMPONENTS]: {
     title: t('Add Components'),
-    description: t('The parts of your app that can break'),
-    icon: IconDashboard,
+    description: t(
+      'What are the key parts of your appplication or services that can break?'
+    ),
+    icon: IconFix,
     content: ComponentStep,
   },
   [IncidentSetupStep.TEMPLATE]: {
     title: t('Setup a Template'),
     description: t('Connect tools to template + other template configuration'),
-    icon: IconSettings,
+    icon: IconRuler,
     content: TemplateStep,
   },
   [IncidentSetupStep.SMOKEY]: {
     title: t('Meet Smokey'),
     description: t('Say hello to our interactive agent for incident management'),
-    icon: IconUser,
-    optional: true,
+    icon: IconChat,
     content: SmokeyStep,
   },
   [IncidentSetupStep.DEMO]: {

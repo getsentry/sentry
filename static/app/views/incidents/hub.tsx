@@ -14,7 +14,7 @@ import {SetupWizard} from 'sentry/views/incidents/components/setupWizard';
 import {animations} from 'sentry/views/incidents/styles';
 
 export default function IncidentHub() {
-  const [isSetupWizardOpen, setIsSetupWizardOpen] = useState(true);
+  const [isSetupWizardOpen, setIsSetupWizardOpen] = useState(false);
 
   return (
     <Layout.Page>
@@ -24,7 +24,7 @@ export default function IncidentHub() {
           <Layout.Title>{t('Incident Hub')}</Layout.Title>
         </Layout.HeaderContent>
       </Layout.Header>
-      <Layout.Body>
+      <Layout.Body style={{paddingTop: 0}}>
         <Layout.Main fullWidth>
           <Flex direction="column" gap="lg">
             <AnimatePresence mode="wait">
@@ -61,7 +61,7 @@ function IncidentHubBanner({onStartSetup}: {onStartSetup: () => void}) {
         <h3>
           {t('When the beam hits,')}
           <br />
-          {t('have as plan.')}
+          {t('have a plan.')}
         </h3>
         <p>
           {t(

@@ -122,9 +122,11 @@ export function ToolStep() {
                   icon={button.icon}
                   disabled={button.comingSoon}
                 >
-                  {button.label}{' '}
+                  {button.label}
                   {button.comingSoon && (
-                    <Badge type="experimental">{t('Coming Soon')}</Badge>
+                    <Badge type="experimental" style={{marginLeft: '8px'}}>
+                      {t('Coming Soon')}
+                    </Badge>
                   )}
                 </Button>
               ))}
