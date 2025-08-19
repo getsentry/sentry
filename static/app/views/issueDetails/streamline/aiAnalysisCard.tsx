@@ -284,7 +284,7 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
           <HeaderLeft>
             <CardTitle>
               <IconSeer size="md" />
-              {t('AI Severity Assessment')}
+              {t('Severity Assessment')}
             </CardTitle>
             <SeverityPill colors={getSeverityColor(analysisData.analysis.severity)}>
               {analysisData.analysis.severity}
@@ -335,7 +335,11 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
               {/* Analysis Sections */}
               <AnalysisSection>
                 <SectionTitle>{t('Impact Assessment')}</SectionTitle>
-                <SectionContent>{analysisData.analysis.impact.description}</SectionContent>
+                <ImpactContent>
+                  {analysisData.analysis.impact.description.split('•').filter(Boolean).map((point, index) => (
+                    <ImpactPoint key={index}>• {point.trim()}</ImpactPoint>
+                  ))}
+                </ImpactContent>
               </AnalysisSection>
 
               <AnalysisSection>
@@ -355,7 +359,7 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
                   <ChevronIcon direction={showReasoning ? 'down' : 'right'}>
                     <IconChevron />
                   </ChevronIcon>
-                  <SectionTitle>{t('AI Reasoning')}</SectionTitle>
+                  <SectionTitle>{t('Reasoning')}</SectionTitle>
                 </CollapsibleSectionHeader>
                 {showReasoning && (
                   <ReasoningContent>{analysisData.analysis.reasoning}</ReasoningContent>
@@ -622,6 +626,18 @@ const SectionTitle = styled('h5')`
 
 const SectionContent = styled('p')`
   margin: 0;
+  line-height: 1.6;
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSize.md};
+`;
+
+const ImpactContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.75)};
+`;
+
+const ImpactPoint = styled('div')`
   line-height: 1.6;
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSize.md};
