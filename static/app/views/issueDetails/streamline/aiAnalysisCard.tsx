@@ -394,20 +394,13 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
 
 const AIContainer = styled('div')`
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: ${space(3)};
   padding: ${space(2)} 0;
-  align-items: stretch;
-  
-  @media (max-width: 1600px) {
-    flex-direction: column;
-  }
 `;
 
 const SeverityCard = styled(Card)`
   max-width: 768px;
-  flex: 1 1 auto;
-  min-height: 500px;
 `;
 
 const AnalysisCard = styled(Card)`
@@ -531,7 +524,7 @@ const SeverityPill = styled('span')<{colors: {background: string; text: string}}
 
 const IssueTitle = styled('h4')`
   margin: 0 0 ${space(2)} 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: 600;
   color: ${p => p.theme.textColor};
   line-height: 1.3;
@@ -656,36 +649,10 @@ const VolumeItem = styled('div')`
 
 const RootCauseWrapper = styled('div')`
   max-width: 768px;
-  flex: 1 1 auto;
-  display: flex;
-  min-height: 0;
 `;
 
 const RootCauseCard = styled(Card)`
   width: 100%;
-  min-height: 500px;
-  display: flex;
-  flex-direction: column;
-  
-  /* Make the AutofixRootCause component flex */
-  > div {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    
-    /* Make the content area flex */
-    > div {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      
-      /* Push the last child (button container) to bottom */
-      > *:last-child {
-        margin-top: auto;
-        padding-top: ${space(2)};
-      }
-    }
-  }
 `;
 
 const CollapsibleSectionHeader = styled('button')`
