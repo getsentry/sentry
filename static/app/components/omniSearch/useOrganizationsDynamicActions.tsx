@@ -4,6 +4,8 @@ import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {resolveRoute} from 'sentry/utils/resolveRoute';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {OmniAction} from './types';
 
@@ -15,6 +17,7 @@ import type {OmniAction} from './types';
  */
 export function useOrganizationsDynamicActions(): OmniAction[] {
   const {organizations} = useLegacyStore(OrganizationsStore);
+  const organization = useOrganization();
 
   const dynamicActions = useMemo<OmniAction[]>(() => {
     return organizations.map((org, index) => ({
@@ -24,9 +27,15 @@ export function useOrganizationsDynamicActions(): OmniAction[] {
       details: t('Switch to the %s organization', org.slug),
       section: 'Organizations',
       actionIcon: <OrganizationBadge organization={org} hideName avatarSize={16} />,
-      to: `/${org.slug}/`,
+      onAction: () => {
+        window.location.href = resolveRoute(
+          `/organizations/${org.slug}/issues/`,
+          organization,
+          org
+        );
+      },
     }));
-  }, [organizations]);
+  }, [organizations, organization]);
 
   return dynamicActions;
 }
