@@ -647,7 +647,9 @@ function GroupDetailsContent({
   event,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
-  const [isAIMode] = useLocalStorageState('issue-details-ai-mode', false);
+  // Parse aiMode from search string directly since query might be undefined
+  const searchParams = new URLSearchParams(location.search);
+  const isAIMode = searchParams.get('aiMode') === 'true';
   const includeFlagDistributions =
     featureFlagDrawerPlatforms.includes(project.platform ?? 'other') &&
     organization.features.includes('feature-flag-distribution-flyout');

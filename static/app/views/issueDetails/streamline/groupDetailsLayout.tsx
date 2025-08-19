@@ -9,7 +9,7 @@ import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -30,7 +30,9 @@ import {
 
 function GroupLayoutBody({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
-  const [isAIMode] = useLocalStorageState('issue-details-ai-mode', false);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isAIMode = searchParams.get('aiMode') === 'true';
 
   // In AI mode, force sidebar closed
   const shouldShowSidebar = isAIMode ? false : isSidebarOpen;
@@ -55,7 +57,9 @@ export function GroupDetailsLayout({
   project,
   children,
 }: GroupDetailsLayoutProps) {
-  const [isAIMode] = useLocalStorageState('issue-details-ai-mode', false);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isAIMode = searchParams.get('aiMode') === 'true';
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -79,28 +83,32 @@ export function GroupDetailsLayout({
               <EventDetailsHeader event={event} group={group} project={project} />
             </SharedTourElement>
           )}
-          <SharedTourElement<IssueDetailsTour>
-            id={IssueDetailsTour.EVENT_DETAILS}
-            demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
-            tourContext={IssueDetailsTourContext}
-            title={t('Explore details')}
-            description={t(
-              'Here we capture everything we know about this data example, like context, trace, breadcrumbs, replay, and tags.'
-            )}
-            position="top"
-          >
-            <GroupContent>
-              {!isAIMode &&
-                groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
+          {!isAIMode ? (
+            <SharedTourElement<IssueDetailsTour>
+              id={IssueDetailsTour.EVENT_DETAILS}
+              demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
+              tourContext={IssueDetailsTourContext}
+              title={t('Explore details')}
+              description={t(
+                'Here we capture everything we know about this data example, like context, trace, breadcrumbs, replay, and tags.'
+              )}
+              position="top"
+            >
+              <GroupContent>
+                {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
                   <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
                     <IssueEventNavigation event={event} group={group} />
                     {/* Since the event details header is disabled, display the sidebar toggle here */}
                     {!hasFilterBar && <ToggleSidebar size="sm" />}
                   </NavigationSidebarWrapper>
                 )}
-              <ContentPadding>{children}</ContentPadding>
-            </GroupContent>
-          </SharedTourElement>
+                <ContentPadding>{children}</ContentPadding>
+              </GroupContent>
+            </SharedTourElement>
+          ) : (
+            // AI mode: render children directly without the event details wrapper
+            <ContentPadding>{children}</ContentPadding>
+          )}
         </div>
         {!isAIMode && (
           <StreamlinedSidebar group={group} event={event} project={project} />

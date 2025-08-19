@@ -32,6 +32,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
@@ -115,10 +116,20 @@ export default function StreamlinedGroupHeader({
     'issue-details-learn-more',
     true
   );
-  const [isAIMode, setIsAIMode] = useLocalStorageState('issue-details-ai-mode', false);
+  const navigate = useNavigate();
+  const isAIMode = location.query?.aiMode === 'true';
 
   const toggleAIMode = () => {
-    setIsAIMode(!isAIMode);
+    const newQuery = {...(location.query || {})};
+    if (isAIMode) {
+      delete newQuery.aiMode;
+    } else {
+      newQuery.aiMode = 'true';
+    }
+    navigate({
+      ...location,
+      query: newQuery,
+    });
   };
 
   return (

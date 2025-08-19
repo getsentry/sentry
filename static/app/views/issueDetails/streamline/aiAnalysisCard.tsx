@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -11,6 +11,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface AIAnalysisCardProps {
@@ -75,10 +76,19 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
   const [autofixData, setAutofixData] = useState<AutofixResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isAIMode = searchParams.get('aiMode') === 'true';
   
   const api = useApi();
   const organization = useOrganization();
 
+  // Auto-fetch analysis when component mounts in AI mode
+  useEffect(() => {
+    if (isAIMode && !analysisData && !loading) {
+      fetchAnalysis();
+    }
+  }, [isAIMode]); // Only depend on isAIMode to avoid infinite loops
 
   const startAutofix = async () => {
     try {
