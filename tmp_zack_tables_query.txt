@@ -1,0 +1,41 @@
+SQL queries to list tables in tmp_zack schema:
+
+=== For PostgreSQL/Redshift ===
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_schema = 'tmp_zack' 
+ORDER BY table_name;
+
+=== For BigQuery ===
+SELECT table_name
+FROM `your_project.tmp_zack.INFORMATION_SCHEMA.TABLES`
+ORDER BY table_name;
+
+=== For Snowflake ===
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'TMP_ZACK'
+ORDER BY table_name;
+
+=== For Generic SQL with system tables ===
+SHOW TABLES FROM tmp_zack;
+
+=== Alternative PostgreSQL query ===
+SELECT schemaname, tablename 
+FROM pg_tables 
+WHERE schemaname = 'tmp_zack' 
+ORDER BY tablename;
+
+=== To get more detailed information (PostgreSQL) ===
+SELECT 
+    table_name,
+    table_type,
+    is_insertable_into
+FROM information_schema.tables 
+WHERE table_schema = 'tmp_zack' 
+ORDER BY table_name;
+
+Instructions:
+1. Run one of the above queries depending on your database system
+2. Copy the results into this file
+3. Let me know if you need help with a specific query for the tables you find
