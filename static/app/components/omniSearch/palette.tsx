@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
 import serryLottieAnimation from 'getsentry-images/omni/mshk-image-to-lottie.json';
 
+import error from 'sentry-images/spot/cmd-k-error.png';
+
 import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
@@ -147,67 +149,68 @@ export function OmniSearchPalette() {
   }, [selectedAction]);
 
   return (
-    <Fragment>
-      <SeeryCharacter animationData={serryLottieAnimation} size={200} />
-      <StyledCommand label="OmniSearch" shouldFilter={false} value={firstItemKey}>
-        <Header>
-          {focusedArea && (
-            <FocusedAreaContainer>
-              <FocusedArea>{focusedArea.label}</FocusedArea>
-            </FocusedAreaContainer>
-          )}
-          <SearchInputContainer>
-            <SearchInput
-              autoFocus
-              ref={inputRef}
-              value={query}
-              onValueChange={setQuery}
-              onKeyDown={e => {
-                if (e.key === 'Backspace' && query === '') {
-                  clearSelection();
-                  e.preventDefault();
-                }
-              }}
-              placeholder={placeholder}
-            />
-          </SearchInputContainer>
-        </Header>
-        <CommandPrimitive.Command.List>
-          {grouped.every(g => g.items.length === 0) ? (
-            <CommandPrimitive.Command.Empty>No results</CommandPrimitive.Command.Empty>
-          ) : (
-            grouped.map(group => (
-              <Fragment key={group.sectionKey}>
-                {group.items.length > 0 && (
-                  <CommandPrimitive.Command.Group heading={group.label}>
-                    {group.items.map(item => (
-                      <CommandPrimitive.Command.Item
-                        key={item.key}
-                        value={item.key}
-                        onSelect={() => handleSelect(item)}
-                        disabled={item.disabled}
-                      >
-                        <ItemRow>
-                          {item.actionIcon && (
-                            <IconDefaultsProvider size="sm">
-                              <IconWrapper>{item.actionIcon}</IconWrapper>
-                            </IconDefaultsProvider>
-                          )}
-                          <OverflowHidden>
-                            <div>{item.label}</div>
-                            {item.details && <ItemDetails>{item.details}</ItemDetails>}
-                          </OverflowHidden>
-                        </ItemRow>
-                      </CommandPrimitive.Command.Item>
-                    ))}
-                  </CommandPrimitive.Command.Group>
-                )}
-              </Fragment>
-            ))
-          )}
-        </CommandPrimitive.Command.List>
-      </StyledCommand>
-    </Fragment>
+    <StyledCommand label="OmniSearch" shouldFilter={false}>
+      <Header>
+        {focusedArea && (
+          <FocusedAreaContainer>
+            <FocusedArea>{focusedArea.label}</FocusedArea>
+          </FocusedAreaContainer>
+        )}
+        <SearchInputContainer>
+          <SeeryCharacter animationData={serryLottieAnimation} size={72} />
+          <SearchInput
+            autoFocus
+            ref={inputRef}
+            value={query}
+            onValueChange={setQuery}
+            onKeyDown={e => {
+              if (e.key === 'Backspace' && query === '') {
+                clearSelection();
+                e.preventDefault();
+              }
+            }}
+            placeholder={placeholder}
+          />
+        </SearchInputContainer>
+      </Header>
+      <CommandPrimitive.Command.List>
+        {grouped.every(g => g.items.length === 0) ? (
+          <CommandPrimitive.Command.Empty>
+            <img src={error} alt="No results" />
+            <p>Whoops… we couldn’t find any results matching your search.</p>
+            <p>Try rephrasing your query maybe?</p>
+          </CommandPrimitive.Command.Empty>
+        ) : (
+          grouped.map(group => (
+            <Fragment key={group.sectionKey}>
+              {group.items.length > 0 && (
+                <CommandPrimitive.Command.Group heading={group.label}>
+                  {group.items.map(item => (
+                    <CommandPrimitive.Command.Item
+                      key={item.key}
+                      onSelect={() => handleSelect(item)}
+                      disabled={item.disabled}
+                    >
+                      <ItemRow>
+                        {item.actionIcon && (
+                          <IconDefaultsProvider size="sm">
+                            <IconWrapper>{item.actionIcon}</IconWrapper>
+                          </IconDefaultsProvider>
+                        )}
+                        <OverflowHidden>
+                          <div>{item.label}</div>
+                          {item.details && <ItemDetails>{item.details}</ItemDetails>}
+                        </OverflowHidden>
+                      </ItemRow>
+                    </CommandPrimitive.Command.Item>
+                  ))}
+                </CommandPrimitive.Command.Group>
+              )}
+            </Fragment>
+          ))
+        )}
+      </CommandPrimitive.Command.List>
+    </StyledCommand>
   );
 }
 
@@ -320,6 +323,28 @@ const StyledCommand = styled(CommandPrimitive.Command)`
         opacity: 1;
         transform: scale(1.1);
       }
+    }
+  }
+
+  [cmdk-empty] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: ${p => p.theme.fontSize.md};
+    color: ${p => p.theme.subText};
+    text-align: center;
+    padding: 24px 12px;
+
+    img {
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      margin: 0;
     }
   }
 `;
