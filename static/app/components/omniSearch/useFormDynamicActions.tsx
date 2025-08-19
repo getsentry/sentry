@@ -98,7 +98,7 @@ export function useFormDynamicActions(): OmniAction[] {
   const dynamicActions = useMemo(() => {
     return formFields.map((item, index) => ({
       key: `form-${index}`,
-      areaKey: 'settings',
+      areaKey: 'global',
       label: item.title as string,
       details: item.description as string,
       section: 'Settings',

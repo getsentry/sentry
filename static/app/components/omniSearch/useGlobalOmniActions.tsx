@@ -134,7 +134,7 @@ function useNavigationActions() {
   const dashboardsChildren = [
     {
       key: 'nav-dashboards-all',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('All Dashboards'),
       to: `${prefix}/dashboards/`,
     },
@@ -143,25 +143,25 @@ function useNavigationActions() {
   const insightsChildren = [
     {
       key: 'nav-insights-frontend',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('Frontend'),
       to: `${prefix}/insights/frontend/`,
     },
     {
       key: 'nav-insights-backend',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('Backend'),
       to: `${prefix}/insights/backend/`,
     },
     {
       key: 'nav-insights-mobile',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('Mobile'),
       to: `${prefix}/insights/mobile/`,
     },
     {
       key: 'nav-insights-crons',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('Crons'),
       to: `${prefix}/insights/crons/`,
     },
@@ -169,7 +169,7 @@ function useNavigationActions() {
       ? [
           {
             key: 'nav-insights-uptime',
-            areaKey: 'navigate',
+            areaKey: 'global',
             label: t('Uptime'),
             to: `${prefix}/insights/uptime/`,
           },
@@ -177,7 +177,7 @@ function useNavigationActions() {
       : []),
     {
       key: 'nav-insights-projects',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('All Projects'),
       to: `${prefix}/insights/projects/`,
     },
@@ -188,13 +188,13 @@ function useNavigationActions() {
       ? [
           {
             key: 'nav-prevent-coverage',
-            areaKey: 'navigate',
+            areaKey: 'global',
             label: t('Coverage'),
             to: `${prefix}/prevent/coverage/commits/`,
           },
           {
             key: 'nav-prevent-tests',
-            areaKey: 'navigate',
+            areaKey: 'global',
             label: t('Tests'),
             to: `${prefix}/prevent/tests/`,
           },
@@ -202,7 +202,7 @@ function useNavigationActions() {
       : []),
     {
       key: 'nav-prevent-ai',
-      areaKey: 'navigate',
+      areaKey: 'global',
       label: t('Prevent AI'),
       to: `${prefix}/prevent/prevent-ai/new/`,
     },
@@ -210,7 +210,7 @@ function useNavigationActions() {
       ? [
           {
             key: 'nav-prevent-tokens',
-            areaKey: 'navigate',
+            areaKey: 'global',
             label: t('Tokens'),
             to: `${prefix}/prevent/tokens/`,
           },
@@ -388,7 +388,7 @@ export function useGlobalOmniActions() {
       key: 'account-theme-preference',
       areaKey: 'global',
       section: GlobalActionSection.OTHER,
-      label: t('Theme Preference'),
+      label: t('Change Color Theme'),
       actionIcon: <IconSettings />,
       children: [
         {

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
@@ -51,11 +51,11 @@ export function OmniSearchPalette() {
   // Combine all dynamic actions
   const dynamicActions = useMemo(
     () => [
-      ...apiActions,
-      ...formActions,
       ...routeActions,
       ...orgActions,
       ...commandActions,
+      ...formActions,
+      ...apiActions,
     ],
     [apiActions, formActions, routeActions, orgActions, commandActions]
   );
@@ -68,6 +68,7 @@ export function OmniSearchPalette() {
     createFuzzySearch([...availableActions, ...dynamicActions], {
       keys: ['label', 'fullLabel', 'details'],
       getFn: strGetFn,
+      shouldSort: false,
     }).then(f => {
       setFilteredAvailableActions(f.search(debouncedQuery).map(r => r.item));
     });
@@ -121,10 +122,11 @@ export function OmniSearchPalette() {
   };
 
   // When an action has been selected, clear the query and focus the input
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (selectedAction) {
       setQuery('');
       inputRef.current?.focus();
+      setFilteredAvailableActions([]);
     }
   }, [selectedAction]);
 
@@ -164,10 +166,13 @@ export function OmniSearchPalette() {
                       <ItemRow>
                         {item.actionIcon && (
                           <IconDefaultsProvider size="sm">
-                            {item.actionIcon}
+                            <IconWrapper>{item.actionIcon}</IconWrapper>
                           </IconDefaultsProvider>
                         )}
-                        <span>{item.label}</span>
+                        <OverflowHidden>
+                          <div>{item.label}</div>
+                          {item.details && <ItemDetails>{item.details}</ItemDetails>}
+                        </OverflowHidden>
                       </ItemRow>
                     </CommandPrimitive.Command.Item>
                   ))}
@@ -193,12 +198,24 @@ const Header = styled('div')`
   }
 `;
 
+const IconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  width: 18px;
+
+  opacity: 0.75;
+  transition: all 0.1s ease-out;
+`;
+
 const StyledCommand = styled(CommandPrimitive.Command)`
   &[cmdk-root] {
     width: 100%;
     background: ${p => p.theme.background};
     border-radius: 6px;
     overflow: hidden;
+    height: 520px;
   }
 
   [cmdk-input] {
@@ -253,31 +270,34 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     cursor: pointer;
     border-radius: 4px;
     position: relative;
-    transition: all 0.1s ease-out;
 
     &[data-selected='true'] {
       background-color: ${p => p.theme.backgroundSecondary};
       color: ${p => p.theme.purple400};
 
-      > * {
-        > *:first-child {
-          /* Only scale if the first child is an svg (icon) */
-          &:is(svg, [data-icon], .icon) {
-            transform: scale(1.1);
-          }
-        }
+      ${IconWrapper} {
+        opacity: 1;
+        transform: scale(1.1);
       }
     }
   }
 `;
 
 const ItemRow = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
   gap: 8px;
-  align-items: center;
+  align-items: start;
+  justify-content: start;
+  overflow: hidden;
+`;
 
-  > *:first-child {
-    opacity: 0.75;
-    transition: all 0.1s ease-out;
-  }
+const ItemDetails = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const OverflowHidden = styled('div')`
+  overflow: hidden;
 `;

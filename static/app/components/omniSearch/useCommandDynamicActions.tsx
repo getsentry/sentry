@@ -164,7 +164,7 @@ export function useCommandDynamicActions(): OmniAction[] {
 
     return filteredActions.map((command, index) => ({
       key: `command-${index}`,
-      areaKey: 'command',
+      areaKey: 'global',
       label: command.title,
       details: command.description,
       section: 'Commands',
