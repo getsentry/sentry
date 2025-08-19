@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout/flex';
@@ -8,16 +6,16 @@ import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import AssertionBaseForm from 'sentry/components/replays/assertions/assertionBaseForm';
+import AssertionCreateEditForm from 'sentry/components/replays/assertions/assertionCreateEditForm';
+import useAssertionPageCrumbs from 'sentry/components/replays/assertions/assertionPageCrumbs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useQuery} from 'sentry/utils/queryClient';
-import AssertionBaseForm from 'sentry/utils/replays/assertions/assertionBaseForm';
-import AssertionCreateForm from 'sentry/utils/replays/assertions/assertionCreateForm';
-import useAssertionPageCrumbs from 'sentry/utils/replays/assertions/assertionPageCrumbs';
+import AssertionDatabase from 'sentry/utils/replays/assertions/database';
+import type {AssertionFlow} from 'sentry/utils/replays/assertions/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import AssertionDatabase from 'sentry/views/replays/assertions/database';
-import type {AssertionFlow} from 'sentry/views/replays/assertions/types';
 
 export default function ReplayAssertionDetails() {
   const organization = useOrganization();
@@ -70,33 +68,33 @@ export default function ReplayAssertionDetails() {
             </Layout.HeaderActions>
           ) : null}
         </Layout.Header>
-        <Body>
+        <Flex
+          background="primary"
+          direction="column"
+          flex="1"
+          gap="lg"
+          height="100%"
+          minHeight="0"
+          padding="lg 3xl"
+        >
           {isPending ? (
             <LoadingIndicator />
           ) : error ? (
             <NotFound />
           ) : assertion ? (
-            <AssertionCreateForm
-              environment={assertion.environment}
-              name={assertion.name}
-              projectId={assertion.project_id}
+            <AssertionCreateEditForm
+              assertion={assertion}
+              setAssertion={value => {
+                // TODO: Implement mutation (update)
+                // eslint-disable-next-line no-console
+                console.log('setAssertion', value);
+              }}
             />
           ) : (
             <NotFound />
           )}
-        </Body>
+        </Flex>
       </FullViewport>
     </SentryDocumentTitle>
   );
 }
-
-const Body = styled('div')`
-  background-color: ${p => p.theme.background};
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space['3xl']};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.lg};
-  min-height: 0;
-  flex: 1;
-  height: 100%;
-`;

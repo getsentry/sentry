@@ -22,12 +22,12 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconCursorArrow, IconLocation, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useQuery} from 'sentry/utils/queryClient';
+import AssertionDatabase from 'sentry/utils/replays/assertions/database';
+import type {AssertionFlow} from 'sentry/utils/replays/assertions/types';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {IncidentStatus} from 'sentry/views/alerts/types';
-import AssertionDatabase from 'sentry/views/replays/assertions/database';
-import type {AssertionFlow} from 'sentry/views/replays/assertions/types';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 export default function ReplayOverview() {

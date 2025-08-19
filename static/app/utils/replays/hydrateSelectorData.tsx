@@ -24,8 +24,7 @@ export default function hydrateSelectorData(
         }),
 
     dom_element: {
-      fullSelector: constructSelector(d.element).fullSelector,
-      selector: constructSelector(d.element).selector,
+      ...constructSelector(d.element),
       projectId: d.project_id,
     },
 

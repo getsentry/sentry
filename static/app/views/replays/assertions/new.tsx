@@ -1,4 +1,5 @@
-import styled from '@emotion/styled';
+import {useEffect, useState} from 'react';
+import {uuid4} from '@sentry/core';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
@@ -7,12 +8,13 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import AssertionBaseForm from 'sentry/components/replays/assertions/assertionBaseForm';
+import AssertionCreateEditForm from 'sentry/components/replays/assertions/assertionCreateEditForm';
+import useAssertionPageCrumbs from 'sentry/components/replays/assertions/assertionPageCrumbs';
+import useAssertionBaseFormQueryParams from 'sentry/components/replays/assertions/useAssertionBaseFormQueryParams';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import AssertionBaseForm from 'sentry/utils/replays/assertions/assertionBaseForm';
-import AssertionCreateForm from 'sentry/utils/replays/assertions/assertionCreateForm';
-import useAssertionPageCrumbs from 'sentry/utils/replays/assertions/assertionPageCrumbs';
-import useAssertionBaseFormQueryParams from 'sentry/utils/replays/assertions/useAssertionBaseFormQueryParams';
+import type {AssertionFlow} from 'sentry/utils/replays/assertions/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function ReplayAssertionNew() {
@@ -20,7 +22,44 @@ export default function ReplayAssertionNew() {
   const {project, environment, name} = useAssertionBaseFormQueryParams();
   const crumbs = useAssertionPageCrumbs({label: t('Create New')});
 
-  const hasProjectAndEnvironment = Boolean(project && environment);
+  const [assertion, setAssertion] = useState<AssertionFlow>(() => {
+    const id = uuid4();
+    return {
+      alerts_enabled: false,
+      assigned_to: undefined,
+      created_at: new Date().toISOString(), // ISO 8601
+      description: '',
+      ending_actions: [],
+      environment,
+      id,
+      name,
+      original_id: id,
+      prev_id: undefined,
+      project_id: project?.id ?? '',
+      starting_action: {matcher: null, type: 'null'},
+      status: 'success',
+      timeout: 5 * 60 * 1000, // 5 minutes
+    };
+  });
+  useEffect(() => {
+    setAssertion(prev => {
+      if (
+        project?.id !== prev.project_id ||
+        environment !== prev.environment ||
+        name !== prev.name
+      ) {
+        return {
+          ...prev,
+          project_id: project?.id ?? '',
+          environment,
+          name,
+        };
+      }
+      return prev;
+    });
+  }, [project, environment, name]);
+
+  const hasProjectAndEnvironment = Boolean(assertion.project_id && assertion.environment);
 
   return (
     <SentryDocumentTitle
@@ -48,36 +87,39 @@ export default function ReplayAssertionNew() {
                 disabled={hasProjectAndEnvironment}
                 title={t('Pick a Project and Environment above to start')}
               >
-                <Button disabled={!hasProjectAndEnvironment} priority="primary">
+                <Button
+                  disabled={!hasProjectAndEnvironment}
+                  priority="primary"
+                  onClick={() => {
+                    if (hasProjectAndEnvironment) {
+                      // TODO: implement mutation (save) & redirect to details page
+                      // eslint-disable-next-line no-console
+                      console.log('setAssertion (save)', assertion);
+                    }
+                  }}
+                >
                   Save
                 </Button>
               </Tooltip>
             </Flex>
           </Layout.HeaderActions>
         </Layout.Header>
-        <Body>
-          {project && environment ? (
-            <AssertionCreateForm
-              environment={environment}
-              name={name}
-              projectId={project.id}
-            />
+        <Flex
+          background="primary"
+          direction="column"
+          flex="1"
+          gap="lg"
+          height="100%"
+          minHeight="0"
+          padding="lg 3xl"
+        >
+          {hasProjectAndEnvironment ? (
+            <AssertionCreateEditForm assertion={assertion} setAssertion={setAssertion} />
           ) : (
             <p>{t('Pick a Project and Environment above to start')}</p>
           )}
-        </Body>
+        </Flex>
       </FullViewport>
     </SentryDocumentTitle>
   );
 }
-
-const Body = styled('div')`
-  background-color: ${p => p.theme.background};
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space['3xl']};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.lg};
-  min-height: 0;
-  flex: 1;
-  height: 100%;
-`;
