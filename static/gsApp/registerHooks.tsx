@@ -5,203 +5,84 @@ import {IconBusiness} from 'sentry/icons';
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 
-import {shouldExcludeOrg} from 'getsentry/components/superuser/superuserWarning';
+import AiSetupDataConsent from 'getsentry/components/ai/AiSetupDataConsent';
+import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
+import DashboardBanner from 'getsentry/components/dashboardBanner';
+import DataConsentBanner from 'getsentry/components/dataConsentBanner';
+import DataConsentOrgCreationCheckbox from 'getsentry/components/dataConsentCheckbox';
+import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
+import DisabledAlertWizard from 'getsentry/components/features/disabledAlertWizard';
+import DisabledAllProjectsSelect from 'getsentry/components/features/disabledAllProjectsSelect';
+import DisabledAuthProvider from 'getsentry/components/features/disabledAuthProvider';
+import DisabledCustomInboundFilters from 'getsentry/components/features/disabledCustomInboundFilters';
+import DisabledDataForwarding from 'getsentry/components/features/disabledDataForwarding';
+import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
+import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
+import DisabledQuickTrace from 'getsentry/components/features/disabledQuickTrace';
+import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
+import DisabledRelay from 'getsentry/components/features/disabledRelay';
+import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
+import ExploreDateRangeQueryLimitFooter from 'getsentry/components/features/exploreDateRangeQueryLimitFooter';
+import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
+import InsightsUpsellPage from 'getsentry/components/features/insightsUpsellPage';
+import PerformanceNewProjectPrompt from 'getsentry/components/features/performanceNewProjectPrompt';
+import ProjectPerformanceScoreCard from 'getsentry/components/features/projectPerformanceScoreCard';
+import GSBillingNavigationConfig from 'getsentry/components/gsBillingNavigationConfig';
+import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
+import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
+import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
+import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
+import {OrganizationHeader} from 'getsentry/components/organizationHeader';
+import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
+import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
+import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
+import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
+import ReplayZendeskFeedback from 'getsentry/components/replayZendeskFeedback';
+import SidebarNavigationItem from 'getsentry/components/sidebarNavigationItem';
+import SuperuserWarning, {
+  shouldExcludeOrg,
+} from 'getsentry/components/superuser/superuserWarning';
+import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
 import hookAnalyticsInitUser from 'getsentry/hooks/analyticsInitUser';
+import {DashboardsLimitProvider} from 'getsentry/hooks/dashboardsLimit';
+import DisabledCustomSymbolSources from 'getsentry/hooks/disabledCustomSymbolSources';
+import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
+import FirstPartyIntegrationAdditionalCTA from 'getsentry/hooks/firstPartyIntegrationAdditionalCTA';
+import FirstPartyIntegrationAlertHook from 'getsentry/hooks/firstPartyIntegrationAlertHook';
+import GithubInstallationSelectInstallButton from 'getsentry/hooks/githubInstallationSelectInstall';
 import handleGuideUpdate from 'getsentry/hooks/handleGuideUpdate';
 import {handleMonitorCreated} from 'getsentry/hooks/handleMonitorCreated';
 import hookIntegrationFeatures from 'getsentry/hooks/integrationFeatures';
 import legacyOrganizationRedirectRoutes from 'getsentry/hooks/legacyOrganizationRedirectRoutes';
+import MemberListHeader from 'getsentry/hooks/memberListHeader';
+import OrganizationMembershipSettingsForm from 'getsentry/hooks/organizationMembershipSettingsForm';
 import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
+import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
+import OrgStatsProfilingBanner from 'getsentry/hooks/orgStatsProfilingBanner';
 import hookRootRoutes from 'getsentry/hooks/rootRoutes';
 import hookSettingsRoutes from 'getsentry/hooks/settingsRoutes';
 import hookSidebarDropdownMenu from 'getsentry/hooks/sidebarDropdownMenu';
 import hookSidebarHelpMenu from 'getsentry/hooks/sidebarHelpMenu';
+import EnhancedOrganizationStats from 'getsentry/hooks/spendVisibility/enhancedIndex';
+import SpikeProtectionProjectSettings from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
+import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
+import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
+import {CodecovSettingsLink} from './components/codecovSettingsLink';
+import PrimaryNavigationQuotaExceeded from './components/navBillingStatus';
+import OpenInDiscoverBtn from './components/openInDiscoverBtn';
+import {
+  ContinuousProfilingBetaAlertBanner,
+  ContinuousProfilingBetaSDKAlertBanner,
+  ProfilingBetaAlertBanner,
+} from './components/profiling/alerts';
+import ReplayOnboardingAlert from './components/replayOnboardingAlert';
+import ReplaySettingsAlert from './components/replaySettingsAlert';
 import useButtonTracking from './hooks/useButtonTracking';
 import useGetMaxRetentionDays from './hooks/useGetMaxRetentionDays';
 import useRouteActivatedHook from './hooks/useRouteActivatedHook';
-
-// Lazy-loadable components below
-const AiSetupDataConsentLazy = lazy(
-  () => import('getsentry/components/ai/AiSetupDataConsent')
-);
-const CronsBillingBannerLazy = lazy(
-  () => import('getsentry/components/crons/cronsBillingBanner')
-);
-const DashboardBannerLazy = lazy(() => import('getsentry/components/dashboardBanner'));
-const DataConsentBannerLazy = lazy(
-  () => import('getsentry/components/dataConsentBanner')
-);
-const DataConsentOrgCreationCheckboxLazy = lazy(
-  () => import('getsentry/components/dataConsentCheckbox')
-);
-const DataConsentPriorityLearnMoreLazy = lazy(
-  () => import('getsentry/components/dataConsentPriorityLearnMore')
-);
-const DisabledAlertWizardLazy = lazy(
-  () => import('getsentry/components/features/disabledAlertWizard')
-);
-const DisabledAllProjectsSelectLazy = lazy(
-  () => import('getsentry/components/features/disabledAllProjectsSelect')
-);
-const DisabledAuthProviderLazy = lazy(
-  () => import('getsentry/components/features/disabledAuthProvider')
-);
-const DisabledCustomInboundFiltersLazy = lazy(
-  () => import('getsentry/components/features/disabledCustomInboundFilters')
-);
-const DisabledDataForwardingLazy = lazy(
-  () => import('getsentry/components/features/disabledDataForwarding')
-);
-const DisabledDateRangeLazy = lazy(
-  () => import('getsentry/components/features/disabledDateRange')
-);
-const DisabledDiscardGroupLazy = lazy(
-  () => import('getsentry/components/features/disabledDiscardGroup')
-);
-const DisabledQuickTraceLazy = lazy(
-  () => import('getsentry/components/features/disabledQuickTrace')
-);
-const DisabledRateLimitsLazy = lazy(
-  () => import('getsentry/components/features/disabledRateLimits')
-);
-const DisabledRelayLazy = lazy(
-  () => import('getsentry/components/features/disabledRelay')
-);
-const DisabledSelectorItemsLazy = lazy(
-  () => import('getsentry/components/features/disabledSelectorItems')
-);
-const ExploreDateRangeQueryLimitFooterLazy = lazy(
-  () => import('getsentry/components/features/exploreDateRangeQueryLimitFooter')
-);
-const InsightsDateRangeQueryLimitFooterLazy = lazy(
-  () => import('getsentry/components/features/insightsDateRangeQueryLimitFooter')
-);
-const InsightsUpsellPageLazy = lazy(
-  () => import('getsentry/components/features/insightsUpsellPage')
-);
-const PerformanceNewProjectPromptLazy = lazy(
-  () => import('getsentry/components/features/performanceNewProjectPrompt')
-);
-const ProjectPerformanceScoreCardLazy = lazy(
-  () => import('getsentry/components/features/projectPerformanceScoreCard')
-);
-const GSBillingNavigationConfigLazy = lazy(
-  () => import('getsentry/components/gsBillingNavigationConfig')
-);
-const HelpSearchFooterLazy = lazy(() => import('getsentry/components/helpSearchFooter'));
-const InviteMembersButtonCustomizationLazy = lazy(
-  () => import('getsentry/components/inviteMembersButtonCustomization')
-);
-const LabelWithPowerIconLazy = lazy(
-  () => import('getsentry/components/labelWithPowerIcon')
-);
-const MemberInviteModalCustomizationLazy = lazy(
-  () => import('getsentry/components/memberInviteModalCustomization')
-);
-const OrganizationHeaderLazy = lazy(() =>
-  import('getsentry/components/organizationHeader').then(m => ({
-    default: m.OrganizationHeader,
-  }))
-);
-const PowerFeatureHovercardLazy = lazy(
-  () => import('getsentry/components/powerFeatureHovercard')
-);
-const ProductSelectionAvailabilityLazy = lazy(() =>
-  import('getsentry/components/productSelectionAvailability').then(m => ({
-    default: m.ProductSelectionAvailability,
-  }))
-);
-const ProductUnavailableCTALazy = lazy(() =>
-  import('getsentry/components/productUnavailableCTA').then(m => ({
-    default: m.ProductUnavailableCTA,
-  }))
-);
-const ReplayOnboardingCTALazy = lazy(
-  () => import('getsentry/components/replayOnboardingCTA')
-);
-const ReplayZendeskFeedbackLazy = lazy(
-  () => import('getsentry/components/replayZendeskFeedback')
-);
-const SidebarNavigationItemLazy = lazy(
-  () => import('getsentry/components/sidebarNavigationItem')
-);
-const SuperuserWarningLazy = lazy(
-  () => import('getsentry/components/superuser/superuserWarning')
-);
-const TryBusinessSidebarItemLazy = lazy(
-  () => import('getsentry/components/tryBusinessSidebarItem')
-);
-const DashboardsLimitProviderLazy = lazy(() =>
-  import('getsentry/hooks/dashboardsLimit').then(m => ({
-    default: m.DashboardsLimitProvider,
-  }))
-);
-const DisabledCustomSymbolSourcesLazy = lazy(
-  () => import('getsentry/hooks/disabledCustomSymbolSources')
-);
-const DisabledMemberTooltipLazy = lazy(
-  () => import('getsentry/hooks/disabledMemberTooltip')
-);
-const FirstPartyIntegrationAdditionalCTALazy = lazy(
-  () => import('getsentry/hooks/firstPartyIntegrationAdditionalCTA')
-);
-const FirstPartyIntegrationAlertHookLazy = lazy(
-  () => import('getsentry/hooks/firstPartyIntegrationAlertHook')
-);
-const GithubInstallationSelectInstallButtonLazy = lazy(
-  () => import('getsentry/hooks/githubInstallationSelectInstall')
-);
-const MemberListHeaderLazy = lazy(() => import('getsentry/hooks/memberListHeader'));
-const OrganizationMembershipSettingsFormLazy = lazy(
-  () => import('getsentry/hooks/organizationMembershipSettingsForm')
-);
-const OrgStatsBannerLazy = lazy(() => import('getsentry/hooks/orgStatsBanner'));
-const OrgStatsProfilingBannerLazy = lazy(
-  () => import('getsentry/hooks/orgStatsProfilingBanner')
-);
-const EnhancedOrganizationStatsLazy = lazy(
-  () => import('getsentry/hooks/spendVisibility/enhancedIndex')
-);
-const SpikeProtectionProjectSettingsLazy = lazy(
-  () => import('getsentry/hooks/spendVisibility/spikeProtectionProjectSettings')
-);
-const SuperuserAccessCategoryLazy = lazy(
-  () => import('getsentry/hooks/superuserAccessCategory')
-);
-const TargetedOnboardingHeaderLazy = lazy(
-  () => import('getsentry/hooks/targetedOnboardingHeader')
-);
-const CodecovSettingsLinkLazy = lazy(() =>
-  import('./components/codecovSettingsLink').then(m => ({
-    default: m.CodecovSettingsLink,
-  }))
-);
-const PrimaryNavigationQuotaExceededLazy = lazy(
-  () => import('./components/navBillingStatus')
-);
-const OpenInDiscoverBtnLazy = lazy(() => import('./components/openInDiscoverBtn'));
-const ContinuousProfilingBetaAlertBannerLazy = lazy(() =>
-  import('./components/profiling/alerts').then(m => ({
-    default: m.ContinuousProfilingBetaAlertBanner,
-  }))
-);
-const ContinuousProfilingBetaSDKAlertBannerLazy = lazy(() =>
-  import('./components/profiling/alerts').then(m => ({
-    default: m.ContinuousProfilingBetaSDKAlertBanner,
-  }))
-);
-const ProfilingBetaAlertBannerLazy = lazy(() =>
-  import('./components/profiling/alerts').then(m => ({
-    default: m.ProfilingBetaAlertBanner,
-  }))
-);
-const ReplayOnboardingAlertLazy = lazy(
-  () => import('./components/replayOnboardingAlert')
-);
-const ReplaySettingsAlertLazy = lazy(() => import('./components/replaySettingsAlert'));
 
 const PartnershipAgreement = lazy(() => import('getsentry/views/partnershipAgreement'));
 const DisabledDiscover2Page = lazy(
@@ -240,19 +121,12 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    */
   'sidebar:organization-dropdown-menu': hookSidebarDropdownMenu,
   'sidebar:help-menu': hookSidebarHelpMenu,
-  'sidebar:item-label': () => props => (
-    <LazyLoad LazyComponent={LabelWithPowerIconLazy} {...props} />
-  ),
+  'sidebar:item-label': () => LabelWithPowerIcon,
   'sidebar:try-business': props => (
-    <LazyLoad
-      LazyComponent={TryBusinessSidebarItemLazy}
-      key="try-business-sidebar-item"
-      {...props}
-    />
+    <TryBusinessSidebarItem key="try-business-sidebar-item" {...props} />
   ),
   'sidebar:billing-status': props => (
-    <LazyLoad
-      LazyComponent={PrimaryNavigationQuotaExceededLazy}
+    <PrimaryNavigationQuotaExceeded
       key="quota-exceeded-sidebar-item"
       organization={props.organization}
     />
@@ -261,40 +135,32 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   /**
    * Augment the global help search modal with a contat support button
    */
-  'help-modal:footer': props => (
-    <LazyLoad LazyComponent={HelpSearchFooterLazy} key="help-search-footer" {...props} />
-  ),
+  'help-modal:footer': props => <HelpSearchFooter key="help-search-footer" {...props} />,
 
   /**
    * Settings navigation configuration component
    */
   'settings:organization-navigation': organization => (
-    <LazyLoad LazyComponent={GSBillingNavigationConfigLazy} organization={organization} />
+    <GSBillingNavigationConfig organization={organization} />
   ),
 
   /**
    * Augment the header with the getsentry banners. This includes banners
    * and modals for various overage warnings.
    */
-  'component:organization-header': () => props => (
-    <LazyLoad LazyComponent={OrganizationHeaderLazy} {...props} />
-  ),
+  'component:organization-header': () => OrganizationHeader,
 
   /**
    * Ensure the Invite Members button is always enabled without regard for the
    * `feature:invite-members` flag.
    */
-  'member-invite-button:customization': () => props => (
-    <LazyLoad LazyComponent={InviteMembersButtonCustomizationLazy} {...props} />
-  ),
+  'member-invite-button:customization': () => InviteMembersButtonCustomization,
 
   /**
    * Augment the invite members modal component to start a trial before
    * inviting members.
    */
-  'member-invite-modal:customization': () => props => (
-    <LazyLoad LazyComponent={MemberInviteModalCustomizationLazy} {...props} />
-  ),
+  'member-invite-modal:customization': () => MemberInviteModalCustomization,
 
   /**
    * Wrap navigation items in the main sidebar with a possible upsell, if
@@ -303,19 +169,13 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * similar to `sidebar:item-label`, but wraps the entire link. Expects
    * a render prop.
    */
-  'sidebar:navigation-item': () => props => (
-    <LazyLoad LazyComponent={SidebarNavigationItemLazy} {...props} />
-  ),
+  'sidebar:navigation-item': () => SidebarNavigationItem,
 
   /**
    * Augment the targeted onboarding page with a different header
    */
   'onboarding:targeted-onboarding-header': ({source}: {source: string}) => (
-    <LazyLoad
-      LazyComponent={TargetedOnboardingHeaderLazy}
-      source={source}
-      key="targeted-onboarding-header"
-    />
+    <TargetedOnboardingHeader source={source} key="targeted-onboarding-header" />
   ),
 
   /**
@@ -337,157 +197,81 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * Hooks related to Spend Visibility (i.e. Per-Project Spike Protection + Spend Allocations)
    */
   'spend-visibility:spike-protection-project-settings': p => (
-    <LazyLoad LazyComponent={SpikeProtectionProjectSettingsLazy} {...p} />
+    <SpikeProtectionProjectSettings {...p} />
   ),
 
   /**
    *   Given a module name, if applicable, displays the appropriate upsell page
    */
-  'component:insights-upsell-page': () => props => (
-    <LazyLoad LazyComponent={InsightsUpsellPageLazy} {...props} />
-  ),
-  'component:insights-date-range-query-limit-footer': () => props => (
-    <LazyLoad LazyComponent={InsightsDateRangeQueryLimitFooterLazy} {...props} />
-  ),
-  'component:ai-setup-data-consent': () => props => (
-    <LazyLoad LazyComponent={AiSetupDataConsentLazy} {...props} />
-  ),
-  'component:codecov-integration-settings-link': () => props => (
-    <LazyLoad LazyComponent={CodecovSettingsLinkLazy} {...props} />
-  ),
-  'component:continuous-profiling-beta-banner': () => props => (
-    <LazyLoad LazyComponent={ContinuousProfilingBetaAlertBannerLazy} {...props} />
-  ),
-  'component:continuous-profiling-beta-sdk-banner': () => props => (
-    <LazyLoad LazyComponent={ContinuousProfilingBetaSDKAlertBannerLazy} {...props} />
-  ),
-  'component:explore-date-range-query-limit-footer': () => props => (
-    <LazyLoad LazyComponent={ExploreDateRangeQueryLimitFooterLazy} {...props} />
-  ),
+  'component:insights-upsell-page': () => InsightsUpsellPage,
+  'component:insights-date-range-query-limit-footer': () =>
+    InsightsDateRangeQueryLimitFooter,
+  'component:ai-setup-data-consent': () => AiSetupDataConsent,
+  'component:codecov-integration-settings-link': () => CodecovSettingsLink,
+  'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
+  'component:continuous-profiling-beta-sdk-banner': () =>
+    ContinuousProfilingBetaSDKAlertBanner,
+  'component:explore-date-range-query-limit-footer': () =>
+    ExploreDateRangeQueryLimitFooter,
   /**
    * Augment the datetime picker based on plan retention days. Includes upsell interface
    */
-  'component:header-date-range': () => props => (
-    <LazyLoad LazyComponent={DisabledDateRangeLazy} {...props} />
-  ),
-  'component:header-selector-items': () => props => (
-    <LazyLoad LazyComponent={DisabledSelectorItemsLazy} {...props} />
-  ),
-  'component:member-list-header': () => props => (
-    <LazyLoad LazyComponent={MemberListHeaderLazy} {...props} />
-  ),
+  'component:header-date-range': () => DisabledDateRange,
+  'component:header-selector-items': () => DisabledSelectorItems,
+  'component:member-list-header': () => MemberListHeader,
   'component:disabled-member': () => props => (
     <LazyLoad LazyComponent={DisabledMemberViewLazy} {...props} />
   ),
-  'component:disabled-member-tooltip': () => props => (
-    <LazyLoad LazyComponent={DisabledMemberTooltipLazy} {...props} />
-  ),
-  'component:disabled-custom-symbol-sources': () => props => (
-    <LazyLoad LazyComponent={DisabledCustomSymbolSourcesLazy} {...props} />
-  ),
-  'component:dashboards-header': () => props => (
-    <LazyLoad LazyComponent={DashboardBannerLazy} {...props} />
-  ),
-  'component:org-stats-banner': () => props => (
-    <LazyLoad LazyComponent={OrgStatsBannerLazy} {...props} />
-  ),
-  'component:org-stats-profiling-banner': () => props => (
-    <LazyLoad LazyComponent={OrgStatsProfilingBannerLazy} {...props} />
-  ),
-  'component:enhanced-org-stats': () => props => (
-    <LazyLoad LazyComponent={EnhancedOrganizationStatsLazy} {...props} />
-  ),
-  'component:first-party-integration-alert': () => props => (
-    <LazyLoad LazyComponent={FirstPartyIntegrationAlertHookLazy} {...props} />
-  ),
-  'component:first-party-integration-additional-cta': () => props => (
-    <LazyLoad LazyComponent={FirstPartyIntegrationAdditionalCTALazy} {...props} />
-  ),
-  'component:replay-feedback-button': () => props => (
-    <LazyLoad LazyComponent={ReplayZendeskFeedbackLazy} {...props} />
-  ),
-  'component:replay-onboarding-alert': () => props => (
-    <LazyLoad LazyComponent={ReplayOnboardingAlertLazy} {...props} />
-  ),
-  'component:replay-onboarding-cta': () => props => (
-    <LazyLoad LazyComponent={ReplayOnboardingCTALazy} {...props} />
-  ),
-  'component:replay-settings-alert': () => props => (
-    <LazyLoad LazyComponent={ReplaySettingsAlertLazy} {...props} />
-  ),
-  'component:product-unavailable-cta': () => props => (
-    <LazyLoad LazyComponent={ProductUnavailableCTALazy} {...props} />
-  ),
-  'component:profiling-billing-banner': () => props => (
-    <LazyLoad LazyComponent={ProfilingBetaAlertBannerLazy} {...props} />
-  ),
-  'component:product-selection-availability': () => props => (
-    <LazyLoad LazyComponent={ProductSelectionAvailabilityLazy} {...props} />
-  ),
-  'component:superuser-access-category': props => (
-    <LazyLoad LazyComponent={SuperuserAccessCategoryLazy} {...props} />
-  ),
-  'component:superuser-warning': p => (
-    <LazyLoad LazyComponent={SuperuserWarningLazy} {...p} />
-  ),
+  'component:disabled-member-tooltip': () => DisabledMemberTooltip,
+  'component:disabled-custom-symbol-sources': () => DisabledCustomSymbolSources,
+  'component:dashboards-header': () => DashboardBanner,
+  'component:org-stats-banner': () => OrgStatsBanner,
+  'component:org-stats-profiling-banner': () => OrgStatsProfilingBanner,
+  'component:enhanced-org-stats': () => EnhancedOrganizationStats,
+  'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
+  'component:first-party-integration-additional-cta': () =>
+    FirstPartyIntegrationAdditionalCTA,
+  'component:replay-feedback-button': () => ReplayZendeskFeedback,
+  'component:replay-onboarding-alert': () => ReplayOnboardingAlert,
+  'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
+  'component:replay-settings-alert': () => ReplaySettingsAlert,
+  'component:product-unavailable-cta': () => ProductUnavailableCTA,
+  'component:profiling-billing-banner': () => ProfilingBetaAlertBanner,
+  'component:product-selection-availability': () => ProductSelectionAvailability,
+  'component:superuser-access-category': SuperuserAccessCategory,
+  'component:superuser-warning': p => <SuperuserWarning {...p} />,
   'component:superuser-warning-excluded': shouldExcludeOrg,
-  'component:crons-list-page-header': () => props => (
-    <LazyLoad LazyComponent={CronsBillingBannerLazy} {...props} />
-  ),
+  'component:crons-list-page-header': () => CronsBillingBanner,
   'react-hook:route-activated': useRouteActivatedHook,
   'react-hook:use-button-tracking': useButtonTracking,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
   ),
-  'component:dashboards-limit-provider': () => props => (
-    <LazyLoad LazyComponent={DashboardsLimitProviderLazy} {...props} />
-  ),
-  'component:data-consent-banner': () => props => (
-    <LazyLoad LazyComponent={DataConsentBannerLazy} {...props} />
-  ),
-  'component:data-consent-priority-learn-more': () => props => (
-    <LazyLoad LazyComponent={DataConsentPriorityLearnMoreLazy} {...props} />
-  ),
-  'component:data-consent-org-creation-checkbox': () => props => (
-    <LazyLoad LazyComponent={DataConsentOrgCreationCheckboxLazy} {...props} />
-  ),
-  'component:organization-membership-settings': () => props => (
-    <LazyLoad LazyComponent={OrganizationMembershipSettingsFormLazy} {...props} />
-  ),
-  'component:scm-multi-org-install-button': () => props => (
-    <LazyLoad LazyComponent={GithubInstallationSelectInstallButtonLazy} {...props} />
-  ),
+  'component:dashboards-limit-provider': () => DashboardsLimitProvider,
+  'component:data-consent-banner': () => DataConsentBanner,
+  'component:data-consent-priority-learn-more': () => DataConsentPriorityLearnMore,
+  'component:data-consent-org-creation-checkbox': () => DataConsentOrgCreationCheckbox,
+  'component:organization-membership-settings': () => OrganizationMembershipSettingsForm,
+  'component:scm-multi-org-install-button': () => GithubInstallationSelectInstallButton,
 
   /**
    * Augment disable feature hooks for augmenting with upsell interfaces
    */
 
-  'feature-disabled:discard-groups': p => (
-    <LazyLoad LazyComponent={DisabledDiscardGroupLazy} {...p} />
-  ),
-  'feature-disabled:data-forwarding': p => (
-    <LazyLoad LazyComponent={DisabledDataForwardingLazy} {...p} />
-  ),
-  'feature-disabled:relay': p => <LazyLoad LazyComponent={DisabledRelayLazy} {...p} />,
-  'feature-disabled:rate-limits': p => (
-    <LazyLoad LazyComponent={DisabledRateLimitsLazy} {...p} />
-  ),
-  'feature-disabled:sso-basic': p => (
-    <LazyLoad LazyComponent={DisabledAuthProviderLazy} {...p} />
-  ),
-  'feature-disabled:sso-saml2': p => (
-    <LazyLoad LazyComponent={DisabledAuthProviderLazy} {...p} />
-  ),
-  'feature-disabled:custom-inbound-filters': p => (
-    <LazyLoad LazyComponent={DisabledCustomInboundFiltersLazy} {...p} />
-  ),
+  'feature-disabled:discard-groups': p => <DisabledDiscardGroup {...p} />,
+  'feature-disabled:data-forwarding': p => <DisabledDataForwarding {...p} />,
+  'feature-disabled:relay': p => <DisabledRelay {...p} />,
+  'feature-disabled:rate-limits': p => <DisabledRateLimits {...p} />,
+  'feature-disabled:sso-basic': p => <DisabledAuthProvider {...p} />,
+  'feature-disabled:sso-saml2': p => <DisabledAuthProvider {...p} />,
+  'feature-disabled:custom-inbound-filters': p => <DisabledCustomInboundFilters {...p} />,
   'feature-disabled:discover2-sidebar-item': p =>
     typeof p.children === 'function' ? p.children(p) : p.children,
   'feature-disabled:performance-new-project': p => (
-    <LazyLoad LazyComponent={PerformanceNewProjectPromptLazy} {...p}>
+    <PerformanceNewProjectPrompt {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
+    </PerformanceNewProjectPrompt>
   ),
   'feature-disabled:discover2-page': p => (
     <LazyLoad LazyComponent={DisabledDiscover2Page} {...p}>
@@ -499,9 +283,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </LazyLoad>
   ),
-  'feature-disabled:performance-quick-trace': p => (
-    <LazyLoad LazyComponent={DisabledQuickTraceLazy} {...p} />
-  ),
+  'feature-disabled:performance-quick-trace': p => <DisabledQuickTrace {...p} />,
   'feature-disabled:alerts-page': p => (
     <LazyLoad
       LazyComponent={DisabledAlertsPage}
@@ -517,86 +299,71 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     </LazyLoad>
   ),
   'feature-disabled:alert-wizard-performance': p => (
-    <LazyLoad LazyComponent={DisabledAlertWizardLazy} {...p}>
+    <DisabledAlertWizard {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
+    </DisabledAlertWizard>
   ),
   'feature-disabled:codecov-integration-setting': () => (
-    <LazyLoad
-      LazyComponent={PowerFeatureHovercardLazy}
+    <PowerFeatureHovercard
       features={['organizations:codecov-integration']}
       id="codecov-integration"
     >
       <IconBusiness size="sm" data-test-id="power-icon" />
-    </LazyLoad>
+    </PowerFeatureHovercard>
   ),
   'feature-disabled:project-performance-score-card': p => (
-    <LazyLoad LazyComponent={ProjectPerformanceScoreCardLazy} {...p}>
+    <ProjectPerformanceScoreCard {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
+    </ProjectPerformanceScoreCard>
   ),
   'feature-disabled:project-selector-checkbox': p => (
-    <LazyLoad
-      LazyComponent={PowerFeatureHovercardLazy}
-      features={['organizations:global-views']}
-      id="global-views"
-    >
+    <PowerFeatureHovercard features={['organizations:global-views']} id="global-views">
       {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
+    </PowerFeatureHovercard>
   ),
   'feature-disabled:project-selector-all-projects': p => (
-    <LazyLoad LazyComponent={DisabledAllProjectsSelectLazy} {...p}>
+    <DisabledAllProjectsSelect {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
+    </DisabledAllProjectsSelect>
   ),
   'feature-disabled:open-discover': p => (
-    <LazyLoad
-      LazyComponent={PowerFeatureHovercardLazy}
-      features={['organizations:discover-basic']}
-      id="open-discover"
-    >
+    <PowerFeatureHovercard features={['organizations:discover-basic']} id="open-discover">
       {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
+    </PowerFeatureHovercard>
   ),
   'feature-disabled:dashboards-edit': p => (
-    <LazyLoad
-      LazyComponent={PowerFeatureHovercardLazy}
+    <PowerFeatureHovercard
       features={['organizations:dashboards-edit']}
       id="dashboards-edit"
     >
       {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
+    </PowerFeatureHovercard>
   ),
   'feature-disabled:grid-editable-actions': p => (
-    <LazyLoad
-      LazyComponent={PowerFeatureHovercardLazy}
+    <PowerFeatureHovercard
       features={['organizations:discover-query']}
       id="discover-query"
     >
       {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
+    </PowerFeatureHovercard>
   ),
   'feature-disabled:discover-saved-query-create': p => (
-    <LazyLoad
-      LazyComponent={PowerFeatureHovercardLazy}
+    <PowerFeatureHovercard
       features={['organizations:discover-query']}
       id="discover-saved-query"
     >
       {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
+    </PowerFeatureHovercard>
   ),
-  'feature-disabled:open-in-discover': p => (
-    <LazyLoad LazyComponent={OpenInDiscoverBtnLazy} {...p} />
-  ),
+  'feature-disabled:open-in-discover': p => <OpenInDiscoverBtn {...p} />,
   'feature-disabled:issue-views': p => (
-    <LazyLoad
-      LazyComponent={PowerFeatureHovercardLazy}
+    <PowerFeatureHovercard
       features={['organizations:issue-views']}
       id="issue-views"
       useLearnMoreLink
     >
       {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
+    </PowerFeatureHovercard>
   ),
 
   /**
