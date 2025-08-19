@@ -115,6 +115,11 @@ export default function StreamlinedGroupHeader({
     'issue-details-learn-more',
     true
   );
+  const [isAIMode, setIsAIMode] = useLocalStorageState('issue-details-ai-mode', false);
+
+  const toggleAIMode = () => {
+    setIsAIMode(!isAIMode);
+  };
 
   return (
     <Fragment>
@@ -162,6 +167,16 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
+            <Button
+              size="xs"
+              priority={isAIMode ? 'primary' : 'default'}
+              onClick={toggleAIMode}
+              icon={<span>🤖</span>}
+              title={t('Toggle AI-powered analysis of this issue')}
+              aria-label={t('Toggle AI analysis mode')}
+            >
+              {isAIMode ? t('Seer Mode: ON') : t('Seer Mode: OFF')}
+            </Button>
             {isQueryInjection ? (
               <ButtonBar gap="xs">
                 <LinkButton
@@ -183,7 +198,8 @@ export default function StreamlinedGroupHeader({
             )}
           </ButtonBar>
         </Flex>
-        <HeaderGrid>
+        {!isAIMode && (
+          <HeaderGrid>
           <Title>
             <Tooltip
               title={primaryTitle}
@@ -274,9 +290,11 @@ export default function StreamlinedGroupHeader({
               <SeerBadge group={group} />
             </ErrorBoundary>
           </Flex>
-        </HeaderGrid>
+          </HeaderGrid>
+        )}
       </Header>
-      <TourElement<IssueDetailsTour>
+      {!isAIMode && (
+        <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}
         id={IssueDetailsTour.WORKFLOWS}
         title={t('Take action')}
@@ -307,7 +325,8 @@ export default function StreamlinedGroupHeader({
             </Workflow>
           </WorkflowActions>
         </ActionBar>
-      </TourElement>
+        </TourElement>
+      )}
     </Fragment>
   );
 }

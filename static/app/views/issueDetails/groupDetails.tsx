@@ -44,6 +44,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -62,6 +63,7 @@ import {
   type IssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
+import {AIAnalysisCard} from 'sentry/views/issueDetails/streamline/aiAnalysisCard';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
@@ -645,6 +647,7 @@ function GroupDetailsContent({
   event,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
+  const [isAIMode] = useLocalStorageState('issue-details-ai-mode', false);
   const includeFlagDistributions =
     featureFlagDrawerPlatforms.includes(project.platform ?? 'other') &&
     organization.features.includes('feature-flag-distribution-flyout');
@@ -715,7 +718,10 @@ function GroupDetailsContent({
 
   return hasStreamlinedUI ? (
     <GroupDetailsLayout group={group} event={event ?? undefined} project={project}>
-      {isDisplayingEventDetails ? (
+      {isAIMode ? (
+        // AI mode takes over the entire page
+        <AIAnalysisCard group={group} event={event} project={project} />
+      ) : isDisplayingEventDetails ? (
         // The router displays a loading indicator when switching to any of these tabs
         // Avoid lazy loading spinner by force rendering the GroupEventDetails component
         <GroupEventDetails />
