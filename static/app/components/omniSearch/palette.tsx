@@ -102,6 +102,12 @@ export function OmniSearchPalette() {
     });
   }, [availableActions, debouncedQuery, filteredAvailableActions, llmRoutingActions]);
 
+  // Get the first item's key to set as the default selected value
+  const firstItemKey = useMemo(() => {
+    const firstItem = grouped.find(group => group.items.length > 0)?.items[0];
+    return firstItem?.key || '';
+  }, [grouped]);
+
   const handleSelect = (action: OmniAction) => {
     if (action.disabled) {
       return;
@@ -143,7 +149,7 @@ export function OmniSearchPalette() {
   return (
     <Fragment>
       <SeeryCharacter animationData={serryLottieAnimation} size={200} />
-      <StyledCommand label="OmniSearch" shouldFilter={false}>
+      <StyledCommand label="OmniSearch" shouldFilter={false} value={firstItemKey}>
         <Header>
           {focusedArea && (
             <FocusedAreaContainer>
@@ -177,6 +183,7 @@ export function OmniSearchPalette() {
                     {group.items.map(item => (
                       <CommandPrimitive.Command.Item
                         key={item.key}
+                        value={item.key}
                         onSelect={() => handleSelect(item)}
                         disabled={item.disabled}
                       >

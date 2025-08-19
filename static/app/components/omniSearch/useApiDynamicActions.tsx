@@ -27,7 +27,7 @@ function createOmniAction(result: ResultItem, index: number): OmniAction {
   switch (result.sourceType) {
     case 'project':
       return {
-        key: `project-${result.model?.id}`,
+        key: `project-${result.model?.id}-${index}`,
         areaKey: 'global',
         label: result.title as string,
         details: (result.description || result.model?.description) ?? '',
@@ -36,7 +36,7 @@ function createOmniAction(result: ResultItem, index: number): OmniAction {
       };
     case 'team':
       return {
-        key: `team-${result.model?.id}`,
+        key: `team-${result.model?.id}-${index}`,
         areaKey: 'global',
         label: result.title as string,
         details: (result.description || result.model?.description) ?? '',
@@ -45,7 +45,7 @@ function createOmniAction(result: ResultItem, index: number): OmniAction {
       };
     case 'member':
       return {
-        key: `member-${result.model?.id}`,
+        key: `member-${result.model?.id}-${index}`,
         areaKey: 'global',
         label: result.title as string,
         details: (result.description || result.model?.description) ?? '',
@@ -56,7 +56,7 @@ function createOmniAction(result: ResultItem, index: number): OmniAction {
       };
     case 'plugin':
       return {
-        key: `plugin-${result.model?.id}`,
+        key: `plugin-${result.model?.id}-${index}`,
         areaKey: 'global',
         label: result.title as string,
         details: (result.description || result.model?.description) ?? '',
@@ -70,7 +70,7 @@ function createOmniAction(result: ResultItem, index: number): OmniAction {
       };
     case 'integration':
       return {
-        key: `integration-${result.model?.id}`,
+        key: `integration-${result.model?.id}-${index}`,
         areaKey: 'global',
         label: result.title as string,
         details: (result.description || result.model?.description) ?? '',
@@ -78,7 +78,7 @@ function createOmniAction(result: ResultItem, index: number): OmniAction {
       };
     case 'sentryApp':
       return {
-        key: `sentry-app-${result.model?.id}`,
+        key: `sentry-app-${result.model?.id}-${index}`,
         areaKey: 'global',
         label: result.title as string,
         details: (result.description || result.model?.description) ?? '',
@@ -86,7 +86,7 @@ function createOmniAction(result: ResultItem, index: number): OmniAction {
       };
     case 'docIntegration':
       return {
-        key: `doc-integration-${result.model?.id}`,
+        key: `doc-integration-${result.model?.id}-${index}`,
         areaKey: 'global',
         label: result.title as string,
         details: (result.description || result.model?.description) ?? '',
