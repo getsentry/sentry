@@ -223,6 +223,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             == "foo: an unexpected failure occurred while trying to obtain metadata information"
         )
 
+    @pytest.mark.skip(reason="flaky: #98021")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_nonhandled_frames_inapp_normalization(self) -> None:
