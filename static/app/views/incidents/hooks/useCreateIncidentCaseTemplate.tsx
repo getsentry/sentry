@@ -1,20 +1,14 @@
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {IncidentCaseTemplate} from 'sentry/views/incidents/types';
 
-export function useIncidentCaseTemplates({organizationSlug}: {organizationSlug: string}) {
-  const {
-    data: incidentCaseTemplates,
-    isLoading,
-    error,
-    refetch,
-  } = useApiQuery<IncidentCaseTemplate[]>(
-    [`/organizations/${organizationSlug}/incident-case-templates/`],
-    {staleTime: 30000}
-  );
-
+export function useCreateIncidentCaseTemplate({
+  organizationSlug,
+}: {
+  organizationSlug: string;
+}) {
   const createMutation = useMutation<
     IncidentCaseTemplate,
     RequestError,
@@ -29,11 +23,5 @@ export function useIncidentCaseTemplates({organizationSlug}: {organizationSlug: 
     onSuccess: () => addSuccessMessage(t('Template Created')),
   });
 
-  return {
-    incidentCaseTemplates: incidentCaseTemplates || [],
-    isLoading,
-    error,
-    refetch,
-    createMutation,
-  };
+  return {createMutation};
 }

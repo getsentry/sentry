@@ -1,26 +1,16 @@
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {IncidentCase} from 'sentry/views/incidents/types';
 
-export function useIncidentCase({
+export function useMutateIncidentCase({
   organizationSlug,
   caseId,
 }: {
   caseId: number;
   organizationSlug: string;
 }) {
-  const {
-    data: incidentCase,
-    isLoading,
-    error,
-    refetch,
-  } = useApiQuery<IncidentCase>(
-    [`/organizations/${organizationSlug}/incident-cases/${caseId}/`],
-    {staleTime: 30000}
-  );
-
   const updateMutation = useMutation<IncidentCase, RequestError, Partial<IncidentCase>>({
     mutationFn: data =>
       fetchMutation({
@@ -30,6 +20,7 @@ export function useIncidentCase({
       }),
     onSuccess: () => addSuccessMessage(t('Incident Updated')),
   });
+
   const deleteMutation = useMutation<IncidentCase, RequestError, void>({
     mutationFn: () =>
       fetchMutation({
@@ -39,12 +30,5 @@ export function useIncidentCase({
     onSuccess: () => addSuccessMessage(t('Incident Deleted')),
   });
 
-  return {
-    isLoading,
-    error,
-    refetch,
-    incidentCase,
-    updateMutation,
-    deleteMutation,
-  };
+  return {updateMutation, deleteMutation};
 }
