@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 from uuid import uuid4
 
 import jsonschema
+import sentry_sdk
 
 from sentry import features
 from sentry.constants import DataCategory
@@ -60,6 +61,7 @@ class FeedbackCreationSource(Enum):
         }
 
 
+@sentry_sdk.trace
 def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
     evidence_data = {}
     evidence_display = []
@@ -152,6 +154,7 @@ def fix_for_issue_platform(event_data):
     return ret_event
 
 
+@sentry_sdk.trace
 def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     # Right now all unreal error events without a feedback
     # actually get a sent a feedback with this message
@@ -182,7 +185,14 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     return False
 
 
+@sentry_sdk.trace
 def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
+    span = sentry_sdk.get_current_span()
+    if span:
+        span.set_tag("project_id", project_id)
+        span.set_tag("source", source.value)
+        span.set_tag("event_id", event.get("event_id", "unknown"))
+    
     metrics.incr("feedback.create_feedback_issue.entered")
 
     if should_filter_feedback(event, project_id, source):
@@ -194,11 +204,12 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     if features.has(
         "organizations:user-feedback-spam-filter-ingest", project.organization
     ) and project.get_option("sentry:feedback_ai_spam_detection"):
-        try:
-            is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
-        except Exception:
-            # until we have LLM error types ironed out, just catch all exceptions
-            logger.exception("Error checking if message is spam")
+        with sentry_sdk.start_span(op="feedback.spam_check", description="check_spam_with_ai"):
+            try:
+                is_message_spam = is_spam(event["contexts"]["feedback"]["message"])
+            except Exception:
+                # until we have LLM error types ironed out, just catch all exceptions
+                logger.exception("Error checking if message is spam")
 
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
@@ -249,9 +260,10 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     ):
         first_new_feedback_received.send_robust(project=project, sender=Project)
 
-    produce_occurrence_to_kafka(
-        payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
-    )
+    with sentry_sdk.start_span(op="feedback.produce_occurrence", description="send_to_kafka"):
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
+        )
     if is_message_spam:
         auto_ignore_spam_feedbacks(project, issue_fingerprint)
     metrics.incr(
@@ -295,6 +307,7 @@ class UserReportShimDict(TypedDict):
     level: str
 
 
+@sentry_sdk.trace
 def shim_to_feedback(
     report: UserReportShimDict,
     event: Event | GroupEvent,
@@ -308,6 +321,13 @@ def shim_to_feedback(
     User feedbacks are an event type, so we try and grab as much from the
     legacy user report and event to create the new feedback.
     """
+    span = sentry_sdk.get_current_span()
+    if span:
+        span.set_tag("project_id", project.id)
+        span.set_tag("source", source.value)
+        span.set_tag("has_event", event is not None)
+        span.set_tag("report_event_id", report.get("event_id", "unknown"))
+    
     try:
         feedback_event: dict[str, Any] = {
             "contexts": {
@@ -351,6 +371,7 @@ def shim_to_feedback(
         )
 
 
+@sentry_sdk.trace
 def auto_ignore_spam_feedbacks(project, issue_fingerprint):
     if features.has("organizations:user-feedback-spam-filter-actions", project.organization):
         metrics.incr("feedback.spam-detection-actions.set-ignored")

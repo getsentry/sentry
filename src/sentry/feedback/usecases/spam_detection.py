@@ -1,5 +1,7 @@
 import logging
 
+import sentry_sdk
+
 from sentry.llm.usecases import LLMUseCase, complete_prompt
 from sentry.utils import metrics
 
@@ -29,16 +31,21 @@ def make_input_prompt(input):
 **Classify:** """
 
 
+@sentry_sdk.trace
 @metrics.wraps("feedback.spam_detection", sample_rate=1.0)
 def is_spam(message):
     is_spam = False
     trimmed_response = ""
-    response = complete_prompt(
-        usecase=LLMUseCase.SPAM_DETECTION,
-        message=make_input_prompt(message),
-        temperature=0,
-        max_output_tokens=20,
-    )
+    with sentry_sdk.start_span(op="llm.call", description="spam_detection") as span:
+        span.set_tag("usecase", "spam_detection")
+        span.set_tag("temperature", 0)
+        span.set_tag("max_output_tokens", 20)
+        response = complete_prompt(
+            usecase=LLMUseCase.SPAM_DETECTION,
+            message=make_input_prompt(message),
+            temperature=0,
+            max_output_tokens=20,
+        )
     if response:
         is_spam, trimmed_response = trim_response(response)
 
@@ -55,6 +62,7 @@ def is_spam(message):
     return is_spam
 
 
+@sentry_sdk.trace
 def trim_response(text):
     trimmed_text = text.strip().lower()
 
