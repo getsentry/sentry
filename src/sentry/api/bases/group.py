@@ -52,9 +52,9 @@ class GroupEndpoint(Endpoint):
         request: Request,
         issue_id: str,
         organization_id_or_slug: str | None = None,
-        *args: tuple[Any],
-        **kwargs: dict[str, Any],
-    ) -> tuple[tuple[tuple[Any], ...], dict[str, dict[str, Any]]]:
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         # TODO(tkaemming): Ideally, this would return a 302 response, rather
         # than just returning the data that is bound to the new group. (It
         # technically shouldn't be a 301, since the response could change again
