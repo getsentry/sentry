@@ -1,4 +1,5 @@
 import sys
+import time
 from typing import Any
 
 import click
@@ -216,6 +217,12 @@ def patch(ctx: click.Context) -> None:
         tags={"status": status},
         sample_rate=1.0,
     )
+    metrics.incr(
+        "options_automator.latency_seconds",
+        amount=time.time() - ctx.obj["timestamp"],
+        tags={"status": status},
+        sample_rate=1.0,
+    )
     exit(ret_val)
 
 
@@ -308,6 +315,13 @@ def sync(ctx: click.Context) -> None:
     metrics.incr(
         "options_automator.run",
         amount=amount,
+        tags={"status": status},
+        sample_rate=1.0,
+    )
+
+    metrics.incr(
+        "options_automator.latency_seconds",
+        amount=time.time() - ctx.obj["timestamp"],
         tags={"status": status},
         sample_rate=1.0,
     )
