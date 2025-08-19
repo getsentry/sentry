@@ -1,13 +1,14 @@
 from functools import cached_property
-from unittest.mock import MagicMock
 
 import orjson
 import pytest
 import responses
 from django.contrib.auth.models import AnonymousUser
+from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.requests import drf_request_from_request
 from sentry_plugins.github.plugin import GitHubPlugin
 
 
@@ -19,6 +20,10 @@ class GitHubPluginTest(PluginTestCase):
     @cached_property
     def plugin(self) -> GitHubPlugin:
         return GitHubPlugin()
+
+    @cached_property
+    def request(self) -> RequestFactory:
+        return RequestFactory()
 
     def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
@@ -47,7 +52,7 @@ class GitHubPluginTest(PluginTestCase):
         self.plugin.set_option("repo", "getsentry/sentry", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = MagicMock()
+        request = drf_request_from_request(self.request.get("/"))
         request.user = AnonymousUser()
         form_data = {"title": "Hello", "description": "Fix this."}
         with pytest.raises(PluginError):
@@ -81,7 +86,7 @@ class GitHubPluginTest(PluginTestCase):
         self.plugin.set_option("repo", "getsentry/sentry", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = MagicMock()
+        request = drf_request_from_request(self.request.get("/"))
         request.user = AnonymousUser()
         form_data = {"comment": "Hello", "issue_id": "1"}
         with pytest.raises(PluginError):

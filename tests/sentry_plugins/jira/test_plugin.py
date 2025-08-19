@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from functools import cached_property
 from typing import Any
-from unittest.mock import MagicMock
 
 import orjson
 import responses
 from django.contrib.auth.models import AnonymousUser
+from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.testutils.cases import TestCase
+from sentry.testutils.requests import drf_request_from_request
 from sentry_plugins.jira.plugin import JiraPlugin
 
 create_meta_response = {
@@ -216,6 +217,10 @@ class JiraPluginTest(TestCase):
     def plugin(self) -> JiraPlugin:
         return JiraPlugin()
 
+    @cached_property
+    def request(self) -> RequestFactory:
+        return RequestFactory()
+
     def test_conf_key(self) -> None:
         assert self.plugin.conf_key == "jira"
 
@@ -251,7 +256,7 @@ class JiraPluginTest(TestCase):
         self.plugin.set_option("instance_url", "https://getsentry.atlassian.net", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = MagicMock()
+        request = drf_request_from_request(self.request.get("/"))
         request.user = AnonymousUser()
         form_data = {
             "title": "Hello",
@@ -271,7 +276,7 @@ class JiraPluginTest(TestCase):
         self.plugin.set_option("instance_url", "https://getsentry.atlassian.net", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = MagicMock()
+        request = drf_request_from_request(self.request.get("/"))
         request.user = AnonymousUser()
         form_data = {"issue_id": "SEN-19"}
         assert (
