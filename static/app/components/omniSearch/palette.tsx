@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
@@ -15,6 +15,7 @@ import type {OmniAction} from './types';
 import {useApiDynamicActions} from './useApiDynamicActions';
 import {useCommandDynamicActions} from './useCommandDynamicActions';
 import {useFormDynamicActions} from './useFormDynamicActions';
+import {useLLMRoutingDynamicActions} from './useLLMRoutingDynamicActions';
 import {useOmniSearchState} from './useOmniSearchState';
 import {useOrganizationsDynamicActions} from './useOrganizationsDynamicActions';
 import {useRouteDynamicActions} from './useRouteDynamicActions';
@@ -45,6 +46,8 @@ export function OmniSearchPalette() {
   const orgActions = useOrganizationsDynamicActions();
   const commandActions = useCommandDynamicActions();
 
+  const llmRoutingActions = useLLMRoutingDynamicActions(debouncedQuery);
+
   // Combine all dynamic actions
   const dynamicActions = useMemo(
     () => [
@@ -61,28 +64,6 @@ export function OmniSearchPalette() {
     []
   );
 
-  const [funfact, setFunfact] = useState('');
-
-  const handleFunfact = useCallback(() => {
-    const url =
-      process.env.NODE_ENV === 'development'
-        ? 'http://localhost:5000/call'
-        : 'https://cmdkllm-12459da2e71a.herokuapp.com/call';
-    fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: 'test',
-      }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        setFunfact(data.message);
-      });
-  }, []);
-
   useEffect(() => {
     createFuzzySearch([...availableActions, ...dynamicActions], {
       keys: ['label', 'fullLabel', 'details'],
@@ -95,6 +76,9 @@ export function OmniSearchPalette() {
   const grouped = useMemo(() => {
     // Filter actions based on query
     const actions = debouncedQuery ? filteredAvailableActions : availableActions;
+
+    // always include the llm routing actions if possible
+    actions.push(...llmRoutingActions);
 
     // Group by section label
     const bySection = new Map<string, OmniAction[]>();
@@ -112,7 +96,7 @@ export function OmniSearchPalette() {
       const items = bySection.get(sectionKey) ?? [];
       return {sectionKey, label, items};
     });
-  }, [availableActions, debouncedQuery, filteredAvailableActions]);
+  }, [availableActions, debouncedQuery, filteredAvailableActions, llmRoutingActions]);
 
   const handleSelect = (action: OmniAction) => {
     if (action.disabled) {
@@ -193,10 +177,6 @@ export function OmniSearchPalette() {
           ))
         )}
       </CommandPrimitive.Command.List>
-      <button onClick={handleFunfact}>Get Fun Fact</button>
-      {funfact && (
-        <CommandPrimitive.Command.Item>{funfact}</CommandPrimitive.Command.Item>
-      )}
     </StyledCommand>
   );
 }
