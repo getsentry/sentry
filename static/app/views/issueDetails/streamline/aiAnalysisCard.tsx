@@ -1,21 +1,28 @@
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import {IconChevron, IconSeer} from 'sentry/icons';
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixRootCauseData} from 'sentry/components/events/autofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Actor} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
 
 interface AIAnalysisCardProps {
   event: Event | null;
@@ -74,12 +81,15 @@ interface AnalysisData {
   error?: string;
 }
 
-export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
+export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [autofixData, setAutofixData] = useState<AutofixResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+  const [orgMembers, setOrgMembers] = useState<User[]>([]);
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
@@ -87,6 +97,7 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
   
   const api = useApi();
   const organization = useOrganization();
+  const activeUser = useUser();
 
   const toggleAIMode = () => {
     const newQuery = {...(location.query || {})};
@@ -101,12 +112,79 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
     });
   };
 
+  const formatStatus = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const handleStatusChange = async (newStatus: GroupStatus) => {
+    try {
+      await api.requestPromise(`/organizations/${organization.slug}/issues/${group.id}/`, {
+        method: 'PUT',
+        data: { status: newStatus },
+      });
+      setShowStatusDropdown(false);
+      // The parent component should re-fetch data to update the UI
+      window.location.reload(); // Simple reload for now
+    } catch (err) {
+      console.error('Failed to update status:', err);
+    }
+  };
+
+  const fetchOrgMembers = async () => {
+    try {
+      const members = await api.requestPromise(`/organizations/${organization.slug}/members/`);
+      setOrgMembers(members.map((member: any) => member.user));
+    } catch (err) {
+      console.error('Failed to fetch org members:', err);
+    }
+  };
+
+  const handleAssigneeChange = async (assignee: Actor | null) => {
+    try {
+      await api.requestPromise(`/organizations/${organization.slug}/issues/${group.id}/`, {
+        method: 'PUT',
+        data: { assignedTo: assignee ? `user:${assignee.id}` : '' },
+      });
+      setShowAssigneeDropdown(false);
+      // The parent component should re-fetch data to update the UI
+      window.location.reload(); // Simple reload for now
+    } catch (err) {
+      console.error('Failed to update assignee:', err);
+    }
+  };
+
+  const formatAssignee = (assignedTo: Actor | null) => {
+    if (!assignedTo) return 'Unassigned';
+    return assignedTo.name;
+  };
+
+  const {userParticipants, teamParticipants, viewers} = useMemo(() => {
+    return {
+      userParticipants: group.participants.filter(
+        (p): p is UserParticipant => p.type === 'user'
+      ),
+      teamParticipants: group.participants.filter(
+        (p): p is TeamParticipant => p.type === 'team'
+      ),
+      viewers: group.seenBy.filter(user => activeUser.id !== user.id),
+    };
+  }, [group, activeUser.id]);
+
+  const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
+
   // Auto-fetch analysis when component mounts in AI mode
   useEffect(() => {
     if (isAIMode && !analysisData && !loading) {
       fetchAnalysis();
     }
   }, [isAIMode]); // Only depend on isAIMode to avoid infinite loops
+
+  // Fetch organization members for assignee dropdown
+  useEffect(() => {
+    if (orgMembers.length === 0) {
+      fetchOrgMembers();
+    }
+  }, []);
 
   const startAutofix = async () => {
     try {
@@ -419,7 +497,104 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
             >
               {isAIMode ? t('Seer Mode: ON') : t('Seer Mode: OFF')}
             </Button>
-            {/* Empty placeholder for additional content */}
+            
+            <StatusSection>
+              <StatusLabel>{t('Status:')}</StatusLabel>
+              <StatusDisplay
+                onMouseEnter={() => setShowStatusDropdown(true)}
+                onMouseLeave={() => setShowStatusDropdown(false)}
+              >
+                <StatusText>{formatStatus(group.status)}</StatusText>
+                {showStatusDropdown && (
+                  <StatusDropdown>
+                    {Object.values(GroupStatus).filter(status => status !== group.status).map((status) => (
+                      <StatusOption
+                        key={status}
+                        onClick={() => handleStatusChange(status)}
+                      >
+                        {formatStatus(status)}
+                      </StatusOption>
+                    ))}
+                  </StatusDropdown>
+                )}
+              </StatusDisplay>
+            </StatusSection>
+
+            <StatusSection>
+              <StatusLabel>{t('Assigned:')}</StatusLabel>
+              <StatusDisplay
+                onMouseEnter={() => setShowAssigneeDropdown(true)}
+                onMouseLeave={() => setShowAssigneeDropdown(false)}
+              >
+                <StatusText>{formatAssignee(group.assignedTo)}</StatusText>
+                {showAssigneeDropdown && (
+                  <StatusDropdown>
+                    {!group.assignedTo && (
+                      <StatusOption
+                        onClick={() => handleAssigneeChange(null)}
+                      >
+                        {t('Unassigned')}
+                      </StatusOption>
+                    )}
+                    {orgMembers
+                      .filter(member => !group.assignedTo || member.id !== group.assignedTo.id)
+                      .map((member) => (
+                        <StatusOption
+                          key={member.id}
+                          onClick={() => handleAssigneeChange({
+                            id: member.id,
+                            name: member.name || member.email,
+                            type: 'user',
+                            email: member.email
+                          })}
+                        >
+                          {member.name || member.email}
+                        </StatusOption>
+                      ))}
+                    {group.assignedTo && (
+                      <StatusOption
+                        onClick={() => handleAssigneeChange(null)}
+                      >
+                        {t('Unassign')}
+                      </StatusOption>
+                    )}
+                  </StatusDropdown>
+                )}
+              </StatusDisplay>
+            </StatusSection>
+
+            {event && (
+              <IssueTrackingSection>
+                <IssueTrackingLabel>{t('Issue Tracking:')}</IssueTrackingLabel>
+                <IssueTrackingContent>
+                  <StreamlinedExternalIssueList group={group} event={event} project={project} />
+                </IssueTrackingContent>
+              </IssueTrackingSection>
+            )}
+
+            {showPeopleSection && (
+              <PeopleSection>
+                <PeopleLabel>{t('People:')}</PeopleLabel>
+                <PeopleContent>
+                  {(userParticipants.length > 0 || teamParticipants.length > 0) && (
+                    <PeopleRow>
+                      <ParticipantList
+                        users={userParticipants}
+                        teams={teamParticipants}
+                        hideTimestamp
+                      />
+                      <PeopleLabel>{t('participating')}</PeopleLabel>
+                    </PeopleRow>
+                  )}
+                  {viewers.length > 0 && (
+                    <PeopleRow>
+                      <ParticipantList users={viewers} />
+                      <PeopleLabel>{t('viewed')}</PeopleLabel>
+                    </PeopleRow>
+                  )}
+                </PeopleContent>
+              </PeopleSection>
+            )}
           </CardContent>
         </SidebarCard>
       </Sidebar>
@@ -759,4 +934,108 @@ const ReasoningContent = styled(SectionContent)`
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   border-left: 3px solid ${p => p.theme.purple300};
+`;
+
+const StatusSection = styled('div')`
+  margin-top: ${space(2)};
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const StatusLabel = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const StatusDisplay = styled('div')`
+  position: relative;
+  display: inline-block;
+`;
+
+const StatusText = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.textColor};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  cursor: pointer;
+  padding: ${space(0.5)} ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  transition: background 0.2s ease;
+  
+  &:hover {
+    background: ${p => p.theme.backgroundSecondary};
+  }
+`;
+
+const StatusDropdown = styled('div')`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 120px;
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+`;
+
+const StatusOption = styled('div')`
+  padding: ${space(0.75)} ${space(1)};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.textColor};
+  cursor: pointer;
+  transition: background 0.2s ease;
+  
+  &:hover {
+    background: ${p => p.theme.backgroundSecondary};
+  }
+  
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
+`;
+
+const IssueTrackingSection = styled('div')`
+  margin-top: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const IssueTrackingLabel = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const IssueTrackingContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const PeopleSection = styled('div')`
+  margin-top: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const PeopleLabel = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const PeopleContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const PeopleRow = styled(Flex)`
+  align-items: center;
+  gap: ${space(1)};
 `;
