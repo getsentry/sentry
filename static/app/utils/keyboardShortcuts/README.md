@@ -58,7 +58,17 @@ These shortcuts appear in the help modal under the "Issues" category.
 
 **Note**: The `a` shortcut for assigning issues will be implemented in a future update as it requires an assignee selection UI.
 
-### 5. Test Command Palette
+### 5. Test Issue Details Actions
+
+When on an Issue Details page, you can use:
+
+- `v` - Mark issue as reviewed
+- `b` - Toggle bookmark on issue
+- `d` - Delete issue (opens confirmation modal)
+
+These shortcuts appear in the help modal under the "Issue Details" category.
+
+### 6. Test Command Palette
 
 The existing command palette shortcuts should still work:
 

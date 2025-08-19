@@ -5,6 +5,7 @@ import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
 interface UseIssueActionShortcutsProps {
   onArchive?: () => void;
   onBookmark?: () => void;
+  onDelete?: () => void;
   onMarkReviewed?: () => void;
   onResolve?: () => void;
   onShare?: () => void;
@@ -21,6 +22,7 @@ export function useIssueActionShortcuts({
   onSubscribe,
   onShare,
   onBookmark,
+  onDelete,
   onMarkReviewed,
 }: UseIssueActionShortcutsProps) {
   const handleResolve = useCallback(() => {
@@ -46,6 +48,10 @@ export function useIssueActionShortcuts({
   const handleMarkReviewed = useCallback(() => {
     onMarkReviewed?.();
   }, [onMarkReviewed]);
+
+  const handleDelete = useCallback(() => {
+    onDelete?.();
+  }, [onDelete]);
 
   useComponentShortcuts('issue-details-actions', [
     {
@@ -80,9 +86,15 @@ export function useIssueActionShortcuts({
     },
     {
       id: 'mark-reviewed',
-      key: 'shift+r',
+      key: 'v',
       description: 'Mark as reviewed',
       handler: handleMarkReviewed,
+    },
+    {
+      id: 'delete-issue',
+      key: 'd',
+      description: 'Delete issue',
+      handler: handleDelete,
     },
   ]);
 }

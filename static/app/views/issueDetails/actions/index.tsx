@@ -58,6 +58,7 @@ import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIss
 import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
+import {useIssueActionShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useIssueActionShortcuts';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {
   useEnvironmentsFromUrl,
@@ -363,6 +364,13 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       />
     ));
   };
+
+  // Register keyboard shortcuts for issue actions
+  useIssueActionShortcuts({
+    onBookmark: onToggleBookmark,
+    onDelete: openDeleteModal,
+    onMarkReviewed: () => onUpdate({inbox: false}),
+  });
 
   const handleClick = (onClick: (event?: MouseEvent) => void) => {
     return function (innerEvent: MouseEvent) {
