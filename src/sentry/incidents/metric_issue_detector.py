@@ -12,6 +12,7 @@ from sentry.snuba.subscriptions import update_snuba_query
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
+    DetectorQuota,
 )
 from sentry.workflow_engine.endpoints.validators.base.data_condition import (
     BaseDataConditionValidator,
@@ -90,7 +91,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
         return attrs
 
-    def enforce_quota_on_create(self) -> None:
+    def get_quota(self) -> DetectorQuota:
         """
         Enforce quota limits for metric detector creation.
         Raises ValidationError if quota limits are exceeded.
@@ -98,23 +99,25 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         organization = self.context.get("organization")
         request = self.context.get("request")
 
-        if not organization or not request:
-            raise serializers.ValidationError()
-
-        if features.has(
-            "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
+        detector_limit = quotas.backend.get_metric_detector_limit(organization.id)
+        if (
+            not features.has(
+                "organizations:workflow-engine-metric-detector-limit",
+                organization,
+                actor=request.user,
+            )
+            or detector_limit == -1
         ):
-            detector_limit = quotas.backend.get_metric_detector_limit(organization.id)
-            detector_count = Detector.objects.filter(
-                project__organization=organization,
-                type="metric_issue",  # Avoided circular import. TODO: move magic strings to constant file
-                status=ObjectStatus.ACTIVE,
-            ).count()
+            return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
 
-            if detector_limit >= 0 and detector_count >= detector_limit:
-                raise serializers.ValidationError(
-                    f"You may not exceed {detector_limit} metric detectors on your current plan."
-                )
+        detector_count = Detector.objects.filter(
+            project__organization=organization,
+            type="metric_issue",  # Avoided circular import. TODO: move magic strings to constant file
+            status=ObjectStatus.ACTIVE,
+        ).count()
+        has_exceeded = detector_count < detector_limit
+
+        return DetectorQuota(has_exceeded=has_exceeded, limit=detector_limit, count=detector_count)
 
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
         try:

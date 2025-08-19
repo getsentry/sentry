@@ -1,4 +1,6 @@
+import abc
 import builtins
+from dataclasses import dataclass
 from typing import Any
 
 from django.db import router, transaction
@@ -27,6 +29,13 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.types import DataConditionType
+
+
+@dataclass(frozen=True)
+class DetectorQuota:
+    has_exceeded: bool
+    limit: int
+    count: int
 
 
 class BaseDetectorTypeValidator(CamelSnakeSerializer):
@@ -64,14 +73,22 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def data_conditions(self) -> BaseDataConditionValidator:
         raise NotImplementedError
 
-    def enforce_quota_on_create(self) -> None:
+    @abc.abstractmethod
+    def get_quota(self) -> DetectorQuota:
+        return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
+
+    def enforce_quota(self) -> None:
         """
         Enforce quota limits for detector creation.
         Raise ValidationError if quota limits are exceeded.
 
         Only Metric Issues Detector has quota limits.
         """
-        pass
+        detector_quota = self.get_quota()
+        if detector_quota.has_exceeded:
+            raise serializers.ValidationError(
+                f"Your organization has created {detector_quota.count} {self.type} monitors. You are limited to {detector_quota.limit} only."
+            )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         with transaction.atomic(router.db_for_write(Detector)):
@@ -121,7 +138,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def create(self, validated_data):
         # If quotas are exceeded, we will prevent creation of new detectors.
         # Do not disable or prevent the users from updating existing detectors.
-        self.enforce_quota_on_create()
+        self.enforce_quota()
 
         with transaction.atomic(router.db_for_write(Detector)):
             condition_group = DataConditionGroup.objects.create(
