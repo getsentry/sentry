@@ -71,6 +71,7 @@ export function OmniSearchPalette() {
       keys: ['label', 'fullLabel', 'details'],
       getFn: strGetFn,
       shouldSort: false,
+      minMatchCharLength: 1,
     }).then(f => {
       setFilteredAvailableActions(f.search(debouncedQuery).map(r => r.item));
     });

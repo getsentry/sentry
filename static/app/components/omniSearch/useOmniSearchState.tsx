@@ -27,6 +27,11 @@ export function useOmniSearchState() {
       return selectedAction.children;
     }
 
+    const globalActions = sortBy(
+      Array.from(actionsByKey.values()).filter(action => action.areaKey === 'global'),
+      action => action.label
+    );
+
     if (focusedArea) {
       const areaActions = sortBy(
         Array.from(actionsByKey.values()).filter(
@@ -35,15 +40,10 @@ export function useOmniSearchState() {
         action => action.label
       );
 
-      const otherActions = sortBy(
-        Array.from(actionsByKey.values()).filter(action => action.areaKey === 'global'),
-        action => action.label
-      );
-
-      return [...areaActions, ...otherActions];
+      return [...areaActions, ...globalActions];
     }
 
-    return sortBy(Array.from(actionsByKey.values()), action => action.label);
+    return globalActions;
   }, [selectedAction, focusedArea, actionsByKey]);
 
   return {
