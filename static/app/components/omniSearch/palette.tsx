@@ -252,7 +252,10 @@ export function OmniSearchPalette() {
                             </IconDefaultsProvider>
                           )}
                           <OverflowHidden>
-                            <div>{item.label}</div>
+                            <div>
+                              {item.label}
+                              {item.children && item.children.length > 0 && '…'}
+                            </div>
                             {item.details && <ItemDetails>{item.details}</ItemDetails>}
                           </OverflowHidden>
                         </ItemRow>
