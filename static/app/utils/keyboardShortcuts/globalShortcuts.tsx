@@ -109,12 +109,12 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
     },
     {
       id: 'go-to-profiles',
-      key: 'g P',
+      key: 'g shift+p',
       description: 'Go to Profiles',
       handler: () => {
         if (organizationSlug) {
           router.push(
-            normalizeUrl(`/organizations/${organizationSlug}/explore/profiles/`)
+            normalizeUrl(`/organizations/${organizationSlug}/explore/profiling/`)
           );
         }
       },
@@ -179,7 +179,7 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
     },
     {
       id: 'go-to-mobile-insights',
-      key: 'g M',
+      key: 'g m',
       description: 'Go to Mobile Insights',
       handler: () => {
         if (organizationSlug) {
@@ -233,7 +233,7 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
     },
     {
       id: 'go-to-organization-members',
-      key: 'g m',
+      key: 'g shift+m',
       description: 'Go to Members',
       handler: () => {
         if (organizationSlug) {
@@ -243,7 +243,7 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
     },
     {
       id: 'go-to-teams',
-      key: 'g t',
+      key: 'g shift+t',
       description: 'Go to Teams',
       handler: () => {
         if (organizationSlug) {

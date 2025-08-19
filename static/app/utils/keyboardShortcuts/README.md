@@ -19,15 +19,25 @@ Make sure the Sentry application is running locally.
 Try these navigation shortcuts (press `g` followed by the second key):
 
 - `g` then `i` - Navigate to Issues
+- `g` then `f` - Navigate to Feedback
 - `g` then `p` - Navigate to Projects
 - `g` then `d` - Navigate to Dashboards
+- `g` then `t` - Navigate to Traces
+- `g` then `v` - Navigate to Discover
+- `g` then `l` - Navigate to Logs
+- `g` then `Shift+P` - Navigate to Profiles
+- `g` then `y` - Navigate to Replays
 - `g` then `r` - Navigate to Releases
-- `g` then `a` - Navigate to Alerts
-- `g` then `e` - Navigate to Performance
-- `g` then `v` - Navigate to Replays
-- `g` then `m` - Navigate to Monitors
-- `g` then `t` - Navigate to Teams
-- `g` then `o` - Navigate to Organization Home
+- `g` then `e` - Navigate to Alerts
+- `g` then `n` - Navigate to Frontend Insights
+- `g` then `b` - Navigate to Backend Insights
+- `g` then `Shift+M` - Navigate to Mobile Insights
+- `g` then `a` - Navigate to AI Insights
+- `g` then `c` - Navigate to Crons
+- `g` then `u` - Navigate to Uptime
+- `g` then `s` - Navigate to Settings
+- `g` then `m` - Navigate to Members
+- `g` then `Shift+T` - Navigate to Teams
 
 ### 4. Test Issues List Navigation
 
