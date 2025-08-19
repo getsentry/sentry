@@ -580,12 +580,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                       <IconTerminal size="md" color="purple400" />
                       {t('Debugger')}
                     </CardTitle>
-                  </HeaderLeft>
-                  <HeaderRight>
-                    <ChevronIcon direction={showDebugger ? 'down' : 'right'}>
+                    <DebuggerSubtitle>{t('Event Details & Tools')}</DebuggerSubtitle>
+                    <ChevronIcon direction={showDebugger ? 'down' : 'left'}>
                       <IconChevron />
                     </ChevronIcon>
-                    <SectionTitle>{t('Event Details & Tools')}</SectionTitle>
+                  </HeaderLeft>
+                  <HeaderRight>
                   </HeaderRight>
                 </DebuggerHeaderContent>
               </CardHeader>
@@ -1252,4 +1252,13 @@ const HeaderRight = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const DebuggerSubtitle = styled('span')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: 600;
+  color: ${p => p.theme.gray400};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
