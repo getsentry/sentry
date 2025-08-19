@@ -131,6 +131,13 @@ export function OmniSearchPalette() {
     }
   }, [selectedAction]);
 
+  const placeholder = useMemo(() => {
+    if (selectedAction) {
+      return selectedAction.label;
+    }
+    return 'Type for actions…';
+  }, [selectedAction]);
+
   return (
     <StyledCommand label="OmniSearch" shouldFilter={false}>
       <Header>
@@ -152,7 +159,7 @@ export function OmniSearchPalette() {
                 e.preventDefault();
               }
             }}
-            placeholder="Search for projects, issues, settings, and more…"
+            placeholder={placeholder}
           />
         </SearchInputContainer>
       </Header>

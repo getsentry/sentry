@@ -2,19 +2,17 @@ import {useMemo, useState} from 'react';
 import sortBy from 'lodash/sortBy';
 
 import {useOmniSearchStore} from './context';
-import type {OmniAction} from './types';
+import type {OmniAction, OmniArea} from './types';
 
 export function useOmniSearchState() {
   const {actionsByKey, areaPriority, areasByKey} = useOmniSearchStore();
 
+  const [focusedArea, setFocusedArea] = useState<OmniArea | null>(() => {
+    return (
+      areaPriority.map(areaKey => areasByKey.get(areaKey)).find(a => a?.focused) ?? null
+    );
+  });
   const [selectedAction, setSelectedAction] = useState<OmniAction | null>(null);
-
-  const focusedArea = useMemo(
-    () =>
-      areaPriority.map(areaKey => areasByKey.get(areaKey)).find(area => area?.focused) ??
-      null,
-    [areaPriority, areasByKey]
-  );
 
   const areasByPriority = useMemo(
     () =>
@@ -56,9 +54,8 @@ export function useOmniSearchState() {
     selectedAction,
     selectAction: setSelectedAction,
     clearSelection: () => {
-      if (selectedAction) {
-        setSelectedAction(null);
-      }
+      setSelectedAction(null);
+      setFocusedArea(null);
     },
   };
 }
