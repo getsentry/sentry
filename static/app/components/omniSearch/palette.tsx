@@ -28,6 +28,37 @@ import {useOrganizationsDynamicActions} from './useOrganizationsDynamicActions';
 import {useRouteDynamicActions} from './useRouteDynamicActions';
 
 /**
+ * Recursively flattens an array of actions, including all their children
+ * Child actions will have their labels prefixed with parent title and arrow
+ */
+function flattenActions(actions: OmniAction[], parentLabel?: string): OmniAction[] {
+  const flattened: OmniAction[] = [];
+
+  for (const action of actions) {
+    // For child actions, prefix with parent label
+    if (parentLabel) {
+      flattened.push({
+        ...action,
+        label: `${parentLabel} → ${action.label}`,
+      });
+    } else {
+      // For top-level actions, add them as-is
+      flattened.push(action);
+    }
+
+    if (action.children && action.children.length > 0) {
+      // Use the original action label (not the prefixed one) as parent context
+      const childParentLabel = parentLabel
+        ? `${parentLabel} → ${action.label}`
+        : action.label;
+      flattened.push(...flattenActions(action.children, childParentLabel));
+    }
+  }
+
+  return flattened;
+}
+
+/**
  * Very basic palette UI using cmdk that lists all registered actions.
  *
  * NOTE: This is intentionally minimal and will be iterated on.
@@ -88,9 +119,32 @@ export function OmniSearchPalette() {
   );
   const [filteredRecentIssues, setFilteredRecentIssues] = useState<OmniAction[]>([]);
 
-  // Fuzzy search for general actions
+  // Fuzzy search for general actions (including children)
   useEffect(() => {
-    createFuzzySearch([...availableActions, ...dynamicActions], {
+    // If an action is selected, only search within its children
+    if (selectedAction?.children?.length) {
+      if (debouncedQuery) {
+        createFuzzySearch(selectedAction.children, {
+          keys: ['label', 'fullLabel', 'details'],
+          getFn: strGetFn,
+          shouldSort: false,
+          minMatchCharLength: 1,
+        }).then(f => {
+          setFilteredAvailableActions(f.search(debouncedQuery).map(r => r.item));
+        });
+      } else {
+        setFilteredAvailableActions(selectedAction.children);
+      }
+      return;
+    }
+
+    // Flatten all actions to include their children in search
+    const allActions = [
+      ...flattenActions(availableActions),
+      ...flattenActions(dynamicActions),
+    ];
+
+    createFuzzySearch(allActions, {
       keys: ['label', 'fullLabel', 'details'],
       getFn: strGetFn,
       shouldSort: false,
@@ -98,10 +152,16 @@ export function OmniSearchPalette() {
     }).then(f => {
       setFilteredAvailableActions(f.search(debouncedQuery).map(r => r.item));
     });
-  }, [availableActions, debouncedQuery, dynamicActions]);
+  }, [availableActions, debouncedQuery, dynamicActions, selectedAction]);
 
   // Fuzzy search for recent issues separately to control the limit
   useEffect(() => {
+    // Don't show recent issues when an action or area is selected
+    if (selectedAction?.children?.length || focusedArea) {
+      setFilteredRecentIssues([]);
+      return;
+    }
+
     if (debouncedQuery) {
       createFuzzySearch(allRecentIssueActions, {
         keys: ['label'],
@@ -116,15 +176,36 @@ export function OmniSearchPalette() {
       // When no query, show first 5 recent issues
       setFilteredRecentIssues(allRecentIssueActions.slice(0, 5));
     }
-  }, [allRecentIssueActions, debouncedQuery]);
+  }, [allRecentIssueActions, debouncedQuery, selectedAction, focusedArea]);
 
   const grouped = useMemo(() => {
+    // If an action is selected, only show its children
+    if (selectedAction?.children?.length) {
+      const actions = debouncedQuery ? filteredAvailableActions : selectedAction.children;
+
+      // Group by section label
+      const bySection = new Map<string, OmniAction[]>();
+      for (const action of actions) {
+        const sectionLabel = action.section ?? '';
+        const list = bySection.get(sectionLabel) ?? [];
+        list.push(action);
+        bySection.set(sectionLabel, list);
+      }
+
+      const sectionKeys = Array.from(bySection.keys());
+      return sectionKeys.map(sectionKey => {
+        const label = sectionKey;
+        const items = bySection.get(sectionKey) ?? [];
+        return {sectionKey, label, items};
+      });
+    }
+
     // Filter actions based on query
     const actions = debouncedQuery
       ? [...filteredAvailableActions, ...filteredRecentIssues]
       : [...filteredRecentIssues, ...availableActions];
 
-    // always include the llm routing actions if possible
+    // always include the llm routing actions if possible (but not when action is selected)
     actions.push(...llmRoutingActions);
 
     // Group by section label
@@ -149,6 +230,7 @@ export function OmniSearchPalette() {
     filteredAvailableActions,
     filteredRecentIssues,
     llmRoutingActions,
+    selectedAction,
   ]);
 
   // Get the first item's key to set as the default selected value
@@ -184,7 +266,7 @@ export function OmniSearchPalette() {
     if (selectedAction) {
       setQuery('');
       inputRef.current?.focus();
-      setFilteredAvailableActions([]);
+      setFilteredAvailableActions(selectedAction.children ?? []);
     }
   }, [selectedAction]);
 
