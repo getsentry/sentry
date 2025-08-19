@@ -482,14 +482,14 @@ const StyledCommand = styled(CommandPrimitive.Command)`
       /* Shadow covers */
       linear-gradient(${p => p.theme.background} 30%, rgba(255, 255, 255, 0)),
       linear-gradient(rgba(255, 255, 255, 0), ${p => p.theme.background} 70%) 0 100%,
-      /* Shadows */ linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0)),
-      linear-gradient(to top, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0)) 0 100%;
+      /* Shadows */ linear-gradient(to bottom, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0)),
+      linear-gradient(to top, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0)) 0 100%;
 
     background-repeat: no-repeat;
     background-size:
       100% 40px,
       100% 40px,
-      100% 10px,
+      100% 20px,
       100% 20px;
 
     background-attachment: local, local, scroll, scroll;
