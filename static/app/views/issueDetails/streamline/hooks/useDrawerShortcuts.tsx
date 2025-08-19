@@ -44,31 +44,31 @@ export function useDrawerShortcuts({
   useComponentShortcuts('issue-details-drawers', [
     {
       id: 'open-activity',
-      key: 'c',
+      key: 'o c',
       description: 'Open Activity drawer (comments)',
       handler: handleOpenActivityDrawer,
     },
     {
       id: 'open-distributions',
-      key: 'd',
+      key: 'o t',
       description: 'Open Distributions drawer (tags)',
       handler: handleOpenDistributionsDrawer,
     },
     {
       id: 'open-merged-issues',
-      key: 'm',
+      key: 'o m',
       description: 'Open Merged Issues drawer',
       handler: handleOpenMergedIssuesDrawer,
     },
     {
       id: 'open-similar-issues',
-      key: 'shift+s',
+      key: 'o l',
       description: 'Open Similar Issues drawer',
       handler: handleOpenSimilarIssuesDrawer,
     },
     {
       id: 'open-seer-analysis',
-      key: 'shift+a',
+      key: 'o s',
       description: 'Open Seer Analysis drawer',
       handler: handleOpenSeerDrawer,
     },
