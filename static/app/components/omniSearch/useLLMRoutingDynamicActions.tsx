@@ -166,7 +166,7 @@ export function useLLMRoutingDynamicActions(query: string): OmniAction[] {
     };
 
     attemptRouteQuery();
-  }, [query, memberProjects, organization, pageFilters.selection, navigate]);
+  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return extraRouteActions;
 }
