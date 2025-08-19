@@ -10,6 +10,7 @@ import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
 import {strGetFn} from 'sentry/components/search/sources/utils';
+import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconDocs} from 'sentry/icons/iconDocs';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
@@ -205,6 +206,11 @@ export function OmniSearchPalette() {
             </FocusedAreaContainer>
           )}
           <SearchInputContainer>
+            {selectedAction && (
+              <BackButton onClick={() => clearSelection()}>
+                <IconArrow direction="left" size="sm" />
+              </BackButton>
+            )}
             <SearchInput
               autoFocus
               ref={inputRef}
@@ -274,6 +280,24 @@ const SearchInputContainer = styled('div')`
   align-items: center;
   padding: 4px 16px;
   border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const BackButton = styled('button')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  color: ${p => p.theme.subText};
+  transition: all 0.1s ease-out;
+
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 const SearchInput = styled(CommandPrimitive.Command.Input)`
