@@ -29,7 +29,7 @@ const GlobalActionSection = {
   HELP: t('Help'),
   ADD: t('Add'),
   NAVIGATE: t('Go to…'),
-  OTHER: t('Other'),
+  OTHER: t('Actions'),
 };
 
 function useNavigationActions() {
@@ -313,6 +313,39 @@ export function useGlobalOmniActions() {
 
   useOmniActions([
     ...navigateActions,
+    // Add (create new entitty)
+    {
+      key: 'add-dashboard',
+      areaKey: 'global',
+      section: GlobalActionSection.ADD,
+      label: t('Create Dashboard'),
+      actionIcon: <IconAdd />,
+      to: `${navPrefix}/dashboards/new/`,
+    },
+    {
+      key: 'add-alert',
+      areaKey: 'global',
+      section: GlobalActionSection.ADD,
+      label: t('Create Alert'),
+      actionIcon: <IconAdd />,
+      to: `${navPrefix}/issues/alerts/wizard/`,
+    },
+    {
+      key: 'add-project',
+      areaKey: 'global',
+      section: GlobalActionSection.ADD,
+      label: t('Create Project'),
+      actionIcon: <IconAdd />,
+      to: `${navPrefix}/projects/new/`,
+    },
+    {
+      key: 'add-invite-members',
+      areaKey: 'global',
+      section: GlobalActionSection.ADD,
+      label: t('Invite Members'),
+      actionIcon: <IconUser />,
+      onAction: () => openInviteMembersModal(),
+    },
     // Help: Documentation
     {
       key: 'help-docs',
@@ -348,39 +381,6 @@ export function useGlobalOmniActions() {
       label: t('View Changelog'),
       actionIcon: <IconOpen />,
       onAction: () => window.open('https://sentry.io/changelog/', '_blank', 'noreferrer'),
-    },
-    // Add (create new entitty)
-    {
-      key: 'add-dashboard',
-      areaKey: 'global',
-      section: GlobalActionSection.ADD,
-      label: t('Create Dashboard'),
-      actionIcon: <IconAdd />,
-      to: `${navPrefix}/dashboards/new/`,
-    },
-    {
-      key: 'add-alert',
-      areaKey: 'global',
-      section: GlobalActionSection.ADD,
-      label: t('Create Alert'),
-      actionIcon: <IconAdd />,
-      to: `${navPrefix}/issues/alerts/wizard/`,
-    },
-    {
-      key: 'add-project',
-      areaKey: 'global',
-      section: GlobalActionSection.ADD,
-      label: t('Create Project'),
-      actionIcon: <IconAdd />,
-      to: `${navPrefix}/projects/new/`,
-    },
-    {
-      key: 'add-invite-members',
-      areaKey: 'global',
-      section: GlobalActionSection.ADD,
-      label: t('Invite Members'),
-      actionIcon: <IconUser />,
-      onAction: () => openInviteMembersModal(),
     },
     // Actions
     navigationToggleAction,
