@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {IconChevron, IconCode, IconFocus, IconSeer, IconTerminal} from 'sentry/icons';
+import {IconChevron, IconCode, IconFocus, IconSeer, IconTerminal, IconChat} from 'sentry/icons';
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import type {AutofixRootCauseData, AutofixCodebaseChange} from 'sentry/components/events/autofix/types';
@@ -26,6 +28,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
+import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
 interface AIAnalysisCardProps {
   event: Event | null;
@@ -610,6 +613,27 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               </CardContent>
             </DebuggerCard>
         </DebuggerWrapper>
+
+        {/* Activity Section */}
+        <ActivityWrapper>
+          <ActivityCard>
+            <CardHeader>
+              <HeaderLeft>
+                <CardTitle>
+                  <IconChat size="md" />
+                  {t('Activity')}
+                </CardTitle>
+              </HeaderLeft>
+            </CardHeader>
+            
+            <CardContent>
+              <StreamlinedActivitySection 
+                group={group} 
+                isDrawer={true}
+              />
+            </CardContent>
+          </ActivityCard>
+        </ActivityWrapper>
       </MainContent>
 
       <Sidebar>
@@ -723,6 +747,8 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 </PeopleContent>
               </PeopleSection>
             )}
+
+            <SimilarIssuesSection group={group} />
           </CardContent>
         </SidebarCard>
       </Sidebar>
@@ -910,7 +936,6 @@ const TimelineMetricsRow = styled('div')`
   gap: ${space(3)};
   margin-bottom: ${space(2)};
   padding: ${space(1.5)};
-  background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
@@ -1272,4 +1297,148 @@ const DebuggerSubtitle = styled('span')`
   color: ${p => p.theme.gray400};
   text-transform: uppercase;
   letter-spacing: 0.5px;
+`;
+
+// Similar Issues Section Component
+interface SimilarIssue {
+  id: string;
+  title: string;
+  shortId: string;
+  permalink: string;
+  status: string;
+  level: string;
+}
+
+interface SimilarIssuesSectionProps {
+  group: Group;
+}
+
+function SimilarIssuesSection({group}: SimilarIssuesSectionProps) {
+  const [similarIssues, setSimilarIssues] = useState<SimilarIssue[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const api = useApi();
+  const organization = useOrganization();
+
+  useEffect(() => {
+    fetchSimilarIssues();
+  }, [group.id]);
+
+  const fetchSimilarIssues = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await api.requestPromise(
+        `/organizations/${organization.slug}/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01&useReranking=true`
+      );
+
+      // Response is an array of [serialized_group, scores] tuples
+      const issues = response.map(([issue]: [any, any]) => ({
+        id: issue.id,
+        title: issue.title || issue.metadata?.title || 'Unknown Issue',
+        shortId: issue.shortId,
+        permalink: issue.permalink,
+        status: issue.status,
+        level: issue.level,
+      }));
+
+      setSimilarIssues(issues);
+    } catch (err) {
+      console.error('Failed to fetch similar issues:', err);
+      setError('Failed to load similar issues');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!similarIssues.length && !loading && !error) {
+    return null;
+  }
+
+  return (
+    <SimilarIssuesWrapper>
+      <SimilarIssuesLabel>{t('Similar Issues:')}</SimilarIssuesLabel>
+      <SimilarIssuesContent>
+        {loading && <LoadingIndicator mini />}
+        {error && <ErrorText>{error}</ErrorText>}
+        {!loading && !error && similarIssues.length > 0 && (
+          <SimilarIssuesPills>
+            {similarIssues.map((issue) => (
+              <Tooltip key={issue.id} title={issue.title}>
+                <SimilarIssuePill 
+                  to={issue.permalink}
+                  level={issue.level}
+                  status={issue.status}
+                >
+                  {issue.shortId}
+                </SimilarIssuePill>
+              </Tooltip>
+            ))}
+          </SimilarIssuesPills>
+        )}
+      </SimilarIssuesContent>
+    </SimilarIssuesWrapper>
+  );
+}
+
+const SimilarIssuesWrapper = styled('div')`
+  margin-top: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const SimilarIssuesLabel = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const SimilarIssuesContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const SimilarIssuesPills = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(0.5)};
+`;
+
+const SimilarIssuePill = styled(Link)<{level: string; status: string}>`
+  display: inline-flex;
+  align-items: center;
+  padding: ${space(0.5)} ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  text-decoration: none;
+  transition: all 0.2s ease;
+  
+  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.textColor};
+  border: 1px solid ${p => p.theme.border};
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const ErrorText = styled('span')`
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.error};
+`;
+
+const ActivityWrapper = styled('div')`
+  max-width: 768px;
+  width: 100%;
+`;
+
+const ActivityCard = styled(Card)`
+  width: 100%;
 `;
