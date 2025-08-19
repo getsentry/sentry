@@ -1,4 +1,4 @@
-import orderBy from 'lodash/orderBy';
+import {orderBy} from 'es-toolkit/compat';
 
 import type {Relay, RelayActivity} from 'sentry/types/relay';
 

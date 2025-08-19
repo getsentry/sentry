@@ -1,10 +1,8 @@
 import {Component} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
+import {isEqual, memoize, partition} from 'es-toolkit/compat';
 import type {Query} from 'history';
-import isEqual from 'lodash/isEqual';
-import memoize from 'lodash/memoize';
-import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client, ResponseMeta} from 'sentry/api';

@@ -1,7 +1,5 @@
 import {generatePath} from 'react-router-dom';
-import trim from 'lodash/trim';
-import trimEnd from 'lodash/trimEnd';
-import trimStart from 'lodash/trimStart';
+import {trim, trimEnd, trimStart} from 'es-toolkit/compat';
 
 import Redirect from 'sentry/components/redirect';
 import ConfigStore from 'sentry/stores/configStore';

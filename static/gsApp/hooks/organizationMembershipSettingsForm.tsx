@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep} from 'es-toolkit/compat';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';

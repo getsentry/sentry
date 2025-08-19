@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
-import orderBy from 'lodash/orderBy';
+import {orderBy} from 'es-toolkit/compat';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';

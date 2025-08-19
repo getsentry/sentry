@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';

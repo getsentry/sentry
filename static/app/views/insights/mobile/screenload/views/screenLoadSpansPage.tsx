@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';

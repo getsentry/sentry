@@ -4,7 +4,7 @@ import 'echarts/lib/component/markPoint';
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {GridComponentOption} from 'echarts';
-import set from 'lodash/set';
+import {set} from 'es-toolkit/compat';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import type {SeriesDataUnit} from 'sentry/types/echarts';

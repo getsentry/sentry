@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import upperFirst from 'lodash/upperFirst';
+import {upperFirst} from 'es-toolkit/compat';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import type {Field} from 'sentry/components/forms/types';

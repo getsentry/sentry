@@ -1,4 +1,4 @@
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';

@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import uniqBy from 'lodash/uniqBy';
+import {uniqBy} from 'es-toolkit/compat';
 
 import type {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';

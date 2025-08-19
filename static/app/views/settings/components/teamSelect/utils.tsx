@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';

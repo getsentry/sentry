@@ -1,6 +1,4 @@
-import groupBy from 'lodash/groupBy';
-import invertBy from 'lodash/invertBy';
-import pick from 'lodash/pick';
+import {groupBy, invertBy, pick} from 'es-toolkit/compat';
 
 import type {Permissions} from 'sentry/types/integrations';
 

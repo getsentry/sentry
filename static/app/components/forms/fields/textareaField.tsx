@@ -1,4 +1,4 @@
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import type {TextAreaProps} from 'sentry/components/core/input/inputGroup';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';

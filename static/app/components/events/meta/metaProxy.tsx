@@ -1,4 +1,4 @@
-import isEmpty from 'lodash/isEmpty';
+import {isEmpty} from 'es-toolkit/compat';
 
 import type {Meta} from 'sentry/types/group';
 

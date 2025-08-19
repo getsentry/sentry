@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {QueryObserverResult} from '@tanstack/react-query';
-import isEqual from 'lodash/isEqual';
+import {isEqual} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';

@@ -123,6 +123,7 @@
     "downsample": "1.4.0",
     "echarts": "5.4.0",
     "echarts-for-react": "3.0.2",
+    "es-toolkit": "^1.39.10",
     "esbuild": "0.25.3",
     "focus-trap": "^7.3.1",
     "framer-motion": "12.23.12",

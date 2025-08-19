@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
-import trimStart from 'lodash/trimStart';
+import {trimStart} from 'es-toolkit/compat';
 
 import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/core/tooltip';

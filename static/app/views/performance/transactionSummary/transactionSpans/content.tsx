@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {omit} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import omit from 'lodash/omit';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';

@@ -1,9 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import partition from 'lodash/partition';
-import sortBy from 'lodash/sortBy';
+import {debounce, partition, sortBy} from 'es-toolkit/compat';
 import {PlatformIcon} from 'platformicons';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';

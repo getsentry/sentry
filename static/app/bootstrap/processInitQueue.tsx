@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
-import throttle from 'lodash/throttle';
+import {throttle} from 'es-toolkit/compat';
 
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';

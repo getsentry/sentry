@@ -1,4 +1,4 @@
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';

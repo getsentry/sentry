@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import countBy from 'lodash/countBy';
+import {countBy} from 'es-toolkit/compat';
 
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import useProjects from 'sentry/utils/useProjects';

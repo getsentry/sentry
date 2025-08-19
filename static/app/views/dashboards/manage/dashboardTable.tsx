@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {cloneDeep} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import cloneDeep from 'lodash/cloneDeep';
 
 import {
   updateDashboardFavorite,

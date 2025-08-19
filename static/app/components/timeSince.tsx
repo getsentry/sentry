@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
-import isNumber from 'lodash/isNumber';
+import {isNumber} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import type {TooltipProps} from 'sentry/components/core/tooltip';

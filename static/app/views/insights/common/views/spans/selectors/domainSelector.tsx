@@ -1,6 +1,5 @@
 import {useCallback, useState} from 'react';
-import debounce from 'lodash/debounce';
-import omit from 'lodash/omit';
+import {debounce, omit} from 'es-toolkit/compat';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';

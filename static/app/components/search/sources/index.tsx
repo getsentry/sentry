@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import sortBy from 'lodash/sortBy';
+import {sortBy} from 'es-toolkit/compat';
 
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 

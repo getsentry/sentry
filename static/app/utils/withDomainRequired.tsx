@@ -1,5 +1,4 @@
-import trimEnd from 'lodash/trimEnd';
-import trimStart from 'lodash/trimStart';
+import {trimEnd, trimStart} from 'es-toolkit/compat';
 
 import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';

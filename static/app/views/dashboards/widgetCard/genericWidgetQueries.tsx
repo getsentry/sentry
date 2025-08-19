@@ -1,7 +1,5 @@
 import {Component} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
+import {cloneDeep, isEqual, omit} from 'es-toolkit/compat';
 
 import type {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';

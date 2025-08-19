@@ -1,8 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
-import partition from 'lodash/partition';
-import sortBy from 'lodash/sortBy';
+import {isEqual, partition, sortBy} from 'es-toolkit/compat';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';

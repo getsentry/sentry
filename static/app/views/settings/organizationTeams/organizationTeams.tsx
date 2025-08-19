@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import partition from 'lodash/partition';
+import {debounce, partition} from 'es-toolkit/compat';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';

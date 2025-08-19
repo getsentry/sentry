@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import partition from 'lodash/partition';
+import {partition} from 'es-toolkit/compat';
 
 import {defined} from 'sentry/utils';
 import {

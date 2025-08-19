@@ -1,9 +1,8 @@
 import {Component, Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {isEqual, omit} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'sentry/actionCreators/events';

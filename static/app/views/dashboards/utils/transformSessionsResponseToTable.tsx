@@ -1,4 +1,4 @@
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';

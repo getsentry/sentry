@@ -1,4 +1,4 @@
-import memoize from 'lodash/memoize';
+import {memoize} from 'es-toolkit/compat';
 
 const getModalPortal = memoize(() => {
   let portal = document.getElementById('modal-portal') as HTMLDivElement;

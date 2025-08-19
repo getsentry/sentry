@@ -1,4 +1,4 @@
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import IdBadge from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';

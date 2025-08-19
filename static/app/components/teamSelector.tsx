@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';

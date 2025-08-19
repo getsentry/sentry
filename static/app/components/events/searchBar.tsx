@@ -1,6 +1,5 @@
 import {useEffect, useMemo} from 'react';
-import memoize from 'lodash/memoize';
-import omit from 'lodash/omit';
+import {memoize, omit} from 'es-toolkit/compat';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';

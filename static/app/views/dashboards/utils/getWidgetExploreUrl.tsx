@@ -1,4 +1,4 @@
-import trimStart from 'lodash/trimStart';
+import {trimStart} from 'es-toolkit/compat';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

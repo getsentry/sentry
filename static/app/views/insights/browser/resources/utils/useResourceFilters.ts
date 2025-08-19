@@ -1,4 +1,4 @@
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';

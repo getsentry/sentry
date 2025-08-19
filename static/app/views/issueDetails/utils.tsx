@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import orderBy from 'lodash/orderBy';
+import {orderBy} from 'es-toolkit/compat';
 
 import {
   bulkUpdate,

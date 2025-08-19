@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import sortBy from 'lodash/sortBy';
+import {sortBy} from 'es-toolkit/compat';
 
 import {ValueLink} from 'sentry/components/keyValueData';
 import {space} from 'sentry/styles/space';

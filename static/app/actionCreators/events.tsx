@@ -1,5 +1,5 @@
+import {pick} from 'es-toolkit/compat';
 import type {LocationDescriptor} from 'history';
-import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ApiResult, Client} from 'sentry/api';

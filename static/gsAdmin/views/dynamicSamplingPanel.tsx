@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import isEmpty from 'lodash/isEmpty';
-import startCase from 'lodash/startCase';
+import {isEmpty, startCase} from 'es-toolkit/compat';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';

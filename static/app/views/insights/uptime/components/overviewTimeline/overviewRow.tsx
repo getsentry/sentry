@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';

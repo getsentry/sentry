@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import partition from 'lodash/partition';
-import sortBy from 'lodash/sortBy';
+import {partition, sortBy} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';

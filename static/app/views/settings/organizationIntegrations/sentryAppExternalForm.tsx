@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';

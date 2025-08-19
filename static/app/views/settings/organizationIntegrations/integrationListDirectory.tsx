@@ -1,8 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import startCase from 'lodash/startCase';
+import {debounce, startCase} from 'es-toolkit/compat';
 
 import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';

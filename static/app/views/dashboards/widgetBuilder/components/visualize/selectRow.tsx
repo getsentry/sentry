@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep} from 'es-toolkit/compat';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconInfo} from 'sentry/icons';

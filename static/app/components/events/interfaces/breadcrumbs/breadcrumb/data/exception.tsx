@@ -1,4 +1,4 @@
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';

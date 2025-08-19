@@ -1,4 +1,4 @@
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep} from 'es-toolkit/compat';
 
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';

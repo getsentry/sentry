@@ -1,4 +1,4 @@
-import keyBy from 'lodash/keyBy';
+import {keyBy} from 'es-toolkit/compat';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import BooleanField from 'sentry/components/forms/fields/booleanField';

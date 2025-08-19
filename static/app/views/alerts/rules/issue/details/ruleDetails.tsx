@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';

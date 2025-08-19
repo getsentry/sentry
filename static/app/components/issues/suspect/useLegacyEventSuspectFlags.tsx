@@ -1,5 +1,5 @@
 import {useEffect, useMemo} from 'react';
-import intersection from 'lodash/intersection';
+import {intersection} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import {

@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';

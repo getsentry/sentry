@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from 'sentry/components/core/button';

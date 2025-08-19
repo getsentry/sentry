@@ -1,4 +1,4 @@
-import trimStart from 'lodash/trimStart';
+import {trimStart} from 'es-toolkit/compat';
 
 import type {Client, ResponseMeta} from 'sentry/api';
 import type {SearchBarProps} from 'sentry/components/events/searchBar';

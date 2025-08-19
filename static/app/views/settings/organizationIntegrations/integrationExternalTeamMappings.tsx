@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import uniqBy from 'lodash/uniqBy';
+import {uniqBy} from 'es-toolkit/compat';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';

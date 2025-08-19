@@ -1,4 +1,4 @@
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 
 import type {
   DiscoverQueryPropsWithContext,

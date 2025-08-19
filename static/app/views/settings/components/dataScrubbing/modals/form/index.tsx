@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import sortBy from 'lodash/sortBy';
+import {sortBy} from 'es-toolkit/compat';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';

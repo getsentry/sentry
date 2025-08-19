@@ -1,7 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import {upperFirst} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import upperFirst from 'lodash/upperFirst';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';

@@ -1,5 +1,5 @@
 import {useLayoutEffect} from 'react';
-import kebabCase from 'lodash/kebabCase';
+import {kebabCase} from 'es-toolkit/compat';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

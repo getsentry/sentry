@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 import type {XAXisComponentOption} from 'echarts';
 import type {TimeAxisLabelFormatterOption} from 'echarts/types/src/coord/axisCommonTypes';
-import merge from 'lodash/merge';
+import {merge} from 'es-toolkit/compat';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {computeShortInterval, truncationFormatter} from 'sentry/components/charts/utils';

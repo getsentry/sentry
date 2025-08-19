@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
+import {startCase} from 'es-toolkit/compat';
 import {PlatformIcon} from 'platformicons';
 
 import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';

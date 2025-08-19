@@ -8,8 +8,8 @@ import type {
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
+import {isEqual} from 'es-toolkit/compat';
 import type {Location, Query} from 'history';
-import isEqual from 'lodash/isEqual';
 
 import type {Client} from 'sentry/api';
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';

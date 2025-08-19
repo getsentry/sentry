@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 import Prism from 'prismjs';
 
 import {Alert} from 'sentry/components/core/alert';

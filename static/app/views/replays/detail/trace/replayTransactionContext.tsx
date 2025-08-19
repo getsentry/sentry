@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useMemo, useState} from 'react';
+import {sortBy} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import sortBy from 'lodash/sortBy';
 
 import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';

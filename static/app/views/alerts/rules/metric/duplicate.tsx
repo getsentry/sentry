@@ -1,5 +1,5 @@
 import {useTheme} from '@emotion/react';
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';

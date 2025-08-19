@@ -1,4 +1,4 @@
-import startCase from 'lodash/startCase';
+import {startCase} from 'es-toolkit/compat';
 
 import {Outcome} from 'sentry/types/core';
 

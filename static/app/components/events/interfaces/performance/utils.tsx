@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import keyBy from 'lodash/keyBy';
+import {keyBy} from 'es-toolkit/compat';
 
 import type {
   RawSpanType,

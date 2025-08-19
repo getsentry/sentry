@@ -1,4 +1,4 @@
-import merge from 'lodash/merge';
+import {merge} from 'es-toolkit/compat';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';

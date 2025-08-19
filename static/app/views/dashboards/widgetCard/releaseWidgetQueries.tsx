@@ -1,9 +1,5 @@
 import {Component} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
-import pick from 'lodash/pick';
-import trimStart from 'lodash/trimStart';
+import {cloneDeep, isEqual, omit, pick, trimStart} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';

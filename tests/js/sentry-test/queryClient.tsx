@@ -1,4 +1,4 @@
-import merge from 'lodash/merge';
+import {merge} from 'es-toolkit/compat';
 
 import {DEFAULT_QUERY_CLIENT_CONFIG, QueryClient} from 'sentry/utils/queryClient';
 

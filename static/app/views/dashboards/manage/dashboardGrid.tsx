@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {isEqual} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import type {Client} from 'sentry/api';

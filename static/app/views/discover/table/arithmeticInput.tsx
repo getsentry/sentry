@@ -1,6 +1,6 @@
 import {createRef, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
+import {isEqual} from 'es-toolkit/compat';
 
 import type {InputProps} from 'sentry/components/core/input';
 import {Input} from 'sentry/components/core/input';

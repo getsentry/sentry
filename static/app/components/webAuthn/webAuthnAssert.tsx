@@ -2,7 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import noop from 'lodash/noop';
+import {noop} from 'es-toolkit/compat';
 
 import deviceAnimation from 'sentry-images/spot/u2f-small.gif';
 

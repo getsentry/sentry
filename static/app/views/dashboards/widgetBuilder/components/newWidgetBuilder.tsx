@@ -2,9 +2,8 @@ import {Fragment, useCallback, useEffect, useState, type CSSProperties} from 're
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {cloneDeep, omit} from 'es-toolkit/compat';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
-import cloneDeep from 'lodash/cloneDeep';
-import omit from 'lodash/omit';
 
 import {
   SIDEBAR_COLLAPSED_WIDTH,

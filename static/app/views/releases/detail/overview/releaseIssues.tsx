@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import {isEqual} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';

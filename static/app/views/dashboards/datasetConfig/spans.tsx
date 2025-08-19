@@ -1,4 +1,4 @@
-import pickBy from 'lodash/pickBy';
+import {pickBy} from 'es-toolkit/compat';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';

@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
+import {pick} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import pick from 'lodash/pick';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';

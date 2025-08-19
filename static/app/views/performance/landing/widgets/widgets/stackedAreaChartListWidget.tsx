@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';

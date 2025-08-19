@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
-import sortBy from 'lodash/sortBy';
-import startCase from 'lodash/startCase';
+import {sortBy, startCase} from 'es-toolkit/compat';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';

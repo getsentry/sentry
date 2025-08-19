@@ -10,7 +10,7 @@ import {
 } from '@sentry-internal/rrweb';
 import type {CanvasArg} from '@sentry-internal/rrweb-types';
 import * as Sentry from '@sentry/react';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import {deserializeCanvasArg} from './deserializeCanvasArgs';
 

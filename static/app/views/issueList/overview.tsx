@@ -2,12 +2,9 @@ import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {isEqual, mapValues, omit, pickBy} from 'es-toolkit/compat';
 import type {Location} from 'history';
 import Cookies from 'js-cookie';
-import isEqual from 'lodash/isEqual';
-import mapValues from 'lodash/mapValues';
-import omit from 'lodash/omit';
-import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';

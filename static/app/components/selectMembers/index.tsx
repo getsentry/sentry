@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import type {Client} from 'sentry/api';
 import {Select} from 'sentry/components/core/select';

@@ -1,6 +1,4 @@
-import cloneDeep from 'lodash/cloneDeep';
-import isEqual from 'lodash/isEqual';
-import trimStart from 'lodash/trimStart';
+import {cloneDeep, isEqual, trimStart} from 'es-toolkit/compat';
 
 import type {FieldValue} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';

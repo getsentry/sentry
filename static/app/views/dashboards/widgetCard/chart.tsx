@@ -2,8 +2,7 @@ import React, {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
+import {isEqual, omit} from 'es-toolkit/compat';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';

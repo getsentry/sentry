@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import type {FeedbackModalIntegration} from '@sentry/core';
-import isEqual from 'lodash/isEqual';
+import {isEqual} from 'es-toolkit/compat';
 
 import {
   useFeedback,

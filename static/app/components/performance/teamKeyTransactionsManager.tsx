@@ -1,5 +1,5 @@
 import {Component, createContext} from 'react';
-import isEqual from 'lodash/isEqual';
+import {isEqual} from 'es-toolkit/compat';
 
 import type {TeamKeyTransactions} from 'sentry/actionCreators/performance';
 import {

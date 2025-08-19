@@ -3,7 +3,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import partition from 'lodash/partition';
+import {partition} from 'es-toolkit/compat';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';

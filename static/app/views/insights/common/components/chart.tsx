@@ -11,8 +11,7 @@ import type {
   XAXisOption,
   YAXisOption,
 } from 'echarts/types/dist/shared';
-import max from 'lodash/max';
-import min from 'lodash/min';
+import {max, min} from 'es-toolkit/compat';
 
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';

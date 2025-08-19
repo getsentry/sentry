@@ -1,4 +1,4 @@
-import partition from 'lodash/partition';
+import {partition} from 'es-toolkit/compat';
 import * as qs from 'query-string';
 
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';

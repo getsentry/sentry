@@ -2,9 +2,8 @@ import type {ReactNode} from 'react';
 import {Fragment, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {kebabCase, mapValues} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import kebabCase from 'lodash/kebabCase';
-import mapValues from 'lodash/mapValues';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';

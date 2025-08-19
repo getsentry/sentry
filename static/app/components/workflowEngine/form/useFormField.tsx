@@ -1,5 +1,5 @@
 import {useCallback, useContext, useSyncExternalStore} from 'react';
-import noop from 'lodash/noop';
+import {noop} from 'es-toolkit/compat';
 import {observe} from 'mobx';
 
 import FormContext from 'sentry/components/forms/formContext';

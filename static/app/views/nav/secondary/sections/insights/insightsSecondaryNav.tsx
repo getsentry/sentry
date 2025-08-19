@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import partition from 'lodash/partition';
+import {partition} from 'es-toolkit/compat';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';

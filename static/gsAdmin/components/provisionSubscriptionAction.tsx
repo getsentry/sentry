@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import upperFirst from 'lodash/upperFirst';
+import {upperFirst} from 'es-toolkit/compat';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';

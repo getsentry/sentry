@@ -1,7 +1,7 @@
 // Override the lint rule for this, we actually need the path lookup feature,
 // which `?.` does not magically give us.
 // eslint-disable-next-line no-restricted-imports
-import get from 'lodash/get';
+import {get} from 'es-toolkit/compat';
 
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 

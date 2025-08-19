@@ -1,9 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
+import {debounce, isEqual, omit} from 'es-toolkit/compat';
 
 import {Button} from 'sentry/components/core/button';
 import useDrawer from 'sentry/components/globalDrawer';

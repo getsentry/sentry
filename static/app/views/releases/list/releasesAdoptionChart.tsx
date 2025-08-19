@@ -2,9 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LineSeriesOption} from 'echarts';
+import {compact, pick} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import compact from 'lodash/compact';
-import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';

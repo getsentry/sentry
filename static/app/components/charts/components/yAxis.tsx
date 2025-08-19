@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 import type {YAXisComponentOption} from 'echarts';
-import merge from 'lodash/merge';
+import {merge} from 'es-toolkit/compat';
 
 type Props = YAXisComponentOption & {theme: Theme};
 

@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import {NoteInput} from 'sentry/components/activity/note/input';
 import type {MentionChangeEvent} from 'sentry/components/activity/note/types';

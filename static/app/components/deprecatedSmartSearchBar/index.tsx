@@ -1,8 +1,7 @@
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
+import {debounce, isEqual} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/savedSearches';

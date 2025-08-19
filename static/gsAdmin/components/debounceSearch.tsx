@@ -1,7 +1,7 @@
 import type {ReactElement} from 'react';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/searchBar';

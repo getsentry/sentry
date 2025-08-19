@@ -1,4 +1,4 @@
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

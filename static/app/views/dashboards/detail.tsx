@@ -3,11 +3,8 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {isEqual, isEqualWith, omit, pick} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
-import isEqualWith from 'lodash/isEqualWith';
-import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 
 import {
   createDashboard,

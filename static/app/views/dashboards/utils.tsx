@@ -1,9 +1,6 @@
 import {connect} from 'echarts';
+import {cloneDeep, isEqual, pick, trimStart} from 'es-toolkit/compat';
 import type {Location, Query} from 'history';
-import cloneDeep from 'lodash/cloneDeep';
-import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
-import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';

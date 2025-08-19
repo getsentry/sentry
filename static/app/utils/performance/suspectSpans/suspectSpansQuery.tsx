@@ -1,4 +1,4 @@
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {defined} from 'sentry/utils';
 import type {

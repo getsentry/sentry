@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import clamp from 'lodash/clamp';
+import {clamp} from 'es-toolkit/compat';
 
 import {isEAPError} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';

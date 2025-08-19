@@ -1,6 +1,5 @@
 import {Component} from 'react';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
+import {isEqual, omit} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';

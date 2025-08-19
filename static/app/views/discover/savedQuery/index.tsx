@@ -2,9 +2,9 @@ import {Fragment, PureComponent} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
+import {isEqual} from 'es-toolkit/compat';
 import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';

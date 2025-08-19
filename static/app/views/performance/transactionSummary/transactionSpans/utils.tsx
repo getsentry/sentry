@@ -1,5 +1,5 @@
+import {pick} from 'es-toolkit/compat';
 import type {Location, Query} from 'history';
-import pick from 'lodash/pick';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';

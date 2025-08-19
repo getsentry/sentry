@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import merge from 'lodash/merge';
+import {merge} from 'es-toolkit/compat';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {ExternalLink} from 'sentry/components/core/link';

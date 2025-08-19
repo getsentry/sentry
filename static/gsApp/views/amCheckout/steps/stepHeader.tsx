@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import kebabCase from 'lodash/kebabCase';
+import {kebabCase} from 'es-toolkit/compat';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';

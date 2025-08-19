@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import sortBy from 'lodash/sortBy';
+import {sortBy} from 'es-toolkit/compat';
 
 import {
   deleteMonitorProcessingErrorByType,

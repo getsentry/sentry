@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
-import isEqual from 'lodash/isEqual';
+import {isEqual} from 'es-toolkit/compat';
 
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';

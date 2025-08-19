@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import type {LegendComponentOption} from 'echarts';
+import {orderBy} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import orderBy from 'lodash/orderBy';
 import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';

@@ -1,4 +1,4 @@
-import range from 'lodash/range';
+import {range} from 'es-toolkit/compat';
 import {IncidentFixture} from 'sentry-fixture/incident';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

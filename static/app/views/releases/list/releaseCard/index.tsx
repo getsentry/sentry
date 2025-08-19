@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
+import {partition} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import partition from 'lodash/partition';
 import moment from 'moment-timezone';
 
 import Collapsible from 'sentry/components/collapsible';

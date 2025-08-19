@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import trimStart from 'lodash/trimStart';
+import {trimStart} from 'es-toolkit/compat';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client, ResponseMeta} from 'sentry/api';

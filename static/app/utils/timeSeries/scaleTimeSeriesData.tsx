@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import partialRight from 'lodash/partialRight';
+import {partialRight} from 'es-toolkit/compat';
 
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';

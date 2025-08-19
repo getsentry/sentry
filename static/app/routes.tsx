@@ -1,5 +1,5 @@
 import type {RouteObject} from 'react-router-dom';
-import memoize from 'lodash/memoize';
+import {memoize} from 'es-toolkit/compat';
 
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';

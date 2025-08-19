@@ -10,10 +10,8 @@ import {
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
+import {differenceWith, isEqual, throttle} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import differenceWith from 'lodash/differenceWith';
-import isEqual from 'lodash/isEqual';
-import throttle from 'lodash/throttle';
 
 import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';

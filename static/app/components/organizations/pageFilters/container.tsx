@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useLayoutEffect, useRef, useState} from 'react';
-import isEqual from 'lodash/isEqual';
+import {isEqual} from 'es-toolkit/compat';
 
 import type {InitializeUrlStateParams} from 'sentry/actionCreators/pageFilters';
 import {

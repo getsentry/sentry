@@ -1,5 +1,4 @@
-import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
+import {isEqual, pick} from 'es-toolkit/compat';
 import {action, computed, makeObservable, observable} from 'mobx';
 
 import {Client} from 'sentry/api';

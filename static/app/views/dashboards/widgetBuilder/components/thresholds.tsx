@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep} from 'es-toolkit/compat';
 
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';

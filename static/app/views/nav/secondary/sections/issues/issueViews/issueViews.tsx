@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
+import {debounce} from 'es-toolkit/compat';
 import {Reorder} from 'framer-motion';
-import debounce from 'lodash/debounce';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';

@@ -1,5 +1,5 @@
 import type {Theme} from '@emotion/react';
-import compact from 'lodash/compact';
+import {compact} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';

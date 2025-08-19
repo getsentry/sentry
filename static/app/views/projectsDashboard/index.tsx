@@ -2,8 +2,7 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
-import debounce from 'lodash/debounce';
-import uniqBy from 'lodash/uniqBy';
+import {debounce, uniqBy} from 'es-toolkit/compat';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';

@@ -8,7 +8,7 @@ import type {
   CustomSeriesRenderItemReturn,
   ElementEvent,
 } from 'echarts';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import {closeModal} from 'sentry/actionCreators/modal';

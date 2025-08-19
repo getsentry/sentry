@@ -1,4 +1,4 @@
-import upperFirst from 'lodash/upperFirst';
+import {upperFirst} from 'es-toolkit/compat';
 
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';

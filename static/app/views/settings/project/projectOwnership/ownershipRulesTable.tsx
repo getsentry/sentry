@@ -1,9 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import chunk from 'lodash/chunk';
-import isEqual from 'lodash/isEqual';
-import uniqBy from 'lodash/uniqBy';
+import {chunk, isEqual, uniqBy} from 'es-toolkit/compat';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';

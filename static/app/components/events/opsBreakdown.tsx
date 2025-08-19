@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import isFinite from 'lodash/isFinite';
+import {isFinite} from 'es-toolkit/compat';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import type {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';

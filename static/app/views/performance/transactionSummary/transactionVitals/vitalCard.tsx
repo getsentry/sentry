@@ -2,9 +2,8 @@ import {Component} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {isEqual, throttle} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
-import throttle from 'lodash/throttle';
 
 import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';

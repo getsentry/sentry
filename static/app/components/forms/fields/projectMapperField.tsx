@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import difference from 'lodash/difference';
+import {difference} from 'es-toolkit/compat';
 
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';

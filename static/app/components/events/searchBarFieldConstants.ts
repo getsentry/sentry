@@ -1,4 +1,4 @@
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {

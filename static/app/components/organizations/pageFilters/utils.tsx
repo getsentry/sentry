@@ -1,8 +1,5 @@
+import {identity, isEqual, pick, pickBy} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import identity from 'lodash/identity';
-import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
-import pickBy from 'lodash/pickBy';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';

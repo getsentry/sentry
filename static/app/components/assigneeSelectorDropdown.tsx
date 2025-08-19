@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import uniqBy from 'lodash/uniqBy';
+import {uniqBy} from 'es-toolkit/compat';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';

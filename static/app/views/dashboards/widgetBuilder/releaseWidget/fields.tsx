@@ -1,4 +1,4 @@
-import invert from 'lodash/invert';
+import {invert} from 'es-toolkit/compat';
 
 import type {SelectValue} from 'sentry/types/core';
 import {SessionStatus} from 'sentry/types/organization';

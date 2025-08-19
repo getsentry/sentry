@@ -1,4 +1,4 @@
-import isEqual from 'lodash/isEqual';
+import {isEqual} from 'es-toolkit/compat';
 import {createStore} from 'reflux';
 
 import type {Group} from 'sentry/types/group';

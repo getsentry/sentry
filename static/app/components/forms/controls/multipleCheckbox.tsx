@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
-import noop from 'lodash/noop';
+import {noop} from 'es-toolkit/compat';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {space} from 'sentry/styles/space';

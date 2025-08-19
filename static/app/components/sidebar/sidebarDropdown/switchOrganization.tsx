@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import sortBy from 'lodash/sortBy';
+import {sortBy} from 'es-toolkit/compat';
 
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';

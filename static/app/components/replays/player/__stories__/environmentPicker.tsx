@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import uniq from 'lodash/uniq';
+import {uniq} from 'es-toolkit/compat';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useProjects from 'sentry/utils/useProjects';

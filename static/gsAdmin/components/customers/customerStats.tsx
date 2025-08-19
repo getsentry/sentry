@@ -1,8 +1,7 @@
 import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
-import startCase from 'lodash/startCase';
+import {cloneDeep, startCase} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import {BarChart} from 'sentry/components/charts/barChart';

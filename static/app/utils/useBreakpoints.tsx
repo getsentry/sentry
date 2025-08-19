@@ -1,8 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
-import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
+import {debounce, isEqual} from 'es-toolkit/compat';
 
 function useInstantRef<T>(value: T) {
   const ref = useRef(value);

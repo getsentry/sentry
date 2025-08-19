@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 import * as qs from 'query-string';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';

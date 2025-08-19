@@ -1,4 +1,4 @@
-import merge from 'lodash/merge';
+import {merge} from 'es-toolkit/compat';
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {MemberFixture} from 'sentry-fixture/member';

@@ -1,5 +1,4 @@
-import omit from 'lodash/omit';
-import trimStart from 'lodash/trimStart';
+import {omit, trimStart} from 'es-toolkit/compat';
 
 import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';

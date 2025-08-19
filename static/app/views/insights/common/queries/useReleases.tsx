@@ -1,4 +1,4 @@
-import chunk from 'lodash/chunk';
+import {chunk} from 'es-toolkit/compat';
 
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';

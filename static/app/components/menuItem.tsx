@@ -1,6 +1,6 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import type {LinkProps} from 'sentry/components/core/link';
 import {Link} from 'sentry/components/core/link';

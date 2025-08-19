@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import partition from 'lodash/partition';
+import {partition} from 'es-toolkit/compat';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useDrawer from 'sentry/components/globalDrawer';

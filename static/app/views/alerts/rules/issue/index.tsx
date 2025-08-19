@@ -3,11 +3,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
+import {cloneDeep, debounce, omit, set} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import cloneDeep from 'lodash/cloneDeep';
-import debounce from 'lodash/debounce';
-import omit from 'lodash/omit';
-import set from 'lodash/set';
 
 import {
   addErrorMessage,

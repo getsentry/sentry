@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';

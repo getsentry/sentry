@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
+import {dropRightWhile} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import dropRightWhile from 'lodash/dropRightWhile';
 
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';

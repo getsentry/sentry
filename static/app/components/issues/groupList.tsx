@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
+import {isEqual, omit} from 'es-toolkit/compat';
 import * as qs from 'query-string';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';

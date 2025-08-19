@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
+import {omit} from 'es-toolkit/compat';
 import {motion} from 'framer-motion';
-import omit from 'lodash/omit';
 
 import PlatformPicker from 'sentry/components/platformPicker';
 import {t} from 'sentry/locale';

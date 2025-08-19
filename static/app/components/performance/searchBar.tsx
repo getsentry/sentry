@@ -1,6 +1,6 @@
 import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import SearchDropdown from 'sentry/components/deprecatedSmartSearchBar/searchDropdown';
 import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';

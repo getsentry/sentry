@@ -1,8 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
-import sortBy from 'lodash/sortBy';
+import {debounce, isEqual, sortBy} from 'es-toolkit/compat';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList, {CollapsedAvatars} from 'sentry/components/core/avatar/avatarList';

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {trimStart} from 'es-toolkit/compat';
 import type {Location, LocationDescriptorObject} from 'history';
-import trimStart from 'lodash/trimStart';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';

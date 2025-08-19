@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
-import maxBy from 'lodash/maxBy';
+import {maxBy} from 'es-toolkit/compat';
 
 import Count from 'sentry/components/count';
 import {

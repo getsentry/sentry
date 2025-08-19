@@ -1,4 +1,4 @@
-import range from 'lodash/range';
+import {range} from 'es-toolkit/compat';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 

@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import trimEnd from 'lodash/trimEnd';
+import {trimEnd} from 'es-toolkit/compat';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';

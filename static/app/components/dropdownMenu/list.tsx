@@ -10,7 +10,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';

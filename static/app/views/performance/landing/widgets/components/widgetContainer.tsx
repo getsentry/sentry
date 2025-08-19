@@ -1,8 +1,7 @@
 import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
-import pick from 'lodash/pick';
+import {omit, pick} from 'es-toolkit/compat';
 import * as qs from 'query-string';
 
 import type {SelectOption} from 'sentry/components/core/compactSelect';

@@ -1,4 +1,4 @@
-import shuffle from 'lodash/shuffle';
+import {shuffle} from 'es-toolkit/compat';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';

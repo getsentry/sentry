@@ -1,4 +1,4 @@
-import groupBy from 'lodash/groupBy';
+import {groupBy} from 'es-toolkit/compat';
 
 import type {BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';

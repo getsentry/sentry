@@ -2,8 +2,7 @@ import {Component} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
+import {isEqual, omit} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';

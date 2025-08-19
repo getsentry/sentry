@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import uniqBy from 'lodash/uniqBy';
+import {uniqBy} from 'es-toolkit/compat';
 
 import type {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';

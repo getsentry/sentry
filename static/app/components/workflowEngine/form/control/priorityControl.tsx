@@ -1,6 +1,6 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
-import toNumber from 'lodash/toNumber';
+import {toNumber} from 'es-toolkit/compat';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
 import {CompactSelect} from 'sentry/components/core/compactSelect';

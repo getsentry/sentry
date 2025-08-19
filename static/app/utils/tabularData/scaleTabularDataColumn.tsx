@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import partialRight from 'lodash/partialRight';
+import {partialRight} from 'es-toolkit/compat';
 
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertRate} from 'sentry/utils/unitConversion/convertRate';

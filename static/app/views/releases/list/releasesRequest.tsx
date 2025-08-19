@@ -1,8 +1,6 @@
 import {Component} from 'react';
+import {isEqual, omit, pick} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
-import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';

@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';

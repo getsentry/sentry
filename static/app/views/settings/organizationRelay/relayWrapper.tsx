@@ -1,5 +1,5 @@
 import {useCallback, useState} from 'react';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';

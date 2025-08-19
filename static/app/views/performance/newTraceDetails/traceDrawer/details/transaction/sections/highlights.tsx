@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Link} from 'sentry/components/core/link';

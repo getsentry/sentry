@@ -3,10 +3,8 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/core';
 import * as Sentry from '@sentry/react';
+import {cloneDeep, isEqual, trimStart} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import cloneDeep from 'lodash/cloneDeep';
-import isEqual from 'lodash/isEqual';
-import trimStart from 'lodash/trimStart';
 import moment from 'moment-timezone';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';

@@ -1,7 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import BaseSearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';

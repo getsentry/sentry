@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import type {FormProps} from 'sentry/components/forms/form';

@@ -1,8 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {debounce, pick} from 'es-toolkit/compat';
 import type {Query} from 'history';
-import debounce from 'lodash/debounce';
-import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';

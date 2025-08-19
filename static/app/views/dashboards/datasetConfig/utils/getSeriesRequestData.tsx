@@ -1,4 +1,4 @@
-import trimStart from 'lodash/trimStart';
+import {trimStart} from 'es-toolkit/compat';
 
 import type {EventsStatsOptions} from 'sentry/actionCreators/events';
 import type {PageFilters} from 'sentry/types/core';

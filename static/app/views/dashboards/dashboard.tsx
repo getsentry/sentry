@@ -6,10 +6,8 @@ import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {cloneDeep, debounce, isEqual} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import cloneDeep from 'lodash/cloneDeep';
-import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';

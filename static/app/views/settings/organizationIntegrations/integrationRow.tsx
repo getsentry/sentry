@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
+import {startCase} from 'es-toolkit/compat';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Tag} from 'sentry/components/core/badge/tag';

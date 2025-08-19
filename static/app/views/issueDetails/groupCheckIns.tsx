@@ -1,4 +1,4 @@
-import uniq from 'lodash/uniq';
+import {uniq} from 'es-toolkit/compat';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

@@ -1,5 +1,5 @@
 import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {Button} from 'sentry/components/core/button';
 import {debossedBackground} from 'sentry/components/core/chonk';

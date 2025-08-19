@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import isNumber from 'lodash/isNumber';
+import {isNumber} from 'es-toolkit/compat';
 
 import {
   ColorizedRating,

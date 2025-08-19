@@ -1,4 +1,4 @@
-import uniqBy from 'lodash/uniqBy';
+import {uniqBy} from 'es-toolkit/compat';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {ProjectSdkUpdates} from 'sentry/types/project';

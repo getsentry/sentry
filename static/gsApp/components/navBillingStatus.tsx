@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import snakeCase from 'lodash/snakeCase';
+import {snakeCase} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';

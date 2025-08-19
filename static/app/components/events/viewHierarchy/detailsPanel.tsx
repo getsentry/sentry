@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {space} from 'sentry/styles/space';

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import capitalize from 'lodash/capitalize';
+import {capitalize} from 'es-toolkit/compat';
 
 import {Link} from 'sentry/components/core/link';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';

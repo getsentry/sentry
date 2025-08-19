@@ -1,4 +1,4 @@
-import isEqual from 'lodash/isEqual';
+import {isEqual} from 'es-toolkit/compat';
 
 import type * as ApiNamespace from 'sentry/api';
 import RequestError from 'sentry/utils/requestError/requestError';

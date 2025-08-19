@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import memoize from 'lodash/memoize';
+import {memoize} from 'es-toolkit/compat';
 import type moment from 'moment-timezone';
 
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';

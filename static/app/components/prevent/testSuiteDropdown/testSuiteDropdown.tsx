@@ -1,8 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import sortBy from 'lodash/sortBy';
+import {debounce, sortBy} from 'es-toolkit/compat';
 
 import {Badge} from 'sentry/components/core/badge';
 import DropdownButton from 'sentry/components/dropdownButton';

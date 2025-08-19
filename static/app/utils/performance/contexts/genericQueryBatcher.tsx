@@ -1,6 +1,6 @@
 import type {Ref} from 'react';
 import {createContext, Fragment, useEffect, useRef} from 'react';
-import identity from 'lodash/identity';
+import {identity} from 'es-toolkit/compat';
 
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';

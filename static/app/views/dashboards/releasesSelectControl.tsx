@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import {Badge} from 'sentry/components/core/badge';
 import {CompactSelect} from 'sentry/components/core/compactSelect';

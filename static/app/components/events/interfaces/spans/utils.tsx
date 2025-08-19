@@ -1,8 +1,6 @@
 import type {Theme} from '@emotion/react';
+import {isNumber, maxBy, set} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import isNumber from 'lodash/isNumber';
-import maxBy from 'lodash/maxBy';
-import set from 'lodash/set';
 import moment from 'moment-timezone';
 
 import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';

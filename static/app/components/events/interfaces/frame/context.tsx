@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import keyBy from 'lodash/keyBy';
+import {keyBy} from 'es-toolkit/compat';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';

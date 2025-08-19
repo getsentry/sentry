@@ -1,6 +1,5 @@
+import {capitalize, snakeCase} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import capitalize from 'lodash/capitalize';
-import snakeCase from 'lodash/snakeCase';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';

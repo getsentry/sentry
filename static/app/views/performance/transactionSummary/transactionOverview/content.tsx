@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {omit} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import omit from 'lodash/omit';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';

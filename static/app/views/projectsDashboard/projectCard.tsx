@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import round from 'lodash/round';
+import {round} from 'es-toolkit/compat';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';

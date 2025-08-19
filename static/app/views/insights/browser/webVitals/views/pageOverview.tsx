@@ -1,6 +1,6 @@
 import React, {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';

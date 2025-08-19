@@ -1,9 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import debounce from 'lodash/debounce';
-import omit from 'lodash/omit';
-import startCase from 'lodash/startCase';
+import {debounce, omit, startCase} from 'es-toolkit/compat';
 import {PlatformIcon} from 'platformicons';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';

@@ -2,9 +2,8 @@ import type {CSSProperties} from 'react';
 import {useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {debounce, isEqual} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
 
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import {Select} from 'sentry/components/core/select';

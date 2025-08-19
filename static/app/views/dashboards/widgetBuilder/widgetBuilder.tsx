@@ -1,9 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {Location} from 'react-router-dom';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
-import omit from 'lodash/omit';
-import set from 'lodash/set';
+import {cloneDeep, omit, set} from 'es-toolkit/compat';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';

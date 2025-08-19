@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import partition from 'lodash/partition';
+import {partition} from 'es-toolkit/compat';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Alert} from 'sentry/components/core/alert';

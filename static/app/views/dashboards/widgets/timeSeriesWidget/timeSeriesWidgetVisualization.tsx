@@ -13,9 +13,7 @@ import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import groupBy from 'lodash/groupBy';
-import mapValues from 'lodash/mapValues';
-import sum from 'lodash/sum';
+import {groupBy, mapValues, sum} from 'es-toolkit/compat';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';

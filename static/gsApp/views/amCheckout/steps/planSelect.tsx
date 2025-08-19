@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';

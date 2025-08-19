@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import upperFirst from 'lodash/upperFirst';
+import {upperFirst} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import {Tag} from 'sentry/components/core/badge/tag';

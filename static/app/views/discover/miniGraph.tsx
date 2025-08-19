@@ -2,8 +2,8 @@ import {Component} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {isEqual} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 
 import type {Client} from 'sentry/api';
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';

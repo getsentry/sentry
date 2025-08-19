@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import startCase from 'lodash/startCase';
+import {startCase} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import {Flex} from 'sentry/components/core/layout';

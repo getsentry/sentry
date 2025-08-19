@@ -1,4 +1,4 @@
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';

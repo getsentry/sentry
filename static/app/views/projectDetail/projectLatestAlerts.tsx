@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
+import {pick} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import pick from 'lodash/pick';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';

@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import isEqual from 'lodash/isEqual';
+import {isEqual} from 'es-toolkit/compat';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';

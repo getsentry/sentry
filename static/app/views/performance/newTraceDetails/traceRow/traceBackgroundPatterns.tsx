@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import clamp from 'lodash/clamp';
+import {clamp} from 'es-toolkit/compat';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';

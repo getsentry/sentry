@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 import * as qs from 'query-string';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';

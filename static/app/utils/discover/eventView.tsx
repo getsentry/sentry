@@ -1,9 +1,5 @@
+import {cloneDeep, isEqual, omit, pick, uniqBy} from 'es-toolkit/compat';
 import type {Location, Query} from 'history';
-import cloneDeep from 'lodash/cloneDeep';
-import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
-import pick from 'lodash/pick';
-import uniqBy from 'lodash/uniqBy';
 import moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';

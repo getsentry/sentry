@@ -1,6 +1,6 @@
 import {startTransition, useCallback, useEffect, useRef, useState} from 'react';
+import {omit} from 'es-toolkit/compat';
 import {type LocationDescriptor, type LocationDescriptorObject} from 'history';
-import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import type {

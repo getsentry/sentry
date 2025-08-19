@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
+import {startCase} from 'es-toolkit/compat';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';

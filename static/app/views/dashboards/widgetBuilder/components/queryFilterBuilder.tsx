@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep} from 'es-toolkit/compat';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';

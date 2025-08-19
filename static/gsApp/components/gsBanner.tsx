@@ -2,9 +2,8 @@ import React, {Component, Fragment} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {every, snakeCase} from 'es-toolkit/compat';
 import Cookies from 'js-cookie';
-import every from 'lodash/every';
-import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';

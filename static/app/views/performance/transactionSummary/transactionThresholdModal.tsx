@@ -1,8 +1,7 @@
 import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
-import set from 'lodash/set';
+import {cloneDeep, set} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';

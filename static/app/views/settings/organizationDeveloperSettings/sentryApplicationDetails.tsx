@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
 

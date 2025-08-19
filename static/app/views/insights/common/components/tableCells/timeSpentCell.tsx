@@ -1,4 +1,4 @@
-import clamp from 'lodash/clamp';
+import {clamp} from 'es-toolkit/compat';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';

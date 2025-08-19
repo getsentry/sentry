@@ -1,5 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import orderBy from 'lodash/orderBy';
+import {orderBy} from 'es-toolkit/compat';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import type SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';

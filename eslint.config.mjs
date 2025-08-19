@@ -93,7 +93,7 @@ const restrictedImportPaths = [
   {
     name: 'lodash',
     message:
-      "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information",
+      "Please import lodash utilities individually. e.g. `import {isEqual} from 'es-toolkit/compat';`. See https://github.com/getsentry/frontend-handbook#lodash from for information",
   },
   {
     name: 'lodash/get',

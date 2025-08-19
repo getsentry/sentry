@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {omit} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import omit from 'lodash/omit';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';

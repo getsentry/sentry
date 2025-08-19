@@ -1,5 +1,4 @@
-import forEach from 'lodash/forEach';
-import set from 'lodash/set';
+import {forEach, set} from 'es-toolkit/compat';
 
 import {t} from 'sentry/locale';
 import type {CustomRepo} from 'sentry/types/debugFiles';

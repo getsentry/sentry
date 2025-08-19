@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
-import startCase from 'lodash/startCase';
+import {startCase} from 'es-toolkit/compat';
 
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';

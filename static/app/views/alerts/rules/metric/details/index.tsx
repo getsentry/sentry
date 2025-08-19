@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
+import {isEqual, pick} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';

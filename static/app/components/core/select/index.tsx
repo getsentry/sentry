@@ -5,7 +5,7 @@ import Creatable from 'react-select/creatable';
 import type {CSSObject, Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {
   ChonkClearIndicator,

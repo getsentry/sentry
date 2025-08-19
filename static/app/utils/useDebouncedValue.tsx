@@ -1,10 +1,10 @@
 import {useEffect, useRef, useState} from 'react';
-// eslint-disable-next-line no-restricted-imports
-import type {DebounceSettings} from 'lodash';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
+
+type DebounceSettings = Parameters<typeof debounce>[2];
 
 /**
  * Takes an input and returns a debounced version of that value.

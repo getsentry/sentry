@@ -1,6 +1,6 @@
 import {createContext, useCallback, useEffect, useMemo} from 'react';
+import {pick} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import pick from 'lodash/pick';
 
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';

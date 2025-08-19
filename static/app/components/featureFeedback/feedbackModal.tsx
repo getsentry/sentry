@@ -9,7 +9,7 @@ import {
   getDefaultIntegrations,
   makeFetchTransport,
 } from '@sentry/react';
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep} from 'es-toolkit/compat';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';

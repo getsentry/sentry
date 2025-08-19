@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import clamp from 'lodash/clamp';
+import {clamp} from 'es-toolkit/compat';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Button} from 'sentry/components/core/button';

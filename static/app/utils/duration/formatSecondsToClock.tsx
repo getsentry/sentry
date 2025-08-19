@@ -1,4 +1,4 @@
-import round from 'lodash/round';
+import {round} from 'es-toolkit/compat';
 
 import {HOUR, MINUTE, SECOND} from 'sentry/utils/formatters';
 

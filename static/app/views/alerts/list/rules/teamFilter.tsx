@@ -1,7 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import partition from 'lodash/partition';
+import {debounce, partition} from 'es-toolkit/compat';
 
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {Badge} from 'sentry/components/core/badge';

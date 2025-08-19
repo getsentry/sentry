@@ -1,5 +1,5 @@
 import {useEffect, useMemo} from 'react';
-import keyBy from 'lodash/keyBy';
+import {keyBy} from 'es-toolkit/compat';
 
 import {t} from 'sentry/locale';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';

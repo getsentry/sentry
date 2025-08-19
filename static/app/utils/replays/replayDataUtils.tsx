@@ -1,5 +1,5 @@
+import {isPlainObject} from 'es-toolkit/compat';
 import invariant from 'invariant';
-import isPlainObject from 'lodash/isPlainObject';
 import {duration} from 'moment-timezone';
 
 import {deviceNameMapper} from 'sentry/components/deviceName';

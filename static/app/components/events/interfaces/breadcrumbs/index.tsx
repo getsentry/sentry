@@ -1,7 +1,6 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
-import pick from 'lodash/pick';
+import {omit, pick} from 'es-toolkit/compat';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';

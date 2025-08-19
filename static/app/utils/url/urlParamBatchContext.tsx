@@ -6,7 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';

@@ -1,4 +1,4 @@
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 
 import {t, tct} from 'sentry/locale';
 import type EventView from 'sentry/utils/discover/eventView';

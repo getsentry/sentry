@@ -1,5 +1,5 @@
+import {omit} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import omit from 'lodash/omit';
 
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import Breadcrumbs from 'sentry/components/breadcrumbs';

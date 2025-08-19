@@ -6,7 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import isEqual from 'lodash/isEqual';
+import {isEqual} from 'es-toolkit/compat';
 
 interface FormState<
   FormFields extends PlainValue,

@@ -1,4 +1,4 @@
-import sortBy from 'lodash/sortBy';
+import {sortBy} from 'es-toolkit/compat';
 
 import type {PageFilters} from 'sentry/types/core';
 import EventView from 'sentry/utils/discover/eventView';

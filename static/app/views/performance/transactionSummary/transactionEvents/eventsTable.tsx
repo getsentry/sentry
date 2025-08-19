@@ -2,8 +2,8 @@ import type React from 'react';
 import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {groupBy} from 'es-toolkit/compat';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
-import groupBy from 'lodash/groupBy';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';

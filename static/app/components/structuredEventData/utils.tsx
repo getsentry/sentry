@@ -1,4 +1,4 @@
-import isPlainObject from 'lodash/isPlainObject';
+import {isPlainObject} from 'es-toolkit/compat';
 
 function padNumbersInString(string: string) {
   return string.replace(/(\d+)/g, (num: string) => {

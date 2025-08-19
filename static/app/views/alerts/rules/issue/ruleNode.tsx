@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
-import merge from 'lodash/merge';
+import {merge} from 'es-toolkit/compat';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';

@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import keyBy from 'lodash/keyBy';
+import {keyBy} from 'es-toolkit/compat';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';

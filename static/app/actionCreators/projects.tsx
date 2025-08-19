@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
+import {chunk, debounce} from 'es-toolkit/compat';
 import type {Query} from 'history';
-import chunk from 'lodash/chunk';
-import debounce from 'lodash/debounce';
 
 import {
   addErrorMessage,

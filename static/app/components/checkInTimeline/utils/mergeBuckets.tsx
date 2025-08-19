@@ -1,4 +1,4 @@
-import chunk from 'lodash/chunk';
+import {chunk} from 'es-toolkit/compat';
 
 import type {
   CheckInBucket as CheckInStats,

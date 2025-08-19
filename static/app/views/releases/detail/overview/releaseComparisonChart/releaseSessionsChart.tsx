@@ -1,8 +1,8 @@
 import {Component} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
+import {round} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import round from 'lodash/round';
 
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';

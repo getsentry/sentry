@@ -1,8 +1,7 @@
 import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import orderBy from 'lodash/orderBy';
-import partition from 'lodash/partition';
+import {orderBy, partition} from 'es-toolkit/compat';
 
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {Button} from 'sentry/components/core/button';

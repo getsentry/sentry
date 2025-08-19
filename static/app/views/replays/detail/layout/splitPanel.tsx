@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import type {SplitPanelProps} from 'sentry/components/splitPanel';
 import SplitPanel from 'sentry/components/splitPanel';

@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import memoize from 'lodash/memoize';
+import {memoize} from 'es-toolkit/compat';
 
 import AutoComplete from 'sentry/components/autoComplete';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';

@@ -1,6 +1,5 @@
+import {pick, round} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import pick from 'lodash/pick';
-import round from 'lodash/round';
 import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';

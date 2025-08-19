@@ -1,7 +1,7 @@
 import {Component, createRef} from 'react';
 import {withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep} from 'es-toolkit/compat';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import type {InputProps} from 'sentry/components/core/input';

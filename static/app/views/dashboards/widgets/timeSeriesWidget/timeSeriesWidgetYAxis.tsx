@@ -1,5 +1,5 @@
 import type {YAXisComponentOption} from 'echarts';
-import merge from 'lodash/merge';
+import {merge} from 'es-toolkit/compat';
 
 import {Y_AXIS_INTEGER_TOLERANCE} from './settings';
 

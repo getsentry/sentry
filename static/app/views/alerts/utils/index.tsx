@@ -1,4 +1,4 @@
-import round from 'lodash/round';
+import {round} from 'es-toolkit/compat';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

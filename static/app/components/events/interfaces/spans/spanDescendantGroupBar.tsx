@@ -1,5 +1,5 @@
 import {useTheme} from '@emotion/react';
-import countBy from 'lodash/countBy';
+import {countBy} from 'es-toolkit/compat';
 
 import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {

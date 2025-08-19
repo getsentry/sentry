@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import range from 'lodash/range';
+import {range} from 'es-toolkit/compat';
 
 import * as Storybook from 'sentry/stories';
 

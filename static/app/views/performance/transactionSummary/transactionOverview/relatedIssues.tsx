@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {pick} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import pick from 'lodash/pick';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {LinkButton} from 'sentry/components/core/button/linkButton';

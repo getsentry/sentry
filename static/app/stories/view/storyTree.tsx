@@ -1,7 +1,7 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {kebabCase} from 'es-toolkit/compat';
 import type {LocationDescriptorObject} from 'history';
-import kebabCase from 'lodash/kebabCase';
 
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';

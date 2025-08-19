@@ -1,4 +1,4 @@
-import cloneDeep from 'lodash/cloneDeep';
+import {cloneDeep} from 'es-toolkit/compat';
 
 import AM1_PLANS from 'getsentry-test/fixtures/am1Plans';
 import AM2_PLANS from 'getsentry-test/fixtures/am2Plans';

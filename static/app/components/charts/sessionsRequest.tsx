@@ -1,6 +1,5 @@
 import {Component} from 'react';
-import isEqual from 'lodash/isEqual';
-import omitBy from 'lodash/omitBy';
+import {isEqual, omitBy} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';

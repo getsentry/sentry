@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';

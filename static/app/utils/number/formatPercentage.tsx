@@ -1,4 +1,4 @@
-import round from 'lodash/round';
+import {round} from 'es-toolkit/compat';
 
 /**
  * Format a value between 0 and 1 as a percentage

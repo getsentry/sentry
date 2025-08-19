@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';

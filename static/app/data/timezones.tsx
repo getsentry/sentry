@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import groupBy from 'lodash/groupBy';
+import {groupBy} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 
 import type {SelectValue} from 'sentry/types/core';

@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
+import {pick} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import pick from 'lodash/pick';
 import type {Moment} from 'moment-timezone';
 import moment from 'moment-timezone';
 

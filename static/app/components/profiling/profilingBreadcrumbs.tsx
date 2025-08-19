@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
+import {omit} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import omit from 'lodash/omit';
 
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import _Breadcrumbs from 'sentry/components/breadcrumbs';

@@ -1,5 +1,4 @@
-import omit from 'lodash/omit';
-import pick from 'lodash/pick';
+import {omit, pick} from 'es-toolkit/compat';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
 import type {

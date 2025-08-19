@@ -1,10 +1,8 @@
 import React, {Fragment, PureComponent, type ComponentProps} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {isEqual, maxBy, minBy} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
-import maxBy from 'lodash/maxBy';
-import minBy from 'lodash/minBy';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';

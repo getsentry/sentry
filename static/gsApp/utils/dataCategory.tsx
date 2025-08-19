@@ -1,4 +1,4 @@
-import upperFirst from 'lodash/upperFirst';
+import {upperFirst} from 'es-toolkit/compat';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';

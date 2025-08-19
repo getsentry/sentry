@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import merge from 'lodash/merge';
+import {merge} from 'es-toolkit/compat';
 import moment from 'moment-timezone';
 import type {LocationRange} from 'peggy';
 

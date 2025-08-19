@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';

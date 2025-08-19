@@ -1,6 +1,5 @@
 import {useCallback, useMemo} from 'react';
-import isEqual from 'lodash/isEqual';
-import sortBy from 'lodash/sortBy';
+import {isEqual, sortBy} from 'es-toolkit/compat';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';

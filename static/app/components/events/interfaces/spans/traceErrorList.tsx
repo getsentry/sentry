@@ -1,5 +1,5 @@
 import {Fragment, memo} from 'react';
-import groupBy from 'lodash/groupBy';
+import {groupBy} from 'es-toolkit/compat';
 
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';

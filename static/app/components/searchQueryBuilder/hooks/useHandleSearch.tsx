@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import {saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';

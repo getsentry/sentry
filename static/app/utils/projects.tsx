@@ -1,7 +1,5 @@
 import {Component} from 'react';
-import memoize from 'lodash/memoize';
-import partition from 'lodash/partition';
-import uniqBy from 'lodash/uniqBy';
+import {memoize, partition, uniqBy} from 'es-toolkit/compat';
 
 import type {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';

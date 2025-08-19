@@ -1,8 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
+import {debounce, isEqual, pick} from 'es-toolkit/compat';
 
 import {Button} from 'sentry/components/core/button';
 import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';

@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import startCase from 'lodash/startCase';
+import {startCase} from 'es-toolkit/compat';
 
 import Access from 'sentry/components/acl/access';
 import type {AlertProps} from 'sentry/components/core/alert';

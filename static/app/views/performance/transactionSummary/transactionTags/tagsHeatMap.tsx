@@ -7,8 +7,8 @@ import {useOverlay} from '@react-aria/overlays';
 import {useOverlayTriggerState} from '@react-stately/overlays';
 import {truncate} from '@sentry/core';
 import type {VisualMapComponentOption} from 'echarts';
+import {memoize} from 'es-toolkit/compat';
 import type {Location} from 'history';
-import memoize from 'lodash/memoize';
 
 import HeatMapChart from 'sentry/components/charts/heatMapChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';

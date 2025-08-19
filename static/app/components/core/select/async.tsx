@@ -1,7 +1,7 @@
 // we need forwardRef for class components
 // eslint-disable-next-line no-restricted-syntax
 import {Component, forwardRef} from 'react';
-import debounce from 'lodash/debounce';
+import {debounce} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';

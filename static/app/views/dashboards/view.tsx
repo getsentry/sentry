@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import pick from 'lodash/pick';
+import {pick} from 'es-toolkit/compat';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';

@@ -1,4 +1,4 @@
-import merge from 'lodash/merge';
+import {merge} from 'es-toolkit/compat';
 
 import type {DeepPartial} from 'sentry/types/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';

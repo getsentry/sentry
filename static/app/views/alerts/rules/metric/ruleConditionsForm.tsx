@@ -1,7 +1,7 @@
 import {Fragment, PureComponent} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import {omit} from 'es-toolkit/compat';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
