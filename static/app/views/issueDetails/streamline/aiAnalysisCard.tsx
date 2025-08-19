@@ -267,10 +267,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   if (loading) {
     return (
       <AILayoutContainer>
-        <LoadingIndicator />
-        <LoadingText>
-          {t('Running AI severity assessment...')}
-        </LoadingText>
+        <MainContent>
+          <LoadingIndicator />
+          <LoadingText>
+            {t('Running AI severity assessment...')}
+          </LoadingText>
+        </MainContent>
       </AILayoutContainer>
     );
   }
@@ -749,6 +751,8 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             )}
 
             <SimilarIssuesSection group={group} />
+
+            <ActionItemsSection />
           </CardContent>
         </SidebarCard>
       </Sidebar>
@@ -797,10 +801,12 @@ const SidebarCard = styled(Card)`
 const HeaderCard = styled(Card)`
   max-width: 768px;
   width: 100%;
+  border: none;
 `;
 
 const SeverityCard = styled(Card)`
   max-width: 768px;
+  width: 100%;
 `;
 
 const AnalysisCard = styled(Card)`
@@ -1441,4 +1447,71 @@ const ActivityWrapper = styled('div')`
 
 const ActivityCard = styled(Card)`
   width: 100%;
+`;
+
+// Action Items Section Component
+function ActionItemsSection() {
+  // Mock data for now - could be fetched from API later
+  const actionItems = [
+    { id: '1', text: 'Set up source maps (EXAMPLE)' },
+  ];
+
+  return (
+    <ActionItemsWrapper>
+      <ActionItemsLabel>{t('Action Items:')}</ActionItemsLabel>
+      <ActionItemsContent>
+        <ActionItemsPills>
+          {actionItems.map((item) => (
+            <ActionItemPill key={item.id}>
+              {item.text}
+            </ActionItemPill>
+          ))}
+        </ActionItemsPills>
+      </ActionItemsContent>
+    </ActionItemsWrapper>
+  );
+}
+
+const ActionItemsWrapper = styled('div')`
+  margin-top: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const ActionItemsLabel = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const ActionItemsContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const ActionItemsPills = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${space(0.5)};
+`;
+
+const ActionItemPill = styled('div')`
+  display: inline-flex;
+  align-items: center;
+  padding: ${space(0.5)} ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.textColor};
+  border: 1px solid ${p => p.theme.border};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
 `;
