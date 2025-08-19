@@ -193,6 +193,7 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     background: ${p => p.theme.background};
     border-radius: 6px;
     overflow: hidden;
+    height: 520px;
   }
 
   [cmdk-input] {
