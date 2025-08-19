@@ -47,7 +47,6 @@ import hookAnalyticsInitUser from 'getsentry/hooks/analyticsInitUser';
 import {DashboardsLimitProvider} from 'getsentry/hooks/dashboardsLimit';
 import DisabledCustomSymbolSources from 'getsentry/hooks/disabledCustomSymbolSources';
 import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
-import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
 import FirstPartyIntegrationAdditionalCTA from 'getsentry/hooks/firstPartyIntegrationAdditionalCTA';
 import FirstPartyIntegrationAlertHook from 'getsentry/hooks/firstPartyIntegrationAlertHook';
 import GithubInstallationSelectInstallButton from 'getsentry/hooks/githubInstallationSelectInstall';
@@ -99,6 +98,8 @@ const DisabledAlertsPage = lazy(() => import('./components/features/disabledAler
 const DisabledDashboardPage = lazy(
   () => import('./components/features/disabledDashboardPage')
 );
+
+const DisabledMemberViewLazy = lazy(() => import('getsentry/hooks/disabledMemberView'));
 
 const GETSENTRY_HOOKS: Partial<Hooks> = {
   /**
@@ -218,7 +219,9 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:header-date-range': () => DisabledDateRange,
   'component:header-selector-items': () => DisabledSelectorItems,
   'component:member-list-header': () => MemberListHeader,
-  'component:disabled-member': () => DisabledMemberView,
+  'component:disabled-member': () => props => (
+    <LazyLoad LazyComponent={DisabledMemberViewLazy} {...props} />
+  ),
   'component:disabled-member-tooltip': () => DisabledMemberTooltip,
   'component:disabled-custom-symbol-sources': () => DisabledCustomSymbolSources,
   'component:dashboards-header': () => DashboardBanner,
