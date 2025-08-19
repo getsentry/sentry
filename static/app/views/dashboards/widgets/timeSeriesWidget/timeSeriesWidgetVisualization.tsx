@@ -572,7 +572,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     seriesIndexToPlottableMapRanges
   );
 
-  // Create incident series with markArea for highlighting incident regions
   const incidentSeries = props.incidents
     ? IncidentSeries(theme, props.incidents, props.onIncidentClick)
     : [];
@@ -606,20 +605,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   const handleClick: EChartClickHandler = event => {
-    // Check if this is an incident series click
-    if (event.seriesType === 'line' && event.seriesName) {
-      const clickedIncident = props.incidents?.find(
-        incident => incident.title === event.seriesName
-      );
-
-      if (clickedIncident) {
-        // This is an incident click - handle it
-        props.onIncidentClick?.(clickedIncident);
-        return; // Don't process as a regular series click
-      }
-    }
-
-    // Handle regular series clicks
     runHandler(event, 'onClick');
   };
 
