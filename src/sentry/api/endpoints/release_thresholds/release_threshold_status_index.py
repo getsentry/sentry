@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, DefaultDict, TypedDict
+from typing import TYPE_CHECKING, Any, DefaultDict, TypedDict, cast
 
 from django.db.models import F, Q
 from django.http import HttpResponse
@@ -37,6 +37,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.release_health.base import SessionsQueryResult
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.release_threshold_status")
@@ -399,7 +400,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_SESSION_RATE:
                 metrics.incr("release.threshold_health_status.check.crash_free_session_rate")
                 query_window = query_windows_by_type[threshold_type]
-                sessions_data = {}
+                sessions_data: SessionsQueryResult | None = None
                 try:
                     sessions_data = fetch_sessions_data(
                         end=query_window["end"],
@@ -426,7 +427,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
                 if sessions_data:
                     for ethreshold in category_thresholds:
                         is_healthy, rate = is_crash_free_rate_healthy_check(
-                            ethreshold, sessions_data, CRASH_SESSIONS_DISPLAY
+                            ethreshold, cast(dict[str, Any], sessions_data), CRASH_SESSIONS_DISPLAY
                         )
                         ethreshold.update({"is_healthy": is_healthy, "metric_value": rate})
                         release_threshold_health[ethreshold["key"]].append(ethreshold)
