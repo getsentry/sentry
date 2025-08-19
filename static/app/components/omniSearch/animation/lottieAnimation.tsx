@@ -3,25 +3,15 @@ import styled from '@emotion/styled';
 import {useLottie} from 'lottie-react';
 
 interface LottieAnimationProps {
-  /** Lottie animation data (JSON) */
   animationData: any;
-  /** Whether the animation should play automatically */
   autoplay?: boolean;
-  /** Additional CSS class */
   className?: string;
-  /** Ending frame of the animation */
   endFrame?: number;
-  /** Height of the animation container */
   height?: number | string;
-  /** Whether the animation should loop */
   loop?: boolean;
-  /** Callback when animation completes */
   onComplete?: () => void;
-  /** Speed of the animation (1 = normal speed) */
   speed?: number;
-  /** Starting frame of the animation */
   startFrame?: number;
-  /** Width of the animation container */
   width?: number | string;
 }
 

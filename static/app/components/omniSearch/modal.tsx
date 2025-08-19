@@ -1,9 +1,7 @@
 import {useCallback, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
-import exampleAnimationData from 'getsentry-images/omni/mshk-image-to-lottie.json';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
 import {OmniSearchPalette} from 'sentry/components/omniSearch/palette';
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import {t} from 'sentry/locale';
@@ -59,7 +57,6 @@ function OmniSearchModal({Body}: ModalRenderProps) {
   return (
     <Body>
       <div ref={containerRef}>
-        <SeeryCharacter animationData={exampleAnimationData} />
         <OmniSearchPalette />
       </div>
     </Body>

@@ -5,11 +5,16 @@ import {space} from 'sentry/styles/space';
 import {useLottieCharacter} from './useLottieCharacter';
 
 interface SeeryCharacterProps {
-  /** Lottie animation data for the character */
   animationData: any;
+  showDebugInfo?: boolean;
+  size?: number;
 }
 
-function SeeryCharacter({animationData}: SeeryCharacterProps) {
+function SeeryCharacter({
+  animationData,
+  showDebugInfo = false,
+  size,
+}: SeeryCharacterProps) {
   const {View, state} = useLottieCharacter({
     animationData,
     autoplay: true,
@@ -51,10 +56,9 @@ function SeeryCharacter({animationData}: SeeryCharacterProps) {
   // );
 
   return (
-    <CharacterContainer>
-      <AnimationContainer>{View}</AnimationContainer>
-      {/* Optional: Show current state for debugging */}
-      {process.env.NODE_ENV === 'development' && (
+    <CharacterContainer size={size}>
+      <AnimationContainer size={size}>{View}</AnimationContainer>
+      {showDebugInfo && (
         <DebugInfo>
           <div>Playing: {state.isPlaying ? 'Yes' : 'No'}</div>
           <div>Frame: {state.currentFrame}</div>
@@ -65,16 +69,17 @@ function SeeryCharacter({animationData}: SeeryCharacterProps) {
   );
 }
 
-const CharacterContainer = styled('div')`
+const CharacterContainer = styled('div')<{size?: number}>`
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: ${space(1)};
+  ${p => p.size && `width: ${p.size}px; height: ${p.size}px;`}
 `;
 
-const AnimationContainer = styled('div')`
-  width: 100px;
-  height: 100px;
+const AnimationContainer = styled('div')<{size?: number}>`
+  width: 100%;
+  height: 100%;
   border-radius: 8px;
   overflow: hidden;
 
@@ -83,6 +88,8 @@ const AnimationContainer = styled('div')`
   svg {
     width: 100% !important;
     height: 100% !important;
+    ${p =>
+      p.size && `max-width: ${p.size}px !important; max-height: ${p.size}px !important;`}
   }
 `;
 

@@ -2,11 +2,12 @@ import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
+import serryLottieAnimation from 'getsentry-images/omni/mshk-image-to-lottie.json';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
+import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
 import {strGetFn} from 'sentry/components/search/sources/utils';
-import {IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -147,7 +148,7 @@ export function OmniSearchPalette() {
           </FocusedAreaContainer>
         )}
         <SearchInputContainer>
-          <SearchIcon size="sm" />
+          <SeeryCharacter animationData={serryLottieAnimation} size={72} />
           <SearchInput
             autoFocus
             ref={inputRef}
@@ -204,16 +205,13 @@ const Header = styled('div')`
   position: relative;
 `;
 
-const SearchIcon = styled(IconSearch)`
-  position: absolute;
-  left: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1;
-`;
-
 const SearchInputContainer = styled('div')`
   position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 16px;
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const SearchInput = styled(CommandPrimitive.Command.Input)`
@@ -222,8 +220,6 @@ const SearchInput = styled(CommandPrimitive.Command.Input)`
   width: 100%;
   outline: none;
   border: none;
-  padding: 16px 16px 16px 44px;
-  border-bottom: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSize.lg};
   line-height: 1;
 `;
