@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
@@ -65,6 +65,7 @@ export function OmniSearchPalette() {
     createFuzzySearch([...availableActions, ...dynamicActions], {
       keys: ['label', 'fullLabel', 'details'],
       getFn: strGetFn,
+      shouldSort: false,
     }).then(f => {
       setFilteredAvailableActions(f.search(debouncedQuery).map(r => r.item));
     });
@@ -115,10 +116,11 @@ export function OmniSearchPalette() {
   };
 
   // When an action has been selected, clear the query and focus the input
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (selectedAction) {
       setQuery('');
       inputRef.current?.focus();
+      setFilteredAvailableActions([]);
     }
   }, [selectedAction]);
 
@@ -196,6 +198,9 @@ const IconWrapper = styled('div')`
   justify-content: center;
   height: 18px;
   width: 18px;
+
+  opacity: 0.75;
+  transition: all 0.1s ease-out;
 `;
 
 const StyledCommand = styled(CommandPrimitive.Command)`
@@ -259,13 +264,13 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     cursor: pointer;
     border-radius: 4px;
     position: relative;
-    transition: all 0.1s ease-out;
 
     &[data-selected='true'] {
       background-color: ${p => p.theme.backgroundSecondary};
       color: ${p => p.theme.purple400};
 
       ${IconWrapper} {
+        opacity: 1;
         transform: scale(1.1);
       }
     }
@@ -279,11 +284,6 @@ const ItemRow = styled('div')`
   align-items: start;
   justify-content: start;
   overflow: hidden;
-
-  > *:first-child {
-    opacity: 0.75;
-    transition: all 0.1s ease-out;
-  }
 `;
 
 const ItemDetails = styled('div')`

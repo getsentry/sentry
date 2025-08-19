@@ -388,7 +388,7 @@ export function useGlobalOmniActions() {
       key: 'account-theme-preference',
       areaKey: 'global',
       section: GlobalActionSection.OTHER,
-      label: t('Theme Preference'),
+      label: t('Change Color Theme'),
       actionIcon: <IconSettings />,
       children: [
         {
