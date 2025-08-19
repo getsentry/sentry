@@ -44,10 +44,11 @@ describe('useMetricDetectorLimit', () => {
     SubscriptionStore.init();
   });
 
-  it('returns no limits when feature flag is disabled', () => {
+  it('handles feature flag is disabled', () => {
     const wrapper = createWrapper(mockOrganizationWithoutFeature);
-    MockApiClient.addMockResponse({
+    const detectorsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
+      headers: {'X-Hits': '5'},
       body: [],
     });
 
@@ -60,23 +61,43 @@ describe('useMetricDetectorLimit', () => {
       isLoading: false,
       isError: false,
     });
+
+    expect(detectorsRequest).not.toHaveBeenCalled();
   });
 
-  it('handles no subscription data (defaults to 0)', () => {
+  it('handles no subscription data', async () => {
     const wrapper = createWrapper(mockOrganization);
 
     SubscriptionStore.set(mockOrganization.slug, null as any);
     const detectorsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
+      headers: {'X-Hits': '2'},
       body: [],
     });
 
     const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
 
-    expect(result.current.detectorLimit).toBe(0);
-    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => {
+      expect(result.current?.isLoading).toBe(false);
+    });
 
-    expect(detectorsRequest).toHaveBeenCalled();
+    expect(result.current).toEqual({
+      hasReachedLimit: false,
+      detectorLimit: -1,
+      detectorCount: 2,
+      isLoading: false,
+      isError: false,
+    });
+
+    expect(detectorsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/detectors/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'type:metric',
+          per_page: 0,
+        }),
+      })
+    );
   });
 
   it('handles detectors count is below limit', async () => {
@@ -96,11 +117,8 @@ describe('useMetricDetectorLimit', () => {
 
     const detectorsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
-      body: [
-        {id: '1', name: 'Detector 1'},
-        {id: '2', name: 'Detector 2'},
-        {id: '3', name: 'Detector 3'},
-      ],
+      headers: {'X-Hits': '3'},
+      body: [],
     });
 
     const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
@@ -117,7 +135,15 @@ describe('useMetricDetectorLimit', () => {
       isError: false,
     });
 
-    expect(detectorsRequest).toHaveBeenCalledTimes(1);
+    expect(detectorsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/detectors/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: 'type:metric',
+          per_page: 0,
+        }),
+      })
+    );
   });
 
   it('handles detectors count equals limit', async () => {
@@ -137,11 +163,8 @@ describe('useMetricDetectorLimit', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
-      body: [
-        {id: '1', name: 'Detector 1'},
-        {id: '2', name: 'Detector 2'},
-        {id: '3', name: 'Detector 3'},
-      ],
+      headers: {'X-Hits': '3'},
+      body: [],
     });
 
     const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
@@ -150,11 +173,51 @@ describe('useMetricDetectorLimit', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.hasReachedLimit).toBe(true);
-    expect(result.current.detectorLimit).toBe(3);
-    expect(result.current.detectorCount).toBe(3);
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.isError).toBe(false);
+    expect(result.current).toEqual({
+      hasReachedLimit: true,
+      detectorLimit: 3,
+      detectorCount: 3,
+      isLoading: false,
+      isError: false,
+    });
+  });
+
+  it('handles detector limit is -1', async () => {
+    const wrapper = createWrapper(mockOrganization);
+
+    const subscription = SubscriptionFixture({
+      organization: mockOrganization,
+      planDetails: {
+        ...SubscriptionFixture({
+          organization: mockOrganization,
+        }).planDetails,
+        metricDetectorLimit: -1,
+      },
+    });
+
+    SubscriptionStore.set(mockOrganization.slug, subscription);
+
+    const detectorsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      headers: {'X-Hits': '10'},
+      body: [],
+    });
+
+    const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current).toEqual({
+      hasReachedLimit: false,
+      detectorLimit: -1,
+      detectorCount: 10,
+      isLoading: false,
+      isError: false,
+    });
+
+    expect(detectorsRequest).toHaveBeenCalled();
   });
 
   it('handles detectors API error gracefully', async () => {
@@ -183,10 +246,48 @@ describe('useMetricDetectorLimit', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.isError).toBe(true);
-    expect(result.current.detectorLimit).toBe(20);
-    expect(result.current.detectorCount).toBe(0);
-    expect(result.current.hasReachedLimit).toBe(false);
-    expect(result.current.isLoading).toBe(false);
+    expect(result.current).toEqual({
+      hasReachedLimit: false,
+      detectorLimit: 20,
+      detectorCount: -1,
+      isLoading: false,
+      isError: true,
+    });
+  });
+
+  it('handles missing X-Hits header as error', async () => {
+    const wrapper = createWrapper(mockOrganization);
+
+    const subscription = SubscriptionFixture({
+      organization: mockOrganization,
+      planDetails: {
+        ...SubscriptionFixture({
+          organization: mockOrganization,
+        }).planDetails,
+        metricDetectorLimit: 5,
+      },
+    });
+
+    SubscriptionStore.set(mockOrganization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [],
+      // No X-Hits header
+    });
+
+    const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current).toEqual({
+      hasReachedLimit: false,
+      detectorLimit: 5,
+      detectorCount: -1,
+      isLoading: false,
+      isError: true,
+    });
   });
 });

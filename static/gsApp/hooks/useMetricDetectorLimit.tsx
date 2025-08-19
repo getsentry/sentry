@@ -12,34 +12,42 @@ type MetricDetectorLimitResponse = {
 };
 
 const UNLIMITED_QUOTA = -1;
+const ERROR_COUNT = -1;
 
 export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
   const organization = useOrganization();
   const subscription = useSubscription();
-  const {data: detectors, isLoading, isError} = useDetectorsQuery();
+  const has_flag = organization.features.includes(
+    'workflow-engine-metric-detector-limit'
+  );
 
-  const detectorLimit = subscription?.planDetails?.metricDetectorLimit ?? 0;
+  const {isLoading, isError, getResponseHeader} = useDetectorsQuery(
+    {
+      query: 'type:metric',
+      limit: 0,
+    },
+    {enabled: has_flag}
+  );
 
-  if (
-    !organization.features.includes('workflow-engine-metric-detector-limit') ||
-    detectorLimit === UNLIMITED_QUOTA
-  ) {
+  const hits = getResponseHeader?.('X-Hits');
+  const detectorCount = hits ? parseInt(hits, 10) : ERROR_COUNT;
+  const detectorLimit = subscription?.planDetails?.metricDetectorLimit ?? UNLIMITED_QUOTA;
+
+  if (!has_flag || detectorLimit === UNLIMITED_QUOTA) {
     return {
       hasReachedLimit: false,
       detectorLimit: UNLIMITED_QUOTA,
-      detectorCount: -1,
+      detectorCount,
       isLoading: false,
       isError: false,
     };
   }
-
-  const detectorCount = detectors?.length || 0;
 
   return {
     detectorCount,
     detectorLimit,
     hasReachedLimit: detectorCount >= detectorLimit,
     isLoading,
-    isError,
+    isError: isError || detectorCount === ERROR_COUNT,
   };
 }
