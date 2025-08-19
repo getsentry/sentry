@@ -5,7 +5,7 @@ import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {IconChevron, IconSeer} from 'sentry/icons';
+import {IconChevron, IconFocus, IconSeer} from 'sentry/icons';
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixRootCauseData} from 'sentry/components/events/autofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -87,6 +87,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
+  const [showRootCauseReasoning, setShowRootCauseReasoning] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [orgMembers, setOrgMembers] = useState<User[]>([]);
@@ -472,13 +473,45 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
         {rootCauseData && (
           <RootCauseWrapper>
             <RootCauseCard>
-              <AutofixRootCause
-                causes={rootCauseData.causes}
-                groupId={group.id}
-                runId={rootCauseData.runId}
-                rootCauseSelection={null}
-                event={event}
-              />
+              <CardHeader>
+                <HeaderLeft>
+                  <CardTitle>
+                    <IconFocus size="md" />
+                    {t('Root Cause')}
+                  </CardTitle>
+                </HeaderLeft>
+              </CardHeader>
+              
+              <CardContent>
+                {/* Root Cause Description */}
+                {rootCauseData.causes[0]?.description && (
+                  <RootCauseDescription
+                    dangerouslySetInnerHTML={{
+                      __html: rootCauseData.causes[0].description
+                    }}
+                  />
+                )}
+
+                <AnalysisSection>
+                  <CollapsibleSectionHeader onClick={() => setShowRootCauseReasoning(!showRootCauseReasoning)}>
+                    <ChevronIcon direction={showRootCauseReasoning ? 'down' : 'right'}>
+                      <IconChevron />
+                    </ChevronIcon>
+                    <SectionTitle>{t('Reasoning')}</SectionTitle>
+                  </CollapsibleSectionHeader>
+                  {showRootCauseReasoning && (
+                    <RootCauseContent>
+                      <AutofixRootCause
+                        causes={rootCauseData.causes}
+                        groupId={group.id}
+                        runId={rootCauseData.runId}
+                        rootCauseSelection={null}
+                        event={event}
+                      />
+                    </RootCauseContent>
+                  )}
+                </AnalysisSection>
+              </CardContent>
             </RootCauseCard>
           </RootCauseWrapper>
         )}
@@ -616,6 +649,7 @@ const MainContent = styled('div')`
   flex-direction: column;
   gap: ${space(3)};
   flex: 1;
+  align-items: center;
 `;
 
 const Sidebar = styled('div')`
@@ -1038,4 +1072,32 @@ const PeopleContent = styled('div')`
 const PeopleRow = styled(Flex)`
   align-items: center;
   gap: ${space(1)};
+`;
+
+const RootCauseContent = styled('div')`
+  margin-top: ${space(1)};
+`;
+
+const RootCauseDescription = styled('div')`
+  margin-bottom: ${space(2)};
+  line-height: 1.6;
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSize.md};
+  
+  /* Style for any HTML content in the description */
+  p {
+    margin: ${space(1)} 0;
+  }
+  
+  strong {
+    font-weight: ${p => p.theme.fontWeight.bold};
+  }
+  
+  code {
+    background: ${p => p.theme.backgroundSecondary};
+    padding: ${space(0.25)} ${space(0.5)};
+    border-radius: ${p => p.theme.borderRadius};
+    font-family: ${p => p.theme.text.familyMono};
+    font-size: ${p => p.theme.fontSize.sm};
+  }
 `;
