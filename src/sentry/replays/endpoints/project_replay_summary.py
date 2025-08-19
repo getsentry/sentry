@@ -22,6 +22,7 @@ from sentry.replays.lib.summarize import (
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
+from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 
@@ -50,7 +51,7 @@ def _get_request_exc_extras(e: requests.exceptions.RequestException) -> dict[str
 class ReplaySummaryPermission(ProjectPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],
-        "POST": ["event:write", "event:admin"],
+        "POST": ["event:read", "event:write", "event:admin"],
         "PUT": [],
         "DELETE": [],
     }
@@ -69,11 +70,6 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
     def __init__(self, **options) -> None:
         storage.initialize_client()
         super().__init__(**options)
-        self.features = [
-            "organizations:session-replay",
-            "organizations:replay-ai-summaries",
-            "organizations:gen-ai-features",
-        ]
 
     def make_seer_request(self, url: str, post_body: dict[str, Any]) -> Response:
         """Make a POST request to a Seer endpoint. Raises HTTPError and logs non-200 status codes."""
@@ -127,13 +123,23 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         # Note any headers in the Seer response aren't returned.
         return Response(data=response.json(), status=response.status_code)
 
+    def has_replay_summary_access(self, project: Project, request: Request) -> bool:
+        return (
+            features.has("organizations:session-replay", project.organization, actor=request.user)
+            and features.has(
+                "organizations:replay-ai-summaries", project.organization, actor=request.user
+            )
+            and has_seer_access(project.organization, actor=request.user)
+        )
+
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Poll for the status of a replay summary task in Seer."""
-        if not all(
-            features.has(feature, project.organization, actor=request.user)
-            for feature in self.features
-        ):
-            return self.respond(status=404)
+        if not self.has_replay_summary_access(project, request):
+            return self.respond(
+                {"detail": "Replay summaries are not available for this organization."}, status=403
+            )
+
+        # We skip checking Seer permissions here for performance, and because summaries can't be created without them anyway.
 
         # Request Seer for the state of the summary task.
         return self.make_seer_request(
@@ -145,17 +151,17 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Download replay segment data and parse it into logs. Then post to Seer to start a summary task."""
-        if not all(
-            features.has(feature, project.organization, actor=request.user)
-            for feature in self.features
-        ):
-            return self.respond(status=404)
+        if not self.has_replay_summary_access(project, request):
+            return self.respond(
+                {"detail": "Replay summaries are not available for this organization."}, status=403
+            )
 
         filter_params = self.get_filter_params(request, project)
+        num_segments = request.data.get("num_segments", 0)
+        temperature = request.data.get("temperature", None)
 
         # Limit data with the frontend's segment count, to keep summaries consistent with the video displayed in the UI.
         # While the replay is live, the FE and BE may have different counts.
-        num_segments = request.data.get("num_segments", 0)
         if num_segments > MAX_SEGMENTS_TO_SUMMARIZE:
             logger.warning(
                 "Replay Summary: hit max segment limit.",
@@ -213,5 +219,6 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 "replay_id": replay_id,
                 "organization_id": project.organization.id,
                 "project_id": project.id,
+                "temperature": temperature,
             },
         )

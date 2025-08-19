@@ -87,7 +87,7 @@ function SampleTable({
         Boolean(value)
       ),
     },
-    'api.starfish.span-summary-panel-samples-table-avg'
+    'api.insights.span-summary-panel-samples-table-avg'
   );
 
   const spanMetrics = data[0] ?? {};
@@ -132,7 +132,7 @@ function SampleTable({
       enabled: isTransactionsEnabled,
       fields: ['id', 'timestamp', 'project', 'span.duration', 'trace'],
     },
-    'api.starfish.span-summary-panel-samples-table-transactions'
+    'api.insights.span-summary-panel-samples-table-transactions'
   );
 
   const [loadedSpans, setLoadedSpans] = useState(false);

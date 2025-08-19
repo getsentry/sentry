@@ -31,7 +31,6 @@ import {
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   getModeFromLocation,
-  updateLocationWithMode,
   type Mode,
 } from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -114,7 +113,8 @@ interface LogsPageParams {
 type NullablePartial<T> = {
   [P in keyof T]?: T[P] | null;
 };
-type LogPageParamsUpdate = NullablePartial<LogsPageParams>;
+type NonUpdatableParams = 'mode' | 'aggregateFn' | 'aggregateParam' | 'groupBy';
+type LogPageParamsUpdate = NullablePartial<Omit<LogsPageParams, NonUpdatableParams>>;
 
 const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
@@ -254,10 +254,6 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
   updateNullableLocation(target, LOGS_AGGREGATE_CURSOR_KEY, pageParams.aggregateCursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
-  updateNullableLocation(target, LOGS_GROUP_BY_KEY, pageParams.groupBy);
-  updateNullableLocation(target, LOGS_AGGREGATE_FN_KEY, pageParams.aggregateFn);
-  updateNullableLocation(target, LOGS_AGGREGATE_PARAM_KEY, pageParams.aggregateParam);
-  updateLocationWithMode(target, pageParams.mode); // Can be swapped with updateNullableLocation if we merge page params.
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
     updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);

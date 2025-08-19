@@ -2,8 +2,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 
-describe('sortProjects', function () {
-  it('sorts by bookmark and project slug', function () {
+describe('sortProjects', () => {
+  it('sorts by bookmark and project slug', () => {
     const projects = [
       ProjectFixture({isBookmarked: true, slug: 'm'}),
       ProjectFixture({isBookmarked: false, slug: 'm'}),

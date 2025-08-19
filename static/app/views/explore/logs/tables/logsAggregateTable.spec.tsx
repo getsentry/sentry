@@ -72,7 +72,7 @@ describe('LogsAggregateTable', () => {
     route: '/organizations/:orgId/explore/logs/',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 

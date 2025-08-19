@@ -51,9 +51,10 @@ def link_all_repos(
 
     with SCMIntegrationInteractionEvent(
         interaction_type=SCMIntegrationInteractionType.LINK_ALL_REPOS,
+        integration_id=integration_id,
+        organization_id=organization_id,
         provider_key=integration_key,
     ).capture() as lifecycle:
-        lifecycle.add_extra("organization_id", organization_id)
         integration = integration_service.get_integration(
             integration_id=integration_id, status=ObjectStatus.ACTIVE
         )
