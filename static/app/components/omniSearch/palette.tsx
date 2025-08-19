@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
 
 import {closeModal} from 'sentry/actionCreators/modal';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -127,21 +128,27 @@ export function OmniSearchPalette() {
   return (
     <StyledCommand label="OmniSearch" shouldFilter={false}>
       <Header>
-        {focusedArea && <div>{focusedArea.label}</div>}
-        <IconSearch size="sm" style={{marginRight: 8}} />
-        <CommandPrimitive.Command.Input
-          autoFocus
-          ref={inputRef}
-          value={query}
-          onValueChange={setQuery}
-          onKeyDown={e => {
-            if (e.key === 'Backspace' && query === '') {
-              clearSelection();
-              e.preventDefault();
-            }
-          }}
-          placeholder="Search for projects, issues, settings, and more…"
-        />
+        {focusedArea && (
+          <FocusedAreaContainer>
+            <FocusedArea>{focusedArea.label}</FocusedArea>
+          </FocusedAreaContainer>
+        )}
+        <SearchInputContainer>
+          <SearchIcon size="sm" />
+          <SearchInput
+            autoFocus
+            ref={inputRef}
+            value={query}
+            onValueChange={setQuery}
+            onKeyDown={e => {
+              if (e.key === 'Backspace' && query === '') {
+                clearSelection();
+                e.preventDefault();
+              }
+            }}
+            placeholder="Search for projects, issues, settings, and more…"
+          />
+        </SearchInputContainer>
       </Header>
       <CommandPrimitive.Command.List>
         {grouped.every(g => g.items.length === 0) ? (
@@ -182,14 +189,46 @@ export function OmniSearchPalette() {
 
 const Header = styled('div')`
   position: relative;
+`;
 
-  > *:first-child {
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 1;
-  }
+const SearchIcon = styled(IconSearch)`
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+`;
+
+const SearchInputContainer = styled('div')`
+  position: relative;
+`;
+
+const SearchInput = styled(CommandPrimitive.Command.Input)`
+  position: relative;
+  background-color: ${p => p.theme.background};
+  width: 100%;
+  outline: none;
+  border: none;
+  padding: 16px 16px 16px 44px;
+  border-bottom: 1px solid ${p => p.theme.border};
+  font-size: ${p => p.theme.fontSize.lg};
+  line-height: 1;
+`;
+
+const FocusedAreaContainer = styled('div')`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  padding-bottom: 0;
+`;
+
+const FocusedArea = styled(Tag)`
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.subText};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  text-transform: uppercase;
+  font-weight: ${p => p.theme.fontWeight.bold};
+  border: 1px solid ${p => p.theme.border};
+  width: fit-content;
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const IconWrapper = styled('div')`
@@ -210,18 +249,6 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     border-radius: 6px;
     overflow: hidden;
     height: 520px;
-  }
-
-  [cmdk-input] {
-    position: relative;
-    background-color: ${p => p.theme.background};
-    width: 100%;
-    outline: none;
-    border: none;
-    padding: 16px 16px 16px 40px;
-    border-bottom: 1px solid ${p => p.theme.border};
-    font-size: ${p => p.theme.fontSize.lg};
-    line-height: 1;
   }
 
   [cmdk-list] {

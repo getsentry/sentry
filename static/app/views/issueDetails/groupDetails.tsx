@@ -889,7 +889,7 @@ function GroupDetails() {
   return (
     <OmniSearchArea
       areaKey="issue"
-      label={(group ? getTitle(group).title : null) ?? t('Issue')}
+      label={(group ? group.shortId : null) ?? t('Issue')}
       focused
     >
       {isSampleError && group && (
