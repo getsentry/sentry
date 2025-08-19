@@ -571,37 +571,40 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
         )}
 
         {/* Debugger Section */}
-        {event && (
-          <DebuggerWrapper>
+        <DebuggerWrapper>
             <DebuggerCard>
               <CardHeader>
-                <HeaderLeft>
-                  <CardTitle>
-                    <IconTerminal size="md" color="purple400" />
-                    {t('Debugger')}
-                  </CardTitle>
-                </HeaderLeft>
-              </CardHeader>
-              
-              <CardContent>
-                <AnalysisSection>
-                  <CollapsibleSectionHeader onClick={() => setShowDebugger(!showDebugger)}>
+                <DebuggerHeaderContent onClick={() => setShowDebugger(!showDebugger)}>
+                  <HeaderLeft>
+                    <CardTitle>
+                      <IconTerminal size="md" color="purple400" />
+                      {t('Debugger')}
+                    </CardTitle>
+                  </HeaderLeft>
+                  <HeaderRight>
                     <ChevronIcon direction={showDebugger ? 'down' : 'right'}>
                       <IconChevron />
                     </ChevronIcon>
                     <SectionTitle>{t('Event Details & Tools')}</SectionTitle>
-                  </CollapsibleSectionHeader>
-                  {showDebugger && (
-                    <DebuggerContent>
-                      <EventDetailsHeader event={event} group={group} project={project} />
-                      <EventDetails event={event} group={group} project={project} />
-                    </DebuggerContent>
-                  )}
-                </AnalysisSection>
+                  </HeaderRight>
+                </DebuggerHeaderContent>
+              </CardHeader>
+              
+              <CardContent>
+                {showDebugger && event && (
+                  <DebuggerContent>
+                    <EventDetailsHeader event={event} group={group} project={project} />
+                    <EventDetails event={event} group={group} project={project} />
+                  </DebuggerContent>
+                )}
+                {showDebugger && !event && (
+                  <DebuggerContent>
+                    <div>No event data available for debugging</div>
+                  </DebuggerContent>
+                )}
               </CardContent>
             </DebuggerCard>
-          </DebuggerWrapper>
-        )}
+        </DebuggerWrapper>
       </MainContent>
 
       <Sidebar>
@@ -1213,6 +1216,7 @@ const SolutionContent = styled('div')`
 
 const DebuggerWrapper = styled('div')`
   max-width: 768px;
+  width: 100%;
 `;
 
 const DebuggerCard = styled(Card)`
@@ -1226,4 +1230,26 @@ const DebuggerContent = styled('div')`
   > * + * {
     margin-top: ${space(2)};
   }
+`;
+
+const DebuggerHeaderContent = styled('button')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  
+  &:hover {
+    opacity: 0.8;
+  }
+`;
+
+const HeaderRight = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
