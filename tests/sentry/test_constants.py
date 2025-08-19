@@ -8,7 +8,7 @@ from sentry.constants import (
 )
 
 
-def mock_integration_ids() -> AbstractContextManager:
+def mock_integration_ids() -> AbstractContextManager[object]:
     return mock.patch.dict(
         INTEGRATION_ID_TO_PLATFORM_DATA,
         {
