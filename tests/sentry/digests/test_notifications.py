@@ -59,7 +59,7 @@ class GroupRecordsTestCase(TestCase):
     notification_uuid = str(uuid.uuid4())
 
     @cached_property
-    def rule(self):
+    def rule(self) -> Rule:
         return self.project.rule_set.all()[0]
 
     def test_success(self) -> None:
