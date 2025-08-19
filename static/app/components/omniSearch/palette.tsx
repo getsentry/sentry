@@ -16,6 +16,7 @@ import type {OmniAction} from './types';
 import {useApiDynamicActions} from './useApiDynamicActions';
 import {useCommandDynamicActions} from './useCommandDynamicActions';
 import {useFormDynamicActions} from './useFormDynamicActions';
+import {useLLMRoutingDynamicActions} from './useLLMRoutingDynamicActions';
 import {useOmniSearchState} from './useOmniSearchState';
 import {useOrganizationsDynamicActions} from './useOrganizationsDynamicActions';
 import {useRouteDynamicActions} from './useRouteDynamicActions';
@@ -45,6 +46,8 @@ export function OmniSearchPalette() {
   const routeActions = useRouteDynamicActions();
   const orgActions = useOrganizationsDynamicActions();
   const commandActions = useCommandDynamicActions();
+
+  const llmRoutingActions = useLLMRoutingDynamicActions(debouncedQuery);
 
   // Combine all dynamic actions
   const dynamicActions = useMemo(
@@ -76,6 +79,9 @@ export function OmniSearchPalette() {
     // Filter actions based on query
     const actions = debouncedQuery ? filteredAvailableActions : availableActions;
 
+    // always include the llm routing actions if possible
+    actions.push(...llmRoutingActions);
+
     // Group by section label
     const bySection = new Map<string, OmniAction[]>();
     for (const action of actions) {
@@ -92,7 +98,7 @@ export function OmniSearchPalette() {
       const items = bySection.get(sectionKey) ?? [];
       return {sectionKey, label, items};
     });
-  }, [availableActions, debouncedQuery, filteredAvailableActions]);
+  }, [availableActions, debouncedQuery, filteredAvailableActions, llmRoutingActions]);
 
   const handleSelect = (action: OmniAction) => {
     if (action.disabled) {
