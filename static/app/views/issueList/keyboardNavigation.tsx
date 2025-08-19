@@ -51,7 +51,7 @@ export function IssueListKeyboardNavigation({
       navigate(
         normalizeUrl(
           createIssueLink({
-            data: group,
+            data: group as any, // GroupStore.get() type mismatch with createIssueLink
             organization,
             referrer: 'keyboard-navigation',
             location,
@@ -95,14 +95,6 @@ export function IssueListKeyboardNavigation({
           }
         }
 
-        console.log(
-          '[IssueNav] Moving focus:',
-          direction,
-          'from',
-          currentIndex,
-          'to',
-          newIndex
-        );
         return newIndex;
       });
     },
@@ -112,32 +104,50 @@ export function IssueListKeyboardNavigation({
   const selectFocusedIssue = useCallback(() => {
     if (focusedIndex >= 0 && focusedIndex < groupIds.length) {
       const groupId = groupIds[focusedIndex];
-      SelectedGroupStore.toggleSelect(groupId);
-      console.log('[IssueNav] Toggled selection for:', groupId);
+      if (groupId) {
+        SelectedGroupStore.toggleSelect(groupId);
+      }
     }
   }, [focusedIndex, groupIds]);
 
   const openFocusedIssue = useCallback(() => {
     if (focusedIndex >= 0 && focusedIndex < groupIds.length) {
       const groupId = groupIds[focusedIndex];
-      console.log('[IssueNav] Opening issue:', groupId);
-      navigateToIssue(groupId);
+      if (groupId) {
+        navigateToIssue(groupId);
+      }
     }
   }, [focusedIndex, groupIds, navigateToIssue]);
 
   const resolveFocusedIssue = useCallback(() => {
-    if (focusedIndex >= 0 && focusedIndex < groupIds.length) {
+    const selectedIds = SelectedGroupStore.getSelectedIds();
+
+    // If there are selected issues, resolve all of them
+    if (selectedIds.size > 0) {
+      const selectedIdsArray = Array.from(selectedIds);
+      onActionTaken(selectedIdsArray, {status: GroupStatus.RESOLVED, statusDetails: {}});
+    } else if (focusedIndex >= 0 && focusedIndex < groupIds.length) {
+      // Otherwise, resolve just the focused issue
       const groupId = groupIds[focusedIndex];
-      console.log('[IssueNav] Resolving issue:', groupId);
-      onActionTaken([groupId], {status: GroupStatus.RESOLVED, statusDetails: {}});
+      if (groupId) {
+        onActionTaken([groupId], {status: GroupStatus.RESOLVED, statusDetails: {}});
+      }
     }
   }, [focusedIndex, groupIds, onActionTaken]);
 
   const archiveFocusedIssue = useCallback(() => {
-    if (focusedIndex >= 0 && focusedIndex < groupIds.length) {
+    const selectedIds = SelectedGroupStore.getSelectedIds();
+
+    // If there are selected issues, archive all of them
+    if (selectedIds.size > 0) {
+      const selectedIdsArray = Array.from(selectedIds);
+      onActionTaken(selectedIdsArray, {status: GroupStatus.IGNORED, statusDetails: {}});
+    } else if (focusedIndex >= 0 && focusedIndex < groupIds.length) {
+      // Otherwise, archive just the focused issue
       const groupId = groupIds[focusedIndex];
-      console.log('[IssueNav] Archiving issue:', groupId);
-      onActionTaken([groupId], {status: GroupStatus.IGNORED, statusDetails: {}});
+      if (groupId) {
+        onActionTaken([groupId], {status: GroupStatus.IGNORED, statusDetails: {}});
+      }
     }
   }, [focusedIndex, groupIds, onActionTaken]);
 
@@ -170,13 +180,13 @@ export function IssueListKeyboardNavigation({
     {
       id: 'resolve-issue',
       key: 'r',
-      description: 'Resolve issue',
+      description: 'Resolve selected issues (or focused issue)',
       handler: resolveFocusedIssue,
     },
     {
       id: 'archive-issue',
       key: 'e',
-      description: 'Archive issue',
+      description: 'Archive selected issues (or focused issue)',
       handler: archiveFocusedIssue,
     },
     {

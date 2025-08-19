@@ -47,10 +47,12 @@ When on the Issues page, you can use:
 - `k` - Move focus to previous issue (shows purple outline)
 - `x` - Toggle selection of focused issue
 - `enter` - Open the focused issue
-- `r` - Resolve the focused issue
-- `e` - Archive (ignore) the focused issue
+- `r` - Resolve selected issues (or focused issue if none selected)
+- `e` - Archive (ignore) selected issues (or focused issue if none selected)
 
 The focused issue will have a purple outline to indicate keyboard focus.
+
+**Bulk Actions**: The resolve (`r`) and archive (`e`) shortcuts will act on all selected issues if any are selected. If no issues are selected, they will act on the currently focused issue.
 
 These shortcuts appear in the help modal under the "Issues" category.
 
