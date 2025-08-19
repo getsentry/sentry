@@ -217,7 +217,7 @@ def patch(ctx: click.Context) -> None:
         tags={"status": status},
         sample_rate=1.0,
     )
-    metrics.incr(
+    metrics.distribution(
         "options_automator.latency_seconds",
         amount=time.time() - ctx.obj["timestamp"],
         tags={"status": status},
@@ -319,7 +319,7 @@ def sync(ctx: click.Context) -> None:
         sample_rate=1.0,
     )
 
-    metrics.incr(
+    metrics.distribution(
         "options_automator.latency_seconds",
         amount=time.time() - ctx.obj["timestamp"],
         tags={"status": status},
