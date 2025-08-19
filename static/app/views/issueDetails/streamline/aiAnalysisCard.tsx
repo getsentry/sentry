@@ -1013,6 +1013,7 @@ const VolumeItem = styled('div')`
 
 const RootCauseWrapper = styled('div')`
   max-width: 768px;
+  width: 100%;
 `;
 
 const RootCauseCard = styled(Card)`
