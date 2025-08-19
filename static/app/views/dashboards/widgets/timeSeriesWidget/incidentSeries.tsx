@@ -1,6 +1,7 @@
 import type {SeriesOption} from 'echarts';
 
 import {t} from 'sentry/locale';
+import {escape} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import type {Theme} from 'sentry/utils/theme';
 
@@ -56,6 +57,10 @@ export function IncidentSeries(
       currentStatus += t('ongoing');
     }
 
+    const title = escape(incident.title);
+    const severity = escape(incident.severity);
+    currentStatus = escape(currentStatus);
+
     return {
       name: incident.title,
       type: 'line',
@@ -90,8 +95,8 @@ export function IncidentSeries(
           formatter: function (_params: any) {
             return [
               '<div class="tooltip-series">',
-              `<div><span class="tooltip-label"><strong>${incident.title} <br> Click to visit incident page
-              </strong></span>${incident.severity}</div>`,
+              `<div><span class="tooltip-label"><strong>${title} <br> Click to visit incident page
+              </strong></span>${severity}</div>`,
               `<div class="tooltip-footer">${currentStatus}</div>`,
               '</div>',
             ].join('');
