@@ -936,9 +936,7 @@ function WidgetViewerModal(props: Props) {
               />
             ) : (
               <MemoizedWidgetCardChartContainer
-                location={location}
                 api={api}
-                organization={organization}
                 selection={modalSelection}
                 dashboardFilters={dashboardFilters}
                 // Top N charts rely on the orderby of the table
@@ -948,7 +946,6 @@ function WidgetViewerModal(props: Props) {
                 legendOptions={{
                   selected: widgetLegendState.getWidgetSelectionState(widget),
                 }}
-                expandNumbers
                 noPadding
                 widgetLegendState={widgetLegendState}
                 showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
