@@ -5,10 +5,12 @@ import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {IconChevron, IconCode, IconFocus, IconSeer} from 'sentry/icons';
+import {IconChevron, IconCode, IconFocus, IconSeer, IconTerminal} from 'sentry/icons';
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import type {AutofixRootCauseData, AutofixCodebaseChange} from 'sentry/components/events/autofix/types';
+import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
+import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -90,6 +92,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const [error, setError] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const [showRootCauseReasoning, setShowRootCauseReasoning] = useState(false);
+  const [showDebugger, setShowDebugger] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [orgMembers, setOrgMembers] = useState<User[]>([]);
@@ -565,6 +568,39 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               </CardContent>
             </SolutionCard>
           </SolutionWrapper>
+        )}
+
+        {/* Debugger Section */}
+        {event && (
+          <DebuggerWrapper>
+            <DebuggerCard>
+              <CardHeader>
+                <HeaderLeft>
+                  <CardTitle>
+                    <IconTerminal size="md" color="purple400" />
+                    {t('Debugger')}
+                  </CardTitle>
+                </HeaderLeft>
+              </CardHeader>
+              
+              <CardContent>
+                <AnalysisSection>
+                  <CollapsibleSectionHeader onClick={() => setShowDebugger(!showDebugger)}>
+                    <ChevronIcon direction={showDebugger ? 'down' : 'right'}>
+                      <IconChevron />
+                    </ChevronIcon>
+                    <SectionTitle>{t('Event Details & Tools')}</SectionTitle>
+                  </CollapsibleSectionHeader>
+                  {showDebugger && (
+                    <DebuggerContent>
+                      <EventDetailsHeader event={event} group={group} project={project} />
+                      <EventDetails event={event} group={group} project={project} />
+                    </DebuggerContent>
+                  )}
+                </AnalysisSection>
+              </CardContent>
+            </DebuggerCard>
+          </DebuggerWrapper>
         )}
       </MainContent>
 
@@ -1172,5 +1208,22 @@ const SolutionContent = styled('div')`
     border: none;
     box-shadow: none;
     padding: 0;
+  }
+`;
+
+const DebuggerWrapper = styled('div')`
+  max-width: 768px;
+`;
+
+const DebuggerCard = styled(Card)`
+  width: 100%;
+`;
+
+const DebuggerContent = styled('div')`
+  margin-top: ${space(1)};
+  
+  /* Add some spacing between header and content */
+  > * + * {
+    margin-top: ${space(2)};
   }
 `;
