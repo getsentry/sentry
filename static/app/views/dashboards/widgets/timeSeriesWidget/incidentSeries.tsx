@@ -1,42 +1,49 @@
-// import type {Theme} from '@emotion/react';
 import type {SeriesOption} from 'echarts';
 
-// import {t} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
+import type {Theme} from 'sentry/utils/theme';
 
 export interface Incident {
-  id: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  severity: 'maintenance' | 'minor' | 'major' | 'critical';
   startTime: number;
   title: string;
-  url: string;
   endTime?: number;
 }
 
 // TODO: fix colours
-// function getIncidentColor(severity: Incident['severity'], theme: any): string {
-//   switch (severity) {
-//     case 'low':
-//       return theme.yellow300;
-//     case 'medium':
-//       return theme.orange300;
-//     case 'high':
-//       return theme.red300;
-//     case 'critical':
-//       return theme.red500;
-//     default:
-//       return theme.gray300;
-//   }
-// }
+function getIncidentColor(severity: Incident['severity'], theme: Theme): string {
+  switch (severity) {
+    case 'maintenance':
+      return theme.yellow300;
+    case 'minor':
+      return theme.yellow400;
+    case 'major':
+      return theme.red300;
+    case 'critical':
+      return theme.red400;
+    default:
+      return theme.gray300;
+  }
+}
 
 export function IncidentSeries(
-  // theme: Theme,
+  theme: Theme,
   incidents: Incident[],
   onClick?: (incident: Incident) => void
 ): SeriesOption[] {
   return incidents.map(incident => {
     // Use the later of incident end time or current time for the last data point
     const lastTime = incident.endTime ?? Date.now();
+
+    let currentStatus = t('Incident is ongoing');
+    if (incident.endTime) {
+      const time = getFormattedDate(
+        incident.endTime,
+        getFormat({timeZone: true, year: true})
+      );
+      currentStatus = `End time: ${time}`;
+    }
 
     return {
       name: incident.title,
@@ -64,9 +71,9 @@ export function IncidentSeries(
         ] as any,
         // TODO: fix colours
         itemStyle: {
-          color: 'rgba(255, 34, 34, 1)',
+          color: getIncidentColor(incident.severity, theme),
           opacity: 0.3,
-          borderColor: 'rgba(255, 34, 34, 1)',
+          borderColor: getIncidentColor(incident.severity, theme),
           borderWidth: 2,
         },
         // TODO: style tooltip
@@ -79,8 +86,12 @@ export function IncidentSeries(
             );
             return [
               '<div class="tooltip-series">',
-              `<div><span class="tooltip-label"><strong>${incident.id}
-              </strong></span>${time}</div>`,
+              `<div><span class="tooltip-label"><strong>${incident.title} <br> Click to visit incident page
+              </strong></span>${incident.severity}</div>`,
+              `<div class="tooltip-footer">Start time: ${time}
+              <br>
+              ${currentStatus}
+              </div>`,
               '</div>',
             ].join('');
           },

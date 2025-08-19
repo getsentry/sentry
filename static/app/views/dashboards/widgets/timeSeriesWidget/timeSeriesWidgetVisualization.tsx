@@ -574,7 +574,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   // Create incident series with markArea for highlighting incident regions
   const incidentSeries = props.incidents
-    ? IncidentSeries(props.incidents, props.onIncidentClick)
+    ? IncidentSeries(theme, props.incidents, props.onIncidentClick)
     : [];
 
   const allSeries = [...seriesFromPlottables, releaseSeries, ...incidentSeries].filter(
