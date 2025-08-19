@@ -1,6 +1,8 @@
+import {useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {LabelFilter} from 'sentry/components/issueLabels';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -17,10 +19,24 @@ interface Props {
   onSortChange: (sort: string) => void;
   query: string;
   sort: IssueSortOptions;
+  onLabelChange?: (labels: string[]) => void;
 }
 
-function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
+function IssueListFilters({query, sort, onSortChange, onSearch, onLabelChange}: Props) {
   const prefersStackedNav = usePrefersStackedNav();
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+
+  const handleLabelChange = useCallback(
+    (labels: string[]) => {
+      setSelectedLabels(labels);
+      // For now, just pass the labels up to the parent component
+      // The actual filtering will be done client-side
+      if (onLabelChange) {
+        onLabelChange(labels);
+      }
+    },
+    [onLabelChange]
+  );
 
   return (
     <FiltersContainer prefersStackedNav={prefersStackedNav}>
@@ -28,6 +44,11 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
         <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter />
+        <LabelFilter
+          selectedLabels={selectedLabels}
+          onLabelChange={handleLabelChange}
+          size="sm"
+        />
       </StyledPageFilterBar>
 
       <Search {...{query, onSearch}} />

@@ -1,12 +1,17 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import ArchiveActions from 'sentry/components/actions/archive';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {Input} from 'sentry/components/core/input';
+import {Select} from 'sentry/components/core/select';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconEllipsis} from 'sentry/icons';
+import {useIssueLabels} from 'sentry/hooks/useIssueLabels';
+import {IconAdd, IconCheckmark, IconCircle, IconEllipsis, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import type {BaseGroup} from 'sentry/types/group';
@@ -35,19 +40,85 @@ type Props = {
   selectedProjectSlug?: string;
 };
 
-function ActionSet({
+export default function ActionSet({
   queryCount,
   query,
   allInQuerySelected,
-  anySelected,
-  multiSelected,
   issues,
   onUpdate,
-  onShouldConfirm,
   onDelete,
   onMerge,
+  onShouldConfirm,
+  anySelected,
+  multiSelected,
   selectedProjectSlug,
+  ...props
 }: Props) {
+  const {addLabel, getAllLabelNames, getIssueLabels, removeLabel, allLabels} =
+    useIssueLabels();
+  const [memberList, setMemberList] = useState<Record<string, any>>({});
+
+  // Local state for label management
+  const [localLabels, setLocalLabels] = useState<
+    Array<{color: string; id: string; name: string}>
+  >([]);
+  const [localIssueId, setLocalIssueId] = useState<string | null>(null);
+
+  // Local state for the selected labels in the dropdown
+  const [localSelectedLabels, setLocalSelectedLabels] = useState<string[]>([]);
+
+  // Control dropdown open state
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Update local state when issues change
+  useEffect(() => {
+    if (issues.size === 1) {
+      const issueId = Array.from(issues)[0]!;
+      const initialLabels = getIssueLabels(issueId);
+      setLocalIssueId(issueId);
+      setLocalLabels(initialLabels);
+      setLocalSelectedLabels(initialLabels.map(label => label.name));
+    } else {
+      setLocalIssueId(null);
+      setLocalLabels([]);
+      setLocalSelectedLabels([]);
+    }
+  }, [issues, getIssueLabels]);
+
+  // Update local state when labels change externally
+  useEffect(() => {
+    if (localIssueId && allLabels[localIssueId]) {
+      const currentLabels = allLabels[localIssueId];
+      setLocalLabels(currentLabels);
+      setLocalSelectedLabels(currentLabels.map(label => label.name));
+    }
+  }, [localIssueId, allLabels]);
+
+  // Prepare the label management component data
+  const issueId = issues.size > 0 ? Array.from(issues)[0]! : null;
+
+  const allLabelNames = useMemo(() => getAllLabelNames(), [getAllLabelNames]);
+
+  const labelOptions: Array<{
+    key: string;
+    label: string;
+    options: Array<SelectOption<string>>;
+  }> = useMemo(
+    () => [
+      {
+        key: 'labels',
+        label: t('Labels'),
+        options: allLabelNames.map(labelName => ({
+          value: labelName,
+          label: labelName,
+        })),
+      },
+    ],
+    [allLabelNames]
+  );
+
+  const labelValue = localSelectedLabels;
+
   const organization = useOrganization();
   const numIssues = issues.size;
   const confirm = getConfirm({
@@ -105,6 +176,76 @@ function ActionSet({
   };
 
   const nestReview = !FOR_REVIEW_QUERIES.includes(query);
+
+  function AddLabelModal({Body, Header, Footer, closeModal}: any) {
+    const [labelName, setLabelName] = useState('');
+    const [error, setError] = useState('');
+
+    const handleSubmit = () => {
+      const trimmed = labelName.trim();
+      if (!trimmed) {
+        setError(t('Label name cannot be empty'));
+        return;
+      }
+      // Apply to selected issues only (MVP does not support "all in query")
+      issues.forEach(id => {
+        if (id) {
+          addLabel(id, trimmed);
+        }
+      });
+      closeModal();
+    };
+
+    return (
+      <Fragment>
+        <Header closeButton>{t('Add Label')}</Header>
+        <Body>
+          <p>{t('Apply a label to the selected issues.')}</p>
+          <Input
+            placeholder={t('Enter label name')}
+            value={labelName}
+            onChange={e => {
+              setLabelName(e.target.value);
+              setError('');
+            }}
+            autoFocus
+          />
+          {error ? <div style={{color: 'var(--red400)'}}>{error}</div> : null}
+          {allInQuerySelected ? (
+            <p style={{marginTop: 8}}>
+              {t(
+                'Note: This MVP applies to currently selected issues, not "all in query".'
+              )}
+            </p>
+          ) : null}
+        </Body>
+        <Footer>
+          <Button priority="primary" size="sm" onClick={handleSubmit}>
+            {t('Add Label')}
+          </Button>
+        </Footer>
+      </Fragment>
+    );
+  }
+
+  const handleAddLabelClick = (labelName: string) => {
+    if (!anySelected) {
+      return;
+    }
+    // Apply to selected issues only (MVP does not support "all in query")
+    issues.forEach(id => {
+      if (id) {
+        addLabel(id, labelName);
+      }
+    });
+  };
+
+  const handleAddMoreLabels = () => {
+    if (!anySelected) {
+      return;
+    }
+    openModal(modalProps => <AddLabelModal {...modalProps} />);
+  };
 
   const handleMergeClick = () => {
     openConfirmModal({
@@ -218,6 +359,79 @@ function ActionSet({
         confirmLabel={label('archive')}
         disabled={ignoreDisabled}
       />
+      {/* Single issue selected - use CompactSelect for label management */}
+      {issueId && (
+        <CompactSelect
+          multiple
+          size="xs"
+          value={labelValue}
+          onOpenChange={setIsOpen}
+          onChange={(selected: Array<SelectOption<string>>) => {
+            console.log('selected:', selected);
+            const selectedNames = selected.map((opt: SelectOption<string>) => opt.value);
+
+            // Find labels to add (new selections that don't exist)
+            const labelsToAdd = selectedNames.filter(
+              (labelName: string) => !localLabels.some(label => label.name === labelName)
+            );
+
+            // Find labels to remove (existing labels that are no longer selected)
+            const labelsToRemove = localLabels.filter(
+              label => !selectedNames.includes(label.name)
+            );
+
+            // Add new labels
+            labelsToAdd.forEach((labelName: string) => {
+              addLabel(issueId, labelName);
+            });
+
+            // Remove labels that are no longer selected
+            labelsToRemove.forEach(label => {
+              removeLabel(issueId, label.id);
+            });
+
+            // Update local state immediately to reflect the changes
+            const newLabels = selectedNames.map(labelName => {
+              // Find existing label or create a temporary one
+              const existing = localLabels.find(label => label.name === labelName);
+              if (existing) {
+                return existing;
+              }
+              // Create temporary label for immediate UI update
+              return {
+                id: `${issueId}-${labelName}-temp`,
+                name: labelName,
+                color: '#3F51B5', // Default color
+              };
+            });
+            setLocalLabels(newLabels);
+            setLocalSelectedLabels(selectedNames);
+          }}
+          options={labelOptions}
+          triggerProps={{
+            'aria-label': t('Add Labels'),
+            icon: <IconTag />,
+            size: 'xs',
+          }}
+          triggerLabel={t('Add Labels')}
+          clearable
+          closeOnSelect={false}
+          menuFooter={
+            <Button
+              size="xs"
+              icon={<IconAdd />}
+              onClick={() => {
+                // Close the dropdown first
+                setIsOpen(false);
+                // Open the add label modal
+                openModal(AddLabelModal);
+              }}
+            >
+              {t('Add Label')}
+            </Button>
+          }
+        />
+      )}
       <Button
         size="xs"
         onClick={handleMergeClick}
@@ -274,5 +488,3 @@ function isActionSupported(
 
   return {enabled: true};
 }
-
-export default ActionSet;

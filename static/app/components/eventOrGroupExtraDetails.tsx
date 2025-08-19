@@ -14,7 +14,9 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import IssueSeerBadge from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {IssueLabelList} from 'sentry/components/issueLabels';
 import Placeholder from 'sentry/components/placeholder';
+import {useIssueLabels} from 'sentry/hooks/useIssueLabels';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -69,6 +71,7 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
     isUnhandled,
   } = data as Group;
   const organization = useOrganization();
+  const {getIssueLabels} = useIssueLabels();
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
   const {getReplayCountForIssue} = useReplayCountForIssues();
@@ -88,6 +91,9 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
 
   const {subtitle} = getTitle(data);
 
+  // Get labels for this issue
+  const issueLabels = getIssueLabels(id);
+
   const items = [
     shortId ? (
       <ShortId
@@ -102,6 +108,10 @@ function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Pro
       <Lifetime firstSeen={firstSeen} lastSeen={lastSeen} lifetime={lifetime} />
     ) : null,
     subtitle ? <Location>{subtitle}</Location> : null,
+    // Add labels display
+    issueLabels.length > 0 ? (
+      <IssueLabelList labels={issueLabels} size="xs" maxLabels={3} />
+    ) : null,
     numComments > 0 ? (
       <CommentsLink
         to={{

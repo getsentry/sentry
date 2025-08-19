@@ -17,6 +17,7 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {useIssueLabels} from 'sentry/hooks/useIssueLabels';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
@@ -191,6 +192,8 @@ function IssueListOverview({
   const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
     {}
   );
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+  const {getIssueLabels} = useIssueLabels();
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
@@ -205,6 +208,32 @@ function IssueListOverview({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups]);
+
+  // Filter groups by selected labels
+  const filteredGroupIds = useMemo(() => {
+    if (selectedLabels.length === 0) {
+      return groupIds;
+    }
+
+    // Filter groups based on selected labels
+    return groupIds.filter(groupId => {
+      const groupLabels = getIssueLabels(groupId);
+      const groupLabelNames = groupLabels.map(label => label.name.trim().toLowerCase());
+
+      // Check if the group has ANY of the selected labels (OR logic)
+      const hasAnyLabel = selectedLabels.some(selectedLabel => {
+        const normalizedSelected = selectedLabel.trim().toLowerCase();
+        const hasLabel = groupLabelNames.includes(normalizedSelected);
+        return hasLabel;
+      });
+
+      return hasAnyLabel;
+    });
+  }, [groupIds, selectedLabels, getIssueLabels]);
+
+  const handleLabelChange = useCallback((labels: string[]) => {
+    setSelectedLabels(labels);
+  }, []);
 
   useIssuesINPObserver();
 
@@ -1116,6 +1145,7 @@ function IssueListOverview({
             sort={sort}
             onSortChange={onSortChange}
             onSearch={onSearch}
+            onLabelChange={handleLabelChange}
           />
           <IssueListTable
             selection={selection}
@@ -1125,7 +1155,7 @@ function IssueListOverview({
             onActionTaken={onActionTaken}
             onDelete={onDelete}
             statsPeriod={getGroupStatsPeriod()}
-            groupIds={groupIds}
+            groupIds={filteredGroupIds}
             allResultsVisible={allResultsVisible()}
             displayReprocessingActions={displayReprocessingActions}
             memberList={memberList}

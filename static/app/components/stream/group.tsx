@@ -4,12 +4,18 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
+import {Alert} from 'sentry/components/core/alert';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
@@ -18,19 +24,23 @@ import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
+import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {Sticky} from 'sentry/components/sticky';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {t} from 'sentry/locale';
+import {useIssueLabels} from 'sentry/hooks/useIssueLabels';
+import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {TimeseriesValue} from 'sentry/types/core';
+import type {PageFilters, TimeseriesValue} from 'sentry/types/core';
 import type {
   Group,
   GroupReprocessing,
@@ -41,26 +51,32 @@ import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {uniq} from 'sentry/utils/array/uniq';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useMutation} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {
   createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
   isForReviewQuery,
+  SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
 } from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
@@ -208,6 +224,7 @@ function StreamGroup({
   );
   const originalInboxState = useRef(group?.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
+  const {addLabel, removeLabel} = useIssueLabels();
 
   const referrer = source ? `${source}-issue-stream` : 'issue-stream';
 
@@ -265,6 +282,22 @@ function StreamGroup({
       addErrorMessage('Failed to update assignee');
     },
   });
+
+  const handleAddLabel = useCallback(
+    (labelName: string) => {
+      if (!group) return false;
+      return addLabel(group.id, labelName);
+    },
+    [group, addLabel]
+  );
+
+  const handleRemoveLabel = useCallback(
+    (labelId: string) => {
+      if (!group) return;
+      removeLabel(group.id, labelId);
+    },
+    [group, removeLabel]
+  );
 
   const clickHasBeenHandled = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
@@ -581,6 +614,7 @@ function StreamGroup({
       <GroupSummary canSelect={canSelect}>
         <EventOrGroupHeader data={group} query={query} source={referrer} />
         <EventOrGroupExtraDetails data={group} showLifetime={false} />
+        {/* Label input removed from each row per request; labels are managed via bulk actions */}
       </GroupSummary>
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
 
@@ -947,3 +981,5 @@ const ProgressColumn = styled('div')`
 const PositionedTimeSince = styled(TimeSince)`
   position: relative;
 `;
+
+// Row-level label management removed per request
