@@ -546,6 +546,7 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     color: ${p => p.theme.subText};
     text-align: center;
     padding: 24px 12px;
+    height: 400px;
 
     img {
       width: 100%;
