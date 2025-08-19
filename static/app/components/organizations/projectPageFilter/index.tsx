@@ -54,6 +54,13 @@ export interface ProjectPageFilterProps
     >
   > {
   /**
+   * Wether to allow multiple projects to be selected at a time.
+   *
+   * We always adhere to the `global-views` feature flag. So setting this to `true`
+   * will defer to that flag. Setting this to `false` will disable multi-select.
+   */
+  allowMultiple?: boolean;
+  /**
    * Message to show in the menu footer
    */
   footerMessage?: React.ReactNode;
@@ -100,6 +107,7 @@ export function ProjectPageFilter({
   resetParamsOnChange,
   footerMessage,
   storageNamespace,
+  allowMultiple: allowMultipleBase = true,
   ...selectProps
 }: ProjectPageFilterProps) {
   const user = useUser();
@@ -107,7 +115,8 @@ export function ProjectPageFilter({
   const routes = useRoutes();
   const organization = useOrganization();
 
-  const allowMultiple = organization.features.includes('global-views');
+  const allowMultiple =
+    allowMultipleBase && organization.features.includes('global-views');
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const [memberProjects, otherProjects] = useMemo(

@@ -44,15 +44,13 @@ export default function ReplayOverview() {
 
   return (
     <AnalyticsArea name="insights.replays">
-      <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
+      <SentryDocumentTitle title={t('Replay Assertions')} orgSlug={organization.slug}>
         <Layout.Header>
           <Layout.HeaderContent>
             <Layout.Title>
-              {t('Replay Assertions')}
+              {t('Replay Flows')}
               <PageHeadingQuestionTooltip
-                title={t(
-                  'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
-                )}
+                title={t('Assert that users are doing what you expect them to do.')}
                 docsUrl="https://docs.sentry.io/product/session-replay/"
               />
             </Layout.Title>
@@ -60,12 +58,15 @@ export default function ReplayOverview() {
           <Layout.HeaderActions>
             <LinkButton
               priority="primary"
-              to={makeReplaysPathname({
-                path: '/assertions/new/',
-                organization,
-              })}
+              to={{
+                pathname: makeReplaysPathname({
+                  path: '/assertions/new/',
+                  organization,
+                }),
+                query: {project: '11276', environment: 'prod'},
+              }}
             >
-              New Assertion
+              Create New Flow
             </LinkButton>
           </Layout.HeaderActions>
         </Layout.Header>
@@ -96,7 +97,7 @@ export default function ReplayOverview() {
                       onClick={() => {
                         navigate(
                           makeReplaysPathname({
-                            path: `/assertions/details/${row.name}/`,
+                            path: `/assertions/details/${row.id}/`,
                             organization,
                           })
                         );
@@ -107,7 +108,7 @@ export default function ReplayOverview() {
                         <FullRowButton
                           priority="link"
                           to={makeReplaysPathname({
-                            path: `/assertions/details/${row.name}/`,
+                            path: `/assertions/details/${row.id}/`,
                             organization,
                           })}
                         >

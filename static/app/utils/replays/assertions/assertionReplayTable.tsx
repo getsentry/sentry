@@ -29,11 +29,6 @@ import type {ReplayListRecord} from 'sentry/views/replays/types';
 const VISIBLE_COLUMNS = [
   ReplayPlayPauseColumn,
   ReplaySessionColumn,
-  // ReplayOSColumn,
-  // ReplayBrowserColumn,
-  // ReplayDurationColumn,
-  // ReplayCountErrorsColumn,
-  // ReplayActivityColumn,
   ReplayDetailsLinkColumn,
 ];
 

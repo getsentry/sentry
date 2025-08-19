@@ -1746,7 +1746,7 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/replays/assertions/new')),
         },
         {
-          path: 'details/:assertionSlug/',
+          path: 'details/:assertionId/',
           component: make(() => import('sentry/views/replays/assertions/details')),
         },
       ],

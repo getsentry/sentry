@@ -1,61 +1,102 @@
+import styled from '@emotion/styled';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
+import NotFound from 'sentry/components/errors/notFound';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {useQuery} from 'sentry/utils/queryClient';
+import AssertionBaseForm from 'sentry/utils/replays/assertions/assertionBaseForm';
+import AssertionCreateForm from 'sentry/utils/replays/assertions/assertionCreateForm';
+import useAssertionPageCrumbs from 'sentry/utils/replays/assertions/assertionPageCrumbs';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import AssertionDatabase from 'sentry/views/replays/assertions/database';
+import type {AssertionFlow} from 'sentry/views/replays/assertions/types';
 
 export default function ReplayAssertionDetails() {
   const organization = useOrganization();
-  const {assertionSlug} = useParams();
+  const {assertionId} = useParams<{assertionId: string}>();
 
-  const crumbs = [
-    {
-      label: t('Replay'),
-      to: {
-        pathname: makeReplaysPathname({
-          path: '/',
-          organization,
-        }),
-      },
+  const {
+    data: assertion,
+    isPending,
+    error,
+  } = useQuery<AssertionFlow | undefined, Error, AssertionFlow>({
+    queryKey: ['assertion', assertionId],
+    queryFn: () => {
+      const found = Array.from(AssertionDatabase.flows).find(
+        flow => flow.id === assertionId
+      );
+      if (!found) {
+        throw new Error(`Assertion with id ${assertionId} not found`);
+      }
+      return found;
     },
-    {
-      label: t('Assertions'),
-      to: {
-        pathname: makeReplaysPathname({
-          path: '/assertions/table/',
-          organization,
-        }),
-      },
-    },
-    {
-      label: assertionSlug,
-    },
-  ];
+  });
+
+  const crumbs = useAssertionPageCrumbs({label: assertionId});
 
   return (
-    <SentryDocumentTitle title={t('Assertion %s', assertionSlug)}>
-      <FullViewport>
+    <SentryDocumentTitle
+      title={t('Replay Flows - %s', assertionId)}
+      orgSlug={organization.slug}
+    >
+      <FullViewport style={{height: '100vh'}}>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
+            <Breadcrumbs crumbs={crumbs} style={{padding: 0}} />
+            <Flex gap="lg" align="center">
+              <Layout.Title style={{width: 'auto'}}>
+                {t('Assertion')}
+                <PageHeadingQuestionTooltip
+                  title={t('Assert that users are doing what you expect them to do.')}
+                  docsUrl="https://docs.sentry.io/product/session-replay/"
+                />
+              </Layout.Title>
+              <AssertionBaseForm disabled />
+            </Flex>
           </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <LinkButton
-              priority="primary"
-              to={makeReplaysPathname({
-                path: '/assertions/new/',
-                organization,
-              })}
-            >
-              Save
-            </LinkButton>
-          </Layout.HeaderActions>
+          {assertion ? (
+            <Layout.HeaderActions>
+              <Flex gap="md">
+                <Button priority="primary">Update</Button>
+              </Flex>
+            </Layout.HeaderActions>
+          ) : null}
         </Layout.Header>
+        <Body>
+          {isPending ? (
+            <LoadingIndicator />
+          ) : error ? (
+            <NotFound />
+          ) : assertion ? (
+            <AssertionCreateForm
+              environment={assertion.environment}
+              name={assertion.name}
+              projectId={assertion.project_id}
+            />
+          ) : (
+            <NotFound />
+          )}
+        </Body>
       </FullViewport>
     </SentryDocumentTitle>
   );
 }
+
+const Body = styled('div')`
+  background-color: ${p => p.theme.background};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space['3xl']};
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.lg};
+  min-height: 0;
+  flex: 1;
+  height: 100%;
+`;
