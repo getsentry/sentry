@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from django.forms import Form
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -18,7 +16,6 @@ from sentry.auth.providers.saml2.forms import (
 from sentry.auth.services.auth import RpcAuthProvider, auth_service
 from sentry.auth.view import AuthView
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.base import Pipeline
 from sentry.plugins.base.response import DeferredResponse
 from sentry.utils.http import absolute_uri
 
@@ -82,7 +79,7 @@ class SelectIdP(AuthView):
 
 
 class MapAttributes(AuthView):
-    def handle(self, request: HttpRequest, pipeline: Pipeline[Any, Any]) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         if "save_mappings" not in request.POST:
             form = AttributeMappingForm()
         else:

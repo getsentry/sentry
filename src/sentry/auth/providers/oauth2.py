@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import abc
 import logging
 import secrets
 from collections.abc import Mapping
 from time import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qsl, urlencode
 
 import orjson
@@ -16,8 +18,10 @@ from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.models.authidentity import AuthIdentity
-from sentry.pipeline.base import Pipeline
 from sentry.utils.http import absolute_uri
+
+if TYPE_CHECKING:
+    from sentry.auth.helper import AuthHelper  # noqa: F401
 
 ERR_INVALID_STATE = "An error occurred while validating your request."
 
@@ -62,7 +66,7 @@ class OAuth2Login(AuthView):
             "redirect_uri": redirect_uri,
         }
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Any, Any]) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         if "code" in request.GET:
             return pipeline.next_step()
 
@@ -109,7 +113,7 @@ class OAuth2Callback(AuthView):
         }
 
     def exchange_token(
-        self, request: HttpRequest, pipeline: Pipeline[Any, Any], code: str
+        self, request: HttpRequest, pipeline: AuthHelper, code: str
     ) -> Mapping[str, Any]:
         # TODO: this needs the auth yet
         data = self.get_token_params(code=code, redirect_uri=_get_redirect_url())
@@ -119,7 +123,7 @@ class OAuth2Callback(AuthView):
             return dict(parse_qsl(body))
         return orjson.loads(body)
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Any, Any]) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         error = request.GET.get("error")
         state = request.GET.get("state")
         code = request.GET.get("code")

@@ -7,10 +7,10 @@ import orjson
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 
+from sentry.auth.helper import AuthHelper
 from sentry.auth.services.auth.model import RpcAuthProvider
 from sentry.auth.view import AuthView
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.base import Pipeline
 from sentry.plugins.base.response import DeferredResponse
 from sentry.utils.signing import urlsafe_b64decode
 
@@ -27,7 +27,7 @@ class FetchUser(AuthView):
         self.version = version
         super().__init__(*args, **kwargs)
 
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Any, Any]) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         data: dict[str, Any] | None = pipeline.fetch_state("data")
         assert data is not None
 

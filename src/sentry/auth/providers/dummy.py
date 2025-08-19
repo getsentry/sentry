@@ -4,17 +4,17 @@ from typing import Any
 from django.http import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
 
+from sentry.auth.helper import AuthHelper
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.auth.view import AuthView
 from sentry.models.authidentity import AuthIdentity
-from sentry.pipeline.base import Pipeline
 
 PLACEHOLDER_TEMPLATE = '<form method="POST"><input type="email" name="email" /></form>'
 
 
 class AskEmail(AuthView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline[Any, Any]) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         if "email" in request.POST:
             if "id" in request.POST:
                 pipeline.bind_state("id", request.POST.get("id"))
