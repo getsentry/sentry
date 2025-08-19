@@ -44,6 +44,18 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       },
     },
     {
+      id: 'go-to-feedback',
+      key: 'g f',
+      description: 'Go to Feedback',
+      handler: () => {
+        if (organizationSlug) {
+          router.push(
+            normalizeUrl(`/organizations/${organizationSlug}/issues/feedback/`)
+          );
+        }
+      },
+    },
+    {
       id: 'go-to-projects',
       key: 'g p',
       description: 'Go to Projects',
@@ -64,18 +76,76 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       },
     },
     {
+      id: 'go-to-traces',
+      key: 'g t',
+      description: 'Go to Traces',
+      handler: () => {
+        if (organizationSlug) {
+          router.push(normalizeUrl(`/organizations/${organizationSlug}/explore/traces/`));
+        }
+      },
+    },
+    {
+      id: 'go-to-discover',
+      key: 'g v',
+      description: 'Go to Discover',
+      handler: () => {
+        if (organizationSlug) {
+          router.push(
+            normalizeUrl(`/organizations/${organizationSlug}/explore/discover/`)
+          );
+        }
+      },
+    },
+    {
+      id: 'go-to-logs',
+      key: 'g l',
+      description: 'Go to Logs',
+      handler: () => {
+        if (organizationSlug) {
+          router.push(normalizeUrl(`/organizations/${organizationSlug}/explore/logs/`));
+        }
+      },
+    },
+    {
+      id: 'go-to-profiles',
+      key: 'g P',
+      description: 'Go to Profiles',
+      handler: () => {
+        if (organizationSlug) {
+          router.push(
+            normalizeUrl(`/organizations/${organizationSlug}/explore/profiles/`)
+          );
+        }
+      },
+    },
+    {
+      id: 'go-to-replays',
+      key: 'g y',
+      description: 'Go to Replays',
+      handler: () => {
+        if (organizationSlug) {
+          router.push(
+            normalizeUrl(`/organizations/${organizationSlug}/explore/replays/`)
+          );
+        }
+      },
+    },
+    {
       id: 'go-to-releases',
       key: 'g r',
       description: 'Go to Releases',
       handler: () => {
         if (organizationSlug) {
-          router.push(normalizeUrl(`/organizations/${organizationSlug}/releases/`));
+          router.push(
+            normalizeUrl(`/organizations/${organizationSlug}/explore/releases/`)
+          );
         }
       },
     },
     {
       id: 'go-to-alerts',
-      key: 'g a',
+      key: 'g e',
       description: 'Go to Alerts',
       handler: () => {
         if (organizationSlug) {
@@ -96,12 +166,36 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       },
     },
     {
-      id: 'go-to-replays',
-      key: 'g v',
-      description: 'Go to Replays',
+      id: 'go-to-backend-insights',
+      key: 'g b',
+      description: 'Go to Backend Insights',
       handler: () => {
         if (organizationSlug) {
-          router.push(normalizeUrl(`/organizations/${organizationSlug}/replays/`));
+          router.push(
+            normalizeUrl(`/organizations/${organizationSlug}/insights/backend/`)
+          );
+        }
+      },
+    },
+    {
+      id: 'go-to-mobile-insights',
+      key: 'g M',
+      description: 'Go to Mobile Insights',
+      handler: () => {
+        if (organizationSlug) {
+          router.push(
+            normalizeUrl(`/organizations/${organizationSlug}/insights/mobile/`)
+          );
+        }
+      },
+    },
+    {
+      id: 'go-to-ai-insights',
+      key: 'g a',
+      description: 'Go to AI Insights',
+      handler: () => {
+        if (organizationSlug) {
+          router.push(normalizeUrl(`/organizations/${organizationSlug}/insights/ai/`));
         }
       },
     },
@@ -124,6 +218,26 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
           router.push(
             normalizeUrl(`/organizations/${organizationSlug}/insights/uptime/`)
           );
+        }
+      },
+    },
+    {
+      id: 'go-to-organization-settings',
+      key: 'g s',
+      description: 'Go to Settings',
+      handler: () => {
+        if (organizationSlug) {
+          router.push(normalizeUrl(`/settings/${organizationSlug}/`));
+        }
+      },
+    },
+    {
+      id: 'go-to-organization-members',
+      key: 'g m',
+      description: 'Go to Members',
+      handler: () => {
+        if (organizationSlug) {
+          router.push(normalizeUrl(`/settings/${organizationSlug}/members/`));
         }
       },
     },
