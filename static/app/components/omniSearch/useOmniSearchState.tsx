@@ -27,16 +27,10 @@ export function useOmniSearchState() {
       return selectedAction.children;
     }
 
-    const globalActions = sortBy(
-      actions.filter(action => action.areaKey === 'global'),
-      action => action.label
-    );
+    const globalActions = actions.filter(action => action.areaKey === 'global');
 
     if (focusedArea) {
-      const areaActions = sortBy(
-        actions.filter(action => action.areaKey === focusedArea.key),
-        action => action.label
-      );
+      const areaActions = actions.filter(action => action.areaKey === focusedArea.key);
 
       return [...areaActions, ...globalActions];
     }
