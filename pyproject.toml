@@ -354,6 +354,7 @@ module = [
     "sentry.api.bases.incident",
     "sentry.api.bases.organization_events",
     "sentry.api.bases.organization_flag",
+    "sentry.api.bases.organizationmember",
     "sentry.api.decorators",
     "sentry.api.endpoints.integrations.sentry_apps.installation.external_issue.*",
     "sentry.api.endpoints.organization_events_spans_performance",
