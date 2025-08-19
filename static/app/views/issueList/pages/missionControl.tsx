@@ -77,10 +77,41 @@ const EXAMPLE_CARDS: MissionControlCard[] = [
     createdAt: '2024-01-22T14:30:00Z',
     priority: 11,
     data: {
-      description:
-        'Looks like the fixability endpoint in getsentry/seer could use some more granular span and profiling instrumentation. Uptime monitoring would also be helpful since it seems to be intermittently unavailable.',
-      products: ['tracing', 'profiling', 'uptime'],
+      purpose:
+        'Improve observability for the fixability endpoint to better track intermittent failures when called from Seer Scanner.',
+      observability_requests: [
+        {
+          description:
+            'Add detailed tracing spans around the ML model inference pipeline to track processing time and identify bottlenecks in the fixability assessment workflow.',
+          instrument_type: 'tracing',
+          location:
+            'getsentry/seer/src/seer/automation/fixpoint/api.py in the process_fixability_request function',
+        },
+        {
+          description:
+            'Implement profiling to identify memory usage patterns and CPU hotspots during model loading and inference phases.',
+          instrument_type: 'profiling',
+          location:
+            'getsentry/seer/src/seer/automation/models/ module, specifically in model initialization and prediction methods',
+        },
+        {
+          description:
+            'Add structured logging with correlation IDs to track requests through the entire pipeline and capture error context.',
+          instrument_type: 'logging',
+          location:
+            'getsentry/seer/src/seer/automation/fixpoint/api.py throughout the request lifecycle',
+        },
+        {
+          description:
+            'Tag requests with metadata like model version, request size, and processing mode to enable better filtering and analysis.',
+          instrument_type: 'tagging',
+          location:
+            'getsentry/seer/src/seer/automation/fixpoint/api.py at the entry point of each request handler',
+        },
+      ],
+      sourceIssueId: '6678410850',
     },
+    url: '/issues/6678410850/?seerDrawer=true',
     metadata: {
       source: 'hardcoded-demo',
       tags: ['instrumentation', 'setup'],

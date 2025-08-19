@@ -1,22 +1,54 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import performanceEmptyState from 'sentry-images/spot/performance-empty-state.svg';
-// Import the actual SVG images
-import profilingEmptyState from 'sentry-images/spot/profiling-empty-state.svg';
-import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
-import waitingForEvent from 'sentry-images/spot/waiting-for-event.svg';
+import taggingImage from 'sentry-images/spot/code-arguments-tags-mirrored.svg';
+import tracingImage from 'sentry-images/spot/performance-empty-state.svg';
+import profilingImage from 'sentry-images/spot/profiling-empty-state.svg';
+import loggingImage from 'sentry-images/spot/waiting-for-event.svg';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
+import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {Text} from 'sentry/components/core/text';
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
+import LoadingError from 'sentry/components/loadingError';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import Placeholder from 'sentry/components/placeholder';
+import StreamGroup, {
+  DEFAULT_STREAM_GROUP_STATS_PERIOD,
+} from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types/group';
 import type {
   CardRendererProps,
   TypedMissionControlCard,
 } from 'sentry/types/missionControl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
+import useOrganization from 'sentry/utils/useOrganization';
 
-// Available Sentry products for instrumentation
+const COLUMNS: GroupListColumn[] = [
+  'graph',
+  'event',
+  'users',
+  'assignee',
+  'firstSeen',
+  'lastSeen',
+];
+
+// Instrument types that match the Python model
+enum InstrumentType {
+  LOGGING = 'logging',
+  TAGGING = 'tagging',
+  TRACING = 'tracing',
+  PROFILING = 'profiling',
+}
+
+// Available Sentry products for instrumentation (kept for backwards compatibility)
 export enum InstrumentationProduct {
   TRACING = 'tracing',
   PROFILING = 'profiling',
@@ -27,43 +59,17 @@ export enum InstrumentationProduct {
   CRONS = 'crons',
 }
 
-// Map products to their SVG illustrations
-const PRODUCT_ILLUSTRATIONS: Record<InstrumentationProduct, string> = {
-  [InstrumentationProduct.TRACING]: performanceEmptyState,
-  [InstrumentationProduct.PROFILING]: profilingEmptyState,
-  [InstrumentationProduct.UPTIME]: waitingForEvent, // Using waiting-for-event as placeholder for uptime
-  [InstrumentationProduct.PERFORMANCE]: performanceEmptyState,
-  [InstrumentationProduct.ERRORS]: waitingForEvent,
-  [InstrumentationProduct.REPLAY]: replayEmptyState,
-  [InstrumentationProduct.CRONS]: waitingForEvent, // Using waiting-for-event as placeholder for crons
-};
+interface ObservabilityRequest {
+  description: string; // Description of the observability to add and its purpose. 50-200 words.
+  instrument_type: InstrumentType; // The type of instrumentation to add
+  location: string; // Location in the code to add observability
+}
 
-// Display names for products
-const PRODUCT_NAMES: Record<InstrumentationProduct, string> = {
-  [InstrumentationProduct.TRACING]: 'Tracing',
-  [InstrumentationProduct.PROFILING]: 'Profiling',
-  [InstrumentationProduct.UPTIME]: 'Uptime Monitoring',
-  [InstrumentationProduct.PERFORMANCE]: 'Performance Monitoring',
-  [InstrumentationProduct.ERRORS]: 'Error Monitoring',
-  [InstrumentationProduct.REPLAY]: 'Session Replay',
-  [InstrumentationProduct.CRONS]: 'Cron Monitoring',
-};
-
-// Documentation URLs for each product
-const PRODUCT_DOCS: Record<InstrumentationProduct, string> = {
-  [InstrumentationProduct.TRACING]:
-    'https://docs.sentry.io/product/sentry-basics/tracing/',
-  [InstrumentationProduct.PROFILING]: 'https://docs.sentry.io/product/profiling/',
-  [InstrumentationProduct.UPTIME]: 'https://docs.sentry.io/product/uptime-monitoring/',
-  [InstrumentationProduct.PERFORMANCE]: 'https://docs.sentry.io/product/performance/',
-  [InstrumentationProduct.ERRORS]: 'https://docs.sentry.io/product/issues/',
-  [InstrumentationProduct.REPLAY]: 'https://docs.sentry.io/product/session-replay/',
-  [InstrumentationProduct.CRONS]: 'https://docs.sentry.io/product/crons/',
-};
-
+// Matches RootCauseObservabilityRequests from Python model
 interface MissingInstrumentationCardData {
-  description: string;
-  products: InstrumentationProduct[];
+  observability_requests: ObservabilityRequest[]; // A list of observability requests, max 5
+  purpose: string; // What is the high-level aim of these observability requests? 20-100 words.
+  sourceIssueId: string; // The ID of the source issue that triggered this card
 }
 
 type MissingInstrumentationCard = TypedMissionControlCard<
@@ -71,11 +77,106 @@ type MissingInstrumentationCard = TypedMissionControlCard<
   MissingInstrumentationCardData
 >;
 
+// Helper function to get the background image based on instrument types
+function getBackgroundImageForRequests(requests: ObservabilityRequest[]): string {
+  const instrumentTypeImageMap = {
+    [InstrumentType.TRACING]: tracingImage,
+    [InstrumentType.PROFILING]: profilingImage,
+    [InstrumentType.LOGGING]: loggingImage,
+    [InstrumentType.TAGGING]: taggingImage,
+  };
+
+  // Priority order for when multiple types exist
+  const priorityOrder = [
+    InstrumentType.TRACING,
+    InstrumentType.PROFILING,
+    InstrumentType.LOGGING,
+    InstrumentType.TAGGING,
+  ];
+
+  // Find the highest priority instrument type present in the requests
+  for (const instrumentType of priorityOrder) {
+    if (requests.some(request => request.instrument_type === instrumentType)) {
+      return instrumentTypeImageMap[instrumentType];
+    }
+  }
+
+  return tracingImage;
+}
+
+function useMemberList() {
+  const api = useApi();
+  const organization = useOrganization();
+  const [memberList, setMemberList] = useState<IndexedMembersByProject | undefined>(
+    undefined
+  );
+
+  const isMountedRef = useIsMountedRef();
+  useEffect(() => {
+    fetchOrgMembers(api, organization.slug).then(members => {
+      if (isMountedRef.current) {
+        setMemberList(indexMembersByProject(members));
+      }
+    });
+  }, [api, organization, isMountedRef]);
+
+  return memberList;
+}
+
+function useSyncGroupStore(data: Group[] | undefined) {
+  useEffect(() => {
+    GroupStore.loadInitialData([]);
+    return () => {
+      GroupStore.reset();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (data) {
+      GroupStore.add(data);
+    }
+  }, [data]);
+}
+
 function MissingInstrumentationCardRenderer({
   card,
   onSetPrimaryAction,
 }: CardRendererProps<MissingInstrumentationCardData>) {
-  const {description, products} = card.data;
+  const {purpose, observability_requests, sourceIssueId} = card.data;
+  const backgroundImage = getBackgroundImageForRequests(observability_requests);
+  const organization = useOrganization();
+  const memberList = useMemberList();
+
+  // Create query to fetch the specific source issue by ID
+  const queryParams = useMemo(
+    () => ({
+      group: [sourceIssueId],
+      limit: '1',
+      sort: 'freq',
+    }),
+    [sourceIssueId]
+  );
+
+  const {
+    data: groups,
+    isPending: isGroupPending,
+    error: groupError,
+    refetch: refetchGroup,
+  } = useApiQuery<Group[]>(
+    [
+      `/organizations/${organization.slug}/issues/`,
+      {
+        query: queryParams,
+      },
+    ],
+    {
+      staleTime: 0,
+      enabled: !!sourceIssueId,
+    }
+  );
+
+  // Sync group store with the data as StreamGroup retrieves data from the store
+  useSyncGroupStore(groups);
 
   useEffect(() => {
     // Set up the primary action to start instrumentation setup
@@ -95,158 +196,194 @@ function MissingInstrumentationCardRenderer({
   }, [onSetPrimaryAction]);
 
   return (
-    <CardContainer>
+    <CardContainer backgroundImage={backgroundImage}>
       <Content>
-        <HeaderSection>
-          <Text size="xl" bold>
-            {t('Observability Gap Detected')}
-          </Text>
-          <Text size="md">{description}</Text>
-        </HeaderSection>
+        <RequestsSection>
+          <HeaderSection>
+            <Text size="xl" bold>
+              {t('Observability Gap Detected')}
+            </Text>
+          </HeaderSection>
 
-        <ProductsSection>
-          <Text size="lg" bold variant="muted">
-            {t('Recommended Tools')}
+          <Text size="xl">{purpose}</Text>
+
+          <IssueSection>
+            <Text size="lg" variant="muted" bold>
+              {t('Helps debug issues like this')}
+            </Text>
+
+            {groupError ? (
+              <LoadingError onRetry={refetchGroup} />
+            ) : (
+              <IssuesPanel>
+                <PanelBody>
+                  {isGroupPending ? (
+                    <GroupPlaceholder>
+                      <Placeholder height="50px" />
+                    </GroupPlaceholder>
+                  ) : groups && groups.length > 0 ? (
+                    groups.map(({id, project}) => (
+                      <StreamGroup
+                        key={id}
+                        id={id}
+                        canSelect={false}
+                        withChart
+                        withColumns={COLUMNS}
+                        memberList={memberList?.[project.slug]}
+                        useFilteredStats={false}
+                        statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
+                        source="mission-control"
+                      />
+                    ))
+                  ) : (
+                    <Text size="md" variant="muted">
+                      {t('Source issue not found')}
+                    </Text>
+                  )}
+                </PanelBody>
+              </IssuesPanel>
+            )}
+          </IssueSection>
+
+          <Text size="lg" variant="muted" bold>
+            {t('%s recommended additions', observability_requests.length)}
           </Text>
 
-          <ProductGrid>
-            {products.map(product => (
-              <ProductCard
-                key={product}
-                onClick={() =>
-                  window.open(PRODUCT_DOCS[product], '_blank', 'noopener,noreferrer')
-                }
-              >
-                <ProductIcon>
-                  <img
-                    src={PRODUCT_ILLUSTRATIONS[product]}
-                    alt={PRODUCT_NAMES[product]}
-                  />
-                </ProductIcon>
-                <ProductInfo>
-                  <Text size="sm" bold>
-                    {PRODUCT_NAMES[product]}
+          <RequestsList>
+            {observability_requests.map((request, index) => (
+              <RequestCard key={index}>
+                <RequestDescription>
+                  <Text size="md" density="comfortable">
+                    {request.description}
                   </Text>
-                  <ProductDescription size="xs" variant="muted">
-                    {getProductDescription(product)}
-                  </ProductDescription>
-                </ProductInfo>
-              </ProductCard>
+                </RequestDescription>
+              </RequestCard>
             ))}
-          </ProductGrid>
-        </ProductsSection>
+          </RequestsList>
+        </RequestsSection>
       </Content>
     </CardContainer>
   );
 }
 
-function getProductDescription(product: InstrumentationProduct): string {
-  switch (product) {
-    case InstrumentationProduct.TRACING:
-      return t('Track requests across your application');
-    case InstrumentationProduct.PROFILING:
-      return t('Identify performance bottlenecks in your code');
-    case InstrumentationProduct.UPTIME:
-      return t('Monitor your application availability');
-    case InstrumentationProduct.PERFORMANCE:
-      return t('Monitor application performance metrics');
-    case InstrumentationProduct.ERRORS:
-      return t('Track and debug application errors');
-    case InstrumentationProduct.REPLAY:
-      return t('See what users did before encountering issues');
-    case InstrumentationProduct.CRONS:
-      return t('Monitor scheduled jobs and tasks');
-    default:
-      return t('Improve your application monitoring');
-  }
-}
-
-const CardContainer = styled('div')`
+const CardContainer = styled('div')<{backgroundImage: string}>`
   background: ${p => p.theme.backgroundElevated};
+  background-image: url(${p => p.backgroundImage});
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: ${p => p.theme.borderRadius};
+  }
 `;
 
 const Content = styled('div')`
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: ${space(3)};
-  gap: ${space(3)};
+  padding: ${space(4)} ${space(4)};
+  gap: ${space(4)};
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  max-width: 1000px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
 `;
 
 const HeaderSection = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${space(2)};
+  align-self: flex-start;
 `;
 
-const ProductsSection = styled('div')`
+const RequestsSection = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  flex: 1;
+  gap: ${space(3)};
+  padding: ${space(4)};
+  margin: 0 ${space(4)};
+  width: 80%;
+  background-color: ${p => p.theme.backgroundElevated};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  justify-content: center;
+  box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
-const ProductGrid = styled('div')`
+const RequestsList = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(3)};
+  gap: ${space(1)};
   width: 100%;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
-const ProductCard = styled('div')`
-  position: relative;
+const RequestCard = styled('div')`
   display: flex;
   flex-direction: column;
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  cursor: pointer;
+  border: 1px solid ${p => p.theme.innerBorder};
+  box-shadow: ${p => p.theme.dropShadowMedium};
   overflow: hidden;
-  aspect-ratio: 1;
-  height: 200px;
-  width: 100%;
-
-  &:hover {
-    border-color: ${p => p.theme.purple300};
-  }
+  min-height: 100px;
+  background-color: ${p => p.theme.backgroundElevated};
 `;
 
-const ProductIcon = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+const RequestDescription = styled('div')`
+  flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${p => p.theme.backgroundSecondary};
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
+  align-items: flex-start;
+  padding: ${space(2)};
 `;
 
-const ProductInfo = styled('div')`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: ${space(1.5)};
-  background: ${p => p.theme.backgroundElevated};
-  border-top: 1px solid ${p => p.theme.border};
+const IssueSection = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${space(1)};
+  flex: 1;
+  min-height: 0;
+  margin-bottom: ${space(2)};
 `;
 
-const ProductDescription = styled(Text)``;
+const IssuesPanel = styled(Panel)`
+  min-width: 0;
+  overflow-y: auto;
+  margin-bottom: 0 !important;
+  flex: 1;
+  container-type: inline-size;
+`;
+
+const GroupPlaceholder = styled('div')`
+  padding: ${space(1)};
+
+  &:not(:last-child) {
+    border-bottom: solid 1px ${p => p.theme.innerBorder};
+  }
+`;
 
 export default MissingInstrumentationCardRenderer;
-export type {MissingInstrumentationCard, MissingInstrumentationCardData};
+export type {
+  MissingInstrumentationCard,
+  MissingInstrumentationCardData,
+  ObservabilityRequest,
+};
+export {InstrumentType};

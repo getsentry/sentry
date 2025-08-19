@@ -3,6 +3,8 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import hero from 'sentry-images/stories/landing/hero.png';
+
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
@@ -154,33 +156,41 @@ function HomeScreen({cards, onOpenCards}: HomeScreenProps) {
 
   return (
     <HomeScreenContainer>
-      <SeerIconContainer>
-        <IconSeer variant="waiting" size="2xl" />
-      </SeerIconContainer>
+      <HeroSection>
+        <HeroImageContainer>
+          <HeroImage src={hero} alt="background-image" />
+        </HeroImageContainer>
 
-      <CardStackPreviewContainer
-        onClick={onOpenCards}
-        tabIndex={0}
-        role="button"
-        aria-label="Open card stack to review items"
-        onKeyDown={event => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            onOpenCards();
-          }
-        }}
-      >
-        <CardStackPreview>
-          <CardPreviewBack />
-          <CardPreviewFront>
-            <IconIssues size="lg" color="active" />
-            <Text size="lg" bold>
-              {cards.length} item{cards.length === 1 ? '' : 's'} to review
-            </Text>
-            <KeyHint>↵</KeyHint>
-          </CardPreviewFront>
-        </CardStackPreview>
-      </CardStackPreviewContainer>
+        <HeroContent>
+          <SeerIconContainer>
+            <IconSeer variant="waiting" size="xl" />
+          </SeerIconContainer>
+
+          <CardStackPreviewContainer
+            onClick={onOpenCards}
+            tabIndex={0}
+            role="button"
+            aria-label="Open card stack to review items"
+            onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onOpenCards();
+              }
+            }}
+          >
+            <CardStackPreview>
+              <CardPreviewBack />
+              <CardPreviewFront>
+                <IconIssues size="lg" color="active" />
+                <Text size="lg" bold>
+                  {cards.length} item{cards.length === 1 ? '' : 's'} to review
+                </Text>
+                <KeyHint>↵</KeyHint>
+              </CardPreviewFront>
+            </CardStackPreview>
+          </CardStackPreviewContainer>
+        </HeroContent>
+      </HeroSection>
 
       <ProjectSelectionProvider>
         <ProjectFilterContainer>
@@ -203,14 +213,51 @@ const HomeScreenContainer = styled('div')`
   width: 100%;
   gap: ${space(4)};
   margin: ${space(4)};
+  margin-top: 0;
   padding-left: ${space(2)};
   padding-right: ${space(2)};
+`;
+
+const HeroSection = styled('div')`
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${space(4)};
+  padding: ${space(4)} ${space(2)};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const HeroImageContainer = styled('div')`
+  position: absolute;
+  top: 0%;
+  left: 0%;
+  z-index: -1;
+  width: 80%;
+  transform: translate(10%, 0%);
+`;
+
+const HeroImage = styled('img')`
+  width: 100%;
+  height: auto;
+  display: block;
+`;
+
+const HeroContent = styled('div')`
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${space(4)};
+  width: 100%;
+  margin-top: ${space(4)};
 `;
 
 const SeerIconContainer = styled('div')`
   display: flex;
   justify-content: center;
-  margin-bottom: ${space(2)};
 `;
 
 const CardStackPreviewContainer = styled('div')`
