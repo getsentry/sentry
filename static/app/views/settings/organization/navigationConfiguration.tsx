@@ -63,6 +63,12 @@ export function getOrganizationNavigationConfiguration({
           id: 'members',
         },
         {
+          path: `${organizationSettingsPathPrefix}/escalation-policies/`,
+          title: t('Escalation Policies'),
+          description: t('Manage escalation policies for incident response'),
+          id: 'escalation-policies',
+        },
+        {
           path: `${organizationSettingsPathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
           description: t(

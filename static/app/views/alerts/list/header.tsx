@@ -97,12 +97,6 @@ function AlertHeader({activeTab}: Props) {
             {t('History')}
           </TabList.Item>
           <TabList.Item
-            key="policies"
-            to={`/organizations/${organization.slug}/alerts/policies/`}
-          >
-            {t('Escalation Policies')}
-          </TabList.Item>
-          <TabList.Item
             key="schedules"
             to={`/organizations/${organization.slug}/alerts/schedules/`}
           >

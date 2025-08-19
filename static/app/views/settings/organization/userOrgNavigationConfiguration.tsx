@@ -178,6 +178,12 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           show: ({organization}) => !!organization && !organization.hideAiFeatures,
           id: 'seer',
         },
+        {
+          path: `${organizationSettingsPathPrefix}/escalation-policies/`,
+          title: t('Escalation Policies'),
+          description: t('Manage escalation policies for your organization'),
+          id: 'escalation-policies',
+        },
       ],
     },
     {

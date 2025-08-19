@@ -969,6 +969,28 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'escalation-policies/',
+      name: t('Escalation Policies'),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/organizationEscalationPolicies')
+          ),
+        },
+        {
+          path: ':escalationPolicyId/',
+          name: t('Escalation Policy Details'),
+          component: make(
+            () =>
+              import(
+                'sentry/views/settings/organizationEscalationPolicies/escalationPolicyDetails'
+              )
+          ),
+        },
+      ],
+    },
+    {
       path: 'relay/',
       name: t('Relay'),
       component: make(() => import('sentry/views/settings/organizationRelay')),
@@ -1511,12 +1533,6 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/alerts/list/incidents')),
       deprecatedRouteProps: true,
-    },
-    {
-      path: 'policies/',
-      component: make(
-        () => import('sentry/views/alerts/escalationPolicies/escalationPolicyList')
-      ),
     },
     {
       path: 'schedules/',
