@@ -5,13 +5,16 @@ import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import type {Theme} from 'sentry/utils/theme';
 
 export interface Incident {
+  // Useful for generating links
+  hostId: string;
+  id: number;
+  regionId: string;
   severity: 'maintenance' | 'minor' | 'major' | 'critical';
-  startTime: number;
+  start: number;
   title: string;
-  endTime?: number;
+  end?: number;
 }
 
-// TODO: fix colours
 function getIncidentColor(severity: Incident['severity'], theme: Theme): string {
   switch (severity) {
     case 'maintenance':
@@ -33,19 +36,19 @@ export function IncidentSeries(
   onClick?: (incident: Incident) => void
 ): SeriesOption[] {
   return incidents.map(incident => {
-    // Use the later of incident end time or current time for the last data point
-    const lastTime = incident.endTime ?? Date.now();
+    // Either incident has a end point, or use the current time to be the end point
+    const lastTime = incident.end ?? Date.now();
 
     const startTime = getFormattedDate(
-      incident.startTime,
+      incident.start,
       getFormat({timeZone: true, year: true})
     );
 
     let currentStatus = `${startTime} - `;
 
-    if (incident.endTime) {
+    if (incident.end) {
       const endTime = getFormattedDate(
-        incident.endTime,
+        incident.end,
         getFormat({timeZone: true, year: true})
       );
       currentStatus += `${endTime}`;
@@ -62,9 +65,10 @@ export function IncidentSeries(
         data: [
           [
             {
-              xAxis: incident.startTime,
+              xAxis: incident.start,
               onClick: () => {
                 onClick?.(incident);
+                // TODO: Have a fallback to redirect to main status page
               },
             },
             {
