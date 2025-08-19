@@ -41,6 +41,7 @@ import {decodeBoolean} from 'sentry/utils/queryString';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {markIssueSeen} from 'sentry/utils/seenIssuesStorage';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
@@ -404,6 +405,13 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       markEventSeen(api, organization.slug, matchingProjectSlug, params.groupId);
     }
   }, [api, group?.hasSeen, group?.project, organization.slug, params.groupId, projects]);
+
+  // Track seen issues in localStorage for client-side filtering
+  useEffect(() => {
+    if (group) {
+      markIssueSeen(group);
+    }
+  }, [group]);
 
   useEffect(() => {
     const locationQuery = qs.parse(window.location.search) || {};

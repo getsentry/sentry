@@ -8,8 +8,10 @@ import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
 import {strGetFn} from 'sentry/components/search/sources/utils';
+import {IconDocs} from 'sentry/icons/iconDocs';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {useSeenIssues} from 'sentry/utils/seenIssuesStorage';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
@@ -41,6 +43,22 @@ export function OmniSearchPalette() {
 
   const debouncedQuery = useDebouncedValue(query, 300);
 
+  const {getSeenIssues} = useSeenIssues();
+
+  // Get ALL seen issues (no limit here)
+  const allRecentIssueActions: OmniAction[] = useMemo(() => {
+    return getSeenIssues().map(issue => ({
+      key: `recent-issue-${issue.id}`,
+      areaKey: 'recent',
+      section: 'Recently Viewed',
+      label: issue.issue.title || issue.issue.id,
+      actionIcon: <IconDocs />,
+      onAction: () => {
+        navigate(normalizeUrl(`/issues/${issue.id}`));
+      },
+    }));
+  }, [navigate, getSeenIssues]);
+
   // Get dynamic actions from all sources (no filtering - palette handles the search)
   const apiActions = useApiDynamicActions(debouncedQuery);
   const formActions = useFormDynamicActions();
@@ -50,7 +68,7 @@ export function OmniSearchPalette() {
 
   const llmRoutingActions = useLLMRoutingDynamicActions(debouncedQuery);
 
-  // Combine all dynamic actions
+  // Combine all dynamic actions (excluding recent issues for now)
   const dynamicActions = useMemo(
     () => [
       ...routeActions,
@@ -65,7 +83,9 @@ export function OmniSearchPalette() {
   const [filteredAvailableActions, setFilteredAvailableActions] = useState<OmniAction[]>(
     []
   );
+  const [filteredRecentIssues, setFilteredRecentIssues] = useState<OmniAction[]>([]);
 
+  // Fuzzy search for general actions
   useEffect(() => {
     createFuzzySearch([...availableActions, ...dynamicActions], {
       keys: ['label', 'fullLabel', 'details'],
@@ -77,9 +97,29 @@ export function OmniSearchPalette() {
     });
   }, [availableActions, debouncedQuery, dynamicActions]);
 
+  // Fuzzy search for recent issues separately to control the limit
+  useEffect(() => {
+    if (debouncedQuery) {
+      createFuzzySearch(allRecentIssueActions, {
+        keys: ['label'],
+        getFn: strGetFn,
+        shouldSort: false,
+      }).then(f => {
+        // Fuzzy search ALL recent issues, then limit to max 5
+        const searchResults = f.search(debouncedQuery).map(r => r.item);
+        setFilteredRecentIssues(searchResults.slice(0, 5));
+      });
+    } else {
+      // When no query, show first 5 recent issues
+      setFilteredRecentIssues(allRecentIssueActions.slice(0, 5));
+    }
+  }, [allRecentIssueActions, debouncedQuery]);
+
   const grouped = useMemo(() => {
     // Filter actions based on query
-    const actions = debouncedQuery ? filteredAvailableActions : availableActions;
+    const actions = debouncedQuery
+      ? [...filteredAvailableActions, ...filteredRecentIssues]
+      : [...filteredRecentIssues, ...availableActions];
 
     // always include the llm routing actions if possible
     actions.push(...llmRoutingActions);
@@ -100,7 +140,13 @@ export function OmniSearchPalette() {
       const items = bySection.get(sectionKey) ?? [];
       return {sectionKey, label, items};
     });
-  }, [availableActions, debouncedQuery, filteredAvailableActions, llmRoutingActions]);
+  }, [
+    availableActions,
+    debouncedQuery,
+    filteredAvailableActions,
+    filteredRecentIssues,
+    llmRoutingActions,
+  ]);
 
   // Get the first item's key to set as the default selected value
   const firstItemKey = useMemo(() => {
