@@ -112,7 +112,7 @@ function AccountDetails() {
       </Form>
       <AvatarChooser
         endpoint="/users/me/avatar/"
-        supportedTypes={['letter_avatar', 'gravatar', 'upload']}
+        supportedTypes={['letter_avatar', 'gravatar', 'upload', 'ai_generated']}
         model={user}
         type="user"
         onSave={resp => handleSubmitSuccess(resp as ChangeAvatarUser)}

@@ -1,7 +1,9 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import type {BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
@@ -15,21 +17,30 @@ import {Hovercard} from 'sentry/components/hovercard';
 import Panel from 'sentry/components/panels/panel';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {IconImage, IconOpen, IconUpload} from 'sentry/icons';
+import {IconImage, IconOpen, IconStar, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Avatar} from 'sentry/types/core';
 import type {
   SentryApp,
-  SentryAppAvatarPhotoType,
   SentryAppAvatar as SentryAppAvatarType,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
+import {AiAvatarModal} from './aiAvatarModal';
 import {AvatarCropper} from './avatarCropper';
 import {useUploader} from './useUploader';
+
+interface AvatarSaveData {
+  ai_prompt?: string;
+  avatar_photo?: string;
+  avatar_type?: string;
+  color?: boolean;
+  photoType?: string;
+}
 
 interface SimpleAvatar {
   avatar?: Avatar;
@@ -65,6 +76,25 @@ interface AvatarChooserProps {
 const MIN_DIMENSION = 256;
 const MAX_DIMENSION = 1024;
 
+// Helper function to get avatar from model
+const getAvatarFromModel = (
+  targetModel: SimpleAvatar | SentryApp,
+  isSentryApp: boolean,
+  type: AvatarChooserType
+) => {
+  if ('avatar' in targetModel) {
+    return targetModel.avatar;
+  }
+
+  if (isSentryApp) {
+    const sentryApp = targetModel as SentryApp;
+    const isColor = type === 'sentryAppColor';
+    return sentryApp.avatars?.find(appAvatar => appAvatar.color === isColor);
+  }
+
+  return undefined;
+};
+
 // XXX(epurkhiser): This component knows WAY too much about sentry apps and
 // makes a lot of assumptions otherwise about how avatar are stored. We should
 // refactor the interface and split this up more.
@@ -86,41 +116,99 @@ function AvatarChooser({
   const [cropperOpen, setCropperOpen] = useState(false);
   const [croppedAvatar, setCroppedAvatar] = useState<string | null>(null);
 
+  const saveAvatarMutation = useMutation({
+    mutationFn: (data: AvatarSaveData) =>
+      api.requestPromise(endpoint, {method: 'PUT', data}),
+    onSuccess: resp => {
+      setModel(resp);
+      onSave?.(resp);
+      addSuccessMessage(t('Successfully saved avatar preferences'));
+    },
+    onError: (error: RequestError) => {
+      const avatarPhotoErrors = error?.responseJSON?.avatar_photo;
+      if (Array.isArray(avatarPhotoErrors) && avatarPhotoErrors.length) {
+        avatarPhotoErrors.forEach(msg => addErrorMessage(msg));
+      } else {
+        addErrorMessage(t('There was an error saving your preferences.'));
+      }
+    },
+  });
+
   const isSentryApp = ['sentryAppColor', 'sentryAppSimple'].includes(type);
 
-  const replaceAvatar = (avatar: Avatar) => {
-    if (['user', 'organization', 'docIntegration'].includes(type)) {
-      setModel(prevModel => ({...prevModel, avatar}));
-      return;
-    }
-
-    if (isSentryApp) {
-      setModel(prevModel => {
-        const sentryApp = prevModel as SentryApp;
-        const color = type === 'sentryAppColor';
-        const avatarIndex = sentryApp.avatars?.findIndex(
-          appAvatar => appAvatar.color === color
-        );
-        const avatars = [...(sentryApp.avatars ?? [])];
-
-        const replacmentAvatar: SentryAppAvatarType = {
-          ...avatar,
-          color,
-          photoType: color ? 'logo' : 'icon',
+  // Keep track of avatars by type to preserve them when switching
+  const [avatarsByType, setAvatarsByType] = useState<Partial<Record<AvatarType, Avatar>>>(
+    () => {
+      // Initialize with any existing avatar from the model
+      const initialAvatar = getAvatarFromModel(propsModel, isSentryApp, type);
+      if (initialAvatar?.avatarType && initialAvatar?.avatarUrl) {
+        return {
+          [initialAvatar.avatarType]: initialAvatar,
         };
-
-        if (avatarIndex === undefined || avatarIndex === -1) {
-          avatars.push(replacmentAvatar);
-        } else {
-          avatars[avatarIndex] = replacmentAvatar;
-        }
-        return {...sentryApp, avatars} as SimpleAvatar;
-      });
-      return;
+      }
+      return {};
     }
+  );
 
-    throw new Error('Invalid avatar chooser type');
-  };
+  const replaceAvatar = useCallback(
+    (avatar: Avatar) => {
+      // Store avatar by type for preservation when switching
+      if (avatar.avatarType && avatar.avatarUrl) {
+        setAvatarsByType(prev => ({
+          ...prev,
+          [avatar.avatarType]: avatar,
+        }));
+      }
+
+      if (['user', 'organization', 'docIntegration'].includes(type)) {
+        setModel(prevModel => ({...prevModel, avatar}));
+        return;
+      }
+
+      if (isSentryApp) {
+        setModel(prevModel => {
+          const sentryApp = prevModel as SentryApp;
+          const color = type === 'sentryAppColor';
+          const avatarIndex = sentryApp.avatars?.findIndex(
+            appAvatar => appAvatar.color === color
+          );
+          const avatars = [...(sentryApp.avatars ?? [])];
+
+          const replacmentAvatar: SentryAppAvatarType = {
+            ...avatar,
+            color,
+            photoType: color ? 'logo' : 'icon',
+          };
+
+          if (avatarIndex === undefined || avatarIndex === -1) {
+            avatars.push(replacmentAvatar);
+          } else {
+            avatars[avatarIndex] = replacmentAvatar;
+          }
+          return {...sentryApp, avatars} as SimpleAvatar;
+        });
+        return;
+      }
+
+      throw new Error('Invalid avatar chooser type');
+    },
+    [type, isSentryApp]
+  );
+
+  const handleAvatarSave = useCallback(
+    (entity: any) => {
+      if (entity.avatar) {
+        if (entity._croppedData) {
+          setCroppedAvatar(entity._croppedData);
+        }
+        replaceAvatar({
+          ...entity.avatar,
+          avatarType: 'ai_generated' as const,
+        });
+      }
+    },
+    [replaceAvatar]
+  );
 
   const getAvatar = (targetModel: SimpleAvatar | SentryApp) => {
     if ('avatar' in targetModel) {
@@ -137,13 +225,18 @@ function AvatarChooser({
   };
 
   const resetToType = (avatarType: AvatarType) => {
-    const propsAvatar = getAvatar(propsModel);
-
-    replaceAvatar({
-      ...propsAvatar,
-      avatarUuid: propsAvatar?.avatarUuid ?? '',
-      avatarType,
-    });
+    const storedAvatar = avatarsByType[avatarType];
+    if (storedAvatar) {
+      replaceAvatar(storedAvatar);
+    } else {
+      const propsAvatar = getAvatar(propsModel);
+      replaceAvatar({
+        ...propsAvatar,
+        avatarUuid: propsAvatar?.avatarUuid ?? '',
+        avatarType,
+        avatarUrl: null,
+      });
+    }
   };
 
   const handleSaveAvatar = () => {
@@ -151,15 +244,13 @@ function AvatarChooser({
     const base64Data = croppedAvatar?.split(',')[1];
     setCroppedAvatar(null);
 
-    const data: {
-      avatar_photo?: string;
-      avatar_type?: string;
-      color?: boolean;
-      photoType?: SentryAppAvatarPhotoType;
-    } = {avatar_type: avatarType};
+    const data: AvatarSaveData = {avatar_type: avatarType};
 
-    // If an image has been uploaded, then another option is selected, we
-    // should not submit the uploaded image
+    if (avatarType === 'ai_generated' && base64Data) {
+      data.avatar_photo = base64Data;
+      data.ai_prompt = 'cropped_ai_avatar';
+    }
+
     if (avatarType === 'upload') {
       data.avatar_photo = base64Data;
     }
@@ -169,23 +260,7 @@ function AvatarChooser({
       data.photoType = data.color ? 'logo' : 'icon';
     }
 
-    api.request(endpoint, {
-      method: 'PUT',
-      data,
-      success: resp => {
-        setModel(resp);
-        onSave?.(resp);
-        addSuccessMessage(t('Successfully saved avatar preferences'));
-      },
-      error: resp => {
-        const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
-        if (avatarPhotoErrors.length) {
-          avatarPhotoErrors.map(addErrorMessage);
-        } else {
-          addErrorMessage(t('There was an error saving your preferences.'));
-        }
-      },
-    });
+    saveAvatarMutation.mutate(data);
   };
 
   const {fileInput, openUpload, objectUrl} = useUploader({
@@ -208,6 +283,13 @@ function AvatarChooser({
       tct('Manage your Gravatar on [gravatarLink:gravatar.com].', {
         gravatarLink: <ExternalLink href="https://gravatar.com" />,
       }),
+    ],
+    [
+      'ai_generated',
+      t('Generate with AI'),
+      t(
+        'Use a custom prompt, predefined suggestions, or let us generate something fun for you'
+      ),
     ],
   ];
   const choices = options.filter(([key]) => supportedTypes.includes(key));
@@ -239,6 +321,30 @@ function AvatarChooser({
     </AvatarActions>
   );
 
+  const aiActions = (
+    <AvatarActions>
+      <Button
+        aria-label={t('Open AI Generator')}
+        title={t('Open AI Generator')}
+        size="zero"
+        borderless
+        icon={<IconOpen />}
+        onClick={() => {
+          const currentEntity = model as AvatarUser | Organization;
+
+          openModal(deps => (
+            <AiAvatarModal
+              {...deps}
+              endpoint={endpoint}
+              currentEntity={currentEntity}
+              onSave={handleAvatarSave}
+            />
+          ));
+        }}
+      />
+    </AvatarActions>
+  );
+
   const emptyGravatar = (
     <BlankAvatar>
       <IconImage size="xl" />
@@ -253,9 +359,16 @@ function AvatarChooser({
     </BlankUploader>
   );
 
+  const emptyAiGenerated = (
+    <BlankAvatar>
+      <IconStar size="xl" />
+    </BlankAvatar>
+  );
+
   const backupAvatars: Partial<Record<AvatarType, React.ReactNode>> = {
     gravatar: emptyGravatar,
     upload: emptyUploader,
+    ai_generated: emptyAiGenerated,
   };
 
   const sharedAvatarProps: Partial<Omit<BaseAvatarProps, 'ref'>> = {
@@ -334,6 +447,7 @@ function AvatarChooser({
             {avatarPreview}
             {avatarType === 'gravatar' && gravatarActions}
             {avatarType === 'upload' && !disabled && uploadActions}
+            {avatarType === 'ai_generated' && !disabled && aiActions}
           </AvatarPreview>
         </CropperHovercard>
         <RadioGroup
@@ -349,8 +463,12 @@ function AvatarChooser({
       </AvatarChooserBody>
       <AvatarChooserFooter>
         {help && <AvatarHelp>{help}</AvatarHelp>}
-        <Button priority="primary" onClick={handleSaveAvatar} disabled={disabled}>
-          {t('Save Avatar')}
+        <Button
+          priority="primary"
+          onClick={handleSaveAvatar}
+          disabled={disabled || saveAvatarMutation.isPending}
+        >
+          {saveAvatarMutation.isPending ? t('Saving...') : t('Save Avatar')}
         </Button>
       </AvatarChooserFooter>
     </Panel>

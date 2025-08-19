@@ -17,8 +17,14 @@ AvatarT = TypeVar("AvatarT", bound=AvatarBase)
 class AvatarSerializer(serializers.Serializer):
     avatar_photo = AvatarField(required=False)
     avatar_type = serializers.ChoiceField(
-        choices=(("upload", "upload"), ("gravatar", "gravatar"), ("letter_avatar", "letter_avatar"))
+        choices=(
+            ("upload", "upload"),
+            ("gravatar", "gravatar"),
+            ("letter_avatar", "letter_avatar"),
+            ("ai_generated", "ai_generated"),
+        )
     )
+    ai_prompt = serializers.CharField(required=False, max_length=500, allow_blank=True)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
@@ -41,6 +47,9 @@ class AvatarSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {"avatar_type": "Cannot set avatar_type to upload without avatar_photo"}
                 )
+        elif attrs.get("avatar_type") == "ai_generated":
+            if "ai_prompt" not in attrs:
+                attrs["ai_prompt"] = ""
         return attrs
 
 

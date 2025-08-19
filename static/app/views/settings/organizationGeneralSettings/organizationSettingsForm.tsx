@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AvatarChooser from 'sentry/components/avatarChooser';
@@ -45,9 +44,14 @@ interface Props {
 function OrganizationSettingsForm({initialData, onSave}: Props) {
   const location = useLocation();
   const organization = useOrganization();
+
   const endpoint = `/organizations/${organization.slug}/`;
 
   const access = useMemo(() => new Set(organization.access), [organization]);
+
+  const handleAvatarSave = () => {
+    setTimeout(() => window.location.reload(), 500);
+  };
 
   const jsonFormSettings = useMemo(
     () => ({
@@ -148,10 +152,10 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       />
       <AvatarChooser
         type="organization"
-        supportedTypes={['upload', 'letter_avatar']}
+        supportedTypes={['upload', 'letter_avatar', 'ai_generated']}
         endpoint={`${endpoint}avatar/`}
         model={initialData}
-        onSave={updateOrganization}
+        onSave={handleAvatarSave}
         disabled={!access.has('org:write')}
       />
     </Form>

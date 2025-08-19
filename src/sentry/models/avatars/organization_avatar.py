@@ -15,7 +15,7 @@ class OrganizationAvatar(AvatarBase):
     and contains their preferences for avatar type.
     """
 
-    AVATAR_TYPES = ((0, "letter_avatar"), (1, "upload"))
+    AVATAR_TYPES = ((0, "letter_avatar"), (1, "upload"), (2, "ai_generated"))
 
     FILE_TYPE = "avatar.file"
 
