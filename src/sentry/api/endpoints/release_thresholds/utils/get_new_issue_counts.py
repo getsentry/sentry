@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any, TypedDict
 
 from django.db.models import CharField, Count, Q, QuerySet, Value
 
@@ -10,6 +10,14 @@ if TYPE_CHECKING:
     from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
 
 
+class GroupCountsAnnotation(TypedDict):
+    count: Any
+    threshold_id: Any
+
+
+GroupWithCounts = Annotated[Group, GroupCountsAnnotation]
+
+
 def get_new_issue_counts(
     organization_id: int, thresholds: list[EnrichedThreshold]
 ) -> dict[str, int]:
@@ -17,7 +25,7 @@ def get_new_issue_counts(
     constructs a query for each threshold, filtering on project
     NOTE: group messages are guaranteed to have a related groupenvironment
     """
-    queryset: QuerySet | None = None
+    queryset: QuerySet[GroupWithCounts, dict[str, Any]] | None = None
     for t in thresholds:
         env: dict[str, Any] = t.get("environment") or {}
         query = Q(
