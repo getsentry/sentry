@@ -202,6 +202,14 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
             sourceMap: true,
             // The "dev-only" option does not seem to apply correctly
             autoLabel: DEV_MODE ? 'always' : 'never',
+            importMap: {
+              'sentry/utils/theme/theme.chonk': {
+                chonkStyled: {
+                  canonicalImport: ['@emotion/styled', 'default'],
+                  styledBaseImport: ['sentry/utils/theme/theme.chonk', 'chonkStyled'],
+                },
+              },
+            },
           },
         ],
         [
