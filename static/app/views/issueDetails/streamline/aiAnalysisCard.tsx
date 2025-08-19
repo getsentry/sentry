@@ -1,13 +1,14 @@
-import {useState, useEffect, useMemo} from 'react';
+import {useState, useEffect, useMemo, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {IconChevron, IconFocus, IconSeer} from 'sentry/icons';
+import {IconChevron, IconCode, IconFocus, IconSeer} from 'sentry/icons';
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
-import type {AutofixRootCauseData} from 'sentry/components/events/autofix/types';
+import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
+import type {AutofixRootCauseData, AutofixCodebaseChange} from 'sentry/components/events/autofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -70,6 +71,7 @@ interface AutofixResponse {
       status: 'COMPLETED' | 'PENDING' | 'FAILED';
       title: string;
       causes?: AutofixRootCauseData[];
+      changes?: AutofixCodebaseChange[];
     }>;
   };
 }
@@ -369,7 +371,22 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
     } : null;
   };
 
+  // Get solution data from autofix response
+  const getSolutionData = (): {changes: AutofixCodebaseChange[], runId: string} | null => {
+    if (!autofixData?.autofix?.steps || !autofixData.autofix.run_id) return null;
+    
+    const changesStep = autofixData.autofix.steps.find(
+      step => step.key === 'changes'
+    );
+    
+    return changesStep?.changes ? {
+      changes: changesStep.changes,
+      runId: autofixData.autofix.run_id
+    } : null;
+  };
+
   const rootCauseData = getRootCauseData();
+  const solutionData = getSolutionData();
 
   return (
     <AILayoutContainer>
@@ -389,7 +406,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
           
           <CardContent>
             {analysisData.success ? (
-              <React.Fragment>
+              <Fragment>
                 {/* Issue Title */}
                 <IssueTitle>{analysisData.analysis.title}</IssueTitle>
                 
@@ -460,7 +477,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                     <ReasoningContent>{analysisData.analysis.reasoning}</ReasoningContent>
                   )}
                 </AnalysisSection>
-              </React.Fragment>
+              </Fragment>
             ) : (
               <ErrorMessage>
                 {t('Severity assessment failed: %s', analysisData.error || 'Unknown error')}
@@ -514,6 +531,38 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               </CardContent>
             </RootCauseCard>
           </RootCauseWrapper>
+        )}
+
+        {/* Solution Section */}
+        {solutionData && (
+          <SolutionWrapper>
+            <SolutionCard>
+              <CardHeader>
+                <HeaderLeft>
+                  <CardTitle>
+                    <IconCode size="md" color="green400" />
+                    {t('Solution')}
+                  </CardTitle>
+                </HeaderLeft>
+              </CardHeader>
+              
+              <CardContent>
+                <AutofixChanges
+                  step={{
+                    id: 'changes',
+                    index: 0,
+                    progress: [],
+                    status: 'COMPLETED' as const,
+                    title: 'Changes',
+                    type: 'changes' as const,
+                    changes: solutionData.changes,
+                  }}
+                  groupId={group.id}
+                  runId={solutionData.runId}
+                />
+              </CardContent>
+            </SolutionCard>
+          </SolutionWrapper>
         )}
       </MainContent>
 
@@ -1100,4 +1149,12 @@ const RootCauseDescription = styled('div')`
     font-family: ${p => p.theme.text.familyMono};
     font-size: ${p => p.theme.fontSize.sm};
   }
+`;
+
+const SolutionWrapper = styled('div')`
+  max-width: 768px;
+`;
+
+const SolutionCard = styled(Card)`
+  width: 100%;
 `;
