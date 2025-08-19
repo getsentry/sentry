@@ -17,6 +17,7 @@ type Props = {
   onCancel?: () => void;
   onLoad?: (data: string) => string;
   onSave?: (data: string) => string;
+  ref?: React.RefObject<HTMLTextAreaElement>;
   source?: string;
   text?: string;
 } & InputProps;
@@ -59,6 +60,7 @@ function NoteInputWithStorage({
   onSave,
   text,
   source,
+  ref,
   ...props
 }: Props) {
   const hasStreamlinedUi = useHasStreamlinedUI();
@@ -140,6 +142,7 @@ function NoteInputWithStorage({
   if (hasStreamlinedUi && source === 'issue-details') {
     return (
       <StreamlinedNoteInput
+        ref={ref}
         text={value}
         onCreate={handleCreate}
         onChange={handleChange}
@@ -152,7 +155,13 @@ function NoteInputWithStorage({
   }
 
   return (
-    <NoteInput {...props} text={value} onCreate={handleCreate} onChange={handleChange} />
+    <NoteInput
+      {...props}
+      ref={ref}
+      text={value}
+      onCreate={handleCreate}
+      onChange={handleChange}
+    />
   );
 }
 

@@ -31,6 +31,7 @@ type Props = {
   onCreate?: (data: NoteType) => void;
   onUpdate?: (data: NoteType) => void;
   placeholder?: string;
+  ref?: React.RefObject<HTMLTextAreaElement>;
   /**
    * The note text itself
    */
@@ -46,6 +47,7 @@ function StreamlinedNoteInput({
   noteId,
   errorJSON,
   placeholder,
+  ref,
 }: Props) {
   const theme = useTheme();
 
@@ -145,6 +147,7 @@ function StreamlinedNoteInput({
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <MentionsInput
+        inputRef={ref}
         aria-label={existingItem ? t('Edit comment') : t('Add a comment')}
         aria-errormessage={errorMessage ? errorId : undefined}
         style={{

@@ -24,7 +24,6 @@ import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useDrawerShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useDrawerShortcuts';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
-import {useSidebarShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useSidebarShortcuts';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
@@ -61,19 +60,6 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
     onOpenSimilarIssuesDrawer: openSimilarIssuesDrawer,
     onOpenMergedIssuesDrawer: openMergedIssuesDrawer,
     onOpenSeerDrawer: openSeerDrawer,
-  });
-
-  // Initialize sidebar shortcuts
-  useSidebarShortcuts({
-    onFocusComment: () => {
-      // Focus the comment input - look for the MentionsInput with the specific aria-label
-      const commentInput = document.querySelector(
-        'textarea[aria-label="Add a comment"]'
-      ) as HTMLTextAreaElement;
-      if (commentInput) {
-        commentInput.focus();
-      }
-    },
   });
 
   const {userParticipants, teamParticipants, viewers} = useMemo(() => {

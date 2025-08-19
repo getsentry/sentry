@@ -43,6 +43,7 @@ type Props = {
   onEditFinish?: () => void;
   onUpdate?: (data: NoteType) => void;
   placeholder?: string;
+  ref?: React.RefObject<HTMLTextAreaElement>;
   /**
    * The note text itself
    */
@@ -60,6 +61,7 @@ function NoteInput({
   busy = false,
   placeholder = t('Add a comment.\nTag users with @, or teams with #'),
   minHeight = 140,
+  ref,
 }: Props) {
   const theme = useTheme();
 
@@ -174,6 +176,7 @@ function NoteInput({
               value={value}
               required
               autoFocus
+              inputRef={ref}
             >
               <Mention
                 trigger="@"
