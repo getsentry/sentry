@@ -392,6 +392,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         # The second non-js frame should be untouched
         assert raw_frame_list[2] == frame_list[2]
 
+    @pytest.mark.skip(reason="flaky: #98023")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_sourcemap_webpack(self) -> None:
