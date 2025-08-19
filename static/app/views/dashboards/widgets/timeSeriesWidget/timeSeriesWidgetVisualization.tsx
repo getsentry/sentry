@@ -58,6 +58,7 @@ import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
 import type {Plottable} from './plottables/plottable';
+import {IncidentSeries, type Incident} from './incidentSeries';
 import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
@@ -107,9 +108,19 @@ export interface TimeSeriesWidgetVisualizationProps
    */
   chartRef?: React.Ref<ReactEchartsRef>;
   /**
+   * Array of ongoing incidents to highlight on the chart
+   */
+  incidents?: Incident[];
+
+  /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
+
+  /**
+   * Callback when an incident region is clicked
+   */
+  onIncidentClick?: (incident: Incident) => void;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -561,7 +572,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     seriesIndexToPlottableMapRanges
   );
 
-  const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
+  // Create incident series with markArea for highlighting incident regions
+  const incidentSeries = props.incidents
+    ? IncidentSeries(props.incidents, props.onIncidentClick)
+    : [];
+
+  const allSeries = [...seriesFromPlottables, releaseSeries, ...incidentSeries].filter(
+    defined
+  );
 
   const runHandler = (
     batch: {dataIndex: number; seriesIndex?: number},
@@ -588,6 +606,20 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   const handleClick: EChartClickHandler = event => {
+    // Check if this is an incident series click
+    if (event.seriesType === 'line' && event.seriesName) {
+      const clickedIncident = props.incidents?.find(
+        incident => incident.title === event.seriesName
+      );
+
+      if (clickedIncident) {
+        // This is an incident click - handle it
+        props.onIncidentClick?.(clickedIncident);
+        return; // Don't process as a regular series click
+      }
+    }
+
+    // Handle regular series clicks
     runHandler(event, 'onClick');
   };
 
