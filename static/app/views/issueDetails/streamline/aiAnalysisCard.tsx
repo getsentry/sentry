@@ -14,6 +14,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface AIAnalysisCardProps {
@@ -80,11 +81,25 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
   const [error, setError] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const isAIMode = searchParams.get('aiMode') === 'true';
   
   const api = useApi();
   const organization = useOrganization();
+
+  const toggleAIMode = () => {
+    const newQuery = {...(location.query || {})};
+    if (isAIMode) {
+      delete newQuery.aiMode;
+    } else {
+      newQuery.aiMode = 'true';
+    }
+    navigate({
+      ...location,
+      query: newQuery,
+    });
+  };
 
   // Auto-fetch analysis when component mounts in AI mode
   useEffect(() => {
@@ -164,18 +179,18 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
 
   if (loading) {
     return (
-      <AIContainer>
+      <AILayoutContainer>
         <LoadingIndicator />
         <LoadingText>
           {t('Running AI severity assessment...')}
         </LoadingText>
-      </AIContainer>
+      </AILayoutContainer>
     );
   }
 
   if (error && !analysisData) {
     return (
-      <AIContainer>
+      <AILayoutContainer>
         <ErrorCard>
           <CardHeader>
             <CardTitle>
@@ -190,13 +205,13 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
             </Button>
           </CardContent>
         </ErrorCard>
-      </AIContainer>
+      </AILayoutContainer>
     );
   }
 
   if (!analysisData) {
     return (
-      <AIContainer>
+      <AILayoutContainer>
         <GetStartedCard>
           <CardHeader>
             <CardTitle>
@@ -215,7 +230,7 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
             </Button>
           </CardContent>
         </GetStartedCard>
-      </AIContainer>
+      </AILayoutContainer>
     );
   }
 
@@ -278,125 +293,175 @@ export function AIAnalysisCard({group, event}: AIAnalysisCardProps) {
   const rootCauseData = getRootCauseData();
 
   return (
-    <AIContainer>
-      <SeverityCard>
-        <CardHeader>
-          <HeaderLeft>
-            <CardTitle>
-              <IconSeer size="md" />
-              {t('Severity Assessment')}
-            </CardTitle>
-            <SeverityPill colors={getSeverityColor(analysisData.analysis.severity)}>
-              {analysisData.analysis.severity}
-            </SeverityPill>
-          </HeaderLeft>
-        </CardHeader>
-        
-        <CardContent>
-          {analysisData.success ? (
-            <React.Fragment>
-              {/* Issue Title */}
-              <IssueTitle>{analysisData.analysis.title}</IssueTitle>
-              
-              {/* Timeline and Metrics Row */}
-              <TimelineMetricsRow>
-                <TimelineSection>
-                  <TimelineItem>
-                    <TimelineLabel>{t('First seen:')}</TimelineLabel>
-                    <TimelineValue>{formatTimeAgo(analysisData.analysis.timeline.firstSeen)}</TimelineValue>
-                  </TimelineItem>
-                  <TimelineItem>
-                    <TimelineLabel>{t('Last seen:')}</TimelineLabel>
-                    <TimelineValue>{formatTimeAgo(analysisData.analysis.timeline.lastSeen)}</TimelineValue>
-                  </TimelineItem>
-                </TimelineSection>
+    <AILayoutContainer>
+      <MainContent>
+        <SeverityCard>
+          <CardHeader>
+            <HeaderLeft>
+              <CardTitle>
+                <IconSeer size="md" />
+                {t('Severity Assessment')}
+              </CardTitle>
+              <SeverityPill colors={getSeverityColor(analysisData.analysis.severity)}>
+                {analysisData.analysis.severity}
+              </SeverityPill>
+            </HeaderLeft>
+          </CardHeader>
+          
+          <CardContent>
+            {analysisData.success ? (
+              <React.Fragment>
+                {/* Issue Title */}
+                <IssueTitle>{analysisData.analysis.title}</IssueTitle>
                 
-                <MetricsSection>
-                  <MetricItem>
-                    <MetricLabel>{t('Events')}</MetricLabel>
-                    <MetricValue>
-                      {analysisData.analysis.metrics.events.count.toLocaleString()}
-                      <MetricSubtitle>over {analysisData.analysis.metrics.events.timeframe}</MetricSubtitle>
-                    </MetricValue>
-                  </MetricItem>
+                {/* Timeline and Metrics Row */}
+                <TimelineMetricsRow>
+                  <TimelineSection>
+                    <TimelineItem>
+                      <TimelineLabel>{t('First seen:')}</TimelineLabel>
+                      <TimelineValue>{formatTimeAgo(analysisData.analysis.timeline.firstSeen)}</TimelineValue>
+                    </TimelineItem>
+                    <TimelineItem>
+                      <TimelineLabel>{t('Last seen:')}</TimelineLabel>
+                      <TimelineValue>{formatTimeAgo(analysisData.analysis.timeline.lastSeen)}</TimelineValue>
+                    </TimelineItem>
+                  </TimelineSection>
                   
-                  <MetricItem>
-                    <MetricLabel>{t('Failure Rate')}</MetricLabel>
-                    <MetricValue>{analysisData.analysis.metrics.failureRate.percentage}%</MetricValue>
-                  </MetricItem>
-                  
-                  <MetricItem>
-                    <MetricLabel>{analysisData.analysis.metrics.usersAffected.label}</MetricLabel>
-                    <MetricValue>{analysisData.analysis.metrics.usersAffected.count}</MetricValue>
-                  </MetricItem>
-                </MetricsSection>
-              </TimelineMetricsRow>
+                  <MetricsSection>
+                    <MetricItem>
+                      <MetricLabel>{t('Events')}</MetricLabel>
+                      <MetricValue>
+                        {analysisData.analysis.metrics.events.count.toLocaleString()}
+                        <MetricSubtitle>over {analysisData.analysis.metrics.events.timeframe}</MetricSubtitle>
+                      </MetricValue>
+                    </MetricItem>
+                    
+                    <MetricItem>
+                      <MetricLabel>{t('Failure Rate')}</MetricLabel>
+                      <MetricValue>{analysisData.analysis.metrics.failureRate.percentage}%</MetricValue>
+                    </MetricItem>
+                    
+                    <MetricItem>
+                      <MetricLabel>{analysisData.analysis.metrics.usersAffected.label}</MetricLabel>
+                      <MetricValue>{analysisData.analysis.metrics.usersAffected.count}</MetricValue>
+                    </MetricItem>
+                  </MetricsSection>
+                </TimelineMetricsRow>
 
-              {/* Analysis Sections */}
-              <AnalysisSection>
-                <SectionTitle>{t('Impact Assessment')}</SectionTitle>
-                <ImpactContent>
-                  {analysisData.analysis.impact.description.split('•').filter(Boolean).map((point, index) => (
-                    <ImpactPoint key={index}>• {point.trim()}</ImpactPoint>
-                  ))}
-                </ImpactContent>
-              </AnalysisSection>
+                {/* Analysis Sections */}
+                <AnalysisSection>
+                  <SectionTitle>{t('Impact Assessment')}</SectionTitle>
+                  <ImpactContent>
+                    {analysisData.analysis.impact.description.split('•').filter(Boolean).map((point, index) => (
+                      <ImpactPoint key={index}>• {point.trim()}</ImpactPoint>
+                    ))}
+                  </ImpactContent>
+                </AnalysisSection>
 
-              <AnalysisSection>
-                <SectionTitle>{t('Volume Analysis')}</SectionTitle>
-                <VolumeContent>
-                  <VolumeItem>
-                    <strong>{t('Trending:')}</strong> {analysisData.analysis.volume.trending}
-                  </VolumeItem>
-                  <VolumeItem>
-                    <strong>{t('Reach:')}</strong> {analysisData.analysis.volume.reach}
-                  </VolumeItem>
-                </VolumeContent>
-              </AnalysisSection>
+                <AnalysisSection>
+                  <SectionTitle>{t('Volume Analysis')}</SectionTitle>
+                  <VolumeContent>
+                    <VolumeItem>
+                      <strong>{t('Trending:')}</strong> {analysisData.analysis.volume.trending}
+                    </VolumeItem>
+                    <VolumeItem>
+                      <strong>{t('Reach:')}</strong> {analysisData.analysis.volume.reach}
+                    </VolumeItem>
+                  </VolumeContent>
+                </AnalysisSection>
 
-              <AnalysisSection>
-                <CollapsibleSectionHeader onClick={() => setShowReasoning(!showReasoning)}>
-                  <ChevronIcon direction={showReasoning ? 'down' : 'right'}>
-                    <IconChevron />
-                  </ChevronIcon>
-                  <SectionTitle>{t('Reasoning')}</SectionTitle>
-                </CollapsibleSectionHeader>
-                {showReasoning && (
-                  <ReasoningContent>{analysisData.analysis.reasoning}</ReasoningContent>
-                )}
-              </AnalysisSection>
-            </React.Fragment>
-          ) : (
-            <ErrorMessage>
-              {t('Severity assessment failed: %s', analysisData.error || 'Unknown error')}
-            </ErrorMessage>
-          )}
-        </CardContent>
-      </SeverityCard>
+                <AnalysisSection>
+                  <CollapsibleSectionHeader onClick={() => setShowReasoning(!showReasoning)}>
+                    <ChevronIcon direction={showReasoning ? 'down' : 'right'}>
+                      <IconChevron />
+                    </ChevronIcon>
+                    <SectionTitle>{t('Reasoning')}</SectionTitle>
+                  </CollapsibleSectionHeader>
+                  {showReasoning && (
+                    <ReasoningContent>{analysisData.analysis.reasoning}</ReasoningContent>
+                  )}
+                </AnalysisSection>
+              </React.Fragment>
+            ) : (
+              <ErrorMessage>
+                {t('Severity assessment failed: %s', analysisData.error || 'Unknown error')}
+              </ErrorMessage>
+            )}
+          </CardContent>
+        </SeverityCard>
 
-      {/* Root Cause Analysis Section */}
-      {rootCauseData && (
-        <RootCauseWrapper>
-          <RootCauseCard>
-            <AutofixRootCause
-              causes={rootCauseData.causes}
-              groupId={group.id}
-              runId={rootCauseData.runId}
-              rootCauseSelection={null}
-              event={event}
-            />
-          </RootCauseCard>
-        </RootCauseWrapper>
-      )}
-    </AIContainer>
+        {/* Root Cause Analysis Section */}
+        {rootCauseData && (
+          <RootCauseWrapper>
+            <RootCauseCard>
+              <AutofixRootCause
+                causes={rootCauseData.causes}
+                groupId={group.id}
+                runId={rootCauseData.runId}
+                rootCauseSelection={null}
+                event={event}
+              />
+            </RootCauseCard>
+          </RootCauseWrapper>
+        )}
+      </MainContent>
+
+      <Sidebar>
+        <SidebarCard>
+          <CardContent>
+            <Button
+              size="xs"
+              priority={isAIMode ? 'primary' : 'default'}
+              onClick={toggleAIMode}
+              icon={<span>🤖</span>}
+              title={t('Toggle AI-powered analysis of this issue')}
+              aria-label={t('Toggle AI analysis mode')}
+            >
+              {isAIMode ? t('Seer Mode: ON') : t('Seer Mode: OFF')}
+            </Button>
+            {/* Empty placeholder for additional content */}
+          </CardContent>
+        </SidebarCard>
+      </Sidebar>
+    </AILayoutContainer>
   );
 }
 
-const AIContainer = styled('div')`
+const AILayoutContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(3)};
+  padding: ${space(2)} 0;
+  padding-right: 340px; /* Account for 320px sidebar + gap */
+  align-items: flex-start;
+`;
+
+const MainContent = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(3)};
-  padding: ${space(2)} 0;
+  flex: 1;
+`;
+
+const Sidebar = styled('div')`
+  width: 320px;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  z-index: 100;
+  background: ${p => p.theme.background};
+  border-left: 1px solid ${p => p.theme.border};
+`;
+
+const SidebarCard = styled(Card)`
+  height: 100%;
+  border-radius: 0;
+  border: none;
+  border-left: 1px solid ${p => p.theme.border};
+  display: flex;
+  flex-direction: column;
 `;
 
 const SeverityCard = styled(Card)`

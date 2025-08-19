@@ -178,16 +178,6 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
-            <Button
-              size="xs"
-              priority={isAIMode ? 'primary' : 'default'}
-              onClick={toggleAIMode}
-              icon={<span>🤖</span>}
-              title={t('Toggle AI-powered analysis of this issue')}
-              aria-label={t('Toggle AI analysis mode')}
-            >
-              {isAIMode ? t('Seer Mode: ON') : t('Seer Mode: OFF')}
-            </Button>
             {isQueryInjection ? (
               <ButtonBar gap="xs">
                 <LinkButton
