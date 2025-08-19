@@ -46,7 +46,8 @@ class GitHubClient:
 
     def get_org_list(self) -> list[dict[str, Any]]:
         res = self._request("/user/orgs")
-        assert isinstance(res, list)
+        if not isinstance(res, list):
+            return [res]
         return res
 
     def get_user(self) -> dict[str, Any] | list[dict[str, Any]]:
@@ -54,7 +55,8 @@ class GitHubClient:
 
     def get_user_emails(self) -> list[dict[str, Any]]:
         res = self._request("/user/emails")
-        assert isinstance(res, list)
+        if not isinstance(res, list):
+            return [res]
         return res
 
     def is_org_member(self, org_id: int) -> bool:
