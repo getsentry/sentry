@@ -3,6 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 
@@ -41,7 +42,9 @@ class ElevatedMode(ABC):
         pass
 
     @abstractmethod
-    def set_logged_in(self, user: User, current_datetime: datetime | None = None) -> None:
+    def set_logged_in(
+        self, user: User | AnonymousUser, current_datetime: datetime | None = None
+    ) -> None:
         pass
 
     @abstractmethod

@@ -436,7 +436,7 @@ class Superuser(ElevatedMode):
 
     def set_logged_in(
         self,
-        user: User,
+        user: User | AnonymousUser,
         current_datetime: datetime | None = None,
         prefilled_su_modal: dict[str, Any] | None = None,
     ) -> None:

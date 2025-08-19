@@ -191,7 +191,7 @@ class AuthenticatorInterface:
         return False
 
     def validate_response(
-        self, request: Request, challenge: bytes, response: dict[str, Any]
+        self, request: Request, challenge: bytes | None, response: dict[str, Any]
     ) -> bool:
         """If the activation generates a challenge that needs to be
         responded to this validates the response for that challenge.  This

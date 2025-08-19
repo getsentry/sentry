@@ -281,7 +281,9 @@ class Staff(ElevatedMode):
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(self, user: User, current_datetime: datetime | None = None) -> None:
+    def set_logged_in(
+        self, user: User | AnonymousUser, current_datetime: datetime | None = None
+    ) -> None:
         """
         Mark a session as staff-enabled.
         """

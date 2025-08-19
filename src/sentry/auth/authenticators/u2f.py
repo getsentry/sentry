@@ -220,7 +220,7 @@ class U2fInterface(AuthenticatorInterface):
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
     def validate_response(
-        self, request: HttpRequest, challenge: bytes, response: dict[str, Any]
+        self, request: HttpRequest, challenge: bytes | None, response: dict[str, Any]
     ) -> bool:
         try:
             credentials = self.credentials()
