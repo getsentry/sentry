@@ -44,6 +44,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         SLACK = "slack"
         MSTEAMS = "msteams"
         DISCORD = "discord"
+        TWILIO = "twilio"
 
         PAGERDUTY = "pagerduty"
         OPSGENIE = "opsgenie"

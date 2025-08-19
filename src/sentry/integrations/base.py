@@ -142,6 +142,7 @@ INTEGRATION_TYPE_TO_PROVIDER = {
         IntegrationProviderSlug.SLACK,
         IntegrationProviderSlug.DISCORD,
         IntegrationProviderSlug.MSTEAMS,
+        IntegrationProviderSlug.TWILIO,
     ],
     IntegrationDomain.PROJECT_MANAGEMENT: [
         IntegrationProviderSlug.JIRA,

@@ -1,0 +1,62 @@
+{% extends "sentry/bases/modal.html" %}
+{% load crispy_forms_tags %}
+{% load sentry_assets %}
+{% load i18n %}
+
+{% block css %}
+  <style>
+    .help-block {
+      font-size: 90%;
+      color: #6c757d;
+      margin-top: 5px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+  </style>
+{% endblock %}
+
+{% block wrapperclass %} narrow auth {% endblock %}
+{% block modal_header_signout %} {% endblock %}
+
+{% block title %} {% trans "Twilio Setup" %} | {{ block.super }} {% endblock %}
+
+{% block main %}
+<h3>{% trans "Configure Twilio Integration" %}</h3>
+  <p>{% trans "Connect your Twilio account to send SMS notifications for Sentry alerts." %}</p>
+
+  <div class="alert alert-info">
+    <i class="icon icon-info-circle"></i>
+    {% trans "You'll need your Twilio Account SID and Auth Token from the" %}
+    <a href="https://console.twilio.com/" target="_blank">{% trans "Twilio Console" %}</a>.
+  </div>
+
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    <input type="hidden" name="provider" value="twilio" />
+
+    {{ form|as_crispy_errors }}
+
+    {% for field in form %}
+    {{ field|as_crispy_field }}
+    {% endfor %}
+
+    <fieldset class="form-actions clearfix">
+      <div class="pull-right">
+        <button type="submit" class="btn btn-primary" name="save" value="save">{% trans "Save Configuration" %}</button>
+      </div>
+    </fieldset>
+  </form>
+
+  <hr />
+
+  <div class="help-block">
+    <h4>{% trans "Getting Started with Twilio" %}</h4>
+    <ol>
+      <li>{% trans "Sign up for a Twilio account at" %} <a href="https://www.twilio.com/try-twilio" target="_blank">twilio.com</a></li>
+      <li>{% trans "Purchase a phone number from the Twilio Console" %}</li>
+      <li>{% trans "Find your Account SID and Auth Token in the Console Dashboard" %}</li>
+      <li>{% trans "Enter your credentials above to connect Twilio with Sentry" %}</li>
+    </ol>
+  </div>
+{% endblock %}

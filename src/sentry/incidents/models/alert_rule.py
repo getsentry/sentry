@@ -431,6 +431,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
             Type.MSTEAMS.value,
             Type.OPSGENIE.value,
             Type.DISCORD.value,
+            Type.TWILIO.value,
         )
     )
 

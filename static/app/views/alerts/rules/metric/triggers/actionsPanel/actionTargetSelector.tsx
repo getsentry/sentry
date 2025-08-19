@@ -21,6 +21,8 @@ const getPlaceholderForType = (type: ActionType) => {
       return 'service';
     case ActionType.OPSGENIE:
       return 'team';
+    case ActionType.TWILIO:
+      return 'phone number';
     default:
       throw new Error('Not implemented');
   }
