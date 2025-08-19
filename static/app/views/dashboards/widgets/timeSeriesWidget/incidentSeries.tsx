@@ -36,21 +36,27 @@ export function IncidentSeries(
     // Use the later of incident end time or current time for the last data point
     const lastTime = incident.endTime ?? Date.now();
 
-    let currentStatus = t('Incident is ongoing');
+    const startTime = getFormattedDate(
+      incident.startTime,
+      getFormat({timeZone: true, year: true})
+    );
+
+    let currentStatus = `${startTime} - `;
+
     if (incident.endTime) {
-      const time = getFormattedDate(
+      const endTime = getFormattedDate(
         incident.endTime,
         getFormat({timeZone: true, year: true})
       );
-      currentStatus = `End time: ${time}`;
+      currentStatus += `${endTime}`;
+    } else {
+      currentStatus += t('ongoing');
     }
 
     return {
       name: incident.title,
       type: 'line',
       data: [],
-      // silent: false, // Enable interactions for clicks
-      // lineStyle: {opacity: 0}, // Hide the line by making it transparent
       symbol: 'none', // Hide the points
       markArea: {
         data: [
@@ -69,29 +75,20 @@ export function IncidentSeries(
             },
           ],
         ] as any,
-        // TODO: fix colours
         itemStyle: {
           color: getIncidentColor(incident.severity, theme),
           opacity: 0.3,
           borderColor: getIncidentColor(incident.severity, theme),
           borderWidth: 2,
         },
-        // TODO: style tooltip
         tooltip: {
           trigger: 'item',
           formatter: function (_params: any) {
-            const time = getFormattedDate(
-              incident.startTime,
-              getFormat({timeZone: true, year: true})
-            );
             return [
               '<div class="tooltip-series">',
               `<div><span class="tooltip-label"><strong>${incident.title} <br> Click to visit incident page
               </strong></span>${incident.severity}</div>`,
-              `<div class="tooltip-footer">Start time: ${time}
-              <br>
-              ${currentStatus}
-              </div>`,
+              `<div class="tooltip-footer">${currentStatus}</div>`,
               '</div>',
             ].join('');
           },
