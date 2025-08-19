@@ -42,8 +42,8 @@ export type OmniAction = {
 };
 
 export type OmniSearchStore = {
-  /** All registered actions keyed by action key */
-  actionsByKey: Map<string, OmniAction>;
+  /** All registered actions in order */
+  actions: OmniAction[];
   /** Priority order of areas, usually provided by focused contexts */
   areaPriority: string[];
   /** All registered areas keyed by area key */

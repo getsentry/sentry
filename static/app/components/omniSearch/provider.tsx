@@ -6,27 +6,31 @@ import type {OmniAction, OmniArea, OmniSearchStore} from './types';
 type Props = {children: React.ReactNode};
 
 export function OmniSearchProvider({children}: Props) {
-  const [actionsByKey, setActionsByKey] = useState<Map<string, OmniAction>>(new Map());
+  const [actions, setActions] = useState<OmniAction[]>([]);
   const [areasByKey, setAreasByKey] = useState<Map<string, OmniArea>>(new Map());
   const [areaPriority, setAreaPriority] = useState<string[]>([]);
 
-  const registerActions = useCallback((actions: OmniAction[]) => {
-    setActionsByKey(prev => {
-      const map = new Map(prev);
-      for (const action of actions) {
-        map.set(action.key, action);
+  const registerActions = useCallback((newActions: OmniAction[]) => {
+    setActions(prev => {
+      const result = [...prev];
+
+      for (const newAction of newActions) {
+        const existingIndex = result.findIndex(action => action.key === newAction.key);
+
+        if (existingIndex >= 0) {
+          result[existingIndex] = newAction;
+        } else {
+          result.push(newAction);
+        }
       }
-      return map;
+
+      return result;
     });
   }, []);
 
   const unregisterActions = useCallback((keys: string[]) => {
-    setActionsByKey(prev => {
-      const map = new Map(prev);
-      for (const key of keys) {
-        map.delete(key);
-      }
-      return map;
+    setActions(prev => {
+      return prev.filter(action => !keys.includes(action.key));
     });
   }, []);
 
@@ -73,11 +77,11 @@ export function OmniSearchProvider({children}: Props) {
 
   const store: OmniSearchStore = useMemo(
     () => ({
-      actionsByKey,
+      actions,
       areasByKey,
       areaPriority,
     }),
-    [areaPriority, actionsByKey, areasByKey]
+    [areaPriority, actions, areasByKey]
   );
 
   return (

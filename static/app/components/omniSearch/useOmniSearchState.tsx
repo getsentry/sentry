@@ -5,7 +5,7 @@ import {useOmniSearchStore} from './context';
 import type {OmniAction, OmniArea} from './types';
 
 export function useOmniSearchState() {
-  const {actionsByKey, areaPriority, areasByKey} = useOmniSearchStore();
+  const {actions, areaPriority, areasByKey} = useOmniSearchStore();
 
   const [focusedArea, setFocusedArea] = useState<OmniArea | null>(() => {
     return (
@@ -28,15 +28,13 @@ export function useOmniSearchState() {
     }
 
     const globalActions = sortBy(
-      Array.from(actionsByKey.values()).filter(action => action.areaKey === 'global'),
+      actions.filter(action => action.areaKey === 'global'),
       action => action.label
     );
 
     if (focusedArea) {
       const areaActions = sortBy(
-        Array.from(actionsByKey.values()).filter(
-          action => action.areaKey === focusedArea.key
-        ),
+        actions.filter(action => action.areaKey === focusedArea.key),
         action => action.label
       );
 
@@ -44,7 +42,7 @@ export function useOmniSearchState() {
     }
 
     return globalActions;
-  }, [selectedAction, focusedArea, actionsByKey]);
+  }, [selectedAction, focusedArea, actions]);
 
   return {
     actions: displayedActions,
