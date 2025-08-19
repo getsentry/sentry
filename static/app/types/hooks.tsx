@@ -335,7 +335,7 @@ type ReactHooks = {
     hasReachedLimit: boolean;
     isError: boolean;
     isLoading: boolean;
-  } | null;
+  };
 };
 
 /**

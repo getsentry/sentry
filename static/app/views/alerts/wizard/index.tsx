@@ -50,7 +50,8 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
   const useMetricDetectorLimit =
     HookStore.get('react-hook:use-metric-detector-limit')[0] ?? (() => null);
   const quota = useMetricDetectorLimit();
-  const canCreateMetricAlert = !quota?.isLimitExceeded;
+  const canCreateMetricAlert = !quota?.hasReachedLimit;
+
   const [alertOption, setAlertOption] = useState<AlertType>(
     location.query.alert_option in AlertWizardAlertNames
       ? location.query.alert_option
