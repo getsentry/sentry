@@ -1,4 +1,4 @@
-import {useState, useEffect, useMemo, Fragment} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
@@ -6,14 +6,22 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {IconChevron, IconCode, IconFocus, IconSeer, IconTerminal, IconChat} from 'sentry/icons';
-import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
-import type {AutofixRootCauseData, AutofixCodebaseChange} from 'sentry/components/events/autofix/types';
-import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
-import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
+import type {
+  AutofixCodebaseChange,
+  AutofixRootCauseData,
+} from 'sentry/components/events/autofix/types';
+import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {
+  IconChat,
+  IconChevron,
+  IconCode,
+  IconFocus,
+  IconSeer,
+  IconTerminal,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
@@ -27,8 +35,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
+import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
 
 interface AIAnalysisCardProps {
   event: Event | null;
@@ -102,17 +112,18 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const [sentryApiToken, setSentryApiToken] = useState<string>('');
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [tokenInputValue, setTokenInputValue] = useState<string>('');
+  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const isAIMode = searchParams.get('aiMode') === 'true';
-  
+
   const api = useApi();
   const organization = useOrganization();
   const activeUser = useUser();
 
   const toggleAIMode = () => {
-    const newQuery = {...(location.query || {})};
+    const newQuery = {...location.query};
     if (isAIMode) {
       delete newQuery.aiMode;
     } else {
@@ -130,10 +141,13 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
   const handleStatusChange = async (newStatus: GroupStatus) => {
     try {
-      await api.requestPromise(`/organizations/${organization.slug}/issues/${group.id}/`, {
-        method: 'PUT',
-        data: { status: newStatus },
-      });
+      await api.requestPromise(
+        `/organizations/${organization.slug}/issues/${group.id}/`,
+        {
+          method: 'PUT',
+          data: {status: newStatus},
+        }
+      );
       setShowStatusDropdown(false);
       // The parent component should re-fetch data to update the UI
       window.location.reload(); // Simple reload for now
@@ -144,7 +158,9 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
   const fetchOrgMembers = async () => {
     try {
-      const members = await api.requestPromise(`/organizations/${organization.slug}/members/`);
+      const members = await api.requestPromise(
+        `/organizations/${organization.slug}/members/`
+      );
       setOrgMembers(members.map((member: any) => member.user));
     } catch (err) {
       console.error('Failed to fetch org members:', err);
@@ -153,10 +169,13 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
   const handleAssigneeChange = async (assignee: Actor | null) => {
     try {
-      await api.requestPromise(`/organizations/${organization.slug}/issues/${group.id}/`, {
-        method: 'PUT',
-        data: { assignedTo: assignee ? `user:${assignee.id}` : '' },
-      });
+      await api.requestPromise(
+        `/organizations/${organization.slug}/issues/${group.id}/`,
+        {
+          method: 'PUT',
+          data: {assignedTo: assignee ? `user:${assignee.id}` : ''},
+        }
+      );
       setShowAssigneeDropdown(false);
       // The parent component should re-fetch data to update the UI
       window.location.reload(); // Simple reload for now
@@ -204,25 +223,29 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
 
-  // Load token from localStorage on mount
+  // Load token from localStorage on mount and initialize token state
   useEffect(() => {
     const savedToken = localStorage.getItem('sentryApiToken');
     if (savedToken) {
       setSentryApiToken(savedToken);
       setTokenInputValue(savedToken);
     }
+    setHasLoadedFromStorage(true);
   }, []);
 
   // Auto-fetch analysis when component mounts in AI mode (if token is available)
   useEffect(() => {
-    if (isAIMode && !analysisData && !loading) {
+    // Only proceed after we've loaded from localStorage
+    if (!hasLoadedFromStorage) return;
+
+    if (isAIMode && !analysisData && !loading && !error) {
       if (sentryApiToken) {
         fetchAnalysis();
       } else {
         setShowTokenInput(true);
       }
     }
-  }, [isAIMode, sentryApiToken]); // Depend on both isAIMode and sentryApiToken
+  }, [isAIMode, sentryApiToken, analysisData, loading, error, hasLoadedFromStorage]); // Include hasLoadedFromStorage dependency
 
   // Fetch organization members for assignee dropdown
   useEffect(() => {
@@ -269,11 +292,13 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sentryApiToken}`,
+            Authorization: `Bearer ${sentryApiToken}`,
           },
         }),
         // Use Sentry's authenticated API for autofix data
-        api.requestPromise(`/organizations/${organization.slug}/issues/${group.id}/autofix/`)
+        api.requestPromise(
+          `/organizations/${organization.slug}/issues/${group.id}/autofix/`
+        ),
       ]);
 
       // Handle severity analysis
@@ -287,7 +312,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
       // Handle autofix data (optional)
       if (autofixPromise.status === 'fulfilled') {
         const autofixResponseData = autofixPromise.value as AutofixResponse;
-        
+
         // Check if autofix is null (no existing run)
         if (autofixResponseData?.autofix) {
           setAutofixData(autofixResponseData);
@@ -300,7 +325,6 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
         // Automatically start autofix if API call failed (likely means no existing run)
         await startAutofix();
       }
-
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
@@ -308,15 +332,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
     }
   };
 
-
   if (loading) {
     return (
       <AILayoutContainer>
         <MainContent>
           <LoadingIndicator />
-          <LoadingText>
-            {t('Running AI severity assessment...')}
-          </LoadingText>
+          <LoadingText>{t('Running AI severity assessment...')}</LoadingText>
         </MainContent>
       </AILayoutContainer>
     );
@@ -365,16 +386,16 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 type="password"
                 placeholder="Enter your Sentry API token..."
                 value={tokenInputValue}
-                onChange={(e) => setTokenInputValue(e.target.value)}
-                onKeyDown={(e) => {
+                onChange={e => setTokenInputValue(e.target.value)}
+                onKeyDown={e => {
                   if (e.key === 'Enter') {
                     handleSaveToken();
                   }
                 }}
               />
-              <Button 
-                onClick={handleSaveToken} 
-                priority="primary" 
+              <Button
+                onClick={handleSaveToken}
+                priority="primary"
                 size="sm"
                 disabled={!tokenInputValue.trim()}
               >
@@ -421,26 +442,31 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
   const getSeverityColor = (severity: string) => {
     switch (severity.toLowerCase()) {
-      case 'critical': return {
-        background: 'linear-gradient(135deg, #FA4E61 0%, #E91E3A 100%)',
-        text: '#FFFFFF'
-      };
-      case 'high': return {
-        background: 'linear-gradient(135deg, #FF8C73 0%, #FF6B50 100%)',
-        text: '#FFFFFF'
-      };
-      case 'medium': return {
-        background: 'linear-gradient(135deg, #FFC854 0%, #FFAE33 100%)',
-        text: '#3E2723'
-      };
-      case 'low': return {
-        background: 'linear-gradient(135deg, #8FD4A8 0%, #6FBF8C 100%)',
-        text: '#FFFFFF'
-      };
-      default: return {
-        background: '#E9EBEF',
-        text: '#3E3446'
-      };
+      case 'critical':
+        return {
+          background: 'linear-gradient(135deg, #FA4E61 0%, #E91E3A 100%)',
+          text: '#FFFFFF',
+        };
+      case 'high':
+        return {
+          background: 'linear-gradient(135deg, #FF8C73 0%, #FF6B50 100%)',
+          text: '#FFFFFF',
+        };
+      case 'medium':
+        return {
+          background: 'linear-gradient(135deg, #FFC854 0%, #FFAE33 100%)',
+          text: '#3E2723',
+        };
+      case 'low':
+        return {
+          background: 'linear-gradient(135deg, #8FD4A8 0%, #6FBF8C 100%)',
+          text: '#FFFFFF',
+        };
+      default:
+        return {
+          background: '#E9EBEF',
+          text: '#3E3446',
+        };
     }
   };
 
@@ -454,39 +480,44 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
     if (diffDays > 0) {
       return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    } if (diffHours > 0) {
+    }
+    if (diffHours > 0) {
       return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    } 
-      return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
-    
+    }
+    return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
   };
 
   // Get root cause data from autofix response
-  const getRootCauseData = (): {causes: AutofixRootCauseData[], runId: string} | null => {
+  const getRootCauseData = (): {causes: AutofixRootCauseData[]; runId: string} | null => {
     if (!autofixData?.autofix?.steps || !autofixData.autofix.run_id) return null;
-    
+
     const rootCauseStep = autofixData.autofix.steps.find(
       step => step.key === 'root_cause_analysis'
     );
-    
-    return rootCauseStep?.causes ? {
-      causes: rootCauseStep.causes,
-      runId: autofixData.autofix.run_id
-    } : null;
+
+    return rootCauseStep?.causes
+      ? {
+          causes: rootCauseStep.causes,
+          runId: autofixData.autofix.run_id,
+        }
+      : null;
   };
 
   // Get solution data from autofix response
-  const getSolutionData = (): {changes: AutofixCodebaseChange[], runId: string} | null => {
+  const getSolutionData = (): {
+    changes: AutofixCodebaseChange[];
+    runId: string;
+  } | null => {
     if (!autofixData?.autofix?.steps || !autofixData.autofix.run_id) return null;
-    
-    const changesStep = autofixData.autofix.steps.find(
-      step => step.key === 'changes'
-    );
-    
-    return changesStep?.changes ? {
-      changes: changesStep.changes,
-      runId: autofixData.autofix.run_id
-    } : null;
+
+    const changesStep = autofixData.autofix.steps.find(step => step.key === 'changes');
+
+    return changesStep?.changes
+      ? {
+          changes: changesStep.changes,
+          runId: autofixData.autofix.run_id,
+        }
+      : null;
   };
 
   const rootCauseData = getRootCauseData();
@@ -502,36 +533,49 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               <Fragment>
                 {/* Issue Title */}
                 <IssueTitle>{analysisData.analysis.title}</IssueTitle>
-                
+
                 {/* Timeline and Metrics Row */}
                 <TimelineMetricsRow>
                   <TimelineSection>
                     <TimelineItem>
                       <TimelineLabel>{t('First seen:')}</TimelineLabel>
-                      <TimelineValue>{formatTimeAgo(analysisData.analysis.timeline.firstSeen)}</TimelineValue>
+                      <TimelineValue>
+                        {formatTimeAgo(analysisData.analysis.timeline.firstSeen)}
+                      </TimelineValue>
                     </TimelineItem>
                     <TimelineItem>
                       <TimelineLabel>{t('Last seen:')}</TimelineLabel>
-                      <TimelineValue>{formatTimeAgo(analysisData.analysis.timeline.lastSeen)}</TimelineValue>
+                      <TimelineValue>
+                        {formatTimeAgo(analysisData.analysis.timeline.lastSeen)}
+                      </TimelineValue>
                     </TimelineItem>
                   </TimelineSection>
-                  
+
                   <MetricsSection>
                     <MetricItem>
                       <MetricLabel>{t('Failure Rate')}</MetricLabel>
-                      <MetricValue>{analysisData.analysis.metrics.failureRate.percentage}%</MetricValue>
+                      <MetricValue>
+                        {analysisData.analysis.metrics.failureRate.percentage}%
+                      </MetricValue>
                     </MetricItem>
-                    
+
                     <MetricItem>
-                      <MetricLabel>{analysisData.analysis.metrics.usersAffected.label}</MetricLabel>
-                      <MetricValue>{analysisData.analysis.metrics.usersAffected.count}</MetricValue>
+                      <MetricLabel>
+                        {analysisData.analysis.metrics.usersAffected.label}
+                      </MetricLabel>
+                      <MetricValue>
+                        {analysisData.analysis.metrics.usersAffected.count}
+                      </MetricValue>
                     </MetricItem>
                   </MetricsSection>
                 </TimelineMetricsRow>
               </Fragment>
             ) : (
               <ErrorMessage>
-                {t('Failed to load issue details: %s', analysisData.error || 'Unknown error')}
+                {t(
+                  'Failed to load issue details: %s',
+                  analysisData.error || 'Unknown error'
+                )}
               </ErrorMessage>
             )}
           </CardContent>
@@ -549,7 +593,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               </SeverityPill>
             </HeaderLeft>
           </CardHeader>
-          
+
           <CardContent>
             {analysisData.success ? (
               <Fragment>
@@ -557,9 +601,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 <AnalysisSection>
                   <SectionTitle>{t('Impact')}</SectionTitle>
                   <ImpactContent>
-                    {analysisData.analysis.impact.description.split('•').filter(Boolean).map((point, index) => (
-                      <ImpactPoint key={index}>• {point.trim()}</ImpactPoint>
-                    ))}
+                    {analysisData.analysis.impact.description
+                      .split('•')
+                      .filter(Boolean)
+                      .map((point, index) => (
+                        <ImpactPoint key={index}>• {point.trim()}</ImpactPoint>
+                      ))}
                   </ImpactContent>
                 </AnalysisSection>
 
@@ -567,7 +614,8 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                   <SectionTitle>{t('Status')}</SectionTitle>
                   <VolumeContent>
                     <VolumeItem>
-                      <strong>{t('Trending:')}</strong> {analysisData.analysis.volume.trending}
+                      <strong>{t('Trending:')}</strong>{' '}
+                      {analysisData.analysis.volume.trending}
                     </VolumeItem>
                     <VolumeItem>
                       <strong>{t('Reach:')}</strong> {analysisData.analysis.volume.reach}
@@ -576,7 +624,9 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 </AnalysisSection>
 
                 <AnalysisSection>
-                  <CollapsibleSectionHeader onClick={() => setShowReasoning(!showReasoning)}>
+                  <CollapsibleSectionHeader
+                    onClick={() => setShowReasoning(!showReasoning)}
+                  >
                     <ChevronIcon direction={showReasoning ? 'down' : 'right'}>
                       <IconChevron />
                     </ChevronIcon>
@@ -589,7 +639,10 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               </Fragment>
             ) : (
               <ErrorMessage>
-                {t('Severity assessment failed: %s', analysisData.error || 'Unknown error')}
+                {t(
+                  'Severity assessment failed: %s',
+                  analysisData.error || 'Unknown error'
+                )}
               </ErrorMessage>
             )}
           </CardContent>
@@ -607,19 +660,21 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                   </CardTitle>
                 </HeaderLeft>
               </CardHeader>
-              
+
               <CardContent>
                 {/* Root Cause Description */}
                 {rootCauseData.causes[0]?.description && (
                   <RootCauseDescription
                     dangerouslySetInnerHTML={{
-                      __html: rootCauseData.causes[0].description
+                      __html: rootCauseData.causes[0].description,
                     }}
                   />
                 )}
 
                 <AnalysisSection>
-                  <CollapsibleSectionHeader onClick={() => setShowRootCauseReasoning(!showRootCauseReasoning)}>
+                  <CollapsibleSectionHeader
+                    onClick={() => setShowRootCauseReasoning(!showRootCauseReasoning)}
+                  >
                     <ChevronIcon direction={showRootCauseReasoning ? 'down' : 'right'}>
                       <IconChevron />
                     </ChevronIcon>
@@ -654,7 +709,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                   </CardTitle>
                 </HeaderLeft>
               </CardHeader>
-              
+
               <CardContent>
                 <SolutionContent>
                   <AutofixChanges
@@ -678,38 +733,37 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
         {/* Debugger Section */}
         <DebuggerWrapper>
-            <DebuggerCard>
-              <CardHeader>
-                <DebuggerHeaderContent onClick={() => setShowDebugger(!showDebugger)}>
-                  <HeaderLeft>
-                    <CardTitle>
-                      <IconTerminal size="md" color="purple400" />
-                      {t('Debugger')}
-                    </CardTitle>
-                    <DebuggerSubtitle>{t('Event Details & Tools')}</DebuggerSubtitle>
-                    <ChevronIcon direction={showDebugger ? 'down' : 'left'}>
-                      <IconChevron />
-                    </ChevronIcon>
-                  </HeaderLeft>
-                  <HeaderRight>
-                  </HeaderRight>
-                </DebuggerHeaderContent>
-              </CardHeader>
-              
-              <CardContent>
-                {showDebugger && event && (
-                  <DebuggerContent>
-                    <EventDetailsHeader event={event} group={group} project={project} />
-                    <EventDetails event={event} group={group} project={project} />
-                  </DebuggerContent>
-                )}
-                {showDebugger && !event && (
-                  <DebuggerContent>
-                    <div>No event data available for debugging</div>
-                  </DebuggerContent>
-                )}
-              </CardContent>
-            </DebuggerCard>
+          <DebuggerCard>
+            <CardHeader>
+              <DebuggerHeaderContent onClick={() => setShowDebugger(!showDebugger)}>
+                <HeaderLeft>
+                  <CardTitle>
+                    <IconTerminal size="md" color="purple400" />
+                    {t('Debugger')}
+                  </CardTitle>
+                  <DebuggerSubtitle>{t('Event Details & Tools')}</DebuggerSubtitle>
+                  <ChevronIcon direction={showDebugger ? 'down' : 'left'}>
+                    <IconChevron />
+                  </ChevronIcon>
+                </HeaderLeft>
+                <HeaderRight />
+              </DebuggerHeaderContent>
+            </CardHeader>
+
+            <CardContent>
+              {showDebugger && event && (
+                <DebuggerContent>
+                  <EventDetailsHeader event={event} group={group} project={project} />
+                  <EventDetails event={event} group={group} project={project} />
+                </DebuggerContent>
+              )}
+              {showDebugger && !event && (
+                <DebuggerContent>
+                  <div>No event data available for debugging</div>
+                </DebuggerContent>
+              )}
+            </CardContent>
+          </DebuggerCard>
         </DebuggerWrapper>
 
         {/* Activity Section */}
@@ -723,12 +777,9 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 </CardTitle>
               </HeaderLeft>
             </CardHeader>
-            
+
             <CardContent>
-              <StreamlinedActivitySection 
-                group={group} 
-                isDrawer={true}
-              />
+              <StreamlinedActivitySection group={group} isDrawer />
             </CardContent>
           </ActivityCard>
         </ActivityWrapper>
@@ -747,17 +798,13 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             >
               {isAIMode ? t('Seer Mode: ON') : t('Seer Mode: OFF')}
             </Button>
-            
+
             {isAIMode && (
               <TokenStatus>
                 {sentryApiToken ? (
-                  <TokenStatusGood>
-                    ✓ {t('API Token Configured')}
-                  </TokenStatusGood>
+                  <TokenStatusGood>✓ {t('API Token Configured')}</TokenStatusGood>
                 ) : (
-                  <TokenStatusMissing>
-                    ⚠ {t('API Token Required')}
-                  </TokenStatusMissing>
+                  <TokenStatusMissing>⚠ {t('API Token Required')}</TokenStatusMissing>
                 )}
                 {sentryApiToken && (
                   <Button onClick={handleClearToken} size="xs" priority="default">
@@ -766,7 +813,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 )}
               </TokenStatus>
             )}
-            
+
             <StatusSection>
               <StatusLabel>{t('Status:')}</StatusLabel>
               <StatusDisplay
@@ -776,14 +823,16 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 <StatusText>{formatStatus(group.status)}</StatusText>
                 {showStatusDropdown && (
                   <StatusDropdown>
-                    {Object.values(GroupStatus).filter(status => status !== group.status).map((status) => (
-                      <StatusOption
-                        key={status}
-                        onClick={() => handleStatusChange(status)}
-                      >
-                        {formatStatus(status)}
-                      </StatusOption>
-                    ))}
+                    {Object.values(GroupStatus)
+                      .filter(status => status !== group.status)
+                      .map(status => (
+                        <StatusOption
+                          key={status}
+                          onClick={() => handleStatusChange(status)}
+                        >
+                          {formatStatus(status)}
+                        </StatusOption>
+                      ))}
                   </StatusDropdown>
                 )}
               </StatusDisplay>
@@ -799,31 +848,31 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 {showAssigneeDropdown && (
                   <StatusDropdown>
                     {!group.assignedTo && (
-                      <StatusOption
-                        onClick={() => handleAssigneeChange(null)}
-                      >
+                      <StatusOption onClick={() => handleAssigneeChange(null)}>
                         {t('Unassigned')}
                       </StatusOption>
                     )}
                     {orgMembers
-                      .filter(member => !group.assignedTo || member.id !== group.assignedTo.id)
-                      .map((member) => (
+                      .filter(
+                        member => !group.assignedTo || member.id !== group.assignedTo.id
+                      )
+                      .map(member => (
                         <StatusOption
                           key={member.id}
-                          onClick={() => handleAssigneeChange({
-                            id: member.id,
-                            name: member.name || member.email,
-                            type: 'user',
-                            email: member.email
-                          })}
+                          onClick={() =>
+                            handleAssigneeChange({
+                              id: member.id,
+                              name: member.name || member.email,
+                              type: 'user',
+                              email: member.email,
+                            })
+                          }
                         >
                           {member.name || member.email}
                         </StatusOption>
                       ))}
                     {group.assignedTo && (
-                      <StatusOption
-                        onClick={() => handleAssigneeChange(null)}
-                      >
+                      <StatusOption onClick={() => handleAssigneeChange(null)}>
                         {t('Unassign')}
                       </StatusOption>
                     )}
@@ -836,7 +885,11 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               <IssueTrackingSection>
                 <IssueTrackingLabel>{t('Issue Tracking:')}</IssueTrackingLabel>
                 <IssueTrackingContent>
-                  <StreamlinedExternalIssueList group={group} event={event} project={project} />
+                  <StreamlinedExternalIssueList
+                    group={group}
+                    event={event}
+                    project={project}
+                  />
                 </IssueTrackingContent>
               </IssueTrackingSection>
             )}
@@ -1036,7 +1089,7 @@ const SeverityPill = styled('span')<{colors: {background: string; text: string}}
   color: ${p => p.colors.text};
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: transform 0.1s ease;
-  
+
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
@@ -1120,7 +1173,7 @@ const AnalysisSection = styled('div')`
   margin-bottom: ${space(2)};
   padding-bottom: ${space(2)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-  
+
   &:last-child {
     margin-bottom: 0;
     padding-bottom: 0;
@@ -1186,11 +1239,11 @@ const CollapsibleSectionHeader = styled('button')`
   background: none;
   border: none;
   cursor: pointer;
-  
+
   &:hover {
     opacity: 0.8;
   }
-  
+
   ${SectionTitle} {
     margin-bottom: 0;
   }
@@ -1200,9 +1253,9 @@ const ChevronIcon = styled('span')<{direction: 'down' | 'right'}>`
   display: flex;
   align-items: center;
   transition: transform 0.2s ease;
-  transform: ${p => p.direction === 'down' ? 'rotate(0)' : 'rotate(-90deg)'};
+  transform: ${p => (p.direction === 'down' ? 'rotate(0)' : 'rotate(-90deg)')};
   color: ${p => p.theme.gray300};
-  
+
   svg {
     width: 16px;
     height: 16px;
@@ -1243,7 +1296,7 @@ const StatusText = styled('span')`
   padding: ${space(0.5)} ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
   transition: background 0.2s ease;
-  
+
   &:hover {
     background: ${p => p.theme.backgroundSecondary};
   }
@@ -1268,11 +1321,11 @@ const StatusOption = styled('div')`
   color: ${p => p.theme.textColor};
   cursor: pointer;
   transition: background 0.2s ease;
-  
+
   &:hover {
     background: ${p => p.theme.backgroundSecondary};
   }
-  
+
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
@@ -1330,16 +1383,16 @@ const RootCauseDescription = styled('div')`
   line-height: 1.6;
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSize.md};
-  
+
   /* Style for any HTML content in the description */
   p {
     margin: ${space(1)} 0;
   }
-  
+
   strong {
     font-weight: ${p => p.theme.fontWeight.bold};
   }
-  
+
   code {
     background: ${p => p.theme.backgroundSecondary};
     padding: ${space(0.25)} ${space(0.5)};
@@ -1362,7 +1415,7 @@ const SolutionContent = styled('div')`
   > div > div > div:first-child {
     display: none;
   }
-  
+
   /* Remove the border from the internal ChangesContainer */
   > div > div {
     border: none;
@@ -1382,7 +1435,7 @@ const DebuggerCard = styled(Card)`
 
 const DebuggerContent = styled('div')`
   margin-top: ${space(1)};
-  
+
   /* Add some spacing between header and content */
   > * + * {
     margin-top: ${space(2)};
@@ -1399,7 +1452,7 @@ const DebuggerHeaderContent = styled('button')`
   background: none;
   border: none;
   cursor: pointer;
-  
+
   &:hover {
     opacity: 0.8;
   }
@@ -1423,11 +1476,11 @@ const DebuggerSubtitle = styled('span')`
 // Similar Issues Section Component
 interface SimilarIssue {
   id: string;
-  title: string;
-  shortId: string;
-  permalink: string;
-  status: string;
   level: string;
+  permalink: string;
+  shortId: string;
+  status: string;
+  title: string;
 }
 
 interface SimilarIssuesSectionProps {
@@ -1485,9 +1538,9 @@ function SimilarIssuesSection({group}: SimilarIssuesSectionProps) {
         {error && <ErrorText>{error}</ErrorText>}
         {!loading && !error && similarIssues.length > 0 && (
           <SimilarIssuesPills>
-            {similarIssues.map((issue) => (
+            {similarIssues.map(issue => (
               <Tooltip key={issue.id} title={issue.title}>
-                <SimilarIssuePill 
+                <SimilarIssuePill
                   to={issue.permalink}
                   level={issue.level}
                   status={issue.status}
@@ -1537,7 +1590,7 @@ const SimilarIssuePill = styled(Link)<{level: string; status: string}>`
   font-weight: ${p => p.theme.fontWeight.bold};
   text-decoration: none;
   transition: all 0.2s ease;
-  
+
   background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.textColor};
   border: 1px solid ${p => p.theme.border};
@@ -1567,19 +1620,15 @@ const ActivityCard = styled(Card)`
 // Action Items Section Component
 function ActionItemsSection() {
   // Mock data for now - could be fetched from API later
-  const actionItems = [
-    { id: '1', text: 'Set up source maps (EXAMPLE)' },
-  ];
+  const actionItems = [{id: '1', text: 'Set up source maps (EXAMPLE)'}];
 
   return (
     <ActionItemsWrapper>
       <ActionItemsLabel>{t('Action Items:')}</ActionItemsLabel>
       <ActionItemsContent>
         <ActionItemsPills>
-          {actionItems.map((item) => (
-            <ActionItemPill key={item.id}>
-              {item.text}
-            </ActionItemPill>
+          {actionItems.map(item => (
+            <ActionItemPill key={item.id}>{item.text}</ActionItemPill>
           ))}
         </ActionItemsPills>
       </ActionItemsContent>
@@ -1646,13 +1695,13 @@ const TokenInput = styled('input')`
   font-size: ${p => p.theme.fontSize.sm};
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-  
+
   &:focus {
     outline: none;
     border-color: ${p => p.theme.purple300};
     box-shadow: 0 0 0 1px ${p => p.theme.purple300};
   }
-  
+
   &::placeholder {
     color: ${p => p.theme.subText};
   }
