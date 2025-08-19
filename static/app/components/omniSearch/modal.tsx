@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import exampleAnimationData from 'getsentry-images/omni/mshk-image-to-lottie.json';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
 import {OmniSearchPalette} from 'sentry/components/omniSearch/palette';
-import SeeryCharacter from 'sentry/components/omniSearch/seeryCharacter';
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
