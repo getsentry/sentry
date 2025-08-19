@@ -10,7 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
-from sentry.smokey.models.incidentcomponents import IncidentComponent
+from sentry.smokey.models.incidentcomponent import IncidentComponent
 from sentry.smokey.serializers.inbound import IncidentComponentInboundSerializer
 
 

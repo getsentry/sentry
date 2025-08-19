@@ -1,7 +1,7 @@
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.smokey.models.incidentcase import IncidentCase
 from sentry.smokey.models.incidentcasetemplate import IncidentCaseTemplate
-from sentry.smokey.models.incidentcomponents import IncidentComponent
+from sentry.smokey.models.incidentcomponent import IncidentComponent
 
 
 @register(IncidentCaseTemplate)

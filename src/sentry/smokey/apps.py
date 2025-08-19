@@ -8,7 +8,7 @@ class Config(AppConfig):
         # Register models
         from sentry.smokey.models.incidentcase import IncidentCase  # NOQA
         from sentry.smokey.models.incidentcasetemplate import IncidentCaseTemplate  # NOQA
-        from sentry.smokey.models.incidentcomponents import (  # NOQA
+        from sentry.smokey.models.incidentcomponent import (  # NOQA
             IncidentCaseComponent,
             IncidentComponent,
         )

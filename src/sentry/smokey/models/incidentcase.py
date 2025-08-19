@@ -4,7 +4,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey
 from sentry.db.models.base import DefaultFieldsModel, region_silo_model
-from sentry.smokey.models.incidentcomponents import IncidentCaseComponent
+from sentry.smokey.models.incidentcomponent import IncidentCaseComponent
 
 
 @region_silo_model

@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.smokey.models.incidentcasetemplate import IncidentCaseTemplate
-from sentry.smokey.models.incidentcomponents import IncidentComponent
+from sentry.smokey.models.incidentcomponent import IncidentComponent
 
 
 class IncidentComponentInboundSerializer(serializers.Serializer):
