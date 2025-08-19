@@ -364,7 +364,6 @@ class Superuser(ElevatedMode):
 
         request = self.request
         user: User | AnonymousUser | None = getattr(request, "user", None)
-        assert user is not None
         if not hasattr(request, "session"):
             data = None
         elif not (user and user.is_superuser):
@@ -375,6 +374,7 @@ class Superuser(ElevatedMode):
         if not data:
             self._set_logged_out()
         else:
+            assert user is not None
             self._set_logged_in(expires=data["exp"], token=data["tok"], user=user)
 
             if not self.is_active:
