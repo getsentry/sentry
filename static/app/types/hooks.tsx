@@ -330,9 +330,11 @@ type ReactHooks = {
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-get-max-retention-days': () => number | undefined;
   'react-hook:use-metric-detector-limit': () => {
-    isLimitExceeded: boolean;
-    limit: number;
-    numMetricMonitors: number;
+    detectorCount: number;
+    detectorLimit: number;
+    hasReachedLimit: boolean;
+    isError: boolean;
+    isLoading: boolean;
   } | null;
 };
 

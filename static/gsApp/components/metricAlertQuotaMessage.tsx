@@ -33,7 +33,7 @@ export function MetricAlertQuotaIcon() {
   const metricAlertQuota = useMetricDetectorLimit();
   const organization = useOrganization();
 
-  if (metricAlertQuota?.isLimitExceeded) {
+  if (metricAlertQuota?.hasReachedLimit) {
     return (
       <Tooltip
         isHoverable
@@ -57,13 +57,13 @@ export function MetricAlertQuotaMessage() {
   const organization = useOrganization();
   const metricAlertQuota = useMetricDetectorLimit();
 
-  if (metricAlertQuota?.isLimitExceeded) {
+  if (metricAlertQuota?.hasReachedLimit) {
     return (
       <DisabledAlertMessageContainer>
         {tct(
           "You have reached your plan's limit on metric monitors ([limit]). [removeLink:Remove existing monitors] or [upgradeLink:upgrade your plan].",
           {
-            limit: metricAlertQuota.limit.toLocaleString(),
+            limit: metricAlertQuota.detectorLimit.toLocaleString(),
             removeLink: <Link to={makeAlertsPathname({organization, path: '/rules/'})} />,
             upgradeLink: <UpgradeLink />,
           }
@@ -74,14 +74,15 @@ export function MetricAlertQuotaMessage() {
 
   if (
     metricAlertQuota &&
-    metricAlertQuota.limit === metricAlertQuota.numMetricMonitors + 1
+    metricAlertQuota.detectorLimit === metricAlertQuota.detectorCount + 1
   ) {
     return (
       <DisabledAlertMessageContainer>
         {tct(
-          'You are approaching the limit of [limit] metric monitors for your plan. To increase the limit, [upgradeLink:upgrade your plan].',
+          'You have used [count] of [limit] metric monitors for your plan. To increase the limit, [upgradeLink:upgrade your plan].',
           {
-            limit: metricAlertQuota.limit.toLocaleString(),
+            count: metricAlertQuota.detectorCount.toLocaleString(),
+            limit: metricAlertQuota.detectorLimit.toLocaleString(),
             upgradeLink: <UpgradeLink />,
           }
         )}

@@ -15,7 +15,7 @@ jest.mock('getsentry/actionCreators/modal', () => ({
   openUpsellModal: jest.fn(),
 }));
 
-const mockUseMetricDetectorLimit = useMetricDetectorLimit as unknown as jest.Mock;
+const mockuseMetricDetectorLimit = useMetricDetectorLimit as unknown as jest.Mock;
 
 describe('MetricAlertQuotaMessage', () => {
   beforeEach(() => {
@@ -23,7 +23,7 @@ describe('MetricAlertQuotaMessage', () => {
   });
 
   it('renders nothing when hook returns null', () => {
-    mockUseMetricDetectorLimit.mockReturnValue(null);
+    mockuseMetricDetectorLimit.mockReturnValue(null);
 
     const {container} = render(<MetricAlertQuotaMessage />, {
       organization: OrganizationFixture(),
@@ -32,20 +32,18 @@ describe('MetricAlertQuotaMessage', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders approaching limit message with upgrade action', async () => {
-    mockUseMetricDetectorLimit.mockReturnValue({
-      isLimitExceeded: false,
-      limit: 11,
-      numMetricMonitors: 10,
+  it('renders approaching detectorLimit message with upgrade action', async () => {
+    mockuseMetricDetectorLimit.mockReturnValue({
+      hasReachedLimit: false,
+      detectorLimit: 11,
+      detectorCount: 10,
     });
 
     const organization = OrganizationFixture({slug: 'acme'});
 
     render(<MetricAlertQuotaMessage />, {organization});
 
-    expect(
-      await screen.findByText(/approaching the limit of 11 metric monitors/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/used 10 of 11 metric monitors/i)).toBeInTheDocument();
 
     const upgrade = screen.getByRole('button', {name: /upgrade your plan/i});
     await userEvent.click(upgrade);
@@ -56,11 +54,11 @@ describe('MetricAlertQuotaMessage', () => {
     });
   });
 
-  it('renders reached limit message with remove and upgrade actions when at limit', async () => {
-    mockUseMetricDetectorLimit.mockReturnValue({
-      isLimitExceeded: true,
-      limit: 20,
-      numMetricMonitors: 20,
+  it('renders reached detectorLimit message with remove and upgrade actions when at detectorLimit', async () => {
+    mockuseMetricDetectorLimit.mockReturnValue({
+      hasReachedLimit: true,
+      detectorLimit: 20,
+      detectorCount: 20,
     });
 
     const organization = OrganizationFixture({slug: 'acme'});

@@ -1,10 +1,12 @@
 import useOrganization from 'sentry/utils/useOrganization';
 
 type MetricDetectorLimitResponse = {
-  isLimitExceeded: boolean;
-  limit: number;
-  numMetricMonitors: number;
-} | null; // null means there is no limit
+  detectorCount: number;
+  detectorLimit: number;
+  hasReachedLimit: boolean;
+  isError: boolean;
+  isLoading: boolean;
+} | null;
 
 // TODO: Replace with actual hook
 export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
@@ -15,8 +17,10 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
   }
 
   return {
-    isLimitExceeded: true,
-    numMetricMonitors: 20,
-    limit: 20,
+    hasReachedLimit: true,
+    detectorCount: 20,
+    detectorLimit: 20,
+    isError: false,
+    isLoading: false,
   };
 }
