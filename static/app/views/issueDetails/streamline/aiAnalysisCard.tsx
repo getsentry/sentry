@@ -378,7 +378,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             <HeaderLeft>
               <CardTitle>
                 <IconSeer size="md" />
-                {t('Severity Assessment')}
+                {t('Severity')}
               </CardTitle>
               <SeverityPill colors={getSeverityColor(analysisData.analysis.severity)}>
                 {analysisData.analysis.severity}
@@ -428,7 +428,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
                 {/* Analysis Sections */}
                 <AnalysisSection>
-                  <SectionTitle>{t('Impact Assessment')}</SectionTitle>
+                  <SectionTitle>{t('Impact')}</SectionTitle>
                   <ImpactContent>
                     {analysisData.analysis.impact.description.split('•').filter(Boolean).map((point, index) => (
                       <ImpactPoint key={index}>• {point.trim()}</ImpactPoint>
@@ -437,7 +437,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 </AnalysisSection>
 
                 <AnalysisSection>
-                  <SectionTitle>{t('Volume Analysis')}</SectionTitle>
+                  <SectionTitle>{t('Status')}</SectionTitle>
                   <VolumeContent>
                     <VolumeItem>
                       <strong>{t('Trending:')}</strong> {analysisData.analysis.volume.trending}
