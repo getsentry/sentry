@@ -21,7 +21,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.auth.helper import AuthHelper  # noqa: F401
+    from sentry.auth.helper import AuthHelper
 
 ERR_INVALID_STATE = "An error occurred while validating your request."
 
