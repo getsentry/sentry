@@ -3,6 +3,7 @@ import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
 import serryLottieAnimation from 'getsentry-images/omni/mshk-image-to-lottie.json';
+import {PlatformIcon} from 'platformicons';
 
 import error from 'sentry-images/spot/cmd-k-error.svg';
 
@@ -11,12 +12,12 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconArrow} from 'sentry/icons/iconArrow';
-import {IconDocs} from 'sentry/icons/iconDocs';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {useSeenIssues} from 'sentry/utils/seenIssuesStorage';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useParams} from 'sentry/utils/useParams';
 
 import type {OmniAction} from './types';
 import {useApiDynamicActions} from './useApiDynamicActions';
@@ -78,20 +79,23 @@ export function OmniSearchPalette() {
   const debouncedQuery = useDebouncedValue(query, 300);
 
   const {getSeenIssues} = useSeenIssues();
+  const {groupId} = useParams();
 
   // Get ALL seen issues (no limit here)
   const allRecentIssueActions: OmniAction[] = useMemo(() => {
-    return getSeenIssues().map(issue => ({
-      key: `recent-issue-${issue.id}`,
-      areaKey: 'recent',
-      section: 'Recently Viewed',
-      label: issue.issue.title || issue.issue.id,
-      actionIcon: <IconDocs />,
-      onAction: () => {
-        navigate(normalizeUrl(`/issues/${issue.id}`));
-      },
-    }));
-  }, [navigate, getSeenIssues]);
+    return getSeenIssues()
+      .filter(issue => groupId !== issue.issue.id)
+      .map(issue => ({
+        key: `recent-issue-${issue.id}`,
+        areaKey: 'recent',
+        section: 'Recently Viewed',
+        label: issue.issue.title || issue.issue.id,
+        actionIcon: <PlatformIcon platform={issue.issue.platform} size={16} />,
+        onAction: () => {
+          navigate(normalizeUrl(`/issues/${issue.id}`));
+        },
+      }));
+  }, [navigate, getSeenIssues, groupId]);
 
   // Get dynamic actions from all sources (no filtering - palette handles the search)
   const apiActions = useApiDynamicActions(debouncedQuery);
