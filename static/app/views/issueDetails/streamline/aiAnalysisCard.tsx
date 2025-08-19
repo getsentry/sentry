@@ -547,19 +547,21 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               </CardHeader>
               
               <CardContent>
-                <AutofixChanges
-                  step={{
-                    id: 'changes',
-                    index: 0,
-                    progress: [],
-                    status: 'COMPLETED' as const,
-                    title: 'Changes',
-                    type: 'changes' as const,
-                    changes: solutionData.changes,
-                  }}
-                  groupId={group.id}
-                  runId={solutionData.runId}
-                />
+                <SolutionContent>
+                  <AutofixChanges
+                    step={{
+                      id: 'changes',
+                      index: 0,
+                      progress: [],
+                      status: 'COMPLETED' as const,
+                      title: 'Changes',
+                      type: 'changes' as const,
+                      changes: solutionData.changes,
+                    }}
+                    groupId={group.id}
+                    runId={solutionData.runId}
+                  />
+                </SolutionContent>
               </CardContent>
             </SolutionCard>
           </SolutionWrapper>
@@ -1157,4 +1159,18 @@ const SolutionWrapper = styled('div')`
 
 const SolutionCard = styled(Card)`
   width: 100%;
+`;
+
+const SolutionContent = styled('div')`
+  /* Hide the internal "Code Changes" header from AutofixChanges component */
+  > div > div > div:first-child {
+    display: none;
+  }
+  
+  /* Remove the border from the internal ChangesContainer */
+  > div > div {
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
 `;
