@@ -3,6 +3,12 @@
   "name": "sentry",
   "version": "0.0.0",
   "private": true,
+  "sideEffects": [
+    "**/*.css",
+    "**/*.less",
+    "static/app/bootstrap/legacyTwitterBootstrap.tsx",
+    "static/app/bootstrap/exportGlobals.tsx"
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/getsentry/sentry.git"
