@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
+import sentry_sdk
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import UUIDField
@@ -30,3 +31,21 @@ class Feedback(Model):
         indexes = [models.Index(fields=("project_id", "date_added"))]
 
     __repr__ = sane_repr("project_id", "feedback_id")
+    
+    def save(self, *args, **kwargs):
+        with sentry_sdk.start_span(op="feedback.db.save", description="Saving feedback to database"):
+            return super().save(*args, **kwargs)
+    
+    def delete(self, *args, **kwargs):
+        with sentry_sdk.start_span(op="feedback.db.delete", description="Deleting feedback from database"):
+            return super().delete(*args, **kwargs)
+    
+    @classmethod
+    def objects_for_project(cls, project_id):
+        with sentry_sdk.start_span(op="feedback.db.query", description="Querying feedback by project"):
+            return cls.objects.filter(project_id=project_id)
+    
+    @classmethod
+    def objects_for_organization(cls, organization_id):
+        with sentry_sdk.start_span(op="feedback.db.query", description="Querying feedback by organization"):
+            return cls.objects.filter(organization_id=organization_id)

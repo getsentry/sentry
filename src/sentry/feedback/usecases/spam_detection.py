@@ -1,5 +1,6 @@
 import logging
 
+import sentry_sdk
 from sentry.llm.usecases import LLMUseCase, complete_prompt
 from sentry.utils import metrics
 
@@ -31,40 +32,53 @@ def make_input_prompt(input):
 
 @metrics.wraps("feedback.spam_detection", sample_rate=1.0)
 def is_spam(message):
-    is_spam = False
-    trimmed_response = ""
-    response = complete_prompt(
-        usecase=LLMUseCase.SPAM_DETECTION,
-        message=make_input_prompt(message),
-        temperature=0,
-        max_output_tokens=20,
-    )
-    if response:
-        is_spam, trimmed_response = trim_response(response)
+    with sentry_sdk.start_span(op="feedback.spam_detection", description="Detecting spam in feedback message") as span:
+        span.set_tag("message_length", len(message))
+        
+        is_spam = False
+        trimmed_response = ""
+        
+        with sentry_sdk.start_span(op="feedback.spam_detection.llm_prompt", description="Generating LLM prompt"):
+            prompt = make_input_prompt(message)
+            
+        with sentry_sdk.start_span(op="feedback.spam_detection.llm_request", description="Requesting LLM completion"):
+            response = complete_prompt(
+                usecase=LLMUseCase.SPAM_DETECTION,
+                message=prompt,
+                temperature=0,
+                max_output_tokens=20,
+            )
+            span.set_tag("llm_response_received", bool(response))
+            
+        if response:
+            with sentry_sdk.start_span(op="feedback.spam_detection.parse_response", description="Parsing LLM response"):
+                is_spam, trimmed_response = trim_response(response)
+                span.set_tag("is_spam", is_spam)
 
-    logger.info(
-        "Spam detection",
-        extra={
-            "feedback_message": message,
-            "is_spam": is_spam,
-            "response": response,
-            "trimmed_response": trimmed_response,
-        },
-    )
-    metrics.incr("spam-detection", tags={"is_spam": is_spam}, sample_rate=1.0)
-    return is_spam
+        logger.info(
+            "Spam detection",
+            extra={
+                "feedback_message": message,
+                "is_spam": is_spam,
+                "response": response,
+                "trimmed_response": trimmed_response,
+            },
+        )
+        metrics.incr("spam-detection", tags={"is_spam": is_spam}, sample_rate=1.0)
+        return is_spam
 
 
 def trim_response(text):
-    trimmed_text = text.strip().lower()
+    with sentry_sdk.start_span(op="feedback.spam_detection.trim_response", description="Trimming and parsing LLM response"):
+        trimmed_text = text.strip().lower()
 
-    trimmed_text.replace("`", "")
+        trimmed_text.replace("`", "")
 
-    import re
+        import re
 
-    trimmed_text = re.sub(r"\W+", "", trimmed_text)
+        trimmed_text = re.sub(r"\W+", "", trimmed_text)
 
-    if trimmed_text in ("spam", "[spam]"):
-        return True, trimmed_text
-    else:
-        return False, trimmed_text
+        if trimmed_text in ("spam", "[spam]"):
+            return True, trimmed_text
+        else:
+            return False, trimmed_text
