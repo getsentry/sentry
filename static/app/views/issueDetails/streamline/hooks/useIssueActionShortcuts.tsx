@@ -69,12 +69,12 @@ export function useIssueActionShortcuts({
     {
       id: 'subscribe-issue',
       key: 's',
-      description: 'Subscribe/unsubscribe',
+      description: 'Toggle subscription to workflow notifications for this issue',
       handler: handleSubscribe,
     },
     {
       id: 'share-issue',
-      key: 'u',
+      key: 'shift+s',
       description: 'Share issue',
       handler: handleShare,
     },

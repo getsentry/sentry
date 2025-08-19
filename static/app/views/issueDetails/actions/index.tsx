@@ -370,6 +370,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     onBookmark: onToggleBookmark,
     onDelete: openDeleteModal,
     onMarkReviewed: () => onUpdate({inbox: false}),
+    onShare: openShareModal,
+    onSubscribe: onToggleSubscribe,
   });
 
   const handleClick = (onClick: (event?: MouseEvent) => void) => {

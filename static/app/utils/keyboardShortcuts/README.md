@@ -65,6 +65,8 @@ When on an Issue Details page, you can use:
 - `v` - Mark issue as reviewed
 - `b` - Toggle bookmark on issue
 - `d` - Delete issue (opens confirmation modal)
+- `S` - Share Issue
+- `s` - Subscribe to workflow notifications for this issue
 
 These shortcuts appear in the help modal under the "Issue Details" category.
 
