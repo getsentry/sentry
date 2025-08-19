@@ -36,7 +36,7 @@ export default function ReplayAssertionsTable({projectId, onSelect: _}: Props) {
       `/organizations/${organization.slug}/replay-selectors/`,
       {
         query: {
-          query: 'count_dead_clicks:>-1',
+          per_page: 50,
           project: projectId,
           statsPeriod: '90d',
         },
@@ -47,9 +47,9 @@ export default function ReplayAssertionsTable({projectId, onSelect: _}: Props) {
   return (
     <SimpleTableInfinite>
       <SimpleTableInfiniteHeader>
-        <SimpleTable.HeaderCell>{t('Element')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Selector')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Aria Label')}</SimpleTable.HeaderCell>
+        <SimpleTableInfiniteHeaderCell>{t('Element')}</SimpleTableInfiniteHeaderCell>
+        <SimpleTableInfiniteHeaderCell>{t('Selector')}</SimpleTableInfiniteHeaderCell>
+        <SimpleTableInfiniteHeaderCell>{t('Aria Label')}</SimpleTableInfiniteHeaderCell>
       </SimpleTableInfiniteHeader>
       <InfiniteListState
         queryResult={queryResult}
@@ -74,32 +74,27 @@ export default function ReplayAssertionsTable({projectId, onSelect: _}: Props) {
             <SimpleTableInfiniteRow key={virtualRow.index}>
               <InteractionStateLayer />
 
-              <SimpleTable.RowCell>
+              <SimpleTableInfiniteCell>
                 <Stacked>
                   <div style={{visibility: 'hidden'}}>{t('Element')}</div>
                   <Text ellipsis>{item.element}</Text>
                 </Stacked>
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
+              </SimpleTableInfiniteCell>
+              <SimpleTableInfiniteCell>
                 <Stacked>
                   <div style={{visibility: 'hidden'}}>{t('Element')}</div>
                   <Text ellipsis>{item.dom_element.fullSelector}</Text>
-                  {/* <SelectorLink
-                    value={item.dom_element}
-                    selectorQuery={`dead.selector:"${transformSelectorQuery(item)}"`}
-                    projectId={item.project_id.toString()}
-                  /> */}
                 </Stacked>
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
+              </SimpleTableInfiniteCell>
+              <SimpleTableInfiniteCell>
                 <Stacked>
                   <div style={{visibility: 'hidden'}}>{t('Element')}</div>
                   <Text ellipsis>{item.aria_label}</Text>
                 </Stacked>
-              </SimpleTable.RowCell>
+              </SimpleTableInfiniteCell>
             </SimpleTableInfiniteRow>
           )}
-          emptyMessage={() => <NoReplays />}
+          emptyMessage={() => <NoClicks />}
           loadingMoreMessage={() => (
             <Centered>
               <Tooltip title={t('Loading more replays...')}>
@@ -114,13 +109,13 @@ export default function ReplayAssertionsTable({projectId, onSelect: _}: Props) {
   );
 }
 
-function NoReplays() {
+function NoClicks() {
   return (
-    <NoReplaysWrapper>
+    <NoClicksWrapper>
       <img src={waitingForEventImg} alt={t('A person waiting for a phone to ring')} />
-      <NoReplaysMessage>{t('Inbox Zero')}</NoReplaysMessage>
+      <NoClicksMessage>{t('Inbox Zero')}</NoClicksMessage>
       <p>{t('You have two options: take a nap or be productive.')}</p>
-    </NoReplaysWrapper>
+    </NoClicksWrapper>
   );
 }
 
@@ -128,7 +123,7 @@ const Centered = styled('div')`
   justify-self: center;
 `;
 
-const NoReplaysWrapper = styled('div')`
+const NoClicksWrapper = styled('div')`
   padding: ${p => p.theme.space['3xl']};
   text-align: center;
   color: ${p => p.theme.subText};
@@ -138,7 +133,7 @@ const NoReplaysWrapper = styled('div')`
   }
 `;
 
-const NoReplaysMessage = styled('div')`
+const NoClicksMessage = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray400};
 
@@ -153,17 +148,15 @@ const SimpleTableInfinite = styled(SimpleTable)`
 `;
 
 const SimpleTableInfiniteHeader = styled(SimpleTable.Header)`
-  display: flex;
-  flex-direction: row;
-
   display: grid;
   grid-template-columns: max-content 1fr max-content;
 `;
 
 const SimpleTableInfiniteRow = styled(SimpleTable.Row)`
-  display: flex;
-  flex-direction: row;
-
   display: grid;
   grid-template-columns: max-content 1fr max-content;
 `;
+
+const SimpleTableInfiniteHeaderCell = styled(SimpleTable.HeaderCell)``;
+
+const SimpleTableInfiniteCell = styled(SimpleTable.RowCell)``;

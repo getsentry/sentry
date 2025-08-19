@@ -80,7 +80,7 @@ export default function ReplayAssertionsTable({onSelect: _}: Props) {
     <SimpleTableInfinite>
       <SimpleTableInfiniteHeader>
         {VISIBLE_COLUMNS.map(({Header, sortKey}, columnIndex) => (
-          <SimpleTable.HeaderCell key={`${sortKey}-${columnIndex}`}>
+          <SimpleTableInfiniteHeaderCell key={`${sortKey}-${columnIndex}`}>
             {typeof Header === 'function'
               ? Header({
                   columnIndex,
@@ -88,7 +88,7 @@ export default function ReplayAssertionsTable({onSelect: _}: Props) {
                   replays: [],
                 })
               : Header}
-          </SimpleTable.HeaderCell>
+          </SimpleTableInfiniteHeaderCell>
         ))}
       </SimpleTableInfiniteHeader>
       <InfiniteListState
@@ -111,7 +111,7 @@ export default function ReplayAssertionsTable({onSelect: _}: Props) {
             >
               <InteractionStateLayer />
               {VISIBLE_COLUMNS.map((column, columnIndex) => (
-                <SimpleTable.RowCell
+                <SimpleTableInfiniteCell
                   key={`${replay.id}-${columnIndex}-${column.sortKey}`}
                 >
                   <Stacked>
@@ -131,7 +131,7 @@ export default function ReplayAssertionsTable({onSelect: _}: Props) {
                       showDropdownFilters={false}
                     />
                   </Stacked>
-                </SimpleTable.RowCell>
+                </SimpleTableInfiniteCell>
               ))}
             </SimpleTableInfiniteRow>
           )}
@@ -189,17 +189,15 @@ const SimpleTableInfinite = styled(SimpleTable)`
 `;
 
 const SimpleTableInfiniteHeader = styled(SimpleTable.Header)`
-  display: flex;
-  flex-direction: row;
-
   display: grid;
   grid-template-columns: max-content 1fr max-content;
 `;
 
 const SimpleTableInfiniteRow = styled(SimpleTable.Row)`
-  display: flex;
-  flex-direction: row;
-
   display: grid;
   grid-template-columns: max-content 1fr max-content;
 `;
+
+const SimpleTableInfiniteHeaderCell = styled(SimpleTable.HeaderCell)``;
+
+const SimpleTableInfiniteCell = styled(SimpleTable.RowCell)``;
