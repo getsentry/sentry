@@ -62,10 +62,10 @@ function getContentForPlan(
     features: {
       discover: t('Advanced analytics with Discover'),
       enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
-      dashboard: t('Custom dashboards'),
-      ...(checkoutTier === PlanTier.AM3
-        ? {application_insights: t('Application Insights')}
-        : {cross_project_visibility: t('Cross-project visibility')}),
+      dashboard: t('Unlimited custom dashboards'),
+      ...(checkoutTier === PlanTier.AM3 && {
+        application_insights: t('Application Insights'),
+      }),
       advanced_filtering: t('Advanced server-side filtering'),
       saml: t('SAML support'),
     },
