@@ -14,6 +14,8 @@ import {PlatformIcon} from 'platformicons';
 
 import error from 'sentry-images/spot/cmd-k-error.svg';
 
+import error from 'sentry-images/spot/cmd-k-error.png';
+
 import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import SeeryCharacter, {
@@ -315,7 +317,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   return (
     <Fragment>
       <SeeryCharacter ref={seeryRef} animationData={serryLottieAnimation} size={200} />
-      <StyledCommand key={firstItemKey} label="OmniSearch" shouldFilter={false}>
+      <StyledCommand key={firstItemKey} label="OmniSearch" shouldFilter={false} loop>
         <Header>
           {focusedArea && (
             <FocusedAreaContainer>
@@ -544,7 +546,6 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     color: ${p => p.theme.subText};
     text-align: center;
     padding: 24px 12px;
-    height: 400px;
 
     img {
       width: 100%;
