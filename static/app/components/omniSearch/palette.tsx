@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
@@ -61,6 +61,21 @@ export function OmniSearchPalette() {
     []
   );
 
+  const [funfact, setFunfact] = useState('');
+
+  const handleFunfact = useCallback(() => {
+    fetch('https://cmdkllm-12459da2e71a.herokuapp.com/call', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(res => res.json())
+      .then(data => {
+        setFunfact(data.message);
+      });
+  }, []);
+
   useEffect(() => {
     createFuzzySearch([...availableActions, ...dynamicActions], {
       keys: ['label', 'fullLabel', 'details'],
@@ -121,6 +136,34 @@ export function OmniSearchPalette() {
       inputRef.current?.focus();
     }
   }, [selectedAction]);
+
+  if (query === 'llm fun fact') {
+    handleFunfact();
+    return (
+      <StyledCommand label="OmniSearch" shouldFilter={false}>
+        <Header>
+          {focusedArea && <div>{focusedArea.label}</div>}
+          <IconSearch size="sm" style={{marginRight: 8}} />
+          <CommandPrimitive.Command.Input
+            autoFocus
+            ref={inputRef}
+            value={query}
+            onValueChange={setQuery}
+            onKeyDown={e => {
+              if (e.key === 'Backspace') {
+                clearSelection();
+                e.preventDefault();
+              }
+            }}
+            placeholder="Search for projects, issues, settings, and more…"
+          />
+        </Header>
+        <CommandPrimitive.Command.List>
+          <CommandPrimitive.Command.Item>{funfact}</CommandPrimitive.Command.Item>
+        </CommandPrimitive.Command.List>
+      </StyledCommand>
+    );
+  }
 
   return (
     <StyledCommand label="OmniSearch" shouldFilter={false}>
