@@ -4,16 +4,20 @@ import aws from 'sentry-logos/logo-aws.svg';
 import vsts from 'sentry-logos/logo-azure.svg';
 import bitbucketserver from 'sentry-logos/logo-bitbucket-server.svg';
 import bitbucket from 'sentry-logos/logo-bitbucket.svg';
+import confluence from 'sentry-logos/logo-confluence.svg';
 import placeholder from 'sentry-logos/logo-default.svg';
 import discord from 'sentry-logos/logo-discord.svg';
 import githubEnterprise from 'sentry-logos/logo-github-enterprise.svg';
 import github from 'sentry-logos/logo-github.svg';
 import gitlab from 'sentry-logos/logo-gitlab.svg';
+import googleDocs from 'sentry-logos/logo-google-docs.svg';
 import heroku from 'sentry-logos/logo-heroku.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
 import jira from 'sentry-logos/logo-jira.svg';
 import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
+import linear from 'sentry-logos/logo-linear.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
+import notion from 'sentry-logos/logo-notion.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-logos/logo-pagerduty.svg';
 import pivotal from 'sentry-logos/logo-pivotaltracker.svg';
@@ -22,6 +26,7 @@ import redmine from 'sentry-logos/logo-redmine.svg';
 import segment from 'sentry-logos/logo-segment.svg';
 import sentry from 'sentry-logos/logo-sentry.svg';
 import slack from 'sentry-logos/logo-slack.svg';
+import statuspage from 'sentry-logos/logo-statuspage.svg';
 import trello from 'sentry-logos/logo-trello.svg';
 import twilio from 'sentry-logos/logo-twilio.svg';
 import vercel from 'sentry-logos/logo-vercel.svg';
@@ -66,6 +71,11 @@ const PLUGIN_ICONS = {
   vsts,
   vercel,
   victorops,
+  linear,
+  statuspage,
+  notion,
+  'google-docs': googleDocs,
+  confluence,
 } satisfies Record<string, string>;
 
 export interface PluginIconProps extends React.RefAttributes<HTMLDivElement> {

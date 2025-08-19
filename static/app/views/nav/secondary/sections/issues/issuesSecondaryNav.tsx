@@ -113,13 +113,22 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
           </SecondaryNav.Item>
         </Fragment>
       ) : (
-        <SecondaryNav.Item
-          to={`${baseUrl}/alerts/rules/`}
-          activeTo={`${baseUrl}/alerts/`}
-          analyticsItemName="issues_alerts"
-        >
-          {t('Alerts')}
-        </SecondaryNav.Item>
+        <Fragment>
+          <SecondaryNav.Item
+            to={`${baseUrl}/alerts/rules/`}
+            activeTo={`${baseUrl}/alerts/`}
+            analyticsItemName="issues_alerts"
+          >
+            {t('Alerts')}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item
+            to={`${baseUrl}/incidents/`}
+            activeTo={`${baseUrl}/incidents/`}
+            analyticsItemName="issues_incidents"
+          >
+            {t('Incidents')}
+          </SecondaryNav.Item>
+        </Fragment>
       )}
     </StickyBottomSection>
   );

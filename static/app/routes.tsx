@@ -15,6 +15,7 @@ import AuthLayout from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
+import {incidentRoutes} from 'sentry/views/incidents/routes';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -2686,6 +2687,7 @@ function buildRoutes(): RouteObject[] {
     traceView,
     automationRoutes,
     detectorRoutes,
+    incidentRoutes,
   ];
   const issueRoutes: SentryRouteObject = {
     path: '/issues/',
