@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
 import serryLottieAnimation from 'getsentry-images/omni/mshk-image-to-lottie.json';
 
+import error from 'sentry-images/spot/cmd-k-error.svg';
+
 import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
@@ -220,7 +222,11 @@ export function OmniSearchPalette() {
         </Header>
         <CommandPrimitive.Command.List>
           {grouped.every(g => g.items.length === 0) ? (
-            <CommandPrimitive.Command.Empty>No results</CommandPrimitive.Command.Empty>
+            <CommandPrimitive.Command.Empty>
+              <img src={error} alt="No results" />
+              <p>Whoops… we couldn’t find any results matching your search.</p>
+              <p>Try rephrasing your query maybe?</p>
+            </CommandPrimitive.Command.Empty>
           ) : (
             grouped.map(group => (
               <Fragment key={group.sectionKey}>
@@ -314,18 +320,32 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     background: ${p => p.theme.background};
     border-radius: 6px;
     overflow: hidden;
-    height: 520px;
   }
 
   [cmdk-list] {
     padding: 6px;
-    min-height: 150px;
-    max-height: 500px;
+    height: 500px;
     overflow-y: auto;
 
     &:focus {
       outline: none;
     }
+
+    background:
+      /* Shadow covers */
+      linear-gradient(${p => p.theme.background} 30%, rgba(255, 255, 255, 0)),
+      linear-gradient(rgba(255, 255, 255, 0), ${p => p.theme.background} 70%) 0 100%,
+      /* Shadows */ linear-gradient(to bottom, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0)),
+      linear-gradient(to top, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0)) 0 100%;
+
+    background-repeat: no-repeat;
+    background-size:
+      100% 40px,
+      100% 40px,
+      100% 20px,
+      100% 20px;
+
+    background-attachment: local, local, scroll, scroll;
   }
 
   [cmdk-group] {
@@ -366,6 +386,29 @@ const StyledCommand = styled(CommandPrimitive.Command)`
         opacity: 1;
         transform: scale(1.1);
       }
+    }
+  }
+
+  [cmdk-empty] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: ${p => p.theme.fontSize.md};
+    color: ${p => p.theme.subText};
+    text-align: center;
+    padding: 24px 12px;
+    height: 400px;
+
+    img {
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      margin: 0;
     }
   }
 `;
