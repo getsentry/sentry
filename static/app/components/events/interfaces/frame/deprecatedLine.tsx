@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, lazy, Suspense, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -12,7 +12,6 @@ import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/anal
 import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import StrictClick from 'sentry/components/strictClick';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
@@ -41,6 +40,12 @@ import {
   hasContextVars,
   isPotentiallyThirdPartyFrame,
 } from './utils';
+
+const LazySourceMapsDebuggerModal = lazy(() =>
+  import('sentry/components/events/interfaces/sourceMapsDebuggerModal').then(m => ({
+    default: m.SourceMapsDebuggerModal,
+  }))
+);
 
 const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
   '.js',
@@ -286,13 +291,15 @@ function DeprecatedLine({
 
                     openModal(
                       modalProps => (
-                        <SourceMapsDebuggerModal
-                          analyticsParams={sourceMapDebuggerAmplitudeData}
-                          sourceResolutionResults={frameSourceResolutionResults}
-                          organization={organization}
-                          projectId={event.projectID}
-                          {...modalProps}
-                        />
+                        <Suspense>
+                          <LazySourceMapsDebuggerModal
+                            analyticsParams={sourceMapDebuggerAmplitudeData}
+                            sourceResolutionResults={frameSourceResolutionResults}
+                            organization={organization}
+                            projectId={event.projectID}
+                            {...modalProps}
+                          />
+                        </Suspense>
                       ),
                       {
                         modalCss: css`
