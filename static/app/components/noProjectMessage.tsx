@@ -1,9 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, lazy, Suspense} from 'react';
 import styled from '@emotion/styled';
 
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -12,6 +11,10 @@ import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+const LazyNoProjectEmptyState = lazy(
+  () => import('sentry/components/illustrations/NoProjectEmptyState')
+);
 
 type Props = {
   organization: Organization;
@@ -72,7 +75,9 @@ function NoProjectMessage({
 
   return (
     <Wrapper>
-      <NoProjectEmptyState />
+      <Suspense>
+        <LazyNoProjectEmptyState />
+      </Suspense>
 
       <Content>
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
