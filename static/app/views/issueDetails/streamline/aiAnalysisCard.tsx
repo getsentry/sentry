@@ -99,6 +99,9 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [orgMembers, setOrgMembers] = useState<User[]>([]);
+  const [sentryApiToken, setSentryApiToken] = useState<string>('');
+  const [showTokenInput, setShowTokenInput] = useState(false);
+  const [tokenInputValue, setTokenInputValue] = useState<string>('');
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
@@ -162,6 +165,26 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
     }
   };
 
+  const handleSaveToken = () => {
+    if (tokenInputValue.trim()) {
+      localStorage.setItem('sentryApiToken', tokenInputValue.trim());
+      setSentryApiToken(tokenInputValue.trim());
+      setShowTokenInput(false);
+      // Auto-fetch analysis after saving token
+      if (isAIMode && !analysisData && !loading) {
+        fetchAnalysis();
+      }
+    }
+  };
+
+  const handleClearToken = () => {
+    localStorage.removeItem('sentryApiToken');
+    setSentryApiToken('');
+    setTokenInputValue('');
+    setShowTokenInput(true);
+    setAnalysisData(null);
+  };
+
   const formatAssignee = (assignedTo: Actor | null) => {
     if (!assignedTo) return 'Unassigned';
     return assignedTo.name;
@@ -181,12 +204,25 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
 
-  // Auto-fetch analysis when component mounts in AI mode
+  // Load token from localStorage on mount
+  useEffect(() => {
+    const savedToken = localStorage.getItem('sentryApiToken');
+    if (savedToken) {
+      setSentryApiToken(savedToken);
+      setTokenInputValue(savedToken);
+    }
+  }, []);
+
+  // Auto-fetch analysis when component mounts in AI mode (if token is available)
   useEffect(() => {
     if (isAIMode && !analysisData && !loading) {
-      fetchAnalysis();
+      if (sentryApiToken) {
+        fetchAnalysis();
+      } else {
+        setShowTokenInput(true);
+      }
     }
-  }, [isAIMode]); // Only depend on isAIMode to avoid infinite loops
+  }, [isAIMode, sentryApiToken]); // Depend on both isAIMode and sentryApiToken
 
   // Fetch organization members for assignee dropdown
   useEffect(() => {
@@ -220,12 +256,21 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
       setLoading(true);
       setError(null);
 
+      // Check if we have a token before making the request
+      if (!sentryApiToken) {
+        setShowTokenInput(true);
+        throw new Error('Sentry API token is required');
+      }
+
       // Fetch both severity analysis and autofix data in parallel
       const [severityPromise, autofixPromise] = await Promise.allSettled([
-        // Still use fetch for our external severity API
+        // Use fetch for our external severity API with Authorization header
         fetch(`http://localhost:3001/api/severity-agent/${group.id}`, {
           method: 'GET',
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sentryApiToken}`,
+          },
         }),
         // Use Sentry's authenticated API for autofix data
         api.requestPromise(`/organizations/${organization.slug}/issues/${group.id}/autofix/`)
@@ -294,6 +339,57 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             </Button>
           </CardContent>
         </ErrorCard>
+      </AILayoutContainer>
+    );
+  }
+
+  // Show token input if no analysis data and token input is required
+  if (showTokenInput || (!analysisData && !sentryApiToken)) {
+    return (
+      <AILayoutContainer>
+        <GetStartedCard>
+          <CardHeader>
+            <CardTitle>
+              <IconSeer size="md" />
+              {t('AI Analysis')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <P>
+              {t(
+                'To use AI analysis, please provide your Sentry API token. You can find your token in Sentry Settings > Auth Tokens.'
+              )}
+            </P>
+            <TokenInputContainer>
+              <TokenInput
+                type="password"
+                placeholder="Enter your Sentry API token..."
+                value={tokenInputValue}
+                onChange={(e) => setTokenInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSaveToken();
+                  }
+                }}
+              />
+              <Button 
+                onClick={handleSaveToken} 
+                priority="primary" 
+                size="sm"
+                disabled={!tokenInputValue.trim()}
+              >
+                {t('Save Token')}
+              </Button>
+            </TokenInputContainer>
+            {sentryApiToken && (
+              <TokenActions>
+                <Button onClick={handleClearToken} size="xs" priority="default">
+                  {t('Clear Saved Token')}
+                </Button>
+              </TokenActions>
+            )}
+          </CardContent>
+        </GetStartedCard>
       </AILayoutContainer>
     );
   }
@@ -651,6 +747,25 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             >
               {isAIMode ? t('Seer Mode: ON') : t('Seer Mode: OFF')}
             </Button>
+            
+            {isAIMode && (
+              <TokenStatus>
+                {sentryApiToken ? (
+                  <TokenStatusGood>
+                    ✓ {t('API Token Configured')}
+                  </TokenStatusGood>
+                ) : (
+                  <TokenStatusMissing>
+                    ⚠ {t('API Token Required')}
+                  </TokenStatusMissing>
+                )}
+                {sentryApiToken && (
+                  <Button onClick={handleClearToken} size="xs" priority="default">
+                    {t('Change Token')}
+                  </Button>
+                )}
+              </TokenStatus>
+            )}
             
             <StatusSection>
               <StatusLabel>{t('Status:')}</StatusLabel>
@@ -1514,4 +1629,63 @@ const ActionItemPill = styled('div')`
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
+`;
+
+const TokenInputContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  margin: ${space(2)} 0;
+  align-items: flex-end;
+`;
+
+const TokenInput = styled('input')`
+  flex: 1;
+  padding: ${space(1)} ${space(1.5)};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSize.sm};
+  background: ${p => p.theme.background};
+  color: ${p => p.theme.textColor};
+  
+  &:focus {
+    outline: none;
+    border-color: ${p => p.theme.purple300};
+    box-shadow: 0 0 0 1px ${p => p.theme.purple300};
+  }
+  
+  &::placeholder {
+    color: ${p => p.theme.subText};
+  }
+`;
+
+const TokenActions = styled('div')`
+  margin-top: ${space(1)};
+  display: flex;
+  justify-content: flex-start;
+`;
+
+const TokenStatus = styled('div')`
+  margin-top: ${space(2)};
+  padding: ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.backgroundSecondary};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const TokenStatusGood = styled('div')`
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.successText};
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
+const TokenStatusMissing = styled('div')`
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.warningText};
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
