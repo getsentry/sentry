@@ -141,64 +141,66 @@ export function OmniSearchPalette() {
   }, [selectedAction]);
 
   return (
-    <StyledCommand label="OmniSearch" shouldFilter={false}>
-      <Header>
-        {focusedArea && (
-          <FocusedAreaContainer>
-            <FocusedArea>{focusedArea.label}</FocusedArea>
-          </FocusedAreaContainer>
-        )}
-        <SearchInputContainer>
-          <SeeryCharacter animationData={serryLottieAnimation} size={72} />
-          <SearchInput
-            autoFocus
-            ref={inputRef}
-            value={query}
-            onValueChange={setQuery}
-            onKeyDown={e => {
-              if (e.key === 'Backspace' && query === '') {
-                clearSelection();
-                e.preventDefault();
-              }
-            }}
-            placeholder={placeholder}
-          />
-        </SearchInputContainer>
-      </Header>
-      <CommandPrimitive.Command.List>
-        {grouped.every(g => g.items.length === 0) ? (
-          <CommandPrimitive.Command.Empty>No results</CommandPrimitive.Command.Empty>
-        ) : (
-          grouped.map(group => (
-            <Fragment key={group.sectionKey}>
-              {group.items.length > 0 && (
-                <CommandPrimitive.Command.Group heading={group.label}>
-                  {group.items.map(item => (
-                    <CommandPrimitive.Command.Item
-                      key={item.key}
-                      onSelect={() => handleSelect(item)}
-                      disabled={item.disabled}
-                    >
-                      <ItemRow>
-                        {item.actionIcon && (
-                          <IconDefaultsProvider size="sm">
-                            <IconWrapper>{item.actionIcon}</IconWrapper>
-                          </IconDefaultsProvider>
-                        )}
-                        <OverflowHidden>
-                          <div>{item.label}</div>
-                          {item.details && <ItemDetails>{item.details}</ItemDetails>}
-                        </OverflowHidden>
-                      </ItemRow>
-                    </CommandPrimitive.Command.Item>
-                  ))}
-                </CommandPrimitive.Command.Group>
-              )}
-            </Fragment>
-          ))
-        )}
-      </CommandPrimitive.Command.List>
-    </StyledCommand>
+    <Fragment>
+      <SeeryCharacter animationData={serryLottieAnimation} size={200} />
+      <StyledCommand label="OmniSearch" shouldFilter={false}>
+        <Header>
+          {focusedArea && (
+            <FocusedAreaContainer>
+              <FocusedArea>{focusedArea.label}</FocusedArea>
+            </FocusedAreaContainer>
+          )}
+          <SearchInputContainer>
+            <SearchInput
+              autoFocus
+              ref={inputRef}
+              value={query}
+              onValueChange={setQuery}
+              onKeyDown={e => {
+                if (e.key === 'Backspace' && query === '') {
+                  clearSelection();
+                  e.preventDefault();
+                }
+              }}
+              placeholder={placeholder}
+            />
+          </SearchInputContainer>
+        </Header>
+        <CommandPrimitive.Command.List>
+          {grouped.every(g => g.items.length === 0) ? (
+            <CommandPrimitive.Command.Empty>No results</CommandPrimitive.Command.Empty>
+          ) : (
+            grouped.map(group => (
+              <Fragment key={group.sectionKey}>
+                {group.items.length > 0 && (
+                  <CommandPrimitive.Command.Group heading={group.label}>
+                    {group.items.map(item => (
+                      <CommandPrimitive.Command.Item
+                        key={item.key}
+                        onSelect={() => handleSelect(item)}
+                        disabled={item.disabled}
+                      >
+                        <ItemRow>
+                          {item.actionIcon && (
+                            <IconDefaultsProvider size="sm">
+                              <IconWrapper>{item.actionIcon}</IconWrapper>
+                            </IconDefaultsProvider>
+                          )}
+                          <OverflowHidden>
+                            <div>{item.label}</div>
+                            {item.details && <ItemDetails>{item.details}</ItemDetails>}
+                          </OverflowHidden>
+                        </ItemRow>
+                      </CommandPrimitive.Command.Item>
+                    ))}
+                  </CommandPrimitive.Command.Group>
+                )}
+              </Fragment>
+            ))
+          )}
+        </CommandPrimitive.Command.List>
+      </StyledCommand>
+    </Fragment>
   );
 }
 
@@ -223,6 +225,7 @@ const SearchInput = styled(CommandPrimitive.Command.Input)`
   border: none;
   font-size: ${p => p.theme.fontSize.lg};
   line-height: 1;
+  height: 40px;
 `;
 
 const FocusedAreaContainer = styled('div')`

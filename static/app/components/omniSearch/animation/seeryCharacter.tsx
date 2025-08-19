@@ -1,5 +1,9 @@
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
+import {AnimatePresence, motion} from 'framer-motion';
 import {useLottie} from 'lottie-react';
+
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 
 interface SeeryCharacterProps {
   animationData: any;
@@ -7,23 +11,39 @@ interface SeeryCharacterProps {
 }
 
 function SeeryCharacter({animationData, size}: SeeryCharacterProps) {
+  const {visible} = useGlobalModal();
   const {View} = useLottie({
     animationData,
     autoplay: true,
     loop: true,
   });
 
-  return (
-    <CharacterContainer size={size}>
-      <AnimationContainer size={size}>{View}</AnimationContainer>
-    </CharacterContainer>
+  return createPortal(
+    <AnimatePresence>
+      {visible && (
+        <CharacterContainer
+          size={size}
+          initial={{opacity: 0}}
+          animate={{opacity: 1}}
+          exit={{opacity: 0}}
+          transition={{duration: 0.2}}
+        >
+          <AnimationContainer size={size}>{View}</AnimationContainer>
+        </CharacterContainer>
+      )}
+    </AnimatePresence>,
+    document.body
   );
 }
 
-const CharacterContainer = styled('div')<{size?: number}>`
+const CharacterContainer = styled(motion.div)<{size?: number}>`
+  position: fixed;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: ${p => p.theme.zIndex.modal + 1};
   ${p => p.size && `width: ${p.size}px; height: ${p.size}px;`}
 `;
 
