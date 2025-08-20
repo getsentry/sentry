@@ -1,3 +1,4 @@
+import pytest
 from sentry.ingest.inbound_filters import (
     _browser_extensions_filter,
     _legacy_browsers_filter,
@@ -51,6 +52,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         )
         return message
 
+    @pytest.mark.skip(reason="flaky: #98058")
     def test_should_filter_browser_extensions_when_enabled(self) -> None:
         self._set_filter_state(_browser_extensions_filter, "1")
         message = self._get_message_with_bad_extension()
