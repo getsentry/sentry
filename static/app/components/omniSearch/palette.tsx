@@ -310,10 +310,10 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     // Return action with dynamic label
     return {
       ...baseAction,
-      label: debouncedQuery ? `Ask Seer: "${debouncedQuery}"` : 'Ask Seer',
+      label: query ? `Ask Seer: "${query}"` : 'Ask Seer',
     };
   }, [
-    debouncedQuery,
+    query,
     setIsSearchingSeer,
     pageFilters.selection,
     memberProjects,
