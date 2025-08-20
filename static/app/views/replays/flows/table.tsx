@@ -65,11 +65,7 @@ export default function FlowTable() {
   const {mutate: createFlow} = useMutation({
     mutationFn: (value: AssertionFlow) => {
       AssertionDatabase.restore();
-      const old = Array.from(AssertionDatabase.flows).find(flow => flow.id === value.id);
-      if (old) {
-        AssertionDatabase.flows.delete(old);
-        AssertionDatabase.flows.add(value);
-      }
+      AssertionDatabase.flows.add(value);
       AssertionDatabase.persist();
       return Promise.resolve(value);
     },
