@@ -113,6 +113,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const [showTokenInput, setShowTokenInput] = useState(false);
   const [tokenInputValue, setTokenInputValue] = useState<string>('');
   const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
+  const [similarIssuesCount, setSimilarIssuesCount] = useState<number>(0);
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
@@ -918,9 +919,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               </PeopleSection>
             )}
 
-            <SimilarIssuesSection group={group} />
+            <SimilarIssuesSection 
+              group={group} 
+              onSimilarIssuesCountChange={setSimilarIssuesCount}
+            />
 
-            <ActionItemsSection />
+            <ActionItemsSection similarIssuesCount={similarIssuesCount} />
           </CardContent>
         </SidebarCard>
       </Sidebar>
@@ -1485,9 +1489,10 @@ interface SimilarIssue {
 
 interface SimilarIssuesSectionProps {
   group: Group;
+  onSimilarIssuesCountChange: (count: number) => void;
 }
 
-function SimilarIssuesSection({group}: SimilarIssuesSectionProps) {
+function SimilarIssuesSection({group, onSimilarIssuesCountChange}: SimilarIssuesSectionProps) {
   const [similarIssues, setSimilarIssues] = useState<SimilarIssue[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1518,9 +1523,11 @@ function SimilarIssuesSection({group}: SimilarIssuesSectionProps) {
       }));
 
       setSimilarIssues(issues);
+      onSimilarIssuesCountChange(issues.length);
     } catch (err) {
       console.error('Failed to fetch similar issues:', err);
       setError('Failed to load similar issues');
+      onSimilarIssuesCountChange(0);
     } finally {
       setLoading(false);
     }
@@ -1618,9 +1625,23 @@ const ActivityCard = styled(Card)`
 `;
 
 // Action Items Section Component
-function ActionItemsSection() {
-  // Mock data for now - could be fetched from API later
-  const actionItems = [{id: '1', text: 'Set up source maps (EXAMPLE)'}];
+interface ActionItemsSectionProps {
+  similarIssuesCount: number;
+}
+
+function ActionItemsSection({similarIssuesCount}: ActionItemsSectionProps) {
+  // Action items based on conditions
+  const actionItems = [];
+  
+  // Add merge action item if there are multiple similar issues
+  if (similarIssuesCount > 1) {
+    actionItems.push({id: 'merge', text: 'Merge Similar Issues'});
+  }
+
+  // Don't render if no action items
+  if (actionItems.length === 0) {
+    return null;
+  }
 
   return (
     <ActionItemsWrapper>
