@@ -760,6 +760,44 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         assert result["key"] == "APP-123"
 
+    @responses.activate
+    def test_create_issue_invalid_configuration(self) -> None:
+        installation = self.integration.get_installation(self.organization.id)
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            body=StubService.get_stub_json("jira", "createmeta_response.json"),
+            content_type="json",
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/APP-123",
+            body=StubService.get_stub_json("jira", "get_issue_response.json"),
+            content_type="json",
+        )
+
+        responses.add(
+            responses.POST,
+            "https://example.atlassian.net/rest/api/2/issue",
+            status=400,
+            json={
+                "errorMessages": ["Issue can be assigned only active or future sprints."],
+                "errors": {},
+            },
+        )
+
+        with pytest.raises(IntegrationInstallationConfigurationError) as e:
+            installation.create_issue(
+                {
+                    "title": "example summary",
+                    "description": "example bug report",
+                    "issuetype": "1",
+                    "project": "10000",
+                }
+            )
+            assert e.value.args[0] == "Issue can be assigned only active or future sprints."
+
     def test_outbound_issue_sync(self) -> None:
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id, integration_id=self.integration.id, key="SEN-5"
