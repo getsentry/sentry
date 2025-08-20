@@ -16,8 +16,8 @@ import {
   getRootCauseDescription,
   getRootCauseIsLoading,
 } from 'sentry/components/events/autofix/utils';
-import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
+import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {
@@ -33,15 +33,15 @@ import {space} from 'sentry/styles/space';
 import type {Actor, TimeseriesValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
-import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {GroupStatus} from 'sentry/types/group';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import useApi from 'sentry/utils/useApi';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -61,7 +61,9 @@ function ChartsSection({group}: {group: Group}) {
   const eventView24h = useMemo(() => {
     const view = EventView.fromSavedQuery({
       statsPeriod: '24h',
-      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : DiscoverDatasets.ERRORS,
+      dataset: config.usesIssuePlatform
+        ? DiscoverDatasets.ISSUE_PLATFORM
+        : DiscoverDatasets.ERRORS,
       version: 2,
       projects: [Number(group.project.id)],
       yAxis: ['count()'],
@@ -75,13 +77,21 @@ function ChartsSection({group}: {group: Group}) {
     view.start = undefined;
     view.end = undefined;
     return view;
-  }, [group.shortId, group.title, group.type, group.project.id, config.usesIssuePlatform]);
+  }, [
+    group.shortId,
+    group.title,
+    group.type,
+    group.project.id,
+    config.usesIssuePlatform,
+  ]);
 
   // Create EventView for 30 days
   const eventView30d = useMemo(() => {
     const view = EventView.fromSavedQuery({
       statsPeriod: '30d',
-      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : DiscoverDatasets.ERRORS,
+      dataset: config.usesIssuePlatform
+        ? DiscoverDatasets.ISSUE_PLATFORM
+        : DiscoverDatasets.ERRORS,
       version: 2,
       projects: [Number(group.project.id)],
       yAxis: ['count()'],
@@ -95,9 +105,19 @@ function ChartsSection({group}: {group: Group}) {
     view.start = undefined;
     view.end = undefined;
     return view;
-  }, [group.shortId, group.title, group.type, group.project.id, config.usesIssuePlatform]);
+  }, [
+    group.shortId,
+    group.title,
+    group.type,
+    group.project.id,
+    config.usesIssuePlatform,
+  ]);
 
-  const {data: stats24h, isPending: loading24h, error: error24h} = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
+  const {
+    data: stats24h,
+    isPending: loading24h,
+    error: error24h,
+  } = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
     params: {
       route: 'events-stats',
       eventView: eventView24h,
@@ -105,7 +125,11 @@ function ChartsSection({group}: {group: Group}) {
     },
   });
 
-  const {data: stats30d, isPending: loading30d, error: error30d} = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
+  const {
+    data: stats30d,
+    isPending: loading30d,
+    error: error30d,
+  } = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
     params: {
       route: 'events-stats',
       eventView: eventView30d,
@@ -126,28 +150,46 @@ function ChartsSection({group}: {group: Group}) {
   });
 
   // Convert data to TimeseriesValue[] format
-  const convert24hStats: TimeseriesValue[] = stats24h?.data?.map(([timestamp, countData]) => [
-    timestamp,
-    countData?.[0]?.count ?? 0
-  ]) || [];
+  const convert24hStats: TimeseriesValue[] =
+    stats24h?.data?.map(([timestamp, countData]) => [
+      timestamp,
+      countData?.[0]?.count ?? 0,
+    ]) || [];
 
-  const convert30dStats: TimeseriesValue[] = stats30d?.data?.map(([timestamp, countData]) => [
-    timestamp,
-    countData?.[0]?.count ?? 0
-  ]) || [];
+  const convert30dStats: TimeseriesValue[] =
+    stats30d?.data?.map(([timestamp, countData]) => [
+      timestamp,
+      countData?.[0]?.count ?? 0,
+    ]) || [];
 
-  console.log('Converted stats:', { convert24hStats, convert30dStats });
+  console.log('Converted stats:', {convert24hStats, convert30dStats});
 
   return (
     <ChartsMetricsSection>
       <ChartContainer>
         <ChartTitle>{t('Last 24 Hours')}</ChartTitle>
         {loading24h ? (
-          <div style={{height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px'}}>
+          <div
+            style={{
+              height: 48,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+            }}
+          >
             Loading...
           </div>
         ) : error24h ? (
-          <div style={{height: 48, display: 'flex', alignItems: 'center', color: 'red', fontSize: '12px'}}>
+          <div
+            style={{
+              height: 48,
+              display: 'flex',
+              alignItems: 'center',
+              color: 'red',
+              fontSize: '12px',
+            }}
+          >
             Error
           </div>
         ) : (
@@ -157,11 +199,27 @@ function ChartsSection({group}: {group: Group}) {
       <ChartContainer>
         <ChartTitle>{t('Last 30 Days')}</ChartTitle>
         {loading30d ? (
-          <div style={{height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px'}}>
+          <div
+            style={{
+              height: 48,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+            }}
+          >
             Loading...
           </div>
         ) : error30d ? (
-          <div style={{height: 48, display: 'flex', alignItems: 'center', color: 'red', fontSize: '12px'}}>
+          <div
+            style={{
+              height: 48,
+              display: 'flex',
+              alignItems: 'center',
+              color: 'red',
+              fontSize: '12px',
+            }}
+          >
             Error
           </div>
         ) : (
@@ -241,10 +299,6 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [orgMembers, setOrgMembers] = useState<User[]>([]);
-  const [sentryApiToken, setSentryApiToken] = useState<string>('');
-  const [showTokenInput, setShowTokenInput] = useState(false);
-  const [tokenInputValue, setTokenInputValue] = useState<string>('');
-  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
   const [similarIssuesCount, setSimilarIssuesCount] = useState<number>(0);
   const location = useLocation();
   const navigate = useNavigate();
@@ -320,26 +374,6 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
     }
   };
 
-  const handleSaveToken = () => {
-    if (tokenInputValue.trim()) {
-      localStorage.setItem('sentryApiToken', tokenInputValue.trim());
-      setSentryApiToken(tokenInputValue.trim());
-      setShowTokenInput(false);
-      // Auto-fetch analysis after saving token
-      if (isAIMode && !analysisData && !loading) {
-        fetchAnalysis();
-      }
-    }
-  };
-
-  const handleClearToken = () => {
-    localStorage.removeItem('sentryApiToken');
-    setSentryApiToken('');
-    setTokenInputValue('');
-    setShowTokenInput(true);
-    setAnalysisData(null);
-  };
-
   const formatAssignee = (assignedTo: Actor | null) => {
     if (!assignedTo) return 'Unassigned';
     return assignedTo.name;
@@ -359,29 +393,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
 
-  // Load token from localStorage on mount and initialize token state
+  // Auto-fetch analysis when component mounts in AI mode
   useEffect(() => {
-    const savedToken = localStorage.getItem('sentryApiToken');
-    if (savedToken) {
-      setSentryApiToken(savedToken);
-      setTokenInputValue(savedToken);
-    }
-    setHasLoadedFromStorage(true);
-  }, []);
-
-  // Auto-fetch analysis when component mounts in AI mode (if token is available)
-  useEffect(() => {
-    // Only proceed after we've loaded from localStorage
-    if (!hasLoadedFromStorage) return;
-
     if (isAIMode && !analysisData && !loading && !error) {
-      if (sentryApiToken) {
-        fetchAnalysis();
-      } else {
-        setShowTokenInput(true);
-      }
+      fetchAnalysis();
     }
-  }, [isAIMode, sentryApiToken, analysisData, loading, error, hasLoadedFromStorage]); // Include hasLoadedFromStorage dependency
+  }, [isAIMode, analysisData, loading, error]);
 
   // Fetch organization members for assignee dropdown
   useEffect(() => {
@@ -415,22 +432,82 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
       setLoading(true);
       setError(null);
 
-      // Check if we have a token before making the request
-      if (!sentryApiToken) {
-        setShowTokenInput(true);
-        throw new Error('Sentry API token is required');
-      }
+      // First, fetch Sentry issue data using authenticated API
+      const [issueData, eventData, tagsData] = await Promise.all([
+        api.requestPromise(`/organizations/${organization.slug}/issues/${group.id}/`, {
+          query: {
+            collapse: 'release,tags',
+            expand: 'inbox,owners',
+          },
+        }),
+        api.requestPromise(
+          `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+          {
+            query: {
+              collapse: 'fullRelease',
+            },
+          }
+        ),
+        api.requestPromise(
+          `/organizations/${organization.slug}/issues/${group.id}/tags/`
+        ),
+      ]);
+
+      // Structure the data for the agent (matching sentryTool.js format)
+      const issueDetailsToolUse = {
+        issue: {
+          title: issueData.title,
+          status: issueData.status,
+          priority: issueData.priority,
+          count: parseInt(issueData.count) || 0,
+          userCount: parseInt(issueData.userCount) || 0,
+          firstSeen: issueData.firstSeen,
+          lastSeen: issueData.lastSeen,
+          shortId: issueData.shortId,
+          level: issueData.level,
+          platform: issueData.platform,
+          culprit: issueData.culprit,
+          permalink: issueData.permalink,
+          isUnhandled: issueData.isUnhandled,
+        },
+        events: Array.isArray(eventData)
+          ? eventData.slice(0, 3).map(event => ({
+              id: event.id,
+              platform: event.platform,
+              environment: event.environment,
+              entries: event.entries ? event.entries.slice(0, 2) : [],
+              dateCreated: event.dateCreated,
+              message: event.message,
+            }))
+          : [],
+        tags: Array.isArray(tagsData)
+          ? tagsData.slice(0, 10).map(tag => ({
+              name: tag.name,
+              topValues: tag.topValues ? tag.topValues.slice(0, 3) : [],
+            }))
+          : [],
+        summary: {
+          totalEvents: parseInt(issueData.count) || 0,
+          totalUsers: parseInt(issueData.userCount) || 0,
+          timespan: `${issueData.firstSeen} to ${issueData.lastSeen}`,
+          severity: issueData.level || 'unknown',
+          platform: issueData.platform || 'unknown',
+        },
+      };
 
       // Fetch both severity analysis and autofix data in parallel
       const [severityPromise, autofixPromise] = await Promise.allSettled([
-        // Use fetch for our external severity API with Authorization header
-        fetch(`https://p01--severity-agent--f72lwwtpwydc.code.run/api/severity-agent/${group.id}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${sentryApiToken}`,
-          },
-        }),
+        // POST to backend with pre-fetched Sentry data
+        fetch(
+          `https://p01--severity-agent--f72lwwtpwydc.code.run/api/severity-agent/${group.id}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({issueDetailsToolUse}),
+          }
+        ),
         // Use Sentry's authenticated API for autofix data
         api.requestPromise(
           `/organizations/${organization.slug}/issues/${group.id}/autofix/`
@@ -487,57 +564,6 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             </Button>
           </CardContent>
         </ErrorCard>
-      </AILayoutContainer>
-    );
-  }
-
-  // Show token input if no analysis data and token input is required
-  if (showTokenInput || (!analysisData && !sentryApiToken)) {
-    return (
-      <AILayoutContainer>
-        <GetStartedCard>
-          <CardHeader>
-            <CardTitle>
-              <IconSeer size="md" />
-              {t('AI Analysis')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <P>
-              {t(
-                'To use AI analysis, please provide your Sentry API token. You can find your token in Sentry Settings > Auth Tokens.'
-              )}
-            </P>
-            <TokenInputContainer>
-              <TokenInput
-                type="password"
-                placeholder="Enter your Sentry API token..."
-                value={tokenInputValue}
-                onChange={e => setTokenInputValue(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    handleSaveToken();
-                  }
-                }}
-              />
-              <Button
-                onClick={handleSaveToken}
-                priority="primary"
-                size="sm"
-                disabled={!tokenInputValue.trim()}
-              >
-                {t('Save Token')}
-              </Button>
-            </TokenInputContainer>
-            {sentryApiToken && (
-              <TokenActions>
-                <Button onClick={handleClearToken} size="xs" priority="default">
-                  {t('Clear Saved Token')}
-                </Button>
-              </TokenActions>
-            )}
-          </CardContent>
-        </GetStartedCard>
       </AILayoutContainer>
     );
   }
@@ -628,8 +654,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const solutionData = getSolutionData();
 
   // Get root cause description and loading state using the utility functions
-  const rootCauseDescription = autofixData?.autofix ? getRootCauseDescription(autofixData.autofix) : null;
-  const rootCauseIsLoading = autofixData?.autofix ? getRootCauseIsLoading(autofixData.autofix) : false;
+  const rootCauseDescription = autofixData?.autofix
+    ? getRootCauseDescription(autofixData.autofix)
+    : null;
+  const rootCauseIsLoading = autofixData?.autofix
+    ? getRootCauseIsLoading(autofixData.autofix)
+    : false;
 
   // Get initial guess from group summary data (hook called at top level)
   const initialGuess = summaryData?.possibleCause;
@@ -651,42 +681,37 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 <TimelineSection>
                   <TimelineItem>
                     <TimelineLabel>{t('First seen:')}</TimelineLabel>
-                    <TimelineValue>
-                      {formatTimeAgo(group.firstSeen)}
-                    </TimelineValue>
+                    <TimelineValue>{formatTimeAgo(group.firstSeen)}</TimelineValue>
                   </TimelineItem>
                   <TimelineItem>
                     <TimelineLabel>{t('Last seen:')}</TimelineLabel>
-                    <TimelineValue>
-                      {formatTimeAgo(group.lastSeen)}
-                    </TimelineValue>
+                    <TimelineValue>{formatTimeAgo(group.lastSeen)}</TimelineValue>
                   </TimelineItem>
                 </TimelineSection>
 
                 <MetricsSection>
                   <MetricItem>
                     <MetricLabel>{t('Events')}</MetricLabel>
-                    <MetricValue>
-                      {group.count}
-                    </MetricValue>
+                    <MetricValue>{group.count}</MetricValue>
                   </MetricItem>
 
                   <MetricItem>
                     <MetricLabel>{t('Users Affected')}</MetricLabel>
-                    <MetricValue>
-                      {group.userCount}
-                    </MetricValue>
+                    <MetricValue>{group.userCount}</MetricValue>
                   </MetricItem>
                 </MetricsSection>
               </TimelineMetricsContent>
             </TimelineMetricsRow>
-
           </CardContent>
         </HeaderCard>
 
         <SeverityCard>
           <SeverityCardHeader
-            severityColor={analysisData?.success ? getSeverityColor(analysisData.analysis.severity).background : 'transparent'}
+            severityColor={
+              analysisData?.success
+                ? getSeverityColor(analysisData.analysis.severity).background
+                : 'transparent'
+            }
             isLoading={!analysisData?.success}
           >
             <HeaderLeft>
@@ -751,9 +776,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 </AnalysisSection>
               </Fragment>
             ) : error && !loading ? (
-              <ErrorMessage>
-                {t('Severity assessment failed: %s', error)}
-              </ErrorMessage>
+              <ErrorMessage>{t('Severity assessment failed: %s', error)}</ErrorMessage>
             ) : (
               <Fragment>
                 {/* Show loading states for AI-generated sections */}
@@ -811,11 +834,9 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                   </ProgressIndicator>
                 </ProgressContainer>
               ) : rootCauseDescription ? (
-                <>
+                <React.Fragment>
                   {/* Root Cause Description */}
-                  <RootCauseDescription>
-                    {rootCauseDescription}
-                  </RootCauseDescription>
+                  <RootCauseDescription>{rootCauseDescription}</RootCauseDescription>
 
                   <AnalysisSection>
                     <CollapsibleSectionHeader
@@ -838,17 +859,17 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                       </RootCauseContent>
                     )}
                   </AnalysisSection>
-                </>
+                </React.Fragment>
               ) : initialGuess ? (
                 <InitialGuessContainer>
                   <InitialGuessLabel>{t('Initial Guess')}</InitialGuessLabel>
-                  <InitialGuessContent>
-                    {initialGuess}
-                  </InitialGuessContent>
+                  <InitialGuessContent>{initialGuess}</InitialGuessContent>
                 </InitialGuessContainer>
               ) : (
                 <EmptyStateText>
-                  {t('No root cause analysis available. Start Seer to analyze this issue.')}
+                  {t(
+                    'No root cause analysis available. Start Seer to analyze this issue.'
+                  )}
                 </EmptyStateText>
               )}
             </CardContent>
@@ -946,7 +967,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
       <Sidebar>
         <SidebarCard>
           <CardContent>
-{!isAIMode && (
+            {!isAIMode && (
               <Button
                 size="xs"
                 priority="default"
@@ -1156,7 +1177,7 @@ const CardHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const SeverityCardHeader = styled('div')<{severityColor: string; isLoading: boolean}>`
+const SeverityCardHeader = styled('div')<{isLoading: boolean; severityColor: string}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1165,7 +1186,9 @@ const SeverityCardHeader = styled('div')<{severityColor: string; isLoading: bool
   position: relative;
 
   /* Apply subtle gradient background */
-  ${p => !p.isLoading && `
+  ${p =>
+    !p.isLoading &&
+    `
     &::before {
       content: '';
       position: absolute;
@@ -1180,10 +1203,12 @@ const SeverityCardHeader = styled('div')<{severityColor: string; isLoading: bool
   `}
 
   /* Keep text dark for better readability with subtle background */
-  color: ${p => p.isLoading ? 'inherit' : p.theme.textColor};
+  color: ${p => (p.isLoading ? 'inherit' : p.theme.textColor)};
 
   /* Ensure child elements maintain proper contrast */
-  ${p => !p.isLoading && `
+  ${p =>
+    !p.isLoading &&
+    `
     h3, span {
       color: ${p.theme.textColor} !important;
     }
@@ -1666,7 +1691,7 @@ const SolutionContent = styled('div')`
 `;
 
 const DebuggerWrapper = styled('div')<{isExpanded: boolean}>`
-  max-width: ${p => p.isExpanded ? 'none' : '768px'};
+  max-width: ${p => (p.isExpanded ? 'none' : '768px')};
   width: 100%;
 `;
 
@@ -1729,7 +1754,10 @@ interface SimilarIssuesSectionProps {
   onSimilarIssuesCountChange: (count: number) => void;
 }
 
-function SimilarIssuesSection({group, onSimilarIssuesCountChange}: SimilarIssuesSectionProps) {
+function SimilarIssuesSection({
+  group,
+  onSimilarIssuesCountChange,
+}: SimilarIssuesSectionProps) {
   const [similarIssues, setSimilarIssues] = useState<SimilarIssue[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1939,65 +1967,6 @@ const ActionItemPill = styled('div')`
   }
 `;
 
-const TokenInputContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  margin: ${space(2)} 0;
-  align-items: flex-end;
-`;
-
-const TokenInput = styled('input')`
-  flex: 1;
-  padding: ${space(1)} ${space(1.5)};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSize.sm};
-  background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
-
-  &:focus {
-    outline: none;
-    border-color: ${p => p.theme.purple300};
-    box-shadow: 0 0 0 1px ${p => p.theme.purple300};
-  }
-
-  &::placeholder {
-    color: ${p => p.theme.subText};
-  }
-`;
-
-const TokenActions = styled('div')`
-  margin-top: ${space(1)};
-  display: flex;
-  justify-content: flex-start;
-`;
-
-const TokenStatus = styled('div')`
-  margin-top: ${space(2)};
-  padding: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.backgroundSecondary};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const TokenStatusGood = styled('div')`
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.successText};
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const TokenStatusMissing = styled('div')`
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.warningText};
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
 const ProgressContainer = styled('div')`
   display: flex;
   flex-direction: column;
@@ -2026,7 +1995,9 @@ const ProgressMessages = styled('div')`
   border-left: 2px solid ${p => p.theme.border};
 `;
 
-const ProgressMessage = styled('div')<{type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION'}>`
+const ProgressMessage = styled('div')<{
+  type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION';
+}>`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => {
     switch (p.type) {
