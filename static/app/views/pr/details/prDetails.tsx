@@ -205,53 +205,42 @@ export default function PRDetails() {
     );
   }
 
-  let primaryContent: React.ReactNode;
-  if (activeTab === 'files') {
-    primaryContent = (
-      <React.Fragment>
-        <Main>
-          {activeTab === 'files' && (
-            <React.Fragment>
-              {/* Comments section above files */}
-              {commentsData?.general_comments &&
-                commentsData.general_comments.length > 0 && (
-                  <CommentsList
-                    comments={commentsData.general_comments}
-                    title="Comments"
-                  />
-                )}
-              {commentsLoading && <div>Loading comments...</div>}
-              {commentsError && (
-                <div style={{color: 'red'}}>Error loading comments: {commentsError}</div>
-              )}
+  const primaryContent = (
+    <React.Fragment>
+      <Main style={{display: activeTab === 'snapshots' ? 'none' : 'flex'}}>
+        {/* Comments section above files */}
+        {commentsData?.general_comments && commentsData.general_comments.length > 0 && (
+          <CommentsList comments={commentsData.general_comments} title="Comments" />
+        )}
+        {commentsLoading && <div>Loading comments...</div>}
+        {commentsError && (
+          <div style={{color: 'red'}}>Error loading comments: {commentsError}</div>
+        )}
 
-              {prData?.pr_files && prData.pr_files.length > 0 && (
-                <PRFilesList files={prData.pr_files} commentsData={commentsData} />
-              )}
-            </React.Fragment>
-          )}
-        </Main>
+        {prData?.pr_files && prData.pr_files.length > 0 && (
+          <PRFilesList files={prData.pr_files} commentsData={commentsData} />
+        )}
+      </Main>
 
-        <Side>
-          <PRSidebar
-            issuesData={issuesData}
-            issuesLoading={issuesLoading}
-            issuesError={issuesError}
-            repoName={params.repoName}
-            prId={params.prId}
-            performanceData={performanceData}
-            releasesData={releasesData}
-          />
-        </Side>
-      </React.Fragment>
-    );
-  } else if (activeTab === 'snapshots') {
-    primaryContent = (
-      <Layout.Main>
-        <SnapshotTesting prId={params.prId} repoName={params.repoName} />;
-      </Layout.Main>
-    );
-  }
+      {activeTab === 'snapshots' && (
+        <SnapshotsMain>
+          <SnapshotTesting prId={params.prId} repoName={params.repoName} />
+        </SnapshotsMain>
+      )}
+
+      <Side style={{display: activeTab === 'snapshots' ? 'none' : 'grid'}}>
+        <PRSidebar
+          issuesData={issuesData}
+          issuesLoading={issuesLoading}
+          issuesError={issuesError}
+          repoName={params.repoName}
+          prId={params.prId}
+          performanceData={performanceData}
+          releasesData={releasesData}
+        />
+      </Side>
+    </React.Fragment>
+  );
 
   return (
     <SentryDocumentTitle title={`PR #${params.prId}`}>
@@ -302,6 +291,14 @@ const Side = styled(Layout.Side)`
     ${p => p.theme.space.xl};
   border-left: 1px solid ${p => p.theme.border};
   grid-column: 2/3;
+`;
+
+const SnapshotsMain = styled(Layout.Main)`
+  padding: ${p => `${p.theme.space.xl} ${p.theme.space['3xl']}`};
+  grid-column: 1/3; /* Take up both columns when sidebar is hidden */
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xl};
 `;
 
 const ErrorMessage = styled(Text)`

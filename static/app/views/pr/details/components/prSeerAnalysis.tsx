@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -86,12 +86,24 @@ function PRSeerAnalysis({repoName: _repoName, prId: _prId, issues}: PRSeerAnalys
     setShowInstructionsInput(false);
   }, [runSeerAnalysis, customInstructions]);
 
-  // Auto-run analysis when issues are first loaded
+  // Memoize issues to prevent unnecessary re-analysis
+  const issuesHash = useMemo(() => {
+    return issues
+      .map(issue => issue.id)
+      .sort()
+      .join(',');
+  }, [issues]);
+
+  // Use ref to track if we've analyzed these specific issues
+  const lastAnalyzedHashRef = useRef<string>('');
+
+  // Auto-run analysis when issues are first loaded or changed
   useEffect(() => {
-    if (issues.length > 0 && !analysis && !loading) {
+    if (issues.length > 0 && issuesHash !== lastAnalyzedHashRef.current && !loading) {
+      lastAnalyzedHashRef.current = issuesHash;
       runSeerAnalysis();
     }
-  }, [issues, analysis, loading, runSeerAnalysis]);
+  }, [issues.length, issuesHash, loading, runSeerAnalysis]);
 
   const getInsightIcon = (type: string) => {
     switch (type) {
