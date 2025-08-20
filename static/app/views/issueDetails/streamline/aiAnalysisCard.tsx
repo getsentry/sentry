@@ -583,29 +583,9 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             ) : error && !loading ? (
               <ErrorMessage>{t('Severity assessment failed: %s', error)}</ErrorMessage>
             ) : (
-              <Fragment>
-                {/* Show loading states for AI-generated sections */}
-                <AnalysisSection>
-                  <SectionTitle>{t('Impact')}</SectionTitle>
-                  <LoadingText>
-                    <em>{t('Seer is analyzing your issue now...')}</em>
-                  </LoadingText>
-                </AnalysisSection>
-
-                <AnalysisSection>
-                  <SectionTitle>{t('Status')}</SectionTitle>
-                  <LoadingText>
-                    <em>{t('Seer is analyzing your issue now...')}</em>
-                  </LoadingText>
-                </AnalysisSection>
-
-                <AnalysisSection>
-                  <SectionTitle>{t('Reasoning')}</SectionTitle>
-                  <LoadingText>
-                    <em>{t('Seer is analyzing your issue now...')}</em>
-                  </LoadingText>
-                </AnalysisSection>
-              </Fragment>
+              <LoadingText>
+                <em>{t('Seer is analyzing your issue now...')}</em>
+              </LoadingText>
             )}
           </CardContent>
         </SeverityCard>
@@ -671,11 +651,9 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                   <InitialGuessContent>{initialGuess}</InitialGuessContent>
                 </InitialGuessContainer>
               ) : (
-                <EmptyStateText>
-                  {t(
-                    'No root cause analysis available. Start Seer to analyze this issue.'
-                  )}
-                </EmptyStateText>
+                <LoadingText>
+                  <em>{t('Seer is analyzing your issue now...')}</em>
+                </LoadingText>
               )}
             </CardContent>
           </RootCauseCard>
