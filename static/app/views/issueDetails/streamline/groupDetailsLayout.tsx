@@ -9,7 +9,6 @@ import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
-import {useLocation} from 'sentry/utils/useLocation';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -18,6 +17,7 @@ import {
   IssueDetailsContextProvider,
   useIssueDetails,
 } from 'sentry/views/issueDetails/streamline/context';
+import {useHasAIMode} from 'sentry/views/issueDetails/utils';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
@@ -30,9 +30,7 @@ import {
 
 function GroupLayoutBody({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const isAIMode = searchParams.get('aiMode') === 'true';
+  const [isAIMode] = useHasAIMode();
 
   // In AI mode, force sidebar closed
   const shouldShowSidebar = isAIMode ? false : isSidebarOpen;
@@ -57,9 +55,8 @@ export function GroupDetailsLayout({
   project,
   children,
 }: GroupDetailsLayoutProps) {
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const isAIMode = searchParams.get('aiMode') === 'true';
+  const [isAIMode] = useHasAIMode();
+  
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
   const groupReprocessingStatus = getGroupReprocessingStatus(group);

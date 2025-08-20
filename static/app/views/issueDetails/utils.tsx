@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {
@@ -20,6 +20,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 export function markEventSeen(
@@ -290,6 +292,54 @@ export function useHasStreamlinedUI() {
 
   // Apply the UI based on user preferences
   return userStreamlinedUIOption ?? false;
+}
+
+const SYNCED_AI_MODE_EVENT = 'synced-ai-mode';
+const AI_MODE_STORAGE_KEY = 'issue-details-ai-mode';
+
+export function useHasAIMode() {
+  // Initialize state by reading current localStorage value synchronously
+  const [isAIMode, setIsAIMode] = useState(() => {
+    const currentValue = localStorage.getItem(AI_MODE_STORAGE_KEY);
+    if (currentValue === null) {
+      return false;
+    }
+    try {
+      const parsed = JSON.parse(currentValue);
+      return parsed === true || parsed === 'true';
+    } catch {
+      return false;
+    }
+  });
+  
+  // Listen for sync events from other hook instances
+  useEffect(() => {
+    const handleSyncEvent = (event: CustomEvent<{value: boolean}>) => {
+      setIsAIMode(event.detail.value);
+    };
+    
+    window.addEventListener(SYNCED_AI_MODE_EVENT, handleSyncEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener(SYNCED_AI_MODE_EVENT, handleSyncEvent as EventListener);
+    };
+  }, []);
+  
+  // Custom setter that writes synchronously and broadcasts
+  const wrappedSetIsAIMode = useCallback((newValue: boolean) => {
+    // Write to localStorage synchronously
+    localStorage.setItem(AI_MODE_STORAGE_KEY, JSON.stringify(newValue));
+    
+    // Update local state
+    setIsAIMode(newValue);
+    
+    // Broadcast to other hook instances
+    window.dispatchEvent(
+      new CustomEvent(SYNCED_AI_MODE_EVENT, { detail: { value: newValue } })
+    );
+  }, []);
+  
+  return [isAIMode, wrappedSetIsAIMode] as const;
 }
 
 export function useIsSampleEvent(): boolean {

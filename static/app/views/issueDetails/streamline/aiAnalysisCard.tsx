@@ -43,7 +43,6 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
@@ -51,6 +50,7 @@ import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDeta
 import {useIssueDetailsDiscoverQuery} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
+import {useHasAIMode} from 'sentry/views/issueDetails/utils';
 
 function ChartsSection({group}: {group: Group}) {
   const organization = useOrganization();
@@ -137,17 +137,6 @@ function ChartsSection({group}: {group: Group}) {
     },
   });
 
-  // Debug logging
-  console.log('Charts Debug:', {
-    stats24h,
-    stats30d,
-    loading24h,
-    loading30d,
-    error24h,
-    error30d,
-    eventView24h: eventView24h.getEventsAPIPayload(location),
-    eventView30d: eventView30d.getEventsAPIPayload(location),
-  });
 
   // Convert data to TimeseriesValue[] format
   const convert24hStats: TimeseriesValue[] =
@@ -162,7 +151,6 @@ function ChartsSection({group}: {group: Group}) {
       countData?.[0]?.count ?? 0,
     ]) || [];
 
-  console.log('Converted stats:', {convert24hStats, convert30dStats});
 
   return (
     <ChartsMetricsSection>
@@ -300,29 +288,20 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [orgMembers, setOrgMembers] = useState<User[]>([]);
   const [similarIssuesCount, setSimilarIssuesCount] = useState<number>(0);
-  const location = useLocation();
-  const navigate = useNavigate();
-  const searchParams = new URLSearchParams(location.search);
-  const isAIMode = searchParams.get('aiMode') === 'true';
+  const activeUser = useUser();
+  
+  // Get AI mode preference from localStorage (persisted across sessions)
+  const [isAIMode, setIsAIMode] = useHasAIMode();
 
   // Get initial guess from group summary - must be called at top level for hooks order
   const {data: summaryData} = useGroupSummaryData(group);
 
   const api = useApi();
   const organization = useOrganization();
-  const activeUser = useUser();
 
   const toggleAIMode = () => {
-    const newQuery = {...location.query};
-    if (isAIMode) {
-      delete newQuery.aiMode;
-    } else {
-      newQuery.aiMode = 'true';
-    }
-    navigate({
-      ...location,
-      query: newQuery,
-    });
+    // Toggle AI mode preference and save to localStorage for persistence
+    setIsAIMode(!isAIMode);
   };
 
   const formatStatus = (status: string) => {
@@ -387,9 +366,9 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
       teamParticipants: group.participants.filter(
         (p): p is TeamParticipant => p.type === 'team'
       ),
-      viewers: group.seenBy.filter(user => activeUser.id !== user.id),
+      viewers: group.seenBy.filter(user => activeUser?.id !== user.id),
     };
-  }, [group, activeUser.id]);
+  }, [group, activeUser?.id]);
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
 

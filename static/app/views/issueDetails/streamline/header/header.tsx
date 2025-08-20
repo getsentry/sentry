@@ -50,6 +50,7 @@ import SeerBadge from 'sentry/views/issueDetails/streamline/header/seerBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useHasAIMode} from 'sentry/views/issueDetails/utils';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
@@ -117,19 +118,11 @@ export default function StreamlinedGroupHeader({
     true
   );
   const navigate = useNavigate();
-  const isAIMode = location.query?.aiMode === 'true';
+  const [isAIMode, setIsAIMode] = useHasAIMode();
 
   const toggleAIMode = () => {
-    const newQuery = {...(location.query || {})};
-    if (isAIMode) {
-      delete newQuery.aiMode;
-    } else {
-      newQuery.aiMode = 'true';
-    }
-    navigate({
-      ...location,
-      query: newQuery,
-    });
+    // Toggle AI mode preference and save to localStorage for persistence
+    setIsAIMode(!isAIMode);
   };
 
   return (

@@ -79,6 +79,7 @@ import {
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
+  useHasAIMode,
   useHasStreamlinedUI,
   useIsSampleEvent,
 } from 'sentry/views/issueDetails/utils';
@@ -647,9 +648,8 @@ function GroupDetailsContent({
   event,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
-  // Parse aiMode from search string directly since query might be undefined
-  const searchParams = new URLSearchParams(location.search);
-  const isAIMode = searchParams.get('aiMode') === 'true';
+  const [isAIMode] = useHasAIMode();
+  
   const includeFlagDistributions =
     featureFlagDrawerPlatforms.includes(project.platform ?? 'other') &&
     organization.features.includes('feature-flag-distribution-flyout');
