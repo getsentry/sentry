@@ -67,17 +67,17 @@ class ProjectSDK(DefaultFieldsModel):
         event_type: EventType,
         sdk_name: str,
         sdk_version: str,
-    ):
+    ) -> None:
         try:
             new_version = parse_version(sdk_version)
         except InvalidVersion:
             # non-semver sdk version, ignore and move on
-            return
+            return None
 
         normalized_sdk_name = normalize_sdk_name(sdk_name)
         if normalized_sdk_name is None:
             logger.info("Unknown sdk name: %s", sdk_name)
-            return
+            return None
 
         lock_key = cls.get_lock_key(project, event_type, normalized_sdk_name)
         lock = locks.get(lock_key, duration=10, name="projectsdk")
@@ -102,7 +102,7 @@ class ProjectSDK(DefaultFieldsModel):
         sdk_name: str,
         sdk_version: str,
         new_version: Version,
-    ):
+    ) -> None:
         cache_key = cls.get_cache_key(project, event_type, sdk_name)
 
         with metrics.timer(

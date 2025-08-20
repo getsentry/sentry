@@ -201,7 +201,7 @@ class GetParticipantsTest(TestCase):
         self.rpc_user = rpc_user
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_user_settings_always(self):
+    def update_user_settings_always(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.USER.value,
             scope_identifier=self.user.id,
@@ -211,7 +211,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_user_setting_subscribe_only(self):
+    def update_user_setting_subscribe_only(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.USER.value,
             scope_identifier=self.user.id,
@@ -229,7 +229,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_user_setting_never(self):
+    def update_user_setting_never(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.USER.value,
             scope_identifier=self.user.id,
@@ -247,7 +247,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_project_setting_always(self):
+    def update_project_setting_always(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.PROJECT.value,
             scope_identifier=self.group.project_id,
@@ -265,7 +265,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_project_setting_subscribe_only(self):
+    def update_project_setting_subscribe_only(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.PROJECT.value,
             scope_identifier=self.group.project_id,
@@ -283,7 +283,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_project_setting_never(self):
+    def update_project_setting_never(self) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.PROJECT.value,
             scope_identifier=self.group.project_id,
@@ -301,7 +301,7 @@ class GetParticipantsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def update_team_setting_subscribe_only(self, team_id: int):
+    def update_team_setting_subscribe_only(self, team_id: int) -> None:
         NotificationSettingOption.objects.update_or_create(
             scope_type=NotificationScopeEnum.TEAM.value,
             scope_identifier=team_id,
@@ -324,7 +324,7 @@ class GetParticipantsTest(TestCase):
         *,
         email: dict[RpcUser, int] | dict[Team, int] | None = None,
         slack: dict[RpcUser, int] | dict[Team, int] | None = None,
-    ):
+    ) -> None:
         all_participants = GroupSubscription.objects.get_participants(group or self.group)
 
         all_expected = {ExternalProviders.EMAIL: email, ExternalProviders.SLACK: slack}

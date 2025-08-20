@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from collections.abc import Generator
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
-from sentry.replays.usecases.delete import SEER_DELETE_SUMMARIES_URL, fetch_rows_matching_pattern
+from sentry.replays.usecases.delete import (
+    SEER_DELETE_SUMMARIES_URL,
+    MatchedRows,
+    fetch_rows_matching_pattern,
+)
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.utils import json
@@ -242,7 +247,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     def test_run_bulk_replay_delete_job_has_seer_data_true(
         self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock, mock_post: MagicMock
     ) -> None:
-        def row_generator():
+        def row_generator() -> Generator[MatchedRows]:
             yield {
                 "rows": [
                     {
@@ -308,7 +313,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     def test_run_bulk_replay_delete_job_has_seer_data_false(
         self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock, mock_post: MagicMock
     ) -> None:
-        def row_generator():
+        def row_generator() -> Generator[MatchedRows]:
             yield {
                 "rows": [
                     {
