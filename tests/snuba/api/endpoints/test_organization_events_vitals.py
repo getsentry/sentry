@@ -22,7 +22,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
             "start": self.start.isoformat(),
             "end": self.end.isoformat(),
         }
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def store_event(self, data, measurements=None, **kwargs):
         if measurements:

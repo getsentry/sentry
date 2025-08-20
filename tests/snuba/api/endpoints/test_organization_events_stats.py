@@ -81,7 +81,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def do_request(self, data, url=None, features=None):
         if features is None:

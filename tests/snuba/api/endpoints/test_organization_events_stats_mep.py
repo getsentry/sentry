@@ -43,7 +43,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             "organizations:performance-use-metrics": True,
         }
 
-        self.additional_params = dict()
+        self.additional_params: dict[str, Any] = dict()
 
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
     @pytest.mark.querybuilder

@@ -29,7 +29,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.data = load_data("transaction")
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def populate_events(self, specs):
         start = before_now(minutes=5)
@@ -1033,7 +1033,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
     def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def populate_events(self, specs):
         start = before_now(minutes=5)

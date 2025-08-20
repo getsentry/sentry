@@ -12,7 +12,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def do_request(self, query, features=None):
         if features is None:
