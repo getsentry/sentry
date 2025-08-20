@@ -19,6 +19,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import SeeryCharacter, {
   type SeeryCharacterRef,
 } from 'sentry/components/omniSearch/animation/seeryCharacter';
+import {SEER_ANIMATION_EXIT_DURATION} from 'sentry/components/omniSearch/constants';
 import {useOmniSearchStore} from 'sentry/components/omniSearch/context';
 import {SeerSearchAnimation} from 'sentry/components/omniSearch/seerSearchAnimation';
 import {strGetFn} from 'sentry/components/search/sources/utils';
@@ -118,6 +119,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     clearSelection,
   } = useOmniSearchState();
   const [query, setQuery] = useState('');
+  const [seerError, setSeerError] = useState<boolean>(false);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const seeryRef = useRef<SeeryCharacterRef>(null);
@@ -171,12 +173,13 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
         if (!queryToSearch) {
           return;
         }
+        setIsSearchingSeer(true);
 
         setSeerCallLoading(true);
 
         try {
           const url =
-            process.env.NODE_ENV === 'development'
+            process.env.NODE_ENV === 'p'
               ? 'http://localhost:5000/ask-seer'
               : 'https://cmdkllm-12459da2e71a.herokuapp.com/ask-seer';
           const res = await fetch(url, {
@@ -253,8 +256,12 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                   mode,
                 });
 
-                closeModal();
-                navigate(exploreUrl);
+                setIsSearchingSeer(false);
+                // Wait slightly to let the animation finish
+                setTimeout(() => {
+                  closeModal();
+                  navigate(exploreUrl);
+                }, SEER_ANIMATION_EXIT_DURATION);
               }
             } catch (_error) {
               // Fallback to basic explore page if AI query fails
@@ -267,8 +274,14 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                 sort: '',
                 mode: Mode.SAMPLES,
               });
-              closeModal();
-              navigate(exploreUrl);
+
+              setIsSearchingSeer(false);
+
+              // Wait slightly to let the animation finish
+              setTimeout(() => {
+                closeModal();
+                navigate(exploreUrl);
+              }, SEER_ANIMATION_EXIT_DURATION);
             }
           } else if (data.route === 'issues') {
             const response = data as TranslateResponse;
@@ -276,18 +289,23 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
               response.environments && response.environments.length > 0
                 ? `&environments=${response.environments.join(',')}`
                 : '';
-            closeModal();
-            navigate(
-              `/organizations/${organization.slug}/issues?query=${response.query}&statsPeriod=${response.statsPeriod}&sort=${response.sort}${environmentsParam}`
-            );
+
+            setIsSearchingSeer(false);
+
+            // Wait slightly to let the animation finish
+            setTimeout(() => {
+              closeModal();
+              navigate(
+                `/organizations/${organization.slug}/issues?query=${response.query}&statsPeriod=${response.statsPeriod}&sort=${response.sort}${environmentsParam}`
+              );
+            }, SEER_ANIMATION_EXIT_DURATION);
           } else {
             closeModal();
           }
         } catch (err) {
-          closeModal();
-          // Failed to query Seer
+          setSeerError(true);
         } finally {
-          // setSeerCallLoading(false);
+          setIsSearchingSeer(false);
         }
       },
     };
@@ -297,7 +315,14 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
       ...baseAction,
       label: debouncedQuery ? `Ask Seer: "${debouncedQuery}"` : 'Ask Seer',
     };
-  }, [organization, pageFilters, memberProjects, navigate, debouncedQuery]);
+  }, [
+    debouncedQuery,
+    setIsSearchingSeer,
+    pageFilters.selection,
+    memberProjects,
+    organization,
+    navigate,
+  ]);
 
   // Combine all dynamic actions (excluding recent issues for now)
   const dynamicActions = useMemo(
@@ -353,6 +378,8 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
 
   // Fuzzy search for recent issues separately to control the limit
   useEffect(() => {
+    setSeerError(false);
+
     // Don't show recent issues when an action or area is selected
     if (selectedAction?.children?.length || focusedArea) {
       setFilteredRecentIssues([]);
@@ -582,7 +609,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
           </SeerLoadingContainer>
         ) : (
           <CommandPrimitive.Command.List>
-            {grouped.every(g => g.items.length === 0) ? (
+            {grouped.every(g => g.items.length === 0) || seerError ? (
               <CommandPrimitive.Command.Empty>
                 <img src={error} alt="No results" />
                 <p>Whoops… we couldn't find any results matching your search.</p>

@@ -1,6 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
-
-import {closeModal} from 'sentry/actionCreators/modal';
+import {useCallback, useMemo, useState} from 'react';
 
 import {OmniConfigContext, OmniSearchStoreContext} from './context';
 import type {OmniAction, OmniArea, OmniSearchStore} from './types';
@@ -12,20 +10,6 @@ export function OmniSearchProvider({children}: Props) {
   const [actions, setActions] = useState<OmniAction[]>([]);
   const [areasByKey, setAreasByKey] = useState<Map<string, OmniArea>>(new Map());
   const [areaPriority, setAreaPriority] = useState<string[]>([]);
-
-  // Just for testing
-  useEffect(() => {
-    if (isSearchingSeer) {
-      const timeout = setTimeout(() => {
-        setIsSearchingSeer(false);
-        setTimeout(() => {
-          closeModal();
-        }, 300);
-      }, 3000);
-      return () => clearTimeout(timeout);
-    }
-    return () => {};
-  }, [isSearchingSeer]);
 
   const registerActions = useCallback((newActions: OmniAction[]) => {
     setActions(prev => {

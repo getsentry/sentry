@@ -4,6 +4,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import grainyBackground from 'sentry-images/omni_search/purple-grain-bg.png';
 
+import {SEER_ANIMATION_EXIT_DURATION} from 'sentry/components/omniSearch/constants';
 import {useOmniSearchStore} from 'sentry/components/omniSearch/context';
 import getModalPortal from 'sentry/utils/getModalPortal';
 
@@ -16,7 +17,7 @@ function Overlay() {
         <OverlayContainer
           initial={{opacity: 0}}
           animate={{opacity: 0.5}}
-          exit={{opacity: 0, transition: {duration: 0.3}}}
+          exit={{opacity: 0, transition: {duration: SEER_ANIMATION_EXIT_DURATION / 1000}}}
           transition={{duration: 2}}
         >
           <GrainyOverlay
