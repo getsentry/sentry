@@ -42,8 +42,8 @@ class TeamEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        organization_id_or_slug: str,
-        team_id_or_slug: str,
+        organization_id_or_slug: str | int,
+        team_id_or_slug: str | int,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:

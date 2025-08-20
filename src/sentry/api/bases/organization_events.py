@@ -7,6 +7,7 @@ from typing import Any, cast
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
@@ -256,7 +257,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         has_errors: bool,
         has_transactions_data: bool,
         organization: Organization,
-        user: User,
+        user: User | AnonymousUser,
     ) -> int | None:
         """This can be removed once the discover dataset has been fully split"""
         source = DashboardDatasetSourcesTypes.INFERRED.value
