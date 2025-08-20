@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {AvatarEditDrawer} from 'sentry/components/avatarEditDrawer';
+import {AvatarWithEditIcon} from 'sentry/components/avatarEditDrawer/avatarWithEditIcon';
+import useDrawer from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
@@ -16,9 +18,31 @@ export function UserDropdown() {
   const user = useUser();
   const {layout} = useNavContext();
   const isMobile = layout === NavLayout.MOBILE;
+  const {openDrawer} = useDrawer();
 
   function handleLogout() {
     logout(api);
+  }
+
+  function handleAvatarEdit() {
+    openDrawer(
+      ({closeDrawer}) => (
+        <AvatarEditDrawer
+          user={user}
+          onClose={closeDrawer}
+          onSave={(avatarType, avatarData) => {
+            // TODO: Implement API call to save avatar changes
+            // eslint-disable-next-line no-console
+            console.log('Saving avatar:', avatarType, avatarData);
+            closeDrawer();
+          }}
+        />
+      ),
+      {
+        ariaLabel: t('Edit Avatar'),
+        drawerWidth: '400px',
+      }
+    );
   }
 
   return (
@@ -31,7 +55,11 @@ export function UserDropdown() {
           key: 'user',
           label: (
             <SectionTitleWrapper>
-              <UserBadge user={user} avatarSize={32} />
+              <AvatarWithEditIcon user={user} size={32} onEditClick={handleAvatarEdit} />
+              <UserInfo>
+                <UserName>{user.name || user.email || user.username}</UserName>
+                <UserEmail>{user.email}</UserEmail>
+              </UserInfo>
             </SectionTitleWrapper>
           ),
           textValue: t('User Summary'),
@@ -56,14 +84,45 @@ export function UserDropdown() {
         },
       ]}
     >
-      <UserAvatar size={isMobile ? 20 : 28} user={user} />
+      <AvatarWithEditIcon
+        size={isMobile ? 20 : 28}
+        user={user}
+        onEditClick={handleAvatarEdit}
+      />
     </SidebarMenu>
   );
 }
 
 const SectionTitleWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
   text-transform: none;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.normal};
   color: ${p => p.theme.textColor};
+`;
+
+const UserInfo = styled('div')`
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const UserName = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.md};
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const UserEmail = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
