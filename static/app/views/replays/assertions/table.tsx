@@ -23,7 +23,7 @@ import {IconCursorArrow, IconLocation, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useQuery} from 'sentry/utils/queryClient';
 import AssertionDatabase from 'sentry/utils/replays/assertions/database';
-import type {AssertionFlow} from 'sentry/utils/replays/assertions/types';
+import type {AssertionAction, AssertionFlow} from 'sentry/utils/replays/assertions/types';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -66,7 +66,7 @@ export default function ReplayOverview() {
                 query: {project: '11276', environment: 'prod'},
               }}
             >
-              Create New Flow
+              {t('Create New Flow')}
             </LinkButton>
           </Layout.HeaderActions>
         </Layout.Header>
@@ -84,12 +84,12 @@ export default function ReplayOverview() {
 
                 <SimpleTableWithColumns>
                   <SimpleTable.Header>
-                    <SimpleTable.HeaderCell>Name</SimpleTable.HeaderCell>
-                    <SimpleTable.HeaderCell>Assertions</SimpleTable.HeaderCell>
-                    <SimpleTable.HeaderCell>Created</SimpleTable.HeaderCell>
-                    <SimpleTable.HeaderCell>Last Seen</SimpleTable.HeaderCell>
-                    <SimpleTable.HeaderCell>Status</SimpleTable.HeaderCell>
-                    <SimpleTable.HeaderCell>Assignee</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('Assertions')}</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('Assignee')}</SimpleTable.HeaderCell>
                   </SimpleTable.Header>
                   {flows?.map(row => (
                     <SimpleTable.Row
@@ -153,9 +153,9 @@ export default function ReplayOverview() {
                           columns={'max-content max-content'}
                           justifyItems="end"
                         >
-                          <Text>Passing</Text>
+                          <Text>{t('Passing')}</Text>
                           <Text size="sm">100%</Text>
-                          <Text>Unknown</Text>
+                          <Text>{t('Unknown')}</Text>
                           <Text size="sm">0%</Text>
                         </Grid>
                       </SimpleTable.RowCell>
@@ -204,26 +204,27 @@ export default function ReplayOverview() {
   );
 }
 
-function FlowIcon({flow}: {flow: AssertionFlow}) {
-  const startingAction = flow.starting_action;
-  if (startingAction.type === 'breadcrumb') {
-    switch (startingAction.matcher.category) {
-      case 'ui.click':
-        return <IconCursorArrow color="blue300" size="md" />;
-      case 'navigation':
-        return <IconLocation color="green300" size="md" />;
-      default:
-        return <IconTerminal color="blue300" size="md" />;
-    }
-  } else if (startingAction.type === 'span') {
-    switch (startingAction.matcher.op) {
-      case 'navigation.navigate':
-        return <IconLocation color="green300" size="md" />;
-      default:
-        return <IconTerminal color="blue300" size="md" />;
-    }
+function getCategoryOrOp(action: AssertionAction): string {
+  if ('op' in action) {
+    return action.op;
   }
-  return <IconTerminal color="gray300" size="md" />;
+  if ('category' in action) {
+    return action.category;
+  }
+  return 'null';
+}
+
+function FlowIcon({flow}: {flow: AssertionFlow}) {
+  switch (getCategoryOrOp(flow.starting_action)) {
+    case 'ui.click':
+      return <IconCursorArrow color="blue300" size="md" />;
+    case 'navigation':
+      return <IconLocation color="green300" size="md" />;
+    case 'navigation.navigate':
+      return <IconLocation color="green300" size="md" />;
+    default:
+      return <IconTerminal color="blue300" size="md" />;
+  }
 }
 
 const SimpleTableWithColumns = styled(SimpleTable)`

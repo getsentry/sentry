@@ -11,13 +11,14 @@ import AssertionCreateEditForm from 'sentry/components/replays/assertions/assert
 import useAssertionPageCrumbs from 'sentry/components/replays/assertions/assertionPageCrumbs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import AssertionDatabase from 'sentry/utils/replays/assertions/database';
 import type {AssertionFlow} from 'sentry/utils/replays/assertions/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 export default function ReplayAssertionDetails() {
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const {assertionId} = useParams<{assertionId: string}>();
 
@@ -28,6 +29,7 @@ export default function ReplayAssertionDetails() {
   } = useQuery<AssertionFlow | undefined, Error, AssertionFlow>({
     queryKey: ['assertion', assertionId],
     queryFn: () => {
+      AssertionDatabase.restore();
       const found = Array.from(AssertionDatabase.flows).find(
         flow => flow.id === assertionId
       );
@@ -35,6 +37,25 @@ export default function ReplayAssertionDetails() {
         throw new Error(`Assertion with id ${assertionId} not found`);
       }
       return found;
+    },
+    retry: false,
+  });
+
+  const {mutate: updateAssertion} = useMutation({
+    mutationFn: (value: AssertionFlow) => {
+      AssertionDatabase.restore();
+      const old = Array.from(AssertionDatabase.flows).find(flow => flow.id === value.id);
+      if (old) {
+        AssertionDatabase.flows.delete(old);
+        AssertionDatabase.flows.add(value);
+      }
+      AssertionDatabase.persist();
+      return Promise.resolve(value);
+    },
+    onSuccess: () => {
+      queryClient.refetchQueries({
+        queryKey: ['assertion', assertionId],
+      });
     },
   });
 
@@ -84,11 +105,7 @@ export default function ReplayAssertionDetails() {
           ) : assertion ? (
             <AssertionCreateEditForm
               assertion={assertion}
-              setAssertion={value => {
-                // TODO: Implement mutation (update)
-                // eslint-disable-next-line no-console
-                console.log('setAssertion', value);
-              }}
+              setAssertion={updateAssertion}
             />
           ) : (
             <NotFound />

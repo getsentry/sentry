@@ -14,10 +14,15 @@ import useAssertionPageCrumbs from 'sentry/components/replays/assertions/asserti
 import useAssertionBaseFormQueryParams from 'sentry/components/replays/assertions/useAssertionBaseFormQueryParams';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {useMutation} from 'sentry/utils/queryClient';
+import AssertionDatabase from 'sentry/utils/replays/assertions/database';
 import type {AssertionFlow} from 'sentry/utils/replays/assertions/types';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 export default function ReplayAssertionNew() {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const {project, environment, name} = useAssertionBaseFormQueryParams();
   const crumbs = useAssertionPageCrumbs({label: t('Create New')});
@@ -41,6 +46,7 @@ export default function ReplayAssertionNew() {
       timeout: 5 * 60 * 1000, // 5 minutes
     };
   });
+
   useEffect(() => {
     setAssertion(prev => {
       if (
@@ -58,6 +64,27 @@ export default function ReplayAssertionNew() {
       return prev;
     });
   }, [project, environment, name]);
+
+  const {mutate: createAssertion} = useMutation({
+    mutationFn: (value: AssertionFlow) => {
+      AssertionDatabase.restore();
+      const old = Array.from(AssertionDatabase.flows).find(flow => flow.id === value.id);
+      if (old) {
+        AssertionDatabase.flows.delete(old);
+        AssertionDatabase.flows.add(value);
+      }
+      AssertionDatabase.persist();
+      return Promise.resolve(value);
+    },
+    onSuccess: () => {
+      navigate(
+        makeReplaysPathname({
+          path: `/assertions/details/${assertion.id}/`,
+          organization,
+        })
+      );
+    },
+  });
 
   const hasProjectAndEnvironment = Boolean(assertion.project_id && assertion.environment);
 
@@ -92,13 +119,11 @@ export default function ReplayAssertionNew() {
                   priority="primary"
                   onClick={() => {
                     if (hasProjectAndEnvironment) {
-                      // TODO: implement mutation (save) & redirect to details page
-                      // eslint-disable-next-line no-console
-                      console.log('setAssertion (save)', assertion);
+                      createAssertion(assertion);
                     }
                   }}
                 >
-                  Save
+                  {t('Save')}
                 </Button>
               </Tooltip>
             </Flex>
@@ -114,7 +139,12 @@ export default function ReplayAssertionNew() {
           padding="lg 3xl"
         >
           {hasProjectAndEnvironment ? (
-            <AssertionCreateEditForm assertion={assertion} setAssertion={setAssertion} />
+            <AssertionCreateEditForm
+              assertion={assertion}
+              setAssertion={value => {
+                setAssertion(value);
+              }}
+            />
           ) : (
             <p>{t('Pick a Project and Environment above to start')}</p>
           )}
