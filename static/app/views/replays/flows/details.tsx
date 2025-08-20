@@ -7,7 +7,6 @@ import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import AssertionBaseForm from 'sentry/components/replays/flows/assertionBaseForm';
 import AssertionCreateEditForm from 'sentry/components/replays/flows/assertionCreateEditForm';
 import useAssertionPageCrumbs from 'sentry/components/replays/flows/assertionPageCrumbs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -84,7 +83,6 @@ export default function ReplayAssertionDetails() {
             </Layout.HeaderContent>
             {assertion ? (
               <Layout.HeaderActions>
-                2
                 <Flex gap="md">
                   <Button priority="primary">{t('Update')}</Button>
                 </Flex>
@@ -100,9 +98,6 @@ export default function ReplayAssertionDetails() {
             minHeight="0"
             padding="lg 3xl"
           >
-            <Flex gap="lg">
-              <AssertionBaseForm disabled />
-            </Flex>
             {isPending ? (
               <LoadingIndicator />
             ) : error ? (

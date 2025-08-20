@@ -8,6 +8,9 @@ const DEFAULT_TIMEOUT_MS = 5 * 60 * 1_000; // 5 minutes
 
 const AssertionDatabase = {
   persist: () => {
+    if (Storage.getItem('assertions')) {
+      return;
+    }
     Storage.setItem(
       'assertions',
       JSON.stringify({
@@ -39,7 +42,7 @@ const AssertionDatabase = {
           dom_element: {
             selector: 'button',
             fullSelector:
-              'button.app-16cczkt.ebcy13q0[role="button"][aria="*****"][data-test-id=""][alt=""][title=""][data-sentry-component="OriginalReplayPlayPauseButton"]',
+              'button.app-16cczkt.ebcy13q0[role="button"][aria-label="*****"][data-test-id=""][alt=""][title=""][data-sentry-component="OriginalReplayPlayPauseButton"]',
             parts: {
               alt: '',
               ariaLabel: '*****',
@@ -82,7 +85,7 @@ const AssertionDatabase = {
           dom_element: {
             selector: 'a',
             fullSelector:
-              'a.ehp4qnd0.app-bxjpl0.e1mlkd1510[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component="ChonkSwitch"]',
+              'a.ehp4qnd0.app-bxjpl0.e1mlkd1510[role=""][aria-label=""][data-test-id=""][alt=""][title=""][data-sentry-component="ChonkSwitch"]',
             parts: {
               alt: '',
               ariaLabel: '',
@@ -130,7 +133,7 @@ const AssertionDatabase = {
           dom_element: {
             selector: 'a',
             fullSelector:
-              'a[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
+              'a[role=""][aria-label=""][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
             parts: {
               alt: '',
               ariaLabel: '',
@@ -187,7 +190,7 @@ const AssertionDatabase = {
             dom_element: {
               selector: 'button',
               fullSelector:
-                'button#react-aria7014089757-«re3».e5kqozx1.app-1f44tel.e1b3f8b00[role="button"][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component="DropdownButton"]',
+                'button#react-aria7014089757-«re3».e5kqozx1.app-1f44tel.e1b3f8b00[role="button"][aria-label=""][data-test-id=""][alt=""][title=""][data-sentry-component="DropdownButton"]',
               parts: {
                 alt: '',
                 ariaLabel: '',
@@ -247,7 +250,7 @@ const AssertionDatabase = {
           dom_element: {
             selector: 'button',
             fullSelector:
-              'button.app-1y2uh9v.ebcy13q0[role="button"][aria="*****"][data-test-id=""][alt=""][title=""][data-sentry-component="StyledButton"]',
+              'button.app-1y2uh9v.ebcy13q0[role="button"][aria-label="*****"][data-test-id=""][alt=""][title=""][data-sentry-component="StyledButton"]',
             parts: {
               alt: '',
               ariaLabel: '*****',
@@ -278,7 +281,7 @@ const AssertionDatabase = {
             dom_element: {
               selector: 'button',
               fullSelector:
-                'button.app-1y2uh9v.e25erw0[role="button"][aria="*****"][data-test-id=""][alt=""][title=""][data-sentry-component="StyledButton"]',
+                'button.app-1y2uh9v.e25erw0[role="button"][aria-label="*****"][data-test-id=""][alt=""][title=""][data-sentry-component="StyledButton"]',
               parts: {
                 alt: '',
                 ariaLabel: '*****',
@@ -307,7 +310,7 @@ const AssertionDatabase = {
           dom_element: {
             selector: 'button',
             fullSelector:
-              'button.eho57gj2.app-2ut21w.e10fceod0[role="button"][aria="**** *** ***********"][data-test-id=""][alt=""][title=""][data-sentry-component="StyledButton"]',
+              'button.eho57gj2.app-2ut21w.e10fceod0[role="button"][aria-label="**** *** ***********"][data-test-id=""][alt=""][title=""][data-sentry-component="StyledButton"]',
             parts: {
               alt: '',
               ariaLabel: '**** *** ***********',
@@ -364,7 +367,7 @@ const AssertionDatabase = {
             dom_element: {
               selector: 'a',
               fullSelector:
-                'a#sidebar-item-issues.app-wgrub8.e88zkai7[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
+                'a#sidebar-item-issues.app-wgrub8.e88zkai7[role=""][aria-label=""][data-test-id=""][alt=""][title=""][data-sentry-component=""]',
               parts: {
                 alt: '',
                 ariaLabel: '',
@@ -403,7 +406,7 @@ const AssertionDatabase = {
           dom_element: {
             selector: 'button',
             fullSelector:
-              'button.e7xxjx11.app-1syrwuh.e25erw0[role="button"][aria=""][data-test-id="page-filter-timerange-selector"][alt=""][title=""][data-sentry-component="DropdownButton"]',
+              'button.e7xxjx11.app-1syrwuh.e25erw0[role="button"][aria-label=""][data-test-id="page-filter-timerange-selector"][alt=""][title=""][data-sentry-component="DropdownButton"]',
             parts: {
               alt: '',
               ariaLabel: '',
@@ -434,7 +437,7 @@ const AssertionDatabase = {
             dom_element: {
               selector: 'a',
               fullSelector:
-                'a.ehp4qnd0.app-zpx1n1.e1btlgcw5[role=""][aria=""][data-test-id=""][alt=""][title=""][data-sentry-component="ChonkSwitch"]',
+                'a.ehp4qnd0.app-zpx1n1.e1btlgcw5[role=""][aria-label=""][data-test-id=""][alt=""][title=""][data-sentry-component="ChonkSwitch"]',
               parts: {
                 alt: '',
                 ariaLabel: '',
@@ -463,7 +466,7 @@ const AssertionDatabase = {
           dom_element: {
             selector: 'a',
             fullSelector:
-              'a.ek0ezcd0.app-1fsd4qb.e1vfefc60[role="button"][aria="******** *****"][data-test-id=""][alt=""][title=""][data-sentry-component="RouterLink"]',
+              'a.ek0ezcd0.app-1fsd4qb.e1vfefc60[role="button"][aria-label="******** *****"][data-test-id=""][alt=""][title=""][data-sentry-component="RouterLink"]',
             parts: {
               alt: '',
               ariaLabel: '******** *****',

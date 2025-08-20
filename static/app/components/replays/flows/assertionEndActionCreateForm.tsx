@@ -3,7 +3,8 @@ import {useState, type ReactNode} from 'react';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout/flex';
-import ReplaySelectorListHovercard from 'sentry/components/replays/flows/actions/replaySelectorListHovercard';
+import ReplaySelectorsListHovercard from 'sentry/components/replays/flows/actions/replaySelectorsListHovercard';
+import AssertionReplayTable from 'sentry/components/replays/flows/assertionReplayTable';
 import {formatSelectorAsCode} from 'sentry/components/replays/flows/selectorCodeFormatter';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
@@ -60,37 +61,49 @@ export default function AssertionEndActionCreateForm({
 
   return (
     <Flex border="primary" padding="md" gap="md" justify="between">
-      {categoryOrOp === 'ui.click' ? null : (
-        <Flex gap="xs" align="center" wrap="nowrap">
-          {tct('if a [typeSelect] happens', {typeSelect})}
-        </Flex>
-      )}
+      <Flex direction="column" gap="md" flex="1">
+        {categoryOrOp === 'ui.click' ? null : (
+          <Flex gap="xs" align="center" wrap="nowrap">
+            {tct('if a [typeSelect] happens', {typeSelect})}
+          </Flex>
+        )}
 
-      {categoryOrOp === 'ui.click' ? (
-        <Flex gap="xs" align="start" direction="column">
-          {tct('if a [typeSelect] happens on a [clickSelect]', {
-            typeSelect,
-            br: <br />,
-            clickSelect: (
-              <ReplaySelectorListHovercard
-                disabled={false}
-                onChange={selected => {
-                  onActionSubmit(selected);
-                }}
-                projectId={projectId}
-              >
-                {initialAction.type === 'breadcrumb' &&
-                initialAction.category === 'ui.click' ? (
-                  formatSelectorAsCode(initialAction.matcher.dom_element)
-                ) : (
-                  <span>-Pick something-</span>
-                )}
-              </ReplaySelectorListHovercard>
-            ),
-          })}
-          {children}
+        {categoryOrOp === 'ui.click' ? (
+          <Flex gap="xs" align="start" direction="column">
+            {tct('if a [typeSelect] happens on a [clickSelect]', {
+              typeSelect,
+              br: <br />,
+              clickSelect: (
+                <ReplaySelectorsListHovercard
+                  disabled={false}
+                  onChange={selected => {
+                    onActionSubmit(selected);
+                  }}
+                  projectId={projectId}
+                >
+                  {initialAction.type === 'breadcrumb' &&
+                  initialAction.category === 'ui.click' ? (
+                    formatSelectorAsCode(initialAction.matcher.dom_element)
+                  ) : (
+                    <span>-Pick something-</span>
+                  )}
+                </ReplaySelectorsListHovercard>
+              ),
+            })}
+            {children}
+          </Flex>
+        ) : null}
+
+        <Flex height="480px" width="100%">
+          <AssertionReplayTable
+            action={initialAction}
+            projectId={projectId}
+            onPick={() => {}}
+            style={{width: '100%'}}
+          />
         </Flex>
-      ) : null}
+      </Flex>
+
       <Button
         aria-label="Remove"
         icon={<IconClose />}

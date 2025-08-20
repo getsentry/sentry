@@ -9,6 +9,7 @@ import {Grid} from 'sentry/components/core/layout/grid';
 import {Text} from 'sentry/components/core/text';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import ReplayActionPicker from 'sentry/components/replays/flows/actions/replayActionPicker';
+import AssertionBaseForm from 'sentry/components/replays/flows/assertionBaseForm';
 import AssertionEndActionCreateForm from 'sentry/components/replays/flows/assertionEndActionCreateForm';
 import AssertionReplayPlayer from 'sentry/components/replays/flows/assertionReplayPlayer';
 import AssertionStartActionInput from 'sentry/components/replays/flows/assertionStartActionInput';
@@ -32,21 +33,6 @@ export default function AssertionCreateEditForm({assertion, setAssertion}: Props
   return (
     <PageFiltersContainer>
       <SelectedReplayIndexProvider>
-        <Flex>
-          <Flex align="center" gap="md" flex="1">
-            <Text size="lg">
-              <Tag type="info">START</Tag>
-              this flow
-            </Text>
-            <AssertionStartActionInput
-              action={assertion.starting_action}
-              onChange={action => {
-                setAssertion({...assertion, starting_action: action});
-              }}
-              projectId={assertion.project_id}
-            />
-          </Flex>
-        </Flex>
         {/* <Flex>
           <Flex gap="xl" wrap="wrap" flex="1">
             <PageFilterBar condensed>
@@ -57,6 +43,24 @@ export default function AssertionCreateEditForm({assertion, setAssertion}: Props
         </Flex> */}
         <Grid columns="50% 1fr" gap="lg" flex="1">
           <Flex direction="column" gap="md">
+            <Flex gap="lg">
+              <AssertionBaseForm disabled />
+            </Flex>
+            <Flex direction="column" gap="md">
+              <Text size="lg">
+                <Tag type="info">START</Tag>
+                this flow
+              </Text>
+              <Flex align="start" gap="md" flex="1" padding="0 0 0 3xl">
+                <AssertionStartActionInput
+                  action={assertion.starting_action}
+                  onChange={action => {
+                    setAssertion({...assertion, starting_action: action});
+                  }}
+                  projectId={assertion.project_id}
+                />
+              </Flex>
+            </Flex>
             <Flex>
               <Text size="lg">
                 <Tag type="info">END</Tag>this flow

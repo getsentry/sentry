@@ -20,7 +20,7 @@ import {
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import type {AssertionFlow} from 'sentry/utils/replays/assertions/types';
+import type {AssertionAction} from 'sentry/utils/replays/assertions/types';
 import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -47,26 +47,25 @@ const DEFAULT_LIST_ITEM_CHECKBOX_STATE = {
 };
 
 interface Props extends ComponentProps<typeof SimpleTableInfinite> {
-  flow: AssertionFlow;
+  action: AssertionAction;
   onPick: (replayId: string) => void;
+  projectId: string;
 }
 
 export default function ReplayAssertionsTable({
   onSelect: _onSelect,
-  flow,
+  action,
+  projectId,
   ...props
 }: Props) {
   const organization = useOrganization();
 
-  const query = useMemo(
-    () => actionToQuery(flow.starting_action),
-    [flow.starting_action]
-  );
+  const query = useMemo(() => actionToQuery(action), [action]);
 
   const listQueryKey = useReplayListQueryKey({
     options: {
       query: {
-        project: [flow.project_id],
+        project: [projectId],
         query: query ?? '',
         statsPeriod: '30d',
         sort: '-started_at',

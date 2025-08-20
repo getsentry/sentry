@@ -170,16 +170,17 @@ export default function NewFlowSlideoutPanel({onClose, onSave}: Props) {
           {hasStartingAction ? (
             <Flex height="480px">
               <AssertionReplayTable
-                flow={flow}
+                action={flow.starting_action}
+                projectId={flow.project_id}
                 onPick={() => {}}
                 style={{width: '100%'}}
               />
             </Flex>
           ) : null}
 
-          {/* <pre>
+          <pre>
             {JSON.stringify({flow, hasName, hasProjectId, hasStartingAction}, null, 2)}
-          </pre> */}
+          </pre>
 
           <Flex gap="lg" direction="row">
             <Button

@@ -3,7 +3,7 @@ import {ClassNames} from '@emotion/react';
 
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Hovercard} from 'sentry/components/hovercard';
-import ReplayCrumbList from 'sentry/components/replays/selectors/replaySelectorsList';
+import ReplaySelectorsList from 'sentry/components/replays/selectors/replaySelectorsList';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import type {UIClickAction} from 'sentry/utils/replays/assertions/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,7 +16,7 @@ interface Props {
   disabled?: boolean;
 }
 
-export default function ReplaySelectorListHovercard({
+export default function ReplaySelectorsListHovercard({
   children,
   projectId,
   onChange,
@@ -49,7 +49,7 @@ export default function ReplaySelectorListHovercard({
           body={
             <Flex style={{height: 480}}>
               <Flex direction="column" gap="md" flex="1">
-                <ReplayCrumbList
+                <ReplaySelectorsList
                   onSelect={selected => {
                     onChange({
                       category: 'ui.click',

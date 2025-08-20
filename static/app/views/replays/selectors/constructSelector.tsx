@@ -19,7 +19,7 @@ export default function constructSelector(element: ReplayClickElement) {
   const fullAlt = '[alt="' + element.alt + '"]';
   const alt = trimAttribute(element.alt, fullAlt);
 
-  const fullAriaLabel = '[aria="' + element.aria_label + '"]';
+  const fullAriaLabel = '[aria-label="' + element.aria_label + '"]';
   const ariaLabel = trimAttribute(element.aria_label, fullAriaLabel);
 
   const fullRole = '[role="' + element.role + '"]';
