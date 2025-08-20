@@ -205,6 +205,54 @@ export default function PRDetails() {
     );
   }
 
+  let primaryContent: React.ReactNode;
+  if (activeTab === 'files') {
+    primaryContent = (
+      <React.Fragment>
+        <Main>
+          {activeTab === 'files' && (
+            <React.Fragment>
+              {/* Comments section above files */}
+              {commentsData?.general_comments &&
+                commentsData.general_comments.length > 0 && (
+                  <CommentsList
+                    comments={commentsData.general_comments}
+                    title="Comments"
+                  />
+                )}
+              {commentsLoading && <div>Loading comments...</div>}
+              {commentsError && (
+                <div style={{color: 'red'}}>Error loading comments: {commentsError}</div>
+              )}
+
+              {prData?.pr_files && prData.pr_files.length > 0 && (
+                <PRFilesList files={prData.pr_files} commentsData={commentsData} />
+              )}
+            </React.Fragment>
+          )}
+        </Main>
+
+        <Side>
+          <PRSidebar
+            issuesData={issuesData}
+            issuesLoading={issuesLoading}
+            issuesError={issuesError}
+            repoName={params.repoName}
+            prId={params.prId}
+            performanceData={performanceData}
+            releasesData={releasesData}
+          />
+        </Side>
+      </React.Fragment>
+    );
+  } else if (activeTab === 'snapshots') {
+    primaryContent = (
+      <Layout.Main>
+        <SnapshotTesting prId={params.prId} repoName={params.repoName} />;
+      </Layout.Main>
+    );
+  }
+
   return (
     <SentryDocumentTitle title={`PR #${params.prId}`}>
       <Layout.Page>
@@ -221,48 +269,7 @@ export default function PRDetails() {
           />
         </Layout.Header>
 
-        <Body noRowGap>
-          <Main>
-            {activeTab === 'files' && (
-              <React.Fragment>
-                {/* Comments section above files */}
-                {commentsData?.general_comments &&
-                  commentsData.general_comments.length > 0 && (
-                    <CommentsList
-                      comments={commentsData.general_comments}
-                      title="Comments"
-                    />
-                  )}
-                {commentsLoading && <div>Loading comments...</div>}
-                {commentsError && (
-                  <div style={{color: 'red'}}>
-                    Error loading comments: {commentsError}
-                  </div>
-                )}
-
-                {prData?.pr_files && prData.pr_files.length > 0 && (
-                  <PRFilesList files={prData.pr_files} commentsData={commentsData} />
-                )}
-              </React.Fragment>
-            )}
-
-            {activeTab === 'snapshots' && (
-              <SnapshotTesting prId={params.prId} repoName={params.repoName} />
-            )}
-          </Main>
-
-          <Side>
-            <PRSidebar
-              issuesData={issuesData}
-              issuesLoading={issuesLoading}
-              issuesError={issuesError}
-              repoName={params.repoName}
-              prId={params.prId}
-              performanceData={performanceData}
-              releasesData={releasesData}
-            />
-          </Side>
-        </Body>
+        <Body noRowGap>{primaryContent}</Body>
       </Layout.Page>
     </SentryDocumentTitle>
   );
