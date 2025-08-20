@@ -960,6 +960,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             )}
 
             <StatusSection>
+              <StatusLabel>Status:</StatusLabel>
               <StatusDisplay
                 onMouseEnter={() => setShowStatusDropdown(true)}
                 onMouseLeave={() => setShowStatusDropdown(false)}
@@ -983,6 +984,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             </StatusSection>
 
             <StatusSection>
+              <StatusLabel>Assigned:</StatusLabel>
               <StatusDisplay
                 onMouseEnter={() => setShowAssigneeDropdown(true)}
                 onMouseLeave={() => setShowAssigneeDropdown(false)}
