@@ -89,6 +89,30 @@ describe('connect onboarding docs', () => {
     expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
   });
 
+  it('displays logging code in verify section when logs are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Sentry\.logger\.info\('User triggered test error'/)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not display logging code in verify section when logs are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(
+      screen.queryByText(
+        textWithMarkupMatcher(/Sentry\.logger\.info\('User triggered test error'/)
+      )
+    ).not.toBeInTheDocument();
+  });
+
   it('enables performance setting the tracesSampleRate to 1', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [

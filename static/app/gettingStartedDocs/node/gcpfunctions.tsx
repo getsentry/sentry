@@ -46,8 +46,16 @@ exports.helloEvents = Sentry.wrapCloudEventFunction(
   }
 );`;
 
-const getVerifySnippet = () => `
-exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
+const getVerifySnippet = (params: Params) => `
+exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {${
+  params.isLogsSelected
+    ? `
+  // Send a log before throwing the error
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_function',
+  });`
+    : ''
+}
   throw new Error("oh, hello there!");
 });`;
 
@@ -95,7 +103,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -104,7 +112,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },

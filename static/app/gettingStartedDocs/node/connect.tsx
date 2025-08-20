@@ -102,7 +102,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -111,7 +111,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },
@@ -134,8 +134,16 @@ const onboarding: OnboardingConfig = {
   },
 };
 
-const getVerifySnippet = () => `
-app.use(async function () {
+const getVerifySnippet = (params: Params) => `
+app.use(async function () {${
+  params.isLogsSelected
+    ? `
+  // Send a log before throwing the error
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_middleware',
+  });`
+    : ''
+}
   throw new Error("My first Sentry error!");
 });
 `;

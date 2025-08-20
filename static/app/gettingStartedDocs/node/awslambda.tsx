@@ -124,7 +124,7 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
         ...params,
       }),
     ],
-    verify: () => [
+    verify: (params: Params) => [
       {
         type: StepType.VERIFY,
         description: t(
@@ -133,7 +133,16 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
         configurations: [
           {
             language: 'javascript',
-            code: `throw new Error("This should show up in Sentry!");`,
+            code: `${
+              params.isLogsSelected
+                ? `
+// Send a log before throwing the error
+Sentry.logger.info('User triggered test error', {
+  action: 'test_error_lambda',
+});`
+                : ''
+            }
+throw new Error("This should show up in Sentry!");`,
           },
         ],
       },
@@ -176,7 +185,7 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
         ],
       },
     ],
-    verify: () => [
+    verify: (params: Params) => [
       {
         type: StepType.VERIFY,
         description: t(
@@ -186,7 +195,15 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
           {
             language: 'javascript',
             code: `
-export const handler = Sentry.wrapHandler(async (event, context) => {
+export const handler = Sentry.wrapHandler(async (event, context) => {${
+              params.isLogsSelected
+                ? `
+  // Send a log before throwing the error
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_lambda',
+  });`
+                : ''
+            }
   throw new Error("This should show up in Sentry!")
 });`,
           },

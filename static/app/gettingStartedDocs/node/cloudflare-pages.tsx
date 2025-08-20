@@ -65,8 +65,16 @@ export const onRequest = [
   // Add more middlewares here
 ];`;
 
-const getVerifySnippet = () => `
-export function onRequest(context) {
+const getVerifySnippet = (params: Params) => `
+export function onRequest(context) {${
+  params.isLogsSelected
+    ? `
+  // Send a log before throwing the error
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_function',
+  });`
+    : ''
+}
   throw new Error();
 }`;
 
@@ -146,7 +154,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: tct(
@@ -161,7 +169,7 @@ const onboarding: OnboardingConfig = {
           value: 'javascript',
           language: 'javascript',
           filename: 'functions/customerror.js',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },

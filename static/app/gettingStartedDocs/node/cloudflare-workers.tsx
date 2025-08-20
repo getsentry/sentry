@@ -67,7 +67,15 @@ export default Sentry.withSentry(
   } satisfies ExportedHandler<Env>,
 );`;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) => `${
+  params.isLogsSelected
+    ? `
+// Send a log before throwing the error
+Sentry.logger.info('User triggered test error', {
+  action: 'test_error_worker',
+});`
+    : ''
+}
 setTimeout(() => {
   throw new Error();
 });`;
@@ -144,7 +152,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -153,7 +161,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },

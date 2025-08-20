@@ -49,9 +49,21 @@ const init = async () => {
 init();
 `;
 
-const getVerifySnippet = () => `
-app.use(async function () {
-  throw new Error("My first Sentry error!");
+const getVerifySnippet = (params: Params) => `
+server.route({
+  method: 'GET',
+  path: '/debug-sentry',
+  handler: function (request, h) {${
+    params.isLogsSelected
+      ? `
+    // Send a log before throwing the error
+    Sentry.logger.info('User triggered test error', {
+      action: 'test_error_endpoint',
+    });`
+      : ''
+  }
+    throw new Error('My first Sentry error!');
+  }
 });
 `;
 
@@ -116,7 +128,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -125,7 +137,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },
