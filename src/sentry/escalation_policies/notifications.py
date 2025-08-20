@@ -10,6 +10,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.actor import Actor
 from sentry.utils.sms import send_sms, sms_available
+from sentry.utils.voice import VoiceAgentParameters, send_voice_call
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +50,22 @@ def send_notification_as_sms(
             _log_message(notification, recipient_actor)
 
             with sentry_sdk.start_span(op="notification.send_sms", name="send_message"):
-                # TODO: ADD RATE LIMITS, USE AUTHENTICATOR MODEL
-                send_sms(
-                    f"Yo, brah, you should acknowledge this incident: {shared_context["group"].title}",
-                    to=phone,
-                )
+                # TODO: ADD RATE LIMITS, USE THE MODEL FROM THE SMS AUTHENTICATOR
+
+                # TODO:
+                # We don't have options for setting sms vs voice preferences, so to demo, we just switch off whether
+                # we are trying to call the twilio virtual SMS phone
+                if phone == "+18777804236":
+                    logger.info("Sending SMS to %s", phone)
+                    send_sms(
+                        f"Yo, brah, you should acknowledge this incident: {shared_context["group"].title}",
+                        to=phone,
+                    )
+                else:
+                    logger.info("Sending voice call to %s", phone)
+                    send_voice_call(
+                        phone,
+                        VoiceAgentParameters(issue_summary=shared_context["group"].title),
+                    )
 
             notification.record_notification_sent(recipient_actor, ExternalProviders.SMS)
