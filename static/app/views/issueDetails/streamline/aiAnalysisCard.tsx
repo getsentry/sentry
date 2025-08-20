@@ -555,7 +555,10 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
         </HeaderCard>
 
         <SeverityCard>
-          <CardHeader>
+          <SeverityCardHeader 
+            severityColor={analysisData?.success ? getSeverityColor(analysisData.analysis.severity).background : 'transparent'}
+            isLoading={!analysisData?.success}
+          >
             <HeaderLeft>
               {analysisData?.success ? (
                 <SeverityPill colors={getSeverityColor(analysisData.analysis.severity)}>
@@ -572,7 +575,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 {t('Severity')}
               </CardTitle>
             </HeaderLeft>
-          </CardHeader>
+          </SeverityCardHeader>
 
           <CardContent>
             {analysisData?.success ? (
@@ -813,30 +816,17 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
       <Sidebar>
         <SidebarCard>
           <CardContent>
-            <Button
-              size="xs"
-              priority={isAIMode ? 'primary' : 'default'}
-              onClick={toggleAIMode}
-              icon={<span>🤖</span>}
-              title={t('Toggle AI-powered analysis of this issue')}
-              aria-label={t('Toggle AI analysis mode')}
-            >
-              {isAIMode ? t('Seer Mode: ON') : t('Seer Mode: OFF')}
-            </Button>
-
-            {isAIMode && (
-              <TokenStatus>
-                {sentryApiToken ? (
-                  <TokenStatusGood>✓ {t('API Token Configured')}</TokenStatusGood>
-                ) : (
-                  <TokenStatusMissing>⚠ {t('API Token Required')}</TokenStatusMissing>
-                )}
-                {sentryApiToken && (
-                  <Button onClick={handleClearToken} size="xs" priority="default">
-                    {t('Change Token')}
-                  </Button>
-                )}
-              </TokenStatus>
+{!isAIMode && (
+              <Button
+                size="xs"
+                priority="default"
+                onClick={toggleAIMode}
+                icon={<span>🤖</span>}
+                title={t('Toggle AI-powered analysis of this issue')}
+                aria-label={t('Toggle AI analysis mode')}
+              >
+                {t('Seer Mode: OFF')}
+              </Button>
             )}
 
             <StatusSection>
@@ -949,6 +939,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             />
 
             <ActionItemsSection similarIssuesCount={similarIssuesCount} />
+            
+            {isAIMode && (
+              <ExitAIModeLink onClick={toggleAIMode}>
+                {t('Exit AI Mode')}
+              </ExitAIModeLink>
+            )}
           </CardContent>
         </SidebarCard>
       </Sidebar>
@@ -1026,6 +1022,44 @@ const CardHeader = styled('div')`
   align-items: center;
   padding: ${space(1.5)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const SeverityCardHeader = styled('div')<{severityColor: string; isLoading: boolean}>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${space(1.5)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  position: relative;
+  
+  /* Apply subtle gradient background */
+  ${p => !p.isLoading && `
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: ${p.severityColor};
+      opacity: 0.08;
+      pointer-events: none;
+    }
+  `}
+  
+  /* Keep text dark for better readability with subtle background */
+  color: ${p => p.isLoading ? 'inherit' : p.theme.textColor};
+  
+  /* Ensure child elements maintain proper contrast */
+  ${p => !p.isLoading && `
+    h3, span {
+      color: ${p.theme.textColor} !important;
+    }
+    
+    svg {
+      color: ${p.theme.textColor};
+    }
+  `}
 `;
 
 const CardTitle = styled('h3')`
@@ -1899,4 +1933,22 @@ const InitialGuessContent = styled('div')`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSize.md};
   line-height: 1.5;
+`;
+
+const ExitAIModeLink = styled('button')`
+  background: none;
+  border: none;
+  color: ${p => p.theme.gray300};
+  cursor: pointer;
+  font-size: ${p => p.theme.fontSize.sm};
+  padding: ${space(1)};
+  text-decoration: underline;
+  position: fixed;
+  bottom: ${space(2)};
+  right: ${space(2)};
+  z-index: 1000;
+  
+  &:hover {
+    color: ${p => p.theme.gray400};
+  }
 `;
