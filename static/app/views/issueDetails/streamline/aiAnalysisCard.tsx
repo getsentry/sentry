@@ -341,16 +341,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
     }
   };
 
-  if (loading) {
-    return (
-      <AILayoutContainer>
-        <MainContent>
-          <LoadingIndicator />
-          <LoadingText>{t('Running AI severity assessment...')}</LoadingText>
-        </MainContent>
-      </AILayoutContainer>
-    );
-  }
+  // Don't show full loading screen - we'll populate with real data immediately
 
   if (error && !analysisData) {
     return (
@@ -424,30 +415,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
     );
   }
 
-  if (!analysisData) {
-    return (
-      <AILayoutContainer>
-        <GetStartedCard>
-          <CardHeader>
-            <CardTitle>
-              <IconSeer size="md" />
-              {t('AI Analysis')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <P>
-              {t(
-                'Get AI-powered severity assessment for this issue including impact analysis and priority recommendations.'
-              )}
-            </P>
-            <Button onClick={fetchAnalysis} priority="primary">
-              {t('Run AI Analysis')}
-            </Button>
-          </CardContent>
-        </GetStartedCard>
-      </AILayoutContainer>
-    );
-  }
+  // Removed the "Run AI Analysis" button screen - now auto-start analysis and show loading states
 
   const getSeverityColor = (severity: string) => {
     switch (severity.toLowerCase()) {
@@ -542,58 +510,47 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   return (
     <AILayoutContainer>
       <MainContent>
-        {/* Header Section */}
+        {/* Header Section - Use real group data immediately */}
         <HeaderCard>
           <CardContent>
-            {analysisData.success ? (
-              <Fragment>
-                {/* Issue Title */}
-                <IssueTitle>{analysisData.analysis.title}</IssueTitle>
+            {/* Issue Title - Use AI title once available, fallback to group title */}
+            <IssueTitle>
+              {analysisData?.success ? analysisData.analysis.title : group.title}
+            </IssueTitle>
 
-                {/* Timeline and Metrics Row */}
-                <TimelineMetricsRow>
-                  <TimelineSection>
-                    <TimelineItem>
-                      <TimelineLabel>{t('First seen:')}</TimelineLabel>
-                      <TimelineValue>
-                        {formatTimeAgo(analysisData.analysis.timeline.firstSeen)}
-                      </TimelineValue>
-                    </TimelineItem>
-                    <TimelineItem>
-                      <TimelineLabel>{t('Last seen:')}</TimelineLabel>
-                      <TimelineValue>
-                        {formatTimeAgo(analysisData.analysis.timeline.lastSeen)}
-                      </TimelineValue>
-                    </TimelineItem>
-                  </TimelineSection>
+            {/* Timeline and Metrics Row - Use real group data */}
+            <TimelineMetricsRow>
+              <TimelineSection>
+                <TimelineItem>
+                  <TimelineLabel>{t('First seen:')}</TimelineLabel>
+                  <TimelineValue>
+                    {formatTimeAgo(group.firstSeen)}
+                  </TimelineValue>
+                </TimelineItem>
+                <TimelineItem>
+                  <TimelineLabel>{t('Last seen:')}</TimelineLabel>
+                  <TimelineValue>
+                    {formatTimeAgo(group.lastSeen)}
+                  </TimelineValue>
+                </TimelineItem>
+              </TimelineSection>
 
-                  <MetricsSection>
-                    <MetricItem>
-                      <MetricLabel>{t('Failure Rate')}</MetricLabel>
-                      <MetricValue>
-                        {analysisData.analysis.metrics.failureRate.percentage}%
-                      </MetricValue>
-                    </MetricItem>
+              <MetricsSection>
+                <MetricItem>
+                  <MetricLabel>{t('Events')}</MetricLabel>
+                  <MetricValue>
+                    {group.count}
+                  </MetricValue>
+                </MetricItem>
 
-                    <MetricItem>
-                      <MetricLabel>
-                        {analysisData.analysis.metrics.usersAffected.label}
-                      </MetricLabel>
-                      <MetricValue>
-                        {analysisData.analysis.metrics.usersAffected.count}
-                      </MetricValue>
-                    </MetricItem>
-                  </MetricsSection>
-                </TimelineMetricsRow>
-              </Fragment>
-            ) : (
-              <ErrorMessage>
-                {t(
-                  'Failed to load issue details: %s',
-                  analysisData.error || 'Unknown error'
-                )}
-              </ErrorMessage>
-            )}
+                <MetricItem>
+                  <MetricLabel>{t('Users Affected')}</MetricLabel>
+                  <MetricValue>
+                    {group.userCount}
+                  </MetricValue>
+                </MetricItem>
+              </MetricsSection>
+            </TimelineMetricsRow>
           </CardContent>
         </HeaderCard>
 
@@ -604,14 +561,21 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 <IconSeer size="md" />
                 {t('Severity')}
               </CardTitle>
-              <SeverityPill colors={getSeverityColor(analysisData.analysis.severity)}>
-                {analysisData.analysis.severity}
-              </SeverityPill>
+              {analysisData?.success ? (
+                <SeverityPill colors={getSeverityColor(analysisData.analysis.severity)}>
+                  {analysisData.analysis.severity}
+                </SeverityPill>
+              ) : (
+                <LoadingSeverityPill>
+                  <LoadingIndicator mini size={16} />
+                  {t('Analyzing...')}
+                </LoadingSeverityPill>
+              )}
             </HeaderLeft>
           </CardHeader>
 
           <CardContent>
-            {analysisData.success ? (
+            {analysisData?.success ? (
               <Fragment>
                 {/* Analysis Sections */}
                 <AnalysisSection>
@@ -653,13 +617,34 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                   )}
                 </AnalysisSection>
               </Fragment>
-            ) : (
+            ) : error && !loading ? (
               <ErrorMessage>
-                {t(
-                  'Severity assessment failed: %s',
-                  analysisData.error || 'Unknown error'
-                )}
+                {t('Severity assessment failed: %s', error)}
               </ErrorMessage>
+            ) : (
+              <Fragment>
+                {/* Show loading states for AI-generated sections */}
+                <AnalysisSection>
+                  <SectionTitle>{t('Impact')}</SectionTitle>
+                  <LoadingText>
+                    <em>{t('Seer is analyzing your issue now...')}</em>
+                  </LoadingText>
+                </AnalysisSection>
+
+                <AnalysisSection>
+                  <SectionTitle>{t('Status')}</SectionTitle>
+                  <LoadingText>
+                    <em>{t('Seer is analyzing your issue now...')}</em>
+                  </LoadingText>
+                </AnalysisSection>
+
+                <AnalysisSection>
+                  <SectionTitle>{t('Reasoning')}</SectionTitle>
+                  <LoadingText>
+                    <em>{t('Seer is analyzing your issue now...')}</em>
+                  </LoadingText>
+                </AnalysisSection>
+              </Fragment>
             )}
           </CardContent>
         </SeverityCard>
@@ -1056,10 +1041,16 @@ const CardContent = styled('div')`
 `;
 
 const LoadingText = styled('div')`
-  margin-top: ${space(2)};
-  text-align: center;
   color: ${p => p.theme.subText};
-  font-style: italic;
+  font-size: ${p => p.theme.fontSize.md};
+  margin: ${space(1)} 0;
+  padding: ${space(1)};
+  text-align: left;
+  line-height: 1.4;
+  
+  em {
+    font-style: italic;
+  }
 `;
 
 const ErrorMessage = styled('div')`
@@ -1150,6 +1141,20 @@ const SeverityPill = styled('span')<{colors: {background: string; text: string}}
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
   }
+`;
+
+const LoadingSeverityPill = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.5)} ${space(1.5)};
+  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
+  border-radius: 20px;
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  border: 1px solid ${p => p.theme.border};
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 `;
 
 const IssueTitle = styled('h4')`
