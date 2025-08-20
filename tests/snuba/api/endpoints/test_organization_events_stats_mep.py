@@ -29,7 +29,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         "d:transactions/measurements.datacenter_memory@pebibyte",
     ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -1126,7 +1126,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
 ):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)

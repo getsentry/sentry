@@ -12,7 +12,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
     FEATURES = ["organizations:performance-span-histogram-view"]
     URL = "sentry-api-0-organization-events-spans-histogram"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.features = {}
         self.login_as(user=self.user)

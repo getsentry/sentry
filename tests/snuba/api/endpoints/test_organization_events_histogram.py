@@ -25,7 +25,7 @@ ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
 class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.data = load_data("transaction")
@@ -1030,7 +1030,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
     MetricsEnhancedPerformanceTestCase
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.features = {}
@@ -1162,6 +1162,6 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
 class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True

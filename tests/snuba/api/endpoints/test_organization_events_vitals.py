@@ -12,7 +12,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.start = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.end = self.start + timedelta(hours=6)
@@ -303,7 +303,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = ["measurement_rating"]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.start = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.end = self.start + timedelta(hours=6)
