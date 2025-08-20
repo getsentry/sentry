@@ -13,7 +13,6 @@ import serryLottieAnimation from 'getsentry-images/omni_search/seer-y.json';
 import {PlatformIcon} from 'platformicons';
 
 import error from 'sentry-images/spot/cmd-k-error.svg';
-
 import error from 'sentry-images/spot/cmd-k-error.svg';
 
 import {closeModal} from 'sentry/actionCreators/modal';
