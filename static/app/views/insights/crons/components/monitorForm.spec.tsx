@@ -17,7 +17,7 @@ import {ScheduleType} from 'sentry/views/insights/crons/types';
 jest.mock('sentry/utils/useTeams');
 jest.mock('sentry/utils/useMembers');
 
-describe('MonitorForm', function () {
+describe('MonitorForm', () => {
   const organization = OrganizationFixture();
 
   const member = MemberFixture({user: UserFixture({name: 'John Smith'})});
@@ -48,7 +48,7 @@ describe('MonitorForm', function () {
     });
   });
 
-  it('displays human readable schedule', async function () {
+  it('displays human readable schedule', async () => {
     render(
       <MonitorForm
         apiMethod="POST"
@@ -67,7 +67,7 @@ describe('MonitorForm', function () {
     expect(screen.getByText('"At 5 minutes past the hour"')).toBeInTheDocument();
   });
 
-  it('submits a new monitor', async function () {
+  it('submits a new monitor', async () => {
     const mockHandleSubmitSuccess = jest.fn();
 
     const apiEndpont = `/organizations/${organization.slug}/monitors/`;
@@ -165,7 +165,7 @@ describe('MonitorForm', function () {
     expect(mockHandleSubmitSuccess).toHaveBeenCalled();
   });
 
-  it('prefills with an existing monitor', async function () {
+  it('prefills with an existing monitor', async () => {
     const monitor = MonitorFixture({project});
 
     const apiEndpont = `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/`;

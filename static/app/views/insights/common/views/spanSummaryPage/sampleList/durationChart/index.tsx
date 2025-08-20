@@ -81,7 +81,7 @@ function DurationChart({
     ...filters,
     ...additionalFilters,
   });
-  const referrer = 'api.starfish.sidebar-span-metrics-chart';
+  const referrer = 'api.insights.sidebar-span-metrics-chart';
 
   const {
     isPending,
@@ -105,7 +105,7 @@ function DurationChart({
       fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
       enabled: Object.values(filters).every(value => Boolean(value)),
     },
-    'api.starfish.span-summary-panel-samples-table-avg'
+    'api.insights.span-summary-panel-samples-table-avg'
   );
 
   if (spanMetricsSeriesError || spanMetricsError) {

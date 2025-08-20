@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import builtins
 import logging
-from dataclasses import asdict
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -92,8 +91,13 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         return action_handler_registry.get(action_type)
 
     def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
-        handler = self.get_handler()
-        handler.execute(event_data, self, detector)
+        with metrics.timer(
+            "workflow_engine.action.trigger.execution_time",
+            tags={"action_type": self.type, "detector_type": detector.type},
+            sample_rate=1.0,
+        ):
+            handler = self.get_handler()
+            handler.execute(event_data, self, detector)
 
         metrics.incr(
             "workflow_engine.action.trigger",
@@ -106,7 +110,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             extra={
                 "detector_id": detector.id,
                 "action_id": self.id,
-                "event_data": asdict(event_data),
             },
         )
 

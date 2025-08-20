@@ -3,8 +3,8 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './sanic';
 
-describe('sanic onboarding docs', function () {
-  it('renders doc correctly', function () {
+describe('sanic onboarding docs', () => {
+  it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings

@@ -2,7 +2,7 @@ import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 
 import {addWildcardToToken, removeWildcardFromToken} from './useQueryBuilderState';
 
-describe('addWildcardToToken', function () {
+describe('addWildcardToToken', () => {
   const testCases = [
     // --- contains ---
     {
@@ -117,7 +117,7 @@ describe('addWildcardToToken', function () {
     },
   ];
 
-  it.each(testCases)('should add wildcard to token', function ({input, expected}) {
+  it.each(testCases)('should add wildcard to token', ({input, expected}) => {
     const result = addWildcardToToken(
       input.token as TokenResult<Token.VALUE_TEXT>,
       input.isContains,
@@ -128,7 +128,7 @@ describe('addWildcardToToken', function () {
   });
 });
 
-describe('removeWildcardFromToken', function () {
+describe('removeWildcardFromToken', () => {
   const testCases = [
     // --- contains ---
     {
@@ -243,7 +243,7 @@ describe('removeWildcardFromToken', function () {
     },
   ];
 
-  it.each(testCases)('should remove wildcard from token', function ({input, expected}) {
+  it.each(testCases)('should remove wildcard from token', ({input, expected}) => {
     const result = removeWildcardFromToken(
       input.token as TokenResult<Token.VALUE_TEXT>,
       input.isContains,

@@ -147,6 +147,7 @@ def create_preprod_artifact(
     project_id,
     checksum,
     build_configuration=None,
+    release_notes=None,
     head_sha=None,
     base_sha=None,
     provider=None,
@@ -200,11 +201,17 @@ def create_preprod_artifact(
                     name=build_configuration,
                 )
 
+            # Prepare extras data if release_notes is provided
+            extras = None
+            if release_notes:
+                extras = {"release_notes": release_notes}
+
             preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
                 project=project,
                 build_configuration=build_config,
                 state=PreprodArtifact.ArtifactState.UPLOADING,
                 commit_comparison=commit_comparison,
+                extras=extras,
             )
 
             logger.info(

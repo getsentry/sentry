@@ -7,10 +7,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
-describe('OrgStatsBanner', function () {
+describe('OrgStatsBanner', () => {
   let wrapper: any;
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
     if (wrapper) {
       wrapper.unmount();
@@ -18,7 +18,7 @@ describe('OrgStatsBanner', function () {
     wrapper = null;
   });
 
-  it('renders empty if not self serve', function () {
+  it('renders empty if not self serve', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -30,7 +30,7 @@ describe('OrgStatsBanner', function () {
     expect(wrapper.container).toBeEmptyDOMElement();
   });
 
-  it('renders empty if business plan without usage exceeded', function () {
+  it('renders empty if business plan without usage exceeded', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -41,7 +41,7 @@ describe('OrgStatsBanner', function () {
     expect(wrapper.container).toBeEmptyDOMElement();
   });
 
-  it('renders increase event limit CTA for billing user', function () {
+  it('renders increase event limit CTA for billing user', () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -62,7 +62,7 @@ describe('OrgStatsBanner', function () {
     expect(screen.getByText('Increase your Reserved Quotas')).toBeInTheDocument();
   });
 
-  it('renders request increase event limit CTA for non-billing user', function () {
+  it('renders request increase event limit CTA for non-billing user', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,
@@ -83,7 +83,7 @@ describe('OrgStatsBanner', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders start trial for billing user', function () {
+  it('renders start trial for billing user', () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -105,7 +105,7 @@ describe('OrgStatsBanner', function () {
     expect(screen.getByText('Try Sentry Business for Free')).toBeInTheDocument();
   });
 
-  it('renders upgrade for billing user', function () {
+  it('renders upgrade for billing user', () => {
     const organization = OrganizationFixture({
       access: ['org:billing'],
     });
@@ -127,7 +127,7 @@ describe('OrgStatsBanner', function () {
     expect(screen.getByText('Upgrade to Business')).toBeInTheDocument();
   });
 
-  it('renders request upgrade for non-billing user', function () {
+  it('renders request upgrade for non-billing user', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
       organization,

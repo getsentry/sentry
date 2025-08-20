@@ -321,6 +321,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                     data={autofixData}
                     groupId={group.id}
                     runId={autofixData.run_id}
+                    event={event}
                   />
                 ) : autofixDataPending ? (
                   <PlaceholderStack>
