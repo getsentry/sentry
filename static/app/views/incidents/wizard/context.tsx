@@ -50,7 +50,7 @@ export const INCIDENT_SETUP_STEPS: Record<IncidentSetupStep, SetupStep> = {
   },
   [IncidentSetupStep.TEMPLATE]: {
     title: t('Setup a Template'),
-    description: t('Connect tools to template + other template configuration'),
+    description: t('The small things make all the difference'),
     icon: IconRuler,
     content: TemplateStep,
   },
@@ -87,6 +87,10 @@ export interface IncidentSetupContext {
   };
   [IncidentSetupStep.TEMPLATE]: {
     complete: boolean;
+    case_handle?: string;
+    lead_title?: string;
+    severity_handle?: string;
+    update_frequency?: string;
   };
   [IncidentSetupStep.SMOKEY]: {
     complete: boolean;

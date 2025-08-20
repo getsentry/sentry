@@ -1,93 +1,124 @@
-import styled from '@emotion/styled';
+import {useEffect, useState} from 'react';
 
-import {Button} from 'sentry/components/core/button/';
+import {Input} from 'sentry/components/core/input';
+import {Flex, Grid} from 'sentry/components/core/layout';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
+import {
+  IncidentSetupStep,
+  useIncidentSetupContext,
+} from 'sentry/views/incidents/wizard/context';
 
-interface TemplateStepProps {
-  onComplete: (stepId: string) => void;
-}
+export function TemplateStep() {
+  const {template: templateContext, setStepContext} = useIncidentSetupContext();
 
-export function TemplateStep({onComplete}: TemplateStepProps) {
+  const [caseHandle, setCaseHandle] = useState('');
+  const [severityHandle, setSeverityHandle] = useState('');
+  const [leadTitle, setLeadTitle] = useState('');
+  const [updateFrequency, setUpdateFrequency] = useState('15');
+
+  useEffect(() => {
+    if (!caseHandle || !severityHandle || !leadTitle || !updateFrequency) {
+      return;
+    }
+
+    if (templateContext.complete) {
+      return;
+    }
+
+    setStepContext(IncidentSetupStep.TEMPLATE, {
+      complete: true,
+      case_handle: caseHandle,
+      severity_handle: severityHandle,
+      lead_title: leadTitle,
+      update_frequency: updateFrequency,
+    });
+  }, [
+    caseHandle,
+    severityHandle,
+    leadTitle,
+    updateFrequency,
+    setStepContext,
+    templateContext.complete,
+  ]);
+
   return (
-    <StepContent>
-      <h3>{t('Setup a Template')}</h3>
-      <p>
+    <Flex direction="column" gap="2xl" maxWidth="650px">
+      <Text>
         {t(
-          'Create incident response templates that automatically trigger the right tools and assign the right people when incidents occur.'
+          'Everyone has preferences that best suit their workflow, set up the nit picks for your team.'
         )}
-      </p>
+      </Text>
+      <Flex direction="column" gap="xl">
+        <Grid columns="1fr 1fr 2fr" gap="3xl">
+          <Flex direction="column" gap="sm">
+            <Flex direction="column" gap="xs">
+              <Text bold size="sm">
+                {t('Case Handle')}
+              </Text>
+              <Text size="sm">{t('Prefix for incidents')}</Text>
+            </Flex>
+            <Input
+              placeholder={t('e.g. INC, OUT')}
+              max={12}
+              size="sm"
+              value={caseHandle}
+              onChange={e => setCaseHandle(e.target.value)}
+            />
+          </Flex>
+          <Flex direction="column" gap="sm">
+            <Flex direction="column" gap="xs">
+              <Text bold size="sm">
+                {t('Severity Handle')}
+              </Text>
+              <Text size="sm">{t('Prefix for severity levels')}</Text>
+            </Flex>
+            <Input
+              placeholder={t('e.g. P, SEV')}
+              max={12}
+              size="sm"
+              value={severityHandle}
+              onChange={e => setSeverityHandle(e.target.value)}
+            />
+          </Flex>
+          <Flex direction="column" gap="sm">
+            <Flex direction="column" gap="xs">
+              <Text bold size="sm">
+                {t('Lead Title')}
+              </Text>
+              <Text size="sm">{t('Title for the person in charge')}</Text>
+            </Flex>
+            <Input
+              placeholder={t('e.g. Commander')}
+              max={12}
+              size="sm"
+              value={leadTitle}
+              onChange={e => setLeadTitle(e.target.value)}
+            />
+          </Flex>
+        </Grid>
 
-      <TemplateForm>
-        <FormGroup>
-          <label>{t('Template Name')}</label>
-          <input placeholder={t('e.g., Critical API Outage')} />
-        </FormGroup>
-        <FormGroup>
-          <label>{t('Severity Levels')}</label>
-          <SeverityLevels>
-            <SeverityBadge>P1</SeverityBadge>
-            <SeverityBadge>P2</SeverityBadge>
-            <SeverityBadge>P3</SeverityBadge>
-          </SeverityLevels>
-        </FormGroup>
-        <FormGroup>
-          <label>{t('Auto-assign to')}</label>
-          <input placeholder={t('e.g., @oncall-team')} />
-        </FormGroup>
-      </TemplateForm>
-
-      <Button priority="primary" onClick={() => onComplete('template')}>
-        {t('Save Template')}
-      </Button>
-    </StepContent>
+        <Flex direction="column" gap="sm">
+          <Flex direction="column" gap="xs">
+            <Text bold size="sm">
+              {t('Update Frequency')}
+            </Text>
+            <Text size="sm">{t('How often should we be providing updates?')}</Text>
+          </Flex>
+          <SegmentedControl
+            value={updateFrequency.toString()}
+            onChange={setUpdateFrequency}
+            size="xs"
+            priority="primary"
+          >
+            <SegmentedControl.Item key="5">5 min</SegmentedControl.Item>
+            <SegmentedControl.Item key="10">10 min</SegmentedControl.Item>
+            <SegmentedControl.Item key="15">15 min</SegmentedControl.Item>
+            <SegmentedControl.Item key="30">30 min</SegmentedControl.Item>
+          </SegmentedControl>
+        </Flex>
+      </Flex>
+    </Flex>
   );
 }
-
-const StepContent = styled('div')`
-  max-width: 600px;
-`;
-
-const TemplateForm = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-`;
-
-const FormGroup = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-
-  label {
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: ${p => p.theme.textColor};
-  }
-
-  input {
-    padding: 0.5rem;
-    border: 1px solid ${p => p.theme.border};
-    border-radius: ${p => p.theme.borderRadius};
-    font-size: 0.875rem;
-  }
-`;
-
-const SeverityLevels = styled('div')`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const SeverityBadge = styled('span')`
-  padding: 0.25rem 0.5rem;
-  background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background: ${p => p.theme.background};
-  }
-`;
