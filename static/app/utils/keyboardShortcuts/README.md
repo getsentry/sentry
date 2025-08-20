@@ -62,13 +62,15 @@ These shortcuts appear in the help modal under the "Issues" category.
 
 When on an Issue Details page, you can use:
 
+- `r` - Resolve issue
+- `e` - Archive issue
 - `v` - Mark issue as reviewed
 - `b` - Toggle bookmark on issue
 - `d` - Delete issue (opens confirmation modal)
 - `S` - Share Issue
 - `s` - Subscribe to workflow notifications for this issue
 
-These shortcuts appear in the help modal under the "Issue Details" category.
+These shortcuts appear in the help modal under the "Issue Details - Actions" category.
 
 ### 6. Test Command Palette
 

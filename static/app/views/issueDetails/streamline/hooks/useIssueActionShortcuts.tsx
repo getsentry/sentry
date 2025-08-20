@@ -69,7 +69,7 @@ export function useIssueActionShortcuts({
       },
       {
         id: 'archive-issue',
-        key: 'i',
+        key: 'e',
         description: 'Archive issue',
         handler: handleArchive,
       },

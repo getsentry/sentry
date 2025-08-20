@@ -365,8 +365,36 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     ));
   };
 
+  // Resolve action handler
+  const handleResolve = () => {
+    if (disabled || isResolved || isAutoResolved || !resolveCap.enabled) {
+      return; // Don't resolve if disabled, already resolved, auto-resolved, or not allowed
+    }
+
+    onUpdate({
+      status: GroupStatus.RESOLVED,
+      statusDetails: {},
+      substatus: null,
+    });
+  };
+
+  // Archive action handler
+  const handleArchive = () => {
+    if (disabled || isIgnored) {
+      return; // Don't archive if disabled or already archived
+    }
+
+    onUpdate({
+      status: GroupStatus.IGNORED,
+      statusDetails: {},
+      substatus: GroupSubstatus.ARCHIVED_UNTIL_CONDITION_MET,
+    });
+  };
+
   // Register keyboard shortcuts for issue actions
   useIssueActionShortcuts({
+    onResolve: handleResolve,
+    onArchive: handleArchive,
     onBookmark: onToggleBookmark,
     onDelete: openDeleteModal,
     onMarkReviewed: () => onUpdate({inbox: false}),
