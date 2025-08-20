@@ -29,7 +29,6 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useSidebarShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useSidebarShortcuts';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityIcons';
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
@@ -176,13 +175,6 @@ export default function StreamlinedActivitySection({
       onFocusCommentRef.current = focusComment;
     }
   }, [focusComment, onFocusCommentRef]);
-
-  // Initialize sidebar shortcuts only when not in drawer
-  // When isDrawer=true, shortcuts should be handled by the parent
-  useSidebarShortcuts({
-    disabled: isDrawer,
-    onFocusComment: isDrawer ? undefined : focusComment,
-  });
 
   const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];

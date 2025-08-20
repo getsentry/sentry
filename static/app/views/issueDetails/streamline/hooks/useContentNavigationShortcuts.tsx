@@ -67,7 +67,7 @@ export function useContentNavigationShortcuts({
     if (issueTypeConfig.pages.replays.enabled && hasReplaySupport) {
       availableShortcuts.push({
         id: 'navigate-replays',
-        key: 't r',
+        key: 't y',
         description: `View ${t('replays').toLowerCase()} in this issue`,
         handler: () => navigateToTab(Tab.REPLAYS),
       });
