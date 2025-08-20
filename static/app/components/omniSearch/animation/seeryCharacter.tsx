@@ -14,6 +14,7 @@ interface SeeryCharacterProps {
 }
 
 interface SeeryCharacterRef {
+  triggerBarrelRoll: () => void;
   triggerCelebrate: () => void;
   triggerError: () => void;
   triggerImpatient: () => void;
@@ -60,9 +61,20 @@ function SeeryCharacter({animationData, size, ref}: SeeryCharacterProps) {
     [animationItem]
   );
 
+  const triggerBarrelRoll = useCallback(() => {
+    const container = document.querySelector('[data-seery-container]') as HTMLElement;
+    if (container) {
+      container.style.animation = 'seery-barrel-roll 1s ease-in-out';
+      setTimeout(() => {
+        container.style.animation = '';
+      }, 1000);
+    }
+  }, []);
+
   useImperativeHandle(
     ref,
     () => ({
+      triggerBarrelRoll,
       triggerImpatient: () => {
         playSegmentAndReturnToIdle(33, 49);
       },
@@ -79,7 +91,7 @@ function SeeryCharacter({animationData, size, ref}: SeeryCharacterProps) {
         playSegmentAndReturnToIdle(100, 115);
       },
     }),
-    [playSegmentAndReturnToIdle]
+    [playSegmentAndReturnToIdle, triggerBarrelRoll]
   );
 
   return createPortal(
@@ -91,6 +103,7 @@ function SeeryCharacter({animationData, size, ref}: SeeryCharacterProps) {
           animate={{opacity: 1}}
           exit={{opacity: 0}}
           transition={{duration: 0.2}}
+          data-seery-container
         >
           <BackgroundImage src={computerSvg} alt="" />
           <AnimationContainer size={size}>{View}</AnimationContainer>
@@ -110,6 +123,15 @@ const CharacterContainer = styled(motion.div)<{size?: number}>`
   justify-content: center;
   z-index: ${p => p.theme.zIndex.modal + 1};
   ${p => p.size && `width: ${p.size}px; height: ${p.size}px;`}
+
+  @keyframes seery-barrel-roll {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
 `;
 
 const BackgroundImage = styled('img')`

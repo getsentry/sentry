@@ -89,6 +89,7 @@ function flattenActions(actions: OmniAction[], parentLabel?: string): OmniAction
 }
 
 export interface OmniSearchPaletteSeeryRef {
+  triggerSeeryBarrelRoll: () => void;
   triggerSeeryCelebrate: () => void;
   triggerSeeryError: () => void;
   triggerSeeryImpatient: () => void;
@@ -522,9 +523,14 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     seeryRef.current?.triggerSearchDone();
   };
 
+  const triggerSeeryBarrelRoll = () => {
+    seeryRef.current?.triggerBarrelRoll();
+  };
+
   useImperativeHandle(
     ref,
     () => ({
+      triggerSeeryBarrelRoll,
       triggerSeeryImpatient,
       triggerSeeryError,
       triggerSeeryCelebrate,
