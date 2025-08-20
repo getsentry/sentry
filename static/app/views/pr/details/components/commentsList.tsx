@@ -144,7 +144,7 @@ function CommentsList({
 
         return (
           <CommentItem key={comment.id}>
-            <CommentHeader>
+            <CommentHeader isSeerBot={comment.user.login === 'seer-by-sentry[bot]'}>
               <UserInfo>
                 <UserAvatar
                   user={{
@@ -207,18 +207,18 @@ function CommentsList({
 const CommentItem = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: 6px;
-  margin-bottom: ${space(1)};
+  margin: ${space(1)} 0;
   background: ${p => p.theme.background};
   width: 100%;
   min-width: 0; /* Allow shrinking */
 `;
 
-const CommentHeader = styled('div')`
+const CommentHeader = styled('div')<{isSeerBot?: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.backgroundElevated};
+  background: ${p => (p.isSeerBot ? p.theme.purple200 : p.theme.gray200)};
   border-bottom: 1px solid ${p => p.theme.border};
   border-radius: 6px 6px 0 0;
 `;
@@ -241,7 +241,7 @@ const Username = styled('span')`
 
 const CommentMeta = styled('span')`
   color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSize.sm};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 const LineInfo = styled('div')`

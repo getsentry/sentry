@@ -316,7 +316,7 @@ const DiffRow = styled('tr')`
   }
 
   &.header {
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: #f6f8fa;
 
     td {
       color: ${p => p.theme.purple300};
@@ -380,23 +380,27 @@ const InlineCommentsContainer = styled('div')`
 
   /* Override the CommentsList margins for inline display */
   > div {
-    margin-bottom: 0;
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+
+  /* Remove any gap/margin from Flex container */
+  > div[style*='gap'] {
+    gap: 0 !important;
   }
 
   /* Make the comment items more compact for inline display */
   > div > div {
-    margin-bottom: ${space(0.5)};
+    margin: 0 !important;
     border-radius: 4px;
     font-size: ${p => p.theme.fontSize.xs};
-
-    &:last-child {
-      margin-bottom: 0;
-    }
   }
 
-  /* Smaller header text for inline comments */
+  /* Remove any heading margins */
+  h2,
   h3 {
-    display: none; /* Hide the title for inline comments */
+    display: none !important;
+    margin: 0 !important;
   }
 `;
 
