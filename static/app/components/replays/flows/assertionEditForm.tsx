@@ -2,13 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Grid} from 'sentry/components/core/layout/grid';
 import {Text} from 'sentry/components/core/text';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import ReplayActionPicker from 'sentry/components/replays/flows/actions/replayActionPicker';
 import AssertionBaseForm from 'sentry/components/replays/flows/assertionBaseForm';
 import AssertionEndActionCreateForm from 'sentry/components/replays/flows/assertionEndActionCreateForm';
 import AssertionReplayPlayer from 'sentry/components/replays/flows/assertionReplayPlayer';
@@ -16,12 +14,10 @@ import AssertionReplayTable from 'sentry/components/replays/flows/assertionRepla
 import AssertionStartActionInput from 'sentry/components/replays/flows/assertionStartActionInput';
 import {SelectedReplayIndexProvider} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconPlay} from 'sentry/icons/iconPlay';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {AssertionFlow} from 'sentry/utils/replays/assertions/types';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 interface Props {
   assertion: AssertionFlow;
@@ -29,10 +25,6 @@ interface Props {
 }
 
 export default function AssertionEditForm({assertion, setAssertion}: Props) {
-  const {getParamValue: getReplaySlug, setParamValue: setReplaySlug} =
-    useUrlParams('replaySlug');
-  const replaySlug = getReplaySlug();
-
   const {selected_replay_id: previewReplayId} = useLocationQuery({
     fields: {
       selected_replay_id: decodeScalar,
@@ -48,9 +40,8 @@ export default function AssertionEditForm({assertion, setAssertion}: Props) {
               <AssertionBaseForm disabled />
             </Flex>
             <Flex direction="column" gap="md">
-              <Text size="lg">
-                <Tag type="info">START</Tag>this flow
-              </Text>
+              <StepTag>START</StepTag>
+              <Text size="lg">this flow</Text>
               <Flex align="start" gap="md" flex="1" padding="0 0 0 3xl">
                 <AssertionStartActionInput
                   action={assertion.starting_action}
@@ -62,13 +53,16 @@ export default function AssertionEditForm({assertion, setAssertion}: Props) {
               </Flex>
             </Flex>
             <Flex>
-              <Text size="lg">
-                <Tag type="info">END</Tag>this flow
-              </Text>
+              <StepTag>END</StepTag>
+              <Text size="lg">this flow</Text>
             </Flex>
             {assertion.ending_actions.map((endingAction, i) => (
               <Fragment key={`${endingAction.type}-${i}`}>
-                {i === 0 ? null : <Tag type="info">OR</Tag>}
+                {i === 0 ? null : (
+                  <Flex>
+                    <StepTag>OR</StepTag>
+                  </Flex>
+                )}
                 <AssertionEndActionCreateForm
                   action={endingAction}
                   onChange={action => {
@@ -89,18 +83,7 @@ export default function AssertionEditForm({assertion, setAssertion}: Props) {
                     }
                   }}
                   projectId={assertion.project_id}
-                >
-                  <ReplayActionPicker
-                    projectId={assertion.project_id}
-                    onSelect={setReplaySlug}
-                  >
-                    {replaySlug ? (
-                      <span>Example: {replaySlug}</span>
-                    ) : (
-                      <Button size="sm" aria-label="Pick a replay" icon={<IconPlay />} />
-                    )}
-                  </ReplayActionPicker>
-                </AssertionEndActionCreateForm>
+                />
               </Fragment>
             ))}
             <Button
@@ -137,14 +120,10 @@ export default function AssertionEditForm({assertion, setAssertion}: Props) {
             </Flex>
           </Flex>
 
-          {replaySlug ? (
-            <AssertionReplayPlayer replaySlug={replaySlug} />
+          {previewReplayId ? (
+            <AssertionReplayPlayer replaySlug={previewReplayId} />
           ) : (
-            <StyledNegativeSpaceContainer>
-              {previewReplayId ? (
-                <AssertionReplayPlayer replaySlug={previewReplayId} />
-              ) : null}
-            </StyledNegativeSpaceContainer>
+            <StyledNegativeSpaceContainer />
           )}
         </Grid>
       </SelectedReplayIndexProvider>
@@ -155,4 +134,16 @@ export default function AssertionEditForm({assertion, setAssertion}: Props) {
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
+`;
+
+const StepTag = styled('span')`
+  font-weight: bold;
+  border: 1px solid ${p => p.theme.tag.promotion.border};
+  padding: 0 4px;
+  border-radius: 4px;
+  background-color: ${p => p.theme.tag.promotion.background};
+  color: ${p => p.theme.tag.promotion.color};
+  font-size: ${p => p.theme.fontSize.sm};
+  width: 70px;
+  text-align: center;
 `;

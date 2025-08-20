@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import {useState} from 'react';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -9,15 +9,10 @@ import AssertionReplayTable from 'sentry/components/replays/flows/assertionRepla
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import type {
-  EndingAssertionAction,
-  NavigationAction,
-  UIClickAction,
-} from 'sentry/utils/replays/assertions/types';
+import type {EndingAssertionAction} from 'sentry/utils/replays/assertions/types';
 
 interface Props {
   action: EndingAssertionAction;
-  children: ReactNode;
   onChange: (action?: EndingAssertionAction) => void;
   projectId: string;
 }
@@ -64,38 +59,48 @@ export default function AssertionEndActionCreateForm({
   );
 
   return (
-    <Flex border="primary" padding="md" gap="md" justify="between" direction="column">
+    <Flex padding="0 0 0 3xl" gap="md" justify="between" direction="column">
       <Flex direction="row" gap="md" flex="1" justify="between">
-        {categoryOrOp === 'ui.click' ? null : (
+        <Flex gap="lg" direction="column">
           <Flex gap="xs" align="center" wrap="nowrap">
             {tct('if a [typeSelect] happens', {typeSelect})}
           </Flex>
-        )}
 
-        {categoryOrOp === 'ui.click' ? (
-          <ClickInput
-            onChange={onChange}
-            projectId={projectId}
-            disabled={false}
-            initialAction={action as UIClickAction}
-          />
-        ) : null}
+          {categoryOrOp === 'ui.click' ? (
+            <ClickInput
+              onChange={onChange}
+              projectId={projectId}
+              disabled={false}
+              initialAction={
+                action.type === 'breadcrumb' && action.category === 'ui.click'
+                  ? action
+                  : null
+              }
+            />
+          ) : null}
 
-        {categoryOrOp === 'navigation' ? (
-          <NavigationInput
-            initialAction={action as NavigationAction}
-            onChange={onChange}
-            disabled={false}
-          />
-        ) : null}
+          {categoryOrOp === 'navigation' ? (
+            <NavigationInput
+              initialAction={
+                action.type === 'breadcrumb' && action.category === 'navigation'
+                  ? action
+                  : null
+              }
+              onChange={onChange}
+              disabled={false}
+            />
+          ) : null}
+        </Flex>
 
         <Flex gap="md">
-          <Button
-            aria-label="Remove"
-            icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
-            size="xs"
-            onClick={() => setIsExpanded(!isExpanded)}
-          />
+          {action.type === 'null' ? null : (
+            <Button
+              aria-label="Remove"
+              icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
+              size="xs"
+              onClick={() => setIsExpanded(!isExpanded)}
+            />
+          )}
           <Button
             aria-label="Remove"
             icon={<IconClose />}
@@ -105,7 +110,7 @@ export default function AssertionEndActionCreateForm({
         </Flex>
       </Flex>
 
-      {isExpanded ? (
+      {action.type !== 'null' && isExpanded ? (
         <Flex height="480px" width="100%">
           <AssertionReplayTable
             action={action}
