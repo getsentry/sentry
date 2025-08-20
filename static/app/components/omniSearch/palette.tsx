@@ -110,7 +110,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
   const memberProjects = projects.filter(p => p.isMember);
-  const {setIsSearchingSeer} = useOmniSearchStore();
+  const {isSearchingSeer, setIsSearchingSeer} = useOmniSearchStore();
   const {
     focusedArea,
     actions: availableActions,
@@ -123,8 +123,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const seeryRef = useRef<SeeryCharacterRef>(null);
-
-  const [seerCallLoading, setSeerCallLoading] = useState(false);
 
   const debouncedQuery = useDebouncedValue(query, 300);
 
@@ -174,8 +172,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
           return;
         }
         setIsSearchingSeer(true);
-
-        setSeerCallLoading(true);
         triggerSeeryCelebrate();
 
         try {
@@ -593,14 +589,14 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                 }
               }}
               placeholder={placeholder}
-              disabled={seerCallLoading}
+              disabled={isSearchingSeer}
               style={{
-                opacity: seerCallLoading ? 0.5 : 1,
+                opacity: isSearchingSeer ? 0.5 : 1,
               }}
             />
           </SearchInputContainer>
         </Header>
-        {seerCallLoading ? (
+        {isSearchingSeer ? (
           <SeerLoadingContainer>
             <BrainHead src={brainhead} alt="Loading..." />
             <LoadingCaption>MAKING IT MAKE SENSE</LoadingCaption>

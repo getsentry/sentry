@@ -55,7 +55,7 @@ function OmniSearchModal({Body}: ModalRenderProps) {
   ]);
 
   return (
-    <Body>
+    <Body id="omni-search-modal">
       <div ref={containerRef}>
         <OmniSearchPalette />
       </div>
