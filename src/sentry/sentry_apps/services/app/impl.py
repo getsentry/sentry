@@ -333,6 +333,15 @@ class DatabaseBackedAppService(AppService):
         )
         return [serialize_sentry_app(app) for app in published_apps]
 
+    def get_sentry_apps_for_organization(self, *, organization_id: int) -> list[RpcSentryApp]:
+        """
+        Get active Sentry Apps for a given organization
+        """
+        sentry_apps = SentryApp.objects.filter(
+            owner_id=organization_id, application__isnull=False
+        ).exclude(status=SentryAppStatus.PUBLISHED)
+        return [serialize_sentry_app(app) for app in sentry_apps]
+
     def get_internal_integrations(
         self, *, organization_id: int, integration_name: str
     ) -> list[RpcSentryApp]:

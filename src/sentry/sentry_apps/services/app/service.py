@@ -194,6 +194,11 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_sentry_apps_for_organization(self, *, organization_id: int) -> list[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_internal_integrations(
         self, *, organization_id: int, integration_name: str
     ) -> list[RpcSentryApp]:
