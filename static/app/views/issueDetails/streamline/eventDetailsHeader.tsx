@@ -29,8 +29,8 @@ import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
-  useEventQuery,
   type EventSearchRef,
+  useEventQuery,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
@@ -90,17 +90,27 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     }
   }, [event, organization, project, dispatch]);
 
+  // Only register shortcuts when on issue details pages
+  const isOnIssueDetailsPage =
+    location.pathname.includes('/issues/') &&
+    (location.pathname.includes('/events/') || location.pathname.endsWith('/'));
+
   // Register keyboard shortcut to focus the filter events input
-  useComponentShortcuts('issue-details-general', [
-    {
-      id: 'focus-filter-events',
-      key: '/',
-      description: 'Focus Filter events input',
-      handler: () => {
-        eventSearchRef.current?.focus();
-      },
-    },
-  ]);
+  useComponentShortcuts(
+    'issue-details-search',
+    isOnIssueDetailsPage
+      ? [
+          {
+            id: 'focus-filter-events',
+            key: '/',
+            description: 'Focus Filter events input',
+            handler: () => {
+              eventSearchRef.current?.focus();
+            },
+          },
+        ]
+      : []
+  );
 
   const searchText = t(
     'Filter %s\u2026 (/)',

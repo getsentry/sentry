@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
 import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
+import {useLocation} from 'sentry/utils/useLocation';
 
 interface UseSidebarShortcutsProps {
   disabled?: boolean;
@@ -15,15 +16,22 @@ export function useSidebarShortcuts({
   onFocusComment,
   disabled,
 }: UseSidebarShortcutsProps) {
+  const location = useLocation();
+
+  // Only register shortcuts when on issue details pages
+  const isOnIssueDetailsPage =
+    location.pathname.includes('/issues/') &&
+    (location.pathname.includes('/events/') || location.pathname.endsWith('/'));
+  const shouldRegisterShortcuts = isOnIssueDetailsPage && !disabled;
+
   const handleFocusComment = useCallback(() => {
     onFocusComment?.();
   }, [onFocusComment]);
 
   useComponentShortcuts(
-    'issue-details-general',
-    disabled
-      ? []
-      : [
+    'issue-details-sidebar',
+    shouldRegisterShortcuts
+      ? [
           {
             id: 'focus-comment',
             key: 'c',
@@ -31,5 +39,6 @@ export function useSidebarShortcuts({
             handler: handleFocusComment,
           },
         ]
+      : []
   );
 }

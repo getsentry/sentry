@@ -6,6 +6,7 @@ import type {Group} from 'sentry/types/group';
 import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface UseCopyShortcutsProps {
@@ -19,6 +20,13 @@ interface UseCopyShortcutsProps {
  */
 export function useCopyShortcuts({group, event}: UseCopyShortcutsProps) {
   const organization = useOrganization();
+  const location = useLocation();
+
+  // Only register shortcuts when on issue details pages
+  const isOnIssueDetailsPage =
+    location.pathname.includes('/issues/') &&
+    (location.pathname.includes('/events/') || location.pathname.endsWith('/'));
+  const shouldRegisterShortcuts = isOnIssueDetailsPage;
 
   // Copy issue URL
   const issueUrl = useCallback(() => {
@@ -70,5 +78,5 @@ export function useCopyShortcuts({group, event}: UseCopyShortcutsProps) {
     });
   }
 
-  useComponentShortcuts('issue-details-general', shortcuts);
+  useComponentShortcuts('issue-details-copy', shouldRegisterShortcuts ? shortcuts : []);
 }

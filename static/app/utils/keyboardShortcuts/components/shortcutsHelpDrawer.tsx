@@ -57,38 +57,83 @@ export function ShortcutsHelpDrawer({
       return description.includes(query) || category.includes(query) || matchesKey;
     });
 
-    filteredShortcuts.forEach(shortcut => {
-      const category = shortcut.context || 'global';
-      if (!grouped.has(category)) {
-        grouped.set(category, []);
+    // Map contexts to logical groups
+    const getLogicalGroup = (context: string): string => {
+      if (context === 'global') return 'global';
+      if (context.startsWith('issues-')) return 'issues-list';
+
+      // Group navigation-related contexts together
+      if (
+        context === 'issue-details-tab-navigation' ||
+        context === 'issue-details-section-navigation'
+      ) {
+        return 'issue-details-navigation';
       }
-      grouped.get(category)!.push(shortcut);
+
+      // Group general utility contexts together
+      if (
+        context === 'issue-details-sidebar' ||
+        context === 'issue-details-copy' ||
+        context === 'issue-details-search'
+      ) {
+        return 'issue-details-general';
+      }
+
+      // Keep specific functional groups separate
+      if (context === 'issue-details-actions') return 'issue-details-actions';
+      if (context === 'issue-details-events') return 'issue-details-events';
+      if (context === 'issue-details-drawers') return 'issue-details-drawers';
+      if (context === 'issue-details-workflow') return 'issue-details-workflow';
+
+      return context; // Keep other contexts as-is
+    };
+
+    // Group shortcuts by logical groups instead of individual contexts
+    filteredShortcuts.forEach(shortcut => {
+      const context = shortcut.context || 'global';
+      const logicalGroup = getLogicalGroup(context);
+
+      if (!grouped.has(logicalGroup)) {
+        grouped.set(logicalGroup, []);
+      }
+      grouped.get(logicalGroup)!.push(shortcut);
     });
 
-    // Sort categories with contextual shortcuts first, global last
-    // Order: Issue Details contexts > Issues List > Global (includes navigation)
-    const categoryOrder = [
-      'issue-details-general',
-      'issue-details-navigation',
-      'issue-details-actions',
-      'issue-details-events',
-      'issue-details-drawers',
-      'issue-details-workflow',
-      'issues-list',
-      'global',
-    ];
+    // Sort categories intelligently with global always last
+    const getSortPriority = (category: string): number => {
+      if (category === 'global') return 1000; // Always last
+      if (category === 'issue-details-general') return 100;
+      if (category === 'issue-details-navigation') return 110;
+      if (category === 'issue-details-actions') return 120;
+      if (category === 'issue-details-events') return 130;
+      if (category === 'issue-details-drawers') return 140;
+      if (category === 'issue-details-workflow') return 150;
+      if (category === 'issues-list') return 200;
+      return 500; // Other contexts in middle
+    };
+
     const sortedCategories = Array.from(grouped.keys()).sort((a, b) => {
-      const aIndex = categoryOrder.indexOf(a);
-      const bIndex = categoryOrder.indexOf(b);
-      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-      if (aIndex !== -1) return -1;
-      if (bIndex !== -1) return 1;
+      const aPriority = getSortPriority(a);
+      const bPriority = getSortPriority(b);
+
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+
+      // Within the same priority group, sort alphabetically
       return a.localeCompare(b);
     });
 
     const result = new Map<string, Shortcut[]>();
     sortedCategories.forEach(category => {
-      result.set(category, grouped.get(category)!);
+      const shortcuts = grouped.get(category)!;
+
+      // Sort shortcuts within each category alphabetically by description
+      const sortedShortcuts = shortcuts.sort((a, b) => {
+        return a.description.localeCompare(b.description);
+      });
+
+      result.set(category, sortedShortcuts);
     });
 
     return result;
@@ -98,8 +143,8 @@ export function ShortcutsHelpDrawer({
     const titles: Record<string, string> = {
       global: t('Global'),
       'issues-list': t('Issues'),
-      'issue-details-navigation': t('Issue Details - Navigation'),
       'issue-details-general': t('Issue Details - General'),
+      'issue-details-navigation': t('Issue Details - Navigation'),
       'issue-details-actions': t('Issue Details - Actions'),
       'issue-details-events': t('Issue Details - Events'),
       'issue-details-drawers': t('Issue Details - Drawers'),

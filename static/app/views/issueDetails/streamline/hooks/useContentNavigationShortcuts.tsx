@@ -31,6 +31,12 @@ export function useContentNavigationShortcuts({
   const location = useLocation();
   const {baseUrl} = useGroupDetailsRoute();
 
+  // Only register shortcuts when on issue details pages
+  const isOnIssueDetailsPage =
+    location.pathname.includes('/issues/') &&
+    (location.pathname.includes('/events/') || location.pathname.endsWith('/'));
+  const shouldRegisterShortcuts = isOnIssueDetailsPage;
+
   const navigateToTab = useCallback(
     (tab: Tab) => {
       // Use the same navigation pattern as the dropdown menu
@@ -96,5 +102,8 @@ export function useContentNavigationShortcuts({
     return availableShortcuts;
   }, [issueTypeConfig, navigateToTab, organization, project]);
 
-  useComponentShortcuts('issue-details-navigation', shortcuts);
+  useComponentShortcuts(
+    'issue-details-tab-navigation',
+    shouldRegisterShortcuts ? shortcuts : []
+  );
 }

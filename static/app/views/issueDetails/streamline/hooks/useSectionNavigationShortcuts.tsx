@@ -1,7 +1,8 @@
 import {useCallback, useMemo} from 'react';
 
 import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
-import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useLocation} from 'sentry/utils/useLocation';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
 const sectionLabels: Partial<Record<SectionKey, string>> = {
@@ -35,33 +36,18 @@ const sectionShortcuts: Partial<Record<SectionKey, string>> = {
   [SectionKey.FEATURE_FLAGS]: 'q f',
 };
 
-// Map SectionKey to hash anchors for direct navigation
-const sectionAnchors: Partial<Record<SectionKey, string>> = {
-  [SectionKey.HIGHLIGHTS]: '#highlights',
-  [SectionKey.STACKTRACE]: '#stacktrace',
-  [SectionKey.EXCEPTION]: '#exception',
-  [SectionKey.THREADS]: '#threads',
-  [SectionKey.REPLAY]: '#replay',
-  [SectionKey.BREADCRUMBS]: '#breadcrumbs',
-  [SectionKey.TRACE]: '#trace',
-  [SectionKey.LOGS]: '#logs',
-  [SectionKey.TAGS]: '#tags',
-  [SectionKey.CONTEXTS]: '#contexts',
-  [SectionKey.USER_FEEDBACK]: '#user-feedback',
-  [SectionKey.FEATURE_FLAGS]: '#feature-flags',
-};
-
 /**
  * Hook for section navigation shortcuts (j/k for next/previous section)
  * Navigates between sections shown in the "Jump to:" area
  */
 export function useSectionNavigationShortcuts() {
-  const {sectionData} = useIssueDetails();
+  const location = useLocation();
 
-  // Get available sections (same logic as EventTitle component)
-  const eventSectionConfigs = useMemo(() => {
-    return Object.values(sectionData ?? {}).filter(config => sectionLabels[config.key]);
-  }, [sectionData]);
+  // Only register shortcuts when on issue details pages
+  const isOnIssueDetailsPage =
+    location.pathname.includes('/issues/') &&
+    (location.pathname.includes('/events/') || location.pathname.endsWith('/'));
+  const shouldRegisterShortcuts = isOnIssueDetailsPage;
 
   const navigateToSection = useCallback((sectionKey: SectionKey) => {
     // Unfold the section if it's collapsed
@@ -78,55 +64,6 @@ export function useSectionNavigationShortcuts() {
     }
   }, []);
 
-  const handleNextSection = useCallback(() => {
-    if (eventSectionConfigs.length === 0) return;
-
-    // Find current section from URL hash
-    const currentHash = window.location.hash;
-    let currentIndex = 0;
-
-    if (currentHash) {
-      const currentSectionIndex = eventSectionConfigs.findIndex(
-        config => sectionAnchors[config.key] === currentHash
-      );
-      if (currentSectionIndex !== -1) {
-        currentIndex = currentSectionIndex;
-      }
-    }
-
-    // Navigate to next section (cycle to first if at end)
-    const nextIndex = (currentIndex + 1) % eventSectionConfigs.length;
-    const nextSection = eventSectionConfigs[nextIndex];
-    if (nextSection) {
-      navigateToSection(nextSection.key);
-    }
-  }, [eventSectionConfigs, navigateToSection]);
-
-  const handlePreviousSection = useCallback(() => {
-    if (eventSectionConfigs.length === 0) return;
-
-    // Find current section from URL hash
-    const currentHash = window.location.hash;
-    let currentIndex = 0;
-
-    if (currentHash) {
-      const currentSectionIndex = eventSectionConfigs.findIndex(
-        config => sectionAnchors[config.key] === currentHash
-      );
-      if (currentSectionIndex !== -1) {
-        currentIndex = currentSectionIndex;
-      }
-    }
-
-    // Navigate to previous section (cycle to last if at beginning)
-    const prevIndex =
-      currentIndex === 0 ? eventSectionConfigs.length - 1 : currentIndex - 1;
-    const prevSection = eventSectionConfigs[prevIndex];
-    if (prevSection) {
-      navigateToSection(prevSection.key);
-    }
-  }, [eventSectionConfigs, navigateToSection]);
-
   // Create handlers for direct section jumps
   const createSectionJumpHandler = useCallback(
     (targetSectionKey: SectionKey) => () => {
@@ -138,21 +75,6 @@ export function useSectionNavigationShortcuts() {
 
   // Generate shortcuts for available sections
   const sectionJumpShortcuts = useMemo(() => {
-    const baseShortcuts = [
-      {
-        id: 'next-section',
-        key: 'j',
-        description: 'Jump to next section',
-        handler: handleNextSection,
-      },
-      {
-        id: 'previous-section',
-        key: 'k',
-        description: 'Jump to previous section',
-        handler: handlePreviousSection,
-      },
-    ];
-
     // Add direct section jump shortcuts for all defined shortcuts
     // This ensures shortcuts work even before sections are rendered
     const directJumpShortcuts = Object.entries(sectionShortcuts)
@@ -164,8 +86,11 @@ export function useSectionNavigationShortcuts() {
         handler: createSectionJumpHandler(sectionKey as SectionKey),
       }));
 
-    return [...baseShortcuts, ...directJumpShortcuts];
-  }, [handleNextSection, handlePreviousSection, createSectionJumpHandler]);
+    return directJumpShortcuts;
+  }, [createSectionJumpHandler]);
 
-  useComponentShortcuts('issue-details-navigation', sectionJumpShortcuts);
+  useComponentShortcuts(
+    'issue-details-section-navigation',
+    shouldRegisterShortcuts ? sectionJumpShortcuts : []
+  );
 }
