@@ -48,7 +48,6 @@ const DEFAULT_LIST_ITEM_CHECKBOX_STATE = {
 
 interface Props extends ComponentProps<typeof SimpleTableInfinite> {
   action: AssertionAction;
-  onPick: (replayId: string) => void;
   projectId: string;
 }
 

@@ -8,9 +8,6 @@ const DEFAULT_TIMEOUT_MS = 5 * 60 * 1_000; // 5 minutes
 
 const AssertionDatabase = {
   persist: () => {
-    if (Storage.getItem('assertions')) {
-      return;
-    }
     Storage.setItem(
       'assertions',
       JSON.stringify({
@@ -490,6 +487,6 @@ const AssertionDatabase = {
   examples: new Set<AssertionsFlowExample>(),
 };
 
-AssertionDatabase.persist();
+AssertionDatabase.restore();
 
 export default AssertionDatabase;

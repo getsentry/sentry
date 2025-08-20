@@ -56,7 +56,6 @@ export default function NewFlowSlideoutPanel({onClose, onSave}: Props) {
 
   const [flow, dispatch] = useReducer(newFlowReducer, defaultNewFlow(selection));
 
-  const hasName = Boolean(flow.name);
   const hasProjectId = Boolean(flow.project_id);
   const hasStartingAction = flow.starting_action.type !== 'null';
 
@@ -172,21 +171,18 @@ export default function NewFlowSlideoutPanel({onClose, onSave}: Props) {
               <AssertionReplayTable
                 action={flow.starting_action}
                 projectId={flow.project_id}
-                onPick={() => {}}
                 style={{width: '100%'}}
               />
             </Flex>
           ) : null}
 
-          <pre>
-            {JSON.stringify({flow, hasName, hasProjectId, hasStartingAction}, null, 2)}
-          </pre>
+          {/* <pre>{JSON.stringify({flow, hasProjectId, hasStartingAction}, null, 2)}</pre> */}
 
           <Flex gap="lg" direction="row">
             <Button
               priority="primary"
               onClick={() => onSave(flow)}
-              disabled={!hasName || !hasProjectId || !hasStartingAction}
+              disabled={!hasProjectId || !hasStartingAction}
             >
               {t('Save')}
             </Button>

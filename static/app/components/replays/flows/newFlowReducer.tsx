@@ -2,7 +2,6 @@ import {uuid4} from '@sentry/core';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {
-  AssertionAction,
   AssertionFlow,
   StartingAssertionAction,
 } from 'sentry/utils/replays/assertions/types';
@@ -44,7 +43,6 @@ export default function newFlowReducer(state: AssertionFlow, action: Action) {
     case 'set_starting_action':
       return {
         ...state,
-        name: state.name || nameFromAction(action.starting_action),
         starting_action: action.starting_action,
       };
     default:
@@ -70,22 +68,4 @@ export function defaultNewFlow(selection: PageFilters): AssertionFlow {
     status: 'success',
     timeout: 5 * 60 * 1000, // 5 minutes
   };
-}
-
-function nameFromAction(action: AssertionAction): string {
-  switch (action.type) {
-    case 'breadcrumb': {
-      if (action.category === 'ui.click') {
-        return `Click ${action.matcher.dom_element.selector}`;
-      }
-      return '';
-    }
-    case 'span':
-      return '';
-    case 'timeout':
-      return `Timeout after ${action.matcher.timeout}ms`;
-    case 'null':
-    default:
-      return '';
-  }
 }

@@ -57,13 +57,15 @@ export default function FlowTable() {
 
   const {data: flows} = useQuery({
     queryKey: ['/flows/all/'],
-    queryFn: () => {
-      return Promise.resolve(Array.from(AssertionDatabase.flows));
-    },
+    queryFn: () => Promise.resolve(Array.from(AssertionDatabase.flows)),
   });
 
   const {mutate: createFlow} = useMutation({
     mutationFn: (value: AssertionFlow) => {
+      if (!value.name) {
+        value.name = nameFromAction(value.starting_action);
+      }
+
       AssertionDatabase.restore();
       AssertionDatabase.flows.add(value);
       AssertionDatabase.persist();
@@ -151,7 +153,7 @@ export default function FlowTable() {
                         onClick={() => {
                           navigate(
                             makeReplaysPathname({
-                              path: `/assertions/details/${row.id}/`,
+                              path: `/flows/details/${row.id}/`,
                               organization,
                             })
                           );
@@ -162,7 +164,7 @@ export default function FlowTable() {
                           <FullRowButton
                             priority="link"
                             to={makeReplaysPathname({
-                              path: `/assertions/details/${row.id}/`,
+                              path: `/flows/details/${row.id}/`,
                               organization,
                             })}
                           >
@@ -339,3 +341,24 @@ const FullRowButton = styled(LinkButton)`
 const PaginationNoMargin = styled(Pagination)`
   margin: 0;
 `;
+
+function nameFromAction(action: AssertionAction): string {
+  switch (action.type) {
+    case 'breadcrumb': {
+      if (action.category === 'ui.click') {
+        return `Click ${action.matcher.dom_element.selector}`;
+      }
+      if (action.category === 'navigation') {
+        return `Navigate to ${action.matcher.url}`;
+      }
+      return '';
+    }
+    case 'span':
+      return '';
+    case 'timeout':
+      return `Timeout after ${action.matcher.timeout}ms`;
+    case 'null':
+    default:
+      return '';
+  }
+}

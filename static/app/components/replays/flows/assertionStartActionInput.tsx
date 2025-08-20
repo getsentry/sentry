@@ -1,16 +1,12 @@
 import {useState} from 'react';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Stack} from 'sentry/components/core/layout/stack';
-import {Text} from 'sentry/components/core/text';
-import ReplaySelectorsListHovercard from 'sentry/components/replays/flows/actions/replaySelectorsListHovercard';
+import ClickInput from 'sentry/components/replays/flows/actions/clickinput';
+import NavigationInput from 'sentry/components/replays/flows/actions/navigationInput';
 import {t, tct} from 'sentry/locale';
-import type {
-  NavigationAction,
-  StartingAssertionAction,
-} from 'sentry/utils/replays/assertions/types';
+import type {StartingAssertionAction} from 'sentry/utils/replays/assertions/types';
 
 interface Props {
   action: StartingAssertionAction;
@@ -66,69 +62,27 @@ export default function AssertionStartActionInput({
       </Flex>
 
       {categoryOrOp === 'ui.click' ? (
-        <ClickInput onChange={onChange} projectId={projectId} disabled={disabled} />
+        <ClickInput
+          onChange={onChange}
+          projectId={projectId}
+          disabled={disabled}
+          initialAction={
+            action.type === 'breadcrumb' && action.category === 'ui.click' ? action : null
+          }
+        />
       ) : null}
 
       {categoryOrOp === 'navigation' ? (
-        <NavigationInput onChange={onChange} disabled={disabled} />
+        <NavigationInput
+          initialAction={
+            action.type === 'breadcrumb' && action.category === 'navigation'
+              ? action
+              : null
+          }
+          onChange={onChange}
+          disabled={disabled}
+        />
       ) : null}
     </Stack>
-  );
-}
-
-function ClickInput({
-  onChange,
-  projectId,
-  disabled,
-}: {
-  disabled: boolean;
-  onChange: (action: StartingAssertionAction) => void;
-  projectId: string;
-}) {
-  const [value, setValue] = useState<string>('');
-  return (
-    <Flex gap="xs" align="center" wrap="nowrap">
-      <Text>{t('that matches')}</Text>
-      <ReplaySelectorsListHovercard
-        onChange={action => {
-          onChange(action);
-          setValue(action.matcher.dom_element.fullSelector);
-        }}
-        projectId={projectId}
-      >
-        <Input
-          value={value}
-          disabled={disabled}
-          size="xs"
-          placeholder={t('Search for an element')}
-        />
-      </ReplaySelectorsListHovercard>
-    </Flex>
-  );
-}
-
-function NavigationInput({
-  disabled,
-  onChange,
-}: {
-  disabled: boolean;
-  onChange: (action: StartingAssertionAction) => void;
-}) {
-  return (
-    <Flex gap="xs" align="center" wrap="nowrap">
-      <Text wrap="nowrap">{t('that matches')}</Text>
-      <Input
-        disabled={disabled}
-        size="xs"
-        placeholder={t('Search for an element')}
-        onChange={e => {
-          onChange({
-            type: 'breadcrumb',
-            category: 'navigation',
-            matcher: {url: e.target.value},
-          } as NavigationAction);
-        }}
-      />
-    </Flex>
   );
 }

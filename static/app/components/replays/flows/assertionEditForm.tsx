@@ -12,12 +12,15 @@ import ReplayActionPicker from 'sentry/components/replays/flows/actions/replayAc
 import AssertionBaseForm from 'sentry/components/replays/flows/assertionBaseForm';
 import AssertionEndActionCreateForm from 'sentry/components/replays/flows/assertionEndActionCreateForm';
 import AssertionReplayPlayer from 'sentry/components/replays/flows/assertionReplayPlayer';
+import AssertionReplayTable from 'sentry/components/replays/flows/assertionReplayTable';
 import AssertionStartActionInput from 'sentry/components/replays/flows/assertionStartActionInput';
 import {SelectedReplayIndexProvider} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {t} from 'sentry/locale';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type {AssertionFlow} from 'sentry/utils/replays/assertions/types';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 interface Props {
@@ -25,31 +28,28 @@ interface Props {
   setAssertion: (assertion: AssertionFlow) => void;
 }
 
-export default function AssertionCreateEditForm({assertion, setAssertion}: Props) {
+export default function AssertionEditForm({assertion, setAssertion}: Props) {
   const {getParamValue: getReplaySlug, setParamValue: setReplaySlug} =
     useUrlParams('replaySlug');
   const replaySlug = getReplaySlug();
 
+  const {selected_replay_id: previewReplayId} = useLocationQuery({
+    fields: {
+      selected_replay_id: decodeScalar,
+    },
+  });
+
   return (
     <PageFiltersContainer>
       <SelectedReplayIndexProvider>
-        {/* <Flex>
-          <Flex gap="xl" wrap="wrap" flex="1">
-            <PageFilterBar condensed>
-              <DatePageFilter resetParamsOnChange={['cursor']} />
-            </PageFilterBar>
-            <ReplaysSearch />
-          </Flex>
-        </Flex> */}
-        <Grid columns="50% 1fr" gap="lg" flex="1">
-          <Flex direction="column" gap="md">
+        <Grid columns="50% 1fr" gap="lg" flex="1" minHeight="0">
+          <Flex direction="column" gap="md" overflow="auto">
             <Flex gap="lg">
               <AssertionBaseForm disabled />
             </Flex>
             <Flex direction="column" gap="md">
               <Text size="lg">
-                <Tag type="info">START</Tag>
-                this flow
+                <Tag type="info">START</Tag>this flow
               </Text>
               <Flex align="start" gap="md" flex="1" padding="0 0 0 3xl">
                 <AssertionStartActionInput
@@ -71,7 +71,7 @@ export default function AssertionCreateEditForm({assertion, setAssertion}: Props
                 {i === 0 ? null : <Tag type="info">OR</Tag>}
                 <AssertionEndActionCreateForm
                   action={endingAction}
-                  onActionSubmit={action => {
+                  onChange={action => {
                     if (!action) {
                       const newList = [...assertion.ending_actions];
                       newList.splice(i, 1);
@@ -119,22 +119,32 @@ export default function AssertionCreateEditForm({assertion, setAssertion}: Props
             >
               {t('Add Ending Action')}
             </Button>
+
+            <Flex direction="column" gap="md" padding="lg" border="danger" radius="lg">
+              <Text size="md" bold variant="danger">
+                {t('These replays are unaccounted for!')}
+              </Text>
+              <Flex height="480px">
+                <AssertionReplayTable
+                  action={{
+                    type: 'null',
+                    matcher: null,
+                  }}
+                  projectId={assertion.project_id}
+                  style={{width: '100%'}}
+                />
+              </Flex>
+            </Flex>
           </Flex>
 
-          {/* <AssertionReplayTable
-            environment={assertion.environment}
-            onPick={setReplaySlug}
-            projectId={assertion.project_id}
-          /> */}
-          {/* <AssertionClicksTable
-            environment={assertion.environment}
-            onSelect={setReplaySlug}
-            projectId={assertion.project_id}
-          /> */}
           {replaySlug ? (
             <AssertionReplayPlayer replaySlug={replaySlug} />
           ) : (
-            <StyledNegativeSpaceContainer />
+            <StyledNegativeSpaceContainer>
+              {previewReplayId ? (
+                <AssertionReplayPlayer replaySlug={previewReplayId} />
+              ) : null}
+            </StyledNegativeSpaceContainer>
           )}
         </Grid>
       </SelectedReplayIndexProvider>

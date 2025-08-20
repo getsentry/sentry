@@ -3,17 +3,22 @@ import {useState, type ReactNode} from 'react';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout/flex';
-import ReplaySelectorsListHovercard from 'sentry/components/replays/flows/actions/replaySelectorsListHovercard';
+import ClickInput from 'sentry/components/replays/flows/actions/clickinput';
+import NavigationInput from 'sentry/components/replays/flows/actions/navigationInput';
 import AssertionReplayTable from 'sentry/components/replays/flows/assertionReplayTable';
-import {formatSelectorAsCode} from 'sentry/components/replays/flows/selectorCodeFormatter';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import type {EndingAssertionAction} from 'sentry/utils/replays/assertions/types';
+import type {
+  EndingAssertionAction,
+  NavigationAction,
+  UIClickAction,
+} from 'sentry/utils/replays/assertions/types';
 
 interface Props {
   action: EndingAssertionAction;
   children: ReactNode;
-  onActionSubmit: (action?: EndingAssertionAction) => void;
+  onChange: (action?: EndingAssertionAction) => void;
   projectId: string;
 }
 
@@ -39,14 +44,13 @@ function getCategoryOrOp(action: EndingAssertionAction): string {
 }
 
 export default function AssertionEndActionCreateForm({
-  action: initialAction,
-  children,
-  onActionSubmit,
+  action,
+  onChange,
   projectId,
 }: Props) {
-  const [categoryOrOp, setCategoryOrOp] = useState<string>(() =>
-    getCategoryOrOp(initialAction)
-  );
+  const [categoryOrOp, setCategoryOrOp] = useState<string>(() => getCategoryOrOp(action));
+
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const typeSelect = (
     <CompactSelect<string>
@@ -60,8 +64,8 @@ export default function AssertionEndActionCreateForm({
   );
 
   return (
-    <Flex border="primary" padding="md" gap="md" justify="between">
-      <Flex direction="column" gap="md" flex="1">
+    <Flex border="primary" padding="md" gap="md" justify="between" direction="column">
+      <Flex direction="row" gap="md" flex="1" justify="between">
         {categoryOrOp === 'ui.click' ? null : (
           <Flex gap="xs" align="center" wrap="nowrap">
             {tct('if a [typeSelect] happens', {typeSelect})}
@@ -69,47 +73,47 @@ export default function AssertionEndActionCreateForm({
         )}
 
         {categoryOrOp === 'ui.click' ? (
-          <Flex gap="xs" align="start" direction="column">
-            {tct('if a [typeSelect] happens on a [clickSelect]', {
-              typeSelect,
-              br: <br />,
-              clickSelect: (
-                <ReplaySelectorsListHovercard
-                  disabled={false}
-                  onChange={selected => {
-                    onActionSubmit(selected);
-                  }}
-                  projectId={projectId}
-                >
-                  {initialAction.type === 'breadcrumb' &&
-                  initialAction.category === 'ui.click' ? (
-                    formatSelectorAsCode(initialAction.matcher.dom_element)
-                  ) : (
-                    <span>-Pick something-</span>
-                  )}
-                </ReplaySelectorsListHovercard>
-              ),
-            })}
-            {children}
-          </Flex>
+          <ClickInput
+            onChange={onChange}
+            projectId={projectId}
+            disabled={false}
+            initialAction={action as UIClickAction}
+          />
         ) : null}
 
-        <Flex height="480px" width="100%">
-          <AssertionReplayTable
-            action={initialAction}
-            projectId={projectId}
-            onPick={() => {}}
-            style={{width: '100%'}}
+        {categoryOrOp === 'navigation' ? (
+          <NavigationInput
+            initialAction={action as NavigationAction}
+            onChange={onChange}
+            disabled={false}
+          />
+        ) : null}
+
+        <Flex gap="md">
+          <Button
+            aria-label="Remove"
+            icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
+            size="xs"
+            onClick={() => setIsExpanded(!isExpanded)}
+          />
+          <Button
+            aria-label="Remove"
+            icon={<IconClose />}
+            size="xs"
+            onClick={() => onChange()}
           />
         </Flex>
       </Flex>
 
-      <Button
-        aria-label="Remove"
-        icon={<IconClose />}
-        size="xs"
-        onClick={() => onActionSubmit()}
-      />
+      {isExpanded ? (
+        <Flex height="480px" width="100%">
+          <AssertionReplayTable
+            action={action}
+            projectId={projectId}
+            style={{width: '100%'}}
+          />
+        </Flex>
+      ) : null}
     </Flex>
   );
 }

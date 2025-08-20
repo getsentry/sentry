@@ -7,7 +7,7 @@ import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import AssertionCreateEditForm from 'sentry/components/replays/flows/assertionCreateEditForm';
+import AssertionEditForm from 'sentry/components/replays/flows/assertionEditForm';
 import useAssertionPageCrumbs from 'sentry/components/replays/flows/assertionPageCrumbs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -73,7 +73,7 @@ export default function ReplayAssertionDetails() {
               <Breadcrumbs crumbs={crumbs} style={{padding: 0}} />
               <Flex gap="lg" align="center">
                 <Layout.Title style={{width: 'auto'}}>
-                  {assertion ? t('Flow: %s', assertion.name) : t('Flow')}
+                  {assertion ? assertion.name : t('Loading...')}
                   <PageHeadingQuestionTooltip
                     title={t('Assert that users are doing what you expect them to do.')}
                     docsUrl="https://docs.sentry.io/product/session-replay/"
@@ -94,19 +94,15 @@ export default function ReplayAssertionDetails() {
             direction="column"
             flex="1"
             gap="lg"
-            height="100%"
-            minHeight="0"
             padding="lg 3xl"
+            minHeight="0"
           >
             {isPending ? (
               <LoadingIndicator />
             ) : error ? (
               <NotFound />
             ) : assertion ? (
-              <AssertionCreateEditForm
-                assertion={assertion}
-                setAssertion={updateAssertion}
-              />
+              <AssertionEditForm assertion={assertion} setAssertion={updateAssertion} />
             ) : (
               <NotFound />
             )}
