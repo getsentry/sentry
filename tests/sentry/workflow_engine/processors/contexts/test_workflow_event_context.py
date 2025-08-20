@@ -12,7 +12,7 @@ class WorkflowEventContextTestCase(TestCase):
         super().setUp()
         self.ctx_token: Token[WorkflowEventContextData] | None = None
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         if self.ctx_token:
             WorkflowEventContext.reset(self.ctx_token)
             self.ctx_token = None
