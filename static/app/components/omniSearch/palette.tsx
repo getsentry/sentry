@@ -16,14 +16,12 @@ import error from 'sentry-images/spot/cmd-k-error.svg';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
-import SeeryCharacter, {
-  type SeeryCharacterRef,
-} from 'sentry/components/omniSearch/animation/seeryCharacter';
+import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
+import type {SeeryCharacterRef} from 'sentry/components/omniSearch/animation/seeryCharacter';
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconArrow} from 'sentry/icons/iconArrow';
-import {IconSeer} from 'sentry/icons/iconSeer';
+import {IconBot} from 'sentry/icons/iconBot';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
-import {space} from 'sentry/styles/space';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useSeenIssues} from 'sentry/utils/seenIssuesStorage';
@@ -45,6 +43,14 @@ import {useFormDynamicActions} from './useFormDynamicActions';
 import {useOmniSearchState} from './useOmniSearchState';
 import {useOrganizationsDynamicActions} from './useOrganizationsDynamicActions';
 import {useRouteDynamicActions} from './useRouteDynamicActions';
+
+type TranslateResponse = {
+  environments: string[];
+  query: string;
+  route: 'issues';
+  sort: string;
+  statsPeriod: string;
+};
 
 /**
  * Recursively flattens an array of actions, including all their children
@@ -92,6 +98,9 @@ interface OmniSearchPaletteProps {
 
 export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
+  const {projects} = useProjects();
+  const memberProjects = projects.filter(p => p.isMember);
   const {
     focusedArea,
     actions: availableActions,
@@ -131,6 +140,149 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const routeActions = useRouteDynamicActions();
   const orgActions = useOrganizationsDynamicActions();
   const commandActions = useCommandDynamicActions();
+
+  // Store the current query in a ref so we can access it in the callback
+  const currentQueryRef = useRef<string>('');
+  currentQueryRef.current = debouncedQuery;
+
+  // Create Ask Seer action with dynamic label
+  const askSeerAction = useMemo<OmniAction>(() => {
+    // Create base action without label dependency
+    const baseAction: OmniAction = {
+      key: 'ask-seer',
+      label: '',
+      areaKey: 'navigate',
+      actionIcon: <IconBot />,
+      section: '', // Empty section so it appears at the top
+      keepOpen: true,
+      onAction: async () => {
+        const queryToSearch = currentQueryRef.current;
+        if (!queryToSearch) {
+          return;
+        }
+
+        try {
+          const url =
+            process.env.NODE_ENV === 'development'
+              ? 'http://localhost:5000/ask-seer'
+              : 'https://cmdkllm-12459da2e71a.herokuapp.com/ask-seer';
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              query: queryToSearch,
+            }),
+          });
+          const data: {route: 'traces' | 'issues' | 'other'} = await res.json();
+
+          if (data.route === 'traces') {
+            try {
+              const selectedProjects =
+                pageFilters.selection.projects?.length > 0 &&
+                pageFilters.selection.projects?.[0] !== -1
+                  ? pageFilters.selection.projects
+                  : memberProjects.map(p => p.id);
+
+              const response: any = await fetchMutation({
+                url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
+                method: 'POST',
+                data: {
+                  natural_language_query: queryToSearch,
+                  project_ids: selectedProjects,
+                  limit: 1,
+                },
+              });
+
+              if (response.queries && response.queries.length > 0) {
+                const result = response.queries[0];
+                const startFilter = pageFilters.selection.datetime.start?.valueOf();
+                const start = startFilter
+                  ? new Date(startFilter).toISOString()
+                  : pageFilters.selection.datetime.start;
+
+                const endFilter = pageFilters.selection.datetime.end?.valueOf();
+                const end = endFilter
+                  ? new Date(endFilter).toISOString()
+                  : pageFilters.selection.datetime.end;
+
+                const selection = {
+                  ...pageFilters.selection,
+                  datetime: {
+                    start,
+                    end,
+                    utc: pageFilters.selection.datetime.utc,
+                    period: result.stats_period || pageFilters.selection.datetime.period,
+                  },
+                };
+
+                const mode =
+                  result.group_by.length > 0
+                    ? Mode.AGGREGATE
+                    : result.mode === 'aggregates'
+                      ? Mode.AGGREGATE
+                      : Mode.SAMPLES;
+
+                const visualize =
+                  result.visualization?.map((v: any) => ({
+                    chartType: v?.chart_type,
+                    yAxes: v?.y_axes,
+                  })) ?? [];
+
+                const exploreUrl = getExploreUrl({
+                  organization,
+                  selection,
+                  query: result.query,
+                  visualize,
+                  groupBy: result.group_by ?? [],
+                  sort: result.sort,
+                  mode,
+                });
+
+                closeModal();
+                navigate(exploreUrl);
+              }
+            } catch (_error) {
+              // Fallback to basic explore page if AI query fails
+              const exploreUrl = getExploreUrl({
+                organization,
+                selection: pageFilters.selection,
+                query: queryToSearch,
+                visualize: [],
+                groupBy: [],
+                sort: '',
+                mode: Mode.SAMPLES,
+              });
+              closeModal();
+              navigate(exploreUrl);
+            }
+          } else if (data.route === 'issues') {
+            const response = data as TranslateResponse;
+            const environmentsParam =
+              response.environments && response.environments.length > 0
+                ? `&environments=${response.environments.join(',')}`
+                : '';
+            closeModal();
+            navigate(
+              `/organizations/${organization.slug}/issues?query=${response.query}&statsPeriod=${response.statsPeriod}&sort=${response.sort}${environmentsParam}`
+            );
+          } else {
+            closeModal();
+          }
+        } catch (err) {
+          closeModal();
+          // Failed to query Seer
+        }
+      },
+    };
+
+    // Return action with dynamic label
+    return {
+      ...baseAction,
+      label: debouncedQuery ? `Ask Seer: "${debouncedQuery}"` : 'Ask Seer',
+    };
+  }, [organization, pageFilters, memberProjects, navigate, debouncedQuery]);
 
   // Combine all dynamic actions (excluding recent issues for now)
   const dynamicActions = useMemo(
@@ -231,9 +383,14 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     }
 
     // Filter actions based on query
-    const actions = debouncedQuery
+    let actions = debouncedQuery
       ? [...filteredAvailableActions, ...filteredRecentIssues]
       : [...filteredRecentIssues, ...availableActions];
+
+    // Add Ask Seer action at the top if there's a query
+    if (debouncedQuery) {
+      actions = [askSeerAction, ...actions];
+    }
 
     // Group by section label
     const bySection = new Map<string, OmniAction[]>();
@@ -257,6 +414,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     filteredAvailableActions,
     filteredRecentIssues,
     selectedAction,
+    askSeerAction,
   ]);
 
   // Get the first item's key to set as the default selected value
@@ -389,145 +547,9 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
           )}
         </CommandPrimitive.Command.List>
       </StyledCommand>
-      {debouncedQuery.length > 0 && <AskSeerButton query={debouncedQuery} />}
     </Fragment>
   );
 }
-
-function AskSeerButton({query}: {query: string}) {
-  const organization = useOrganization();
-  const pageFilters = usePageFilters();
-  const {projects} = useProjects();
-  const memberProjects = projects.filter(p => p.isMember);
-  const navigate = useNavigate();
-
-  return (
-    <AskSeerContainer
-      onClick={async () => {
-        const url =
-          process.env.NODE_ENV === 'development'
-            ? 'http://localhost:5000/ask-seer'
-            : 'https://cmdkllm-12459da2e71a.herokuapp.com/ask-seer';
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            query,
-          }),
-        });
-        const data: {route: 'traces' | 'issues' | 'other'} = await res.json();
-
-        if (data.route === 'traces') {
-          try {
-            const selectedProjects =
-              pageFilters.selection.projects?.length > 0 &&
-              pageFilters.selection.projects?.[0] !== -1
-                ? pageFilters.selection.projects
-                : memberProjects.map(p => p.id);
-
-            const response = await fetchMutation({
-              url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
-              method: 'POST',
-              data: {
-                natural_language_query: query,
-                project_ids: selectedProjects,
-                limit: 1,
-              },
-            });
-
-            if (response.queries && response.queries.length > 0) {
-              const result = response.queries[0];
-              const startFilter = pageFilters.selection.datetime.start?.valueOf();
-              const start = startFilter
-                ? new Date(startFilter).toISOString()
-                : pageFilters.selection.datetime.start;
-
-              const endFilter = pageFilters.selection.datetime.end?.valueOf();
-              const end = endFilter
-                ? new Date(endFilter).toISOString()
-                : pageFilters.selection.datetime.end;
-
-              const selection = {
-                ...pageFilters.selection,
-                datetime: {
-                  start,
-                  end,
-                  utc: pageFilters.selection.datetime.utc,
-                  period: result.stats_period || pageFilters.selection.datetime.period,
-                },
-              };
-
-              const mode =
-                result.group_by.length > 0
-                  ? Mode.AGGREGATE
-                  : result.mode === 'aggregates'
-                    ? Mode.AGGREGATE
-                    : Mode.SAMPLES;
-
-              const visualize =
-                result.visualization?.map((v: any) => ({
-                  chartType: v?.chart_type,
-                  yAxes: v?.y_axes,
-                })) ?? [];
-
-              const exploreUrl = getExploreUrl({
-                organization,
-                selection,
-                query: result.query,
-                visualize,
-                groupBy: result.group_by ?? [],
-                sort: result.sort,
-                mode,
-              });
-
-              navigate(exploreUrl);
-            }
-          } catch (err) {
-            // Fallback to basic explore page if AI query fails
-            const exploreUrl = getExploreUrl({
-              organization,
-              selection: pageFilters.selection,
-              query,
-              visualize: [],
-              groupBy: [],
-              sort: '',
-              mode: Mode.SAMPLES,
-            });
-            navigate(exploreUrl);
-          }
-        } else if (data.route === 'issues') {
-          const response: TranslateResponse = data as TranslateResponse;
-          const environmentsParam =
-            response.environments && response.environments.length > 0
-              ? `&environments=${response.environments.join(',')}`
-              : '';
-          navigate(
-            `/organizations/${organization.slug}/issues?query=${response.query}&statsPeriod=${response.statsPeriod}&sort=${response.sort}${environmentsParam}`
-          );
-        } else {
-          // error state
-        }
-      }}
-    >
-      <SeerIconWrapper>
-        <IconSeer size="xs" />
-      </SeerIconWrapper>
-      <AskSeerText>
-        <AskSeerTitle>Ask Seer</AskSeerTitle>
-      </AskSeerText>
-    </AskSeerContainer>
-  );
-}
-
-type TranslateResponse = {
-  environments: string[];
-  query: string;
-  route: 'issues';
-  sort: string;
-  statsPeriod: string;
-};
 
 const Header = styled('div')`
   position: relative;
@@ -717,59 +739,4 @@ const ItemDetails = styled('div')`
 
 const OverflowHidden = styled('div')`
   overflow: hidden;
-`;
-
-const AskSeerContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  padding: ${space(0.75)} ${space(2)};
-  background: linear-gradient(135deg, #6c5fc7 0%, #5849a6 100%);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 0 0 6px 6px;
-  margin-top: -6px; /* Overlap to attach seamlessly to the command palette */
-  position: relative;
-  z-index: 10;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.15),
-    0 2px 4px rgba(0, 0, 0, 0.1);
-
-  &:hover {
-    background: linear-gradient(135deg, #5849a6 0%, #6c5fc7 100%);
-    box-shadow:
-      0 6px 16px rgba(0, 0, 0, 0.2),
-      0 2px 6px rgba(0, 0, 0, 0.12);
-  }
-
-  &:active {
-    transform: translateY(1px);
-    box-shadow:
-      0 3px 10px rgba(0, 0, 0, 0.15),
-      0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const SeerIconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 50%;
-  color: rgba(255, 255, 255, 0.95);
-  flex-shrink: 0;
-`;
-
-const AskSeerText = styled('div')`
-  flex: 1;
-  min-width: 0;
-`;
-
-const AskSeerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
-  line-height: 1.2;
 `;
