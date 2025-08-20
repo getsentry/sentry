@@ -16,7 +16,7 @@ from sentry.users.services.user.service import user_service
 
 
 @control_silo_endpoint
-class UserAvatarEndpoint(AvatarMixin[UserAvatar, User], UserEndpoint):
+class UserAvatarEndpoint(AvatarMixin[UserAvatar], UserEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
