@@ -58,6 +58,7 @@ function App({children, params}: Props) {
   const api = useApi();
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
+
   const {visible: isModalOpen} = useGlobalModal();
   const preloadData = shouldPreloadData(config);
 

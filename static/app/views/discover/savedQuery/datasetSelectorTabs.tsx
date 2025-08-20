@@ -12,6 +12,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {FieldKey, SpanOpBreakdown} from 'sentry/utils/fields';
+import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts/hooks/useComponentShortcuts';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -143,32 +144,53 @@ export function DatasetSelectorTabs(props: Props) {
     });
   }
 
+  // Function to handle dataset switching
+  const handleDatasetChange = (newValue: string) => {
+    const {to: nextEventView, modifiedQuery} = getValidEventViewForDataset(
+      eventView.withDataset(
+        getDatasetFromLocationOrSavedQueryDataset(undefined, newValue)
+      ),
+      newValue === SavedQueryDatasets.ERRORS
+        ? DiscoverDatasets.ERRORS
+        : DiscoverDatasets.TRANSACTIONS
+    );
+    const nextLocation = nextEventView.getResultsViewUrlTarget(organization, isHomepage);
+    navigate({
+      ...location,
+      query: {
+        ...nextLocation.query,
+        [DATASET_PARAM]: newValue,
+        incompatible: modifiedQuery ? modifiedQuery : undefined,
+      },
+    });
+  };
+
+  // Register keyboard shortcuts for tab switching
+  useComponentShortcuts('dataset-selector-tabs', [
+    {
+      id: 'switch-to-errors',
+      key: 't e',
+      description: 'Switch to Errors tab',
+      handler: () => {
+        if (!deprecatingTransactionsDataset) {
+          handleDatasetChange(SavedQueryDatasets.ERRORS);
+        }
+      },
+    },
+    {
+      id: 'switch-to-transactions',
+      key: 't t',
+      description: 'Switch to Transactions tab',
+      handler: () => {
+        if (!deprecatingTransactionsDataset) {
+          handleDatasetChange(SavedQueryDatasets.TRANSACTIONS);
+        }
+      },
+    },
+  ]);
+
   return (
-    <Layout.HeaderTabs
-      value={value}
-      onChange={newValue => {
-        const {to: nextEventView, modifiedQuery} = getValidEventViewForDataset(
-          eventView.withDataset(
-            getDatasetFromLocationOrSavedQueryDataset(undefined, newValue)
-          ),
-          newValue === SavedQueryDatasets.ERRORS
-            ? DiscoverDatasets.ERRORS
-            : DiscoverDatasets.TRANSACTIONS
-        );
-        const nextLocation = nextEventView.getResultsViewUrlTarget(
-          organization,
-          isHomepage
-        );
-        navigate({
-          ...location,
-          query: {
-            ...nextLocation.query,
-            [DATASET_PARAM]: newValue,
-            incompatible: modifiedQuery ? modifiedQuery : undefined,
-          },
-        });
-      }}
-    >
+    <Layout.HeaderTabs value={value} onChange={handleDatasetChange}>
       <TabList hideBorder>
         {options.map(option => (
           <TabList.Item

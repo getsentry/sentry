@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
@@ -13,6 +13,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import IssueListActions from 'sentry/views/issueList/actions';
 import GroupListBody from 'sentry/views/issueList/groupListBody';
+import {IssueListKeyboardNavigation} from 'sentry/views/issueList/keyboardNavigation';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -62,6 +63,29 @@ function IssueListTable({
 }: IssueListTableProps) {
   const location = useLocation();
 
+  // Handlers for opening dropdown menus via keyboard shortcuts
+  const handleOpenResolveDropdown = useCallback(() => {
+    console.log('handle open resolve');
+    // Find the resolve dropdown trigger button and click it
+    const resolveDropdownTrigger = document.querySelector(
+      '[aria-label="More resolve options"]'
+    );
+    if (resolveDropdownTrigger instanceof HTMLElement) {
+      resolveDropdownTrigger.click();
+    }
+  }, []);
+
+  const handleOpenArchiveDropdown = useCallback(() => {
+    console.log('handle open archive');
+    // Find the archive dropdown trigger button and click it
+    const archiveDropdownTrigger = document.querySelector(
+      '[aria-label="Archive options"]'
+    );
+    if (archiveDropdownTrigger instanceof HTMLElement) {
+      archiveDropdownTrigger.click();
+    }
+  }, []);
+
   const isNewViewEmptyStateActive =
     location.query.new === 'true' &&
     !issuesLoading &&
@@ -103,18 +127,26 @@ function IssueListTable({
               id="IssueList-Body"
               isLoading={issuesLoading}
             >
-              <GroupListBody
-                memberList={memberList}
-                groupStatsPeriod={statsPeriod}
+              <IssueListKeyboardNavigation
                 groupIds={groupIds}
-                displayReprocessingLayout={displayReprocessingActions}
                 query={query}
-                selectedProjectIds={selection.projects}
-                loading={issuesLoading}
-                error={error}
-                refetchGroups={refetchGroups}
                 onActionTaken={onActionTaken}
-              />
+                onOpenResolveDropdown={handleOpenResolveDropdown}
+                onOpenArchiveDropdown={handleOpenArchiveDropdown}
+              >
+                <GroupListBody
+                  memberList={memberList}
+                  groupStatsPeriod={statsPeriod}
+                  groupIds={groupIds}
+                  displayReprocessingLayout={displayReprocessingActions}
+                  query={query}
+                  selectedProjectIds={selection.projects}
+                  loading={issuesLoading}
+                  error={error}
+                  refetchGroups={refetchGroups}
+                  onActionTaken={onActionTaken}
+                />
+              </IssueListKeyboardNavigation>
             </VisuallyCompleteWithData>
           </PanelBody>
         </ContainerPanel>

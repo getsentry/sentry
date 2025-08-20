@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -16,6 +16,7 @@ import type {Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts/hooks/useComponentShortcuts';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,6 +30,7 @@ import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
   useEventQuery,
+  type EventSearchRef,
 } from 'sentry/views/issueDetails/streamline/eventSearch';
 import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
 import IssueTagsPreview from 'sentry/views/issueDetails/streamline/issueTagsPreview';
@@ -50,6 +52,7 @@ interface EventDetailsHeaderProps {
 }
 
 export function EventDetailsHeader({group, event, project}: EventDetailsHeaderProps) {
+  const eventSearchRef = useRef<EventSearchRef>(null);
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -87,8 +90,30 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     }
   }, [event, organization, project, dispatch]);
 
+  // Only register shortcuts when on issue details pages
+  const isOnIssueDetailsPage =
+    location.pathname.includes('/issues/') &&
+    (location.pathname.includes('/events/') || location.pathname.endsWith('/'));
+
+  // Register keyboard shortcut to focus the filter events input
+  useComponentShortcuts(
+    'issue-details-search',
+    isOnIssueDetailsPage
+      ? [
+          {
+            id: 'focus-filter-events',
+            key: '/',
+            description: 'Focus Filter events input',
+            handler: () => {
+              eventSearchRef.current?.focus();
+            },
+          },
+        ]
+      : []
+  );
+
   const searchText = t(
-    'Filter %s\u2026',
+    'Filter %s\u2026 (/)',
     issueTypeConfig.customCopy.eventUnits.toLocaleLowerCase()
   );
 
@@ -174,6 +199,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                   />
                 </FilterBar>
                 <EventSearch
+                  ref={eventSearchRef}
                   group={group}
                   handleSearch={query => {
                     navigate(

@@ -31,6 +31,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts/hooks/useComponentShortcuts';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -135,6 +136,22 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
     },
     [dispatchDataState, location, organization]
   );
+
+  // Register keyboard shortcuts for tab switching
+  useComponentShortcuts('profiling-tabs', [
+    {
+      id: 'switch-to-transactions',
+      key: 't t',
+      description: 'Switch to Transactions tab',
+      handler: () => onTabChange('transactions'),
+    },
+    {
+      id: 'switch-to-flamegraph',
+      key: 't g',
+      description: 'Switch to Aggregate Flamegraph tab',
+      handler: () => onTabChange('flamegraph'),
+    },
+  ]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>

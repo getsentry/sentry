@@ -5,6 +5,11 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Search} from 'sentry/components/search';
+import ApiSource from 'sentry/components/search/sources/apiSource';
+import CommandSource from 'sentry/components/search/sources/commandSource';
+import FormSource from 'sentry/components/search/sources/formSource';
+import OrganizationsSource from 'sentry/components/search/sources/organizationsSource';
+import RouteSource from 'sentry/components/search/sources/routeSource';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -26,6 +31,13 @@ function CommandPalette({Body}: ModalRenderProps) {
           <Search
             entryPoint="command_palette"
             minSearch={1}
+            sources={[
+              ApiSource,
+              FormSource,
+              RouteSource,
+              OrganizationsSource,
+              CommandSource,
+            ]}
             dropdownClassName={injectedCss`
                 width: 100%;
                 border: transparent;

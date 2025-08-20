@@ -63,6 +63,7 @@ import {
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
+import {useCopyShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useCopyShortcuts';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
@@ -666,6 +667,9 @@ function GroupDetailsContent({
   });
 
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  // Register copy shortcuts for issue details
+  useCopyShortcuts({group, event: event || undefined});
 
   useEffect(() => {
     if (isDrawerOpen) {
