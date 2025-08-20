@@ -173,6 +173,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
         }
 
         setSeerCallLoading(true);
+        setIsSearchingSeer(true);
 
         try {
           const url =
@@ -272,9 +273,10 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
             }
           } else if (data.route === 'issues') {
             const response = data as TranslateResponse;
+            const environmentsStripped = response.environments.filter(e => e !== '');
             const environmentsParam =
-              response.environments && response.environments.length > 0
-                ? `&environments=${response.environments.join(',')}`
+              environmentsStripped && environmentsStripped.length > 0
+                ? `&environments=${environmentsStripped.join(',')}`
                 : '';
             closeModal();
             navigate(
@@ -297,7 +299,14 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
       ...baseAction,
       label: debouncedQuery ? `Ask Seer: "${debouncedQuery}"` : 'Ask Seer',
     };
-  }, [organization, pageFilters, memberProjects, navigate, debouncedQuery]);
+  }, [
+    organization,
+    pageFilters,
+    memberProjects,
+    navigate,
+    debouncedQuery,
+    setIsSearchingSeer,
+  ]);
 
   // Combine all dynamic actions (excluding recent issues for now)
   const dynamicActions = useMemo(
@@ -564,7 +573,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                   clearSelection();
                   e.preventDefault();
                   triggerSeeryImpatient();
-                  setIsSearchingSeer(true);
                 }
               }}
               placeholder={placeholder}
