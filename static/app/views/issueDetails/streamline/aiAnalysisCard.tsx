@@ -19,6 +19,7 @@ import {
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import GroupChart from 'sentry/components/stream/groupChart';
 import {
   IconChat,
   IconChevron,
@@ -29,21 +30,153 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Actor} from 'sentry/types/core';
+import type {Actor, TimeseriesValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {GroupStatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import useApi from 'sentry/utils/useApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
+import {useIssueDetailsDiscoverQuery} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
+
+function ChartsSection({group}: {group: Group}) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const config = getConfigForIssueType(group, group.project);
+
+  // Create EventView for 24 hours
+  const eventView24h = useMemo(() => {
+    const view = EventView.fromSavedQuery({
+      statsPeriod: '24h',
+      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : DiscoverDatasets.ERRORS,
+      version: 2,
+      projects: [Number(group.project.id)],
+      yAxis: ['count()'],
+      fields: ['title', 'timestamp'],
+      name: `${group.title || group.type} - 24h`,
+      query: `issue:${group.shortId}`,
+      interval: '1h',
+    });
+    // Override location-based filters to ensure we get 24h data
+    view.statsPeriod = '24h';
+    view.start = undefined;
+    view.end = undefined;
+    return view;
+  }, [group.shortId, group.title, group.type, group.project.id, config.usesIssuePlatform]);
+
+  // Create EventView for 30 days  
+  const eventView30d = useMemo(() => {
+    const view = EventView.fromSavedQuery({
+      statsPeriod: '30d',
+      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : DiscoverDatasets.ERRORS,
+      version: 2,
+      projects: [Number(group.project.id)],
+      yAxis: ['count()'],
+      fields: ['title', 'timestamp'],
+      name: `${group.title || group.type} - 30d`,
+      query: `issue:${group.shortId}`,
+      interval: '1d',
+    });
+    // Override location-based filters to ensure we get 30d data
+    view.statsPeriod = '30d';
+    view.start = undefined;
+    view.end = undefined;
+    return view;
+  }, [group.shortId, group.title, group.type, group.project.id, config.usesIssuePlatform]);
+
+  const {data: stats24h, isPending: loading24h, error: error24h} = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
+    params: {
+      route: 'events-stats',
+      eventView: eventView24h,
+      referrer: 'issue_details.charts_24h',
+    },
+  });
+
+  const {data: stats30d, isPending: loading30d, error: error30d} = useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
+    params: {
+      route: 'events-stats',
+      eventView: eventView30d,
+      referrer: 'issue_details.charts_30d',
+    },
+  });
+
+  // Debug logging
+  console.log('Charts Debug:', {
+    stats24h,
+    stats30d,
+    loading24h,
+    loading30d,
+    error24h,
+    error30d,
+    eventView24h: eventView24h.getEventsAPIPayload(location),
+    eventView30d: eventView30d.getEventsAPIPayload(location),
+  });
+
+  // Convert data to TimeseriesValue[] format
+  const convert24hStats: TimeseriesValue[] = stats24h?.data?.map(([timestamp, countData]) => [
+    timestamp,
+    countData?.[0]?.count ?? 0
+  ]) || [];
+  
+  const convert30dStats: TimeseriesValue[] = stats30d?.data?.map(([timestamp, countData]) => [
+    timestamp, 
+    countData?.[0]?.count ?? 0
+  ]) || [];
+
+  console.log('Converted stats:', { convert24hStats, convert30dStats });
+
+  return (
+    <>
+      <ChartsSpacer />
+      <ChartsWrapper>
+        <ChartsLabel>{t('Event Stats')}</ChartsLabel>
+      <ChartsContent>
+        <ChartContainer>
+          <ChartTitle>{t('Last 24 Hours')}</ChartTitle>
+          {loading24h ? (
+            <div style={{height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+              Loading...
+            </div>
+          ) : error24h ? (
+            <div style={{height: 32, display: 'flex', alignItems: 'center', color: 'red'}}>
+              Error loading data
+            </div>
+          ) : (
+            <GroupChart stats={convert24hStats} height={32} />
+          )}
+        </ChartContainer>
+        <ChartContainer>
+          <ChartTitle>{t('Last 30 Days')}</ChartTitle>
+          {loading30d ? (
+            <div style={{height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+              Loading...
+            </div>
+          ) : error30d ? (
+            <div style={{height: 32, display: 'flex', alignItems: 'center', color: 'red'}}>
+              Error loading data
+            </div>
+          ) : (
+            <GroupChart stats={convert30dStats} height={32} />
+          )}
+        </ChartContainer>
+      </ChartsContent>
+      </ChartsWrapper>
+    </>
+  );
+}
 
 interface AIAnalysisCardProps {
   event: Event | null;
@@ -830,7 +963,6 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             )}
 
             <StatusSection>
-              <StatusLabel>{t('Status:')}</StatusLabel>
               <StatusDisplay
                 onMouseEnter={() => setShowStatusDropdown(true)}
                 onMouseLeave={() => setShowStatusDropdown(false)}
@@ -854,7 +986,6 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             </StatusSection>
 
             <StatusSection>
-              <StatusLabel>{t('Assigned:')}</StatusLabel>
               <StatusDisplay
                 onMouseEnter={() => setShowAssigneeDropdown(true)}
                 onMouseLeave={() => setShowAssigneeDropdown(false)}
@@ -939,10 +1070,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
             />
 
             <ActionItemsSection similarIssuesCount={similarIssuesCount} />
+
+            <ChartsSection group={group} />
             
             {isAIMode && (
               <ExitAIModeLink onClick={toggleAIMode}>
-                {t('Exit AI Mode')}
+                {t('Exit Seer Mode')}
               </ExitAIModeLink>
             )}
           </CardContent>
@@ -1381,6 +1514,8 @@ const StatusLabel = styled('span')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeight.normal};
+  min-width: 60px;
+  display: inline-block;
 `;
 
 const StatusDisplay = styled('div')`
@@ -1951,4 +2086,37 @@ const ExitAIModeLink = styled('button')`
   &:hover {
     color: ${p => p.theme.gray400};
   }
+`;
+
+const ChartsSpacer = styled('div')`
+  height: ${space(6)};
+`;
+
+const ChartsWrapper = styled('div')`
+  margin-top: ${space(2)};
+`;
+
+const ChartsLabel = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.normal};
+`;
+
+const ChartsContent = styled('div')`
+  margin-top: ${space(1)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
+
+const ChartContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const ChartTitle = styled('span')`
+  font-size: ${p => p.theme.fontSize.xs};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
