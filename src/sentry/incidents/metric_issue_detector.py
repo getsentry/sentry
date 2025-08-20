@@ -98,6 +98,8 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         """
         organization = self.context.get("organization")
         request = self.context.get("request")
+        if organization is None or request is None:
+            raise serializers.ValidationError("Missing organization/request context")
 
         detector_limit = quotas.backend.get_metric_detector_limit(organization.id)
         if (
