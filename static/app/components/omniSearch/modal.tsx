@@ -2,7 +2,10 @@ import {useCallback, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {OmniSearchPalette} from 'sentry/components/omniSearch/palette';
+import {
+  OmniSearchPalette,
+  type OmniSearchPaletteSeeryRef,
+} from 'sentry/components/omniSearch/palette';
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -17,7 +20,12 @@ function OmniSearchModal({Body}: ModalRenderProps) {
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const paletteRef = useRef<OmniSearchPaletteSeeryRef>(null);
+
   const doBarrelRoll = useCallback(() => {
+    // Trigger Seery character spin
+    paletteRef.current?.triggerSeeryBarrelRoll();
+
     const docEl = containerRef.current?.closest(
       "[role='document']"
     ) as HTMLElement | null;
@@ -57,7 +65,7 @@ function OmniSearchModal({Body}: ModalRenderProps) {
   return (
     <Body id="omni-search-modal">
       <div ref={containerRef}>
-        <OmniSearchPalette />
+        <OmniSearchPalette ref={paletteRef} />
       </div>
     </Body>
   );
