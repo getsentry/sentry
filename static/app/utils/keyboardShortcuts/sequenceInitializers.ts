@@ -4,7 +4,7 @@
  * and cannot be used as single-key shortcuts
  */
 
-export const SEQUENCE_INITIALIZER_KEYS = ['t', 'g'] as const;
+export const SEQUENCE_INITIALIZER_KEYS = ['t', 'g', 'j'] as const;
 
 export type SequenceInitializerKey = (typeof SEQUENCE_INITIALIZER_KEYS)[number];
 
