@@ -18,6 +18,7 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
@@ -301,6 +302,10 @@ const docs: Docs = {
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/nestjs',
+  }),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'nestjs',
+    sdkPackage: '@sentry/nestjs',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'nestjs',

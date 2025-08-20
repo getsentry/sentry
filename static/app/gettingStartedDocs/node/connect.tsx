@@ -16,6 +16,7 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
@@ -158,6 +159,10 @@ const docs: Docs = {
   onboarding,
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding(),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'connect',
+    sdkPackage: '@sentry/node',
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
   mcpOnboarding: getNodeMcpOnboarding(),
 };

@@ -20,6 +20,7 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
@@ -164,6 +165,10 @@ const docs: Docs = {
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
   profilingOnboarding: getNodeProfilingOnboarding(),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'fastify',
+    sdkPackage: '@sentry/node',
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
   mcpOnboarding: getNodeMcpOnboarding(),
 };

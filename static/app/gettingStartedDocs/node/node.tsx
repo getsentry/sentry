@@ -23,6 +23,7 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
@@ -403,6 +404,10 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   profilingOnboarding: getNodeProfilingOnboarding({
     profilingLifecycle: 'manual',
+  }),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'node',
+    sdkPackage: '@sentry/node',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
   mcpOnboarding: getNodeMcpOnboarding(),

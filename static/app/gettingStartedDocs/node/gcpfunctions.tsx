@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
@@ -146,6 +147,10 @@ const docs: Docs = {
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/google-cloud-serverless',
+  }),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'gcp-functions',
+    sdkPackage: '@sentry/google-cloud-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'google-cloud-serverless',

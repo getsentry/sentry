@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
 } from 'sentry/utils/gettingStartedDocs/node';
 
@@ -210,6 +211,29 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   crashReportOnboarding,
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'cloudflare',
+    sdkPackage: '@sentry/cloudflare',
+    generateConfigureSnippet: (params, sdkPackage) => ({
+      type: 'code',
+      language: 'javascript',
+      code: `import * as Sentry from "${sdkPackage}";
+
+export const onRequest = [
+  // Make sure Sentry is the first middleware
+  Sentry.sentryPagesPlugin((context) => ({
+    dsn: "${params.dsn.public}",
+    integrations: [
+      // send console.log, console.warn, and console.error calls as logs to Sentry
+      Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+    ],
+    // Enable logs to be sent to Sentry
+    enableLogs: true,
+  })),
+  // Add more middlewares here
+];`,
+    }),
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'cloudflare',
   }),

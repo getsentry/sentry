@@ -17,6 +17,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
@@ -241,6 +242,10 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/aws-serverless',
+  }),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'aws-lambda',
+    sdkPackage: '@sentry/aws-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'aws-serverless',

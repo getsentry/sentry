@@ -1,6 +1,8 @@
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import type {
+  BasePlatformOptions,
+  ContentBlock,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -638,4 +640,115 @@ const server = Sentry.wrapMcpServerWithSentry(new McpServer({
     },
   ],
   verify: () => [],
+});
+
+function getNodeLogsConfigureSnippet(
+  params: DocsParams,
+  sdkPackage: `@sentry/${string}`
+): ContentBlock {
+  return {
+    type: 'code',
+    language: 'javascript',
+    code: `
+import * as Sentry from "${sdkPackage}";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+  // send console.log, console.warn, and console.error calls as logs to Sentry
+  Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+  ],
+  // Enable logs to be sent to Sentry
+  enableLogs: true,
+});`,
+  };
+}
+
+export const getNodeLogsOnboarding = <
+  PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
+>({
+  docsPlatform,
+  sdkPackage,
+  generateConfigureSnippet = getNodeLogsConfigureSnippet,
+}: {
+  docsPlatform: string;
+  sdkPackage: `@sentry/${string}`;
+  generateConfigureSnippet?: typeof getNodeLogsConfigureSnippet;
+}): OnboardingConfig<PlatformOptions> => ({
+  install: (params: DocsParams) => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
+            {
+              code: <code />,
+              sdkPackage: <code>{sdkPackage}</code>,
+            }
+          ),
+          configurations: getInstallConfig(params, {
+            basePackage: sdkPackage,
+          }),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'If you are on an older version of the SDK, follow our [link:migration guide] to upgrade.',
+            {
+              link: (
+                <ExternalLink
+                  href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/migration/`}
+                />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: (params: DocsParams) => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Enable Sentry logs by adding [code:enableLogs: true] to your [code:Sentry.init()] configuration.',
+            {code: <code />}
+          ),
+        },
+        generateConfigureSnippet(params, sdkPackage),
+        {
+          type: 'text',
+          text: tct('For more detailed information, see the [link:logs documentation].', {
+            link: (
+              <ExternalLink
+                href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/logs/`}
+              />
+            ),
+          }),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+        },
+        {
+          type: 'code',
+          language: 'javascript',
+          code: `import * as Sentry from "${sdkPackage}";
+
+Sentry.logger.info('User triggered test log', { action: 'test_log' })`,
+        },
+      ],
+    },
+  ],
 });
