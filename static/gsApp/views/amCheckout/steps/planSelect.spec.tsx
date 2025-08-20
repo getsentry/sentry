@@ -604,7 +604,7 @@ describe('PlanSelect', () => {
     expect(mockPromptUpdate).toHaveBeenCalled();
   });
 
-  it('displays unlimited custom dashboards feature for business plan', async () => {
+  it('shows correct features for AM2 business plan', async () => {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -618,6 +618,7 @@ describe('PlanSelect', () => {
 
     const businessPlan = await screen.findByLabelText('Business');
     expect(businessPlan).toHaveTextContent('Unlimited custom dashboards');
+    expect(businessPlan).not.toHaveTextContent('Application Insights');
   });
 
   it('shows Application Insights for AM3 business plan only', async () => {
@@ -640,23 +641,6 @@ describe('PlanSelect', () => {
 
     const businessPlan = await screen.findByLabelText('Business');
     expect(businessPlan).toHaveTextContent('Application Insights');
-    expect(businessPlan).toHaveTextContent('Unlimited custom dashboards');
-  });
-
-  it('does not show Application Insights for AM2 business plan', async () => {
-    render(
-      <AMCheckout
-        {...RouteComponentPropsFixture()}
-        params={params}
-        api={api}
-        onToggleLegacy={jest.fn()}
-        checkoutTier={PlanTier.AM2}
-      />,
-      {organization}
-    );
-
-    const businessPlan = await screen.findByLabelText('Business');
-    expect(businessPlan).not.toHaveTextContent('Application Insights');
     expect(businessPlan).toHaveTextContent('Unlimited custom dashboards');
   });
 });
