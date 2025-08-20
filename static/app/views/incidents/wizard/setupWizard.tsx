@@ -67,9 +67,9 @@ export function SetupWizard({onComplete}: SetupWizardProps) {
 
   const getStepStatus = useCallback(
     (index: number) => {
-      if (index === currentStepIndex) return 'active';
       if (stepCtx[INCIDENT_STEP_ORDER[index] as IncidentSetupStep]?.complete)
         return 'complete';
+      if (index === currentStepIndex) return 'active';
       return 'inactive';
     },
     [currentStepIndex, stepCtx]

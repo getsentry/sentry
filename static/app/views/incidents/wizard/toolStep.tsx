@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -15,6 +15,12 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {IconSize} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IncidentToolKey} from 'sentry/views/incidents/types';
+import {
+  IncidentSetupStep,
+  useIncidentSetupContext,
+} from 'sentry/views/incidents/wizard/context';
+import {TEMP_TOOL_STEP_STATE} from 'sentry/views/incidents/wizard/hack';
+import {ToolConnectCard} from 'sentry/views/incidents/wizard/toolConnectCard';
 import {ToolDrawer} from 'sentry/views/incidents/wizard/toolDrawer';
 
 interface ToolStepItem {
@@ -134,6 +140,7 @@ const checklistItems: ToolStepItem[] = [
 ];
 
 export function ToolStep() {
+  const {setStepContext} = useIncidentSetupContext();
   const organization = useOrganization();
   const {data: integrations = [], isPending} = useApiQuery<OrganizationIntegration[]>(
     [`/organizations/${organization.slug}/integrations/`],
@@ -151,68 +158,91 @@ export function ToolStep() {
   }, [integrations]);
 
   const {openDrawer, closeDrawer} = useDrawer();
-  const [configState, setConfigState] = useState<Record<IncidentToolKey, any>>({
-    schedule: null,
-    task: null,
-    channel: null,
-    status_page: null,
-    retro: null,
-  });
+  const [configState, setConfigState] =
+    useState<Record<IncidentToolKey, any>>(TEMP_TOOL_STEP_STATE);
+
+  useEffect(() => {
+    if (
+      !configState.schedule ||
+      !configState.task ||
+      !configState.channel ||
+      !configState.status_page ||
+      !configState.retro
+    ) {
+      return;
+    }
+    setStepContext(IncidentSetupStep.TOOLS, {
+      complete: true,
+      task_provider: configState.task.integrationKey,
+      task_config: configState.task,
+      channel_provider: configState.channel.integrationKey,
+      channel_config: configState.channel,
+      status_page_provider: configState.status_page.integrationKey,
+      status_page_config: configState.status_page,
+      retro_provider: configState.retro.integrationKey,
+      retro_config: configState.retro,
+    });
+  }, [configState, setStepContext]);
 
   return (
     <ChecklistContainer loading={isPending}>
-      {JSON.stringify(configState)}
       {checklistItems.map((item, index) => (
-        <ChecklistItem key={index} isLast={index === checklistItems.length - 1}>
-          <ChecklistCircle completed={false}>
-            <item.IconComponent size="md" />
-          </ChecklistCircle>
-          <Flex direction="column" gap="sm">
-            <Heading as="h4" size="lg">
-              {item.heading}
-            </Heading>
-            <Text variant="muted">{item.subtext}</Text>
-            <Flex gap="md" align="start">
-              {item.tools.map(tool => (
-                <Button
-                  key={tool.label}
-                  size="sm"
-                  icon={tool.icon}
-                  disabled={!integrationsByProvider[tool.key]}
-                  onClick={() => {
-                    openDrawer(
-                      () => (
-                        <ToolDrawer
-                          integration={integrationsByProvider[tool.key]!}
-                          onSubmit={(config: any) => {
-                            setConfigState({...configState, [item.key]: config});
-                            closeDrawer();
-                          }}
-                        />
-                      ),
-                      {
-                        ariaLabel: t('Connect your %s integration', tool.label),
-                        drawerWidth: '600px',
-                      }
-                    );
-                  }}
-                >
-                  {tool.label}
-                  {tool.key === 'sentry' && (
-                    <Badge type="experimental" style={{marginLeft: '8px'}}>
-                      {t('Coming Soon')}
-                    </Badge>
-                  )}
-                  {integrationsByProvider[tool.key] && (
-                    <Tooltip title={t('Installation available!')}>
-                      <ToolConnected />
-                    </Tooltip>
-                  )}
-                </Button>
-              ))}
+        <Fragment key={index}>
+          <ChecklistItem isLast={index === checklistItems.length - 1}>
+            <ChecklistCircle completed={!!configState[item.key]}>
+              <item.IconComponent size="md" />
+            </ChecklistCircle>
+            <Flex direction="column" gap="sm">
+              <Heading as="h4" size="lg">
+                {item.heading}
+              </Heading>
+              <Text variant="muted">{item.subtext}</Text>
+              <Flex gap="md" align="start">
+                {item.tools.map(tool => (
+                  <Button
+                    key={tool.label}
+                    size="sm"
+                    icon={tool.icon}
+                    disabled={tool.key === 'sentry'}
+                    onClick={() => {
+                      openDrawer(
+                        () => (
+                          <ToolDrawer
+                            integration={integrationsByProvider[tool.key]!}
+                            onSubmit={(config: any) => {
+                              setConfigState({...configState, [item.key]: config});
+                              closeDrawer();
+                            }}
+                          />
+                        ),
+                        {
+                          ariaLabel: t('Connect your %s integration', tool.label),
+                          drawerWidth: '600px',
+                        }
+                      );
+                    }}
+                  >
+                    {tool.label}
+                    {tool.key === 'sentry' && (
+                      <Badge type="experimental" style={{marginLeft: '8px'}}>
+                        {t('Coming Soon')}
+                      </Badge>
+                    )}
+                    {configState[item.key]?.integrationKey === tool.key && (
+                      <Tooltip title={t('Installation available!')}>
+                        <ToolConnected />
+                      </Tooltip>
+                    )}
+                  </Button>
+                ))}
+              </Flex>
             </Flex>
-          </Flex>
-        </ChecklistItem>
+          </ChecklistItem>
+          <ToolConnectCard
+            config={configState[item.key]}
+            integration={integrationsByProvider[configState[item.key].integrationKey]}
+          />
+        </Fragment>
       ))}
     </ChecklistContainer>
   );
@@ -228,7 +258,7 @@ const ChecklistContainer = styled('div')<{loading: boolean}>`
 const ChecklistItem = styled('div')<{isLast: boolean}>`
   position: relative;
   display: grid;
-  grid-template-columns: 2.5rem 1fr;
+  grid-template-columns: 2.5rem 3fr 1fr;
   gap: ${p => p.theme.space.lg};
   &:not(:last-child)::after {
     content: '';

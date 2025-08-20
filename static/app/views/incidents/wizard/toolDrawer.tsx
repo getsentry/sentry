@@ -131,6 +131,7 @@ function JiraContent({integration, onSubmit}: ToolDrawerProps) {
           disabled={!selectedProject}
           onClick={() =>
             onSubmit({
+              integrationKey: integration.provider.key,
               project: selectedProject,
               integrationId: integration.id,
             })
@@ -174,7 +175,12 @@ function SlackContent({integration, onSubmit}: ToolDrawerProps) {
         <SubmitButton
           priority="primary"
           disabled={!integration.id}
-          onClick={() => onSubmit({integrationId: integration.id})}
+          onClick={() =>
+            onSubmit({
+              integrationKey: integration.provider.key,
+              integrationId: integration.id,
+            })
+          }
         >
           {t('Connect')}
         </SubmitButton>
@@ -202,7 +208,7 @@ function StatusPageContent({integration, onSubmit}: ToolDrawerProps) {
         </Text>
       </Flex>
       <Flex direction="column" gap="lg">
-        <Text bold>{t('Select a Jira project')}</Text>
+        <Text bold>{t('Select a status page')}</Text>
         <Select
           options={availableStatusPages.map(({id, headline, url, favicon_logo}) => ({
             label: `${headline} (${url})`,
@@ -219,6 +225,7 @@ function StatusPageContent({integration, onSubmit}: ToolDrawerProps) {
           disabled={!selectedStatusPage}
           onClick={() =>
             onSubmit({
+              integrationKey: integration.provider.key,
               statusPage: selectedStatusPage,
               integrationId: integration.id,
             })
@@ -248,7 +255,7 @@ function NotionContent({integration, onSubmit}: ToolDrawerProps) {
         </Text>
       </Flex>
       <Flex direction="column" gap="lg">
-        <Text bold>{t('Select a notion database')}</Text>
+        <Text bold>{t('Select a Notion database')}</Text>
         <Select
           options={availableDatabases.map(({id, title, icon}) => ({
             label: title.plain_text,
@@ -265,6 +272,7 @@ function NotionContent({integration, onSubmit}: ToolDrawerProps) {
           disabled={!selectedDatabase}
           onClick={() =>
             onSubmit({
+              integrationKey: integration.provider.key,
               database: selectedDatabase,
               integrationId: integration.id,
             })

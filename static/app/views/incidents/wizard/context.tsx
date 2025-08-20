@@ -71,6 +71,16 @@ export const INCIDENT_SETUP_STEPS: Record<IncidentSetupStep, SetupStep> = {
 export interface IncidentSetupContext {
   [IncidentSetupStep.TOOLS]: {
     complete: boolean;
+    channel_config?: Record<string, any>;
+    channel_provider?: string;
+    retro_config?: Record<string, any>;
+    retro_provider?: string;
+    schedule_config?: Record<string, any>;
+    schedule_provider?: string;
+    status_page_config?: Record<string, any>;
+    status_page_provider?: string;
+    task_config?: Record<string, any>;
+    task_provider?: string;
   };
   [IncidentSetupStep.COMPONENTS]: {
     complete: boolean;
