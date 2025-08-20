@@ -190,7 +190,7 @@ class Superuser(ElevatedMode):
         self,
         request: HttpRequest,
         allowed_ips: Iterable[Any] | _UnsetType = _Unset,
-        org_id: int | _UnsetType = _Unset,
+        org_id: int | None | _UnsetType = _Unset,
         current_datetime: datetime | None = None,
     ) -> None:
         self.uid: str | None = None
