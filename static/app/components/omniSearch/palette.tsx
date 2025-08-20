@@ -176,6 +176,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
         setIsSearchingSeer(true);
 
         setSeerCallLoading(true);
+        triggerSeeryCelebrate();
 
         try {
           const url = 'https://cmdkllm-12459da2e71a.herokuapp.com/ask-seer';
@@ -563,7 +564,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
 
   return (
     <Fragment>
-      <SeeryCharacter ref={seeryRef} animationData={serryLottieAnimation} size={200} />
+      <SeeryCharacter ref={seeryRef} animationData={serryLottieAnimation} size={400} />
       <SeerSearchAnimation />
       <StyledCommand key={firstItemKey} label="OmniSearch" shouldFilter={false} loop>
         <Header>
