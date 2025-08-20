@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
@@ -143,27 +144,44 @@ interface StreamlinedActivitySectionProps {
    * Disables collapse feature, and hides headers
    */
   isDrawer?: boolean;
+  /**
+   * Ref to expose the focus comment function to parent components
+   */
+  onFocusCommentRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export default function StreamlinedActivitySection({
   group,
   isDrawer,
   filterComments,
+  onFocusCommentRef,
 }: StreamlinedActivitySectionProps) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const [inputId, setInputId] = useState(() => uniqueId());
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const ref = useRef<HTMLTextAreaElement>(null!);
 
-  // Initialize sidebar shortcuts
+  // Focus comment function
+  const focusComment = useCallback(() => {
+    if (ref.current) {
+      ref.current.focus();
+    }
+  }, []);
+
+  // Expose focus function to parent via ref
+  React.useEffect(() => {
+    if (onFocusCommentRef) {
+      onFocusCommentRef.current = focusComment;
+    }
+  }, [focusComment, onFocusCommentRef]);
+
+  // Initialize sidebar shortcuts only when not in drawer
+  // When isDrawer=true, shortcuts should be handled by the parent
   useSidebarShortcuts({
-    onFocusComment: () => {
-      if (ref.current) {
-        ref.current.focus();
-      }
-    },
+    disabled: isDrawer,
+    onFocusComment: isDrawer ? undefined : focusComment,
   });
 
   const activeUser = useUser();

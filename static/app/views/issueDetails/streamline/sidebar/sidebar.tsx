@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -24,6 +24,7 @@ import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useDrawerShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useDrawerShortcuts';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
+import {useSidebarShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useSidebarShortcuts';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
@@ -53,6 +54,9 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project, event: event ?? null});
 
+  // Ref to access comment focus function from activity section
+  const focusCommentRef = useRef<(() => void) | null>(null);
+
   // Initialize drawer shortcuts
   useDrawerShortcuts({
     onOpenActivityDrawer: openIssueActivityDrawer,
@@ -60,6 +64,11 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
     onOpenSimilarIssuesDrawer: openSimilarIssuesDrawer,
     onOpenMergedIssuesDrawer: openMergedIssuesDrawer,
     onOpenSeerDrawer: openSeerDrawer,
+  });
+
+  // Initialize sidebar shortcuts (for comment focus)
+  useSidebarShortcuts({
+    onFocusComment: () => focusCommentRef.current?.(),
   });
 
   const {userParticipants, teamParticipants, viewers} = useMemo(() => {
@@ -110,7 +119,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
             <ExternalIssueSidebarList group={group} event={event} project={project} />
           </ErrorBoundary>
         )}
-        <StreamlinedActivitySection group={group} />
+        <StreamlinedActivitySection group={group} onFocusCommentRef={focusCommentRef} />
         {showPeopleSection && (
           <PeopleSection
             userParticipants={userParticipants}
