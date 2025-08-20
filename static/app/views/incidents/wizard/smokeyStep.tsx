@@ -1,78 +1,57 @@
-import styled from '@emotion/styled';
+import {useEffect, useState} from 'react';
 
-import {Button} from 'sentry/components/core/button/';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import {IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {
+  IncidentSetupStep,
+  useIncidentSetupContext,
+} from 'sentry/views/incidents/wizard/context';
+import {SlackDemo} from 'sentry/views/incidents/wizard/slackDemo';
 
-interface SmokeyStepProps {
-  onComplete: (stepId: string) => void;
-}
+export function SmokeyStep() {
+  const {smokey: smokeyContext, setStepContext} = useIncidentSetupContext();
 
-export function SmokeyStep({onComplete}: SmokeyStepProps) {
+  const [hasMetSmokey, setHasMetSmokey] = useState(false);
+
+  useEffect(() => {
+    if (hasMetSmokey && !smokeyContext.complete) {
+      setStepContext(IncidentSetupStep.SMOKEY, {complete: true});
+    }
+  }, [smokeyContext, setStepContext, hasMetSmokey]);
+
   return (
-    <StepContent>
-      <Heading as="h3" size="lg">
-        {t('Get to Know Smokey')}
-      </Heading>
-      <Text variant="muted">
-        {t(
-          'Smokey is your AI-powered incident management assistant. If you have Slack connected, you can interact with Smokey to get help during incidents.'
-        )}
-      </Text>
-      <SmokeyDemo>
-        <IconUser size="xl" />
-        <Heading as="h4" size="md">
-          Smokey Bot
+    <Flex wrap="wrap">
+      <Flex direction="column" gap="lg" flex="1">
+        <Heading as="h3" size="lg">
+          {t('What forest fires?')}
         </Heading>
-        <Text variant="muted">
-          "Hi! I'm Smokey, your incident management assistant. I can help you create
-          incidents, assign responders, and track progress."
+        <Text variant="muted" density="comfortable" size="lg">
+          {tct(
+            'Smokey is [already] connected to your Slack workspace and ready to help you with incidents.',
+            {
+              already: <i>already</i>,
+            }
+          )}
         </Text>
-
-        <ChatDemo>
-          <ChatMessage>
-            <strong>You:</strong> Create a new incident for API latency
-          </ChatMessage>
-          <ChatMessage>
-            <strong>Smokey:</strong> I'll create a P2 incident for API latency. Who should
-            I assign as the incident commander?
-          </ChatMessage>
-        </ChatDemo>
-      </SmokeyDemo>
-
-      <Button priority="primary" onClick={() => onComplete('smokey')}>
-        {t('Continue')}
-      </Button>
-    </StepContent>
+        <Text variant="muted" density="comfortable" size="lg">
+          {t('Smokey has no AI.')} <b>{t('Yet.')}</b>
+        </Text>
+        <Text variant="muted" density="comfortable" size="lg">
+          {t('But give it a shot anyway, he can lend a hand.')}
+        </Text>
+        <LinkButton
+          icon={<PluginIcon pluginId="slack" />}
+          href="slack://user?team=E099WAN089G&id=D09B9DYUXMF"
+          style={{alignSelf: 'start'}}
+          onClick={() => setHasMetSmokey(true)}
+        >
+          {t('Open Slack')}
+        </LinkButton>
+      </Flex>
+      <SlackDemo />
+    </Flex>
   );
 }
-
-const StepContent = styled('div')`
-  max-width: 600px;
-`;
-
-const SmokeyDemo = styled('div')`
-  text-align: center;
-  padding: 2rem;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: 2rem;
-`;
-
-const ChatDemo = styled('div')`
-  margin-top: 1.5rem;
-  text-align: left;
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: 1rem;
-`;
-
-const ChatMessage = styled('div')`
-  margin-bottom: 0.75rem;
-  font-size: 0.875rem;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
