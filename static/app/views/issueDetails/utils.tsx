@@ -298,8 +298,16 @@ const SYNCED_AI_MODE_EVENT = 'synced-ai-mode';
 const AI_MODE_STORAGE_KEY = 'issue-details-ai-mode';
 
 export function useHasAIMode() {
-  // Initialize state by reading current localStorage value synchronously
+  const location = useLocation();
+  
+  // Initialize state by reading current localStorage value synchronously or URL override
   const [isAIMode, setIsAIMode] = useState(() => {
+    // Check for URL parameter first
+    const aiModeParam = location.query.aiMode;
+    if (aiModeParam === 'true' || aiModeParam === '1') {
+      return true;
+    }
+    
     const currentValue = localStorage.getItem(AI_MODE_STORAGE_KEY);
     if (currentValue === null) {
       return false;
@@ -311,6 +319,16 @@ export function useHasAIMode() {
       return false;
     }
   });
+
+  // Override state if URL parameter is present
+  useEffect(() => {
+    const aiModeParam = location.query.aiMode;
+    if (aiModeParam === 'true' || aiModeParam === '1') {
+      setIsAIMode(true);
+    } else if (aiModeParam === 'false' || aiModeParam === '0') {
+      setIsAIMode(false);
+    }
+  }, [location.query.aiMode]);
 
   // Listen for sync events from other hook instances
   useEffect(() => {
