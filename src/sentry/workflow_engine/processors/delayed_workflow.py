@@ -21,12 +21,8 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.post_process import should_retry_fetch
-from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry, retry_task
+from sentry.taskworker.retry import retry_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
@@ -784,28 +780,8 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
     return {key: sorted(values) for key, values in result.items()}
 
 
-@instrumented_task(
-    name="sentry.workflow_engine.processors.delayed_workflow",
-    queue="delayed_rules",
-    default_retry_delay=5,
-    max_retries=5,
-    soft_time_limit=50,
-    time_limit=60,
-    silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
-        processing_deadline_duration=60,
-        retry=Retry(
-            times=5,
-            delay=5,
-        ),
-    ),
-)
-@retry(timeouts=True)
 @log_context.root()
-def process_delayed_workflows(
-    project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any
-) -> None:
+def process_delayed_workflows(project_id: int, batch_key: str | None = None) -> None:
     """
     Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """

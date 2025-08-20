@@ -3121,7 +3121,7 @@ register(
 register(
     "delayed_workflow.use_workflow_engine_pool",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
