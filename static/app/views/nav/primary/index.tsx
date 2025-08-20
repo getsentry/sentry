@@ -5,6 +5,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {openOmniSearch} from 'sentry/components/omniSearch';
 import {
+  IconCompass,
   IconDashboard,
   IconGraph,
   IconIssues,
@@ -100,7 +101,7 @@ export function PrimaryNavigationItems() {
             group={PrimaryNavGroup.EXPLORE}
             {...makeNavItemProps(PrimaryNavGroup.EXPLORE)}
           >
-            <IconSearch />
+            <IconCompass />
           </SidebarLink>
         </NavTourElement>
 
