@@ -374,6 +374,15 @@ const appConfig: Configuration = {
         type: 'asset',
       },
     ],
+    parser: {
+      asset: {
+        // https://rspack.rs/config/module#moduleparserassetdataurlcondition
+        dataUrlCondition: {
+          // Inlines images smaller than 0.5kb as data urls, default 8kb
+          maxSize: 512,
+        },
+      },
+    },
   },
   plugins: [
     /**
