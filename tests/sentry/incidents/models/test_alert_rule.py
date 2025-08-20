@@ -242,7 +242,7 @@ class AlertRuleTriggerActionActivateBaseTest:
     def setUp(self) -> None:
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.suspended_registry.restore()
 
     def test_no_handler(self) -> None:
@@ -289,7 +289,7 @@ class AlertRuleTriggerActionActivateTest(TestCase):
     def setUp(self) -> None:
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.suspended_registry.restore()
 
     def test_unhandled(self) -> None:

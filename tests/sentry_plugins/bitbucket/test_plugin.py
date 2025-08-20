@@ -1,9 +1,9 @@
 from functools import cached_property
+from unittest.mock import MagicMock
 
 import pytest
 import responses
 from django.contrib.auth.models import AnonymousUser
-from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
@@ -16,22 +16,18 @@ def test_conf_key() -> None:
 
 class BitbucketPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> BitbucketPlugin:
         return BitbucketPlugin()
-
-    @cached_property
-    def request(self):
-        return RequestFactory()
 
     def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        assert self.plugin.get_issue_label(group, 1) == "Bitbucket-1"
+        assert self.plugin.get_issue_label(group, "1") == "Bitbucket-1"
 
     def test_get_issue_url(self) -> None:
         self.plugin.set_option("repo", "maxbittker/newsdiffs", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
         assert (
-            self.plugin.get_issue_url(group, 1)
+            self.plugin.get_issue_url(group, "1")
             == "https://bitbucket.org/maxbittker/newsdiffs/issue/1/"
         )
 
@@ -51,7 +47,7 @@ class BitbucketPluginTest(PluginTestCase):
         self.plugin.set_option("repo", "maxbittker/newsdiffs", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = self.request.get("/")
+        request = MagicMock()
         request.user = AnonymousUser()
         form_data = {
             "title": "Hello",
@@ -97,7 +93,7 @@ class BitbucketPluginTest(PluginTestCase):
         self.plugin.set_option("repo", "maxbittker/newsdiffs", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = self.request.get("/")
+        request = MagicMock()
         request.user = AnonymousUser()
         form_data = {"comment": "Hello", "issue_id": "1"}
         with pytest.raises(PluginError):

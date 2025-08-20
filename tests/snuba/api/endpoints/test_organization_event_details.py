@@ -14,7 +14,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         min_ago = before_now(minutes=1).isoformat()
         two_min_ago = before_now(minutes=2).isoformat()
@@ -310,7 +310,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
 class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
     endpoint = "sentry-api-0-organization-event-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.init_snuba()
         self.ten_mins_ago = before_now(minutes=10)
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)

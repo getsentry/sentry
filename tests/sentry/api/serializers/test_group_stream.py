@@ -34,7 +34,7 @@ class StreamGroupSerializerTestCase(
             for args, kwargs in get_range.call_args_list:
                 assert kwargs["environment_ids"] == [environment.id]
 
-        def get_invalid_environment():
+        def get_invalid_environment() -> None:
             raise Environment.DoesNotExist()
 
         with mock.patch(

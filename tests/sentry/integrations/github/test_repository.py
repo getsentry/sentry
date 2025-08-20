@@ -35,7 +35,7 @@ class GitHubAppsProviderTest(TestCase):
             },
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         responses.reset()
 

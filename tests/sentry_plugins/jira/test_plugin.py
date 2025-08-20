@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from functools import cached_property
 from typing import Any
+from unittest.mock import MagicMock
 
 import orjson
 import responses
 from django.contrib.auth.models import AnonymousUser
-from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.testutils.cases import TestCase
@@ -213,12 +213,8 @@ user_search_response: list[dict[str, Any]] = [
 
 class JiraPluginTest(TestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> JiraPlugin:
         return JiraPlugin()
-
-    @cached_property
-    def request(self):
-        return RequestFactory()
 
     def test_conf_key(self) -> None:
         assert self.plugin.conf_key == "jira"
@@ -255,7 +251,7 @@ class JiraPluginTest(TestCase):
         self.plugin.set_option("instance_url", "https://getsentry.atlassian.net", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = self.request.get("/")
+        request = MagicMock()
         request.user = AnonymousUser()
         form_data = {
             "title": "Hello",
@@ -275,7 +271,7 @@ class JiraPluginTest(TestCase):
         self.plugin.set_option("instance_url", "https://getsentry.atlassian.net", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = self.request.get("/")
+        request = MagicMock()
         request.user = AnonymousUser()
         form_data = {"issue_id": "SEN-19"}
         assert (
@@ -318,7 +314,7 @@ class JiraPluginTest(TestCase):
             }
         ) == {"id": "robot", "text": "robot (robot)"}
 
-    def _setup_autocomplete_jira(self):
+    def _setup_autocomplete_jira(self) -> None:
         self.plugin.set_option("instance_url", "https://getsentry.atlassian.net", self.project)
         self.plugin.set_option("default_project", "SEN", self.project)
         self.login_as(user=self.user)
