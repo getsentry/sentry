@@ -240,6 +240,8 @@ from sentry.integrations.api.endpoints.organization_repository_commits import (
 from sentry.integrations.api.endpoints.organization_repository_details import (
     OrganizationRepositoryDetailsEndpoint,
 )
+from sentry.integrations.notion.endpoints import NotionDirectApiEndpoint
+from sentry.integrations.statuspage.endpoints import StatuspageDirectApiEndpoint
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     EventIdLookupEndpoint,
@@ -1889,6 +1891,18 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integration-requests/$",
         OrganizationIntegrationRequestEndpoint.as_view(),
         name="sentry-api-0-organization-integration-request",
+    ),
+    # Statuspage Integration Direct API
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/statuspage/direct-api/$",
+        StatuspageDirectApiEndpoint.as_view(),
+        name="sentry-api-0-organization-statuspage-direct-api",
+    ),
+    # Notion Integration Direct API
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/notion/direct-api/$",
+        NotionDirectApiEndpoint.as_view(),
+        name="sentry-api-0-organization-notion-direct-api",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/invite-requests/$",

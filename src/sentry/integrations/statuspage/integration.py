@@ -1,0 +1,54 @@
+from __future__ import annotations
+
+import logging
+from collections.abc import Mapping, Sequence
+from typing import Any
+
+from sentry.integrations.base import (
+    FeatureDescription,
+    IntegrationFeatures,
+    IntegrationInstallation,
+    IntegrationMetadata,
+    IntegrationProvider,
+)
+from sentry.integrations.types import IntegrationProviderSlug
+
+logger = logging.getLogger(__name__)
+
+DESCRIPTION = """
+Automatically create/update incidents on Statuspage via Sentry's incident management.
+Keep your users informed about system status and maintenance windows.
+"""
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Automatically create/update incidents on Statuspage via Sentry's incident management.
+        """,
+        IntegrationFeatures.INCIDENT_MANAGEMENT,
+    ),
+]
+
+metadata = IntegrationMetadata(
+    description=DESCRIPTION,
+    features=FEATURES,
+    author="The Sentry Team",
+    noun="Statuspage",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Statuspage%20Integration%20Problem",
+    source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/statuspage",
+    aspects={},
+)
+
+
+class StatuspageIntegration(IntegrationInstallation):
+    def get_client(self) -> None: ...
+    def get_organization_config(self) -> Sequence[Any]: ...
+    def update_organization_config(self, data: Mapping[str, Any]) -> None: ...
+    def get_config_data(self) -> Mapping[str, str]: ...
+
+
+class StatuspageIntegrationProvider(IntegrationProvider):
+    key = IntegrationProviderSlug.STATUSPAGE.value
+    name = "Statuspage"
+    metadata = metadata
+    integration_cls = StatuspageIntegration

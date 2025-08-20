@@ -3087,6 +3087,8 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
+    "sentry.integrations.notion.integration.NotionIntegrationProvider",
+    "sentry.integrations.statuspage.integration.StatuspageIntegrationProvider",
 )
 
 

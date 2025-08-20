@@ -42,6 +42,8 @@ class IntegrationProviderSlug(StrEnum):
     BITBUCKET_SERVER = "bitbucket_server"
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
+    NOTION = "notion"
+    STATUSPAGE = "statuspage"
 
 
 class ExternalProviderEnum(StrEnum):
