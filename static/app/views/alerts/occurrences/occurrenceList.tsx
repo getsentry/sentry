@@ -15,9 +15,9 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import AlertHeader from 'sentry/views/alerts/list/header';
 import {OccurrenceListRow} from 'sentry/views/alerts/occurrences/occurrenceListRow';
 import {useFetchEscationPolicyStates} from 'sentry/views/escalationPolicies/queries/useFetchEscalationPolicyStates';
+import {EscalationPolicyHeaderTabs} from 'sentry/views/settings/organizationEscalationPolicies/escalationPolicyHeaderTabs';
 
 /* COPIED FROM sentry/views/alerts/rules/alertRulesList */
 const StyledLoadingError = styled(LoadingError)`
@@ -83,7 +83,7 @@ function OccurrencesPage() {
       <SentryDocumentTitle title={t('Occurrences')} orgSlug={organization.slug} />
 
       <PageFiltersContainer>
-        <AlertHeader activeTab="occurrences" />
+        <EscalationPolicyHeaderTabs activeTab="occurrences" />
         <Layout.Body>
           <Layout.Main fullWidth>
             <StyledPanelTable

@@ -22,6 +22,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {EscalationPolicyHeaderTabs} from 'sentry/views/settings/organizationEscalationPolicies/escalationPolicyHeaderTabs';
 
 import EscalationPolicyListItem from './escalationPolicyListItem';
 
@@ -133,8 +134,11 @@ function OrganizationEscalationPolicies() {
       />
       <SettingsPageHeader title={t('Escalation Policies')} action={action} />
 
+      <EscalationPolicyHeaderTabs activeTab="policies" />
+
       <Panel>
         <PanelHeader>{t('Policies')}</PanelHeader>
+
         <PanelBody>
           {isPending && <LoadingIndicator />}
           {isError && <LoadingError onRetry={refetch} />}

@@ -22,12 +22,12 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import AlertHeader from 'sentry/views/alerts/list/header';
 import {ScheduleTimelineRow} from 'sentry/views/alerts/triageSchedules/ScheduleTimelineRow';
 import {
   type RotationSchedule,
   useFetchRotationSchedules,
 } from 'sentry/views/escalationPolicies/queries/useFetchRotationSchedules';
+import {EscalationPolicyHeaderTabs} from 'sentry/views/settings/organizationEscalationPolicies/escalationPolicyHeaderTabs';
 
 export interface UserSchedulePeriod {
   backgroundColor: string;
@@ -71,7 +71,7 @@ function ScheduleList() {
     <Fragment>
       <SentryDocumentTitle title={t('Escalation Policies')} orgSlug={organization.slug} />
       <PageFiltersContainer>
-        <AlertHeader activeTab="schedules" />
+        <EscalationPolicyHeaderTabs activeTab="schedules" />
         <Layout.Body>
           <Layout.Main fullWidth>
             <MonitorListPanel role="region">

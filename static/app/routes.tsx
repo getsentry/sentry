@@ -979,6 +979,16 @@ function buildRoutes(): RouteObject[] {
           ),
         },
         {
+          path: 'schedules/',
+          component: make(
+            () => import('sentry/views/alerts/triageSchedules/triageSchedulesList')
+          ),
+        },
+        {
+          path: 'occurrences/',
+          component: make(() => import('sentry/views/alerts/occurrences/occurrenceList')),
+        },
+        {
           path: ':escalationPolicyId/',
           name: t('Escalation Policy Details'),
           component: make(
@@ -1533,16 +1543,6 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/alerts/list/incidents')),
       deprecatedRouteProps: true,
-    },
-    {
-      path: 'schedules/',
-      component: make(
-        () => import('sentry/views/alerts/triageSchedules/triageSchedulesList')
-      ),
-    },
-    {
-      path: 'occurrences/',
-      component: make(() => import('sentry/views/alerts/occurrences/occurrenceList')),
     },
     {
       path: 'rules/',

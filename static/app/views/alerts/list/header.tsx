@@ -98,13 +98,13 @@ function AlertHeader({activeTab}: Props) {
           </TabList.Item>
           <TabList.Item
             key="schedules"
-            to={`/organizations/${organization.slug}/alerts/schedules/`}
+            to={`/organizations/${organization.slug}/escalation-policies/schedules/`}
           >
             {t('Schedules')}
           </TabList.Item>
           <TabList.Item
             key="occurrences"
-            to={`/organizations/${organization.slug}/alerts/occurrences/`}
+            to={`/organizations/${organization.slug}/escalation-policies/occurrences/`}
           >
             {t('Occurrences')}
           </TabList.Item>
