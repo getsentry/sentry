@@ -289,7 +289,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const [orgMembers, setOrgMembers] = useState<User[]>([]);
   const [similarIssuesCount, setSimilarIssuesCount] = useState<number>(0);
   const activeUser = useUser();
-  
+
   // Get AI mode preference from localStorage (persisted across sessions)
   const [isAIMode, setIsAIMode] = useHasAIMode();
 
@@ -1903,7 +1903,6 @@ function ActionItemsSection({similarIssuesCount}: ActionItemsSectionProps) {
 
 const ActionItemsWrapper = styled('div')`
   margin-top: ${space(2)};
-  padding-bottom: ${space(4)};
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
@@ -2050,6 +2049,7 @@ const ChartsMetricsSection = styled('div')`
   gap: ${space(2)};
   align-items: center;
   margin-top: ${space(3)};
+  padding-top: 130px;
 `;
 
 const ChartContainer = styled('div')`

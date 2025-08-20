@@ -56,7 +56,7 @@ export function GroupDetailsLayout({
   children,
 }: GroupDetailsLayoutProps) {
   const [isAIMode] = useHasAIMode();
-  
+
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
   const groupReprocessingStatus = getGroupReprocessingStatus(group);

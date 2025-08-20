@@ -649,7 +649,7 @@ function GroupDetailsContent({
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
   const [isAIMode] = useHasAIMode();
-  
+
   const includeFlagDistributions =
     featureFlagDrawerPlatforms.includes(project.platform ?? 'other') &&
     organization.features.includes('feature-flag-distribution-flyout');

@@ -311,34 +311,34 @@ export function useHasAIMode() {
       return false;
     }
   });
-  
+
   // Listen for sync events from other hook instances
   useEffect(() => {
     const handleSyncEvent = (event: CustomEvent<{value: boolean}>) => {
       setIsAIMode(event.detail.value);
     };
-    
+
     window.addEventListener(SYNCED_AI_MODE_EVENT, handleSyncEvent as EventListener);
-    
+
     return () => {
       window.removeEventListener(SYNCED_AI_MODE_EVENT, handleSyncEvent as EventListener);
     };
   }, []);
-  
+
   // Custom setter that writes synchronously and broadcasts
   const wrappedSetIsAIMode = useCallback((newValue: boolean) => {
     // Write to localStorage synchronously
     localStorage.setItem(AI_MODE_STORAGE_KEY, JSON.stringify(newValue));
-    
+
     // Update local state
     setIsAIMode(newValue);
-    
+
     // Broadcast to other hook instances
     window.dispatchEvent(
       new CustomEvent(SYNCED_AI_MODE_EVENT, { detail: { value: newValue } })
     );
   }, []);
-  
+
   return [isAIMode, wrappedSetIsAIMode] as const;
 }
 
