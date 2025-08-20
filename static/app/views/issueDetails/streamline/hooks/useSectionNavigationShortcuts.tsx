@@ -21,18 +21,18 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
 
 // Keyboard shortcut mappings for direct section jumps
 const sectionShortcuts: Partial<Record<SectionKey, string>> = {
-  [SectionKey.HIGHLIGHTS]: 'j h',
-  [SectionKey.STACKTRACE]: 'j s',
-  [SectionKey.EXCEPTION]: 'j s',
-  [SectionKey.THREADS]: 'j s',
-  [SectionKey.REPLAY]: 'j y',
-  [SectionKey.BREADCRUMBS]: 'j b',
-  [SectionKey.TRACE]: 'j c',
-  [SectionKey.LOGS]: 'j l',
-  [SectionKey.TAGS]: 'j t',
-  [SectionKey.CONTEXTS]: 'j x',
-  [SectionKey.USER_FEEDBACK]: 'j u',
-  [SectionKey.FEATURE_FLAGS]: 'j f',
+  [SectionKey.HIGHLIGHTS]: 'q h',
+  [SectionKey.STACKTRACE]: 'q s',
+  [SectionKey.EXCEPTION]: 'q s',
+  [SectionKey.THREADS]: 'q s',
+  [SectionKey.REPLAY]: 'q y',
+  [SectionKey.BREADCRUMBS]: 'q b',
+  [SectionKey.TRACE]: 'q c',
+  [SectionKey.LOGS]: 'q l',
+  [SectionKey.TAGS]: 'q t',
+  [SectionKey.CONTEXTS]: 'q x',
+  [SectionKey.USER_FEEDBACK]: 'q u',
+  [SectionKey.FEATURE_FLAGS]: 'q f',
 };
 
 // Map SectionKey to hash anchors for direct navigation
@@ -141,13 +141,13 @@ export function useSectionNavigationShortcuts() {
     const baseShortcuts = [
       {
         id: 'next-section',
-        key: 'j j',
+        key: 'j',
         description: 'Jump to next section',
         handler: handleNextSection,
       },
       {
         id: 'previous-section',
-        key: 'j k',
+        key: 'k',
         description: 'Jump to previous section',
         handler: handlePreviousSection,
       },
