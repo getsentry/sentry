@@ -20,7 +20,6 @@ export function SmokeyStep({onComplete}: SmokeyStepProps) {
           'Smokey is your AI-powered incident management assistant. If you have Slack connected, you can interact with Smokey to get help during incidents.'
         )}
       </Text>
-
       <SmokeyDemo>
         <IconUser size="xl" />
         <Heading as="h4" size="md">

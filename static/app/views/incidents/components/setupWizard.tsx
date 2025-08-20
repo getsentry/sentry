@@ -1,4 +1,5 @@
 import React, {useCallback, useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -17,6 +18,8 @@ import {
   IconSettings,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {ComponentStep} from 'sentry/views/incidents/components/componentStep';
 import {DemoStep} from 'sentry/views/incidents/components/demoStep';
 import {SmokeyStep} from 'sentry/views/incidents/components/smokeyStep';
@@ -95,6 +98,9 @@ const INCIDENT_SETUP_STEPS: Record<IncidentSetupStep, SetupStep> = {
 };
 
 export function SetupWizard({onComplete}: SetupWizardProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [stepConfig, setStepConfig] = useState<
     Record<IncidentSetupStep, SetupStepConfig>
   >({
@@ -120,7 +126,10 @@ export function SetupWizard({onComplete}: SetupWizardProps) {
     },
   });
 
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const currentStepIndex = searchParams.get('step')
+    ? Number(searchParams.get('step'))
+    : 0;
+
   const currentStep =
     INCIDENT_SETUP_STEPS[
       INCIDENT_STEP_ORDER[currentStepIndex] ?? IncidentSetupStep.TOOLS
@@ -166,7 +175,9 @@ export function SetupWizard({onComplete}: SetupWizardProps) {
                 }}
               >
                 <StepButton
-                  onClick={() => setCurrentStepIndex(index)}
+                  onClick={() =>
+                    navigate({...location, query: {...location.query, step: index}})
+                  }
                   status={getStepStatus(index)}
                 >
                   <div style={{marginBottom: '-2px'}}>
@@ -202,7 +213,12 @@ export function SetupWizard({onComplete}: SetupWizardProps) {
               {previousStep !== null && (
                 <Button
                   size="sm"
-                  onClick={() => setCurrentStepIndex(currentStepIndex - 1)}
+                  onClick={() =>
+                    navigate({
+                      ...location,
+                      query: {...location.query, step: currentStepIndex - 1},
+                    })
+                  }
                   icon={<IconArrow direction="left" />}
                 >
                   {t('Previous')}
@@ -213,7 +229,12 @@ export function SetupWizard({onComplete}: SetupWizardProps) {
                   size="sm"
                   priority="primary"
                   disabled={nextStep === null}
-                  onClick={() => setCurrentStepIndex(currentStepIndex + 1)}
+                  onClick={() =>
+                    navigate({
+                      ...location,
+                      query: {...location.query, step: currentStepIndex + 1},
+                    })
+                  }
                   icon={<IconArrow direction="right" />}
                 >
                   {t('Next')}

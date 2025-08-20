@@ -1,4 +1,5 @@
-import {useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import beamImage from 'sentry-images/spot/inc-mgmt-empty-state.svg';
@@ -14,27 +15,42 @@ import {SetupWizard} from 'sentry/views/incidents/components/setupWizard';
 import {animations} from 'sentry/views/incidents/styles';
 
 export default function IncidentHub() {
-  const [isSetupWizardOpen, setIsSetupWizardOpen] = useState(false);
+  const theme = useTheme();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   return (
     <Layout.Page>
       <SentryDocumentTitle title={t('Incident Hub')} />
       <Layout.Header unified>
         <Layout.HeaderContent>
-          <Layout.Title>{t('Incident Hub')}</Layout.Title>
+          <Flex justify="between" align="center">
+            <Layout.Title>{t('Incident Hub')}</Layout.Title>
+            {searchParams.get('setup') && (
+              <Button
+                borderless
+                onClick={() => setSearchParams({})}
+                size="xs"
+                color={theme.tokens.content.muted}
+              >
+                {t('Abandon Setup')}
+              </Button>
+            )}
+          </Flex>
         </Layout.HeaderContent>
       </Layout.Header>
       <Layout.Body style={{paddingTop: 0}}>
         <Layout.Main fullWidth>
           <Flex direction="column" gap="lg">
             <AnimatePresence mode="wait">
-              {isSetupWizardOpen ? (
+              {searchParams.get('setup') ? (
                 <motion.div key="wizard" {...animations.moveOver}>
-                  <SetupWizard onAbandon={() => setIsSetupWizardOpen(false)} />
+                  <SetupWizard />
                 </motion.div>
               ) : (
                 <motion.div key="content" {...animations.moveOver}>
-                  <IncidentHubBanner onStartSetup={() => setIsSetupWizardOpen(true)} />
+                  <IncidentHubBanner
+                    onStartSetup={() => setSearchParams({setup: 'true'})}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

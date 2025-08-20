@@ -1,67 +1,59 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button/';
-import {Heading, Text} from 'sentry/components/core/text';
-import {IconClose, IconDashboard} from 'sentry/icons';
+import {Input} from 'sentry/components/core/input';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Text} from 'sentry/components/core/text';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useIncidentComponents} from 'sentry/views/incidents/hooks/useIncidentComponents';
 
 interface ComponentStepProps {
-  onComplete: (stepId: string) => void;
+  onComplete: () => void;
 }
 
 export function ComponentStep({onComplete}: ComponentStepProps) {
+  const organization = useOrganization();
+  const {incidentComponents} = useIncidentComponents({
+    organizationSlug: organization.slug,
+  });
+
   return (
-    <StepContent>
-      <Heading as="h3" size="lg">
-        {t('Add Components')}
-      </Heading>
-      <Text variant="muted">
-        {t(
-          'Components are the building blocks of your application that can experience issues. Add the key services, databases, and external dependencies that your team needs to monitor.'
-        )}
-      </Text>
+    <Flex gap="xl">
+      <StepContent>
+        <Text variant="muted">
+          {t(
+            'Components are the building blocks of your application that can experience issues. Add the key services, databases, and external dependencies that your team needs to monitor.'
+          )}
+        </Text>
 
-      <ComponentForm>
-        <ComponentInput
-          placeholder={t('e.g., API Gateway, User Database, Payment Service')}
-        />
-        <Button size="sm" onClick={() => onComplete('components')}>
-          {t('Add Component')}
-        </Button>
-      </ComponentForm>
-
-      <ComponentList>
-        <ComponentItem>
-          <IconDashboard size="sm" />
-          <span>API Gateway</span>
-          <IconClose size="xs" />
-        </ComponentItem>
-        <ComponentItem>
-          <IconDashboard size="sm" />
-          <span>User Database</span>
-          <IconClose size="xs" />
-        </ComponentItem>
-      </ComponentList>
-    </StepContent>
+        <Flex gap="sm">
+          <Input
+            size="sm"
+            placeholder={t('e.g., API, Notifications, Payments, Mobile App')}
+          />
+          <Button size="sm" onClick={() => onComplete()}>
+            {t('Add Component')}
+          </Button>
+        </Flex>
+        <ComponentList>
+          <ComponentItem>
+            <span>API Gateway</span>
+            <IconClose size="xs" />
+          </ComponentItem>
+          <ComponentItem>
+            <span>User Database</span>
+            <IconClose size="xs" />
+          </ComponentItem>
+        </ComponentList>
+      </StepContent>
+    </Flex>
   );
 }
 
 const StepContent = styled('div')`
   max-width: 600px;
-`;
-
-const ComponentForm = styled('div')`
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-`;
-
-const ComponentInput = styled('input')`
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: 0.875rem;
 `;
 
 const ComponentList = styled('div')`

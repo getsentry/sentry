@@ -1,112 +1,149 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button/';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCalendar, IconChat, IconDocs, IconList, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import type {Integration} from 'sentry/types/integrations';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+
+interface ToolStepItem {
+  heading: string;
+  icon: React.ComponentType<any>;
+  subtext: string;
+  tools: Array<{
+    icon: React.ReactNode;
+    key: string;
+    label: string;
+  }>;
+}
+
+const checklistItems: ToolStepItem[] = [
+  {
+    icon: IconCalendar,
+    heading: t('Configure a rotation schedule'),
+    subtext: t('Share the responsibility across your team.'),
+    tools: [
+      {
+        icon: <PluginIcon pluginId="sentry" />,
+        label: t('Sentry'),
+        key: 'sentry',
+      },
+      {
+        icon: <PluginIcon pluginId="pagerduty" />,
+        label: t('PagerDuty'),
+        key: 'pagerduty',
+      },
+    ],
+  },
+  {
+    icon: IconList,
+    heading: t('Connect a task keeper'),
+    subtext: t('Keep track of action items, during and after the incident.'),
+    tools: [
+      {
+        icon: <PluginIcon pluginId="linear" />,
+        label: t('Linear'),
+        key: 'linear',
+      },
+      {
+        icon: <PluginIcon pluginId="jira" />,
+        label: t('Jira'),
+        key: 'jira',
+      },
+    ],
+  },
+  {
+    icon: IconChat,
+    heading: t('Scope out your discussions'),
+    subtext: t('Reserve a space for focused discussions.'),
+    tools: [
+      {
+        icon: <PluginIcon pluginId="slack" />,
+        label: t('Slack'),
+        key: 'slack',
+      },
+      {
+        icon: <PluginIcon pluginId="msteams" />,
+        label: t('MS Teams'),
+        key: 'msteams',
+      },
+      {
+        icon: <PluginIcon pluginId="discord" />,
+        label: t('Discord'),
+        key: 'discord',
+      },
+    ],
+  },
+  {
+    icon: IconMegaphone,
+    heading: t('Communicate to your users'),
+    subtext: t('Share the status of your incidents publicly.'),
+    tools: [
+      {
+        icon: <PluginIcon pluginId="sentry" />,
+        label: t('Sentry'),
+        key: 'sentry',
+      },
+      {
+        icon: <PluginIcon pluginId="statuspage" />,
+        label: t('Statuspage'),
+        key: 'statuspage',
+      },
+    ],
+  },
+  {
+    icon: IconDocs,
+    heading: t('Take the learnings'),
+    subtext: t('An ounce of prevention is worth a pound of cure.'),
+    tools: [
+      {
+        icon: <PluginIcon pluginId="confluence" />,
+        label: t('Confluence'),
+        key: 'confluence',
+      },
+      {
+        icon: <PluginIcon pluginId="notion" />,
+        label: t('Notion'),
+        key: 'notion',
+      },
+      {
+        icon: <PluginIcon pluginId="google-docs" />,
+        label: t('Google Docs'),
+        key: 'google-docs',
+      },
+    ],
+  },
+];
 
 export function ToolStep() {
-  const checklistItems = [
-    {
-      icon: IconCalendar,
-      heading: t('Configure a rotation schedule'),
-      subtext: t('Share the responsibility across your team.'),
-      buttons: [
-        {
-          icon: <PluginIcon pluginId="sentry" />,
-          label: t('Sentry'),
-          comingSoon: true,
-        },
-        {
-          icon: <PluginIcon pluginId="pagerduty" />,
-          label: t('PagerDuty'),
-        },
-      ],
-      completed: true,
-    },
-    {
-      icon: IconList,
-      heading: t('Connect a task keeper'),
-      subtext: t('Keep track of action items, during and after the incident.'),
-      buttons: [
-        {
-          icon: <PluginIcon pluginId="linear" />,
-          label: t('Linear'),
-        },
-        {
-          icon: <PluginIcon pluginId="jira" />,
-          label: t('Jira'),
-        },
-      ],
-      completed: false,
-    },
-    {
-      icon: IconChat,
-      heading: t('Scope out your discussions'),
-      subtext: t('Reserve a space for focused discussions.'),
-      completed: false,
-      buttons: [
-        {
-          icon: <PluginIcon pluginId="slack" />,
-          label: t('Slack'),
-        },
-        {
-          icon: <PluginIcon pluginId="msteams" />,
-          label: t('MS Teams'),
-        },
-        {
-          icon: <PluginIcon pluginId="discord" />,
-          label: t('Discord'),
-        },
-      ],
-    },
-    {
-      icon: IconMegaphone,
-      heading: t('Communicate to your users'),
-      subtext: t('Share the status of your incidents publicly.'),
-      completed: false,
-      buttons: [
-        {
-          icon: <PluginIcon pluginId="sentry" />,
-          label: t('Sentry'),
-          comingSoon: true,
-        },
-        {
-          icon: <PluginIcon pluginId="statuspage" />,
-          label: t('Statuspage'),
-        },
-      ],
-    },
-    {
-      icon: IconDocs,
-      heading: t('Take the learnings'),
-      subtext: t('An ounce of prevention is worth a pound of cure.'),
-      buttons: [
-        {
-          icon: <PluginIcon pluginId="confluence" />,
-          label: t('Confluence'),
-        },
-        {
-          icon: <PluginIcon pluginId="notion" />,
-          label: t('Notion'),
-        },
-        {
-          icon: <PluginIcon pluginId="google-docs" />,
-          label: t('Google Docs'),
-        },
-      ],
-      completed: false,
-    },
-  ];
+  const organization = useOrganization();
+  const {data: integrations} = useApiQuery<Integration[]>(
+    [`/organizations/${organization.slug}/integrations/`],
+    {staleTime: 30000}
+  );
+
+  const integrationsByProvider = useMemo(() => {
+    return integrations?.reduce(
+      (acc, integration) => {
+        acc[integration.provider.key] = integration;
+        return acc;
+      },
+      {} as Record<string, Integration>
+    );
+  }, [integrations]);
 
   return (
     <ChecklistContainer>
       {checklistItems.map((item, index) => (
         <ChecklistItem key={index} isLast={index === checklistItems.length - 1}>
-          <ChecklistCircle completed={item.completed}>
+          <ChecklistCircle completed={false}>
             <item.icon size="md" />
           </ChecklistCircle>
           <Flex direction="column" gap="sm">
@@ -115,18 +152,23 @@ export function ToolStep() {
             </Heading>
             <Text variant="muted">{item.subtext}</Text>
             <Flex gap="md" align="start">
-              {item.buttons.map(button => (
+              {item.tools.map(tool => (
                 <Button
-                  key={button.label}
+                  key={tool.label}
                   size="sm"
-                  icon={button.icon}
-                  disabled={button.comingSoon}
+                  icon={tool.icon}
+                  disabled={tool.key === 'sentry'}
                 >
-                  {button.label}
-                  {button.comingSoon && (
+                  {tool.label}
+                  {tool.key === 'sentry' && (
                     <Badge type="experimental" style={{marginLeft: '8px'}}>
                       {t('Coming Soon')}
                     </Badge>
+                  )}
+                  {integrationsByProvider?.[tool.key] && (
+                    <Tooltip title={t('Installation available!')}>
+                      <ToolConnected />
+                    </Tooltip>
                   )}
                 </Button>
               ))}
@@ -174,4 +216,12 @@ const ChecklistCircle = styled('div')<{completed: boolean}>`
   margin-right: 1rem;
   flex-shrink: 0;
   z-index: 2;
+`;
+
+const ToolConnected = styled('div')`
+  margin-left: 8px;
+  height: 8px;
+  width: 8px;
+  background: ${p => p.theme.tokens.graphics.success};
+  border-radius: 50%;
 `;
