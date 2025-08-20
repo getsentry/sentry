@@ -473,6 +473,9 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     padding: 6px;
     height: 500px;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-block-start: 64px;
+    scroll-padding-block-end: 64px;
 
     &:focus {
       outline: none;
