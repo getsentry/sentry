@@ -29,6 +29,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {Actor} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
@@ -497,12 +498,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 <MetricsSection>
                   <MetricItem>
                     <MetricLabel>{t('Events')}</MetricLabel>
-                    <MetricValue>{group.count}</MetricValue>
+                    <MetricValue>{formatAbbreviatedNumber(group.count || 0, 2, true)}</MetricValue>
                   </MetricItem>
 
                   <MetricItem>
                     <MetricLabel>{t('Users Affected')}</MetricLabel>
-                    <MetricValue>{group.userCount}</MetricValue>
+                    <MetricValue>{formatAbbreviatedNumber(group.userCount || 0, 2, true)}</MetricValue>
                   </MetricItem>
                 </MetricsSection>
               </TimelineMetricsContent>
