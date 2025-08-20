@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence

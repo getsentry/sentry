@@ -25,8 +25,8 @@ DynamicTaskWithContextType = Callable[Concatenate[TaskContext, P], None]
 
 def dynamic_sampling_task_with_context(
     max_task_execution: int,
-) -> Callable[[DynamicTaskWithContextType[Any]], Callable[P, None]]:
-    def wrapper(func: DynamicTaskWithContextType[Any]) -> Callable[P, None]:
+) -> Callable[[DynamicTaskWithContextType[P]], Callable[P, None]]:
+    def wrapper(func: DynamicTaskWithContextType[P]) -> Callable[P, None]:
         @wraps(func)
         def _wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
             function_name = func.__name__
