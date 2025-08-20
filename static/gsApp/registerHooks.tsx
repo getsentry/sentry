@@ -79,6 +79,8 @@ import {
   ContinuousProfilingBetaSDKAlertBanner,
   ProfilingBetaAlertBanner,
 } from './components/profiling/alerts';
+import {ContinuousProfilingBusinessTrialBanner} from './components/profiling/profilingBusinessTrialBanner';
+import {ContinuousProfilingProductTrialBanner} from './components/profiling/profilingProductTrialBanner';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
 import useButtonTracking from './hooks/useButtonTracking';
@@ -212,6 +214,10 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     ContinuousProfilingBetaSDKAlertBanner,
   'component:explore-date-range-query-limit-footer': () =>
     ExploreDateRangeQueryLimitFooter,
+  'component:continuous-profiling-business-trial-banner': () =>
+    ContinuousProfilingBusinessTrialBanner,
+  'component:continuous-profiling-product-trial-banner': () =>
+    ContinuousProfilingProductTrialBanner,
   /**
    * Augment the datetime picker based on plan retention days. Includes upsell interface
    */

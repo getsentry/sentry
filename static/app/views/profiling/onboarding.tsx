@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
@@ -23,6 +24,7 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {ContinuousProfilingProductTrialBanner} from 'sentry/components/profiling/billing/alerts';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
@@ -318,6 +320,7 @@ export function Onboarding() {
     isSelfHosted,
   };
 
+  const billingRequirements = profilingDocs.billingRequirements?.(docParams);
   const introduction = profilingDocs.introduction?.(docParams);
 
   const steps = [
@@ -333,23 +336,29 @@ export function Onboarding() {
   ];
 
   return (
-    <OnboardingPanel project={project}>
-      <SetupTitle project={project} />
-      {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <GuidedSteps>
-        {steps
-          // Only show non-optional steps
-          .filter(step => !step.collapsible)
-          .map((step, index) => (
-            <StepRenderer
-              key={index}
-              project={project}
-              step={step}
-              isLastStep={index === steps.length - 1}
-            />
-          ))}
-      </GuidedSteps>
-    </OnboardingPanel>
+    <Fragment>
+      <ContinuousProfilingProductTrialBanner project={project} />
+      <OnboardingPanel project={project}>
+        <SetupTitle project={project} />
+        {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
+        {billingRequirements && (
+          <DescriptionWrapper>{billingRequirements}</DescriptionWrapper>
+        )}
+        <GuidedSteps>
+          {steps
+            // Only show non-optional steps
+            .filter(step => !step.collapsible)
+            .map((step, index) => (
+              <StepRenderer
+                key={index}
+                project={project}
+                step={step}
+                isLastStep={index === steps.length - 1}
+              />
+            ))}
+        </GuidedSteps>
+      </OnboardingPanel>
+    </Fragment>
   );
 }
 

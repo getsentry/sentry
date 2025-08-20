@@ -11,3 +11,7 @@ export const ContinuousProfilingBetaAlertBanner = HookOrDefault({
 export const ContinuousProfilingBetaSDKAlertBanner = HookOrDefault({
   hookName: 'component:continuous-profiling-beta-sdk-banner',
 });
+
+export const ContinuousProfilingProductTrialBanner = HookOrDefault({
+  hookName: 'component:continuous-profiling-product-trial-banner',
+});

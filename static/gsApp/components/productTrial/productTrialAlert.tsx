@@ -38,12 +38,25 @@ interface ProductTrialAlertProps {
   organization: Organization;
   subscription: Subscription;
   trial: ProductTrial;
+  dismissable?: boolean;
   onDismiss?: () => void;
   product?: DataCategory;
+  showIcon?: boolean;
+  system?: boolean;
 }
 
 function ProductTrialAlert(props: ProductTrialAlertProps) {
-  const {trial, subscription, organization, onDismiss, product, api} = props;
+  const {
+    trial,
+    subscription,
+    organization,
+    onDismiss,
+    product,
+    api,
+    dismissable = true,
+    showIcon = true,
+    system = true,
+  } = props;
   const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [isUpgradeSent, setIsUpgradeSent] = useState(false);
 
@@ -170,33 +183,39 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
           {t('Update Plan')}
         </Button>
       );
+  } else {
+    return null;
   }
 
-  const actions = alertButton && (
+  const closeButton = dismissable && (
+    <Button
+      icon={<IconClose size="sm" />}
+      data-test-id="btn-overage-notification-snooze"
+      onClick={() => {
+        trackGetsentryAnalytics('product_trial.clicked_snooze', {
+          organization,
+          subscription,
+          event_types: trial.category,
+          is_warning: false,
+        });
+        onDismiss?.();
+      }}
+      size="zero"
+      borderless
+      title={t('Dismiss this period')}
+      aria-label={t('Dismiss this period')}
+    />
+  );
+
+  const actions = (alertButton || closeButton) && (
     <ButtonBar gap="lg">
       {alertButton}
-      <Button
-        icon={<IconClose size="sm" />}
-        data-test-id="btn-overage-notification-snooze"
-        onClick={() => {
-          trackGetsentryAnalytics('product_trial.clicked_snooze', {
-            organization,
-            subscription,
-            event_types: trial.category,
-            is_warning: false,
-          });
-          onDismiss?.();
-        }}
-        size="zero"
-        borderless
-        title={t('Dismiss this period')}
-        aria-label={t('Dismiss this period')}
-      />
+      {closeButton}
     </ButtonBar>
   );
 
   return (
-    <TrialAlert system type="muted" trailingItems={actions}>
+    <TrialAlert system={system} type="muted" showIcon={showIcon} trailingItems={actions}>
       <React.Fragment>
         {alertHeader && (
           <Heading>

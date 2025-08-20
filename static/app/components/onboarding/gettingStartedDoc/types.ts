@@ -200,6 +200,7 @@ export interface OnboardingConfig<
       configure: OnboardingStep[];
       install: OnboardingStep[];
       verify: OnboardingStep[];
+      billingRequirements?: React.ReactNode | React.ReactNode[];
       introduction?: React.ReactNode | React.ReactNode[];
       nextSteps?: Array<NextStep | null>;
       onPageLoad?: () => void;

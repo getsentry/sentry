@@ -8,6 +8,8 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
+import {ProfilingBusinessTrialBanner} from './profiling';
+
 const getInstallProfilingSnippetPackageManager = (params: DocsParams) => `
 Install-Package Sentry.Profiling -Version ${getPackageVersion(
   params,
@@ -74,6 +76,9 @@ export const getDotnetProfilingOnboarding = ({
   getInstallSnippetCoreCli: (params: DocsParams) => string;
   getInstallSnippetPackageManager: (params: DocsParams) => string;
 }): OnboardingConfig => ({
+  billingRequirements: (params: DocsParams) => (
+    <ProfilingBusinessTrialBanner project={params.project} />
+  ),
   introduction: () => (
     <Alert type="info" showIcon={false}>
       <div>
