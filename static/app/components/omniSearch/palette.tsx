@@ -1,14 +1,24 @@
-import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
-import serryLottieAnimation from 'getsentry-images/omni/mshk-image-to-lottie.json';
+import serryLottieAnimation from 'getsentry-images/omni_search/seer-y.json';
 import {PlatformIcon} from 'platformicons';
 
 import error from 'sentry-images/spot/cmd-k-error.svg';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
-import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
+import SeeryCharacter, {
+  SeeryCharacterRef,
+} from 'sentry/components/omniSearch/animation/seeryCharacter';
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -60,12 +70,20 @@ function flattenActions(actions: OmniAction[], parentLabel?: string): OmniAction
   return flattened;
 }
 
+export interface OmniSearchPaletteSeeryRef {
+  triggerSeeryImpatient: () => void;
+}
+
 /**
  * Very basic palette UI using cmdk that lists all registered actions.
  *
  * NOTE: This is intentionally minimal and will be iterated on.
  */
-export function OmniSearchPalette() {
+interface OmniSearchPaletteProps {
+  ref?: React.Ref<OmniSearchPaletteSeeryRef>;
+}
+
+export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const organization = useOrganization();
   const {
     focusedArea,
@@ -77,6 +95,7 @@ export function OmniSearchPalette() {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
+  const seeryRef = useRef<SeeryCharacterRef>(null);
 
   const debouncedQuery = useDebouncedValue(query, 300);
 
@@ -281,9 +300,21 @@ export function OmniSearchPalette() {
     return 'Type for actions…';
   }, [selectedAction]);
 
+  const triggerSeeryImpatient = () => {
+    seeryRef.current?.triggerImpatient();
+  };
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      triggerSeeryImpatient,
+    }),
+    []
+  );
+
   return (
     <Fragment>
-      <SeeryCharacter animationData={serryLottieAnimation} size={200} />
+      <SeeryCharacter ref={seeryRef} animationData={serryLottieAnimation} size={200} />
       <StyledCommand key={firstItemKey} label="OmniSearch" shouldFilter={false}>
         <Header>
           {focusedArea && (
@@ -306,6 +337,7 @@ export function OmniSearchPalette() {
                 if (e.key === 'Backspace' && query === '') {
                   clearSelection();
                   e.preventDefault();
+                  triggerSeeryImpatient();
                 }
               }}
               placeholder={placeholder}
