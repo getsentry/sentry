@@ -1357,7 +1357,7 @@ export function AvatarEditDrawer({
           </FullWidthSegmentedControl>
         </SegmentedControlSection>
 
-                <ContentSection>{renderModeContent()}</ContentSection>
+        <ContentSection>{renderModeContent()}</ContentSection>
       </DrawerContent>
 
       <DrawerFooter>
