@@ -1,3 +1,4 @@
+import {useEffect, useImperativeHandle} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -7,16 +8,75 @@ import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 
 interface SeeryCharacterProps {
   animationData: any;
+  ref?: React.Ref<SeeryCharacterRef>;
   size?: number;
 }
 
-function SeeryCharacter({animationData, size}: SeeryCharacterProps) {
+interface SeeryCharacterRef {
+  triggerImpatient: () => void;
+}
+
+function SeeryCharacter({animationData, size, ref}: SeeryCharacterProps) {
   const {visible} = useGlobalModal();
-  const {View} = useLottie({
+  const {View, animationItem} = useLottie({
     animationData,
     autoplay: true,
     loop: true,
   });
+
+  // Set up the idle loop when component mounts
+  useEffect(() => {
+    if (animationItem) {
+      // Start with idle animation (frames 0-19, which are 1-20 in 1-indexed)
+      animationItem.goToAndStop(0, true);
+      animationItem.playSegments(
+        [
+          [0, 19],
+          [19, 0],
+        ],
+        true
+      );
+      animationItem.loop = true;
+    }
+  }, [animationItem]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      triggerImpatient: () => {
+        if (animationItem) {
+          // Turn off looping temporarily
+          animationItem.loop = false;
+
+          // Play impatient animation once (frames 19-32, which are 20-33 in 1-indexed)
+          animationItem.playSegments(
+            [
+              [19, 32],
+              [32, 19],
+            ],
+            true
+          );
+
+          // Set up listener to go back to idle after impatient completes
+          const onComplete = () => {
+            animationItem.removeEventListener('complete', onComplete);
+            // Go back to idle loop
+            animationItem.loop = true;
+            animationItem.playSegments(
+              [
+                [0, 19],
+                [19, 0],
+              ],
+              true
+            );
+          };
+
+          animationItem.addEventListener('complete', onComplete);
+        }
+      },
+    }),
+    [animationItem]
+  );
 
   return createPortal(
     <AnimatePresence>
@@ -60,4 +120,4 @@ const AnimationContainer = styled('div')<{size?: number}>`
 `;
 
 export default SeeryCharacter;
-export type {SeeryCharacterProps};
+export type {SeeryCharacterRef};
