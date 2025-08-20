@@ -6,7 +6,8 @@ import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
-import {IconChevron, IconStar} from 'sentry/icons';
+import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
+import {IconArrow, IconChevron, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -20,6 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const enum EventNavOptions {
   RECOMMENDED = 'recommended',
@@ -129,6 +131,8 @@ export function IssueDetailsEventNavigation({
     query: {...location.query, referrer: 'next-event'},
   };
 
+  const traceId = event?.contexts.trace?.trace_id;
+
   useOmniActions([
     {
       key: 'issue-oldest-event',
@@ -170,6 +174,30 @@ export function IssueDetailsEventNavigation({
         query: {...location.query, referrer: `${option}-event`},
       },
     })),
+    ...(event && traceId
+      ? [
+          {
+            key: 'issue-full-trace-view',
+            areaKey: 'issue',
+            section: t('Debug Event'),
+            label: t('View Full Event Trace'),
+            actionType: 'navigate',
+            actionIcon: <IconArrow direction="right" />,
+            to: generateTraceTarget(
+              event,
+              organization,
+              {
+                ...location,
+                query: {
+                  ...location.query,
+                  groupId: event.groupID,
+                },
+              },
+              TraceViewSources.ISSUE_DETAILS
+            ),
+          },
+        ]
+      : []),
   ]);
 
   return (
