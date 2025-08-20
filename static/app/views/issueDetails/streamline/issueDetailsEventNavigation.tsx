@@ -7,7 +7,14 @@ import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {useOmniActions} from 'sentry/components/omniSearch/useOmniActions';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {IconArrow, IconChevron, IconStar} from 'sentry/icons';
+import {
+  IconArrow,
+  IconChat,
+  IconChevron,
+  IconSeer,
+  IconStar,
+  IconTag,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -19,6 +26,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -131,9 +140,73 @@ export function IssueDetailsEventNavigation({
     query: {...location.query, referrer: 'next-event'},
   };
 
+  const {baseUrl} = useGroupDetailsRoute();
   const traceId = event?.contexts.trace?.trace_id;
 
   useOmniActions([
+    {
+      key: 'issue-seer-debug',
+      label: t('Ask Seer About This Issue'),
+      areaKey: 'issue',
+      section: t('Issue'),
+      actionType: 'navigate',
+      actionIcon: <IconSeer />,
+      to: {
+        pathname: baseUrl,
+        query: {
+          ...location.query,
+          seerDrawer: true,
+        },
+      },
+    },
+    {
+      key: 'issue-tags-breakdown',
+      label: t('Tag Distribution'),
+      areaKey: 'issue',
+      section: t('Issue'),
+      actionType: 'navigate',
+      actionIcon: <IconTag />,
+      to: {
+        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
+        query: location.query,
+      },
+    },
+    {
+      key: 'issue-activity',
+      label: t('Comments and Activity'),
+      areaKey: 'issue',
+      section: t('Issue'),
+      actionType: 'navigate',
+      actionIcon: <IconChat direction="right" />,
+      to: {
+        pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
+        query: location.query,
+      },
+    },
+    ...(event && traceId
+      ? [
+          {
+            key: 'issue-full-trace-view',
+            areaKey: 'issue',
+            section: t('Debug Event'),
+            label: t('Go to Full Event Trace'),
+            actionType: 'navigate',
+            actionIcon: <IconArrow direction="right" />,
+            to: generateTraceTarget(
+              event,
+              organization,
+              {
+                ...location,
+                query: {
+                  ...location.query,
+                  groupId: event.groupID,
+                },
+              },
+              TraceViewSources.ISSUE_DETAILS
+            ),
+          },
+        ]
+      : []),
     {
       key: 'issue-oldest-event',
       label: t('Go to Previous Event'),
@@ -174,30 +247,6 @@ export function IssueDetailsEventNavigation({
         query: {...location.query, referrer: `${option}-event`},
       },
     })),
-    ...(event && traceId
-      ? [
-          {
-            key: 'issue-full-trace-view',
-            areaKey: 'issue',
-            section: t('Debug Event'),
-            label: t('View Full Event Trace'),
-            actionType: 'navigate',
-            actionIcon: <IconArrow direction="right" />,
-            to: generateTraceTarget(
-              event,
-              organization,
-              {
-                ...location,
-                query: {
-                  ...location.query,
-                  groupId: event.groupID,
-                },
-              },
-              TraceViewSources.ISSUE_DETAILS
-            ),
-          },
-        ]
-      : []),
   ]);
 
   return (
