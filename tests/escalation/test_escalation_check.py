@@ -9,10 +9,10 @@ from unittest import mock
 import pytest
 from celery.app.task import Task
 
-from sentry.escalation_policies import (
+from sentry.escalation_policies.logic import trigger_escalation_policy
+from sentry.escalation_policies.models.escalation_policy_state import (
     EscalationPolicyState,
     EscalationPolicyStateType,
-    trigger_escalation_policy,
 )
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
@@ -96,7 +96,7 @@ def test_escalation_to_completion(captured_sent_emails):
         state = trigger_escalation_policy(policy, group=group)
         assert EscalationPolicyState.objects.filter(escalation_policy=policy, group=group).exists()
 
-        assert mock.queue[0][0] == "sentry.tasks.escalation_check"
+        assert mock.queue[0][0] == "sentry.escalation_policies.tasks.escalation_check"
         mock.run_next(True)
 
         assert mock.queue[0][0] == "sentry.tasks.email.send_email"
@@ -105,7 +105,7 @@ def test_escalation_to_completion(captured_sent_emails):
 
         mock.run_all("sentry.tasks.email.send_email", False)
 
-        assert mock.queue[0][0] == "sentry.tasks.escalation_check"
+        assert mock.queue[0][0] == "sentry.escalation_policies.tasks.escalation_check"
         state.state = EscalationPolicyStateType.ACKNOWLEDGED
         state.save()
 

@@ -598,6 +598,7 @@ class User(Model, AbstractBaseUser):
                 id=self.id,
                 is_active=self.is_active,
                 email=self.email,
+                phone=self.phones.first().phone if self.phones.exists() else None,
             ),
             region_name=region_name,
         )

@@ -19,6 +19,7 @@ class ExternalProviders(ValueEqualityEnum):
     GITHUB_ENTERPRISE = 201
     GITLAB = 210
     JIRA_SERVER = 300
+    SMS = 400
 
     # TODO: do migration to delete this from database
     CUSTOM = 700
@@ -46,6 +47,7 @@ class IntegrationProviderSlug(StrEnum):
 
 class ExternalProviderEnum(StrEnum):
     EMAIL = "email"
+    SMS = "sms"
     CUSTOM = "custom_scm"
     SLACK = IntegrationProviderSlug.SLACK
     MSTEAMS = IntegrationProviderSlug.MSTEAMS
@@ -60,6 +62,7 @@ class ExternalProviderEnum(StrEnum):
 
 EXTERNAL_PROVIDERS_REVERSE = {
     ExternalProviderEnum.EMAIL: ExternalProviders.EMAIL,
+    ExternalProviderEnum.SMS: ExternalProviders.SMS,
     ExternalProviderEnum.SLACK: ExternalProviders.SLACK,
     ExternalProviderEnum.MSTEAMS: ExternalProviders.MSTEAMS,
     ExternalProviderEnum.PAGERDUTY: ExternalProviders.PAGERDUTY,
@@ -75,6 +78,7 @@ EXTERNAL_PROVIDERS_REVERSE_VALUES = {k.value: v for k, v in EXTERNAL_PROVIDERS_R
 
 EXTERNAL_PROVIDERS = {
     ExternalProviders.EMAIL: ExternalProviderEnum.EMAIL.value,
+    ExternalProviders.SMS: ExternalProviderEnum.SMS.value,
     ExternalProviders.SLACK: ExternalProviderEnum.SLACK.value,
     ExternalProviders.MSTEAMS: ExternalProviderEnum.MSTEAMS.value,
     ExternalProviders.PAGERDUTY: ExternalProviderEnum.PAGERDUTY.value,
@@ -89,6 +93,7 @@ EXTERNAL_PROVIDERS = {
 
 PERSONAL_NOTIFICATION_PROVIDERS = [
     ExternalProviderEnum.EMAIL.value,
+    ExternalProviderEnum.SMS.value,
     ExternalProviderEnum.SLACK.value,
     ExternalProviderEnum.MSTEAMS.value,
 ]

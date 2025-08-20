@@ -7,6 +7,7 @@ from sentry.users.models.user_merge_verification_code import UserMergeVerificati
 from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userphone import UserPhone
 from sentry.users.models.userrole import UserRole
 
 __all__ = (
@@ -20,4 +21,5 @@ __all__ = (
     "UserMergeVerificationCode",
     "UserPermission",
     "UserRole",
+    "UserPhone",
 )

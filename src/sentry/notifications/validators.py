@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import serializers
 
 from sentry.api.exceptions import ParameterValidationError
@@ -31,6 +33,9 @@ class UserNotificationSettingsOptionsDetailsSerializer(CamelSnakeSerializer):
             raise serializers.ValidationError("Invalid scope type")
 
 
+logger = logging.getLogger(__name__)
+
+
 class UserNotificationSettingOptionWithValueSerializer(
     UserNotificationSettingsOptionsDetailsSerializer
 ):
@@ -44,6 +49,7 @@ class UserNotificationSettingOptionWithValueSerializer(
     def validate(self, data):
         try:
             enum_type = validate_type(data["type"])
+            logger.info("enum_type: %s, value: %s", enum_type, data["value"])
             validate_value(enum_type, data["value"])
         except ParameterValidationError:
             raise serializers.ValidationError("Invalid type for value")

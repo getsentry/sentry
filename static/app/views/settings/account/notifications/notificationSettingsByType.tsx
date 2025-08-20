@@ -161,7 +161,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const isProviderSupported = (provider: SupportedProviders) => {
     // email is always possible
-    if (provider === 'email') {
+    if (provider === 'email' || provider === 'sms') {
       return true;
     }
     return getLinkedOrgs(provider).length > 0;

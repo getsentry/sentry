@@ -23,6 +23,7 @@ const accountNotifications = [
   'spikeProtection',
   'reports',
   'brokenMonitors',
+  'escalationPolicy',
 ];
 
 function AccountNotificationFineTuningController({

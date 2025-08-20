@@ -38,6 +38,7 @@ class NotificationSettingEnum(ValueEqualityEnum):
     MISSING_MEMBERS = "missingMembers"
     REPORTS = "reports"
     BROKEN_MONITORS = "brokenMonitors"
+    ESCALATION_POLICY = "escalationPolicy"
 
 
 class NotificationSettingsOptionEnum(ValueEqualityEnum):
@@ -168,6 +169,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.NEVER,
     },
     NotificationSettingEnum.BROKEN_MONITORS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.ESCALATION_POLICY: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },

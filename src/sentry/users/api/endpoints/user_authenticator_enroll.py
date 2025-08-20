@@ -26,6 +26,7 @@ from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.api.serializers.authenticator import get_interface_serializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
+from sentry.users.models.userphone import UserPhone
 from sentry.utils.auth import MFA_SESSION_KEY
 
 logger = logging.getLogger(__name__)
@@ -302,6 +303,10 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
             ip_address=request.META["REMOTE_ADDR"],
             context=context,
             send_email=True,
+        )
+
+        UserPhone.objects.create_or_update(
+            user=user, phone=interface.phone_number, is_verified=True
         )
 
         user.clear_lost_passwords()

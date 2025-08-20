@@ -370,6 +370,7 @@ class RpcRegionUser(RpcModel):
     id: int = -1
     is_active: bool = True
     email: str | None = None
+    phone: str | None = None
 
 
 class RpcOrganizationSignal(IntEnum):

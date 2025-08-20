@@ -18,7 +18,7 @@ from sentry.users.services.user_option import get_option_from_list, user_option_
 class EscalationNotification(ProjectNotification):
     metrics_key = "escalation"
     # This would be different
-    notification_setting_type_enum = NotificationSettingEnum.ISSUE_ALERTS
+    notification_setting_type_enum = NotificationSettingEnum.ESCALATION_POLICY
     template_path = "sentry/emails/escalation"
 
     def __init__(
@@ -56,7 +56,9 @@ class EscalationNotification(ProjectNotification):
         }
 
     def get_context(self) -> MutableMapping[str, Any]:
-        return {}
+        return {
+            "group": self.group,
+        }
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return "You have an escalating issue to attend to"
@@ -98,3 +100,26 @@ class EscalationNotification(ProjectNotification):
         shared_context = self.get_context()
         for provider, participants in participants_by_provider.items():
             notify(provider, self, participants, shared_context)
+
+
+from sentry import analytics
+
+
+# TODO: should have same base class as SlackIntegrationNotificationSent
+class SMSNotificationSent(analytics.Event):
+    type = "integrations.sms.notification_sent"
+
+    attributes = (
+        analytics.Attribute("organization_id"),
+        analytics.Attribute("project_id", required=False),
+        analytics.Attribute("category"),
+        analytics.Attribute("actor_id", required=False),
+        analytics.Attribute("user_id", required=False),
+        analytics.Attribute("group_id", required=False),
+        analytics.Attribute("id"),
+        analytics.Attribute("notification_uuid"),
+        analytics.Attribute("alert_id", required=False),
+    )
+
+
+analytics.register(SMSNotificationSent)

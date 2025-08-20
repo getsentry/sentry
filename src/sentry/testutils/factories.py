@@ -180,6 +180,7 @@ from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userphone import UserPhone
 from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
@@ -1032,6 +1033,19 @@ class Factories:
         useremail.save()
 
         return useremail
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_phone(user, phone=None, **kwargs):
+        if not phone:
+            phone = "+1" + "".join(str(random.randint(0, 9)) for _ in range(7))
+
+        kwargs.setdefault("is_verified", True)
+
+        userphone = UserPhone(user=user, phone=phone, **kwargs)
+        userphone.save()
+
+        return userphone
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

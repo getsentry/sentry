@@ -638,7 +638,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # the attribute we are changing never needs to produce an outbox.
         with unguarded_write(using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=user.id).update(
-                user_is_active=user.is_active, user_email=user.email
+                user_is_active=user.is_active, user_email=user.email, user_phone=user.phone
             )
 
     def get_option(self, *, organization_id: int, key: str) -> OptionValue:

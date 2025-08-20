@@ -31,6 +31,16 @@ export const NOTIFICATION_SETTING_FIELDS = {
     ],
     help: t('Changes in issue assignment, resolution status, and comments.'),
   },
+  escalationPolicy: {
+    name: 'escalationPolicy',
+    type: 'select',
+    label: t('Escalation Policies'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t('On-call notifications for escalation policies.'),
+  },
   deploy: {
     name: 'deploy',
     type: 'select',
@@ -50,6 +60,7 @@ export const NOTIFICATION_SETTING_FIELDS = {
       ['email', t('Email')],
       ['slack', t('Slack')],
       ['msteams', t('Microsoft Teams')],
+      ['phone', t('Phone')],
     ],
     help: t('Where personal notifications will be sent.'),
     multiple: true,

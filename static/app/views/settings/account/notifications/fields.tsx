@@ -22,6 +22,15 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
       {value: '0', label: t('Off')},
     ],
   },
+  escalationPolicy: {
+    title: t('EscalationPolicies'),
+    description: t('On-call notifications for escalation policies.'),
+    type: 'select',
+    options: [
+      {value: '1', label: t('Always')},
+      {value: '0', label: t('Never')},
+    ],
+  },
   workflow: {
     title: t('Workflow Notifications'),
     description: t(

@@ -1,4 +1,4 @@
-export const SUPPORTED_PROVIDERS = ['email', 'slack', 'msteams'] as const;
+export const SUPPORTED_PROVIDERS = ['email', 'slack', 'msteams', 'sms'] as const;
 export type SupportedProviders = (typeof SUPPORTED_PROVIDERS)[number];
 
 type ProviderValue = 'always' | 'never';
@@ -34,6 +34,7 @@ export const NOTIFICATION_SETTINGS_TYPES = [
   'email',
   'spikeProtection',
   'brokenMonitors',
+  'escalationPolicy',
 ] as const;
 
 export const SELF_NOTIFICATION_SETTINGS_TYPES = [
@@ -54,6 +55,7 @@ export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, s
   email: 'email',
   spikeProtection: 'spike-protection',
   brokenMonitors: 'broken-monitors',
+  escalationPolicy: 'escalation-policy',
 };
 
 export const NOTIFICATION_FEATURE_MAP: Partial<

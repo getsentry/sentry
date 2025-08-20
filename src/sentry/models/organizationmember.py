@@ -238,6 +238,7 @@ class OrganizationMember(ReplicatedRegionModel):
     # Note, this is the email of the user that may or may not be associated with the member, not the email used to
     # invite the user.
     user_email = models.CharField(max_length=200, null=True, blank=True)
+    user_phone = models.CharField(max_length=20, null=True, blank=True)
 
     class Meta:
         app_label = "sentry"
