@@ -120,6 +120,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   } = useOmniSearchState();
   const [query, setQuery] = useState('');
   const [seerError, setSeerError] = useState<boolean>(false);
+  const [seerIsExiting, setSeerIsExiting] = useState<boolean>(false);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const seeryRef = useRef<SeeryCharacterRef>(null);
@@ -251,6 +252,8 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                 });
 
                 setIsSearchingSeer(false);
+                setSeerIsExiting(true);
+
                 // Wait slightly to let the animation finish
                 setTimeout(() => {
                   closeModal();
@@ -270,6 +273,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
               });
 
               setIsSearchingSeer(false);
+              setSeerIsExiting(true);
 
               // Wait slightly to let the animation finish
               setTimeout(() => {
@@ -285,6 +289,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                 : '';
 
             setIsSearchingSeer(false);
+            setSeerIsExiting(true);
 
             // Wait slightly to let the animation finish
             setTimeout(() => {
@@ -586,17 +591,15 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                   e.preventDefault();
                   triggerSeeryImpatient();
                   setIsSearchingSeer(true);
+                  setSeerIsExiting(false);
                 }
               }}
               placeholder={placeholder}
-              disabled={isSearchingSeer}
-              style={{
-                opacity: isSearchingSeer ? 0.5 : 1,
-              }}
+              disabled={isSearchingSeer || seerIsExiting}
             />
           </SearchInputContainer>
         </Header>
-        {isSearchingSeer ? (
+        {isSearchingSeer || seerIsExiting ? (
           <SeerLoadingContainer>
             <BrainHead src={brainhead} alt="Loading..." />
             <LoadingCaption>MAKING IT MAKE SENSE</LoadingCaption>
@@ -689,6 +692,10 @@ const SearchInput = styled(CommandPrimitive.Command.Input)`
   font-size: ${p => p.theme.fontSize.lg};
   line-height: 1;
   height: 40px;
+
+  &:disabled {
+    opacity: 0.5;
+  }
 `;
 
 const FocusedAreaContainer = styled('div')`
