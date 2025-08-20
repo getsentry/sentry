@@ -12,6 +12,11 @@ import type {
   AutofixCodebaseChange,
   AutofixRootCauseData,
 } from 'sentry/components/events/autofix/types';
+import {
+  getRootCauseDescription,
+  getRootCauseIsLoading,
+} from 'sentry/components/events/autofix/utils';
+import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
@@ -118,6 +123,9 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const isAIMode = searchParams.get('aiMode') === 'true';
+
+  // Get initial guess from group summary - must be called at top level for hooks order
+  const {data: summaryData} = useGroupSummaryData(group);
 
   const api = useApi();
   const organization = useOrganization();
@@ -523,6 +531,13 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
   const rootCauseData = getRootCauseData();
   const solutionData = getSolutionData();
+  
+  // Get root cause description and loading state using the utility functions
+  const rootCauseDescription = autofixData?.autofix ? getRootCauseDescription(autofixData.autofix) : null;
+  const rootCauseIsLoading = autofixData?.autofix ? getRootCauseIsLoading(autofixData.autofix) : false;
+  
+  // Get initial guess from group summary data (hook called at top level)
+  const initialGuess = summaryData?.possibleCause;
 
   return (
     <AILayoutContainer>
@@ -649,54 +664,78 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
           </CardContent>
         </SeverityCard>
 
-        {/* Root Cause Analysis Section */}
-        {rootCauseData && (
-          <RootCauseWrapper>
-            <RootCauseCard>
-              <CardHeader>
-                <HeaderLeft>
-                  <CardTitle>
-                    <IconFocus size="md" />
-                    {t('Root Cause')}
-                  </CardTitle>
-                </HeaderLeft>
-              </CardHeader>
-
-              <CardContent>
-                {/* Root Cause Description */}
-                {rootCauseData.causes[0]?.description && (
-                  <RootCauseDescription
-                    dangerouslySetInnerHTML={{
-                      __html: rootCauseData.causes[0].description,
-                    }}
-                  />
+        {/* Root Cause Analysis Section - Always show this card */}
+        <RootCauseWrapper>
+          <RootCauseCard>
+            <CardHeader>
+              <HeaderLeft>
+                <CardTitle>
+                  <IconFocus size="md" />
+                  {t('Root Cause')}
+                </CardTitle>
+                {rootCauseIsLoading && (
+                  <StatusPill>
+                    <LoadingIndicator mini size={16} />
+                    {t('In Progress')}
+                  </StatusPill>
                 )}
+              </HeaderLeft>
+            </CardHeader>
 
-                <AnalysisSection>
-                  <CollapsibleSectionHeader
-                    onClick={() => setShowRootCauseReasoning(!showRootCauseReasoning)}
-                  >
-                    <ChevronIcon direction={showRootCauseReasoning ? 'down' : 'right'}>
-                      <IconChevron />
-                    </ChevronIcon>
-                    <SectionTitle>{t('Reasoning')}</SectionTitle>
-                  </CollapsibleSectionHeader>
-                  {showRootCauseReasoning && (
-                    <RootCauseContent>
-                      <AutofixRootCause
-                        causes={rootCauseData.causes}
-                        groupId={group.id}
-                        runId={rootCauseData.runId}
-                        rootCauseSelection={null}
-                        event={event}
-                      />
-                    </RootCauseContent>
-                  )}
-                </AnalysisSection>
-              </CardContent>
-            </RootCauseCard>
-          </RootCauseWrapper>
-        )}
+            <CardContent>
+              {rootCauseIsLoading ? (
+                <ProgressContainer>
+                  <ProgressIndicator>
+                    <LoadingIndicator />
+                    <ProgressText>
+                      {t('Seer is analyzing the root cause of this issue...')}
+                    </ProgressText>
+                  </ProgressIndicator>
+                </ProgressContainer>
+              ) : rootCauseDescription ? (
+                <>
+                  {/* Root Cause Description */}
+                  <RootCauseDescription>
+                    {rootCauseDescription}
+                  </RootCauseDescription>
+
+                  <AnalysisSection>
+                    <CollapsibleSectionHeader
+                      onClick={() => setShowRootCauseReasoning(!showRootCauseReasoning)}
+                    >
+                      <ChevronIcon direction={showRootCauseReasoning ? 'down' : 'right'}>
+                        <IconChevron />
+                      </ChevronIcon>
+                      <SectionTitle>{t('Reasoning')}</SectionTitle>
+                    </CollapsibleSectionHeader>
+                    {showRootCauseReasoning && rootCauseData && (
+                      <RootCauseContent>
+                        <AutofixRootCause
+                          causes={rootCauseData.causes}
+                          groupId={group.id}
+                          runId={rootCauseData.runId}
+                          rootCauseSelection={null}
+                          event={event}
+                        />
+                      </RootCauseContent>
+                    )}
+                  </AnalysisSection>
+                </>
+              ) : initialGuess ? (
+                <InitialGuessContainer>
+                  <InitialGuessLabel>{t('Initial Guess')}</InitialGuessLabel>
+                  <InitialGuessContent>
+                    {initialGuess}
+                  </InitialGuessContent>
+                </InitialGuessContainer>
+              ) : (
+                <EmptyStateText>
+                  {t('No root cause analysis available. Start Seer to analyze this issue.')}
+                </EmptyStateText>
+              )}
+            </CardContent>
+          </RootCauseCard>
+        </RootCauseWrapper>
 
         {/* Solution Section */}
         {solutionData && (
@@ -1078,6 +1117,19 @@ const HeaderLeft = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1.5)};
+`;
+
+const StatusPill = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  padding: ${space(0.5)} ${space(1)};
+  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.subText};
+  border-radius: 12px;
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const SeverityPill = styled('span')<{colors: {background: string; text: string}}>`
@@ -1758,4 +1810,82 @@ const TokenStatusMissing = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const ProgressContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  padding: ${space(2)};
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.backgroundSecondary};
+`;
+
+const ProgressIndicator = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const ProgressText = styled('div')`
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSize.md};
+`;
+
+const ProgressMessages = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  padding-left: ${space(2)};
+  border-left: 2px solid ${p => p.theme.border};
+`;
+
+const ProgressMessage = styled('div')<{type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION'}>`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => {
+    switch (p.type) {
+      case 'ERROR':
+        return p.theme.error;
+      case 'WARNING':
+        return p.theme.warningText;
+      case 'NEED_MORE_INFORMATION':
+        return p.theme.yellow300;
+      default:
+        return p.theme.subText;
+    }
+  }};
+  line-height: 1.4;
+  font-family: ${p => p.theme.text.family};
+`;
+
+const EmptyStateText = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
+  text-align: center;
+  padding: ${space(3)};
+  font-style: italic;
+`;
+
+const InitialGuessContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  padding: ${space(2)};
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.backgroundSecondary};
+  border-left: 3px solid ${p => p.theme.purple300};
+`;
+
+const InitialGuessLabel = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.purple300};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const InitialGuessContent = styled('div')`
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSize.md};
+  line-height: 1.5;
 `;
