@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/core/layout';
@@ -17,7 +17,10 @@ import CommentsList from './components/commentsList';
 import PRFilesList from './components/prFilesList';
 import PRHeader from './components/prHeader';
 import PRSidebar from './components/prSidebar';
+import SnapshotTesting from './components/snapshotTesting';
 import type {PRCommentsData, PRData, PRIssuesData} from './components/types';
+
+type TabType = 'files' | 'snapshots';
 
 export default function PRDetails() {
   const params = useParams<{prId: string; repoName: string}>();
@@ -36,6 +39,7 @@ export default function PRDetails() {
   const [error, setError] = useState<string | null>(null);
   const [issuesError, setIssuesError] = useState<string | null>(null);
   const [commentsError, setCommentsError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('files');
 
   // Fetch PR data (files, details, performance, etc.)
   useEffect(() => {
@@ -206,29 +210,44 @@ export default function PRDetails() {
       <Layout.Page>
         <Layout.Header>
           <PRHeader
+            activeTab={activeTab}
+            breadcrumbItems={breadcrumbItems}
+            isInPreventContext={isInPreventContext}
+            onTabChange={setActiveTab}
             prData={prData}
             prDetails={prDetails}
-            repoName={params.repoName}
             prId={params.prId}
-            isInPreventContext={isInPreventContext}
-            breadcrumbItems={breadcrumbItems}
+            repoName={params.repoName}
           />
         </Layout.Header>
 
         <Body noRowGap>
           <Main>
-            {/* Comments section above files */}
-            {commentsData?.general_comments &&
-              commentsData.general_comments.length > 0 && (
-                <CommentsList comments={commentsData.general_comments} title="Comments" />
-              )}
-            {commentsLoading && <div>Loading comments...</div>}
-            {commentsError && (
-              <div style={{color: 'red'}}>Error loading comments: {commentsError}</div>
+            {activeTab === 'files' && (
+              <React.Fragment>
+                {/* Comments section above files */}
+                {commentsData?.general_comments &&
+                  commentsData.general_comments.length > 0 && (
+                    <CommentsList
+                      comments={commentsData.general_comments}
+                      title="Comments"
+                    />
+                  )}
+                {commentsLoading && <div>Loading comments...</div>}
+                {commentsError && (
+                  <div style={{color: 'red'}}>
+                    Error loading comments: {commentsError}
+                  </div>
+                )}
+
+                {prData?.pr_files && prData.pr_files.length > 0 && (
+                  <PRFilesList files={prData.pr_files} commentsData={commentsData} />
+                )}
+              </React.Fragment>
             )}
 
-            {prData?.pr_files && prData.pr_files.length > 0 && (
-              <PRFilesList files={prData.pr_files} commentsData={commentsData} />
+            {activeTab === 'snapshots' && (
+              <SnapshotTesting prId={params.prId} repoName={params.repoName} />
             )}
           </Main>
 

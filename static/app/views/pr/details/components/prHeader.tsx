@@ -1,9 +1,10 @@
-import {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
 import {IconGithub} from 'sentry/icons';
@@ -12,9 +13,13 @@ import {space} from 'sentry/styles/space';
 
 import type {PRData, PRDetails} from './types';
 
+type TabType = 'files' | 'snapshots';
+
 interface PRHeaderProps {
+  activeTab: TabType;
   breadcrumbItems: any[] | null;
   isInPreventContext: boolean;
+  onTabChange: (tab: TabType) => void;
   prData: PRData | null;
   prDetails: PRDetails | null;
   prId: string;
@@ -22,12 +27,14 @@ interface PRHeaderProps {
 }
 
 function PRHeader({
+  activeTab,
+  breadcrumbItems,
+  isInPreventContext,
+  onTabChange,
   prData,
   prDetails,
-  repoName,
   prId,
-  isInPreventContext,
-  breadcrumbItems,
+  repoName,
 }: PRHeaderProps) {
   const [expandedDescription, setExpandedDescription] = useState(false);
   const [needsExpansion, setNeedsExpansion] = useState(false);
@@ -43,14 +50,14 @@ function PRHeader({
   }, [prDetails?.body]);
 
   return (
-    <Header>
+    <Flex direction="column" gap="md">
       {isInPreventContext && breadcrumbItems && (
         <BreadcrumbContainer>
           <Breadcrumbs crumbs={breadcrumbItems} />
         </BreadcrumbContainer>
       )}
       {prDetails ? (
-        <PRTitleSection>
+        <React.Fragment>
           <TitleRow>
             <PRTitleHeading as="h1" size="xl">
               {prDetails.title}
@@ -123,7 +130,15 @@ function PRHeader({
               </PRDescriptionWrapper>
             )}
           </PRDetailsCard>
-        </PRTitleSection>
+          <TabsContainer>
+            <Tabs value={activeTab} onChange={onTabChange}>
+              <TabList hideBorder>
+                <TabList.Item key="files">{t('Files')}</TabList.Item>
+                <TabList.Item key="snapshots">{t('Snapshot Testing')}</TabList.Item>
+              </TabList>
+            </Tabs>
+          </TabsContainer>
+        </React.Fragment>
       ) : (
         <FallbackHeader>
           <Heading as="h1">{t('Pull Request Details')}</Heading>
@@ -143,19 +158,11 @@ function PRHeader({
           </MetadataFlex>
         </FallbackHeader>
       )}
-    </Header>
+    </Flex>
   );
 }
 
-const Header = styled('div')`
-  margin-bottom: ${space(3)};
-`;
-
 const BreadcrumbContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
-const PRTitleSection = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
@@ -163,7 +170,6 @@ const TitleRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: ${space(1)};
 `;
 
 const PRTitleHeading = styled(Heading)`
@@ -176,14 +182,12 @@ const PRDetailsCard = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: 6px;
   padding: ${space(1.5)};
-  margin-top: ${space(1)};
 `;
 
 const PRMeta = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${space(1)};
 `;
 
 const PRAuthor = styled('div')`
@@ -324,5 +328,7 @@ const FallbackHeader = styled('div')`
 const MetadataFlex = styled(Flex)`
   margin-top: ${space(1)};
 `;
+
+const TabsContainer = styled('div')``;
 
 export default PRHeader;
