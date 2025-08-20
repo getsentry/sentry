@@ -1,4 +1,3 @@
-import abc
 import builtins
 from dataclasses import dataclass
 from typing import Any
@@ -73,7 +72,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def data_conditions(self) -> BaseDataConditionValidator:
         raise NotImplementedError
 
-    @abc.abstractmethod
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
 

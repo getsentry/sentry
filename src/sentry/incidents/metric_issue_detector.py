@@ -92,10 +92,6 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         return attrs
 
     def get_quota(self) -> DetectorQuota:
-        """
-        Enforce quota limits for metric detector creation.
-        Raises ValidationError if quota limits are exceeded.
-        """
         organization = self.context.get("organization")
         request = self.context.get("request")
         if organization is None or request is None:
