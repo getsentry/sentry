@@ -1,11 +1,12 @@
 from functools import cached_property
-from unittest.mock import MagicMock
 
 import orjson
 import responses
+from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.requests import drf_request_from_request
 from sentry_plugins.gitlab.plugin import GitLabPlugin
 
 
@@ -17,6 +18,10 @@ class GitLabPluginTest(PluginTestCase):
     @cached_property
     def plugin(self) -> GitLabPlugin:
         return GitLabPlugin()
+
+    @cached_property
+    def request(self) -> RequestFactory:
+        return RequestFactory()
 
     def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
@@ -53,7 +58,7 @@ class GitLabPluginTest(PluginTestCase):
         self.plugin.set_option("gitlab_token", "abcdefg", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = MagicMock()
+        request = drf_request_from_request(self.request.get("/"))
         request.user = self.user
         form_data = {"title": "Hello", "description": "Fix this."}
 
@@ -87,7 +92,7 @@ class GitLabPluginTest(PluginTestCase):
         self.plugin.set_option("gitlab_token", "abcdefg", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = MagicMock()
+        request = drf_request_from_request(self.request.get("/"))
         request.user = self.user
         form_data = {"comment": "Hello", "issue_id": "1"}
 
