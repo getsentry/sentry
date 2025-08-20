@@ -20,6 +20,7 @@ import {
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
+import {useCopyShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useCopyShortcuts';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {
@@ -52,6 +53,9 @@ export function GroupDetailsLayout({
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
+
+  // Register copy shortcuts for issue details
+  useCopyShortcuts({group, event});
 
   return (
     <IssueDetailsContextProvider>

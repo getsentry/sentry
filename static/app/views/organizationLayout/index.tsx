@@ -13,10 +13,12 @@ import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/si
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import type {Organization} from 'sentry/types/organization';
+import {GlobalShortcuts, ShortcutsProvider} from 'sentry/utils/keyboardShortcuts';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useInitSentryToolbar from 'sentry/utils/useInitSentryToolbar';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import Nav from 'sentry/views/nav';
@@ -43,6 +45,7 @@ function OrganizationLayout({children}: Props) {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
+  const router = useRouter();
   const prefersStackedNav = usePrefersStackedNav();
   const App = prefersStackedNav ? AppLayout : LegacyAppLayout;
 
@@ -56,7 +59,10 @@ function OrganizationLayout({children}: Props) {
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <OrganizationContainer>
         <GlobalDrawer>
-          <App organization={organization}>{children}</App>
+          <ShortcutsProvider>
+            <GlobalShortcuts router={router} />
+            <App organization={organization}>{children}</App>
+          </ShortcutsProvider>
         </GlobalDrawer>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />

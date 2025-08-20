@@ -1,4 +1,5 @@
-import {Fragment, useCallback, useState} from 'react';
+import * as React from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -142,18 +143,38 @@ interface StreamlinedActivitySectionProps {
    * Disables collapse feature, and hides headers
    */
   isDrawer?: boolean;
+  /**
+   * Ref to expose the focus comment function to parent components
+   */
+  onFocusCommentRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export default function StreamlinedActivitySection({
   group,
   isDrawer,
   filterComments,
+  onFocusCommentRef,
 }: StreamlinedActivitySectionProps) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const [inputId, setInputId] = useState(() => uniqueId());
+  const ref = useRef<HTMLTextAreaElement>(null!);
+
+  // Focus comment function
+  const focusComment = useCallback(() => {
+    if (ref.current) {
+      ref.current.focus();
+    }
+  }, []);
+
+  // Expose focus function to parent via ref
+  React.useEffect(() => {
+    if (onFocusCommentRef) {
+      onFocusCommentRef.current = focusComment;
+    }
+  }, [focusComment, onFocusCommentRef]);
 
   const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
@@ -161,7 +182,7 @@ export default function StreamlinedActivitySection({
     minHeight: 140,
     group,
     projectSlugs,
-    placeholder: t('Add a comment\u2026'),
+    placeholder: t('Add a (c)omment\u2026'),
   };
 
   const mutators = useMutateActivity({
@@ -262,6 +283,7 @@ export default function StreamlinedActivitySection({
           setInputId(uniqueId());
         }}
         source="issue-details"
+        ref={ref}
         {...noteProps}
       />
       {group.activity
@@ -299,6 +321,7 @@ export default function StreamlinedActivitySection({
             setInputId(uniqueId());
           }}
           source="issue-details"
+          ref={ref}
           {...noteProps}
         />
         {group.activity.length < 5 ? (

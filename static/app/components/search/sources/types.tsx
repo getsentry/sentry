@@ -26,7 +26,8 @@ export type ResultItem = {
     | 'help-develop'
     | 'help-help-center'
     | 'help-blog'
-    | 'help-zendesk_sentry_articles';
+    | 'help-zendesk_sentry_articles'
+    | 'keyboard-shortcut';
   /**
    * The source that created the result.
    */
@@ -44,7 +45,8 @@ export type ResultItem = {
     | 'integration'
     | 'sentryApp'
     | 'docIntegration'
-    | 'help';
+    | 'help'
+    | 'keyboard';
   /**
    * The title to display in result options.
    */
