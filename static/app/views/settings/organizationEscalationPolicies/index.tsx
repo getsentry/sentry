@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -15,8 +16,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -49,6 +52,7 @@ export interface EscalationPolicy {
 }
 
 function OrganizationEscalationPolicies() {
+  const api = useApi();
   const organization = useOrganization();
 
   const {
@@ -63,12 +67,60 @@ function OrganizationEscalationPolicies() {
     }
   );
 
+  const {mutate: createPolicy, isPending: isCreating} = useMutation({
+    mutationFn: (payload: any) => {
+      return api.requestPromise(
+        `/organizations/${organization.slug}/escalation-policies/`,
+        {
+          method: 'PUT',
+          data: payload,
+        }
+      );
+    },
+    onSuccess: createdPolicy => {
+      // Navigate to the new policy details page
+      browserHistory.push(
+        `/settings/${organization.slug}/escalation-policies/${createdPolicy.id}/`
+      );
+    },
+    onError: (_error: any) => {
+      addErrorMessage(t('Failed to create escalation policy'));
+    },
+  });
+
+  const handleCreatePolicy = useCallback(() => {
+    const existingNames = escalationPolicies?.map(p => p.name) || [];
+    let newName = 'New Policy';
+    let counter = 1;
+
+    while (existingNames.includes(newName)) {
+      counter++;
+      newName = `New Policy ${counter}`;
+    }
+
+    // Create a new policy with default values
+    const newPolicyPayload = {
+      name: newName,
+      description: '',
+      repeat_n_times: 1,
+      steps: [
+        {
+          escalate_after_sec: 300, // Default 5 minutes
+          recipients: [], // Empty recipients
+        },
+      ],
+    };
+
+    createPolicy(newPolicyPayload);
+  }, [createPolicy, escalationPolicies]);
+
   const action = (
     <Button
       priority="primary"
       size="sm"
       icon={<IconAdd />}
-      to={`/settings/${organization.slug}/escalation-policies/new/`}
+      onClick={handleCreatePolicy}
+      disabled={isCreating}
     >
       {t('Add Policy')}
     </Button>

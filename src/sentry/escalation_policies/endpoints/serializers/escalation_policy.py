@@ -42,7 +42,7 @@ class EscalationPolicyPutStepSerializer(serializers.Serializer):
 class EscalationPolicyPutSerializer(serializers.Serializer):
     id = serializers.IntegerField(required=False)
     name = serializers.CharField(max_length=256, required=True)
-    description = serializers.CharField(max_length=256, required=False)
+    description = serializers.CharField(max_length=256, required=False, allow_blank=True)
     repeat_n_times = serializers.IntegerField(min_value=1, required=True)
     steps = serializers.ListField(child=EscalationPolicyPutStepSerializer())
     # Owner
