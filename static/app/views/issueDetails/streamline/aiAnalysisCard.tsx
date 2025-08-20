@@ -111,6 +111,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const [showReasoning, setShowReasoning] = useState(false);
   const [showRootCauseReasoning, setShowRootCauseReasoning] = useState(false);
   const [showDebugger, setShowDebugger] = useState(false);
+  const [showStacktraceDrawer, setShowStacktraceDrawer] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [orgMembers, setOrgMembers] = useState<User[]>([]);
@@ -507,6 +508,16 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                   </MetricItem>
                 </MetricsSection>
               </TimelineMetricsContent>
+              
+              {/* Action Pills Row */}
+              <ActionPillsRow>
+                <ViewStacktracePill onClick={() => setShowStacktraceDrawer(true)}>
+                  {t('View Stacktrace')}
+                </ViewStacktracePill>
+                <CopyIssuePill>
+                  {t('Copy issue as markdown')}
+                </CopyIssuePill>
+              </ActionPillsRow>
             </TimelineMetricsRow>
           </CardContent>
         </HeaderCard>
@@ -694,40 +705,6 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
           </SolutionWrapper>
         )}
 
-        {/* Debugger Section */}
-        <DebuggerWrapper isExpanded={showDebugger}>
-          <DebuggerCard>
-            <CardHeader>
-              <DebuggerHeaderContent onClick={() => setShowDebugger(!showDebugger)}>
-                <HeaderLeft>
-                  <CardTitle>
-                    <IconTerminal size="md" color="purple400" />
-                    {t('Debugger')}
-                  </CardTitle>
-                  <DebuggerSubtitle>{t('Event Details & Tools')}</DebuggerSubtitle>
-                  <ChevronIcon direction={showDebugger ? 'down' : 'left'}>
-                    <IconChevron />
-                  </ChevronIcon>
-                </HeaderLeft>
-                <HeaderRight />
-              </DebuggerHeaderContent>
-            </CardHeader>
-
-            <CardContent>
-              {showDebugger && event && (
-                <DebuggerContent>
-                  <EventDetailsHeader event={event} group={group} project={project} />
-                  <EventDetails event={event} group={group} project={project} />
-                </DebuggerContent>
-              )}
-              {showDebugger && !event && (
-                <DebuggerContent>
-                  <div>No event data available for debugging</div>
-                </DebuggerContent>
-              )}
-            </CardContent>
-          </DebuggerCard>
-        </DebuggerWrapper>
 
         {/* Activity Section */}
         <ActivityWrapper>
@@ -883,6 +860,34 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
           </CardContent>
         </SidebarCard>
       </Sidebar>
+      
+      {/* Stacktrace Drawer */}
+      {showStacktraceDrawer && (
+        <StacktraceDrawer>
+          <DrawerOverlay onClick={() => setShowStacktraceDrawer(false)} />
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>
+                <IconTerminal size="md" />
+                {t('Stacktrace Details')}
+              </DrawerTitle>
+              <DrawerCloseButton onClick={() => setShowStacktraceDrawer(false)}>
+                ×
+              </DrawerCloseButton>
+            </DrawerHeader>
+            <DrawerBody>
+              {event ? (
+                <Fragment>
+                  <EventDetailsHeader event={event} group={group} project={project} />
+                  <EventDetails event={event} group={group} project={project} />
+                </Fragment>
+              ) : (
+                <div>No event data available for debugging</div>
+              )}
+            </DrawerBody>
+          </DrawerContent>
+        </StacktraceDrawer>
+      )}
     </AILayoutContainer>
   );
 }
@@ -1844,4 +1849,135 @@ const ExitAIModeLink = styled('button')`
   &:hover {
     color: ${p => p.theme.gray400};
   }
+`;
+
+const ActionPillsRow = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  margin-top: ${space(2)};
+`;
+
+const ViewStacktracePill = styled('button')`
+  display: inline-flex;
+  align-items: center;
+  padding: ${space(0.5)} ${space(1.5)};
+  background: ${p => p.theme.purple300};
+  color: ${p => p.theme.white};
+  border: 1px solid ${p => p.theme.purple300};
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: ${p => p.theme.purple400};
+    border-color: ${p => p.theme.purple400};
+  }
+`;
+
+const CopyIssuePill = styled('button')`
+  display: inline-flex;
+  align-items: center;
+  padding: ${space(0.5)} ${space(1.5)};
+  background: ${p => p.theme.backgroundSecondary};
+  color: ${p => p.theme.textColor};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: ${p => p.theme.backgroundTertiary};
+  }
+`;
+
+const StacktraceDrawer = styled('div')`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
+`;
+
+const DrawerOverlay = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+`;
+
+const DrawerContent = styled('div')`
+  position: relative;
+  width: 100%;
+  height: 75vh;
+  background: ${p => p.theme.background};
+  border-radius: ${space(2)} ${space(2)} 0 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+  
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+`;
+
+const DrawerHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${space(2)} ${space(3)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${space(2)} ${space(2)} 0 0;
+`;
+
+const DrawerTitle = styled('h3')`
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: 600;
+  color: ${p => p.theme.headingColor};
+`;
+
+const DrawerCloseButton = styled('button')`
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: ${p => p.theme.subText};
+  cursor: pointer;
+  padding: ${space(0.5)};
+  border-radius: ${p => p.theme.borderRadius};
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: ${p => p.theme.backgroundTertiary};
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const DrawerBody = styled('div')`
+  flex: 1;
+  overflow-y: auto;
+  padding: ${space(2)};
 `;
