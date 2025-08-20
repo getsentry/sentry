@@ -1922,7 +1922,7 @@ const DrawerOverlay = styled('div')`
 const DrawerContent = styled('div')`
   position: relative;
   width: 100%;
-  height: 75vh;
+  height: 85vh;
   background: ${p => p.theme.background};
   border-radius: ${space(2)} ${space(2)} 0 0;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
