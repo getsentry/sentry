@@ -410,6 +410,13 @@ export interface Integration extends CommonIntegration {
 
 type ConfigData = {
   installationType?: string;
+  service_table?: [
+    {
+      id: string;
+      integration_key: string;
+      service: string;
+    },
+  ];
 };
 
 export interface OrganizationIntegration extends Integration {

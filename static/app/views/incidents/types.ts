@@ -30,3 +30,5 @@ export interface IncidentCaseTemplate {
   auto_assign_to?: string;
   description?: string;
 }
+
+export type IncidentToolKey = 'schedule' | 'task' | 'channel' | 'status_page' | 'retro';

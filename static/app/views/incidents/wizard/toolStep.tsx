@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -6,27 +6,34 @@ import {Button} from 'sentry/components/core/button/';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import useDrawer from 'sentry/components/globalDrawer';
 import {IconCalendar, IconChat, IconDocs, IconList, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import type {Integration} from 'sentry/types/integrations';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type {IconSize} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {IncidentToolKey} from 'sentry/views/incidents/types';
+import {ToolDrawer} from 'sentry/views/incidents/wizard/toolDrawer';
 
 interface ToolStepItem {
+  IconComponent: React.ComponentType<{size: IconSize}>;
   heading: string;
-  icon: React.ComponentType<any>;
+  key: IncidentToolKey;
   subtext: string;
   tools: Array<{
     icon: React.ReactNode;
     key: string;
     label: string;
+    DrawerComponent?: React.ComponentType<{integrations: OrganizationIntegration[]}>;
   }>;
 }
 
 const checklistItems: ToolStepItem[] = [
   {
-    icon: IconCalendar,
+    key: 'schedule',
+    IconComponent: IconCalendar,
     heading: t('Configure a rotation schedule'),
     subtext: t('Share the responsibility across your team.'),
     tools: [
@@ -43,8 +50,9 @@ const checklistItems: ToolStepItem[] = [
     ],
   },
   {
-    icon: IconList,
-    heading: t('Connect a task keeper'),
+    key: 'task',
+    IconComponent: IconList,
+    heading: t('Connect a task ksdfeeper'),
     subtext: t('Keep track of action items, during and after the incident.'),
     tools: [
       {
@@ -60,7 +68,8 @@ const checklistItems: ToolStepItem[] = [
     ],
   },
   {
-    icon: IconChat,
+    key: 'channel',
+    IconComponent: IconChat,
     heading: t('Scope out your discussions'),
     subtext: t('Reserve a space for focused discussions.'),
     tools: [
@@ -82,7 +91,8 @@ const checklistItems: ToolStepItem[] = [
     ],
   },
   {
-    icon: IconMegaphone,
+    key: 'status_page',
+    IconComponent: IconMegaphone,
     heading: t('Communicate to your users'),
     subtext: t('Share the status of your incidents publicly.'),
     tools: [
@@ -93,13 +103,14 @@ const checklistItems: ToolStepItem[] = [
       },
       {
         icon: <PluginIcon pluginId="statuspage" />,
-        label: t('Statuspage'),
+        label: t('StatusPage'),
         key: 'statuspage',
       },
     ],
   },
   {
-    icon: IconDocs,
+    key: 'retro',
+    IconComponent: IconDocs,
     heading: t('Take the learnings'),
     subtext: t('An ounce of prevention is worth a pound of cure.'),
     tools: [
@@ -124,7 +135,7 @@ const checklistItems: ToolStepItem[] = [
 
 export function ToolStep() {
   const organization = useOrganization();
-  const {data: integrations} = useApiQuery<Integration[]>(
+  const {data: integrations = [], isPending} = useApiQuery<OrganizationIntegration[]>(
     [`/organizations/${organization.slug}/integrations/`],
     {staleTime: 30000}
   );
@@ -135,16 +146,26 @@ export function ToolStep() {
         acc[integration.provider.key] = integration;
         return acc;
       },
-      {} as Record<string, Integration>
+      {} as Record<string, OrganizationIntegration>
     );
   }, [integrations]);
 
+  const {openDrawer, closeDrawer} = useDrawer();
+  const [configState, setConfigState] = useState<Record<IncidentToolKey, any>>({
+    schedule: null,
+    task: null,
+    channel: null,
+    status_page: null,
+    retro: null,
+  });
+
   return (
-    <ChecklistContainer>
+    <ChecklistContainer loading={isPending}>
+      {JSON.stringify(configState)}
       {checklistItems.map((item, index) => (
         <ChecklistItem key={index} isLast={index === checklistItems.length - 1}>
           <ChecklistCircle completed={false}>
-            <item.icon size="md" />
+            <item.IconComponent size="md" />
           </ChecklistCircle>
           <Flex direction="column" gap="sm">
             <Heading as="h4" size="lg">
@@ -157,7 +178,24 @@ export function ToolStep() {
                   key={tool.label}
                   size="sm"
                   icon={tool.icon}
-                  disabled={tool.key === 'sentry'}
+                  disabled={!integrationsByProvider[tool.key]}
+                  onClick={() => {
+                    openDrawer(
+                      () => (
+                        <ToolDrawer
+                          integration={integrationsByProvider[tool.key]!}
+                          onSubmit={(config: any) => {
+                            setConfigState({...configState, [item.key]: config});
+                            closeDrawer();
+                          }}
+                        />
+                      ),
+                      {
+                        ariaLabel: t('Connect your %s integration', tool.label),
+                        drawerWidth: '600px',
+                      }
+                    );
+                  }}
                 >
                   {tool.label}
                   {tool.key === 'sentry' && (
@@ -165,7 +203,7 @@ export function ToolStep() {
                       {t('Coming Soon')}
                     </Badge>
                   )}
-                  {integrationsByProvider?.[tool.key] && (
+                  {integrationsByProvider[tool.key] && (
                     <Tooltip title={t('Installation available!')}>
                       <ToolConnected />
                     </Tooltip>
@@ -180,10 +218,11 @@ export function ToolStep() {
   );
 }
 
-const ChecklistContainer = styled('div')`
+const ChecklistContainer = styled('div')<{loading: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space['3xl']};
+  opacity: ${p => (p.loading ? 0.5 : 1)};
 `;
 
 const ChecklistItem = styled('div')<{isLast: boolean}>`

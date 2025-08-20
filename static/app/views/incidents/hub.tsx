@@ -11,8 +11,8 @@ import {Flex, Grid} from 'sentry/components/core/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {SetupWizard} from 'sentry/views/incidents/components/setupWizard';
 import {animations} from 'sentry/views/incidents/styles';
+import {SetupWizard} from 'sentry/views/incidents/wizard/setupWizard';
 
 export default function IncidentHub() {
   const theme = useTheme();

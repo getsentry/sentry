@@ -29,7 +29,7 @@ class NotionDirectApiEndpoint(OrganizationEndpoint):
 
         Expected payload:
         {
-            "action": "query_database" | "update_database",
+            "action": "query_database" | "update_database" | "retreive_database",
             "database_id": "uuid",
             "params": {...}
         }
@@ -69,6 +69,10 @@ class NotionDirectApiEndpoint(OrganizationEndpoint):
             elif action == "update_database":
                 url = f"https://api.notion.com/v1/databases/{database_id}"
                 response = requests.patch(url, headers=headers, json=params, timeout=30)
+
+            elif action == "retreive_database":
+                url = f"https://api.notion.com/v1/databases/{database_id}"
+                response = requests.get(url, headers=headers, timeout=30)
 
             else:
                 return Response(
