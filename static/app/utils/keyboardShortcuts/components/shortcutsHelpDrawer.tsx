@@ -23,6 +23,7 @@ interface ShortcutsHelpDrawerProps {
 export function ShortcutsHelpDrawer({
   activeShortcuts,
   registry,
+  closeDrawer,
 }: ShortcutsHelpDrawerProps) {
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,6 +164,12 @@ export function ShortcutsHelpDrawer({
     setSearchQuery('');
   };
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      closeDrawer();
+    }
+  };
+
   return (
     <Fragment>
       <StyledDrawerHeader hideBar>
@@ -178,6 +185,7 @@ export function ShortcutsHelpDrawer({
               autoComplete="off"
               value={searchQuery}
               onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
               placeholder={t('Search keyboard shortcuts...')}
               size="sm"
             />
