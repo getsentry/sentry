@@ -178,10 +178,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
         setSeerCallLoading(true);
 
         try {
-          const url =
-            process.env.NODE_ENV === 'p'
-              ? 'http://localhost:5000/ask-seer'
-              : 'https://cmdkllm-12459da2e71a.herokuapp.com/ask-seer';
+          const url = 'https://cmdkllm-12459da2e71a.herokuapp.com/ask-seer';
           const res = await fetch(url, {
             method: 'POST',
             headers: {
