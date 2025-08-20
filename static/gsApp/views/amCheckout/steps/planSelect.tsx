@@ -80,13 +80,11 @@ const REFERRER_FEATURE_HIGHLIGHTS = {
   'upgrade-business-landing.discover-query': ['discover'],
   'upgrade-business-landing.discover-saved-query': ['discover'],
   'upgrade-business-landing.discover2': ['discover'],
-  'upgrade-business-landing.global-views': ['cross_project_visibility'],
   'upgrade-business-landing.custom-dashboards': ['dashboard'],
   'upgrade-business-landing.dashboards-edit': ['dashboard'],
   'upgrade-business-landing.feature.auth_provider.saml2': ['saml'],
   'upsell-dashboards': ['dashboard'],
   'upsell-discover2': ['discover'],
-  'upsell-all-projects-select': ['cross_project_visibility'],
 };
 
 function getHighlightedFeatures(referrer?: string): string[] {
