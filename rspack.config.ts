@@ -746,6 +746,12 @@ if (IS_UI_DEV_ONLY) {
     },
     proxy: [
       {
+        context: ['/outages/'],
+        target: 'http://localhost:8787',
+        secure: false,
+        changeOrigin: true,
+      },
+      {
         context: ['/api/', '/avatar/', '/organization-avatar/', '/extensions/'],
         target: 'https://sentry.io',
         secure: false,
