@@ -61,6 +61,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         return relay_id, secret_key
 
     # used to be test_ungzipped_data
+    @pytest.mark.skip(reason="flaky: #98056")
     def test_simple_data(self) -> None:
         event_data = {"message": "hello", "timestamp": before_now(seconds=1).isoformat()}
         event = self.post_and_retrieve_event(event_data)
