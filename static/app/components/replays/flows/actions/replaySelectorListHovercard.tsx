@@ -11,14 +11,16 @@ import type {DeadRageSelectorListResponse} from 'sentry/views/replays/types';
 
 interface Props {
   children: ReactNode;
-  onActionSubmit: (action: UIClickAction) => void;
+  onChange: (action: UIClickAction) => void;
   projectId: string;
+  disabled?: boolean;
 }
 
-export default function UIClickActionEditor({
+export default function ReplaySelectorListHovercard({
   children,
   projectId,
-  onActionSubmit,
+  onChange,
+  disabled = false,
 }: Props) {
   const organization = useOrganization();
 
@@ -36,16 +38,20 @@ export default function UIClickActionEditor({
     ],
   });
 
+  if (disabled) {
+    return children;
+  }
+
   return (
     <ClassNames>
       {({css}) => (
         <Hovercard
           body={
-            <Flex style={{height: 500}}>
+            <Flex style={{height: 480}}>
               <Flex direction="column" gap="md" flex="1">
                 <ReplayCrumbList
                   onSelect={selected => {
-                    onActionSubmit({
+                    onChange({
                       category: 'ui.click',
                       matcher: {
                         dom_element: selected.dom_element,

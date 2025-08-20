@@ -10,7 +10,9 @@ export type UIClickAction = {
 
 export type NavigationAction = {
   category: 'navigation';
-  matcher: undefined;
+  matcher: {
+    url: string;
+  };
   type: 'breadcrumb';
 };
 

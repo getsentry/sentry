@@ -66,7 +66,7 @@ const AssertionDatabase = {
       ending_actions: [
         {
           category: 'navigation',
-          matcher: undefined,
+          matcher: {url: '/issues/'},
           type: 'breadcrumb',
         },
       ],
@@ -109,7 +109,7 @@ const AssertionDatabase = {
       ending_actions: [
         {
           category: 'navigation',
-          matcher: undefined,
+          matcher: {url: '/issues/'},
           type: 'breadcrumb' as const,
         },
         {
@@ -169,7 +169,7 @@ const AssertionDatabase = {
       prev_id: undefined,
       starting_action: {
         category: 'navigation',
-        matcher: undefined,
+        matcher: {url: '/issues/'},
         type: 'breadcrumb' as const,
       },
       status: 'success' as const,
@@ -217,7 +217,7 @@ const AssertionDatabase = {
       prev_id: '4',
       starting_action: {
         category: 'navigation',
-        matcher: undefined,
+        matcher: {url: '/issues/'},
         type: 'breadcrumb' as const,
       },
       status: 'success' as const,
@@ -231,7 +231,7 @@ const AssertionDatabase = {
       ending_actions: [
         {
           category: 'navigation',
-          matcher: undefined,
+          matcher: {url: '/issues/'},
           type: 'breadcrumb' as const,
         },
       ],
@@ -346,7 +346,7 @@ const AssertionDatabase = {
       prev_id: '7',
       starting_action: {
         category: 'navigation',
-        matcher: undefined,
+        matcher: {url: '/issues/'},
         type: 'breadcrumb' as const,
       },
       status: 'failure' as const,
@@ -382,7 +382,7 @@ const AssertionDatabase = {
         },
         {
           category: 'navigation',
-          matcher: undefined,
+          matcher: {url: '/issues/'},
           type: 'breadcrumb' as const,
         },
         {

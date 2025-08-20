@@ -27,7 +27,7 @@ interface Props {
   projectId: string;
 }
 
-export default function ReplayAssertionsTable({projectId, onSelect: _}: Props) {
+export default function ReplayClicksTable({projectId, onSelect: _}: Props) {
   const organization = useOrganization();
 
   const queryResult = useInfiniteApiQuery<DeadRageSelectorListResponse>({

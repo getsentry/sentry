@@ -1,3 +1,4 @@
+import {useMemo, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -10,19 +11,18 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import InfiniteListState from 'sentry/components/infiniteList/infiniteListState';
 import InfiniteSimpleTable from 'sentry/components/infiniteList/infiniteSimpleTable';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import actionToQuery from 'sentry/components/replays/flows/actions/actionToQuery';
 import {
   ReplayDetailsLinkColumn,
   ReplayPlayPauseColumn,
   ReplaySessionColumn,
 } from 'sentry/components/replays/table/replayTableColumns';
-import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
+import type {AssertionFlow} from 'sentry/utils/replays/assertions/types';
 import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -46,36 +46,30 @@ const DEFAULT_LIST_ITEM_CHECKBOX_STATE = {
   queryKey: undefined,
 };
 
-interface Props {
-  environment: string;
-  onSelect: (replayId: string) => void;
-  projectId: string;
+interface Props extends ComponentProps<typeof SimpleTableInfinite> {
+  flow: AssertionFlow;
+  onPick: (replayId: string) => void;
 }
 
 export default function ReplayAssertionsTable({
-  environment: _environment,
   onSelect: _onSelect,
-  projectId,
+  flow,
+  ...props
 }: Props) {
   const organization = useOrganization();
 
-  const {sortQuery} = useReplayTableSort();
-  const query = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-      end: decodeScalar,
-      query: decodeScalar,
-      start: decodeScalar,
-      statsPeriod: decodeScalar,
-      utc: decodeScalar,
-    },
-  });
+  const query = useMemo(
+    () => actionToQuery(flow.starting_action),
+    [flow.starting_action]
+  );
+
   const listQueryKey = useReplayListQueryKey({
     options: {
       query: {
-        project: [projectId],
-        ...query,
-        sort: sortQuery,
+        project: [flow.project_id],
+        query: query ?? '',
+        statsPeriod: '30d',
+        sort: '-started_at',
       },
     },
     organization,
@@ -87,7 +81,7 @@ export default function ReplayAssertionsTable({
   });
 
   return (
-    <SimpleTableInfinite>
+    <SimpleTableInfinite {...props}>
       <SimpleTableInfiniteHeader>
         {VISIBLE_COLUMNS.map(({Header, sortKey}, columnIndex) => (
           <SimpleTableInfiniteHeaderCell key={`${sortKey}-${columnIndex}`}>

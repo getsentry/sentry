@@ -1,15 +1,18 @@
-import {useState} from 'react';
+import {useState, type ReactNode} from 'react';
 
+import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout/flex';
-import UIClickActionEditor from 'sentry/components/replays/assertions/actions/uiClickActionEditor';
-import {formatSelectorAsCode} from 'sentry/components/replays/assertions/selectorCodeFormatter';
+import ReplaySelectorListHovercard from 'sentry/components/replays/flows/actions/replaySelectorListHovercard';
+import {formatSelectorAsCode} from 'sentry/components/replays/flows/selectorCodeFormatter';
+import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import type {StartingAssertionAction} from 'sentry/utils/replays/assertions/types';
+import type {EndingAssertionAction} from 'sentry/utils/replays/assertions/types';
 
 interface Props {
-  action: StartingAssertionAction;
-  onActionSubmit: (action: StartingAssertionAction) => void;
+  action: EndingAssertionAction;
+  children: ReactNode;
+  onActionSubmit: (action?: EndingAssertionAction) => void;
   projectId: string;
 }
 
@@ -21,9 +24,10 @@ const TYPE_OPTIONS = [
   {value: 'log', label: t('Log')},
   {value: 'console', label: t('Console')},
   {value: 'network-request', label: t('Network Request')},
+  {value: 'timeout', label: t('Timeout')},
 ];
 
-function getCategoryOrOp(action: StartingAssertionAction): string {
+function getCategoryOrOp(action: EndingAssertionAction): string {
   if ('op' in action) {
     return action.op;
   }
@@ -33,8 +37,9 @@ function getCategoryOrOp(action: StartingAssertionAction): string {
   return 'null';
 }
 
-export default function AssertionStartActionCreateForm({
+export default function AssertionEndActionCreateForm({
   action: initialAction,
+  children,
   onActionSubmit,
   projectId,
 }: Props) {
@@ -54,20 +59,22 @@ export default function AssertionStartActionCreateForm({
   );
 
   return (
-    <Flex border="primary" padding="md" flex="1">
+    <Flex border="primary" padding="md" gap="md" justify="between">
       {categoryOrOp === 'ui.click' ? null : (
         <Flex gap="xs" align="center" wrap="nowrap">
-          {tct('when a [typeSelect] happens', {typeSelect})}
+          {tct('if a [typeSelect] happens', {typeSelect})}
         </Flex>
       )}
 
       {categoryOrOp === 'ui.click' ? (
-        <Flex gap="xs" align="center">
-          {tct('when a [typeSelect] happens on a [clickSelect]', {
+        <Flex gap="xs" align="start" direction="column">
+          {tct('if a [typeSelect] happens on a [clickSelect]', {
             typeSelect,
+            br: <br />,
             clickSelect: (
-              <UIClickActionEditor
-                onActionSubmit={selected => {
+              <ReplaySelectorListHovercard
+                disabled={false}
+                onChange={selected => {
                   onActionSubmit(selected);
                 }}
                 projectId={projectId}
@@ -78,11 +85,18 @@ export default function AssertionStartActionCreateForm({
                 ) : (
                   <span>-Pick something-</span>
                 )}
-              </UIClickActionEditor>
+              </ReplaySelectorListHovercard>
             ),
           })}
+          {children}
         </Flex>
       ) : null}
+      <Button
+        aria-label="Remove"
+        icon={<IconClose />}
+        size="xs"
+        onClick={() => onActionSubmit()}
+      />
     </Flex>
   );
 }

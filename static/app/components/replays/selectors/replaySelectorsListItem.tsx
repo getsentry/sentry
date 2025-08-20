@@ -1,7 +1,7 @@
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
-import {formatSelectorAsCode} from 'sentry/components/replays/assertions/selectorCodeFormatter';
+import {formatSelectorAsCode} from 'sentry/components/replays/flows/selectorCodeFormatter';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 interface Props {

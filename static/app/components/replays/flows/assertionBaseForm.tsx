@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import useAssertionBaseFormQueryParams from 'sentry/components/replays/assertions/useAssertionBaseFormQueryParams';
+import useAssertionBaseFormQueryParams from 'sentry/components/replays/flows/useAssertionBaseFormQueryParams';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -32,7 +32,7 @@ export default function AssertionBaseForm({disabled}: Props) {
   return (
     <Fragment>
       <CompactSelect
-        size="md"
+        size="sm"
         disabled={disabled}
         value={project?.id}
         options={projectOptions}
@@ -42,7 +42,7 @@ export default function AssertionBaseForm({disabled}: Props) {
       />
 
       <EnvironmentSelector
-        size="md"
+        size="sm"
         disabled={disabled}
         allowAllEnvironments={false}
         value={environment}

@@ -8,10 +8,10 @@ import {Flex} from 'sentry/components/core/layout/flex';
 import {Grid} from 'sentry/components/core/layout/grid';
 import {Text} from 'sentry/components/core/text';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import ReplayActionPicker from 'sentry/components/replays/assertions/actions/replayActionPicker';
-import AssertionEndActionCreateForm from 'sentry/components/replays/assertions/assertionEndActionCreateForm';
-import AssertionReplayPlayer from 'sentry/components/replays/assertions/assertionReplayPlayer';
-import AssertionStartActionCreateForm from 'sentry/components/replays/assertions/assertionStartActionCreateForm';
+import ReplayActionPicker from 'sentry/components/replays/flows/actions/replayActionPicker';
+import AssertionEndActionCreateForm from 'sentry/components/replays/flows/assertionEndActionCreateForm';
+import AssertionReplayPlayer from 'sentry/components/replays/flows/assertionReplayPlayer';
+import AssertionStartActionInput from 'sentry/components/replays/flows/assertionStartActionInput';
 import {SelectedReplayIndexProvider} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconPlay} from 'sentry/icons/iconPlay';
@@ -38,9 +38,9 @@ export default function AssertionCreateEditForm({assertion, setAssertion}: Props
               <Tag type="info">START</Tag>
               this flow
             </Text>
-            <AssertionStartActionCreateForm
+            <AssertionStartActionInput
               action={assertion.starting_action}
-              onActionSubmit={action => {
+              onChange={action => {
                 setAssertion({...assertion, starting_action: action});
               }}
               projectId={assertion.project_id}
@@ -119,7 +119,7 @@ export default function AssertionCreateEditForm({assertion, setAssertion}: Props
 
           {/* <AssertionReplayTable
             environment={assertion.environment}
-            onSelect={setReplaySlug}
+            onPick={setReplaySlug}
             projectId={assertion.project_id}
           /> */}
           {/* <AssertionClicksTable
