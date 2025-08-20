@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.api.endpoints.emerge_snapshots import EmergeSnapshotsEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
 )
@@ -1615,6 +1616,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events/anomalies/$",
         OrganizationEventsAnomaliesEndpoint.as_view(),
         name="sentry-api-0-organization-events-anomalies",
+    ),
+    # Emerge Tools Snapshots
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/emerge-snapshots/$",
+        EmergeSnapshotsEndpoint.as_view(),
+        name="sentry-api-0-organization-emerge-snapshots",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/project-templates/$",
