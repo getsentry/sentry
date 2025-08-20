@@ -133,7 +133,28 @@ function PRHeader({
           <TabsContainer>
             <Tabs value={activeTab} onChange={onTabChange}>
               <TabList hideBorder>
-                <TabList.Item key="files">{t('Files')}</TabList.Item>
+                <TabList.Item key="files">
+                  {t('Files')}
+                  {prData?.pr_files && ` (${prData.pr_files.length})`}
+                  {prData?.pr_files && (
+                    <TabStats>
+                      <AdditionCount>
+                        +
+                        {prData.pr_files.reduce(
+                          (sum, file) => sum + (file.additions || 0),
+                          0
+                        )}
+                      </AdditionCount>{' '}
+                      <DeletionCount>
+                        -
+                        {prData.pr_files.reduce(
+                          (sum, file) => sum + (file.deletions || 0),
+                          0
+                        )}
+                      </DeletionCount>
+                    </TabStats>
+                  )}
+                </TabList.Item>
                 <TabList.Item key="snapshots">{t('Snapshot Testing')}</TabList.Item>
               </TabList>
             </Tabs>
@@ -330,5 +351,30 @@ const MetadataFlex = styled(Flex)`
 `;
 
 const TabsContainer = styled('div')``;
+
+const TabStats = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${space(0.25)};
+  font-size: ${p => p.theme.fontSize.xs};
+  font-weight: normal;
+  color: ${p => p.theme.gray300};
+  margin-left: ${space(0.5)};
+  vertical-align: baseline;
+`;
+
+const AdditionCount = styled('span')`
+  color: ${p => p.theme.green400};
+  font-weight: 500;
+  line-height: 1;
+  display: inline-block;
+`;
+
+const DeletionCount = styled('span')`
+  color: ${p => p.theme.red400};
+  font-weight: 500;
+  line-height: 1;
+  display: inline-block;
+`;
 
 export default PRHeader;

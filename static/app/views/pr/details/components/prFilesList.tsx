@@ -100,10 +100,17 @@ function PRFilesList({files, commentsData}: PRFilesListProps) {
 
   if (!files.length) return null;
 
+  // Calculate total additions and deletions
+  const totalAdditions = files.reduce((sum, file) => sum + file.additions, 0);
+  const totalDeletions = files.reduce((sum, file) => sum + file.deletions, 0);
+
   return (
     <Flex direction="column" gap="md">
       <Heading as="h2" size="md">
-        Files ({files.length})
+        Files ({files.length}){' '}
+        <FileStats>
+          +{totalAdditions} -{totalDeletions}
+        </FileStats>
       </Heading>
       {files.map((file, index) => {
         const isExpanded = expandedFiles[index] ?? true;
@@ -389,6 +396,13 @@ const InlineCommentsContainer = styled('div')`
   > div > div {
     margin: 0 !important;
   }
+`;
+
+const FileStats = styled('span')`
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: normal;
+  color: ${p => p.theme.gray300};
+  margin-left: ${space(1)};
 `;
 
 export default PRFilesList;
