@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, NotRequired, TypedDict
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.code_store import CodeStoreIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.issues.auto_source_code_config.code_mapping import (
     convert_stacktrace_frame_path_to_source_path,
@@ -48,6 +49,18 @@ def get_link(
             link = install.get_stacktrace_link(
                 config.repository, src_path, str(config.default_branch or ""), version
             )
+        elif isinstance(install, CodeStoreIntegration):
+            # For CodeStoreIntegration, we don't use repository context
+            # Convert version to int if it's a numeric changelist
+            numeric_version = None
+            if version and version.isdigit():
+                numeric_version = int(version)
+
+            default_revision = None
+            if config.default_branch and config.default_branch.isdigit():
+                default_revision = int(config.default_branch)
+
+            link = install.get_stacktrace_link(src_path, default_revision, numeric_version)
     except ApiError as e:
         if e.code != 403:
             raise
@@ -58,10 +71,15 @@ def get_link(
         result["sourceUrl"] = link
     else:
         result["error"] = result.get("error") or "file_not_found"
-        assert isinstance(install, RepositoryIntegration)
-        result["attemptedUrl"] = install.format_source_url(
-            config.repository, src_path, str(config.default_branch or "")
-        )
+        if isinstance(install, RepositoryIntegration):
+            result["attemptedUrl"] = install.format_source_url(
+                config.repository, src_path, str(config.default_branch or "")
+            )
+        elif isinstance(install, CodeStoreIntegration):
+            revision = None
+            if config.default_branch and config.default_branch.isdigit():
+                revision = int(config.default_branch)
+            result["attemptedUrl"] = install.format_source_url(src_path, revision)
     result["sourcePath"] = src_path
 
     return result

@@ -24,6 +24,7 @@ import AwsLambdaCloudformation from './awsLambdaCloudformation';
 import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
 import AwsLambdaFunctionSelect from './awsLambdaFunctionSelect';
 import AwsLambdaProjectSelect from './awsLambdaProjectSelect';
+import {PerforceConfiguration} from './perforceConfiguration';
 
 const pipelineMapper: Record<string, [React.ComponentType<any>, string]> = {
   awsLambdaProjectSelect: [AwsLambdaProjectSelect, 'AWS Lambda Select Project'],
@@ -31,6 +32,7 @@ const pipelineMapper: Record<string, [React.ComponentType<any>, string]> = {
   awsLambdaCloudformation: [AwsLambdaCloudformation, 'AWS Lambda Create Cloudformation'],
   awsLambdaFailureDetails: [AwsLambdaFailureDetails, 'AWS Lambda View Failures'],
   githubInstallationSelect: [GithubInstallationSelect, 'Github Select Installation'],
+  perforceConfiguration: [PerforceConfiguration, 'Perforce Configuration'],
 };
 
 type Props = {
