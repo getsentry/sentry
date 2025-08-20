@@ -2,6 +2,7 @@ import {useCallback, useEffect, useImperativeHandle} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
+import computerSvg from 'getsentry-images/omni_search/computer.svg';
 import {useLottie} from 'lottie-react';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
@@ -91,6 +92,7 @@ function SeeryCharacter({animationData, size, ref}: SeeryCharacterProps) {
           exit={{opacity: 0}}
           transition={{duration: 0.2}}
         >
+          <BackgroundImage src={computerSvg} alt="" />
           <AnimationContainer size={size}>{View}</AnimationContainer>
         </CharacterContainer>
       )}
@@ -110,15 +112,30 @@ const CharacterContainer = styled(motion.div)<{size?: number}>`
   ${p => p.size && `width: ${p.size}px; height: ${p.size}px;`}
 `;
 
-const AnimationContainer = styled('div')<{size?: number}>`
+const BackgroundImage = styled('img')`
+  position: absolute;
   width: 100%;
   height: 100%;
+  object-fit: contain;
+  z-index: 1;
+`;
+
+const AnimationContainer = styled('div')<{size?: number}>`
+  position: absolute;
+  top: 20%;
+  left: 33%;
+  width: 35%;
+  height: 35%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   svg {
     width: 100% !important;
     height: 100% !important;
-    ${p =>
-      p.size && `max-width: ${p.size}px !important; max-height: ${p.size}px !important;`}
+    max-width: 100% !important;
+    max-height: 100% !important;
   }
 `;
 
