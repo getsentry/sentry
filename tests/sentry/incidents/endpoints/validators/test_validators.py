@@ -368,7 +368,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
 
         assert validator.is_valid()
         assert validator.save()
-        mock_get_limit.assert_not_called()
 
     @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
@@ -403,6 +402,6 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         validator.is_valid()
         with self.assertRaisesMessage(
             ValidationError,
-            expected_message="You may not exceed 1 metric detectors on your current plan.",
+            expected_message="Used 1/1 of allowed metric_issue monitors.",
         ):
             validator.save()

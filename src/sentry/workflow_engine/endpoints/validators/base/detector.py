@@ -77,7 +77,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def get_quota(self) -> DetectorQuota:
         return DetectorQuota(has_exceeded=False, limit=-1, count=-1)
 
-    def enforce_quota(self) -> None:
+    def enforce_quota(self, validated_data) -> None:
         """
         Enforce quota limits for detector creation.
         Raise ValidationError if quota limits are exceeded.
@@ -87,7 +87,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         detector_quota = self.get_quota()
         if detector_quota.has_exceeded:
             raise serializers.ValidationError(
-                f"Your organization has created {detector_quota.count} {self.type} monitors. You are limited to {detector_quota.limit} only."
+                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data["type"].slug} monitors."
             )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]):
@@ -138,7 +138,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def create(self, validated_data):
         # If quotas are exceeded, we will prevent creation of new detectors.
         # Do not disable or prevent the users from updating existing detectors.
-        self.enforce_quota()
+        self.enforce_quota(validated_data)
 
         with transaction.atomic(router.db_for_write(Detector)):
             condition_group = DataConditionGroup.objects.create(

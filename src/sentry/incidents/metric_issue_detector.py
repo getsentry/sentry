@@ -115,7 +115,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             type="metric_issue",  # Avoided circular import. TODO: move magic strings to constant file
             status=ObjectStatus.ACTIVE,
         ).count()
-        has_exceeded = detector_count < detector_limit
+        has_exceeded = detector_count >= detector_limit
 
         return DetectorQuota(has_exceeded=has_exceeded, limit=detector_limit, count=detector_count)
 
