@@ -135,7 +135,7 @@ function EscalationPolicyStateBadge({
         : 'success';
 
   return (
-    <div style={{display: 'block'}}>
+    <StatusBadgeWrapper>
       <StyledTag
         type={tagType}
         icon={
@@ -148,9 +148,15 @@ function EscalationPolicyStateBadge({
       >
         {!loading && innerText}
       </StyledTag>
-    </div>
+    </StatusBadgeWrapper>
   );
 }
+
+const StatusBadgeWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${space(1)};
+`;
 
 const StyledTag = styled(Tag)`
   span {
@@ -169,7 +175,8 @@ const OccurrenceNameWrapper = styled('div')`
   ${p => p.theme.overflowEllipsis}
   display: flex;
   align-items: center;
-  width: fit-content;
+  width: 100%;
+  padding: ${space(1)};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -182,9 +189,11 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 const StyledTimeSince = styled(TimeSince)`
   display: flex;
   align-items: center;
+  padding: ${space(1)};
 `;
 
 const StyledText = styled(Text)`
   display: flex;
   align-items: center;
+  padding: ${space(1)};
 `;

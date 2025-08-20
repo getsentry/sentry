@@ -47,6 +47,17 @@ const StyledSortLink = styled(Link)`
   }
 `;
 
+const SectionTitle = styled('h2')`
+  font-size: ${p => p.theme.fontSize.xl};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin: ${space(3)} 0 ${space(2)} 0;
+  color: ${p => p.theme.headingColor};
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+`;
+
 /* END COPY */
 
 function OccurrencesPage() {
@@ -62,6 +73,17 @@ function OccurrencesPage() {
     isError,
   } = useFetchEscationPolicyStates({orgSlug: organization.slug}, {});
   const escalationPolicyStatesPageLinks = getResponseHeader?.('Link');
+
+  // Separate occurrences into three categories
+  const unacknowledgedOccurrences = escalationPolicyStates.filter(
+    state => state.state === 'unacknowledged'
+  );
+  const acknowledgedOccurrences = escalationPolicyStates.filter(
+    state => state.state === 'acknowledged'
+  );
+  const resolvedOccurrences = escalationPolicyStates.filter(
+    state => state.state === 'resolved'
+  );
 
   /* COPIED FROM sentry/views/alerts/rules/alertRulesList */
   type SortField = 'date_added' | 'status';
@@ -83,13 +105,15 @@ function OccurrencesPage() {
       <SentryDocumentTitle title={t('Occurrences')} orgSlug={organization.slug} />
 
       <PageFiltersContainer>
-        <EscalationPolicyHeaderTabs activeTab="occurrences" />
+        <EscalationPolicyHeaderTabs activeTab="alerts" />
         <Layout.Body>
           <Layout.Main fullWidth>
+            {/* Unacknowledged Occurrences */}
+            <SectionTitle>{t('Unacknowledged')}</SectionTitle>
             <StyledPanelTable
               isLoading={isLoading}
-              isEmpty={escalationPolicyStates.length === 0 && !isError}
-              emptyMessage={t('No occurrences found for the current query.')}
+              isEmpty={unacknowledgedOccurrences.length === 0 && !isError}
+              emptyMessage={t('No unacknowledged alerts found.')}
               headers={[
                 t('Title'),
                 <StyledSortLink
@@ -142,10 +166,10 @@ function OccurrencesPage() {
                 />
               ) : null}
               <VisuallyCompleteWithData
-                id="EscalationPolicyStates-Body"
-                hasData={escalationPolicyStates.length > 0}
+                id="Unacknowledged-EscalationPolicyStates-Body"
+                hasData={unacknowledgedOccurrences.length > 0}
               >
-                {escalationPolicyStates.map(policyState => {
+                {unacknowledgedOccurrences.map(policyState => {
                   return (
                     <OccurrenceListRow
                       key={policyState.id}
@@ -155,6 +179,139 @@ function OccurrencesPage() {
                 })}
               </VisuallyCompleteWithData>
             </StyledPanelTable>
+
+            {/* Acknowledged (Ongoing) Occurrences */}
+            <SectionTitle>{t('Ongoing (Acknowledged)')}</SectionTitle>
+            <StyledPanelTable
+              isLoading={isLoading}
+              isEmpty={acknowledgedOccurrences.length === 0 && !isError}
+              emptyMessage={t('No acknowledged alerts found.')}
+              headers={[
+                t('Title'),
+                <StyledSortLink
+                  key="status-acked"
+                  role="columnheader"
+                  aria-sort={
+                    sort.field === 'status'
+                      ? sort.asc
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                  }
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      // sort by name should start by ascending on first click
+                      asc: sort.field === 'status' && sort.asc ? undefined : '1',
+                      sort: 'status',
+                    },
+                  }}
+                >
+                  {t('Status')} {sort.field === 'status' ? sortArrow : null}
+                </StyledSortLink>,
+
+                <StyledSortLink
+                  key="created-acked"
+                  role="columnheader"
+                  aria-sort={sort.asc ? 'ascending' : 'descending'}
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      asc: sort.asc ? '1' : undefined,
+                      sort: 'date_added',
+                    },
+                  }}
+                >
+                  {t('Created')} {sort.field === 'date_added' ? sortArrow : null}
+                </StyledSortLink>,
+
+                t('Assigned To'),
+                t('Actions'),
+              ]}
+            >
+              <VisuallyCompleteWithData
+                id="Acknowledged-EscalationPolicyStates-Body"
+                hasData={acknowledgedOccurrences.length > 0}
+              >
+                {acknowledgedOccurrences.map(policyState => {
+                  return (
+                    <OccurrenceListRow
+                      key={policyState.id}
+                      escalationPolicyState={policyState}
+                    />
+                  );
+                })}
+              </VisuallyCompleteWithData>
+            </StyledPanelTable>
+
+            {/* Resolved Occurrences */}
+            <SectionTitle>{t('Resolved')}</SectionTitle>
+            <StyledPanelTable
+              isLoading={isLoading}
+              isEmpty={resolvedOccurrences.length === 0 && !isError}
+              emptyMessage={t('No resolved alerts found.')}
+              headers={[
+                t('Title'),
+                <StyledSortLink
+                  key="status-resolved"
+                  role="columnheader"
+                  aria-sort={
+                    sort.field === 'status'
+                      ? sort.asc
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                  }
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      // sort by name should start by ascending on first click
+                      asc: sort.field === 'status' && sort.asc ? undefined : '1',
+                      sort: 'status',
+                    },
+                  }}
+                >
+                  {t('Status')} {sort.field === 'status' ? sortArrow : null}
+                </StyledSortLink>,
+
+                <StyledSortLink
+                  key="created-resolved"
+                  role="columnheader"
+                  aria-sort={sort.asc ? 'ascending' : 'descending'}
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      asc: sort.asc ? '1' : undefined,
+                      sort: 'date_added',
+                    },
+                  }}
+                >
+                  {t('Created')} {sort.field === 'date_added' ? sortArrow : null}
+                </StyledSortLink>,
+
+                t('Assigned To'),
+                t('Actions'),
+              ]}
+            >
+              <VisuallyCompleteWithData
+                id="Resolved-EscalationPolicyStates-Body"
+                hasData={resolvedOccurrences.length > 0}
+              >
+                {resolvedOccurrences.map(policyState => {
+                  return (
+                    <OccurrenceListRow
+                      key={policyState.id}
+                      escalationPolicyState={policyState}
+                    />
+                  );
+                })}
+              </VisuallyCompleteWithData>
+            </StyledPanelTable>
+
             <Pagination
               pageLinks={escalationPolicyStatesPageLinks}
               onCursor={(cursor, path, _direction) => {
