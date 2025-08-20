@@ -609,6 +609,7 @@ if (
       '.localhost',
       '127.0.0.1',
       '.docker.internal',
+      '.ngrok.io',
     ],
     static: {
       directory: './src/sentry/static/sentry',
