@@ -1,8 +1,10 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TimeSince from 'sentry/components/timeSince';
+import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {sanitizedMarked} from 'sentry/utils/marked/marked';
 
@@ -11,16 +13,36 @@ import type {GitHubComment} from './types';
 interface CommentProps {
   comment: GitHubComment;
   children?: React.ReactNode;
+  initiallyCollapsed?: boolean;
   showLineNumbers?: boolean;
 }
 
-function Comment({comment, showLineNumbers = false, children}: CommentProps) {
+function Comment({
+  comment,
+  showLineNumbers = false,
+  children,
+  initiallyCollapsed = false,
+}: CommentProps) {
+  const [isCollapsed, setIsCollapsed] = useState(initiallyCollapsed);
   const isSeerBot = comment.user.login === 'seer-by-sentry[bot]';
 
   return (
     <CommentItem>
-      <CommentHeader isSeerBot={isSeerBot}>
+      <CommentHeader
+        isSeerBot={isSeerBot}
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsCollapsed(!isCollapsed);
+          }
+        }}
+        aria-label={isCollapsed ? 'Expand comment' : 'Collapse comment'}
+      >
         <UserInfo>
+          <CollapseIcon direction={isCollapsed ? 'right' : 'down'} />
           <UserAvatar
             user={{
               id: comment.user.id.toString(),
@@ -33,31 +55,42 @@ function Comment({comment, showLineNumbers = false, children}: CommentProps) {
             gravatar={false}
           />
           <CommentHeaderText>
-            <ExternalLink href={comment.user.html_url}>
+            <ExternalLink href={comment.user.html_url} onClick={e => e.stopPropagation()}>
               <Username>{comment.user.login}</Username>
             </ExternalLink>
             {' commented '}
-            <ExternalLink href={comment.html_url}>
+            <ExternalLink href={comment.html_url} onClick={e => e.stopPropagation()}>
               <TimeSince date={comment.created_at} />
             </ExternalLink>
+            {isCollapsed && (
+              <CollapsedPreview>
+                {comment.body.length > 50
+                  ? comment.body.substring(0, 50) + '...'
+                  : comment.body}
+              </CollapsedPreview>
+            )}
           </CommentHeaderText>
         </UserInfo>
-        {showLineNumbers && comment.line && (
-          <LineInfo>
-            Line {comment.line}
-            {comment.side && ` (${comment.side.toLowerCase()})`}
-          </LineInfo>
-        )}
+        <HeaderActions>
+          {showLineNumbers && comment.line && (
+            <LineInfo>
+              Line {comment.line}
+              {comment.side && ` (${comment.side.toLowerCase()})`}
+            </LineInfo>
+          )}
+        </HeaderActions>
       </CommentHeader>
 
-      <CommentBody>
-        <CommentText
-          dangerouslySetInnerHTML={{
-            __html: sanitizedMarked(comment.body),
-          }}
-        />
-        {children}
-      </CommentBody>
+      {!isCollapsed && (
+        <CommentBody>
+          <CommentText
+            dangerouslySetInnerHTML={{
+              __html: sanitizedMarked(comment.body),
+            }}
+          />
+          {children}
+        </CommentBody>
+      )}
     </CommentItem>
   );
 }
@@ -79,6 +112,42 @@ const CommentHeader = styled('div')<{isSeerBot?: boolean}>`
   background: ${p => (p.isSeerBot ? p.theme.purple200 : p.theme.gray200)};
   border-bottom: 1px solid ${p => p.theme.border};
   border-radius: 6px 6px 0 0;
+  cursor: pointer;
+
+  &:hover {
+    background: ${p =>
+      p.isSeerBot ? 'rgba(199, 178, 255, 0.5)' : 'rgba(0, 0, 0, 0.08)'};
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${p => p.theme.focus};
+    outline-offset: -2px;
+  }
+`;
+
+const CollapseIcon = styled(IconChevron)`
+  color: ${p => p.theme.gray400};
+  margin-right: ${space(0.5)};
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+`;
+
+const CollapsedPreview = styled('span')`
+  margin-left: ${space(1)};
+  color: ${p => p.theme.gray300};
+  font-style: italic;
+  font-size: ${p => p.theme.fontSize.xs};
+`;
+
+const HeaderActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const UserInfo = styled('div')`
@@ -114,6 +183,7 @@ const LineInfo = styled('div')`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.gray300};
   font-family: ${p => p.theme.text.familyMono};
+  margin-right: ${space(1)};
 `;
 
 const CommentBody = styled('div')`
