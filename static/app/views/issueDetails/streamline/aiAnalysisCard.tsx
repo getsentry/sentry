@@ -77,7 +77,7 @@ function ChartsSection({group}: {group: Group}) {
     return view;
   }, [group.shortId, group.title, group.type, group.project.id, config.usesIssuePlatform]);
 
-  // Create EventView for 30 days  
+  // Create EventView for 30 days
   const eventView30d = useMemo(() => {
     const view = EventView.fromSavedQuery({
       statsPeriod: '30d',
@@ -130,9 +130,9 @@ function ChartsSection({group}: {group: Group}) {
     timestamp,
     countData?.[0]?.count ?? 0
   ]) || [];
-  
+
   const convert30dStats: TimeseriesValue[] = stats30d?.data?.map(([timestamp, countData]) => [
-    timestamp, 
+    timestamp,
     countData?.[0]?.count ?? 0
   ]) || [];
 
@@ -424,7 +424,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
       // Fetch both severity analysis and autofix data in parallel
       const [severityPromise, autofixPromise] = await Promise.allSettled([
         // Use fetch for our external severity API with Authorization header
-        fetch(`http://localhost:3001/api/severity-agent/${group.id}`, {
+        fetch(`https://p01--severity-agent--f72lwwtpwydc.code.run/api/severity-agent/${group.id}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -626,11 +626,11 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
   const rootCauseData = getRootCauseData();
   const solutionData = getSolutionData();
-  
+
   // Get root cause description and loading state using the utility functions
   const rootCauseDescription = autofixData?.autofix ? getRootCauseDescription(autofixData.autofix) : null;
   const rootCauseIsLoading = autofixData?.autofix ? getRootCauseIsLoading(autofixData.autofix) : false;
-  
+
   // Get initial guess from group summary data (hook called at top level)
   const initialGuess = summaryData?.possibleCause;
 
@@ -685,7 +685,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
         </HeaderCard>
 
         <SeverityCard>
-          <SeverityCardHeader 
+          <SeverityCardHeader
             severityColor={analysisData?.success ? getSeverityColor(analysisData.analysis.severity).background : 'transparent'}
             isLoading={!analysisData?.success}
           >
@@ -1063,15 +1063,15 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               </PeopleSection>
             )}
 
-            <SimilarIssuesSection 
-              group={group} 
+            <SimilarIssuesSection
+              group={group}
               onSimilarIssuesCountChange={setSimilarIssuesCount}
             />
 
             <ActionItemsSection similarIssuesCount={similarIssuesCount} />
 
             <ChartsSection group={group} />
-            
+
             {isAIMode && (
               <ExitAIModeLink onClick={toggleAIMode}>
                 {t('Exit Seer Mode')}
@@ -1163,7 +1163,7 @@ const SeverityCardHeader = styled('div')<{severityColor: string; isLoading: bool
   padding: ${space(1.5)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
   position: relative;
-  
+
   /* Apply subtle gradient background */
   ${p => !p.isLoading && `
     &::before {
@@ -1178,16 +1178,16 @@ const SeverityCardHeader = styled('div')<{severityColor: string; isLoading: bool
       pointer-events: none;
     }
   `}
-  
+
   /* Keep text dark for better readability with subtle background */
   color: ${p => p.isLoading ? 'inherit' : p.theme.textColor};
-  
+
   /* Ensure child elements maintain proper contrast */
   ${p => !p.isLoading && `
     h3, span {
       color: ${p.theme.textColor} !important;
     }
-    
+
     svg {
       color: ${p.theme.textColor};
     }
@@ -1215,7 +1215,7 @@ const LoadingText = styled('div')`
   padding: ${space(1)};
   text-align: left;
   line-height: 1.4;
-  
+
   em {
     font-style: italic;
   }
@@ -1869,7 +1869,7 @@ interface ActionItemsSectionProps {
 function ActionItemsSection({similarIssuesCount}: ActionItemsSectionProps) {
   // Action items based on conditions
   const actionItems = [];
-  
+
   // Add merge action item if there are multiple similar issues
   if (similarIssuesCount > 1) {
     actionItems.push({id: 'merge', text: 'Merge Similar Issues'});
@@ -2088,7 +2088,7 @@ const ExitAIModeLink = styled('button')`
   bottom: ${space(2)};
   right: ${space(2)};
   z-index: 1000;
-  
+
   &:hover {
     color: ${p => p.theme.gray400};
   }
