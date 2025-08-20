@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import brainDrop from 'sentry-images/omni_search/brain-drop-1.png';
 import brainJuice1 from 'sentry-images/omni_search/brain-juice-1.png';
 import grainyBackground from 'sentry-images/omni_search/purple-grain-bg.png';
 
@@ -50,10 +51,13 @@ function ModalBrainJuice() {
     return null;
   }
 
+  const windowHeight = window.innerHeight;
+
   return createPortal(
     <AnimatePresence>
       {isSearchingSeer && (
         <ModalBrainJuiceImage1
+          key="brain-juice-1"
           src={brainJuice1}
           initial={{y: 0}}
           animate={{y: 50}}
@@ -63,11 +67,39 @@ function ModalBrainJuice() {
       )}
       {isSearchingSeer && (
         <ModalBrainJuiceImage2
+          key="brain-juice-2"
           src={brainJuice1}
           initial={{y: 0}}
           animate={{y: 50}}
           exit={{y: 0, transition: {duration: SEER_ANIMATION_EXIT_DURATION / 1000}}}
           transition={{duration: 8, type: 'spring', bounce: 0.5, delay: 2}}
+        />
+      )}
+      {isSearchingSeer && (
+        <ModalBrainDropImage1
+          key="brain-drop-1"
+          src={brainDrop}
+          initial={{y: 0}}
+          animate={{y: [0, 10, windowHeight]}}
+          transition={{duration: 3, delay: 2}}
+        />
+      )}
+      {isSearchingSeer && (
+        <ModalBrainDropImage2
+          key="brain-drop-2"
+          src={brainDrop}
+          initial={{y: 0}}
+          animate={{y: [0, 10, windowHeight]}}
+          transition={{duration: 3, delay: 4}}
+        />
+      )}
+      {isSearchingSeer && (
+        <ModalBrainDropImage3
+          key="brain-drop-3"
+          src={brainDrop}
+          initial={{y: 0}}
+          animate={{y: [0, 10, windowHeight]}}
+          transition={{duration: 3, delay: 0.5}}
         />
       )}
     </AnimatePresence>,
@@ -111,5 +143,30 @@ const ModalBrainJuiceImage2 = styled(motion.img)`
   bottom: 0;
   left: 80px;
   width: 120px;
+  z-index: -1;
+`;
+
+const ModalBrainDropImage1 = styled(motion.img)`
+  position: absolute;
+  bottom: 0;
+  left: 70%;
+  width: 20px;
+  z-index: -1;
+`;
+
+const ModalBrainDropImage2 = styled(motion.img)`
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 24px;
+  transform: scaleX(-1);
+  z-index: -1;
+`;
+
+const ModalBrainDropImage3 = styled(motion.img)`
+  position: absolute;
+  bottom: 0;
+  left: 5%;
+  width: 16px;
   z-index: -1;
 `;
