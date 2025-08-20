@@ -10,6 +10,7 @@ from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, On
 from sentry.integrations.pagerduty.metrics import record_event
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders
+from sentry.utils.forms import get_field_choices, set_field_choices
 
 
 def _validate_int_field(field: str, cleaned_data: Mapping[str, Any]) -> int | None:
@@ -29,7 +30,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
     account = forms.ChoiceField(choices=(), widget=forms.Select())
     service = forms.ChoiceField(required=False, choices=(), widget=forms.Select())
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         services = kwargs.pop("services")
 
@@ -37,20 +38,18 @@ class PagerDutyNotifyServiceForm(forms.Form):
         if integrations:
             self.fields["account"].initial = integrations[0][0]
 
-        self.fields["account"].choices = integrations
-        self.fields["account"].widget.choices = self.fields["account"].choices
+        set_field_choices(self.fields["account"], integrations)
 
         if services:
             self.fields["service"].initial = services[0][0]
 
-        self.fields["service"].choices = services
-        self.fields["service"].widget.choices = self.fields["service"].choices
+        set_field_choices(self.fields["service"], services)
 
     def _validate_service(self, service_id: int, integration_id: int) -> None:
         with record_event(OnCallInteractionType.VALIDATE_SERVICE).capture() as lifecycle:
             params = {
-                "account": dict(self.fields["account"].choices).get(integration_id),
-                "service": dict(self.fields["service"].choices).get(service_id),
+                "account": dict(get_field_choices(self.fields["account"])).get(integration_id),
+                "service": dict(get_field_choices(self.fields["service"])).get(service_id),
             }
 
             org_integrations = integration_service.get_organization_integrations(
@@ -77,11 +76,13 @@ class PagerDutyNotifyServiceForm(forms.Form):
 
     def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()
+        if cleaned_data is None:
+            return cleaned_data
 
         integration_id = _validate_int_field("account", cleaned_data)
         service_id = _validate_int_field("service", cleaned_data)
 
-        if service_id:
+        if service_id and integration_id:
             self._validate_service(service_id, integration_id)
 
         return cleaned_data

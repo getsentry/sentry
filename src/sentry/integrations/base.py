@@ -414,7 +414,7 @@ class IntegrationInstallation(abc.ABC):
         if org_integration is not None:
             self.org_integration = org_integration
 
-    def get_config_data(self) -> Mapping[str, str]:
+    def get_config_data(self) -> Mapping[str, Any]:
         if not self.org_integration:
             return {}
         return self.org_integration.config

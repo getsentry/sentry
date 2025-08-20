@@ -46,7 +46,7 @@ class PagerDutyClient(ApiClient):
         kwargs.setdefault("headers", {"Content-Type": "application/json"})
         return self._request(*args, **kwargs)
 
-    def send_trigger(self, data: PagerDutyEventPayload):
+    def send_trigger(self, data: PagerDutyEventPayload) -> Any:
         with record_event(OnCallInteractionType.CREATE).capture():
             return self.post("/", data=data)
 
