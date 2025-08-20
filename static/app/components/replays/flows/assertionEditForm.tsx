@@ -138,11 +138,11 @@ const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
 
 const StepTag = styled('span')`
   font-weight: bold;
-  border: 1px solid ${p => p.theme.tag.promotion.border};
+  border: 1px solid ${p => p.theme.tag.info.border};
   padding: 0 4px;
   border-radius: 4px;
-  background-color: ${p => p.theme.tag.promotion.background};
-  color: ${p => p.theme.tag.promotion.color};
+  background-color: ${p => p.theme.tag.info.background};
+  color: ${p => p.theme.tag.info.color};
   font-size: ${p => p.theme.fontSize.sm};
   width: 70px;
   text-align: center;
