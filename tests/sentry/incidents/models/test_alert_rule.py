@@ -1,4 +1,5 @@
 import unittest
+from collections.abc import Generator
 from unittest import mock
 from unittest.mock import Mock
 
@@ -282,7 +283,7 @@ class AlertRuleTriggerActionResolveTest(AlertRuleTriggerActionActivateBaseTest, 
 
 class AlertRuleTriggerActionActivateTest(TestCase):
     @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self):
+    def _setup_metric_patch(self) -> Generator[None]:
         with mock.patch("sentry.incidents.models.alert_rule.metrics") as self.metrics:
             yield
 
