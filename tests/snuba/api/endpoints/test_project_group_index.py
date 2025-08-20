@@ -43,7 +43,7 @@ from sentry.utils import json
 
 
 class GroupListTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
@@ -395,7 +395,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
