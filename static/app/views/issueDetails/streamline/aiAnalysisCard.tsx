@@ -557,10 +557,6 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
         <SeverityCard>
           <CardHeader>
             <HeaderLeft>
-              <CardTitle>
-                <IconSeer size="md" />
-                {t('Severity')}
-              </CardTitle>
               {analysisData?.success ? (
                 <SeverityPill colors={getSeverityColor(analysisData.analysis.severity)}>
                   {analysisData.analysis.severity}
@@ -571,6 +567,10 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                   {t('Analyzing...')}
                 </LoadingSeverityPill>
               )}
+              <CardTitle>
+                <IconSeer size="md" />
+                {t('Severity')}
+              </CardTitle>
             </HeaderLeft>
           </CardHeader>
 
@@ -998,11 +998,13 @@ const HeaderCard = styled(Card)`
   max-width: 768px;
   width: 100%;
   border: none;
+  margin-bottom: ${space(1.5)};
 `;
 
 const SeverityCard = styled(Card)`
   max-width: 768px;
   width: 100%;
+  margin-top: -${space(1.5)};
 `;
 
 const AnalysisCard = styled(Card)`
@@ -1170,8 +1172,11 @@ const TimelineMetricsRow = styled('div')`
   justify-content: space-between;
   gap: ${space(3)};
   margin-bottom: ${space(2)};
+  margin-left: -${space(2)};
+  margin-right: -${space(2)};
   padding: ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const TimelineSection = styled('div')`
@@ -1356,6 +1361,7 @@ const StatusText = styled('span')`
   cursor: pointer;
   padding: ${space(0.5)} ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
   transition: background 0.2s ease;
 
   &:hover {
