@@ -78,7 +78,10 @@ export function BaseAvatar({
   const handleError = useCallback(() => setError(true), []);
   const handleLoad = useCallback(() => setError(false), []);
 
-  const showBackup = hasError || (type === 'upload' && !uploadUrl);
+  const showBackup =
+    hasError ||
+    (type === 'upload' && !uploadUrl) ||
+    (type === 'ai_generated' && !uploadUrl);
 
   // Don't add remote size query parameter if we have a data url
   const imgSrc = uploadUrl
@@ -88,7 +91,7 @@ export function BaseAvatar({
     : undefined;
 
   const imageAvatar =
-    type === 'upload' ? (
+    type === 'upload' || type === 'ai_generated' ? (
       <ImageAvatar
         ref={ref as React.Ref<HTMLImageElement>}
         src={imgSrc}

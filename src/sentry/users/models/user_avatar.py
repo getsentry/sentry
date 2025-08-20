@@ -19,6 +19,7 @@ class UserAvatarType(IntEnum):
     LETTER_AVATAR = 0
     UPLOAD = 1
     GRAVATAR = 2
+    AI_GENERATED = 3
 
     def api_name(self) -> str:
         return self.name.lower()
@@ -29,6 +30,7 @@ class UserAvatarType(IntEnum):
             (cls.LETTER_AVATAR, cls.LETTER_AVATAR.api_name()),
             (cls.UPLOAD, cls.UPLOAD.api_name()),
             (cls.GRAVATAR, cls.GRAVATAR.api_name()),
+            (cls.AI_GENERATED, cls.AI_GENERATED.api_name()),
         )
 
 

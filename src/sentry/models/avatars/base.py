@@ -117,7 +117,14 @@ class AvatarBase(Model):
         Use the implementing class's silo_limit to infer which
         host name should be used.
         """
+        from django.conf import settings
+
         cls = type(self)
+
+        # In development mode, return relative URLs so they can be proxied correctly
+        # by the frontend dev server
+        if getattr(settings, "DEBUG", False):
+            return f"/{self.url_path}/{self.ident}/"
 
         url_base = options.get("system.url-prefix")
         silo_limit = getattr(cls._meta, "silo_limit", None)

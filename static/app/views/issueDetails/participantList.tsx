@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {EnhancedUserAvatar} from 'sentry/utils/avatarWithBackground';
 import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -38,7 +38,7 @@ function ParticipantScrollbox({users, teams}: ParticipantScrollboxProps) {
       {showHeaders && <ListTitle>{t('Individuals (%s)', users.length)}</ListTitle>}
       {users.map(user => (
         <UserRow key={user.id}>
-          <UserAvatar user={user} size={28} />
+          <EnhancedUserAvatar user={user} size={28} />
           <div>
             {user.name}
             <SubText>{user.email}</SubText>

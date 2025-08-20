@@ -6,6 +6,10 @@ import {AvatarWithEditIcon} from 'sentry/components/avatarEditDrawer/avatarWithE
 import useDrawer from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {
+  EnhancedAvatarWithEditIcon,
+  EnhancedUserAvatar,
+} from 'sentry/utils/avatarWithBackground';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
@@ -16,6 +20,13 @@ import {NavLayout} from 'sentry/views/nav/types';
 export function UserDropdown() {
   const api = useApi();
   const user = useUser();
+
+  console.log('🔍 UserDropdown user data:', {
+    userId: user.id,
+    avatarType: user.avatar?.avatarType,
+    avatarUrl: user.avatar?.avatarUrl,
+    avatarUuid: user.avatar?.avatarUuid,
+  });
   const {layout} = useNavContext();
   const isMobile = layout === NavLayout.MOBILE;
   const {openDrawer} = useDrawer();
@@ -55,7 +66,11 @@ export function UserDropdown() {
           key: 'user',
           label: (
             <SectionTitleWrapper>
-              <AvatarWithEditIcon user={user} size={32} onEditClick={handleAvatarEdit} />
+              <EnhancedAvatarWithEditIcon
+                user={user}
+                size={32}
+                onEditClick={handleAvatarEdit}
+              />
               <UserInfo>
                 <UserName>{user.name || user.email || user.username}</UserName>
                 <UserEmail>{user.email}</UserEmail>
@@ -84,14 +99,25 @@ export function UserDropdown() {
         },
       ]}
     >
-      <AvatarWithEditIcon
-        size={isMobile ? 20 : 28}
-        user={user}
-        onEditClick={handleAvatarEdit}
-      />
+      <ClickableAvatar onClick={handleAvatarEdit}>
+        <EnhancedUserAvatar size={isMobile ? 20 : 28} user={user} />
+      </ClickableAvatar>
     </SidebarMenu>
   );
 }
+
+const ClickableAvatar = styled('div')`
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.8;
+  }
+`;
 
 const SectionTitleWrapper = styled('div')`
   display: flex;

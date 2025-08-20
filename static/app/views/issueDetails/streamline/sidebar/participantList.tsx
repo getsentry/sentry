@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {EnhancedUserAvatar} from 'sentry/utils/avatarWithBackground';
 import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -79,7 +79,7 @@ export default function ParticipantList({
               )}
               {users.map(user => (
                 <UserRow key={user.id}>
-                  <UserAvatar user={user} size={20} />
+                  <EnhancedUserAvatar user={user} size={20} />
                   <NameWrapper>
                     <div>{user.name}</div>
                     {user.email === user.name ? null : (

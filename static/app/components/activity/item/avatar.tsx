@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {EnhancedUserAvatar} from 'sentry/utils/avatarWithBackground';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSentry} from 'sentry/icons';
 import type {AvatarUser} from 'sentry/types/user';
@@ -14,7 +14,7 @@ type Props = {
 
 export function ActivityAvatar({className, type, user, size = 38}: Props) {
   if (user) {
-    return <UserAvatar user={user} size={size} className={className} />;
+    return <EnhancedUserAvatar user={user} size={size} className={className} />;
   }
 
   if (type === 'system') {

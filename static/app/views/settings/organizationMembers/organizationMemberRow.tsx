@@ -2,7 +2,6 @@ import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Link} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -13,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
+import {EnhancedUserAvatar} from 'sentry/utils/avatarWithBackground';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
@@ -132,7 +132,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     return (
       <StyledPanelItem data-test-id={email}>
         <MemberHeading>
-          <UserAvatar
+          <EnhancedUserAvatar
             size={32}
             user={user ?? {email, id: email, name: email, type: 'user'}}
           />

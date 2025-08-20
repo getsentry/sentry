@@ -10,6 +10,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {TeamAvatar} from './teamAvatar';
 import {UserAvatar, type UserAvatarProps} from './userAvatar';
+import {EnhancedUserAvatar} from 'sentry/utils/avatarWithBackground';
 
 type Props = {
   avatarSize?: number;
@@ -178,7 +179,7 @@ const AvatarStyle = (p: {theme: Theme}) => css`
   }
 `;
 
-const StyledUserAvatar = styled(UserAvatar)`
+const StyledUserAvatar = styled(EnhancedUserAvatar)`
   overflow: hidden;
   border-radius: 50%;
   ${AvatarStyle};
