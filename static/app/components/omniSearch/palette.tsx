@@ -16,8 +16,11 @@ import error from 'sentry-images/spot/cmd-k-error.svg';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
-import SeeryCharacter from 'sentry/components/omniSearch/animation/seeryCharacter';
-import type {SeeryCharacterRef} from 'sentry/components/omniSearch/animation/seeryCharacter';
+import SeeryCharacter, {
+  type SeeryCharacterRef,
+} from 'sentry/components/omniSearch/animation/seeryCharacter';
+import {useOmniSearchStore} from 'sentry/components/omniSearch/context';
+import {SeerSearchAnimation} from 'sentry/components/omniSearch/seerSearchAnimation';
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -101,6 +104,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
   const memberProjects = projects.filter(p => p.isMember);
+  const {setIsSearchingSeer} = useOmniSearchStore();
   const {
     focusedArea,
     actions: availableActions,
@@ -476,6 +480,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   return (
     <Fragment>
       <SeeryCharacter ref={seeryRef} animationData={serryLottieAnimation} size={200} />
+      <SeerSearchAnimation />
       <StyledCommand key={firstItemKey} label="OmniSearch" shouldFilter={false} loop>
         <Header>
           {focusedArea && (
@@ -499,6 +504,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                   clearSelection();
                   e.preventDefault();
                   triggerSeeryImpatient();
+                  setIsSearchingSeer(true);
                 }
               }}
               placeholder={placeholder}

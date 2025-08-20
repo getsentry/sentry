@@ -1,4 +1,6 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
+
+import {closeModal} from 'sentry/actionCreators/modal';
 
 import {OmniConfigContext, OmniSearchStoreContext} from './context';
 import type {OmniAction, OmniArea, OmniSearchStore} from './types';
@@ -6,9 +8,24 @@ import type {OmniAction, OmniArea, OmniSearchStore} from './types';
 type Props = {children: React.ReactNode};
 
 export function OmniSearchProvider({children}: Props) {
+  const [isSearchingSeer, setIsSearchingSeer] = useState(false);
   const [actions, setActions] = useState<OmniAction[]>([]);
   const [areasByKey, setAreasByKey] = useState<Map<string, OmniArea>>(new Map());
   const [areaPriority, setAreaPriority] = useState<string[]>([]);
+
+  // Just for testing
+  useEffect(() => {
+    if (isSearchingSeer) {
+      const timeout = setTimeout(() => {
+        setIsSearchingSeer(false);
+        setTimeout(() => {
+          closeModal();
+        }, 300);
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+    return () => {};
+  }, [isSearchingSeer]);
 
   const registerActions = useCallback((newActions: OmniAction[]) => {
     setActions(prev => {
@@ -65,6 +82,7 @@ export function OmniSearchProvider({children}: Props) {
       registerAreas,
       unregisterAreas,
       registerAreaPriority,
+      setIsSearchingSeer,
     }),
     [
       registerActions,
@@ -72,6 +90,7 @@ export function OmniSearchProvider({children}: Props) {
       registerAreas,
       unregisterAreas,
       registerAreaPriority,
+      setIsSearchingSeer,
     ]
   );
 
@@ -80,8 +99,10 @@ export function OmniSearchProvider({children}: Props) {
       actions,
       areasByKey,
       areaPriority,
+      isSearchingSeer,
+      setIsSearchingSeer,
     }),
-    [areaPriority, actions, areasByKey]
+    [areaPriority, actions, areasByKey, isSearchingSeer]
   );
 
   return (

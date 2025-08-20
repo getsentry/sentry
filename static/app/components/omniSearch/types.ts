@@ -48,6 +48,8 @@ export type OmniSearchStore = {
   areaPriority: string[];
   /** All registered areas keyed by area key */
   areasByKey: Map<string, OmniArea>;
+  isSearchingSeer: boolean;
+  setIsSearchingSeer: (isSearchingSeer: boolean) => void;
 };
 
 export type OmniSearchConfig = {
