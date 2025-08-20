@@ -378,28 +378,15 @@ const InlineCommentsContainer = styled('div')`
   padding: ${space(1)};
   margin: 0;
 
-  /* Override the CommentsList margins for inline display */
-  > div {
-    margin: 0 !important;
-    gap: 0 !important;
-  }
-
-  /* Remove any gap/margin from Flex container */
-  > div[style*='gap'] {
-    gap: 0 !important;
-  }
-
-  /* Make the comment items more compact for inline display */
-  > div > div {
-    margin: 0 !important;
-    border-radius: 4px;
-    font-size: ${p => p.theme.fontSize.xs};
-  }
-
   /* Remove any heading margins */
   h2,
   h3 {
     display: none !important;
+    margin: 0 !important;
+  }
+
+  /* Remove margins from nested comments for inline display */
+  > div > div {
     margin: 0 !important;
   }
 `;

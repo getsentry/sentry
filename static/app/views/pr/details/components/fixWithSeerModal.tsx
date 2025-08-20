@@ -2,17 +2,14 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text/text';
-import ExternalLink from 'sentry/components/links/externalLink';
-import TimeSince from 'sentry/components/timeSince';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {sanitizedMarked} from 'sentry/utils/marked/marked';
 
+import Comment from './comment';
 import type {GitHubComment} from './types';
 
 interface Props extends ModalRenderProps {
@@ -72,37 +69,7 @@ function FixWithSeerModal({
               {t('Comment to fix:')}
             </Text>
             <CommentPreview>
-              <CommentHeader>
-                <UserInfo>
-                  <UserAvatar
-                    user={{
-                      id: comment.user.id.toString(),
-                      name: comment.user.login,
-                      username: comment.user.login,
-                      email: comment.user.login + '@github.com',
-                      avatar: {avatarUrl: comment.user.avatar_url, avatarType: 'upload'},
-                    }}
-                    size={20}
-                    gravatar={false}
-                  />
-                  <ExternalLink href={comment.user.html_url}>
-                    <Username>{comment.user.login}</Username>
-                  </ExternalLink>
-                  <CommentMeta>
-                    commented{' '}
-                    <ExternalLink href={comment.html_url}>
-                      <TimeSince date={comment.created_at} />
-                    </ExternalLink>
-                  </CommentMeta>
-                </UserInfo>
-              </CommentHeader>
-              <CommentBody>
-                <CommentText
-                  dangerouslySetInnerHTML={{
-                    __html: sanitizedMarked(comment.body),
-                  }}
-                />
-              </CommentBody>
+              <Comment comment={comment} />
             </CommentPreview>
           </CommentSection>
 
@@ -202,64 +169,12 @@ const CommentPreview = styled('div')`
   background: ${p => p.theme.background};
   max-height: 200px;
   overflow-y: auto;
-`;
 
-const CommentHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  background: ${p => p.theme.backgroundElevated};
-  border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: 6px 6px 0 0;
-`;
-
-const UserInfo = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const Username = styled('span')`
-  font-weight: 600;
-  color: ${p => p.theme.blue300};
-  text-decoration: none;
-  font-size: ${p => p.theme.fontSize.sm};
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const CommentMeta = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSize.xs};
-`;
-
-const CommentBody = styled('div')`
-  padding: ${space(1.5)};
-`;
-
-const CommentText = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  line-height: 1.5;
-  color: ${p => p.theme.textColor};
-
-  p {
-    margin: ${space(0.5)} 0;
-    &:first-child {
-      margin-top: 0;
-    }
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  code {
-    background: ${p => p.theme.gray100};
-    padding: ${space(0.25)} ${space(0.5)};
-    border-radius: 3px;
-    font-size: ${p => p.theme.fontSize.xs};
+  /* Remove margins from the nested Comment component */
+  > div {
+    margin: 0;
+    border: none;
+    border-radius: inherit;
   }
 `;
 
