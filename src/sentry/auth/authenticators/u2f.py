@@ -97,7 +97,7 @@ class U2fInterface(AuthenticatorInterface):
     @classproperty
     def is_available(cls) -> bool:
         url_prefix = _get_url_prefix()
-        return bool(url_prefix and url_prefix.startswith("https://"))
+        return bool(url_prefix) and url_prefix.startswith("https://")
 
     def _get_kept_devices(self, key: str) -> list[dict[str, Any]]:
         def _key_does_not_match(device: dict[str, Any]) -> bool:

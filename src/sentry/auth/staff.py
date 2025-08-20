@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import enum
 import ipaddress
 import logging
 from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Final
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone as django_timezone
@@ -42,7 +42,8 @@ ALLOWED_IPS = frozenset(getattr(settings, "STAFF_ALLOWED_IPS", settings.INTERNAL
 
 STAFF_ORG_ID = getattr(settings, "STAFF_ORG_ID", None)
 
-UNSET = object()
+_UnsetType = enum.Enum("_UnsetType", "UNSET")
+_Unset: Final = _UnsetType.UNSET
 
 
 def is_active_staff(request: HttpRequest) -> bool:
@@ -53,7 +54,7 @@ def is_active_staff(request: HttpRequest) -> bool:
 
 
 # TODO(schew2381): Delete after staff is GA'd and the options are removed
-def has_staff_option(user: User | AnonymousUser) -> bool:
+def has_staff_option(user: User) -> bool:
     """
     This checks two options, the first being whether or not staff has been GA'd.
     If not, it falls back to checking the second option which by email specifies which
@@ -74,10 +75,12 @@ def _seconds_to_timestamp(seconds: str) -> datetime:
 class Staff(ElevatedMode):
     allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
 
-    def __init__(self, request: HttpRequest, allowed_ips: Iterable[Any] | object = UNSET) -> None:
+    def __init__(
+        self, request: HttpRequest, allowed_ips: Iterable[Any] | _UnsetType = _Unset
+    ) -> None:
         self.uid: str | None = None
         self.request = request
-        if isinstance(allowed_ips, Iterable):
+        if allowed_ips is not _Unset:
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
             )
@@ -205,7 +208,7 @@ class Staff(ElevatedMode):
         current_datetime = django_timezone.now()
 
         request = self.request
-        user: User | AnonymousUser | None = getattr(request, "user", None)
+        user: User | None = getattr(request, "user", None)
         if not hasattr(request, "session"):
             data = None
         elif not (user and user.is_staff):
@@ -244,7 +247,7 @@ class Staff(ElevatedMode):
         self,
         expires: datetime,
         token: str,
-        user: User | AnonymousUser,
+        user: User,
         current_datetime: datetime | None = None,
     ) -> None:
         # we bind uid here, as if you change users in the same request
@@ -281,9 +284,7 @@ class Staff(ElevatedMode):
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(
-        self, user: User | AnonymousUser, current_datetime: datetime | None = None
-    ) -> None:
+    def set_logged_in(self, user: User, current_datetime: datetime | None = None) -> None:
         """
         Mark a session as staff-enabled.
         """

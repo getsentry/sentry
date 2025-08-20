@@ -15,10 +15,10 @@ from sentry.plugins.base.response import DeferredResponse
 from .client import FlyClient
 from .constants import AUTHORIZE_URL, ERR_NO_ORG_ACCESS, SCOPE
 
-logger = logging.getLogger("sentry.auth.fly")
-
 if TYPE_CHECKING:
     from sentry.auth.helper import AuthHelper
+
+logger = logging.getLogger("sentry.auth.fly")
 
 
 class FlyOAuth2Login(OAuth2Login):

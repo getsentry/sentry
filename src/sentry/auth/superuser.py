@@ -11,15 +11,15 @@ In Sentry a user must achieve the following to be treated as a superuser:
 
 from __future__ import annotations
 
+import enum
 import ipaddress
 import logging
 from collections.abc import Container, Iterable
 from datetime import datetime, timedelta, timezone
-from typing import Any, Never, TypeIs, overload
+from typing import Any, Final, Never, TypeIs, overload
 
 import orjson
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone as django_timezone
@@ -74,7 +74,9 @@ SUPERUSER_ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
 
 SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", ["for_unit_test"])
 
-UNSET = object()
+_UnsetType = enum.Enum("_UnsetType", "UNSET")
+_Unset: Final = _UnsetType.UNSET
+
 
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
     settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
@@ -87,7 +89,7 @@ SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuse
 
 def get_superuser_scopes(
     auth_state: RpcAuthState,
-    user: Any,
+    user: User,
     organization_context: Organization | RpcUserOrganizationContext,
 ) -> set[str]:
 
@@ -187,8 +189,8 @@ class Superuser(ElevatedMode):
     def __init__(
         self,
         request: HttpRequest,
-        allowed_ips: Iterable[Any] | object = UNSET,
-        org_id: int | object = UNSET,
+        allowed_ips: Iterable[Any] | _UnsetType = _Unset,
+        org_id: int | _UnsetType = _Unset,
         current_datetime: datetime | None = None,
     ) -> None:
         self.uid: str | None = None
@@ -199,11 +201,11 @@ class Superuser(ElevatedMode):
         self._inactive_reason: InactiveReason = InactiveReason.NONE
         self.is_valid: bool = False
 
-        if isinstance(allowed_ips, Iterable):
+        if allowed_ips is not _Unset:
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
             )
-        if org_id is not UNSET:
+        if org_id is not _Unset:
             self.org_id = org_id
         self._populate(current_datetime=current_datetime)
 
@@ -363,7 +365,7 @@ class Superuser(ElevatedMode):
             current_datetime = django_timezone.now()
 
         request = self.request
-        user: User | AnonymousUser | None = getattr(request, "user", None)
+        user: User | None = getattr(request, "user", None)
         if not hasattr(request, "session"):
             data = None
         elif not (user and user.is_superuser):
@@ -400,7 +402,7 @@ class Superuser(ElevatedMode):
         self,
         expires: datetime,
         token: str,
-        user: User | AnonymousUser,
+        user: User,
         current_datetime: datetime | None = None,
     ) -> None:
         # we bind uid here, as if you change users in the same request
@@ -436,7 +438,7 @@ class Superuser(ElevatedMode):
 
     def set_logged_in(
         self,
-        user: User | AnonymousUser,
+        user: User,
         current_datetime: datetime | None = None,
         prefilled_su_modal: dict[str, Any] | None = None,
     ) -> None:
@@ -496,7 +498,7 @@ class Superuser(ElevatedMode):
                 extra={
                     "superuser_token_id": token,
                     "user_id": request.user.id,
-                    "user_email": request.user.email if isinstance(request.user, User) else None,
+                    "user_email": getattr(request.user, "email", None),
                     "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
                     "reason_for_su": su_access_info.validated_data["superuserReason"],
                 },
