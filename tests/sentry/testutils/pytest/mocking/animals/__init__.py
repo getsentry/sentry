@@ -6,7 +6,7 @@ def get_cat() -> str:
     return "piper"
 
 
-def erroring_get_dog():
+def erroring_get_dog() -> None:
     raise TypeError("Expected dog, but got cat instead.")
 
 
@@ -18,7 +18,7 @@ def a_function_that_calls_get_cat() -> str:
     return f"{get_cat()} is a good cat, because she thinks she's a dog!"
 
 
-def a_function_that_calls_erroring_get_dog():
+def a_function_that_calls_erroring_get_dog() -> str:
     try:
         erroring_get_dog()
     except TypeError:
