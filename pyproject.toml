@@ -349,6 +349,7 @@ module = [
     "fixtures.safe_migrations_apps.*",
     "fixtures.schema_validation",
     "sentry.analytics.*",
+    "sentry.api.bases.*",
     "sentry.api.decorators",
     "sentry.api.endpoints.integrations.sentry_apps.installation.external_issue.*",
     "sentry.api.endpoints.organization_events_spans_performance",
