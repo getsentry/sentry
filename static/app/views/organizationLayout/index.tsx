@@ -13,7 +13,7 @@ import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/si
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import type {Organization} from 'sentry/types/organization';
-import {GlobalShortcuts} from 'sentry/utils/keyboardShortcuts';
+import {GlobalShortcuts, ShortcutsProvider} from 'sentry/utils/keyboardShortcuts';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useInitSentryToolbar from 'sentry/utils/useInitSentryToolbar';
@@ -59,8 +59,10 @@ function OrganizationLayout({children}: Props) {
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <OrganizationContainer>
         <GlobalDrawer>
-          <GlobalShortcuts router={router} />
-          <App organization={organization}>{children}</App>
+          <ShortcutsProvider>
+            <GlobalShortcuts router={router} />
+            <App organization={organization}>{children}</App>
+          </ShortcutsProvider>
         </GlobalDrawer>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />
