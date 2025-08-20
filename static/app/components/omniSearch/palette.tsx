@@ -417,7 +417,6 @@ function AskSeerButton({query}: {query: string}) {
             query,
           }),
         });
-
         const data: {route: 'traces' | 'issues' | 'other'} = await res.json();
 
         if (data.route === 'traces') {
@@ -499,8 +498,13 @@ function AskSeerButton({query}: {query: string}) {
             navigate(exploreUrl);
           }
         } else if (data.route === 'issues') {
+          const response: TranslateResponse = data as TranslateResponse;
+          const environmentsParam =
+            response.environments && response.environments.length > 0
+              ? `&environments=${response.environments.join(',')}`
+              : '';
           navigate(
-            `/organizations/${organization.slug}/issues/?query=${encodeURIComponent(query)}`
+            `/organizations/${organization.slug}/issues?query=${response.query}&statsPeriod=${response.statsPeriod}&sort=${response.sort}${environmentsParam}`
           );
         } else {
           // error state
@@ -516,6 +520,14 @@ function AskSeerButton({query}: {query: string}) {
     </AskSeerContainer>
   );
 }
+
+type TranslateResponse = {
+  environments: string[];
+  query: string;
+  route: 'issues';
+  sort: string;
+  statsPeriod: string;
+};
 
 const Header = styled('div')`
   position: relative;
