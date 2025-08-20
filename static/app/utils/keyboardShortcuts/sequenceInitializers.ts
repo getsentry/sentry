@@ -32,7 +32,10 @@ export function getSequenceInitializerKeysFromShortcuts(shortcuts: any[]): Set<s
       // If this is a sequence (multiple parts), add the first key as a sequence initializer
       if (keyParts.length > 1) {
         const firstKey = keyParts[0];
-        if (SEQUENCE_INITIALIZER_KEYS.includes(firstKey as SequenceInitializerKey)) {
+        if (
+          firstKey &&
+          SEQUENCE_INITIALIZER_KEYS.includes(firstKey as SequenceInitializerKey)
+        ) {
           sequenceKeys.add(firstKey);
         }
       }
