@@ -23,23 +23,30 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import useAssertionPageCrumbs from 'sentry/components/replays/flows/assertionPageCrumbs';
+import AssertionReplayPlayer from 'sentry/components/replays/flows/assertionReplayPlayer';
 import NewFlowSlideoutPanel from 'sentry/components/replays/flows/newFlowSlideoutPanel';
-import {SelectedReplayIndexProvider} from 'sentry/components/replays/queryParams/selectedReplayIndex';
+import PreviewModalContainer from 'sentry/components/replays/flows/previewModalContainer';
+import {
+  SelectedReplayIndexProvider,
+  useSelectedReplayIndex,
+} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCursorArrow, IconLocation, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useMutation, useQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import AssertionDatabase from 'sentry/utils/replays/assertions/database';
 import type {AssertionAction, AssertionFlow} from 'sentry/utils/replays/assertions/types';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
-export default function ReplayOverview() {
+export default function FlowTable() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -77,6 +84,13 @@ export default function ReplayOverview() {
     },
   });
 
+  const {select: setSelectedReplayIndex} = useSelectedReplayIndex();
+  const {selected_replay_id: previewReplayId} = useLocationQuery({
+    fields: {
+      selected_replay_id: decodeScalar,
+    },
+  });
+
   return (
     <AnalyticsArea name="table">
       <SentryDocumentTitle title={t('Replay Assertions')} orgSlug={organization.slug}>
@@ -89,6 +103,11 @@ export default function ReplayOverview() {
                   onSave={createFlow}
                 />
               </SlideoutPanelContainer>
+            ) : null}
+            {previewReplayId ? (
+              <PreviewModalContainer onClose={() => setSelectedReplayIndex('', '')}>
+                <AssertionReplayPlayer replaySlug={previewReplayId} />
+              </PreviewModalContainer>
             ) : null}
           </SelectedReplayIndexProvider>
 
