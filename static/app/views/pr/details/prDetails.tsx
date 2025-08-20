@@ -249,14 +249,14 @@ export default function PRDetails() {
   );
 }
 
-// 60%/40% grid for main/side
+// 65%/35% grid for main/side
 const Body = styled(Layout.Body)`
   background: ${p => p.theme.backgroundSecondary};
   padding: 0px !important;
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
-    grid-template-columns: 60% 40%;
+    grid-template-columns: 65% 35%;
     align-content: start;
     gap: 0px;
   }

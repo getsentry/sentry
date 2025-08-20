@@ -192,8 +192,8 @@ function PullRequests() {
             </EmptyState>
           ) : (
             <PullRequestsList>
-              {data.pull_requests
-                .filter(
+              {data?.pull_requests
+                ?.filter(
                   pr => selectedRepo === 'all' || pr.repository.full_name === selectedRepo
                 )
                 .map(pr => (

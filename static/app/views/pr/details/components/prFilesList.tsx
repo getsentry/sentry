@@ -173,6 +173,7 @@ function PRFilesList({files, commentsData}: PRFilesListProps) {
                                         comments={uniqueComments}
                                         title=""
                                         showLineNumbers={false}
+                                        filename={file.filename}
                                       />
                                     </InlineCommentsContainer>
                                   </td>
