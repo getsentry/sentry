@@ -16,14 +16,16 @@ function Overlay() {
       {isSearchingSeer && (
         <OverlayContainer
           initial={{opacity: 0}}
-          animate={{opacity: 1}}
+          animate={{opacity: 0.5}}
           exit={{opacity: 0, transition: {duration: SEER_ANIMATION_EXIT_DURATION / 1000}}}
           transition={{duration: 2}}
         >
           <GrainyOverlay
             src={grainyBackground}
             alt="Seer Search Animation"
-            animate={{scale: [1.6, 1.1], opacity: [1, 0.8, 1, 0.8, 1, 0.8]}}
+            animate={{
+              scale: [1.6, 1.1],
+            }}
             transition={{
               duration: 6,
               ease: 'easeInOut',
