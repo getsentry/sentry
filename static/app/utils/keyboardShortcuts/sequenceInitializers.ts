@@ -26,7 +26,7 @@ export function getSequenceInitializerKeysFromShortcuts(shortcuts: any[]): Set<s
 
     const keys = Array.isArray(shortcut.key) ? shortcut.key : [shortcut.key];
 
-    keys.forEach(key => {
+    keys.forEach((key: string) => {
       const keyParts = key.split(' ');
 
       // If this is a sequence (multiple parts), add the first key as a sequence initializer
@@ -53,7 +53,7 @@ export function getSequenceKeysFromShortcuts(shortcuts: any[]): Set<string> {
 
     const keys = Array.isArray(shortcut.key) ? shortcut.key : [shortcut.key];
 
-    keys.forEach(key => {
+    keys.forEach((key: string) => {
       const keyParts = key.split(' ');
 
       // If this is a sequence (multiple parts), add ALL keys that are part of sequences
@@ -61,7 +61,7 @@ export function getSequenceKeysFromShortcuts(shortcuts: any[]): Set<string> {
         const firstKey = keyParts[0];
         if (SEQUENCE_INITIALIZER_KEYS.includes(firstKey as SequenceInitializerKey)) {
           // Add all keys in the sequence to prevent conflicts
-          keyParts.forEach(keyPart => {
+          keyParts.forEach((keyPart: string) => {
             sequenceKeys.add(keyPart);
           });
         }

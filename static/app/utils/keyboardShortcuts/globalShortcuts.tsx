@@ -92,7 +92,7 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       handler: () => {
         if (organizationSlug) {
           router.push(
-            normalizeUrl(`/organizations/${organizationSlug}/explore/discover/`)
+            normalizeUrl(`/organizations/${organizationSlug}/explore/discover/homepage/`)
           );
         }
       },
