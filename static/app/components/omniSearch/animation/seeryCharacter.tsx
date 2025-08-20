@@ -1,4 +1,4 @@
-import {useEffect, useImperativeHandle} from 'react';
+import {useCallback, useEffect, useImperativeHandle} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -13,7 +13,18 @@ interface SeeryCharacterProps {
 }
 
 interface SeeryCharacterRef {
+  triggerCelebrate: () => void;
+  triggerError: () => void;
   triggerImpatient: () => void;
+  triggerSearchDone: () => void;
+  triggerWatching: () => void;
+}
+
+function playIdleLoop(animationItem: any) {
+  if (!animationItem) return;
+  animationItem.loop = true;
+  animationItem.goToAndStop(13, true);
+  animationItem.playSegments([[13, 33]], true);
 }
 
 function SeeryCharacter({animationData, size, ref}: SeeryCharacterProps) {
@@ -27,55 +38,47 @@ function SeeryCharacter({animationData, size, ref}: SeeryCharacterProps) {
   // Set up the idle loop when component mounts
   useEffect(() => {
     if (animationItem) {
-      // Start with idle animation (frames 0-19, which are 1-20 in 1-indexed)
-      animationItem.goToAndStop(0, true);
-      animationItem.playSegments(
-        [
-          [0, 19],
-          [19, 0],
-        ],
-        true
-      );
-      animationItem.loop = true;
+      playIdleLoop(animationItem);
     }
   }, [animationItem]);
+
+  const playSegmentAndReturnToIdle = useCallback(
+    (start: number, end: number) => {
+      if (!animationItem) return;
+      animationItem.loop = false;
+      animationItem.goToAndStop(start, true);
+      animationItem.playSegments([[start, end]], true);
+
+      const onComplete = () => {
+        animationItem.removeEventListener('complete', onComplete);
+        playIdleLoop(animationItem);
+      };
+
+      animationItem.addEventListener('complete', onComplete);
+    },
+    [animationItem]
+  );
 
   useImperativeHandle(
     ref,
     () => ({
       triggerImpatient: () => {
-        if (animationItem) {
-          // Turn off looping temporarily
-          animationItem.loop = false;
-
-          // Play impatient animation once (frames 19-32, which are 20-33 in 1-indexed)
-          animationItem.playSegments(
-            [
-              [19, 32],
-              [32, 19],
-            ],
-            true
-          );
-
-          // Set up listener to go back to idle after impatient completes
-          const onComplete = () => {
-            animationItem.removeEventListener('complete', onComplete);
-            // Go back to idle loop
-            animationItem.loop = true;
-            animationItem.playSegments(
-              [
-                [0, 19],
-                [19, 0],
-              ],
-              true
-            );
-          };
-
-          animationItem.addEventListener('complete', onComplete);
-        }
+        playSegmentAndReturnToIdle(33, 49);
+      },
+      triggerError: () => {
+        playSegmentAndReturnToIdle(48, 63);
+      },
+      triggerWatching: () => {
+        playSegmentAndReturnToIdle(63, 83);
+      },
+      triggerCelebrate: () => {
+        playSegmentAndReturnToIdle(83, 100);
+      },
+      triggerSearchDone: () => {
+        playSegmentAndReturnToIdle(100, 115);
       },
     }),
-    [animationItem]
+    [playSegmentAndReturnToIdle]
   );
 
   return createPortal(

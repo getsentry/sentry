@@ -84,7 +84,11 @@ function flattenActions(actions: OmniAction[], parentLabel?: string): OmniAction
 }
 
 export interface OmniSearchPaletteSeeryRef {
+  triggerSeeryCelebrate: () => void;
+  triggerSeeryError: () => void;
   triggerSeeryImpatient: () => void;
+  triggerSeerySearchDone: () => void;
+  triggerSeeryWatching: () => void;
 }
 
 /**
@@ -465,13 +469,62 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     seeryRef.current?.triggerImpatient();
   };
 
+  const triggerSeeryError = () => {
+    seeryRef.current?.triggerError();
+  };
+
+  const triggerSeeryCelebrate = () => {
+    seeryRef.current?.triggerCelebrate();
+  };
+
+  const triggerSeeryWatching = () => {
+    seeryRef.current?.triggerWatching();
+  };
+
+  const triggerSeerySearchDone = () => {
+    seeryRef.current?.triggerSearchDone();
+  };
+
   useImperativeHandle(
     ref,
     () => ({
       triggerSeeryImpatient,
+      triggerSeeryError,
+      triggerSeeryCelebrate,
+      triggerSeeryWatching,
+      triggerSeerySearchDone,
     }),
     []
   );
+
+  // Call triggerSeeryError if results are empty, but avoid repeated calls for the same state
+  const lastResultWasEmpty = useRef<boolean | null>(null);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const isEmpty = query.length > 0 && grouped.every(g => g.items.length === 0);
+
+      if (isEmpty !== lastResultWasEmpty.current) {
+        if (isEmpty) {
+          triggerSeeryError();
+        } else if (query.length > 0) {
+          triggerSeerySearchDone();
+        }
+        lastResultWasEmpty.current = isEmpty;
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(handler);
+  }, [grouped, query]);
+
+  // Watch for user typing and trigger watching state
+  const lastQueryRef = useRef<string>('');
+  useEffect(() => {
+    // Only trigger when user starts typing (from empty to non-empty)
+    if (lastQueryRef.current.length === 0 && query.length > 0) {
+      triggerSeeryWatching();
+    }
+    lastQueryRef.current = query;
+  }, [query]);
 
   return (
     <Fragment>
