@@ -760,7 +760,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
         )}
 
         {/* Debugger Section */}
-        <DebuggerWrapper>
+        <DebuggerWrapper isExpanded={showDebugger}>
           <DebuggerCard>
             <CardHeader>
               <DebuggerHeaderContent onClick={() => setShowDebugger(!showDebugger)}>
@@ -1525,8 +1525,8 @@ const SolutionContent = styled('div')`
   }
 `;
 
-const DebuggerWrapper = styled('div')`
-  max-width: 768px;
+const DebuggerWrapper = styled('div')<{isExpanded: boolean}>`
+  max-width: ${p => p.isExpanded ? 'none' : '768px'};
   width: 100%;
 `;
 
