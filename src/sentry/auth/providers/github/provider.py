@@ -26,14 +26,12 @@ class GitHubOAuth2Provider(OAuth2Provider):
     key = IntegrationProviderSlug.GITHUB.value
 
     def get_client_id(self) -> str:
-        if isinstance(CLIENT_ID, str):
-            return CLIENT_ID
-        return ""
+        assert isinstance(CLIENT_ID, str)
+        return CLIENT_ID
 
     def get_client_secret(self) -> str:
-        if isinstance(CLIENT_SECRET, str):
-            return CLIENT_SECRET
-        return ""
+        assert isinstance(CLIENT_SECRET, str)
+        return CLIENT_SECRET
 
     def __init__(self, org: RpcOrganization | dict[str, Any] | None = None, **config: Any) -> None:
         super().__init__(**config)

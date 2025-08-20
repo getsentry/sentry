@@ -81,13 +81,13 @@ def process_metadata(
         assert hasattr(form_cls, "processor")
         data = form_cls.processor(form)
     except SSLError:
-        errors = form._errors.setdefault("__all__", ErrorList())  # type: ignore[attr-defined] # XXX: ._errors is an internal attr
+        errors = form.errors.setdefault("__all__", ErrorList())
         errors.append(
             "Could not verify SSL certificate. Ensure that your IdP instance has a valid SSL certificate that is linked to a trusted root certificate."
         )
         return form
     except Exception:
-        errors = form._errors.setdefault("__all__", ErrorList())  # type: ignore[attr-defined] # XXX: ._errors is an internal attr
+        errors = form.errors.setdefault("__all__", ErrorList())
         errors.append("Failed to parse provided SAML2 metadata")
         return form
 
