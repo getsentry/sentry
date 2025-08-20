@@ -7,12 +7,11 @@ import {
   useRef,
   useState,
 } from 'react';
-import {css} from '@emotion/react';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import useDrawer from 'sentry/components/globalDrawer';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
-import {ShortcutsHelpModal} from './components/shortcutsHelpModal';
+import {ShortcutsHelpDrawer} from './components/shortcutsHelpDrawer';
 import {shortcutRegistry} from './registry';
 import {
   getSequenceInitializerKeysFromShortcuts,
@@ -31,6 +30,7 @@ interface ShortcutsProviderProps {
  * Provider component that manages keyboard shortcuts for the entire application
  */
 export function ShortcutsProvider({children}: ShortcutsProviderProps) {
+  const {openDrawer} = useDrawer();
   const [activeShortcuts, setActiveShortcuts] = useState<Shortcut[]>(() => {
     // Load any initial shortcuts from the registry
     return shortcutRegistry.getShortcuts();
@@ -75,21 +75,21 @@ export function ShortcutsProvider({children}: ShortcutsProviderProps) {
   const openHelpModal = useCallback(() => {
     // Get the current shortcuts from the registry instead of using stale state
     const currentShortcuts = shortcutRegistry.getShortcuts();
-    openModal(
-      modalProps => (
-        <ShortcutsHelpModal
-          {...modalProps}
+    openDrawer(
+      ({closeDrawer}) => (
+        <ShortcutsHelpDrawer
           activeShortcuts={currentShortcuts}
           registry={shortcutRegistry}
+          closeDrawer={closeDrawer}
         />
       ),
       {
-        modalCss: css`
-          width: auto;
-        `,
+        ariaLabel: 'Keyboard shortcuts help',
+        drawerKey: 'shortcuts-help',
+        drawerWidth: '600px',
       }
     );
-  }, []);
+  }, [openDrawer]);
 
   // Track which keys are part of sequences
   const sequenceKeys = useMemo(() => {

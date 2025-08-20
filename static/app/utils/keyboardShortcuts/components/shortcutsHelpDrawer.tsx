@@ -1,27 +1,26 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Shortcut, ShortcutRegistry} from 'sentry/utils/keyboardShortcuts/types';
 
 import {KeyboardShortcut} from './keyboardKey';
 
-interface ShortcutsHelpModalProps extends ModalRenderProps {
+interface ShortcutsHelpDrawerProps {
   activeShortcuts: Shortcut[];
+  closeDrawer: () => void;
   registry: ShortcutRegistry;
 }
 
 /**
- * Modal component that displays all available keyboard shortcuts
+ * Drawer component that displays all available keyboard shortcuts
  */
-export function ShortcutsHelpModal({
-  Header,
-  Body,
+export function ShortcutsHelpDrawer({
   activeShortcuts,
   registry,
-}: ShortcutsHelpModalProps) {
+}: ShortcutsHelpDrawerProps) {
   // Always get fresh shortcuts from registry
   const currentShortcuts = registry.getShortcuts();
 
@@ -87,12 +86,12 @@ export function ShortcutsHelpModal({
   };
 
   return (
-    <Container>
-      <Header closeButton>
-        <h4>{t('Keyboard Shortcuts')}</h4>
-      </Header>
+    <Fragment>
+      <DrawerHeader>
+        <HeaderTitle>{t('Keyboard Shortcuts')}</HeaderTitle>
+      </DrawerHeader>
 
-      <Body>
+      <DrawerBody>
         <ShortcutsList>
           {Array.from(shortcutsByCategory.entries()).map(([category, shortcuts]) => (
             <CategorySection key={category}>
@@ -119,32 +118,28 @@ export function ShortcutsHelpModal({
             </CategorySection>
           ))}
         </ShortcutsList>
-      </Body>
-    </Container>
+      </DrawerBody>
+    </Fragment>
   );
 }
 
-const Container = styled('div')`
-  max-width: min(90vw, 1200px);
-  min-width: 600px;
-  width: 100%;
+const HeaderTitle = styled('h4')`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: ${p => p.theme.textColor};
 `;
 
 const ShortcutsList = styled('div')`
-  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(3)};
+
+  /* Custom scrollbar styling for the drawer body */
+  max-height: calc(100vh - 80px);
   overflow-y: auto;
   padding-right: ${space(1)};
 
-  /* Responsive column layout */
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: ${space(3)};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  /* Custom scrollbar styling */
   &::-webkit-scrollbar {
     width: 8px;
   }
@@ -165,7 +160,6 @@ const ShortcutsList = styled('div')`
 `;
 
 const CategorySection = styled('div')`
-  break-inside: avoid;
   margin-bottom: ${space(2)};
 
   &:last-child {
@@ -204,12 +198,15 @@ const ShortcutRow = styled('div')`
 const ShortcutDescription = styled('span')`
   color: ${p => p.theme.textColor};
   font-size: 14px;
+  flex: 1;
+  margin-right: ${space(2)};
 `;
 
 const ShortcutKeys = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+  flex-shrink: 0;
 `;
 
 const OrText = styled('span')`

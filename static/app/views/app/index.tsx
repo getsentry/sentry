@@ -25,7 +25,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
-import {GlobalShortcuts, ShortcutsProvider} from 'sentry/utils/keyboardShortcuts';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -34,7 +33,6 @@ import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
@@ -60,7 +58,7 @@ function App({children, params}: Props) {
   const api = useApi();
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
-  const router = useRouter();
+
   const {visible: isModalOpen} = useGlobalModal();
   const preloadData = shouldPreloadData(config);
 
@@ -268,27 +266,24 @@ function App({children, params}: Props) {
   return (
     <Profiler id="App" onRender={onRenderCallback}>
       <UserTimezoneProvider>
-        <ShortcutsProvider>
-          <GlobalShortcuts router={router} />
-          <LastKnownRouteContextProvider>
-            <RouteAnalyticsContextProvider>
-              {renderOrganizationContextProvider(
-                <AsyncSDKIntegrationContextProvider>
-                  <GlobalFeedbackForm>
-                    <MainContainer tabIndex={-1} ref={mainContainerRef}>
-                      <DemoToursProvider>
-                        <GlobalModal onClose={handleModalClose} />
-                        <ExplorerPanel isVisible={isExplorerPanelOpen} />
-                        <Indicators className="indicators-container" />
-                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                      </DemoToursProvider>
-                    </MainContainer>
-                  </GlobalFeedbackForm>
-                </AsyncSDKIntegrationContextProvider>
-              )}
-            </RouteAnalyticsContextProvider>
-          </LastKnownRouteContextProvider>
-        </ShortcutsProvider>
+        <LastKnownRouteContextProvider>
+          <RouteAnalyticsContextProvider>
+            {renderOrganizationContextProvider(
+              <AsyncSDKIntegrationContextProvider>
+                <GlobalFeedbackForm>
+                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                    <DemoToursProvider>
+                      <GlobalModal onClose={handleModalClose} />
+                      <ExplorerPanel isVisible={isExplorerPanelOpen} />
+                      <Indicators className="indicators-container" />
+                      <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                    </DemoToursProvider>
+                  </MainContainer>
+                </GlobalFeedbackForm>
+              </AsyncSDKIntegrationContextProvider>
+            )}
+          </RouteAnalyticsContextProvider>
+        </LastKnownRouteContextProvider>
       </UserTimezoneProvider>
     </Profiler>
   );
