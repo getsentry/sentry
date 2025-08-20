@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
+import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg?url';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';

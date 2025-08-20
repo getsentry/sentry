@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
+import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg?url';
 
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 

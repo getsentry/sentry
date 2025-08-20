@@ -3,7 +3,7 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
+import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg?url';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';

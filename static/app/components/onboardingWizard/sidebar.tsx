@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
+import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg?url';
 
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import type {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';

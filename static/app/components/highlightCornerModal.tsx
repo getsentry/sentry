@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import TopRight from 'sentry-images/pattern/highlight-top-right.svg';
+import TopRight from 'sentry-images/pattern/highlight-top-right.svg?url';
 
 type Props = {
   children: React.ReactNode;
