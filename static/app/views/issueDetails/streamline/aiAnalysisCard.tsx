@@ -139,42 +139,36 @@ function ChartsSection({group}: {group: Group}) {
   console.log('Converted stats:', { convert24hStats, convert30dStats });
 
   return (
-    <>
-      <ChartsSpacer />
-      <ChartsWrapper>
-        <ChartsLabel>{t('Event Stats')}</ChartsLabel>
-      <ChartsContent>
-        <ChartContainer>
-          <ChartTitle>{t('Last 24 Hours')}</ChartTitle>
-          {loading24h ? (
-            <div style={{height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-              Loading...
-            </div>
-          ) : error24h ? (
-            <div style={{height: 32, display: 'flex', alignItems: 'center', color: 'red'}}>
-              Error loading data
-            </div>
-          ) : (
-            <GroupChart stats={convert24hStats} height={32} />
-          )}
-        </ChartContainer>
-        <ChartContainer>
-          <ChartTitle>{t('Last 30 Days')}</ChartTitle>
-          {loading30d ? (
-            <div style={{height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-              Loading...
-            </div>
-          ) : error30d ? (
-            <div style={{height: 32, display: 'flex', alignItems: 'center', color: 'red'}}>
-              Error loading data
-            </div>
-          ) : (
-            <GroupChart stats={convert30dStats} height={32} />
-          )}
-        </ChartContainer>
-      </ChartsContent>
-      </ChartsWrapper>
-    </>
+    <ChartsMetricsSection>
+      <ChartContainer>
+        <ChartTitle>{t('Last 24 Hours')}</ChartTitle>
+        {loading24h ? (
+          <div style={{height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px'}}>
+            Loading...
+          </div>
+        ) : error24h ? (
+          <div style={{height: 48, display: 'flex', alignItems: 'center', color: 'red', fontSize: '12px'}}>
+            Error
+          </div>
+        ) : (
+          <GroupChart stats={convert24hStats} height={48} />
+        )}
+      </ChartContainer>
+      <ChartContainer>
+        <ChartTitle>{t('Last 30 Days')}</ChartTitle>
+        {loading30d ? (
+          <div style={{height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px'}}>
+            Loading...
+          </div>
+        ) : error30d ? (
+          <div style={{height: 48, display: 'flex', alignItems: 'center', color: 'red', fontSize: '12px'}}>
+            Error
+          </div>
+        ) : (
+          <GroupChart stats={convert30dStats} height={48} />
+        )}
+      </ChartContainer>
+    </ChartsMetricsSection>
   );
 }
 
@@ -653,37 +647,40 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
             {/* Timeline and Metrics Row - Use real group data */}
             <TimelineMetricsRow>
-              <TimelineSection>
-                <TimelineItem>
-                  <TimelineLabel>{t('First seen:')}</TimelineLabel>
-                  <TimelineValue>
-                    {formatTimeAgo(group.firstSeen)}
-                  </TimelineValue>
-                </TimelineItem>
-                <TimelineItem>
-                  <TimelineLabel>{t('Last seen:')}</TimelineLabel>
-                  <TimelineValue>
-                    {formatTimeAgo(group.lastSeen)}
-                  </TimelineValue>
-                </TimelineItem>
-              </TimelineSection>
+              <TimelineMetricsContent>
+                <TimelineSection>
+                  <TimelineItem>
+                    <TimelineLabel>{t('First seen:')}</TimelineLabel>
+                    <TimelineValue>
+                      {formatTimeAgo(group.firstSeen)}
+                    </TimelineValue>
+                  </TimelineItem>
+                  <TimelineItem>
+                    <TimelineLabel>{t('Last seen:')}</TimelineLabel>
+                    <TimelineValue>
+                      {formatTimeAgo(group.lastSeen)}
+                    </TimelineValue>
+                  </TimelineItem>
+                </TimelineSection>
 
-              <MetricsSection>
-                <MetricItem>
-                  <MetricLabel>{t('Events')}</MetricLabel>
-                  <MetricValue>
-                    {group.count}
-                  </MetricValue>
-                </MetricItem>
+                <MetricsSection>
+                  <MetricItem>
+                    <MetricLabel>{t('Events')}</MetricLabel>
+                    <MetricValue>
+                      {group.count}
+                    </MetricValue>
+                  </MetricItem>
 
-                <MetricItem>
-                  <MetricLabel>{t('Users Affected')}</MetricLabel>
-                  <MetricValue>
-                    {group.userCount}
-                  </MetricValue>
-                </MetricItem>
-              </MetricsSection>
+                  <MetricItem>
+                    <MetricLabel>{t('Users Affected')}</MetricLabel>
+                    <MetricValue>
+                      {group.userCount}
+                    </MetricValue>
+                  </MetricItem>
+                </MetricsSection>
+              </TimelineMetricsContent>
             </TimelineMetricsRow>
+
           </CardContent>
         </HeaderCard>
 
@@ -1336,14 +1333,20 @@ const IssueTitle = styled('h4')`
 
 const TimelineMetricsRow = styled('div')`
   display: flex;
-  justify-content: space-between;
-  gap: ${space(3)};
+  flex-direction: column;
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
   margin-left: -${space(2)};
   margin-right: -${space(2)};
   padding: ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
+`;
+
+const TimelineMetricsContent = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(3)};
 `;
 
 const TimelineSection = styled('div')`
@@ -1891,6 +1894,7 @@ function ActionItemsSection({similarIssuesCount}: ActionItemsSectionProps) {
 
 const ActionItemsWrapper = styled('div')`
   margin-top: ${space(2)};
+  padding-bottom: ${space(4)};
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
@@ -2088,35 +2092,25 @@ const ExitAIModeLink = styled('button')`
   }
 `;
 
-const ChartsSpacer = styled('div')`
-  height: ${space(6)};
-`;
-
-const ChartsWrapper = styled('div')`
-  margin-top: ${space(2)};
-`;
-
-const ChartsLabel = styled('span')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeight.normal};
-`;
-
-const ChartsContent = styled('div')`
-  margin-top: ${space(1)};
+const ChartsMetricsSection = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
+  align-items: center;
+  margin-top: ${space(3)};
 `;
 
 const ChartContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
+  width: 100%;
+  max-width: 280px;
 `;
 
 const ChartTitle = styled('span')`
   font-size: ${p => p.theme.fontSize.xs};
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeight.normal};
+  text-align: center;
 `;
