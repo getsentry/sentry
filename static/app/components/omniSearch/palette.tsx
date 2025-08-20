@@ -18,7 +18,7 @@ import error from 'sentry-images/spot/cmd-k-error.svg';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
 import SeeryCharacter, {
-  SeeryCharacterRef,
+  type SeeryCharacterRef,
 } from 'sentry/components/omniSearch/animation/seeryCharacter';
 import {strGetFn} from 'sentry/components/search/sources/utils';
 import {IconArrow} from 'sentry/icons/iconArrow';
