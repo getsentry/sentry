@@ -39,6 +39,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
+import brainhead from './brainhead.png';
 import type {OmniAction} from './types';
 import {useApiDynamicActions} from './useApiDynamicActions';
 import {useCommandDynamicActions} from './useCommandDynamicActions';
@@ -117,6 +118,8 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const seeryRef = useRef<SeeryCharacterRef>(null);
 
+  const [seerCallLoading, setSeerCallLoading] = useState(false);
+
   const debouncedQuery = useDebouncedValue(query, 300);
 
   const {getSeenIssues} = useSeenIssues();
@@ -164,6 +167,8 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
         if (!queryToSearch) {
           return;
         }
+
+        setSeerCallLoading(true);
 
         try {
           const url =
@@ -277,6 +282,8 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
         } catch (err) {
           closeModal();
           // Failed to query Seer
+        } finally {
+          // setSeerCallLoading(false);
         }
       },
     };
@@ -508,50 +515,61 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                 }
               }}
               placeholder={placeholder}
+              disabled={seerCallLoading}
+              style={{
+                opacity: seerCallLoading ? 0.5 : 1,
+              }}
             />
           </SearchInputContainer>
         </Header>
-        <CommandPrimitive.Command.List>
-          {grouped.every(g => g.items.length === 0) ? (
-            <CommandPrimitive.Command.Empty>
-              <img src={error} alt="No results" />
-              <p>Whoops… we couldn’t find any results matching your search.</p>
-              <p>Try rephrasing your query maybe?</p>
-            </CommandPrimitive.Command.Empty>
-          ) : (
-            grouped.map(group => (
-              <Fragment key={group.sectionKey}>
-                {group.items.length > 0 && (
-                  <CommandPrimitive.Command.Group heading={group.label}>
-                    {group.items.map(item => (
-                      <CommandPrimitive.Command.Item
-                        key={item.key}
-                        value={item.key}
-                        onSelect={() => handleSelect(item)}
-                        disabled={item.disabled}
-                      >
-                        <ItemRow>
-                          {item.actionIcon && (
-                            <IconDefaultsProvider size="sm">
-                              <IconWrapper>{item.actionIcon}</IconWrapper>
-                            </IconDefaultsProvider>
-                          )}
-                          <OverflowHidden>
-                            <div>
-                              {item.label}
-                              {item.children && item.children.length > 0 && '…'}
-                            </div>
-                            {item.details && <ItemDetails>{item.details}</ItemDetails>}
-                          </OverflowHidden>
-                        </ItemRow>
-                      </CommandPrimitive.Command.Item>
-                    ))}
-                  </CommandPrimitive.Command.Group>
-                )}
-              </Fragment>
-            ))
-          )}
-        </CommandPrimitive.Command.List>
+        {seerCallLoading ? (
+          <SeerLoadingContainer>
+            <BrainHead src={brainhead} alt="Loading..." />
+            <LoadingCaption>MAKING IT MAKE SENSE</LoadingCaption>
+          </SeerLoadingContainer>
+        ) : (
+          <CommandPrimitive.Command.List>
+            {grouped.every(g => g.items.length === 0) ? (
+              <CommandPrimitive.Command.Empty>
+                <img src={error} alt="No results" />
+                <p>Whoops… we couldn't find any results matching your search.</p>
+                <p>Try rephrasing your query maybe?</p>
+              </CommandPrimitive.Command.Empty>
+            ) : (
+              grouped.map(group => (
+                <Fragment key={group.sectionKey}>
+                  {group.items.length > 0 && (
+                    <CommandPrimitive.Command.Group heading={group.label}>
+                      {group.items.map(item => (
+                        <CommandPrimitive.Command.Item
+                          key={item.key}
+                          value={item.key}
+                          onSelect={() => handleSelect(item)}
+                          disabled={item.disabled}
+                        >
+                          <ItemRow>
+                            {item.actionIcon && (
+                              <IconDefaultsProvider size="sm">
+                                <IconWrapper>{item.actionIcon}</IconWrapper>
+                              </IconDefaultsProvider>
+                            )}
+                            <OverflowHidden>
+                              <div>
+                                {item.label}
+                                {item.children && item.children.length > 0 && '…'}
+                              </div>
+                              {item.details && <ItemDetails>{item.details}</ItemDetails>}
+                            </OverflowHidden>
+                          </ItemRow>
+                        </CommandPrimitive.Command.Item>
+                      ))}
+                    </CommandPrimitive.Command.Group>
+                  )}
+                </Fragment>
+              ))
+            )}
+          </CommandPrimitive.Command.List>
+        )}
       </StyledCommand>
     </Fragment>
   );
@@ -745,4 +763,40 @@ const ItemDetails = styled('div')`
 
 const OverflowHidden = styled('div')`
   overflow: hidden;
+`;
+
+const SeerLoadingContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 60px 20px;
+  min-height: 300px;
+`;
+
+const BrainHead = styled('img')`
+  width: 180px;
+  height: 180px;
+  animation: pulse 1.5s ease-in-out infinite;
+  margin-bottom: 24px;
+
+  @keyframes pulse {
+    0% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0.6;
+    }
+  }
+`;
+
+const LoadingCaption = styled('div')`
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: 600;
+  color: ${p => p.theme.textColor};
+  letter-spacing: 0.5px;
 `;
