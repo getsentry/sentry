@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
 import serryLottieAnimation from 'getsentry-images/omni/mshk-image-to-lottie.json';
@@ -17,6 +16,8 @@ import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {useSeenIssues} from 'sentry/utils/seenIssuesStorage';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import type {OmniAction} from './types';
@@ -65,6 +66,7 @@ function flattenActions(actions: OmniAction[], parentLabel?: string): OmniAction
  * NOTE: This is intentionally minimal and will be iterated on.
  */
 export function OmniSearchPalette() {
+  const organization = useOrganization();
   const {
     focusedArea,
     actions: availableActions,
@@ -91,11 +93,9 @@ export function OmniSearchPalette() {
         section: 'Recently Viewed',
         label: issue.issue.title || issue.issue.id,
         actionIcon: <PlatformIcon platform={issue.issue.platform} size={16} />,
-        onAction: () => {
-          navigate(normalizeUrl(`/issues/${issue.id}`));
-        },
+        to: `/organizations/${organization.slug}/issues/${issue.id}/`,
       }));
-  }, [navigate, getSeenIssues, groupId]);
+  }, [getSeenIssues, groupId, organization.slug]);
 
   // Get dynamic actions from all sources (no filtering - palette handles the search)
   const apiActions = useApiDynamicActions(debouncedQuery);
