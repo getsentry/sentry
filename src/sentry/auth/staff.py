@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Final
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone as django_timezone
@@ -54,7 +55,7 @@ def is_active_staff(request: HttpRequest) -> bool:
 
 
 # TODO(schew2381): Delete after staff is GA'd and the options are removed
-def has_staff_option(user: User) -> bool:
+def has_staff_option(user: User | AnonymousUser) -> bool:
     """
     This checks two options, the first being whether or not staff has been GA'd.
     If not, it falls back to checking the second option which by email specifies which
