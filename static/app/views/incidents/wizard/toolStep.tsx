@@ -140,7 +140,7 @@ const checklistItems: ToolStepItem[] = [
 ];
 
 export function ToolStep() {
-  const {setStepContext} = useIncidentSetupContext();
+  const {tools: toolsContext, setStepContext} = useIncidentSetupContext();
   const organization = useOrganization();
   const {data: integrations = [], isPending} = useApiQuery<OrganizationIntegration[]>(
     [`/organizations/${organization.slug}/integrations/`],
@@ -171,6 +171,9 @@ export function ToolStep() {
     ) {
       return;
     }
+    if (toolsContext.complete) {
+      return;
+    }
     setStepContext(IncidentSetupStep.TOOLS, {
       complete: true,
       task_provider: configState.task.integrationKey,
@@ -182,7 +185,7 @@ export function ToolStep() {
       retro_provider: configState.retro.integrationKey,
       retro_config: configState.retro,
     });
-  }, [configState, setStepContext]);
+  }, [configState, setStepContext, toolsContext.complete]);
 
   return (
     <ChecklistContainer loading={isPending}>

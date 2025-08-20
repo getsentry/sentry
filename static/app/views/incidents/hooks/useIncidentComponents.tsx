@@ -9,7 +9,7 @@ export function useIncidentComponents({organizationSlug}: {organizationSlug: str
     refetch,
   } = useApiQuery<IncidentComponent[]>(
     [`/organizations/${organizationSlug}/incident-components/`],
-    {staleTime: 30000}
+    {staleTime: 0}
   );
 
   return {

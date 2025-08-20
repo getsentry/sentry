@@ -65,7 +65,7 @@ export const TEMP_TOOL_STEP_STATE = {
   },
   status_page: {
     integrationKey: 'statuspage',
-    statusPage: {
+    statuspage: {
       id: '5pt6vxc1jn45',
       headline: 'Parks Canada Agency',
       url: 'https://hw2025.statuspage.io/',

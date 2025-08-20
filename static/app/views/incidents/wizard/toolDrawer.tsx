@@ -38,7 +38,7 @@ function IntegrationContent({integration, onSubmit}: ToolDrawerProps) {
       case 'slack':
         return <SlackContent integration={integration} onSubmit={onSubmit} />;
       case 'statuspage':
-        return <StatusPageContent integration={integration} onSubmit={onSubmit} />;
+        return <StatuspageContent integration={integration} onSubmit={onSubmit} />;
       case 'notion':
         return <NotionContent integration={integration} onSubmit={onSubmit} />;
       default:
@@ -189,17 +189,17 @@ function SlackContent({integration, onSubmit}: ToolDrawerProps) {
   );
 }
 
-function StatusPageContent({integration, onSubmit}: ToolDrawerProps) {
-  const availableStatusPages = INTEGRATION_CRIMES.statuspage;
-  const [selectedStatusPage, setSelectedStatusPage] = useState<any | null>(
-    availableStatusPages[0] ?? null
+function StatuspageContent({integration, onSubmit}: ToolDrawerProps) {
+  const availableStatuspages = INTEGRATION_CRIMES.statuspage;
+  const [selectedStatuspage, setSelectedStatuspage] = useState<any | null>(
+    availableStatuspages[0] ?? null
   );
 
   return (
     <Fragment>
       <Flex direction="column" gap="lg">
         <Heading as="h3" size="lg">
-          {t('Connect StatusPage for public updates')}
+          {t('Connect Statuspage for public updates')}
         </Heading>
         <Text variant="muted">
           {t(
@@ -210,23 +210,23 @@ function StatusPageContent({integration, onSubmit}: ToolDrawerProps) {
       <Flex direction="column" gap="lg">
         <Text bold>{t('Select a status page')}</Text>
         <Select
-          options={availableStatusPages.map(({id, headline, url, favicon_logo}) => ({
+          options={availableStatuspages.map(({id, headline, url, favicon_logo}) => ({
             label: `${headline} (${url})`,
             value: id,
             leadingItems: <InlineIcon src={favicon_logo?.url} />,
           }))}
-          value={selectedStatusPage?.id}
+          value={selectedStatuspage?.id}
           onChange={({value}: {value: string}) =>
-            setSelectedStatusPage(availableStatusPages.find(p => p.id === value) ?? null)
+            setSelectedStatuspage(availableStatuspages.find(p => p.id === value) ?? null)
           }
         />
         <SubmitButton
           priority="primary"
-          disabled={!selectedStatusPage}
+          disabled={!selectedStatuspage}
           onClick={() =>
             onSubmit({
               integrationKey: integration.provider.key,
-              statusPage: selectedStatusPage,
+              statuspage: selectedStatuspage,
               integrationId: integration.id,
             })
           }
