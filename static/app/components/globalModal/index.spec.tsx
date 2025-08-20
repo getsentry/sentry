@@ -8,12 +8,10 @@ import {
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import ModalStore from 'sentry/stores/modalStore';
 
 describe('GlobalModal', () => {
   beforeEach(() => {
     jest.resetAllMocks();
-    ModalStore.reset();
   });
 
   it('uses actionCreators to open and close Modal', async () => {
