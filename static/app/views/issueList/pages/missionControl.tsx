@@ -78,59 +78,67 @@ const EXAMPLE_CARDS: MissionControlCard[] = [
     priority: 11,
     data: {
       purpose:
-        'Improve observability for the fixability endpoint to better track intermittent failures when called from Seer Scanner.',
+        'Quantify input size causing OOM to verify root cause and inform input handling.',
       observability_requests: [
         {
           description:
-            'Add detailed tracing spans around the ML model inference pipeline to track processing time and identify bottlenecks in the fixability assessment workflow.',
-          instrument_type: 'tracing',
-          location:
-            'getsentry/seer/src/seer/automation/fixpoint/api.py in the process_fixability_request function',
-        },
-        {
-          description:
-            'Implement profiling to identify memory usage patterns and CPU hotspots during model loading and inference phases.',
-          instrument_type: 'profiling',
-          location:
-            'getsentry/seer/src/seer/automation/models/ module, specifically in model initialization and prediction methods',
-        },
-        {
-          description:
-            'Add structured logging with correlation IDs to track requests through the entire pipeline and capture error context.',
-          instrument_type: 'logging',
-          location:
-            'getsentry/seer/src/seer/automation/fixpoint/api.py throughout the request lifecycle',
-        },
-        {
-          description:
-            'Tag requests with metadata like model version, request size, and processing mode to enable better filtering and analysis.',
+            'To quantify the size of problematic inputs and verify the hypothesis that large inputs cause OOM.',
           instrument_type: 'tagging',
-          location:
-            'getsentry/seer/src/seer/automation/fixpoint/api.py at the entry point of each request handler',
         },
       ],
-      sourceIssueId: '6678410850',
+      sourceIssueId: '6810613041',
     },
-    url: '/issues/6678410850/?seerDrawer=true',
+    url: '/issues/6810613041/?seerDrawer=true',
     metadata: {
       source: 'hardcoded-demo',
       tags: ['instrumentation', 'setup'],
     },
   },
+
   {
-    id: '8',
+    id: '9',
     type: 'ultragroup',
     createdAt: '2024-01-23T10:15:00Z',
-    priority: 13,
+    priority: 14,
     data: {
-      title: 'Bad GitHub branch state issues',
+      title: 'psycopg connection reused concurrently in SQLAlchemy session',
       description:
-        'These issues are all caused by a bad GitHub branch state in automation agents within Seer, such as Autofix and Bug Predictor.',
-      issueIds: [6559383058, 6770107969, 6275476616, 6723171750, 6723094719],
+        "Multiple concurrent DB operations are issued on the same PostgreSQL connection, causing 'another command is already in progress' and autocommit state errors; some requests also hit soft time limits and dropped connections. Affected components use SQLAlchemy sessions to read/update run state and memory.",
+      issueIds: [
+        6621297713, 6705193811, 6705205294, 6705824065, 6724478613, 6707911641,
+        6725125568, 6732544529,
+      ],
     },
     metadata: {
       source: 'hardcoded-demo',
       tags: ['error-cluster', 'high-priority'],
+    },
+  },
+  {
+    id: '8',
+    type: 'missing-instrumentation',
+    createdAt: '2024-02-22T14:30:00Z',
+    priority: 12,
+    data: {
+      purpose: 'Identify bottleneck in repo initialization and affected repositories.',
+      observability_requests: [
+        {
+          description:
+            'Pinpoint exact bottleneck (download, extract, clone, sync) and identify if large repos are the cause.',
+          instrument_type: 'tracing',
+        },
+        {
+          description:
+            'Identify if specific repositories consistently cause timeouts, helping to narrow down the problem.',
+          instrument_type: 'tagging',
+        },
+      ],
+      sourceIssueId: '6603629005',
+    },
+    url: '/issues/6603629005/?seerDrawer=true',
+    metadata: {
+      source: 'hardcoded-demo',
+      tags: ['instrumentation', 'setup'],
     },
   },
 ];

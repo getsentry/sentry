@@ -25,7 +25,7 @@ import AssignedToMeSection from 'sentry/views/issueList/pages/missionControl/sec
 import CoreProblemsSection from 'sentry/views/issueList/pages/missionControl/sections/coreProblemsSection';
 import EscalatingIssuesSection from 'sentry/views/issueList/pages/missionControl/sections/escalatingIssuesSection';
 import NewIssuesSection from 'sentry/views/issueList/pages/missionControl/sections/newIssuesSection';
-import ThemesSection from 'sentry/views/issueList/pages/missionControl/sections/themesSection';
+// import ThemesSection from 'sentry/views/issueList/pages/missionControl/sections/themesSection';
 import TopIssuesSection from 'sentry/views/issueList/pages/missionControl/sections/topIssuesSection';
 
 // Wobble animation to grab attention
@@ -88,13 +88,13 @@ function MissionControlSections() {
       >
         <CoreProblemsSection />
       </FoldSection>
-      <FoldSection
+      {/* <FoldSection
         sectionKey={SectionKey.SEER_MISSION_CONTROL_THEMES}
         title={t('Themes')}
         disableCollapsePersistence
       >
         <ThemesSection />
-      </FoldSection>
+      </FoldSection> */}
       <FoldSection
         sectionKey={SectionKey.SEER_MISSION_CONTROL_ESCALATING_ISSUES}
         title={t('Escalating Issues')}

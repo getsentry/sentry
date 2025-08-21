@@ -496,11 +496,13 @@ function IssueCardRenderer({card, onSetPrimaryAction}: CardRendererProps<IssueCa
       <Content>
         <RowContainer>
           <TitleSection>
-            <Text size="xl" bold>
+            <Text size="xl" variant="muted">
               {getReasonMessage(reason)}
             </Text>
 
-            <Text size="xl">{issue.metadata.type}</Text>
+            <Text size="xl" bold>
+              {issue.metadata.type}
+            </Text>
 
             <Text size="lg">{issue.metadata.value}</Text>
             <MetadataValueContainer>

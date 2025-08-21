@@ -136,10 +136,10 @@ function UltragroupCardRenderer({
       <CardContainer>
         <Content>
           <HeaderSection>
+            <Text size="xl">{t('A core problem has been detected')}</Text>
             <Text size="xl" bold>
-              {t('A core problem has been detected')}
+              {title}
             </Text>
-            <Text size="xl">{title}</Text>
             <Text size="md">{description}</Text>
           </HeaderSection>
           <LoadingError onRetry={refetch} />
@@ -153,18 +153,20 @@ function UltragroupCardRenderer({
       <CardContainer>
         <Content>
           <HeaderSection>
+            <Text size="xl">{t('A core problem has been detected')}</Text>
             <Text size="xl" bold>
-              {t('A core problem has been detected')}
+              {title}
             </Text>
-            <Text size="xl">{title}</Text>
-            <Text size="md">{description}</Text>
+            <Text size="lg" density="comfortable">
+              {description}
+            </Text>
           </HeaderSection>
           <IssuesPanel>
-            <PanelBody>
+            <ScrollablePanelBody>
               <EmptyStateWarning>
                 <p>{t('No issues found matching the specified criteria.')}</p>
               </EmptyStateWarning>
-            </PanelBody>
+            </ScrollablePanelBody>
           </IssuesPanel>
         </Content>
       </CardContainer>
@@ -175,11 +177,15 @@ function UltragroupCardRenderer({
     <CardContainer>
       <Content>
         <HeaderSection>
-          <Text size="xl" bold>
-            {t('A core problem has been detected')}
+          <Text size="xl" variant="muted">
+            {t('Seer detected a core problem')}
           </Text>
-          <Text size="xl">{title}</Text>
-          <Text size="md">{description}</Text>
+          <Text size="xl" bold>
+            {title}
+          </Text>
+          <Text size="lg" density="comfortable">
+            {description}
+          </Text>
         </HeaderSection>
 
         <IssuesSection>
@@ -187,7 +193,7 @@ function UltragroupCardRenderer({
             <HeaderContainer>
               <GroupListHeader withChart withColumns={COLUMNS} />
             </HeaderContainer>
-            <PanelBody>
+            <ScrollablePanelBody>
               {isPending
                 ? [...new Array(Math.min(issueIds.length, 4))].map((_, i) => (
                     <GroupPlaceholder key={i}>
@@ -209,7 +215,7 @@ function UltragroupCardRenderer({
                       />
                     );
                   })}
-            </PanelBody>
+            </ScrollablePanelBody>
           </IssuesPanel>
         </IssuesSection>
       </Content>
@@ -231,13 +237,15 @@ const Content = styled('div')`
   display: flex;
   flex-direction: column;
   padding: ${space(3)};
-  gap: ${space(3)};
+  overflow: hidden;
 `;
 
 const HeaderSection = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${space(2)};
+  margin-bottom: ${space(3)};
+  flex-shrink: 0;
 `;
 
 const IssuesSection = styled('div')`
@@ -249,10 +257,12 @@ const IssuesSection = styled('div')`
 
 const IssuesPanel = styled(Panel)`
   min-width: 0;
-  overflow-y: auto;
+  overflow: hidden;
   margin-bottom: 0 !important;
   flex: 1;
   container-type: inline-size;
+  display: flex;
+  flex-direction: column;
 `;
 
 const GroupPlaceholder = styled('div')`
@@ -268,6 +278,12 @@ const HeaderContainer = styled('div')`
   top: 0;
   z-index: ${p => p.theme.zIndex.header};
   background: ${p => p.theme.background};
+`;
+
+const ScrollablePanelBody = styled(PanelBody)`
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 `;
 
 export default UltragroupCardRenderer;

@@ -6,7 +6,6 @@ import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   AutofixStepType,
@@ -94,7 +93,7 @@ function useSyncGroupStore(data: Group[] | undefined) {
 }
 
 export function ThemeDrawer({data, project, isCoreProblem}: ThemeDrawerProps) {
-  const {ultragroup, issueCount, totalEvents} = data;
+  const {ultragroup} = data;
   const {title, description, issueIds} = ultragroup;
   const organization = useOrganization();
   const memberList = useMemberList();
@@ -324,16 +323,6 @@ export function ThemeDrawer({data, project, isCoreProblem}: ThemeDrawerProps) {
       </EventDrawerHeader>
       <EventNavigator>
         <Header>{title}</Header>
-        <StatsContainer>
-          <StatItem>
-            <StatValue>{issueCount}</StatValue>
-            <StatLabel>{issueCount === 1 ? t('Issue') : t('Issues')}</StatLabel>
-          </StatItem>
-          <StatItem>
-            <StatValue>{totalEvents.toLocaleString()}</StatValue>
-            <StatLabel>{totalEvents === 1 ? t('Event') : t('Events')}</StatLabel>
-          </StatItem>
-        </StatsContainer>
       </EventNavigator>
       <EventDrawerBody>
         <ContentContainer>
@@ -425,29 +414,6 @@ const Description = styled('p')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.lg};
   flex: 1;
-`;
-
-const StatsContainer = styled('div')`
-  display: flex;
-  gap: ${space(3)};
-`;
-
-const StatItem = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-`;
-
-const StatValue = styled(Text)`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  color: ${p => p.theme.headingColor};
-`;
-
-const StatLabel = styled(Text)`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
 `;
 
 const IssuesPanel = styled(Panel)`

@@ -22,18 +22,14 @@ function getIssueCountColor(count: number, theme: any) {
   return theme.red300;
 }
 
-// Helper function to get color based on event count
-function getEventCountColor(count: number, theme: any) {
-  // Events: Higher thresholds since events can occur frequently
-  if (count < 10) return theme.gray300;
-  if (count < 100) return theme.yellow300;
-  if (count < 1000) return theme.red400;
-  return theme.red300;
-}
-
 function ThemeCard({data, onClick, isCoreProblem}: ThemeCardProps) {
-  const {ultragroup, issueCount, totalEvents} = data;
+  const {ultragroup, issueCount} = data;
   const {title, description} = ultragroup;
+
+  let truncatedDescription = description;
+  if (description.length > 100) {
+    truncatedDescription = description.slice(0, 100) + '...';
+  }
 
   return (
     <CardContainer
@@ -57,7 +53,7 @@ function ThemeCard({data, onClick, isCoreProblem}: ThemeCardProps) {
           <Title size="lg" bold isCoreProblem={isCoreProblem}>
             {title}
           </Title>
-          <Description>{description}</Description>
+          <Description>{truncatedDescription}</Description>
         </TextSection>
 
         <StatsSection>
@@ -66,13 +62,6 @@ function ThemeCard({data, onClick, isCoreProblem}: ThemeCardProps) {
               <Count value={issueCount} />
             </StatValue>
             <StatLabel size="xs">{tn('issue', 'Issues', issueCount)}</StatLabel>
-          </StatItem>
-
-          <StatItem>
-            <StatValue size="lg" bold count={totalEvents} type="event">
-              <Count value={totalEvents} />
-            </StatValue>
-            <StatLabel size="xs">{tn('event', 'Events', totalEvents)}</StatLabel>
           </StatItem>
         </StatsSection>
       </Content>
@@ -87,7 +76,8 @@ const CardContainer = styled('div')<{clickable: boolean}>`
   box-shadow: ${p => p.theme.dropShadowMedium};
   padding: ${space(2)};
   height: 180px;
-  width: 400px;
+  width: 350px;
+  min-width: 350px;
 
   ${p =>
     p.clickable &&
@@ -141,7 +131,7 @@ const StatsSection = styled('div')`
   justify-content: center;
   gap: ${space(3)};
   flex-shrink: 0;
-  width: 80px;
+  width: 50px;
   border-left: 1px solid ${p => p.theme.innerBorder};
   padding-left: ${space(2)};
 `;
@@ -154,11 +144,8 @@ const StatItem = styled('div')`
   text-align: center;
 `;
 
-const StatValue = styled(Text)<{count: number; type: 'issue' | 'event'}>`
-  color: ${p =>
-    p.type === 'issue'
-      ? getIssueCountColor(p.count, p.theme)
-      : getEventCountColor(p.count, p.theme)};
+const StatValue = styled(Text)<{count: number; type: 'issue'}>`
+  color: ${p => getIssueCountColor(p.count, p.theme)};
 `;
 
 const StatLabel = styled(Text)``;

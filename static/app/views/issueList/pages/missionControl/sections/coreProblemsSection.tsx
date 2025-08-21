@@ -16,37 +16,18 @@ import type {
   Ultragroup,
 } from 'sentry/views/issueList/pages/missionControl/types';
 
-// Mock data for core problems - in the future this would come from an API endpoint
-const MOCK_CORE_PROBLEMS: Ultragroup[] = [
-  {
-    id: 'cp-1',
-    title: 'Autofix agent is hammering Postgres',
-    description:
-      'The Autofix agent makes tons of db requests while streaming, overloading the database and causing connection errors throughout the process at different points.',
-    issueIds: [
-      '6814613109',
-      '6806096924',
-      '6777178309',
-      '6812035225',
-      '6535361540',
-      '6312346126',
-    ],
-  },
-  {
-    id: 'cp-2',
-    title: 'Replay AI features not checking consent on client',
-    description:
-      'Replay breadcrumb and feedback summaries are not checking consent on the Sentry side, so they raise errors on the Seer side.',
-    issueIds: ['6105857349', '6652211379', '6817442236', '6800373349'],
-  },
-  {
-    id: 'cp-3',
-    title: 'Gemini intermittently fails structured output',
-    description:
-      'Structured output requests to Gemini sometimes return nothing despite the retry mechanism, causing unhandled errors in Autofix, issue summary, and more.',
-    issueIds: ['6793968470', '6792450203', '6782679792'],
-  },
-];
+// Import cluster summaries data
+import clusterSummariesData from './cluster_summaries_v6b.json';
+
+// Transform cluster summaries data to match Ultragroup interface
+function transformClusterSummariesToUltragroups(data: any[]): Ultragroup[] {
+  return data.map(cluster => ({
+    id: `cluster-${cluster.cluster_id}`,
+    title: cluster.title,
+    description: cluster.description,
+    issueIds: cluster.group_ids.map((id: number) => id.toString()),
+  }));
+}
 
 function CoreProblemsSection() {
   const {selectedProjects} = useProjectSelection();
@@ -63,18 +44,38 @@ function CoreProblemsSection() {
     return projects?.[0]; // Fallback to first project if none selected
   }, [selectedProjects, projects]);
 
-  // For now, use static mock data with realistic counts
-  // In the future, this would fetch from a real API endpoint
-  const mockCoreProblemsData: ThemeCardData[] = useMemo(() => {
-    // Higher event counts for core problems since they're more severe
-    const eventCounts = [8934, 5672, 3241, 7189];
+  // Load core problems data from cluster summaries JSON
+  const coreProblemsData: ThemeCardData[] = useMemo(() => {
+    // Filter clusters by project selection and minimum group count
+    const filteredClusters = clusterSummariesData.filter(cluster => {
+      // Only include clusters with at least 2 group IDs
+      if (cluster.group_ids.length < 2) {
+        return false;
+      }
 
-    return MOCK_CORE_PROBLEMS.map((ultragroup, index) => ({
-      ultragroup,
-      issueCount: ultragroup.issueIds.length,
-      totalEvents: eventCounts[index] || 2000,
-    }));
-  }, []);
+      // If no projects selected, show all clusters
+      if (selectedProjects.length === 0) {
+        return true;
+      }
+
+      // Filter by selected project - check if cluster contains any selected project
+      const selectedProjectStrings = selectedProjects.map(id => id.toString());
+      return cluster.project_ids.some(projectId =>
+        selectedProjectStrings.includes(projectId.toString())
+      );
+    });
+
+    const ultragroups = transformClusterSummariesToUltragroups(filteredClusters);
+
+    // Map to ThemeCardData and sort by issue count (descending)
+    return ultragroups
+      .map(ultragroup => ({
+        ultragroup,
+        issueCount: ultragroup.issueIds.length,
+        totalEvents: 0, // Not used, but required by interface
+      }))
+      .sort((a, b) => b.issueCount - a.issueCount);
+  }, [selectedProjects]);
 
   const openCoreProblemsDrawer = useCallback(
     (themeData: ThemeCardData) => {
@@ -107,7 +108,7 @@ function CoreProblemsSection() {
   useEffect(() => {
     const problemId = location.query.coreProblemsDrawer;
     if (problemId && currentProject) {
-      const problemData = mockCoreProblemsData.find(
+      const problemData = coreProblemsData.find(
         problem => problem.ultragroup.id === problemId
       );
       if (problemData) {
@@ -117,7 +118,7 @@ function CoreProblemsSection() {
   }, [
     location.query.coreProblemsDrawer,
     currentProject,
-    mockCoreProblemsData,
+    coreProblemsData,
     openCoreProblemsDrawer,
   ]);
 
@@ -131,7 +132,7 @@ function CoreProblemsSection() {
     });
   };
 
-  if (mockCoreProblemsData.length === 0) {
+  if (coreProblemsData.length === 0) {
     return (
       <Container>
         <EmptyStateWarning>
@@ -147,7 +148,7 @@ function CoreProblemsSection() {
   return (
     <Container>
       <ScrollCarousel aria-label={t('Core problems')}>
-        {mockCoreProblemsData.map((problem, index) => (
+        {coreProblemsData.map((problem, index) => (
           <ThemeCard
             key={problem.ultragroup.id || index}
             data={problem}

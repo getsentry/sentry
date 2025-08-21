@@ -200,12 +200,14 @@ function MissingInstrumentationCardRenderer({
       <Content>
         <RequestsSection>
           <HeaderSection>
-            <Text size="xl" bold>
-              {t('Observability Gap Detected')}
+            <Text size="xl" variant="muted">
+              {t('Seer detected an observability gap')}
             </Text>
           </HeaderSection>
 
-          <Text size="xl">{purpose}</Text>
+          <Text size="xl" bold>
+            {purpose}
+          </Text>
 
           <IssueSection>
             <Text size="lg" variant="muted" bold>
@@ -246,7 +248,7 @@ function MissingInstrumentationCardRenderer({
           </IssueSection>
 
           <Text size="lg" variant="muted" bold>
-            {t('%s recommended additions', observability_requests.length)}
+            {t('%s recommended addition(s)', observability_requests.length)}
           </Text>
 
           <RequestsList>
@@ -287,6 +289,8 @@ const CardContainer = styled('div')<{backgroundImage: string}>`
     right: 0;
     bottom: 0;
     border-radius: ${p => p.theme.borderRadius};
+    background-color: ${p => p.theme.backgroundElevated};
+    opacity: 0.3;
   }
 `;
 
@@ -323,7 +327,7 @@ const RequestsSection = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   justify-content: center;
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
 `;
 
 const RequestsList = styled('div')`
