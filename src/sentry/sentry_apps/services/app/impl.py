@@ -340,7 +340,7 @@ class DatabaseBackedAppService(AppService):
         """
         sentry_apps = SentryApp.objects.filter(
             owner_id=organization_id, application__isnull=False
-        ).exclude(status=SentryAppStatus.PUBLISHED)
+        ).exclude(status=SentryAppStatus.DELETION_IN_PROGRESS)
         return [serialize_sentry_app(app) for app in sentry_apps]
 
     def update_sentry_app(
