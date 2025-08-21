@@ -87,7 +87,7 @@ def send_notification_as_sms(
 
                     send_voice_call(
                         phone,
-                        VoiceAgentParameters(issue_summary=full_issue_summary),
+                        VoiceAgentParameters(issue_summary=full_issue_summary, title=group.title),
                     )
 
             notification.record_notification_sent(recipient_actor, ExternalProviders.SMS)

@@ -15,16 +15,21 @@ def voice_available() -> bool:
 @dataclass
 class VoiceAgentParameters:
     issue_summary: str | None = None
+    title: str | None = None
 
 
 def send_voice_call(phone_number: str, params: VoiceAgentParameters) -> bool:
+    dynamic_vars = {}
+    if params.issue_summary:
+        dynamic_vars["issue_summary"] = params.issue_summary
+    if params.title:
+        dynamic_vars["issue_title"] = params.title
+
     data = {
         "agent_id": options.get("voice.11labs.agent_id"),
         "agent_phone_number_id": options.get("voice.11labs.agent_phone_number_id"),
         "to_number": phone_number,
-        "conversation_initiation_client_data": {
-            "dynamic_variables": {"issue_summary": params.issue_summary}
-        },
+        "conversation_initiation_client_data": {"dynamic_variables": dynamic_vars},
     }
     logger.info("11labs POST data: %s", data)
     rv = requests.post(
