@@ -34,7 +34,6 @@ import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
-import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import ReplayZendeskFeedback from 'getsentry/components/replayZendeskFeedback';
@@ -102,6 +101,12 @@ const DisabledMemberViewLazy = lazy(() => import('getsentry/hooks/disabledMember
 
 const LazyEnhancedOrganizationStats = lazy(
   () => import('getsentry/hooks/spendVisibility/enhancedIndex')
+);
+
+const LazyProductSelectionAvailability = lazy(() =>
+  import('getsentry/components/productSelectionAvailability').then(m => ({
+    default: m.ProductSelectionAvailability,
+  }))
 );
 
 const GETSENTRY_HOOKS: Partial<Hooks> = {
@@ -242,7 +247,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
   'component:profiling-billing-banner': () => ProfilingBetaAlertBanner,
-  'component:product-selection-availability': () => ProductSelectionAvailability,
+  'component:product-selection-availability': () => LazyProductSelectionAvailability,
   'component:superuser-access-category': SuperuserAccessCategory,
   'component:superuser-warning': p => <SuperuserWarning {...p} />,
   'component:superuser-warning-excluded': shouldExcludeOrg,
