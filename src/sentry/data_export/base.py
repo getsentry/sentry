@@ -44,12 +44,14 @@ class ExportQueryType:
     def as_str(cls, integer: int) -> str:
         if integer == cls.ISSUES_BY_TAG:
             return cls.ISSUES_BY_TAG_STR
-        else:
+        elif integer == cls.DISCOVER:
             return cls.DISCOVER_STR
+        raise ValueError(f"Invalid ExportQueryType: {integer}")
 
     @classmethod
     def from_str(cls, string: str) -> int:
         if string == cls.ISSUES_BY_TAG_STR:
             return cls.ISSUES_BY_TAG
-        else:
+        elif string == cls.DISCOVER_STR:
             return cls.DISCOVER
+        raise ValueError(f"Invalid ExportQueryType: {string}")
