@@ -19,7 +19,7 @@ import sum from 'lodash/sum';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import {IncidentSeries, type Incident} from 'sentry/components/charts/incidentSeries';
+import {OutageSeries, type Outage} from 'sentry/components/charts/outageSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
@@ -108,9 +108,9 @@ export interface TimeSeriesWidgetVisualizationProps
    */
   chartRef?: React.Ref<ReactEchartsRef>;
   /**
-   * Array of ongoing incidents to highlight on the chart
+   * Array of ongoing outages to highlight on the chart
    */
-  incidents?: Incident[];
+  incidents?: Outage[];
 
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
@@ -118,9 +118,9 @@ export interface TimeSeriesWidgetVisualizationProps
   legendSelection?: LegendSelection;
 
   /**
-   * Callback when an incident region is clicked
+   * Callback when an outage region is clicked
    */
-  onIncidentClick?: (incident: Incident) => void;
+  onIncidentClick?: (outage: Outage) => void;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -572,11 +572,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     seriesIndexToPlottableMapRanges
   );
 
-  const incidentSeries = props.incidents
-    ? IncidentSeries(theme, props.incidents, props.onIncidentClick)
+  const outageSeries = props.incidents
+    ? OutageSeries(theme, props.incidents, props.onIncidentClick)
     : [];
 
-  const allSeries = [...seriesFromPlottables, releaseSeries, ...incidentSeries].filter(
+  const allSeries = [...seriesFromPlottables, releaseSeries, ...outageSeries].filter(
     defined
   );
 

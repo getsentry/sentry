@@ -15,7 +15,7 @@ import Color from 'color';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
-import {IncidentSeries} from 'sentry/components/charts/incidentSeries';
+import {OutageSeries, Severity} from 'sentry/components/charts/outageSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {useIncidentOutage} from 'sentry/components/charts/useIncidentOutage';
 import {Alert} from 'sentry/components/core/alert';
@@ -537,15 +537,14 @@ export function EventGraph({
           height={100}
           series={[
             ...series,
-            ...(IncidentSeries(
+            ...(OutageSeries(
               theme,
               [
                 {
                   hostId: incidentData?.host?.id?.toString() ?? '0',
                   id: incidentData?.id ?? 0,
                   regionId: incidentData?.regions?.[0]?.id?.toString() ?? '0',
-                  // @ts-expect-error - we're passing just a string ... and it's hackweek
-                  severity: incidentData?.severity ?? 'maintenance',
+                  severity: (incidentData?.severity ?? 'maintenance') as Severity,
                   start: new Date(incidentData?.start ?? '').getTime(),
                   title: incidentData?.aiSummary ?? '',
                   end: incidentData?.end

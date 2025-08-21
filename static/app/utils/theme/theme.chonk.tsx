@@ -1138,7 +1138,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
-  incident: {
+  outageSeries: {
     maintenance: chonkLightColorMapping.blue300,
     minor: chonkLightColorMapping.yellow300,
     major: chonkLightColorMapping.red300,
@@ -1212,7 +1212,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
-  incident: {
+  outageSeries: {
     maintenance: chonkDarkColorMapping.blue300,
     minor: chonkDarkColorMapping.yellow300,
     major: chonkDarkColorMapping.red300,
