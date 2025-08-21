@@ -632,7 +632,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                   clearSelection();
                   e.preventDefault();
                   triggerSeeryImpatient();
-                  setIsSearchingSeer(true);
                   setSeerIsExiting(false);
                 }
               }}
