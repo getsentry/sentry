@@ -11,7 +11,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {ChartType} from 'sentry/views/insights/common/utils/chartType';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import type {SpanFields} from 'sentry/views/insights/types';

@@ -1,5 +1,5 @@
 import {Visualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 describe('VisualizeFunction', () => {
   it.each(['count(span.duration)', 'count_unique(span.op)', 'sum(span.duration)'])(

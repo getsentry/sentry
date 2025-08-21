@@ -18,7 +18,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
 interface ChartVisualizationProps extends Partial<BoxSelectProps> {

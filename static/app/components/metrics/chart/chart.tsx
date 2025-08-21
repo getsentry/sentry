@@ -2,7 +2,7 @@ import Color from 'color';
 import type {ZRLineType} from 'echarts/types/src/util/types';
 
 import type {Series} from 'sentry/types/echarts';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 const AVERAGE_INGESTION_DELAY_MS = 90_000;
 /**

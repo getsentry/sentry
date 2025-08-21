@@ -51,20 +51,11 @@ import {
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
 type PairOfSeries = [Series[], Series[]];
-
-export enum ChartType {
-  BAR = 0,
-  LINE = 1,
-  AREA = 2,
-}
-
-export function isChartType(value: any): value is ChartType {
-  return typeof value === 'number' && Object.values(ChartType).includes(value as any);
-}
 
 interface ChartRenderingProps {
   height: number;

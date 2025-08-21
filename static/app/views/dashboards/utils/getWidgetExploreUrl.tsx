@@ -30,7 +30,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreMultiQueryUrl, getExploreUrl} from 'sentry/views/explore/utils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 export function getWidgetLogURL(
   widget: Widget,

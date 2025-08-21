@@ -10,7 +10,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 export const MAX_VISUALIZES = 4;
 

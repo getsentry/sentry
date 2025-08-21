@@ -8,13 +8,13 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
 // Our loadable chart widgets use this to render, so this import is ok
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDiscoverSeries';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';

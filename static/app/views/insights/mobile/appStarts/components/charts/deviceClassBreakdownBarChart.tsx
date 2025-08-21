@@ -22,7 +22,6 @@ import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
 } from 'sentry/views/insights/colors';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {ChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
 import {
   ChartContainer,
@@ -30,6 +29,7 @@ import {
 } from 'sentry/views/insights/common/components/insightsChartContainer';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';

@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {decodeList} from 'sentry/utils/queryString';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 import {defaultGroupBys, getGroupBysFromLocation} from './groupBys';
 import type {BaseVisualize} from './visualizes';

@@ -29,8 +29,8 @@ import {useColumnOrder} from 'sentry/views/insights/agents/hooks/useColumnOrder'
 import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 

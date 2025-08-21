@@ -12,7 +12,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 interface Visualization {
   chartType: ChartType;

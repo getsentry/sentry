@@ -4,7 +4,7 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
 import {getFieldDefinition} from 'sentry/utils/fields';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 export interface QueryTokensProps {
   groupBys?: string[];

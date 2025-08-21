@@ -24,8 +24,8 @@ import {
   combineConfidenceForSeries,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 interface LogsGraphProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;

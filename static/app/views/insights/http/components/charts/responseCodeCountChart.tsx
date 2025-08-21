@@ -5,12 +5,12 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
 // TODO(release-drawer): Only used in httpSamplesPanel, should be easy to move data fetching in here
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import {SpanFields} from 'sentry/views/insights/types';

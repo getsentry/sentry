@@ -48,9 +48,8 @@ import {
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
-import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {ChartType, isChartType} from 'sentry/views/insights/common/utils/chartType';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export function getExploreUrl({

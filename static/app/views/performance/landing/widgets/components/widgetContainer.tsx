@@ -25,7 +25,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {GenericPerformanceWidgetDataType} from 'sentry/views/performance/landing/widgets/types';
 import {

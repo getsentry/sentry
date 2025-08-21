@@ -23,7 +23,7 @@ import {
   DEFAULT_VISUALIZATION_FIELD,
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 describe('defaults', () => {
   it('default', () => {

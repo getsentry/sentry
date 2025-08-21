@@ -24,7 +24,7 @@ import {
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 export const CHART_TYPE_TO_DISPLAY_TYPE = {
   [ChartType.LINE]: DisplayType.LINE,

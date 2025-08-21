@@ -19,9 +19,10 @@ import {
   THROUGHPUT_COLOR,
   TXN_THROUGHPUT_COLOR,
 } from 'sentry/views/insights/colors';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import Chart from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 import {
   Block,
   BlockContainer,

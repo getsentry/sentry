@@ -15,7 +15,7 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {decodeList} from 'sentry/utils/queryString';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const MAX_VISUALIZES = 4;

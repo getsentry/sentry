@@ -34,9 +34,9 @@ import {ErrorCell} from 'sentry/views/insights/agents/utils/cells';
 import {formatLLMCosts} from 'sentry/views/insights/agents/utils/formatLLMCosts';
 import {getAIGenerationsFilter} from 'sentry/views/insights/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 

@@ -31,11 +31,9 @@ import {
   combineConfidenceForSeries,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
-import {
-  ChartType,
-  useSynchronizeCharts,
-} from 'sentry/views/insights/common/components/chart';
+import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {ChartType} from 'sentry/views/insights/common/utils/chartType';
 
 interface ExploreChartsProps {
   confidences: Confidence[];
