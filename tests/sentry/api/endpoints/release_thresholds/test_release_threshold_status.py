@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
@@ -427,13 +427,13 @@ class ReleaseThresholdStatusTest(APITestCase):
     )
     def test_fetches_relevant_stats(
         self,
-        mock_is_new_issue_count_healthy,
-        mock_get_new_issue_counts,
-        mock_is_error_count_healthy,
-        mock_get_error_counts,
-        mock_is_crash_free_rate_healthy,
-        mock_fetch_sessions_data,
-    ):
+        mock_is_new_issue_count_healthy: MagicMock,
+        mock_get_new_issue_counts: MagicMock,
+        mock_is_error_count_healthy: MagicMock,
+        mock_get_error_counts: MagicMock,
+        mock_is_crash_free_rate_healthy: MagicMock,
+        mock_fetch_sessions_data: MagicMock,
+    ) -> None:
         self.project4 = self.create_project(name="baz", organization=self.organization)
         self.release4 = Release.objects.create(version="v4", organization=self.organization)
         self.release4.add_project(self.project4)

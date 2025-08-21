@@ -538,7 +538,7 @@ def is_response_error(resp: Any) -> bool:
     return resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500
 
 
-def get_integration_types(provider: str):
+def get_integration_types(provider: str) -> list[IntegrationDomain]:
     types = []
     for integration_type, providers in INTEGRATION_TYPE_TO_PROVIDER.items():
         if provider in providers:
