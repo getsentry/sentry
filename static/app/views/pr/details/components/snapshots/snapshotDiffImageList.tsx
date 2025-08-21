@@ -51,9 +51,6 @@ export default function SnapshotDiffImageList({diffs}: SnapshotDiffImageListProp
               {diff.headSnapshot.subtitle && (
                 <DiffSubtitle>{diff.headSnapshot.subtitle}</DiffSubtitle>
               )}
-              <DiffDimensions>
-                {diff.width} × {diff.height}
-              </DiffDimensions>
             </DiffDetails>
             {diff.diff && (
               <DiffPercentage>{(diff.diff * 100).toFixed(1)}% diff</DiffPercentage>
@@ -74,19 +71,19 @@ const EmptyState = styled('div')`
 `;
 
 const DiffGrid = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: ${space(3)};
   padding: ${space(2)};
 `;
 
 const DiffCard = styled('div')`
   display: flex;
-  align-items: center;
+  flex-direction: column;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: 8px;
-  padding: ${space(1.5)};
+  padding: ${space(2)};
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 
@@ -99,12 +96,13 @@ const DiffCard = styled('div')`
 const DiffImageContainer = styled('div')`
   position: relative;
   background: ${p => p.theme.gray100};
-  width: 120px;
-  height: 80px;
   border-radius: 6px;
   overflow: hidden;
-  flex-shrink: 0;
-  margin-right: ${space(2)};
+  margin-bottom: ${space(2)};
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
 
   &:hover .overlay-button {
     opacity: 1;
@@ -112,8 +110,10 @@ const DiffImageContainer = styled('div')`
 `;
 
 const DiffImage = styled('img')`
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  max-height: 400px;
+  width: auto;
+  height: auto;
   object-fit: contain;
   background: ${p => p.theme.gray100};
 `;
@@ -125,23 +125,20 @@ const DiffPercentage = styled('div')`
   border-radius: 12px;
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: 600;
-  margin-left: auto;
-  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: ${space(1)};
 `;
 
 const DiffDetails = styled('div')`
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: ${space(0.5)};
 `;
 
 const DiffTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   color: ${p => p.theme.textColor};
-  margin-bottom: ${space(0.5)};
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -151,15 +148,8 @@ const DiffTitle = styled('div')`
 const DiffSubtitle = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.gray300};
-  margin-bottom: ${space(0.5)};
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-const DiffDimensions = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.gray300};
-  font-family: ${p => p.theme.text.familyMono};
 `;

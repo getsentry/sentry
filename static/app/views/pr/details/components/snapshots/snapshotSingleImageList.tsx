@@ -40,9 +40,6 @@ export default function SnapshotSingleImageList({
               {snapshot.subtitle && (
                 <SnapshotSubtitle>{snapshot.subtitle}</SnapshotSubtitle>
               )}
-              <SnapshotDimensions>
-                {snapshot.width} × {snapshot.height}
-              </SnapshotDimensions>
             </SnapshotDetails>
           </SnapshotCard>
         ))}
@@ -68,16 +65,15 @@ const SnapshotContainer = styled('div')`
 `;
 
 const SnapshotGrid = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: ${p => p.theme.space.lg};
   padding: ${p => p.theme.space.sm};
 `;
 
 const SnapshotCard = styled('div')`
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: 12px;
@@ -105,34 +101,34 @@ const SnapshotImageContainer = styled('div')`
     0 10px,
     10px -10px,
     -10px 0px;
-  width: 120px;
-  height: 80px;
   border-radius: 8px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  margin-right: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
+  min-height: 200px;
 `;
 
 const SnapshotImage = styled('img')`
   max-width: 100%;
-  max-height: 100%;
+  max-height: 400px;
+  width: auto;
+  height: auto;
   object-fit: contain;
   background: transparent;
 `;
 
 const SnapshotDetails = styled('div')`
-  flex: 1;
-  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
 `;
 
 const SnapshotTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: 600;
   color: ${p => p.theme.textColor};
-  margin-bottom: ${p => p.theme.space.sm};
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -142,19 +138,8 @@ const SnapshotTitle = styled('div')`
 const SnapshotSubtitle = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  margin-bottom: ${p => p.theme.space.sm};
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-const SnapshotDimensions = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  font-family: ${p => p.theme.text.familyMono};
-  background: ${p => p.theme.gray100};
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  border-radius: 4px;
-  display: inline-block;
 `;
