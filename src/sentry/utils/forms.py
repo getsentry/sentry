@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from django import forms
 from django.forms import ChoiceField
@@ -61,10 +61,3 @@ def set_field_choices(field: forms.Field, choices: Sequence[tuple[object, object
         raise TypeError(f"expected ChoiceField, got {field!r}")
     field.choices = choices
     field.widget.choices = choices
-
-
-def get_field_choices(field: forms.Field) -> Any:
-    """workaround for typeddjango/django-stubs#1514 & #1858"""
-    if not isinstance(field, ChoiceField):
-        raise TypeError(f"expected ChoiceField, got {field!r}")
-    return field.choices

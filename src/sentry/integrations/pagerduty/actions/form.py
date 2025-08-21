@@ -10,7 +10,7 @@ from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, On
 from sentry.integrations.pagerduty.metrics import record_event
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders
-from sentry.utils.forms import get_field_choices, set_field_choices
+from sentry.utils.forms import set_field_choices
 
 
 def _validate_int_field(field: str, cleaned_data: Mapping[str, Any]) -> int | None:
@@ -31,25 +31,25 @@ class PagerDutyNotifyServiceForm(forms.Form):
     service = forms.ChoiceField(required=False, choices=(), widget=forms.Select())
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
-        services = kwargs.pop("services")
+        self._integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
+        self._services = kwargs.pop("services")
 
         super().__init__(*args, **kwargs)
-        if integrations:
-            self.fields["account"].initial = integrations[0][0]
+        if self._integrations:
+            self.fields["account"].initial = self._integrations[0][0]
 
-        set_field_choices(self.fields["account"], integrations)
+        set_field_choices(self.fields["account"], self._integrations)
 
-        if services:
-            self.fields["service"].initial = services[0][0]
+        if self._services:
+            self.fields["service"].initial = self._services[0][0]
 
-        set_field_choices(self.fields["service"], services)
+        set_field_choices(self.fields["service"], self._services)
 
     def _validate_service(self, service_id: int, integration_id: int) -> None:
         with record_event(OnCallInteractionType.VALIDATE_SERVICE).capture() as lifecycle:
             params = {
-                "account": dict(get_field_choices(self.fields["account"])).get(integration_id),
-                "service": dict(get_field_choices(self.fields["service"])).get(service_id),
+                "account": dict(self._integrations).get(integration_id),
+                "service": dict(self._services).get(service_id),
             }
 
             org_integrations = integration_service.get_organization_integrations(
