@@ -552,7 +552,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               {/* Action Pills Row */}
               <ActionPillsRow>
                 <ViewStacktracePill onClick={() => setShowStacktraceDrawer(true)}>
-                  {t('View Stacktrace')}
+                  {t('View Stack Trace')}
                 </ViewStacktracePill>
                 <CopyDropdownContainer
                   onMouseEnter={() => setShowCopyDropdown(true)}
