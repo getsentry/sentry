@@ -17,7 +17,7 @@ import CommentsList from './components/commentsList';
 import PRFilesList from './components/prFilesList';
 import PRHeader from './components/prHeader';
 import PRSidebar from './components/prSidebar';
-import SnapshotTesting from './components/snapshotTesting';
+import SnapshotTesting from './components/snapshots/snapshotTesting';
 import type {PRCommentsData, PRData, PRIssuesData} from './components/types';
 
 type TabType = 'files' | 'snapshots';
@@ -224,7 +224,7 @@ export default function PRDetails() {
 
       {activeTab === 'snapshots' && (
         <SnapshotsMain>
-          <SnapshotTesting prId={params.prId} repoName={params.repoName} />
+          <SnapshotTesting />
         </SnapshotsMain>
       )}
 
