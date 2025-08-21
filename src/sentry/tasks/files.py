@@ -1,6 +1,8 @@
 from datetime import timedelta
+from typing import Any
 
 from django.db import DatabaseError, IntegrityError, router
+from django.db.models import Model
 from django.utils import timezone
 
 from sentry.silo.base import SiloMode
@@ -29,7 +31,7 @@ MAX_RETRIES = 5
         ),
     ),
 )
-def delete_file_region(path, checksum, **kwargs):
+def delete_file_region(path: str, checksum: str, **kwargs: Any) -> None:
     from sentry.models.files import FileBlob
 
     delete_file(FileBlob, path, checksum, **kwargs)
@@ -52,13 +54,13 @@ def delete_file_region(path, checksum, **kwargs):
         ),
     ),
 )
-def delete_file_control(path, checksum, **kwargs):
+def delete_file_control(path: str, checksum: str, **kwargs: Any) -> None:
     from sentry.models.files import ControlFileBlob
 
     delete_file(ControlFileBlob, path, checksum, **kwargs)
 
 
-def delete_file(file_blob_model, path, checksum, **kwargs):
+def delete_file(file_blob_model: type[Model], path: str, checksum: str, **kwargs: Any) -> None:
     from sentry.models.files.utils import get_storage
 
     # check that the fileblob with *this* path exists, as its possible
@@ -83,7 +85,7 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
     ),
 )
 @retry
-def delete_unreferenced_blobs_region(blob_ids):
+def delete_unreferenced_blobs_region(blob_ids: list[int]) -> None:
     from sentry.models.files.fileblob import FileBlob
     from sentry.models.files.fileblobindex import FileBlobIndex
 
@@ -105,14 +107,16 @@ def delete_unreferenced_blobs_region(blob_ids):
     ),
 )
 @retry
-def delete_unreferenced_blobs_control(blob_ids):
+def delete_unreferenced_blobs_control(blob_ids: list[int]) -> None:
     from sentry.models.files.control_fileblob import ControlFileBlob
     from sentry.models.files.control_fileblobindex import ControlFileBlobIndex
 
     delete_unreferenced_blobs(ControlFileBlob, ControlFileBlobIndex, blob_ids)
 
 
-def delete_unreferenced_blobs(blob_model, blob_index_model, blob_ids):
+def delete_unreferenced_blobs(
+    blob_model: type[Model], blob_index_model: type[Model], blob_ids: list[int]
+) -> None:
 
     for blob_id in blob_ids:
         # If a blob is referenced, we do not want to delete it
