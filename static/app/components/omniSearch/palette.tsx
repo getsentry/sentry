@@ -126,6 +126,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const seeryRef = useRef<SeeryCharacterRef>(null);
+  const [selectedItemKey, setSelectedItemKey] = useState<string>('');
 
   const debouncedQuery = useDebouncedValue(query, 300);
 
@@ -462,8 +463,15 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
 
   // Get the first item's key to set as the default selected value
   const firstItemKey = useMemo(() => {
-    const firstItem = grouped.find(group => group.items.length > 0)?.items[0];
-    return firstItem?.key || '';
+    for (const group of grouped) {
+      for (const item of group.items) {
+        if (item.key && !item.disabled && !item.hidden && item.key !== 'ask-seer') {
+          return item.key;
+        }
+      }
+    }
+
+    return '';
   }, [grouped]);
 
   const handleSelect = (action: OmniAction) => {
@@ -599,11 +607,17 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (firstItemKey) {
+      setSelectedItemKey(firstItemKey);
+    }
+  }, [firstItemKey]);
+
   return (
     <Fragment>
       <SeeryCharacter ref={seeryRef} animationData={serryLottieAnimation} size={400} />
       <SeerSearchAnimation />
-      <StyledCommand key={firstItemKey} label="OmniSearch" shouldFilter={false} loop>
+      <StyledCommand label="OmniSearch" shouldFilter={false} loop value={selectedItemKey}>
         <Header>
           {focusedArea && (
             <FocusedAreaContainer>
@@ -664,6 +678,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                           value={item.key}
                           onSelect={() => handleSelect(item)}
                           disabled={item.disabled}
+                          hidden={item.hidden}
                         >
                           <ItemRow>
                             {item.actionIcon && (

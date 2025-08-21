@@ -24,13 +24,15 @@ export function useOmniSearchState() {
 
   const displayedActions = useMemo(() => {
     if (selectedAction?.children?.length) {
-      return selectedAction.children;
+      return selectedAction.children?.filter(action => !action.hidden);
     }
 
     const globalActions = actions.filter(action => action.areaKey === 'global');
 
     if (focusedArea) {
-      const areaActions = actions.filter(action => action.areaKey === focusedArea.key);
+      const areaActions = actions.filter(
+        action => action.areaKey === focusedArea.key && !action.hidden
+      );
 
       return [...areaActions, ...globalActions];
     }
