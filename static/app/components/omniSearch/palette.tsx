@@ -378,13 +378,13 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
       return [];
     }
     if (query.length === 0) {
-      return availableActions;
+      return [...allRecentIssueActions.slice(0, 5), ...availableActions];
     }
     return fuseSearch
       .search(query)
       .map(a => a.item)
       .sort((a, b) => a.priority - b.priority);
-  }, [fuseSearch, query, availableActions]);
+  }, [fuseSearch, query, availableActions, allRecentIssueActions]);
 
   const grouped = useMemo(() => {
     // Group by section label
