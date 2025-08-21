@@ -5,10 +5,7 @@ import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
 import ReplaySelectorsListHovercard from 'sentry/components/replays/flows/actions/replaySelectorsListHovercard';
 import {t} from 'sentry/locale';
-import type {
-  StartingAssertionAction,
-  UIClickAction,
-} from 'sentry/utils/replays/assertions/types';
+import type {UIClickAction} from 'sentry/utils/replays/assertions/types';
 
 export default function ClickInput({
   disabled,
@@ -18,7 +15,7 @@ export default function ClickInput({
 }: {
   disabled: boolean;
   initialAction: null | UIClickAction;
-  onChange: (action: StartingAssertionAction) => void;
+  onChange: (action: UIClickAction) => void;
   projectId: string;
 }) {
   const [value, setValue] = useState<string>(

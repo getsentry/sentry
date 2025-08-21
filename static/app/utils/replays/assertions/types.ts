@@ -46,25 +46,27 @@ export type EndingAssertionAction =
   | NullAction
   | UIClickAction
   | NavigationAction
-  | NavigationNavigateAction
-  | TimeoutAction;
+  | NavigationNavigateAction;
 
 export type AssertionAction = StartingAssertionAction | EndingAssertionAction;
 
 export type AssertionFlow = {
   alerts_enabled: boolean;
   assigned_to: string | undefined;
-  created_at: string; // ISO 8601
+  created_at: string;
+  // ISO 8601
   description: string;
   ending_actions: EndingAssertionAction[];
   environment: string;
   id: string;
+  // ISO 8601
+  last_seen_at: null | string;
   name: string;
   original_id: string;
   prev_id: string | undefined;
   project_id: string;
   starting_action: StartingAssertionAction;
-  status: 'success' | 'failure';
+  status: 'success' | 'failure' | 'disabled';
   timeout: TimeoutDurationMs;
 };
 

@@ -56,6 +56,7 @@ export function defaultNewFlow(selection: PageFilters): AssertionFlow {
     alerts_enabled: false,
     assigned_to: undefined,
     created_at: new Date().toISOString(), // ISO 8601
+    last_seen_at: null,
     description: '',
     ending_actions: [],
     environment: selection.environments?.[0] ?? 'prod',

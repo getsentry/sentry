@@ -1,8 +1,12 @@
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout/flex';
+import {Grid} from 'sentry/components/core/layout/grid';
+import {Switch} from 'sentry/components/core/switch';
+import {Text} from 'sentry/components/core/text';
 import NotFound from 'sentry/components/errors/notFound';
+import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,6 +14,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import AssertionEditForm from 'sentry/components/replays/flows/assertionEditForm';
 import useAssertionPageCrumbs from 'sentry/components/replays/flows/assertionPageCrumbs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import AssertionDatabase from 'sentry/utils/replays/assertions/database';
@@ -56,6 +61,7 @@ export default function ReplayAssertionDetails() {
       queryClient.refetchQueries({
         queryKey: ['flow', assertionId],
       });
+      addSuccessMessage('Flow updated');
     },
   });
 
@@ -83,9 +89,53 @@ export default function ReplayAssertionDetails() {
             </Layout.HeaderContent>
             {assertion ? (
               <Layout.HeaderActions>
-                <Flex gap="md">
-                  <Button priority="primary">{t('Update')}</Button>
-                </Flex>
+                <Grid columns="1fr 1fr" gap="md" align="center">
+                  <AssigneeSelector
+                    showLabel
+                    group={
+                      {
+                        project: {
+                          slug: 'javascript',
+                        },
+                      } as any
+                    }
+                    owners={undefined}
+                    assigneeLoading={false}
+                    handleAssigneeChange={() => {}}
+                  />
+
+                  <Flex gap="md" align="center" justify="end">
+                    {/* <Button priority="primary">{t('Update')}</Button> */}
+                    <Text>{assertion.alerts_enabled ? t('Enabled') : t('Disabled')}</Text>
+                    <Switch
+                      size="lg"
+                      checked={assertion.alerts_enabled}
+                      onChange={() => {
+                        updateAssertion({
+                          ...assertion,
+                          alerts_enabled: !assertion.alerts_enabled,
+                        });
+                      }}
+                    />
+                  </Flex>
+
+                  <Flex>
+                    <Text>
+                      Created: <TimeSince date={assertion.created_at} />
+                    </Text>
+                  </Flex>
+
+                  <Flex>
+                    <Text>
+                      Last seen:{' '}
+                      {assertion.last_seen_at ? (
+                        <TimeSince date={assertion.last_seen_at} />
+                      ) : (
+                        'never'
+                      )}
+                    </Text>
+                  </Flex>
+                </Grid>
               </Layout.HeaderActions>
             ) : null}
           </Layout.Header>

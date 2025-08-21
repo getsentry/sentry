@@ -6,6 +6,7 @@ import {AnimatePresence} from 'framer-motion';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {AlertBadge} from 'sentry/components/core/badge/alertBadge';
 import {Button} from 'sentry/components/core/button';
@@ -34,7 +35,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCursorArrow, IconLocation, IconTerminal} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {useMutation, useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import AssertionDatabase from 'sentry/utils/replays/assertions/database';
@@ -91,7 +92,7 @@ export default function FlowTable() {
 
   return (
     <AnalyticsArea name="table">
-      <SentryDocumentTitle title={t('Replay Assertions')} orgSlug={organization.slug}>
+      <SentryDocumentTitle title={t('Replay User Flows')} orgSlug={organization.slug}>
         <div style={{position: 'relative'}}>
           <SelectedReplayIndexProvider>
             {isNewFlowOpen ? (
@@ -113,7 +114,7 @@ export default function FlowTable() {
             <Layout.HeaderContent>
               <Breadcrumbs crumbs={crumbs} style={{padding: 0}} />
               <Layout.Title>
-                {t('Replay Flows')}
+                {t('Replay User Flows')}
                 <PageHeadingQuestionTooltip
                   title={t('Assert that users are doing what you expect them to do.')}
                   docsUrl="https://docs.sentry.io/product/session-replay/"
@@ -141,7 +142,8 @@ export default function FlowTable() {
                   <SimpleTableWithColumns>
                     <SimpleTable.Header>
                       <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-                      <SimpleTable.HeaderCell>{t('Assertions')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell>{t('Flows')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell>{t('Replays')}</SimpleTable.HeaderCell>
                       <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
                       <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
                       <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
@@ -203,23 +205,39 @@ export default function FlowTable() {
                             </Flex>
                           </FullRowButton>
                         </SimpleTable.RowCell>
+
                         <SimpleTable.RowCell>
-                          <Grid
-                            gap="xs md"
-                            columns={'max-content max-content'}
-                            justifyItems="end"
+                          <Text
+                            variant={
+                              row.ending_actions.length === 0 ? 'danger' : 'primary'
+                            }
                           >
-                            <Text>{t('Passing')}</Text>
-                            <Text size="sm">100%</Text>
-                            <Text>{t('Unknown')}</Text>
-                            <Text size="sm">0%</Text>
-                          </Grid>
+                            {tn('%s flow', '%s flows', row.ending_actions.length)}
+                          </Text>
+                        </SimpleTable.RowCell>
+                        <SimpleTable.RowCell>
+                          <GroupStatusChart
+                            stats={[
+                              [1755698400, 209],
+                              [1755702000, 190],
+                              [1755705600, 443],
+                              [1755709200, 409],
+                              [1755712800, 467],
+                              [1755716400, 415],
+                              [1755720000, 410],
+                            ]}
+                            groupStatus="Passing"
+                          />
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
                           <TimeSince date={row.created_at} />
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
-                          <TimeSince date={row.created_at} />
+                          {row.last_seen_at ? (
+                            <TimeSince date={row.last_seen_at} />
+                          ) : (
+                            'never'
+                          )}
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
                           <AlertBadge
@@ -281,7 +299,6 @@ function SlideoutPanelContainer({children}: {children: React.ReactNode}) {
       }}
     >
       <AnimatePresence>
-        (
         <div
           css={css`
             position: absolute;
@@ -323,7 +340,7 @@ function FlowIcon({flow}: {flow: AssertionFlow}) {
 }
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr repeat(5, max-content);
+  grid-template-columns: 1fr repeat(6, max-content);
 `;
 
 const FullRowButton = styled(LinkButton)`
@@ -355,8 +372,6 @@ function nameFromAction(action: AssertionAction): string {
     }
     case 'span':
       return '';
-    case 'timeout':
-      return `Timeout after ${action.matcher.timeout}ms`;
     case 'null':
     default:
       return '';

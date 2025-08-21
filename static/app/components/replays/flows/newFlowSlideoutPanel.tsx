@@ -10,6 +10,7 @@ import {Input} from 'sentry/components/core/input';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Stack} from 'sentry/components/core/layout/stack';
 import {Text} from 'sentry/components/core/text';
+import NavigationInput from 'sentry/components/replays/flows/actions/navigationInput';
 import AssertionReplayTable from 'sentry/components/replays/flows/assertionReplayTable';
 import AssertionStartActionInput from 'sentry/components/replays/flows/assertionStartActionInput';
 import newFlowReducer, {
@@ -17,7 +18,9 @@ import newFlowReducer, {
 } from 'sentry/components/replays/flows/newFlowReducer';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
+import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconClose} from 'sentry/icons/iconClose';
+import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -161,6 +164,49 @@ export default function NewFlowSlideoutPanel({onClose, onSave}: Props) {
                       {t('Choose a Project & Environment first')}
                     </Text>
                   )}
+                </Flex>
+
+                <Flex
+                  direction="column"
+                  gap="md"
+                  padding="md"
+                  border="primary"
+                  radius="lg"
+                >
+                  <Flex align="center" justify="left" gap="md">
+                    <Text variant="promotion">
+                      <IconSeer color="pink400" />
+                    </Text>
+                    <Text size="lg" bold variant="promotion">
+                      Seer Suggestion
+                    </Text>
+                  </Flex>
+                  <Text>Use this to start the flow:</Text>
+                  <Flex direction="row" gap="md" padding="0 0 0 3xl">
+                    <CompactSelect<string>
+                      size="xs"
+                      options={[
+                        {
+                          label: 'Navigation',
+                          value: 'navigation',
+                        },
+                      ]}
+                      value={'navigation'}
+                    />
+                    <NavigationInput
+                      initialAction={{
+                        type: 'breadcrumb',
+                        category: 'navigation',
+                        matcher: {
+                          url: '*/explore/issues/',
+                        },
+                      }}
+                      onChange={() => {}}
+                    />
+                  </Flex>
+                  <Button size="md" icon={<IconAdd color="pink400" />}>
+                    <Text variant="promotion">Use Suggestion</Text>
+                  </Button>
                 </Flex>
               </Flex>
             </ListItem>

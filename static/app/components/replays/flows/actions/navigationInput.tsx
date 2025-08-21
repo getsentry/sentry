@@ -4,10 +4,7 @@ import {Input} from 'sentry/components/core/input';
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
-import type {
-  NavigationAction,
-  StartingAssertionAction,
-} from 'sentry/utils/replays/assertions/types';
+import type {NavigationAction} from 'sentry/utils/replays/assertions/types';
 
 export default function NavigationInput({
   disabled,
@@ -16,7 +13,7 @@ export default function NavigationInput({
 }: {
   disabled: boolean;
   initialAction: null | NavigationAction;
-  onChange: (action: StartingAssertionAction) => void;
+  onChange: (action: NavigationAction) => void;
 }) {
   const [value, setValue] = useState<string>(initialAction?.matcher.url ?? '');
 

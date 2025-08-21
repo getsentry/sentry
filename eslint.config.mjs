@@ -764,26 +764,26 @@ export default typescript.config([
       'import/no-nodejs-modules': 'off',
     },
   },
-  {
-    name: 'files/insights-chart-widgets',
-    files: ['static/app/views/insights/common/components/widgets/*.tsx'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          // Allow these imports only in the above widgets directory in `files`
-          paths: restrictedImportPaths.filter(
-            ({name}) =>
-              ![
-                'sentry/views/insights/common/components/insightsLineChartWidget',
-                'sentry/views/insights/common/components/insightsAreaChartWidget',
-                'sentry/views/insights/common/components/insightsTimeSeriesWidget',
-              ].includes(name)
-          ),
-        },
-      ],
-    },
-  },
+  // {
+  //   name: 'files/insights-chart-widgets',
+  //   files: ['static/app/views/insights/common/components/widgets/*.tsx'],
+  //   rules: {
+  //     'no-restricted-imports': [
+  //       'error',
+  //       {
+  //         // Allow these imports only in the above widgets directory in `files`
+  //         paths: restrictedImportPaths.filter(
+  //           ({name}) =>
+  //             ![
+  //               'sentry/views/insights/common/components/insightsLineChartWidget',
+  //               'sentry/views/insights/common/components/insightsAreaChartWidget',
+  //               'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+  //             ].includes(name)
+  //         ),
+  //       },
+  //     ],
+  //   },
+  // },
   {
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],

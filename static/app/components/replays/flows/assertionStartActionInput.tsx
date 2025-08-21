@@ -58,7 +58,7 @@ export default function AssertionStartActionInput({
   return (
     <Stack gap="md" direction="column">
       <Flex gap="xs" align="center" wrap="nowrap">
-        {tct('When a [typeSelect] happens', {typeSelect})}
+        {tct('when a [typeSelect] happens', {typeSelect})}
       </Flex>
 
       {categoryOrOp === 'ui.click' ? (

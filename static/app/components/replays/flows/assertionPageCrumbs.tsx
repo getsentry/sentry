@@ -11,7 +11,7 @@ export default function useAssertionPageCrumbs({label}: {label?: string} = {}) {
   return useMemo(() => {
     const crumbs: Array<Crumb | CrumbDropdown> = [
       {
-        label: t('Replay'),
+        label: t('Replays'),
         to: {
           pathname: makeReplaysPathname({
             path: '/',
@@ -20,7 +20,7 @@ export default function useAssertionPageCrumbs({label}: {label?: string} = {}) {
         },
       },
       {
-        label: t('Flows'),
+        label: t('User Flows'),
         to: {
           pathname: makeReplaysPathname({
             path: '/flows/table/',

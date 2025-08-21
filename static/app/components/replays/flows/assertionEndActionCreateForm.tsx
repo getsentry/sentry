@@ -9,7 +9,10 @@ import AssertionReplayTable from 'sentry/components/replays/flows/assertionRepla
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import type {EndingAssertionAction} from 'sentry/utils/replays/assertions/types';
+import type {
+  AssertionAction,
+  EndingAssertionAction,
+} from 'sentry/utils/replays/assertions/types';
 
 interface Props {
   action: EndingAssertionAction;
@@ -28,7 +31,7 @@ const TYPE_OPTIONS = [
   {value: 'timeout', label: t('Timeout')},
 ];
 
-function getCategoryOrOp(action: EndingAssertionAction): string {
+function getCategoryOrOp(action: AssertionAction): string {
   if ('op' in action) {
     return action.op;
   }
@@ -92,21 +95,28 @@ export default function AssertionEndActionCreateForm({
           ) : null}
         </Flex>
 
-        <Flex gap="md">
-          {action.type === 'null' ? null : (
+        <Flex gap="md" direction="column" justify="between">
+          <Flex justify="end">
             <Button
               aria-label="Remove"
-              icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
+              icon={<IconClose />}
               size="xs"
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={() => onChange()}
             />
-          )}
-          <Button
-            aria-label="Remove"
-            icon={<IconClose />}
-            size="xs"
-            onClick={() => onChange()}
-          />
+          </Flex>
+
+          <Flex align="center" gap="md">
+            {action.type === 'null' ? null : (
+              <Button
+                aria-label="Expand/Collapse"
+                icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
+                size="xs"
+                onClick={() => setIsExpanded(!isExpanded)}
+              >
+                {isExpanded ? t('Show replays') : t('Show replays')}
+              </Button>
+            )}
+          </Flex>
         </Flex>
       </Flex>
 
