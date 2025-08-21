@@ -1506,7 +1506,7 @@ const PeopleContent = styled('div')`
 
 const PeopleRow = styled(Flex)`
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
 `;
 
 const RootCauseContent = styled('div')`
@@ -2001,7 +2001,7 @@ const CopyDropdown = styled('div')`
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   overflow: hidden;
-  margin-top: ${space(0.25)};
+  margin-top: -1px;
 `;
 
 const CopyOption = styled('div')`
