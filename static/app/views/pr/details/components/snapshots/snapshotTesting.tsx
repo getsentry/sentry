@@ -1,9 +1,9 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Text} from 'sentry/components/core/text/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconRefresh, IconWarning} from 'sentry/icons';
@@ -42,7 +42,7 @@ function SnapshotTesting() {
         `/organizations/${organization.slug}/emerge-snapshots/?headUploadId=${HEAD_UPLOAD_ID}&tab=${activeTab}`,
       ],
       {
-        staleTime: 0,
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
         enabled: !!HEAD_UPLOAD_ID,
       }
     );
@@ -68,7 +68,7 @@ function SnapshotTesting() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapshotDataQuery.data]);
 
-  const getTabData = () => {
+  const tabData = useMemo(() => {
     if (!snapshotDataQuery.data) return [];
     switch (activeTab) {
       case 'added':
@@ -84,9 +84,7 @@ function SnapshotTesting() {
       default:
         return [];
     }
-  };
-
-  const tabData = getTabData();
+  }, [snapshotDataQuery.data, activeTab]);
 
   if (snapshotDataQuery.isLoading && !snapshotDataQuery.data) {
     return (
@@ -122,66 +120,52 @@ function SnapshotTesting() {
   return (
     <Container>
       <ContentSection>
-        <Tabs value={activeTab} onChange={setActiveTab}>
-          <TabList>
-            <TabList.Item key="added">
+        <ControlsSection>
+          <SegmentedControl
+            aria-label={t('Snapshot category')}
+            value={activeTab}
+            onChange={setActiveTab}
+          >
+            <SegmentedControl.Item key="added">
               {t('Added')}{' '}
               {snapshotDataQuery.data?.addedCount
                 ? `(${snapshotDataQuery.data.addedCount})`
                 : ''}
-            </TabList.Item>
-            <TabList.Item key="removed">
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="removed">
               {t('Removed')}{' '}
               {snapshotDataQuery.data?.removedCount
                 ? `(${snapshotDataQuery.data.removedCount})`
                 : ''}
-            </TabList.Item>
-            <TabList.Item key="changed">
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="changed">
               {t('Modified')}{' '}
               {snapshotDataQuery.data?.changedCount
                 ? `(${snapshotDataQuery.data.changedCount})`
                 : ''}
-            </TabList.Item>
-            <TabList.Item key="unchanged">
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="unchanged">
               {t('Unchanged')}{' '}
               {snapshotDataQuery.data?.unchangedCount
                 ? `(${snapshotDataQuery.data.unchangedCount})`
                 : ''}
-            </TabList.Item>
-            <TabList.Item key="errors">
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="errors">
               {t('Errors')}{' '}
               {snapshotDataQuery.data?.errorsCount
                 ? `(${snapshotDataQuery.data.errorsCount})`
                 : ''}
-            </TabList.Item>
-          </TabList>
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        </ControlsSection>
 
-          <TabPanels>
-            <TabPanels.Item key="added">
-              {activeTab === 'unchanged' ? (
-                <SnapshotSingleImageList snapshots={tabData} />
-              ) : (
-                <SnapshotDiffImageList diffs={tabData} />
-              )}
-            </TabPanels.Item>
-            <TabPanels.Item key="removed">
-              {activeTab === 'unchanged' ? (
-                <SnapshotSingleImageList snapshots={tabData as Snapshot[]} />
-              ) : (
-                <SnapshotDiffImageList diffs={tabData} />
-              )}
-            </TabPanels.Item>
-            <TabPanels.Item key="changed">
-              <SnapshotDiffImageList diffs={tabData} />
-            </TabPanels.Item>
-            <TabPanels.Item key="unchanged">
-              <SnapshotSingleImageList snapshots={tabData} />
-            </TabPanels.Item>
-            <TabPanels.Item key="errors">
-              <SnapshotDiffImageList diffs={tabData} />
-            </TabPanels.Item>
-          </TabPanels>
-        </Tabs>
+        <ContentPanel>
+          {activeTab === 'unchanged' ? (
+            <SnapshotSingleImageList snapshots={tabData as Snapshot[]} />
+          ) : (
+            <SnapshotDiffImageList diffs={tabData} />
+          )}
+        </ContentPanel>
       </ContentSection>
     </Container>
   );
@@ -195,7 +179,17 @@ const Container = styled('div')`
 const ContentSection = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.lg};
+`;
+
+const ControlsSection = styled('div')`
+  display: flex;
+  justify-content: center;
+  padding: ${p => p.theme.space.md} 0;
+`;
+
+const ContentPanel = styled('div')`
+  flex: 1;
 `;
 
 const LoadingContainer = styled('div')`

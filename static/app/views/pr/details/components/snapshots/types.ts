@@ -1,13 +1,13 @@
 export interface SnapshotDiff {
   baseSnapshot: Snapshot;
-  diffImageInfo: {
-    imageUrl: string;
-  };
   headSnapshot: Snapshot;
   height: number;
   ignored: boolean | null | undefined;
   width: number;
   diff?: number | null | undefined;
+  diffImageInfo?: {
+    imageUrl: string;
+  } | null;
 }
 
 export interface Snapshot {

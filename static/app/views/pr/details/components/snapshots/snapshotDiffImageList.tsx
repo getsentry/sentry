@@ -21,10 +21,23 @@ export default function SnapshotDiffImageList({diffs}: SnapshotDiffImageListProp
     );
   }
 
+  // Filter out diffs with missing diffImageInfo
+  const validDiffs = diffs.filter(diff => diff.diffImageInfo?.imageUrl);
+
+  if (validDiffs.length === 0) {
+    return (
+      <EmptyState>
+        <Text size="lg" variant="muted">
+          No valid image differences found
+        </Text>
+      </EmptyState>
+    );
+  }
+
   return (
     <React.Fragment>
       <DiffGrid>
-        {diffs.map(diff => (
+        {validDiffs.map(diff => (
           <DiffCard key={`${diff.baseSnapshot.id}-${diff.headSnapshot.id}`}>
             <DiffImageContainer>
               <DiffImage
@@ -39,7 +52,7 @@ export default function SnapshotDiffImageList({diffs}: SnapshotDiffImageListProp
                 <DiffSubtitle>{diff.headSnapshot.subtitle}</DiffSubtitle>
               )}
               <DiffDimensions>
-                {diff.width} � {diff.height}
+                {diff.width} × {diff.height}
               </DiffDimensions>
             </DiffDetails>
             {diff.diff && (
