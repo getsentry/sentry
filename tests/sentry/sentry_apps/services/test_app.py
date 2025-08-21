@@ -275,6 +275,7 @@ def test_update_sentry_app() -> None:
         ],
     )
     result = app_service.update_sentry_app(id=sentry_app.id, attrs=dict(events=["error.created"]))
+    assert result
     assert result.events == ["error.created"]
 
 
