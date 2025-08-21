@@ -79,8 +79,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
-        assert isinstance(de._get_file(), File)
         file = de._get_file()
+        assert isinstance(file, File)
         assert file.headers == {"Content-Type": "text/csv"}
         assert file.size is not None
         assert file.checksum is not None
@@ -112,8 +112,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
-        assert isinstance(de._get_file(), File)
         file = de._get_file()
+        assert isinstance(file, File)
         assert file.headers == {"Content-Type": "text/csv"}
         assert file.size is not None
         assert file.checksum is not None
@@ -191,8 +191,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
-        assert isinstance(de._get_file(), File)
         file = de._get_file()
+        assert isinstance(file, File)
         assert file.headers == {"Content-Type": "text/csv"}
         assert file.size is not None
         assert file.checksum is not None
@@ -215,8 +215,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
-        assert isinstance(de._get_file(), File)
         file = de._get_file()
+        assert isinstance(file, File)
         assert file.headers == {"Content-Type": "text/csv"}
         assert file.size is not None
         assert file.checksum is not None
@@ -284,8 +284,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
-        assert isinstance(de._get_file(), File)
         file = de._get_file()
+        assert isinstance(file, File)
         assert file.headers == {"Content-Type": "text/csv"}
         assert file.size is not None
         assert file.checksum is not None
@@ -347,8 +347,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
-        assert isinstance(de._get_file(), File)
         file = de._get_file()
+        assert isinstance(file, File)
         assert file.headers == {"Content-Type": "text/csv"}
         assert file.size is not None
         assert file.checksum is not None
@@ -377,8 +377,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
-        assert isinstance(de._get_file(), File)
         file = de._get_file()
+        assert isinstance(file, File)
         assert file.headers == {"Content-Type": "text/csv"}
         assert file.size is not None
         assert file.checksum is not None
@@ -464,8 +464,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
-        assert isinstance(de._get_file(), File)
         file = de._get_file()
+        assert isinstance(file, File)
         assert file.headers == {"Content-Type": "text/csv"}
         assert file.size is not None
         assert file.checksum is not None
@@ -651,7 +651,8 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
-        assert isinstance(de._get_file(), File)
+        file = de._get_file()
+        assert isinstance(file, File)
 
         assert emailer.called
 
@@ -682,7 +683,8 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
-        assert isinstance(de._get_file(), File)
+        file = de._get_file()
+        assert isinstance(file, File)
 
         assert emailer.called
 
