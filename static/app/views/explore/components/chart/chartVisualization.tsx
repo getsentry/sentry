@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import type {Severity} from 'sentry/components/charts/outageSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {useIncidentOutage} from 'sentry/components/charts/useIncidentOutage';
+import {useIncidentOutages} from 'sentry/components/charts/useIncidentOutages';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
@@ -39,21 +39,23 @@ export function ChartVisualization({
 }: ChartVisualizationProps) {
   const theme = useTheme();
 
-  const {incidentData, isPendingIncidentData} = useIncidentOutage();
+  const {incidentData: incidentOutages, isPendingIncidentData} = useIncidentOutages();
 
-  const incidents = useMemo(() => {
-    return [
-      {
-        hostId: incidentData?.host?.id?.toString() ?? '0',
-        id: incidentData?.id ?? 0,
-        regionId: incidentData?.regions?.[0]?.id?.toString() ?? '0',
-        severity: (incidentData?.severity ?? 'maintenance') as Severity,
-        start: new Date(incidentData?.start ?? '').getTime(),
-        title: incidentData?.aiSummary ?? '',
-        end: incidentData?.end ? new Date(incidentData?.end).getTime() : undefined,
-      },
-    ];
-  }, [incidentData]);
+  const outages = useMemo(() => {
+    if (Array.isArray(incidentOutages?.data) && incidentOutages.data.length > 0)
+      return incidentOutages.data.map(outage => {
+        return {
+          hostId: outage?.host?.id?.toString() ?? '0',
+          id: outage?.id ?? 0,
+          regionId: outage?.regions?.[0]?.id?.toString() ?? '0',
+          severity: (outage?.severity ?? 'maintenance') as Severity,
+          start: new Date(outage?.start ?? '').getTime(),
+          title: outage?.aiSummary ?? '',
+          end: outage?.end ? new Date(outage?.end).getTime() : undefined,
+        };
+      });
+    return [];
+  }, [incidentOutages]);
 
   const plottables = useMemo(() => {
     const formattedYAxis = prettifyAggregation(chartInfo.yAxis) ?? chartInfo.yAxis;
@@ -140,7 +142,8 @@ export function ChartVisualization({
       onBrushStart={onBrushStart}
       toolBox={toolBox}
       plottables={plottables}
-      incidents={incidents}
+      outages={outages}
+      showLegend={'always'}
     />
   );
 }

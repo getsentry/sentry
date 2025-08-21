@@ -18,7 +18,6 @@ import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {OutageSeries, Severity} from 'sentry/components/charts/outageSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {useIncidentOutage} from 'sentry/components/charts/useIncidentOutage';
 import {useIncidentOutages} from 'sentry/components/charts/useIncidentOutages';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
@@ -446,6 +445,18 @@ export function EventGraph({
 
   const bucketSize = eventSeries ? getBucketSize(series) : undefined;
 
+  const {incidentData: incidentOutages, isPendingIncidentData: isPendingIncidentOutages} =
+    useIncidentOutages();
+
+  const outageNames =
+    incidentOutages?.data.map(outage => outage.aiSummary ?? outage.id.toString()) ?? [];
+
+  const legendData = [
+    ...(flagSeries.type === 'line' ? ['Feature Flags'] : []),
+    'Releases',
+    ...outageNames,
+  ];
+
   const legend = Legend({
     theme,
     orient: 'horizontal',
@@ -453,7 +464,7 @@ export function EventGraph({
     show: true,
     top: 4,
     right: 8,
-    data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
+    data: legendData,
     selected: legendSelected,
     zlevel: 10,
     inactiveColor: theme.isChonk ? theme.tokens.content.muted : theme.gray200,
@@ -470,10 +481,6 @@ export function EventGraph({
       },
     [setLegendSelected]
   );
-
-  const {incidentData, isPendingIncidentData} = useIncidentOutage();
-  const {incidentData: incidentOutages, isPendingIncidentData: isPendingIncidentOutages} =
-    useIncidentOutages();
 
   const timeNow = useMemo(() => Date.now(), []);
 
@@ -542,12 +549,7 @@ export function EventGraph({
     );
   }
 
-  if (
-    isLoadingStats ||
-    isPendingUniqueUsersCount ||
-    isPendingIncidentData ||
-    isPendingIncidentOutages
-  ) {
+  if (isLoadingStats || isPendingUniqueUsersCount || isPendingIncidentOutages) {
     return (
       <GraphWrapper {...styleProps}>
         {showSummary ? (
@@ -642,10 +644,10 @@ export function EventGraph({
                       end: outage?.end ? new Date(outage?.end).getTime() : undefined,
                     }))
                   : [],
-                () => {
-                  if (incidentData?.host?.id) {
+                incident => {
+                  if (incident.hostId) {
                     window.open(
-                      `http://localhost:3001/service/${incidentData?.host?.id}`,
+                      `http://localhost:3001/service/${incident.hostId}`,
                       '_blank'
                     );
                   }
