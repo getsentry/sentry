@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema_serializer
@@ -34,19 +34,19 @@ INTEGRATION_SERVICES = {
 
 
 # Note the ordering of fields affects the Spike Protection API Documentation
-class NotificationActionInputData(TypedDict, total=False):
+class NotificationActionInputData(TypedDict):
     trigger_type: int
     service_type: int
-    integration_id: int
-    target_identifier: str
-    target_display: str
-    projects: list[Project]
-    sentry_app_id: int
-    target_type: int
+    integration_id: NotRequired[int]
+    target_identifier: NotRequired[str]
+    target_display: NotRequired[str]
+    projects: NotRequired[list[Project]]
+    sentry_app_id: NotRequired[int]
+    target_type: NotRequired[int]
 
 
 @extend_schema_serializer(exclude_fields=["sentry_app_id", "target_type"])
-class NotificationActionSerializer(CamelSnakeModelSerializer[NotificationAction]):
+class NotificationActionSerializer(CamelSnakeModelSerializer[NotificationActionInputData]):
     """
     Django Rest Framework serializer for incoming NotificationAction API payloads
     """
