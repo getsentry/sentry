@@ -348,7 +348,7 @@ class DatabaseBackedAppService(AppService):
         *,
         id: int,
         attrs: SentryAppUpdateArgs,
-    ) -> Any:
+    ) -> RpcSentryApp | None:
         try:
             sentry_app = SentryApp.objects.get(id=id)
         except SentryApp.DoesNotExist:

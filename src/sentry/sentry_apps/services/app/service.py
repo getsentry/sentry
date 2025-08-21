@@ -199,7 +199,7 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def update_sentry_app(self, *, id: int, attrs: SentryAppUpdateArgs) -> RpcSentryApp:
+    def update_sentry_app(self, *, id: int, attrs: SentryAppUpdateArgs) -> RpcSentryApp | None:
         pass
 
     @rpc_method
