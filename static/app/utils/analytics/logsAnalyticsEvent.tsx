@@ -57,9 +57,16 @@ export type LogsAnalyticsEventParameters = {
     ui_source: 'toolbar' | 'table';
   };
 
+  'logs.table.row_copied_as_json': {
+    log_id: string;
+    organization: Organization;
+  };
   'logs.table.row_expanded': {
     log_id: string;
     page_source: LogsAnalyticsPageSource;
+  };
+  'logs.timestamp_tooltip.add_timezone_clicked': {
+    organization: Organization;
   };
   'logs.tracing_onboarding': {
     organization: Organization;
@@ -85,6 +92,8 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
   'logs.onboarding': 'Logs Explore Empty State (Onboarding)',
   'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
+  'logs.timestamp_tooltip.add_timezone_clicked':
+    'Logs Timestamp Tooltip Add Timezone Clicked',
   'logs.table.row_expanded': 'Expanded Log Row Details',
   'logs.tracing_onboarding': 'Logs Tracing Onboarding',
   'logs.tracing_onboarding_performance_docs_viewed':
@@ -95,4 +104,5 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.save_query_modal': 'Logs Save Query Modal',
   'logs.onboarding_platform_docs_viewed':
     'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
+  'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
 };

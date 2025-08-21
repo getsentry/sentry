@@ -16,7 +16,7 @@ function WrapperComponent(props: any) {
   );
 }
 
-describe('TransactionsList', function () {
+describe('TransactionsList', () => {
   let api: any;
   let location: any;
   let context: any;
@@ -32,17 +32,17 @@ describe('TransactionsList', function () {
     project = context.project;
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     location = {
       pathname: '/',
       query: {},
     };
   });
 
-  describe('Basic', function () {
+  describe('Basic', () => {
     let generateLink: any;
 
-    beforeEach(function () {
+    beforeEach(() => {
       initialize();
       eventView = EventView.fromSavedQuery({
         id: '',
@@ -145,7 +145,7 @@ describe('TransactionsList', function () {
       });
     });
 
-    it('renders basic UI components', async function () {
+    it('renders basic UI components', async () => {
       render(
         <WrapperComponent
           api={api}
@@ -176,7 +176,7 @@ describe('TransactionsList', function () {
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1000']);
     });
 
-    it('renders a trend view', async function () {
+    it('renders a trend view', async () => {
       options.push({
         sort: {kind: 'desc', field: 'trend_percentage()'},
         value: 'regression',
@@ -239,7 +239,7 @@ describe('TransactionsList', function () {
       ]);
     });
 
-    it('renders default titles', async function () {
+    it('renders default titles', async () => {
       render(
         <WrapperComponent
           api={api}
@@ -258,7 +258,7 @@ describe('TransactionsList', function () {
       expect(tableHeadings.map(e => e.textContent)).toEqual(['transaction', 'count()']);
     });
 
-    it('renders custom titles', async function () {
+    it('renders custom titles', async () => {
       render(
         <WrapperComponent
           api={api}
@@ -278,7 +278,7 @@ describe('TransactionsList', function () {
       expect(tableHeadings.map(e => e.textContent)).toEqual(['foo', 'bar']);
     });
 
-    it('allows users to change the sort in the dropdown', async function () {
+    it('allows users to change the sort in the dropdown', async () => {
       const {rerender} = render(
         <WrapperComponent
           api={api}
@@ -333,7 +333,7 @@ describe('TransactionsList', function () {
       });
     });
 
-    it('generates link for the transaction cell', async function () {
+    it('generates link for the transaction cell', async () => {
       render(
         <WrapperComponent
           api={api}
@@ -361,7 +361,7 @@ describe('TransactionsList', function () {
       );
     });
 
-    it('handles forceLoading correctly', async function () {
+    it('handles forceLoading correctly', async () => {
       const component = render(
         <WrapperComponent
           api={null}

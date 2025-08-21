@@ -66,6 +66,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         return occurrence, group_info
 
     @with_feature("organizations:issue-open-periods")
+    @with_feature("organizations:incident-group-open-period-write")
     def test_save_issue_occurrence_creates_relationship_when_incident_exists(self) -> None:
         """Test that save_issue_occurrence creates the relationship when incident exists"""
         incident = self.create_incident(
@@ -85,6 +86,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert item.incident_identifier == incident.identifier
 
     @with_feature("organizations:issue-open-periods")
+    @with_feature("organizations:incident-group-open-period-write")
     def test_save_issue_occurrence_creates_placeholder_when_incident_doesnt_exist(self) -> None:
         """Test that save_issue_occurrence creates placeholder when incident doesn't exist"""
         _, group_info = self.save_issue_occurrence()
@@ -97,6 +99,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert not IncidentGroupOpenPeriod.objects.filter(group_open_period=open_period).exists()
 
     @with_feature("organizations:issue-open-periods")
+    @with_feature("organizations:incident-group-open-period-write")
     def test_save_issue_occurrence_creates_relationship_for_existing_group(self) -> None:
         """Test that save_issue_occurrence creates relationship for existing groups"""
         incident = self.create_incident(
@@ -125,6 +128,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert item.incident_identifier == incident.identifier
 
     @with_feature("organizations:issue-open-periods")
+    @with_feature("organizations:incident-group-open-period-write")
     def test_save_issue_occurrence_no_relationship_for_non_metric_issues(self) -> None:
         # Test that save_issue_occurrence doesn't create relationships for non-metric issues
         _, group_info = self.save_issue_occurrence(group_type=FeedbackGroup.type_id)

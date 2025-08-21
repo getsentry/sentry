@@ -39,7 +39,7 @@ function mountModal(
   );
 }
 
-describe('TransactionThresholdModal', function () {
+describe('TransactionThresholdModal', () => {
   const organization = OrganizationFixture({features: ['performance-view']});
   const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
@@ -58,7 +58,7 @@ describe('TransactionThresholdModal', function () {
   const onApply = jest.fn();
   let postTransactionThresholdMock: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     postTransactionThresholdMock = MockApiClient.addMockResponse({
@@ -70,7 +70,7 @@ describe('TransactionThresholdModal', function () {
     });
   });
 
-  it('can update threshold', async function () {
+  it('can update threshold', async () => {
     mountModal(eventView, organization, onApply);
 
     await userEvent.clear(await screen.findByRole('spinbutton'));
@@ -88,7 +88,7 @@ describe('TransactionThresholdModal', function () {
     });
   });
 
-  it('can update metric', async function () {
+  it('can update metric', async () => {
     mountModal(eventView, organization, onApply);
 
     await selectEvent.select(
@@ -112,7 +112,7 @@ describe('TransactionThresholdModal', function () {
     });
   });
 
-  it('can clear metrics', async function () {
+  it('can clear metrics', async () => {
     mountModal(eventView, organization, onApply);
 
     const deleteTransactionThresholdMock = MockApiClient.addMockResponse({

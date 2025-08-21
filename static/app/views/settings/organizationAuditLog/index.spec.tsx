@@ -9,8 +9,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
-describe('OrganizationAuditLog', function () {
-  it('renders', async function () {
+describe('OrganizationAuditLog', () => {
+  it('renders', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/audit-logs/`,
       method: 'GET',
@@ -42,7 +42,7 @@ describe('OrganizationAuditLog', function () {
     ).toBeInTheDocument();
   });
 
-  it('Displays pretty dynamic sampling logs', async function () {
+  it('Displays pretty dynamic sampling logs', async () => {
     const {router, project, projects, organization} = initializeOrg({
       router: {
         params: {orgId: 'org-slug'},
@@ -124,7 +124,7 @@ describe('OrganizationAuditLog', function () {
     }
   });
 
-  it('Handles absolute date range', async function () {
+  it('Handles absolute date range', async () => {
     const absoluteDateMockResponse = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/audit-logs/`,
       method: 'GET',

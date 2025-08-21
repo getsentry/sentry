@@ -172,7 +172,7 @@ def test2_insufficient_queue_depth():
 def test3_over_production_hogs_cpu_time_leading_to_starvation():
     """
     Background:
-    "Because every time a MessageRejected is is raised by the commit step, it happens when process
+    "Because every time a MessageRejected is raised by the commit step, it happens when process
     submits to commit. by re-parsing the same message over and over in a tight loop we also steal
     the GIL from everything else."
 
