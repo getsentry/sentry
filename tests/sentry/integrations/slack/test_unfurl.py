@@ -24,6 +24,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
+from sentry.users.services.user.service import user_service
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
@@ -201,6 +202,7 @@ class UnfurlTest(TestCase):
         self.request = RequestFactory().get("slack/event")
         self.frozen_time = freeze_time(datetime.now() - timedelta(days=1))
         self.frozen_time.start()
+        self.rpc_user = user_service.get_user(user_id=self.user.id)
 
     def tearDown(self) -> None:
         self.frozen_time.stop()
@@ -648,7 +650,9 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -687,7 +691,9 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -735,7 +741,9 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -773,7 +781,9 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -814,9 +824,11 @@ class UnfurlTest(TestCase):
             "display": "top5",
             "topEvents": 2,
         }
+        assert self.rpc_user is not None, "Rpcuser should exist, unless explicitly noted in test"
+
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by_id=self.user.id,
+            created_by_id=self.rpc_user.id,
             name="Test query",
             query=query,
             version=2,
@@ -839,7 +851,9 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -880,9 +894,10 @@ class UnfurlTest(TestCase):
                 "p50(transaction.duration)",
             ],
         }
+        assert self.rpc_user is not None, "Rpcuser should exist, unless explicitly noted in test"
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by_id=self.user.id,
+            created_by_id=self.rpc_user.id,
             name="Test query",
             query=query,
             version=2,
@@ -905,7 +920,9 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -957,7 +974,9 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -1025,7 +1044,9 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -1061,9 +1082,10 @@ class UnfurlTest(TestCase):
             "query": "",
             "yAxis": "count_unique(users)",
         }
+        assert self.rpc_user is not None, "Rpcuser should exist, unless explicitly noted in test"
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by_id=self.user.id,
+            created_by_id=self.rpc_user.id,
             name="Test query",
             query=query,
             version=2,
@@ -1086,7 +1108,9 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -1130,7 +1154,9 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -1188,7 +1214,9 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -1222,7 +1250,9 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -1259,7 +1289,9 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -1286,9 +1318,10 @@ class UnfurlTest(TestCase):
             "interval": "10m",
             "statsPeriod": "24h",
         }
+        assert self.rpc_user is not None, "Rpcuser should exist, unless explicitly noted in test"
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by_id=self.user.id,
+            created_by_id=self.rpc_user.id,
             name="Test query",
             query=query,
             version=2,
@@ -1312,7 +1345,9 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -1341,9 +1376,10 @@ class UnfurlTest(TestCase):
             "interval": "10m",
             "statsPeriod": "24h",
         }
+        assert self.rpc_user is not None, "Rpcuser should exist, unless explicitly noted in test"
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by_id=self.user.id,
+            created_by_id=self.rpc_user.id,
             name="Test query",
             query=query,
             version=2,
@@ -1367,7 +1403,9 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]
@@ -1406,7 +1444,9 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(
+                self.request, self.integration, links, self.rpc_user
+            )
 
         assert (
             unfurls[url]

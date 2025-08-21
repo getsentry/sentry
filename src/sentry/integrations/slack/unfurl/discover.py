@@ -19,8 +19,8 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
@@ -28,7 +28,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.search.events.filter import to_list
 from sentry.snuba.referrer import Referrer
-from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.dates import (
     get_interval_from_range,
     parse_stats_period,
@@ -117,9 +117,9 @@ def is_aggregate(field: str) -> bool:
 
 def unfurl_discover(
     request: HttpRequest,
-    integration: Integration,
+    integration: RpcIntegration,
     links: list[UnfurlableUrl],
-    user: User | None = None,
+    user: RpcUser | None = None,
 ) -> UnfurledUrl:
     event = MessagingInteractionEvent(
         MessagingInteractionType.UNFURL_DISCOVER, SlackMessagingSpec(), user=user
@@ -129,9 +129,9 @@ def unfurl_discover(
 
 
 def _unfurl_discover(
-    integration: Integration,
+    integration: RpcIntegration,
     links: list[UnfurlableUrl],
-    user: User | None = None,
+    user: RpcUser | None = None,
 ) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
         integration_id=integration.id
