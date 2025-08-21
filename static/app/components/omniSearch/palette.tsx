@@ -107,6 +107,18 @@ interface OmniSearchPaletteProps {
   ref?: React.Ref<OmniSearchPaletteSeeryRef>;
 }
 
+const createActionSearch = (actions: OmniAction[]) => {
+  return createFuzzySearch(actions, {
+    keys: ['label', 'fullLabel', 'details'],
+    getFn: strGetFn,
+    shouldSort: true,
+    minMatchCharLength: 1,
+    includeScore: true,
+    threshold: 0.3,
+    ignoreLocation: true,
+  });
+};
+
 export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -345,17 +357,19 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
 
   // Fuzzy search for general actions (including children)
   useEffect(() => {
+    const doSearch = async (instant: OmniAction[], delayed: OmniAction[]) => {
+      const fuzzySearchInstant = await createActionSearch(instant);
+      const fuzzySearchDelayed = await createActionSearch(delayed);
+
+      const resultsInstant = fuzzySearchInstant.search(query).map(r => r.item);
+      const resultsDelayed = fuzzySearchDelayed.search(debouncedQuery).map(r => r.item);
+      setFilteredAvailableActions([...resultsInstant, ...resultsDelayed]);
+    };
+
     // If an action is selected, only search within its children
     if (selectedAction?.children?.length) {
       if (debouncedQuery) {
-        createFuzzySearch(selectedAction.children, {
-          keys: ['label', 'fullLabel', 'details'],
-          getFn: strGetFn,
-          shouldSort: false,
-          minMatchCharLength: 1,
-        }).then(f => {
-          setFilteredAvailableActions(f.search(debouncedQuery).map(r => r.item));
-        });
+        doSearch(selectedAction.children, []);
       } else {
         setFilteredAvailableActions(selectedAction.children);
       }
@@ -363,20 +377,8 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     }
 
     // Flatten all actions to include their children in search
-    const allActions = [
-      ...flattenActions(availableActions),
-      ...flattenActions(dynamicActions),
-    ];
-
-    createFuzzySearch(allActions, {
-      keys: ['label', 'fullLabel', 'details'],
-      getFn: strGetFn,
-      shouldSort: false,
-      minMatchCharLength: 1,
-    }).then(f => {
-      setFilteredAvailableActions(f.search(debouncedQuery).map(r => r.item));
-    });
-  }, [availableActions, debouncedQuery, dynamicActions, selectedAction]);
+    doSearch(flattenActions(availableActions), flattenActions(dynamicActions));
+  }, [availableActions, query, debouncedQuery, dynamicActions, selectedAction]);
 
   // Fuzzy search for recent issues separately to control the limit
   useEffect(() => {
