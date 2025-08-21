@@ -12,6 +12,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useCreateIncidentCaseTemplate} from 'sentry/views/incidents/hooks/useCreateIncidentCaseTemplate';
+import {useIncidentComponents} from 'sentry/views/incidents/hooks/useIncidentComponents';
 import type {IncidentCaseTemplate} from 'sentry/views/incidents/types';
 import {ToolConnectCard} from 'sentry/views/incidents/wizard/toolConnectCard';
 
@@ -46,6 +47,10 @@ export function TemplateSummary({
     [`/organizations/${organization.slug}/integrations/`],
     {staleTime: 30000}
   );
+
+  const {incidentComponents} = useIncidentComponents({
+    organizationSlug: organization.slug,
+  });
 
   const createTemplate = useCreateIncidentCaseTemplate({
     organizationSlug: organization.slug,
@@ -104,30 +109,47 @@ export function TemplateSummary({
             </Flex>
           </Flex>
         </Flex>
+        <Flex direction="column" gap="xs">
+          <Text bold>{t('Your Components')}</Text>
+          <div>
+            {incidentComponents.map(component => (
+              <ComponentPill key={component.id}>{component.name}</ComponentPill>
+            ))}
+          </div>
+        </Flex>
         <Flex direction="column" gap="lg" align="start">
+          <Text bold>{t('Your Tools')}</Text>
           <Flex direction="column" gap="xs">
-            <Text bold>{t('You get paged via...')}</Text>
+            <Text bold size="sm">
+              {t('You get paged via...')}
+            </Text>
             <ToolCard
               config={schedule_config}
               integration={schedule_provider && integrationsByProvider[schedule_provider]}
             />
           </Flex>
           <Flex direction="column" gap="xs">
-            <Text bold>{t('Add tasks/action-items with...')}</Text>
+            <Text bold size="sm">
+              {t('Add tasks/action-items with...')}
+            </Text>
             <ToolCard
               config={task_config}
               integration={task_provider && integrationsByProvider[task_provider]}
             />
           </Flex>
           <Flex direction="column" gap="xs">
-            <Text bold>{t('Focus discussions (with Smokey) in...')}</Text>
+            <Text bold size="sm">
+              {t('Focus discussions (with Smokey) in...')}
+            </Text>
             <ToolCard
               config={channel_config}
               integration={channel_provider && integrationsByProvider[channel_provider]}
             />
           </Flex>
           <Flex direction="column" gap="xs">
-            <Text bold>{t('Share with users via...')}</Text>
+            <Text bold size="sm">
+              {t('Share with users via...')}
+            </Text>
             <ToolCard
               config={status_page_config}
               integration={
@@ -136,7 +158,9 @@ export function TemplateSummary({
             />
           </Flex>
           <Flex direction="column" gap="xs">
-            <Text bold>{t('Gather post-mortems in...')}</Text>
+            <Text bold size="sm">
+              {t('Gather learnings in...')}
+            </Text>
             <ToolCard
               config={retro_config}
               integration={retro_provider && integrationsByProvider[retro_provider]}
@@ -159,4 +183,18 @@ export function TemplateSummary({
 
 const ToolCard = styled(ToolConnectCard)`
   border-color: ${p => p.theme.border};
+`;
+
+export const ComponentPill = styled('div')`
+  display: inline-block;
+  font-size: ${p => p.theme.fontSize.xs};
+  padding: 2px 7px;
+  margin: 2px;
+  border-radius: 10px;
+  background-color: ${p => p.theme.tokens.background.secondary}22;
+  border: 1px solid ${p => p.theme.border};
+  &:hover {
+    background-color: ${p => p.theme.tokens.background.secondary};
+    cursor: pointer;
+  }
 `;

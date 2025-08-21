@@ -3,12 +3,10 @@ import pageImage from 'sentry-images/spot/waiting-for-page.svg';
 import {Grid} from 'sentry/components/core/layout';
 import {TemplateSummary} from 'sentry/views/incidents/components/templateSummary';
 import type {IncidentCaseTemplate} from 'sentry/views/incidents/types';
-import {FULL_CTX} from 'sentry/views/incidents/wizard/hack';
-
-// import {useIncidentSetupContext} from 'sentry/views/incidents/wizard/context';
+import {useIncidentSetupContext} from 'sentry/views/incidents/wizard/context';
 
 export function DemoStep() {
-  const {tools, template} = FULL_CTX;
+  const {tools, template} = useIncidentSetupContext();
 
   const {complete: toolsComplete, ...toolsPayload} = tools;
   const {complete: templateComplete, ...templatePayload} = template;

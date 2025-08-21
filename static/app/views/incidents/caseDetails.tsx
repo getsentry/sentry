@@ -22,6 +22,7 @@ import {
   CaseStatusLabel,
 } from 'sentry/views/incidents/components/caseLabels';
 import {LinkCard} from 'sentry/views/incidents/components/linkCard';
+import {ComponentPill} from 'sentry/views/incidents/components/templateSummary';
 import {useIncidentCase} from 'sentry/views/incidents/hooks/useIncidentCase';
 import {getIncidentLabel} from 'sentry/views/incidents/util';
 import {CONVERSATION_DATA, MOCK_TIMELINE} from 'sentry/views/incidents/wizard/hack';
@@ -80,13 +81,13 @@ export default function IncidentCaseDetails() {
                 </Text>
               </Flex>
               <Flex gap="2xl" justify="start">
-                <Flex direction="column" gap="sm">
+                <Flex direction="column">
                   <Text bold>{t('Affected Components')}</Text>
-                  {affectedComponents.map(component => (
-                    <Text key={component.id} title={component.description}>
-                      {component.name}
-                    </Text>
-                  ))}
+                  <Flex direction="column" style={{marginLeft: '-0.5rem'}}>
+                    {affectedComponents.map(component => (
+                      <ComponentPill key={component.id}>{component.name}</ComponentPill>
+                    ))}
+                  </Flex>
                   {affectedComponents.length === 0 && <Text>--</Text>}
                 </Flex>
                 <Flex direction="column" gap="sm">
@@ -99,19 +100,21 @@ export default function IncidentCaseDetails() {
 
                 <Flex direction="column" gap="sm">
                   <Text bold>{t('Started At')}</Text>
-                  <Text>
-                    {incidentCase.started_at
-                      ? new Date(incidentCase.started_at).toLocaleDateString()
-                      : new Date().toLocaleDateString()}
-                  </Text>
+                  <DateTime
+                    date={incidentCase.started_at}
+                    format="MMM D, YYYY h:mm:ss A"
+                  />
                 </Flex>
                 <Flex direction="column" gap="sm">
                   <Text bold>{t('Resolved At')}</Text>
-                  <Text>
-                    {incidentCase.resolved_at
-                      ? new Date(incidentCase.resolved_at).toLocaleDateString()
-                      : '--'}
-                  </Text>
+                  {incidentCase.resolved_at ? (
+                    <DateTime
+                      date={incidentCase.resolved_at}
+                      format="MMM D, YYYY h:mm A"
+                    />
+                  ) : (
+                    <Text>--</Text>
+                  )}
                 </Flex>
               </Flex>
               <Flex gap="2xl" />
@@ -145,7 +148,9 @@ export default function IncidentCaseDetails() {
               <Grid columns="auto auto auto" gap="md">
                 {CONVERSATION_DATA.map((item, index) => (
                   <Fragment key={index}>
-                    <Text bold>{item.name}</Text>
+                    <Text bold align="right">
+                      {item.name}
+                    </Text>
                     <DateTime format="HH:mm" date={item.timestamp} />
                     <Text>{item.message}</Text>
                   </Fragment>

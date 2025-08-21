@@ -10,38 +10,16 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 
 export const INTEGRATION_CRIMES = {
   jira: [
-    {
-      id: '10001',
-      code: 'LR2',
-      name: 'Leander 2',
-    },
-    {
-      id: '10002',
-      code: 'LR3',
-      name: 'Leander 3',
-    },
-    {
-      id: '10004',
-      code: 'LBP',
-      name: 'Leander Bitbucket Project',
-    },
-    {
-      id: '10006',
-      code: 'INC',
-      name: 'Incident Management',
-    },
+    {id: '10001', code: 'CAN', name: 'Canopy'},
+    {id: '10002', code: 'EM', name: 'Ember'},
+    {id: '10003', code: 'WIL', name: 'Wildfires'},
+    {id: '10004', code: 'TRAIL', name: 'Trailmap'},
   ],
   notion: [
     {
       id: '254eac1b39ad80b6886feb6ae76556ec',
-      title: {
-        plain_text: 'Incident Retrospectives',
-      },
-      icon: {
-        external: {
-          url: 'https://www.notion.so/icons/graduate_yellow.svg',
-        },
-      },
+      title: {plain_text: 'Park Inc Retros'},
+      icon: {external: {url: 'https://www.notion.so/icons/conifer-tree_yellow.svg'}},
       url: 'https://www.notion.so/254eac1b39ad80b6886feb6ae76556ec',
     },
   ],
@@ -49,7 +27,7 @@ export const INTEGRATION_CRIMES = {
   statuspage: [
     {
       id: '5pt6vxc1jn45',
-      headline: 'Parks Canada Agency',
+      headline: 'Parks Canada',
       url: 'https://hw2025.statuspage.io/',
       favicon_logo: {
         url: 'https://dka575ofm4ao0.cloudfront.net/pages-favicon_logos/original/929868/pc-beaver-green-b41c6f82-f8d4-4fe0-9b5c-3e84db4e0945.png',
@@ -58,195 +36,80 @@ export const INTEGRATION_CRIMES = {
   ],
 } as const;
 
-export const TOOL_STEP_EMPTY_STATE = {
-  schedule: null,
-  task: null,
-  channel: null,
-  status_page: null,
-  retro: null,
-} as const;
-
-export const TEMP_TOOL_STEP_STATE = {
-  schedule: {
-    integrationKey: 'pagerduty',
-    service: {label: 'Firefighters', value: 'b135cdb80378400cd05fcf845aeca092'},
-    integrationId: '2',
-  },
-  task: {
-    integrationKey: 'jira',
-    project: {id: '10004', code: 'INC', name: 'Incident Management'},
-    integrationId: '6',
-  },
-  channel: {
-    integrationKey: 'slack',
-    integrationId: '1',
-  },
-  status_page: {
-    integrationKey: 'statuspage',
-    statuspage: {
-      id: '5pt6vxc1jn45',
-      headline: 'Parks Canada Agency',
-      url: 'https://hw2025.statuspage.io/',
-      favicon_logo: {
-        url: '//dka575ofm4ao0.cloudfront.net/pages-favicon_logos/original/929868/pc-beaver-green-b41c6f82-f8d4-4fe0-9b5c-3e84db4e0945.png',
-      },
-    },
-    integrationId: '4',
-  },
-  retro: {
-    integrationKey: 'notion',
-    database: {
-      id: '254eac1b39ad80b6886feb6ae76556ec',
-      title: {plain_text: 'Incident Retrospectives'},
-      icon: {external: {url: 'https://www.notion.so/icons/graduate_yellow.svg'}},
-      url: 'https://www.notion.so/254eac1b39ad80b6886feb6ae76556ec',
-    },
-    integrationId: '3',
-  },
-};
-
-export const FULL_CTX = {
-  tools: {
-    complete: true,
-    schedule_provider: 'pagerduty',
-    schedule_config: {
-      integrationKey: 'pagerduty',
-      service: {label: 'Firefighters', value: 'b135cdb80378400cd05fcf845aeca092'},
-      integrationId: '2',
-    },
-    task_provider: 'jira',
-    task_config: {
-      integrationKey: 'jira',
-      project: {
-        id: '10004',
-        code: 'LBP',
-        name: 'Leander Bitbucket Project',
-      },
-      integrationId: '6',
-    },
-    channel_provider: 'slack',
-    channel_config: {
-      integrationKey: 'slack',
-      integrationId: '1',
-    },
-    status_page_provider: 'statuspage',
-    status_page_config: {
-      integrationKey: 'statuspage',
-      statuspage: {
-        id: '5pt6vxc1jn45',
-        headline: 'Parks Canada Agency',
-        url: 'https://hw2025.statuspage.io/',
-        favicon_logo: {
-          url: 'https://dka575ofm4ao0.cloudfront.net/pages-favicon_logos/original/929868/pc-beaver-green-b41c6f82-f8d4-4fe0-9b5c-3e84db4e0945.png',
-        },
-      },
-      integrationId: '4',
-    },
-    retro_provider: 'notion',
-    retro_config: {
-      integrationKey: 'notion',
-      database: {
-        id: '254eac1b39ad80b6886feb6ae76556ec',
-        title: {
-          plain_text: 'Incident Retrospectives',
-        },
-        icon: {
-          external: {
-            url: 'https://www.notion.so/icons/graduate_yellow.svg',
-          },
-        },
-        url: 'https://www.notion.so/254eac1b39ad80b6886feb6ae76556ec',
-      },
-      integrationId: '3',
-    },
-  },
-  demo: {
-    complete: false,
-  },
-  components: {
-    complete: true,
-  },
-  smokey: {
-    complete: true,
-  },
-  template: {
-    complete: true,
-    case_handle: 'INC',
-    severity_handle: 'SEV',
-    lead_title: 'Captain',
-    update_frequency: '15',
-  },
-};
-
 export const CONVERSATION_DATA = [
   {
     name: 'leander',
     timestamp: new Date(Date.now() - 1000 * 60 * 30),
     message:
-      '🚨 Declared an incident. Getting a ton of 500s on the site, anyone else seeing this?',
+      'the river is flowing backwards and the controlled burn system is just... smoking. anyone else seeing this?',
   },
   {
     name: 'madeleine',
     timestamp: new Date(Date.now() - 1000 * 60 * 29),
-    message: "Yeah, I'm seeing errors too. Looks like the API is timing out.",
+    message:
+      "yeah i see it but i am literally a bear. i mostly eat fish and nap. i don't know what a controlled burn is.",
   },
   {
     name: 'leander',
     timestamp: new Date(Date.now() - 1000 * 60 * 28),
-    message: "I'll check the logs. Not sure if it's infra or a deploy gone wrong.",
+    message: "i'll check the logs. maybe it's a beaver thing? or a salmon ddos?",
   },
   {
     name: 'madeleine',
     timestamp: new Date(Date.now() - 1000 * 60 * 27),
-    message: "I'm seeing a spike in DB connections. Could be a pool exhaustion.",
+    message:
+      "i tried to type 'systemctl restart river' but i just mashed my paw on the keyboard and now there are claw marks.",
   },
   {
     name: 'leander',
     timestamp: new Date(Date.now() - 1000 * 60 * 26),
-    message: "Confirmed, DB pool is maxed out. I'll kill some long-running queries.",
+    message: 'confirmed, the logs are just full of honey. this is not helpful.',
   },
   {
     name: 'madeleine',
     timestamp: new Date(Date.now() - 1000 * 60 * 25),
-    message: "Thanks! I'll update the status page and let support know.",
+    message: "i can offer you a stick? or maybe a rock? that's my whole support toolkit.",
   },
   {
     name: 'leander',
     timestamp: new Date(Date.now() - 1000 * 60 * 24),
-    message: "Temporary fix in place. Errors are dropping. Let's keep an eye on it.",
+    message:
+      'temporary fix: i yelled at the river. it ignored me. errors are still happening.',
   },
   {
     name: 'madeleine',
     timestamp: new Date(Date.now() - 1000 * 60 * 23),
-    message: "Nice work. I'll start a retro doc so we can track the root cause.",
+    message: 'i started a retro doc but i ate it. sorry. paper tastes like tree.',
   },
   {
     name: 'leander',
     timestamp: new Date(Date.now() - 1000 * 60 * 22),
-    message: "Found it! Recent deploy missed a connection cleanup. I'll revert.",
+    message:
+      'found the issue! someone replaced the burn system with a pile of leaves. classic.',
   },
   {
     name: 'madeleine',
     timestamp: new Date(Date.now() - 1000 * 60 * 21),
     message:
-      "Revert looks good. Errors are gone. I'll update the status page to resolved.",
+      "i tried to help but i got distracted by a butterfly. status page now just says 'bear'.",
   },
   {
     name: 'leander',
     timestamp: new Date(Date.now() - 1000 * 60 * 20),
-    message: "Awesome teamwork. Let's schedule a post-mortem for tomorrow.",
+    message:
+      "let's schedule a post-mortem. bring snacks. no laptops, only logs (the wooden kind).",
   },
   {
     name: 'madeleine',
     timestamp: new Date(Date.now() - 1000 * 60 * 19),
-    message: 'Agreed! Thanks for jumping on this so fast.',
+    message: 'deal. i will bring berries and a strong sense of confusion.',
   },
 ];
 
 export const MOCK_TIMELINE = [
   {
     title: 'Incident Declared',
-    text: 'High severity incident declared by engineering team',
+    text: 'leander declares incident: river flowing backwards, controlled burn system smoking',
     icon: <IconFire size="sm" />,
     colorConfig: {
       icon: 'red400',
@@ -256,8 +119,8 @@ export const MOCK_TIMELINE = [
   },
   {
     title: 'Team Notified',
-    text: 'PagerDuty alert sent to on-call engineer',
-    icon: <PluginIcon pluginId="pagerduty" />,
+    text: 'madeleine (bear) acknowledges but mostly eats fish and naps',
+    icon: <IconUser size="xs" />,
     colorConfig: {
       icon: 'green400',
       iconBorder: 'green400',
@@ -265,18 +128,8 @@ export const MOCK_TIMELINE = [
     },
   },
   {
-    title: 'Incident Commander Assigned',
-    text: 'Alice Smith assigned as Incident Commander',
-    icon: <IconUser size="xs" />,
-    colorConfig: {
-      icon: 'blue400',
-      iconBorder: 'blue400',
-      title: 'blue400',
-    },
-  },
-  {
-    title: 'Initial Triage',
-    text: 'Engineering team begins triage and root cause analysis',
+    title: 'Initial Investigation',
+    text: 'leander checks logs, finds only honey. madeleine tries systemctl restart river',
     icon: <IconFix size="xs" />,
     colorConfig: {
       icon: 'purple400',
@@ -285,35 +138,8 @@ export const MOCK_TIMELINE = [
     },
   },
   {
-    title: 'Status Page Updated',
-    text: 'Public status page updated to reflect ongoing incident',
-    icon: <PluginIcon pluginId="statuspage" />,
-    colorConfig: {
-      icon: 'blue400',
-      iconBorder: 'blue400',
-      title: 'blue400',
-    },
-  },
-  // Tasks (Jira) - placed before mitigation
-  {
-    title: 'Task: Notify Customer Support',
-    text: 'Customer support team notified to prepare for incoming tickets.',
-    icon: <PluginIcon pluginId="jira" />,
-  },
-  {
-    title: 'Task: Update Incident Documentation',
-    text: 'Incident documentation updated in Confluence.',
-    icon: <PluginIcon pluginId="jira" />,
-  },
-  {
-    title: 'Task: Monitor System Metrics',
-    text: 'Ongoing monitoring of system health metrics.',
-    icon: <PluginIcon pluginId="jira" />,
-  },
-  // Mitigation
-  {
-    title: 'Mitigation Deployed',
-    text: 'Temporary fix deployed to reduce customer impact',
+    title: 'Temporary Fix Attempted',
+    text: 'leander yells at river, madeleine offers stick and rock as support tools',
     icon: <IconChevron direction="up" size="xs" />,
     colorConfig: {
       icon: 'yellow400',
@@ -321,10 +147,34 @@ export const MOCK_TIMELINE = [
       title: 'yellow400',
     },
   },
-  // Resolution (Notion)
   {
-    title: 'Resolution',
-    text: 'Root cause identified and permanent fix applied',
+    title: 'Status Page Updated',
+    text: 'Status page now just says "bear" after madeleine gets distracted by butterfly',
+    icon: <PluginIcon pluginId="statuspage" />,
+    colorConfig: {
+      icon: 'blue400',
+      iconBorder: 'blue400',
+      title: 'blue400',
+    },
+  },
+  {
+    title: 'Task: Investigate Beaver Activity',
+    text: 'Check if beavers are causing river flow issues or salmon DDoS',
+    icon: <PluginIcon pluginId="jira" />,
+  },
+  {
+    title: 'Task: Fix Keyboard Damage',
+    text: 'Replace keyboard with claw marks from bear paw mashing',
+    icon: <PluginIcon pluginId="jira" />,
+  },
+  {
+    title: 'Task: Restore Burn System',
+    text: 'Replace pile of leaves with actual controlled burn system',
+    icon: <PluginIcon pluginId="jira" />,
+  },
+  {
+    title: 'Root Cause Identified',
+    text: 'Someone replaced burn system with pile of leaves. Classic.',
     icon: <IconCheckmark size="xs" />,
     colorConfig: {
       icon: 'pink400',
@@ -334,34 +184,43 @@ export const MOCK_TIMELINE = [
   },
   {
     title: 'Postmortem Document Created',
-    text: 'A document was added to the Incident Retrospectives database',
+    text: 'Retro doc started but madeleine ate it. Paper tastes like tree.',
     icon: <PluginIcon pluginId="notion" />,
   },
   {
     title: 'Postmortem Scheduled',
-    text: 'Retrospective meeting scheduled for next week',
+    text: 'Post-mortem scheduled with snacks. No laptops, only wooden logs. madeleine bringing berries and confusion',
     icon: <IconClock size="xs" />,
   },
-  // Action Items (Jira)
   {
-    title: 'Action Item: Conduct Root Cause Analysis',
-    text: 'Schedule and conduct a root cause analysis meeting.',
+    title: 'Action Item: Train Bears on Incident Response',
+    text: 'Provide bear-friendly keyboards and incident response training',
     icon: <PluginIcon pluginId="jira" />,
   },
   {
-    title: 'Action Item: Implement Preventative Measures',
-    text: 'Engineering to implement changes to prevent recurrence.',
+    title: 'Action Item: Secure Burn System',
+    text: 'Implement measures to prevent leaves from replacing critical systems',
     icon: <PluginIcon pluginId="jira" />,
   },
   {
-    title: 'Action Item: Share Learnings with Team',
-    text: 'Share incident learnings and improvements with the broader team.',
+    title: 'Action Item: River Flow Monitoring',
+    text: 'Set up alerts for when rivers start flowing backwards',
     icon: <PluginIcon pluginId="jira" />,
   },
   {
-    title: 'Action Item: Close Incident',
-    text: 'All follow-up tasks completed, incident officially closed.',
+    title: 'Action Item: Prepare Post-Mortem Snacks',
+    text: 'Stock up on berries and wooden logs for the retro meeting',
     icon: <PluginIcon pluginId="jira" />,
+  },
+  {
+    title: 'Incident Resolved',
+    text: 'Awesome teamwork between human and bear. Post-mortem scheduled with berry snacks and wooden logs.',
+    icon: <IconCheckmark size="xs" />,
+    colorConfig: {
+      icon: 'green400',
+      iconBorder: 'green400',
+      title: 'green400',
+    },
   },
 ].map((item, index) => ({
   ...item,

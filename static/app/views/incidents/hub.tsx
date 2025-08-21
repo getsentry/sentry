@@ -71,11 +71,17 @@ export default function IncidentHub() {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          {searchParams.get('setup') || !incidentCaseTemplate ? (
-            <IncidentHubWelcome />
-          ) : (
-            <IncidentCaseList template={incidentCaseTemplate} />
-          )}
+          <AnimatePresence mode="wait">
+            {searchParams.get('setup') || !incidentCaseTemplate ? (
+              <motion.div key="welcome" {...animations.moveOver}>
+                <IncidentHubWelcome />
+              </motion.div>
+            ) : (
+              <motion.div key="cases" {...animations.moveOver}>
+                <IncidentCaseList template={incidentCaseTemplate} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </Layout.Main>
       </Layout.Body>
     </Layout.Page>
