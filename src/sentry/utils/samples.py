@@ -105,7 +105,7 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
 
 
 def load_data(
-    platform: str,
+    platform: str | None = None,
     default: str | None = None,
     sample_name: str | None = None,
     timestamp=None,
@@ -127,7 +127,7 @@ def load_data(
     #     a fake event is generated to go through the pipeline.
     data = None
     language = None
-    platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(platform)
+    platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(platform or "")
 
     if platform_data is not None and platform_data["type"] != "language":
         language = platform_data["language"]
@@ -161,7 +161,7 @@ def load_data(
         if not os.path.isfile(json_path):
             raise IsADirectoryError("expected file but found a directory instead")
 
-        if not sample_name:
+        if not sample_name and platform is not None:
             try:
                 sample_name = INTEGRATION_ID_TO_PLATFORM_DATA[platform]["name"]
             except KeyError:

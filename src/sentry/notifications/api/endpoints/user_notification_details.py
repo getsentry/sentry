@@ -1,5 +1,8 @@
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
+from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,7 +13,9 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import Serializer, serialize
 from sentry.notifications.types import UserOptionsSettingsKey
 from sentry.users.api.bases.user import UserEndpoint
+from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
+from sentry.users.services.user.model import RpcUser
 
 USER_OPTION_SETTINGS = {
     UserOptionsSettingsKey.SELF_ACTIVITY: {
@@ -25,7 +30,13 @@ USER_OPTION_SETTINGS = {
 
 
 class UserNotificationsSerializer(Serializer):
-    def get_attrs(self, item_list, user, *args, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[User],
+        user: User | RpcUser | AnonymousUser,
+        *args: Any,
+        **kwargs: Any,
+    ) -> dict[User, list[UserOption]]:
         user_options = UserOption.objects.filter(
             user__in=item_list, organization_id=None, project_id=None
         ).select_related("user")
@@ -36,7 +47,14 @@ class UserNotificationsSerializer(Serializer):
             results[user_option.user].append(user_option)
         return results
 
-    def serialize(self, obj, attrs, user, *args, **kwargs):
+    def serialize(
+        self,
+        obj: User,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        *args: Any,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
         raw_data = {option.key: option.value for option in attrs}
 
         data = {}
@@ -47,8 +65,13 @@ class UserNotificationsSerializer(Serializer):
         return data
 
 
+class UserNotificationDetailsArgs(TypedDict):
+    personalActivityNotifications: bool
+    selfAssignOnResolve: bool
+
+
 # only expose legacy options
-class UserNotificationDetailsSerializer(serializers.Serializer):
+class UserNotificationDetailsSerializer(serializers.Serializer[UserNotificationDetailsArgs]):
     personalActivityNotifications = serializers.BooleanField(required=False)
     selfAssignOnResolve = serializers.BooleanField(required=False)
 
@@ -61,11 +84,11 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         serialized = serialize(user, request.user, UserNotificationsSerializer())
         return Response(serialized)
 
-    def put(self, request: Request, user) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         serializer = UserNotificationDetailsSerializer(data=request.data)
 
         if not serializer.is_valid():

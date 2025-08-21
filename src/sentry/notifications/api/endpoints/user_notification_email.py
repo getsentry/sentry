@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.users.api.bases.user import UserEndpoint
+from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 
@@ -23,7 +24,7 @@ class UserNotificationEmailEndpoint(UserEndpoint):
     }
     owner = ApiOwner.ALERTS_NOTIFICATIONS
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Fetches the user's email notification settings.
         Returns a dictionary where the keys are the IDs of the projects
@@ -35,7 +36,7 @@ class UserNotificationEmailEndpoint(UserEndpoint):
 
         return self.respond({str(option.project_id): option.value for option in email_options})
 
-    def put(self, request: Request, user) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         """
         Updates the user's email notification settings.
         The request data should be a dictionary where the keys are the IDs of the projects

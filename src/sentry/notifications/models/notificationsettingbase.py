@@ -1,3 +1,5 @@
+from typing import Any
+
 import sentry_sdk
 from django.conf import settings
 from django.db import models
@@ -22,7 +24,7 @@ class NotificationSettingBase(DefaultFieldsModelExisting):
     class Meta:
         abstract = True
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         try:
             assert not (
                 self.user_id is None and self.team_id is None
