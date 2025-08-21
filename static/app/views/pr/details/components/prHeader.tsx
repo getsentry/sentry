@@ -7,7 +7,8 @@ import {Flex} from 'sentry/components/core/layout';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Heading} from 'sentry/components/core/text/heading';
 import {Text} from 'sentry/components/core/text/text';
-import {IconGithub} from 'sentry/icons';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {IconChevron, IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -62,13 +63,44 @@ function PRHeader({
             <PRTitleHeading as="h1" size="xl">
               {prDetails.title}
             </PRTitleHeading>
-            <Button
-              size="sm"
-              icon={<IconGithub />}
-              onClick={() => window.open(prDetails.html_url, '_blank')}
-            >
-              {t('View on GitHub')}
-            </Button>
+            <ButtonGroup>
+              <DropdownMenu
+                items={[
+                  {
+                    key: 'approve',
+                    label: t('Approve'),
+                    onAction: () => {}, // No-op for demo
+                  },
+                  {
+                    key: 'request-changes',
+                    label: t('Request changes'),
+                    onAction: () => {}, // No-op for demo
+                  },
+                  {
+                    key: 'comment',
+                    label: t('Comment'),
+                    onAction: () => {}, // No-op for demo
+                  },
+                ]}
+                trigger={triggerProps => (
+                  <ReviewButton
+                    {...triggerProps}
+                    size="sm"
+                    priority="primary"
+                    icon={<IconChevron direction="down" size="xs" />}
+                  >
+                    {t('Review changes')}
+                  </ReviewButton>
+                )}
+              />
+              <Button
+                size="sm"
+                icon={<IconGithub />}
+                onClick={() => window.open(prDetails.html_url, '_blank')}
+              >
+                {t('View on GitHub')}
+              </Button>
+            </ButtonGroup>
           </TitleRow>
           <MetadataFlex gap="md">
             <Text variant="muted" size="sm">
@@ -191,6 +223,37 @@ const TitleRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+`;
+
+const ButtonGroup = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const ReviewButton = styled(Button)`
+  background-color: ${p => p.theme.green300};
+  border-color: ${p => p.theme.green300};
+  color: white;
+
+  &:hover:not(:disabled) {
+    background-color: ${p => p.theme.green400};
+    border-color: ${p => p.theme.green400};
+    color: white;
+  }
+
+  &:focus {
+    background-color: ${p => p.theme.green300};
+    border-color: ${p => p.theme.green300};
+    color: white;
+  }
+
+  /* Override any default primary button styles */
+  &[data-priority='primary'] {
+    background-color: ${p => p.theme.green300};
+    border-color: ${p => p.theme.green300};
+    color: white;
+  }
 `;
 
 const PRTitleHeading = styled(Heading)`
