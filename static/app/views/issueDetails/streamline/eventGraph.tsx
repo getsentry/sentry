@@ -1,5 +1,6 @@
 import type React from 'react';
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -18,9 +19,11 @@ import {defaultFormatAxisLabel} from 'sentry/components/charts/components/toolti
 import {OutageSeries, Severity} from 'sentry/components/charts/outageSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {useIncidentOutage} from 'sentry/components/charts/useIncidentOutage';
+import {useIncidentOutages} from 'sentry/components/charts/useIncidentOutages';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {Text} from 'sentry/components/core/text';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
 import Placeholder from 'sentry/components/placeholder';
@@ -36,6 +39,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type {Theme} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -468,6 +472,67 @@ export function EventGraph({
   );
 
   const {incidentData, isPendingIncidentData} = useIncidentOutage();
+  const {incidentData: incidentOutages, isPendingIncidentData: isPendingIncidentOutages} =
+    useIncidentOutages();
+
+  const timeNow = useMemo(() => Date.now(), []);
+
+  const outageCounter = useMemo(() => {
+    let criticalCount = 0;
+    let majorCount = 0;
+    let minorCount = 0;
+    let maintenanceCount = 0;
+
+    const seriesStart = series.at(0)?.data?.at(0)?.name ?? 0;
+    const seriesEnd = series.at(0)?.data?.at(-1)?.name ?? 0;
+
+    incidentOutages?.data?.forEach(outage => {
+      const outageStart = new Date(outage.start).getTime();
+      const outageEnd = outage.end ? new Date(outage.end).getTime() : timeNow;
+
+      // @ts-expect-error - HACKWEEK
+      if (outageStart >= seriesStart && outageEnd <= seriesEnd) {
+        if (outage?.severity === 'critical') {
+          criticalCount++;
+        } else if (outage?.severity === 'major') {
+          majorCount++;
+        } else if (outage?.severity === 'minor') {
+          minorCount++;
+        } else {
+          maintenanceCount++;
+        }
+      }
+    });
+
+    return {
+      critical: criticalCount,
+      major: majorCount,
+      minor: minorCount,
+      maintenance: maintenanceCount,
+    };
+  }, [incidentOutages?.data, series, timeNow]);
+
+  const {incidentTextBold, incidentTextLevel} = useMemo(() => {
+    if (!incidentOutages?.data || incidentOutages?.data?.length === 0) {
+      return {incidentTextLevel: 'primary', incidentTextBold: false};
+    }
+
+    let incidentTextBoldTemp = false;
+    let incidentTextLevelTemp: keyof Theme['tokens']['content'] = 'primary';
+    if (outageCounter.critical > 0) {
+      incidentTextLevelTemp = 'danger';
+      incidentTextBoldTemp = true;
+    } else if (outageCounter.major > 0) {
+      incidentTextLevelTemp = 'danger';
+    } else if (outageCounter.minor > 0) {
+      incidentTextLevelTemp = 'warning';
+    }
+
+    return {
+      incidentTextLevel: incidentTextLevelTemp as keyof Theme['tokens']['content'],
+      incidentTextBold: incidentTextBoldTemp,
+    };
+  }, [incidentOutages?.data, outageCounter]);
 
   if (error) {
     return (
@@ -477,7 +542,12 @@ export function EventGraph({
     );
   }
 
-  if (isLoadingStats || isPendingUniqueUsersCount || isPendingIncidentData) {
+  if (
+    isLoadingStats ||
+    isPendingUniqueUsersCount ||
+    isPendingIncidentData ||
+    isPendingIncidentOutages
+  ) {
     return (
       <GraphWrapper {...styleProps}>
         {showSummary ? (
@@ -531,96 +601,108 @@ export function EventGraph({
       ) : (
         <div />
       )}
-      <ChartContainer role="figure" ref={chartContainerRef}>
-        <BarChart
-          ref={mergeRefs(ref, handleConnectRef)}
-          height={100}
-          series={[
-            ...series,
-            ...(OutageSeries(
-              theme,
-              [
-                {
-                  hostId: incidentData?.host?.id?.toString() ?? '0',
-                  id: incidentData?.id ?? 0,
-                  regionId: incidentData?.regions?.[0]?.id?.toString() ?? '0',
-                  severity: (incidentData?.severity ?? 'maintenance') as Severity,
-                  start: new Date(incidentData?.start ?? '').getTime(),
-                  title: incidentData?.aiSummary ?? '',
-                  end: incidentData?.end
-                    ? new Date(incidentData?.end).getTime()
-                    : undefined,
-                },
-              ],
-              () => {
-                if (incidentData?.host?.id) {
-                  window.open(
-                    `http://localhost:3001/service/${incidentData?.host?.id}`,
-                    '_blank'
-                  );
+      <Fragment>
+        <ChartContainer role="figure" ref={chartContainerRef}>
+          {incidentOutages?.data?.length === 1 ? (
+            // @ts-expect-error - HACKWEEK
+            <Text variant={incidentTextLevel} bold={incidentTextBold} size="sm">
+              Ongoing Incident: {incidentOutages?.data?.pop()?.host?.name} outage
+            </Text>
+          ) : incidentOutages?.data && incidentOutages?.data?.length > 1 ? (
+            // @ts-expect-error - HACKWEEK
+            <Text variant={incidentTextLevel} bold={incidentTextBold} size="sm">
+              Multiple ongoing incidents:{' '}
+              {`${outageCounter.critical} critical, ${outageCounter.major} major, ${outageCounter.minor} minor, ${outageCounter.maintenance} maintenance`}
+            </Text>
+          ) : null}
+          <BarChart
+            ref={mergeRefs(ref, handleConnectRef)}
+            height={100}
+            series={[
+              ...series,
+              ...(OutageSeries(
+                theme,
+                Array.isArray(incidentOutages?.data) && incidentOutages?.data?.length > 0
+                  ? incidentOutages.data?.map(outage => ({
+                      hostId: outage?.host?.id?.toString() ?? '0',
+                      id: outage?.id ?? 0,
+                      regionId: outage?.regions?.[0]?.id?.toString() ?? '0',
+                      severity: outage?.severity as Severity,
+                      start: new Date(outage?.start ?? '').getTime(),
+                      title: outage?.aiSummary ?? '',
+                      end: outage?.end ? new Date(outage?.end).getTime() : undefined,
+                    }))
+                  : [],
+                () => {
+                  if (incidentData?.host?.id) {
+                    window.open(
+                      `http://localhost:3001/service/${incidentData?.host?.id}`,
+                      '_blank'
+                    );
+                  }
                 }
-              }
-            ) as unknown as BarChartSeries[]),
-          ]}
-          additionalSeries={releaseBubbleSeries ? [releaseBubbleSeries] : []}
-          legend={legend}
-          onLegendSelectChanged={onLegendSelectChanged}
-          showTimeInTooltip
-          grid={{
-            left: 8,
-            right: 8,
-            top: 20,
-            bottom: 0,
-            ...releaseBubbleGrid,
-          }}
-          tooltip={{
-            appendToBody: true,
-            formatAxisLabel: (
-              value,
-              isTimestamp,
-              utc,
-              showTimeInTooltip,
-              addSecondsToTimeFormat,
-              _bucketSize,
-              _seriesParamsOrParam
-            ) =>
-              String(
-                defaultFormatAxisLabel(
-                  value,
-                  isTimestamp,
-                  utc,
-                  showTimeInTooltip,
-                  addSecondsToTimeFormat,
-                  bucketSize
-                )
-              ),
-          }}
-          yAxis={{
-            splitNumber: 2,
-            minInterval: 1,
-            axisLabel: {
-              formatter: (value: number) => {
-                return formatAbbreviatedNumber(value);
+              ) as unknown as BarChartSeries[]),
+            ]}
+            additionalSeries={releaseBubbleSeries ? [releaseBubbleSeries] : []}
+            legend={legend}
+            onLegendSelectChanged={onLegendSelectChanged}
+            showTimeInTooltip
+            grid={{
+              left: 8,
+              right: 8,
+              top: 20,
+              bottom: 0,
+              ...releaseBubbleGrid,
+            }}
+            tooltip={{
+              appendToBody: true,
+              formatAxisLabel: (
+                value,
+                isTimestamp,
+                utc,
+                showTimeInTooltip,
+                addSecondsToTimeFormat,
+                _bucketSize,
+                _seriesParamsOrParam
+              ) =>
+                String(
+                  defaultFormatAxisLabel(
+                    value,
+                    isTimestamp,
+                    utc,
+                    showTimeInTooltip,
+                    addSecondsToTimeFormat,
+                    bucketSize
+                  )
+                ),
+            }}
+            yAxis={{
+              splitNumber: 2,
+              minInterval: 1,
+              axisLabel: {
+                formatter: (value: number) => {
+                  return formatAbbreviatedNumber(value);
+                },
               },
-            },
-          }}
-          xAxis={{
-            axisTick: {
-              show: false,
-            },
-            axisLabel: {
-              margin: 8,
-            },
-            ...releaseBubbleXAxis,
-          }}
-          {...(disableZoomNavigation
-            ? {
-                isGroupedByDate: true,
-                dataZoom: chartZoomProps.dataZoom,
-              }
-            : chartZoomProps)}
-        />
-      </ChartContainer>
+            }}
+            xAxis={{
+              axisTick: {
+                show: false,
+              },
+              axisLabel: {
+                margin: 8,
+              },
+              ...releaseBubbleXAxis,
+            }}
+            {...(disableZoomNavigation
+              ? {
+                  isGroupedByDate: true,
+                  dataZoom: chartZoomProps.dataZoom,
+                }
+              : chartZoomProps)}
+          />
+        </ChartContainer>
+      </Fragment>
     </GraphWrapper>
   );
 }
