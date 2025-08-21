@@ -367,7 +367,7 @@ module = [
     "sentry.buffer.*",
     "sentry.build.*",
     "sentry.dashboards.*",
-    "sentry.data_export.processors.issues_by_tag",
+    "sentry.data_export.*",
     "sentry.data_secrecy.models.*",
     "sentry.data_secrecy.service.*",
     "sentry.db.models.fields.citext",
