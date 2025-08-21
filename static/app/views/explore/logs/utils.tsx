@@ -3,10 +3,12 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import type {ApiResult} from 'sentry/api';
+import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -51,6 +53,7 @@ import {
 } from 'sentry/views/explore/logs/types';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
+import type {TraceItemMetaRemark} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -503,4 +506,70 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
     }
   }
   return JSON.stringify(copy, null, 2);
+}
+
+/**
+ * Metadata about trace item attributes.
+ *
+ * This can be used to extract additional information about attributes
+ * like remarks (e.g. why a value was redacted).
+ */
+export class TraceItemMetaInfo {
+  private static readonly META_PATH_CURRENT = '';
+
+  private meta: Record<string, any>;
+
+  constructor(meta: Record<string, any>) {
+    this.meta = meta;
+  }
+
+  getAttributeMeta(attribute: string): any {
+    return this.meta?.[attribute]?.meta?.value?.[TraceItemMetaInfo.META_PATH_CURRENT];
+  }
+
+  getRemarks(attribute: string): TraceItemMetaRemark[] {
+    const attributeMeta = this.getAttributeMeta(attribute);
+    if (!attributeMeta?.rem?.length) {
+      return [];
+    }
+
+    const properlyFormedRemarks = attributeMeta.rem.filter((r: any) => r.length >= 2); // Defensive against unexpected length remarks.
+
+    return properlyFormedRemarks.map((rem: any[]): TraceItemMetaRemark => {
+      const [ruleId, type, rangeStart, rangeEnd] = rem;
+      return {
+        ruleId,
+        type,
+        rangeStart,
+        rangeEnd,
+      };
+    });
+  }
+
+  hasRemarks(attribute: string): boolean {
+    const attributeMeta = this.getAttributeMeta(attribute);
+    return attributeMeta?.rem?.length > 0;
+  }
+
+  static getTooltipText(
+    attribute: string,
+    meta: Record<string, any>,
+    organization?: Organization,
+    project?: Project
+  ): string | React.ReactNode | null {
+    const metaInfo = new TraceItemMetaInfo(meta);
+    const remarks = metaInfo.getRemarks(attribute);
+
+    const firstRemark = remarks[0];
+    if (!firstRemark) {
+      return null;
+    }
+
+    return getAnnotatedTooltipText({
+      remark: firstRemark.type,
+      rule_id: firstRemark.ruleId,
+      organization,
+      project,
+    });
+  }
 }

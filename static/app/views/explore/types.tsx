@@ -20,3 +20,10 @@ export interface UseTraceItemAttributeBaseProps {
    */
   projects?: Project[];
 }
+
+export interface TraceItemMetaRemark {
+  ruleId: string;
+  type: string;
+  rangeEnd?: number;
+  rangeStart?: number;
+}
