@@ -499,6 +499,7 @@ module = [
     "sentry.issues.update_inbox",
     "sentry.lang.java.processing",
     "sentry.llm.*",
+    "sentry.mail.*",
     "sentry.middleware.integrations.*",
     "sentry.middleware.reporting_endpoint",
     "sentry.migrations.*",
