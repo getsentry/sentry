@@ -38,13 +38,20 @@ import {GroupStatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
+import {
+  EventSearch,
+  useEventQuery,
+} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/streamline/issueDetailsEventNavigation';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
-import {useHasAIMode} from 'sentry/views/issueDetails/utils';
+import {useEnvironmentsFromUrl, useHasAIMode} from 'sentry/views/issueDetails/utils';
 
 interface AIAnalysisCardProps {
   event: Event | null;
@@ -128,6 +135,10 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
 
   const api = useApi();
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const environments = useEnvironmentsFromUrl();
+  const searchQuery = useEventQuery({groupId: group.id});
 
   const toggleAIMode = () => {
     // Toggle AI mode preference and save to localStorage for persistence
@@ -922,6 +933,31 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               </DrawerCloseButton>
             </DrawerHeader>
             <DrawerBody>
+              {/* Event Search Filter */}
+              <DrawerSearchSection>
+                <EventSearch
+                  group={group}
+                  handleSearch={query => {
+                    navigate(
+                      {...location, query: {...location.query, query}},
+                      {replace: true}
+                    );
+                  }}
+                  environments={environments}
+                  query={searchQuery}
+                  queryBuilderProps={{
+                    disallowFreeText: true,
+                    placeholder: t('Filter events...'),
+                    label: t('Filter events'),
+                  }}
+                />
+              </DrawerSearchSection>
+              
+              {/* Event Navigation */}
+              <DrawerNavigationSection>
+                <IssueDetailsEventNavigation event={event} group={group} />
+              </DrawerNavigationSection>
+              
               {event ? (
                 <Fragment>
                   <EventDetailsHeader event={event} group={group} project={project} />
@@ -2066,4 +2102,19 @@ const DrawerBody = styled('div')`
   flex: 1;
   overflow-y: auto;
   padding: ${space(2)};
+`;
+
+const DrawerSearchSection = styled('div')`
+  padding-bottom: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const DrawerNavigationSection = styled('div')`
+  padding-bottom: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  margin-bottom: ${space(2)};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(2)};
 `;
