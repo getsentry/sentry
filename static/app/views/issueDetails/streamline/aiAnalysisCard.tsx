@@ -23,6 +23,7 @@ import {
   IconChat,
   IconChevron,
   IconCode,
+  IconCopy,
   IconFocus,
   IconSeer,
   IconTerminal,
@@ -114,6 +115,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
   const [showStacktraceDrawer, setShowStacktraceDrawer] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+  const [showCopyDropdown, setShowCopyDropdown] = useState(false);
   const [orgMembers, setOrgMembers] = useState<User[]>([]);
   const [similarIssuesCount, setSimilarIssuesCount] = useState<number>(0);
   const activeUser = useUser();
@@ -213,6 +215,20 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
       fetchOrgMembers();
     }
   }, []);
+
+  // Handle escape key to close drawer
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showStacktraceDrawer) {
+        setShowStacktraceDrawer(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showStacktraceDrawer]);
 
   const startAutofix = async () => {
     try {
@@ -514,9 +530,26 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 <ViewStacktracePill onClick={() => setShowStacktraceDrawer(true)}>
                   {t('View Stacktrace')}
                 </ViewStacktracePill>
-                <CopyIssuePill>
-                  {t('Copy issue as markdown')}
-                </CopyIssuePill>
+                <CopyDropdownContainer
+                  onMouseEnter={() => setShowCopyDropdown(true)}
+                  onMouseLeave={() => setShowCopyDropdown(false)}
+                >
+                  <CopyIssuePill>
+                    <IconCopy size="sm" />
+                    {t('Copy')}
+                    <IconChevron size="xs" />
+                  </CopyIssuePill>
+                  {showCopyDropdown && (
+                    <CopyDropdown>
+                      <CopyOption onClick={() => console.log('Copy as markdown')}>
+                        {t('Copy issue as markdown for LLMs')}
+                      </CopyOption>
+                      <CopyOption onClick={() => console.log('Copy as JSON')}>
+                        {t('Copy as JSON')}
+                      </CopyOption>
+                    </CopyDropdown>
+                  )}
+                </CopyDropdownContainer>
               </ActionPillsRow>
             </TimelineMetricsRow>
           </CardContent>
@@ -1878,9 +1911,15 @@ const ViewStacktracePill = styled('button')`
   }
 `;
 
+const CopyDropdownContainer = styled('div')`
+  position: relative;
+  display: inline-block;
+`;
+
 const CopyIssuePill = styled('button')`
   display: inline-flex;
   align-items: center;
+  gap: ${space(0.5)};
   padding: ${space(0.5)} ${space(1.5)};
   background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.textColor};
@@ -1895,6 +1934,40 @@ const CopyIssuePill = styled('button')`
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     background: ${p => p.theme.backgroundTertiary};
+  }
+
+  svg:last-child {
+    transform: rotate(180deg);
+  }
+`;
+
+const CopyDropdown = styled('div')`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 220px;
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+  margin-top: ${space(0.5)};
+`;
+
+const CopyOption = styled('div')`
+  padding: ${space(0.75)} ${space(1)};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.textColor};
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: ${p => p.theme.backgroundSecondary};
+  }
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 
