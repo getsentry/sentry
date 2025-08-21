@@ -1,5 +1,6 @@
 import {
   Fragment,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
@@ -466,6 +467,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   }, [grouped]);
 
   const handleSelect = (action: OmniAction) => {
+    resetInactivityTimer();
     if (action.disabled) {
       return;
     }
@@ -569,6 +571,34 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     lastQueryRef.current = query;
   }, [query]);
 
+  // Inactivity timer for impatient animation
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActivityTimeRef = useRef<number>(Date.now());
+
+  const resetInactivityTimer = useCallback(() => {
+    lastActivityTimeRef.current = Date.now();
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    inactivityTimerRef.current = setTimeout(() => {
+      triggerSeeryImpatient();
+    }, 5000);
+  }, []);
+
+  // Reset timer on any user interaction
+  useEffect(() => {
+    resetInactivityTimer();
+  }, [resetInactivityTimer]); // Empty dependency array - only run once on mount
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, []);
+
   return (
     <Fragment>
       <SeeryCharacter ref={seeryRef} animationData={serryLottieAnimation} size={400} />
@@ -582,7 +612,12 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
           )}
           <SearchInputContainer>
             {selectedAction && (
-              <BackButton onClick={() => clearSelection()}>
+              <BackButton
+                onClick={() => {
+                  resetInactivityTimer();
+                  clearSelection();
+                }}
+              >
                 <IconArrow direction="left" size="sm" />
               </BackButton>
             )}
@@ -592,6 +627,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
               value={query}
               onValueChange={setQuery}
               onKeyDown={e => {
+                resetInactivityTimer();
                 if (e.key === 'Backspace' && query === '') {
                   clearSelection();
                   e.preventDefault();
