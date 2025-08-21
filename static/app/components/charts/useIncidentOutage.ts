@@ -27,7 +27,7 @@ export function useIncidentOutage(outageId?: number) {
   );
 
   const randomOngoingOutage = useMemo(() => {
-    const randomNumber = Math.floor(Math.random() * (4 - 0 + 1)) + 0;
+    const randomNumber = Math.floor(Math.random() * (4 - 1 + 1)) + 1;
 
     return randomNumber <= 3 ? null : undefined;
   }, []);
