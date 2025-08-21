@@ -1138,6 +1138,12 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     colors: CHART_PALETTE_LIGHT,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
+  incident: {
+    maintenance: chonkLightColorMapping.blue300,
+    minor: chonkLightColorMapping.yellow300,
+    major: chonkLightColorMapping.red300,
+    critical: chonkLightColorMapping.red400,
+  },
 
   prismVariables: generateThemePrismVariables(
     prismLight,
@@ -1205,6 +1211,12 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
     neutral: color(darkColors.gray400).darken(0.35).toString(),
     colors: CHART_PALETTE_DARK,
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
+  },
+  incident: {
+    maintenance: chonkDarkColorMapping.blue300,
+    minor: chonkDarkColorMapping.yellow300,
+    major: chonkDarkColorMapping.red300,
+    critical: chonkDarkColorMapping.red400,
   },
 
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundTertiary),
