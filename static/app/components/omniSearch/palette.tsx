@@ -695,6 +695,11 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
 
 const Header = styled('div')`
   position: relative;
+
+  [data-matrix-mode='true'] & {
+    background-color: #101e13;
+    color: #00ff00;
+  }
 `;
 
 const SearchInputContainer = styled('div')`
@@ -704,6 +709,12 @@ const SearchInputContainer = styled('div')`
   align-items: center;
   padding: 4px 16px;
   border-bottom: 1px solid ${p => p.theme.border};
+
+  [data-matrix-mode='true'] & {
+    padding: 2px 10px;
+    gap: 4px;
+    border: 2px solid #1a5200;
+  }
 `;
 
 const BackButton = styled('button')`
@@ -722,6 +733,18 @@ const BackButton = styled('button')`
     background-color: ${p => p.theme.backgroundSecondary};
     color: ${p => p.theme.textColor};
   }
+
+  [data-matrix-mode='true'] & {
+    color: #00ff00;
+    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: 0;
+
+    &:hover {
+      background-color: rgba(0, 255, 0, 0.1);
+      color: #00ff00;
+    }
+  }
 `;
 
 const SearchInput = styled(CommandPrimitive.Command.Input)`
@@ -737,11 +760,32 @@ const SearchInput = styled(CommandPrimitive.Command.Input)`
   &:disabled {
     opacity: 0.5;
   }
+
+  [data-matrix-mode='true'] & {
+    background-color: #101e13;
+    color: #00ff00;
+    font-family: 'Departure Mono', monospace;
+    text-transform: uppercase;
+    height: 40px;
+    font-size: 14px;
+
+    &::placeholder {
+      color: rgba(0, 255, 0, 0.6);
+    }
+
+    &:focus {
+      border-color: #00ff00;
+    }
+  }
 `;
 
 const FocusedAreaContainer = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   padding-bottom: 0;
+
+  [data-matrix-mode='true'] & {
+    padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  }
 `;
 
 const FocusedArea = styled(Tag)`
@@ -753,6 +797,17 @@ const FocusedArea = styled(Tag)`
   border: 1px solid ${p => p.theme.border};
   width: fit-content;
   border-radius: ${p => p.theme.borderRadius};
+
+  [data-matrix-mode='true'] & {
+    background-color: #101e13;
+    color: #00ff00;
+    border-color: #00ff00;
+    font-family: 'Departure Mono', monospace;
+    text-transform: uppercase;
+
+    font-size: 10px;
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  }
 `;
 
 const IconWrapper = styled('div')`
@@ -764,6 +819,10 @@ const IconWrapper = styled('div')`
 
   opacity: 0.75;
   transition: all 0.1s ease-out;
+
+  [data-matrix-mode='true'] & {
+    opacity: 0.5;
+  }
 `;
 
 const StyledCommand = styled(CommandPrimitive.Command)`
@@ -772,9 +831,28 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     background: ${p => p.theme.background};
     border-radius: 6px;
     overflow: hidden;
+
+    [data-matrix-mode='true'] & {
+      background: #101e13;
+      border-radius: 0;
+      font-family: 'Departure Mono', monospace;
+      text-transform: uppercase;
+
+      &:before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: calc(100% + 12px);
+        height: calc(100% + 12px);
+        background: #101e13;
+      }
+    }
   }
 
   [cmdk-list] {
+    position: relative;
     padding: 6px;
     height: 500px;
     overflow-y: auto;
@@ -801,6 +879,43 @@ const StyledCommand = styled(CommandPrimitive.Command)`
       100% 20px;
 
     background-attachment: local, local, scroll, scroll;
+
+    [data-matrix-mode='true'] & {
+      background: #101e13;
+      color: #00ff00;
+      font-family: 'Departure Mono', monospace;
+      text-transform: uppercase;
+      padding: 6px;
+      height: 500px;
+
+      /* Custom scrollbar styling */
+      &::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: #0a150d;
+        border: 1px solid #1a5200;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #00ff00;
+        border: 1px solid #1a5200;
+      }
+
+      &::-webkit-scrollbar-thumb:hover {
+        background: #00cc00;
+      }
+
+      &::-webkit-scrollbar-corner {
+        background: #0a150d;
+        border: 1px solid #1a5200;
+      }
+
+      /* Firefox scrollbar */
+      scrollbar-width: thin;
+      scrollbar-color: #00ff00 #0a150d;
+    }
   }
 
   [cmdk-group] {
@@ -810,6 +925,17 @@ const StyledCommand = styled(CommandPrimitive.Command)`
       [cmdk-group-heading] {
         padding-top: 12px;
         border-top: 1px solid ${p => p.theme.border};
+      }
+    }
+
+    [data-matrix-mode='true'] & {
+      margin-top: 2px;
+
+      + * {
+        [cmdk-group-heading] {
+          padding-top: 12px;
+          border-top: 1px solid #1a5200;
+        }
       }
     }
   }
@@ -822,6 +948,15 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     color: ${p => p.theme.subText};
     padding-bottom: 4px;
     margin: 0 12px;
+
+    [data-matrix-mode='true'] & {
+      color: #00ff00;
+      font-family: 'Departure Mono', monospace;
+      font-weight: bold;
+      font-size: 10px;
+      padding-bottom: 4px;
+      margin: 0 6px;
+    }
   }
 
   [cmdk-item] {
@@ -840,6 +975,32 @@ const StyledCommand = styled(CommandPrimitive.Command)`
       ${IconWrapper} {
         opacity: 1;
         transform: scale(1.1);
+      }
+    }
+
+    [data-matrix-mode='true'] & {
+      color: #00ff00;
+      font-family: 'Departure Mono', monospace;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 0;
+      margin: 0 -6px;
+
+      ${IconWrapper} {
+        transition: none;
+      }
+
+      &[data-selected='true'] {
+        background-color: #00ff00;
+        color: black;
+        border-color: #00ff00;
+
+        ${IconWrapper} {
+          opacity: 1;
+          transform: scale(1);
+        }
       }
     }
   }
@@ -865,6 +1026,16 @@ const StyledCommand = styled(CommandPrimitive.Command)`
     p {
       margin: 0;
     }
+
+    [data-matrix-mode='true'] & {
+      color: #00ff00;
+      font-family: 'Departure Mono', monospace;
+      text-transform: uppercase;
+
+      img {
+        filter: hue-rotate(120deg) brightness(1.5) contrast(1.2);
+      }
+    }
   }
 `;
 
@@ -881,6 +1052,17 @@ const ItemDetails = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis}
+
+  [data-matrix-mode='true'] & {
+    color: #00ff00;
+    opacity: 0.75;
+  }
+
+  [data-selected='true'] & {
+    [data-matrix-mode='true'] & {
+      color: black;
+    }
+  }
 `;
 
 const OverflowHidden = styled('div')`

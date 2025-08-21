@@ -45,6 +45,15 @@ function OmniSearchModal({Body}: ModalRenderProps) {
     docEl.addEventListener('animationend', handleAnimationEnd);
   }, []);
 
+  const toggleMatrixMode = useCallback(() => {
+    const docEl = containerRef.current?.closest(
+      "[role='document']"
+    ) as HTMLElement | null;
+    if (!docEl) return;
+    const isMatrix = docEl.getAttribute('data-matrix-mode') === 'true';
+    docEl.setAttribute('data-matrix-mode', isMatrix ? 'false' : 'true');
+  }, []);
+
   useOmniActions([
     {
       key: 'barrel-roll',
@@ -58,6 +67,20 @@ function OmniSearchModal({Body}: ModalRenderProps) {
       keepOpen: true,
       onAction: () => {
         doBarrelRoll();
+      },
+    },
+    {
+      key: 'matrix-mode',
+      label: 'Matrix Mode',
+      details: 'Toggle matrix mode',
+      areaKey: 'global',
+      section: t('System'),
+      actionIcon: undefined,
+      hidden: false,
+      disabled: false,
+      keepOpen: true,
+      onAction: () => {
+        toggleMatrixMode();
       },
     },
   ]);
