@@ -2335,6 +2335,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
 
+    @pytest.mark.skip(reason="flaky: #98100")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_expansion_with_release_and_malformed_sourcemap(self) -> None:
