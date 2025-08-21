@@ -19,15 +19,15 @@ export interface Incident {
 function getIncidentColor(severity: Incident['severity'], theme: Theme): string {
   switch (severity) {
     case 'maintenance':
-      return theme.gray300;
+      return theme.incident.maintenance;
     case 'minor':
-      return theme.yellow300;
+      return theme.incident.minor;
     case 'major':
-      return theme.red200;
+      return theme.incident.major;
     case 'critical':
-      return theme.red300;
+      return theme.incident.critical;
     default:
-      return theme.gray300;
+      return theme.incident.maintenance;
   }
 }
 
