@@ -16,8 +16,11 @@ from sentry.utils.safe import safe_execute
     ),
 )
 def user_report(
-    project_id: int, report: Mapping[str, Any] | None = None, report_id: int | None = None, **kwargs
-):
+    project_id: int,
+    report: Mapping[str, Any] | None = None,
+    report_id: int | None = None,
+    **kwargs: Any,
+) -> None:
     """
     Create and send a UserReport.
 
