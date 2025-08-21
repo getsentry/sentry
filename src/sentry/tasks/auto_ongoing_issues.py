@@ -1,6 +1,8 @@
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from functools import wraps
+from typing import Any
 
 import sentry_sdk
 from django.db.models import Max
@@ -26,16 +28,16 @@ ITERATOR_CHUNK = 100
 CHILD_TASK_COUNT = 250
 
 
-def log_error_if_queue_has_items(func):
+def log_error_if_queue_has_items(func: Callable[..., Any]) -> Callable[..., Any]:
     """
     Prevent adding more tasks in queue if the queue is not empty.
     We want to prevent crons from scheduling more tasks than the workers
     are capable of processing before the next cycle.
     """
 
-    def inner(func):
+    def inner(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args: Any, **kwargs: Any) -> None:
             assert backend is not None, "queues monitoring is not enabled"
             try:
                 queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
@@ -115,7 +117,7 @@ def schedule_auto_transition_to_ongoing() -> None:
 @log_error_if_queue_has_items
 def schedule_auto_transition_issues_new_to_ongoing(
     first_seen_lte: int,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     We will update NEW Groups to ONGOING that were created before the
@@ -126,7 +128,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
     """
     total_count = 0
 
-    def get_total_count(results):
+    def get_total_count(results: list[Any]) -> None:
         nonlocal total_count
         total_count += len(results)
 
@@ -189,8 +191,8 @@ def schedule_auto_transition_issues_new_to_ongoing(
 )
 def run_auto_transition_issues_new_to_ongoing(
     group_ids: list[int],
-    **kwargs,
-):
+    **kwargs: Any,
+) -> None:
     """
     Child task of `auto_transition_issues_new_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
@@ -226,7 +228,7 @@ def run_auto_transition_issues_new_to_ongoing(
 @log_error_if_queue_has_items
 def schedule_auto_transition_issues_regressed_to_ongoing(
     date_added_lte: int,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     We will update REGRESSED Groups to ONGOING that were created before the
@@ -237,7 +239,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     """
     total_count = 0
 
-    def get_total_count(results):
+    def get_total_count(results: list[Any]) -> None:
         nonlocal total_count
         total_count += len(results)
 
@@ -293,7 +295,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
 )
 def run_auto_transition_issues_regressed_to_ongoing(
     group_ids: list[int],
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     Child task of `auto_transition_issues_regressed_to_ongoing`
@@ -330,7 +332,7 @@ def run_auto_transition_issues_regressed_to_ongoing(
 @log_error_if_queue_has_items
 def schedule_auto_transition_issues_escalating_to_ongoing(
     date_added_lte: int,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     We will update ESCALATING Groups to ONGOING that were created before the
@@ -341,7 +343,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     """
     total_count = 0
 
-    def get_total_count(results):
+    def get_total_count(results: list[Any]) -> None:
         nonlocal total_count
         total_count += len(results)
 
@@ -397,7 +399,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
 )
 def run_auto_transition_issues_escalating_to_ongoing(
     group_ids: list[int],
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     Child task of `auto_transition_issues_escalating_to_ongoing`
