@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -9,7 +10,7 @@ from sentry.utils.sdk import bind_organization_context
 logger = logging.getLogger(__name__)
 
 
-def get_activity_notifiers(project):
+def get_activity_notifiers(project: object) -> list[Any]:
     from sentry.mail import mail_adapter
     from sentry.plugins.base import plugins
     from sentry.plugins.bases.notify import NotificationPlugin
