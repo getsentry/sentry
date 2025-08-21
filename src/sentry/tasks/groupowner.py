@@ -34,14 +34,14 @@ logger = logging.getLogger(__name__)
 
 
 def _process_suspect_commits(
-    event_id,
-    event_platform,
+    event_id: str | int,
+    event_platform: str,
     event_frames: Sequence[Mapping[str, Any]],
-    group_id,
-    project_id,
-    sdk_name=None,
-    **kwargs,
-):
+    group_id: int,
+    project_id: int,
+    sdk_name: str | None = None,
+    **kwargs: Any,
+) -> None:
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
 
@@ -201,14 +201,14 @@ def _process_suspect_commits(
 )
 @retry
 def process_suspect_commits(
-    event_id,
-    event_platform,
+    event_id: str | int,
+    event_platform: str,
     event_frames: Sequence[Mapping[str, Any]],
-    group_id,
-    project_id,
-    sdk_name=None,
-    **kwargs,
-):
+    group_id: int,
+    project_id: int,
+    sdk_name: str | None = None,
+    **kwargs: Any,
+) -> None:
     lock = locks.get(
         f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
     )
