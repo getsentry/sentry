@@ -246,7 +246,7 @@ def test_scrubbing_after_processing(
     mock_save_event,
     register_plugin,
     mock_event_processing_store,
-    setting_method,
+    setting_method: str,
     options_model,
 ):
     class TestPlugin(Plugin2):

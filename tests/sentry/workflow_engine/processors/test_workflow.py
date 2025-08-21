@@ -1004,7 +1004,7 @@ class TestDeleteWorkflow:
             "action_condition",
         ],
     )
-    def test_delete_workflow(self, instance_attr) -> None:
+    def test_delete_workflow(self, instance_attr: str) -> None:
         instance = getattr(self, instance_attr)
         instance_id = instance.id
         cls = instance.__class__
