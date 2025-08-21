@@ -359,7 +359,7 @@ class DatabaseBackedAppService(AppService):
                 setattr(sentry_app, k, v)
             sentry_app.save()
 
-        return serialize(sentry_app)
+        return serialize_sentry_app(sentry_app)
 
     def get_internal_integrations(
         self, *, organization_id: int, integration_name: str
