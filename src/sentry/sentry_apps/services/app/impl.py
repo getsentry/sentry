@@ -350,7 +350,7 @@ class DatabaseBackedAppService(AppService):
         attrs: SentryAppUpdateArgs,
     ) -> Any:
         try:
-            sentry_app = SentryApp.objects.using_replica().get(id=id)
+            sentry_app = SentryApp.objects.get(id=id)
         except SentryApp.DoesNotExist:
             return None
 
