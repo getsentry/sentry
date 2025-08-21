@@ -746,7 +746,7 @@ if (IS_UI_DEV_ONLY) {
     },
     proxy: [
       {
-        context: ['/outages/'],
+        context: ['/outages', '/outages/'],
         target: 'http://localhost:8787',
         secure: false,
         changeOrigin: true,
