@@ -132,6 +132,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
             to={`${baseUrl}/incidents/`}
             activeTo={`${baseUrl}/incidents/`}
             analyticsItemName="issues_incidents"
+            isActive={location.pathname.endsWith('/incidents/')}
           >
             {t('Incidents')}
           </SecondaryNav.Item>
@@ -142,6 +143,7 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
                 to={`${baseUrl}/incidents/${incident.id}/`}
                 activeTo={`${baseUrl}/incidents/${incident.id}/`}
                 analyticsItemName="issues_incidents_details"
+                isActive={location.pathname.endsWith(`/incidents/${incident.id}/`)}
               >
                 {getIncidentLabel(incident)}
               </SecondaryNav.Item>

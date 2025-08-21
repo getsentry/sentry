@@ -50,12 +50,17 @@ class IncidentCaseOutboundSerializer(Serializer):
         return {
             "id": str(obj.id),
             "title": obj.title,
+            "started_at": obj.started_at,
+            "resolved_at": obj.resolved_at,
             "status": obj.status,
             "severity": obj.severity,
             "description": obj.description,
             "summary": obj.summary,
             "template": serialize(obj.template),
             "case_lead": (serialize(obj.case_lead) if obj.case_lead else None),
+            "affected_components": [
+                serialize(component) for component in obj.affected_components.all()
+            ],
             "schedule_record": obj.schedule_record,
             "task_record": obj.task_record,
             "channel_record": obj.channel_record,

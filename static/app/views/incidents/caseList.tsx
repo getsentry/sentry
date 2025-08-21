@@ -13,6 +13,13 @@ export function IncidentCaseList({template}: {template: IncidentCaseTemplate}) {
   const organization = useOrganization();
   const {incidentCases} = useIncidentCases({organizationSlug: organization.slug});
 
+  const ongoingCases = incidentCases.filter(
+    incidentCase => incidentCase.status !== 'resolved'
+  );
+  const resolvedCases = incidentCases.filter(
+    incidentCase => incidentCase.status === 'resolved'
+  );
+
   return (
     <Grid columns="1fr auto" gap="3xl" align="start">
       <Flex direction="column" gap="2xl">
@@ -20,7 +27,7 @@ export function IncidentCaseList({template}: {template: IncidentCaseTemplate}) {
           <Heading as="h2" variant="danger">
             {t('Ongoing')}
           </Heading>
-          {incidentCases.map(incidentCase => (
+          {ongoingCases.map(incidentCase => (
             <CaseRow incidentCase={incidentCase} key={incidentCase.id} />
           ))}
         </Flex>
@@ -28,7 +35,7 @@ export function IncidentCaseList({template}: {template: IncidentCaseTemplate}) {
           <Heading as="h2" variant="success">
             {t('Resolved')}
           </Heading>
-          {incidentCases.map(incidentCase => (
+          {resolvedCases.map(incidentCase => (
             <CaseRow incidentCase={incidentCase} key={incidentCase.id} />
           ))}
         </Flex>

@@ -27,6 +27,7 @@ export function useStatuspageProxy({organizationSlug}: {organizationSlug: string
         createMutation.mutate({
           name: component.name,
           description: component.description,
+          status_page_component_id: component.id,
         });
       });
     },

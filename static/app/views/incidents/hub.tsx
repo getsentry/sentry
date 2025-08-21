@@ -70,10 +70,10 @@ export default function IncidentHub() {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          {incidentCaseTemplate ? (
-            <IncidentCaseList template={incidentCaseTemplate} />
-          ) : (
+          {searchParams.get('setup') || !incidentCaseTemplate ? (
             <IncidentHubWelcome />
+          ) : (
+            <IncidentCaseList template={incidentCaseTemplate} />
           )}
         </Layout.Main>
       </Layout.Body>

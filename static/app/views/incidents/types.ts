@@ -9,6 +9,7 @@ export interface IncidentComponent {
   type: string;
   updated_at: string;
   description?: string;
+  status_page_component_id?: string;
 }
 
 export interface IncidentCaseTemplate {
@@ -33,10 +34,13 @@ export interface IncidentCaseTemplate {
 export interface IncidentCase {
   case_lead: Member;
   id: number;
+  resolved_at: string;
   severity: number;
+  started_at: string;
   status: string;
   template: IncidentCaseTemplate;
   title: string;
+  affected_components?: IncidentComponent[];
   channel_record?: Record<string, any>;
   description?: string;
   retro_record?: Record<string, any>;
