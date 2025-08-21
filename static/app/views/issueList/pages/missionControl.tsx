@@ -72,49 +72,6 @@ const EXAMPLE_CARDS: MissionControlCard[] = [
     },
   },
   {
-    id: '7',
-    type: 'missing-instrumentation',
-    createdAt: '2024-01-22T14:30:00Z',
-    priority: 11,
-    data: {
-      purpose:
-        'Quantify input size causing OOM to verify root cause and inform input handling.',
-      observability_requests: [
-        {
-          description:
-            'To quantify the size of problematic inputs and verify the hypothesis that large inputs cause OOM.',
-          instrument_type: 'tagging',
-        },
-      ],
-      sourceIssueId: '6810613041',
-    },
-    url: '/issues/6810613041/?seerDrawer=true',
-    metadata: {
-      source: 'hardcoded-demo',
-      tags: ['instrumentation', 'setup'],
-    },
-  },
-
-  {
-    id: '9',
-    type: 'ultragroup',
-    createdAt: '2024-01-23T10:15:00Z',
-    priority: 14,
-    data: {
-      title: 'psycopg connection reused concurrently in SQLAlchemy session',
-      description:
-        "Multiple concurrent DB operations are issued on the same PostgreSQL connection, causing 'another command is already in progress' and autocommit state errors; some requests also hit soft time limits and dropped connections. Affected components use SQLAlchemy sessions to read/update run state and memory.",
-      issueIds: [
-        6621297713, 6705193811, 6705205294, 6705824065, 6724478613, 6707911641,
-        6725125568, 6732544529,
-      ],
-    },
-    metadata: {
-      source: 'hardcoded-demo',
-      tags: ['error-cluster', 'high-priority'],
-    },
-  },
-  {
     id: '8',
     type: 'missing-instrumentation',
     createdAt: '2024-02-22T14:30:00Z',
@@ -139,6 +96,48 @@ const EXAMPLE_CARDS: MissionControlCard[] = [
     metadata: {
       source: 'hardcoded-demo',
       tags: ['instrumentation', 'setup'],
+    },
+  },
+  {
+    id: '7',
+    type: 'missing-instrumentation',
+    createdAt: '2024-01-22T14:30:00Z',
+    priority: 11,
+    data: {
+      purpose:
+        'Quantify input size causing OOM to verify root cause and inform input handling.',
+      observability_requests: [
+        {
+          description:
+            'To quantify the size of problematic inputs and verify the hypothesis that large inputs cause OOM.',
+          instrument_type: 'tagging',
+        },
+      ],
+      sourceIssueId: '6810613041',
+    },
+    url: '/issues/6810613041/?seerDrawer=true',
+    metadata: {
+      source: 'hardcoded-demo',
+      tags: ['instrumentation', 'setup'],
+    },
+  },
+  {
+    id: '9',
+    type: 'ultragroup',
+    createdAt: '2024-01-23T10:15:00Z',
+    priority: 14,
+    data: {
+      title: 'psycopg connection reused concurrently in SQLAlchemy session',
+      description:
+        "Multiple concurrent DB operations are issued on the same PostgreSQL connection, causing 'another command is already in progress' and autocommit state errors; some requests also hit soft time limits and dropped connections. Affected components use SQLAlchemy sessions to read/update run state and memory.",
+      issueIds: [
+        6621297713, 6705193811, 6705205294, 6705824065, 6724478613, 6707911641,
+        6725125568, 6732544529,
+      ],
+    },
+    metadata: {
+      source: 'hardcoded-demo',
+      tags: ['error-cluster', 'high-priority'],
     },
   },
 ];
