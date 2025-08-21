@@ -20,7 +20,7 @@ from sentry.types.activity import ActivityType
         processing_deadline_duration=15,
     ),
 )
-def clear_expired_resolutions(release_id):
+def clear_expired_resolutions(release_id: int) -> None:
     """
     This should be fired when ``release_id`` is created, and will indicate to
     the system that any pending resolutions older than the given release can now
