@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -50,7 +51,9 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
 
     permission_classes = (NotificationActionsPermission,)
 
-    def convert_args(self, request: Request, action_id: int, *args, **kwargs):
+    def convert_args(
+        self, request: Request, action_id: int, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
         organization = parsed_kwargs["organization"]
 

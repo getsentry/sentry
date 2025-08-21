@@ -20,7 +20,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.utils.strings import oxfordize_list
 
 
-def format_choices_text(choices: Sequence[tuple[int, str]]):
+def format_choices_text(choices: Sequence[tuple[int, str]]) -> str:
     choices_as_display_text = [f"'{display_text}'" for (_, display_text) in choices]
     return oxfordize_list(choices_as_display_text)
 
@@ -46,7 +46,7 @@ class NotificationActionInputData(TypedDict, total=False):
 
 
 @extend_schema_serializer(exclude_fields=["sentry_app_id", "target_type"])
-class NotificationActionSerializer(CamelSnakeModelSerializer):
+class NotificationActionSerializer(CamelSnakeModelSerializer[NotificationAction]):
     """
     Django Rest Framework serializer for incoming NotificationAction API payloads
     """
@@ -149,7 +149,7 @@ Required if **service_type** is `slack` or `opsgenie`.
             )
         return trigger_type_value
 
-    def validate_integration_and_service(self, data: NotificationActionInputData):
+    def validate_integration_and_service(self, data: NotificationActionInputData) -> None:
         if data["service_type"] not in INTEGRATION_SERVICES:
             return
 
@@ -174,7 +174,7 @@ Required if **service_type** is `slack` or `opsgenie`.
             )
         self.integration = integration
 
-    def validate_sentry_app_and_service(self, data: NotificationActionInputData):
+    def validate_sentry_app_and_service(self, data: NotificationActionInputData) -> None:
         if (
             data["service_type"] == ActionService.SENTRY_APP.value
             and data.get("sentry_app_id") is None
@@ -186,7 +186,7 @@ Required if **service_type** is `slack` or `opsgenie`.
                 }
             )
 
-    def validate_with_registry(self, data: NotificationActionInputData):
+    def validate_with_registry(self, data: NotificationActionInputData) -> None:
         registration = NotificationAction.get_registration(
             trigger_type=data["trigger_type"],
             service_type=data["service_type"],

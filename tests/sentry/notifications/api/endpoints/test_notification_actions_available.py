@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from rest_framework import status
@@ -43,6 +44,9 @@ class NotificationActionsAvailableEndpointTest(APITestCase):
 
         class MockActionRegistration(ActionRegistration):
             serialize_available = MagicMock(return_value=[trigger_available_response])
+
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
 
         response = self.get_success_response(
             self.organization.slug,

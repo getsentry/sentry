@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -22,10 +24,10 @@ class UserNotificationSettingsOptionsDetailEndpoint(UserEndpoint):
         self,
         request: Request,
         user_id: int | str | None = None,
-        *args,
+        *args: Any,
         notification_option_id: int,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args, kwargs = super().convert_args(request, user_id, *args, **kwargs)
         user = kwargs["user"]
         try:
