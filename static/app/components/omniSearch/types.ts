@@ -35,6 +35,8 @@ export type OmniAction = {
   keywords?: string[];
   /** Execute an imperative action */
   onAction?: () => void;
+  /** Numeric priority for result ordering; 0 = highest priority */
+  priority?: number;
   /** Section to group the action in the palette */
   section?: string;
   /** Navigate to a route when selected */

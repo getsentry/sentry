@@ -10,6 +10,7 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
+import type Fuse from 'fuse.js';
 import serryLottieAnimation from 'getsentry-images/omni_search/seer-y.json';
 import {PlatformIcon} from 'platformicons';
 
@@ -24,10 +25,10 @@ import {SEER_ANIMATION_EXIT_DURATION} from 'sentry/components/omniSearch/constan
 import {useOmniSearchStore} from 'sentry/components/omniSearch/context';
 import {SeerSearchAnimation} from 'sentry/components/omniSearch/seerSearchAnimation';
 import {strGetFn} from 'sentry/components/search/sources/utils';
+import {IconSeer} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
-import {IconBot} from 'sentry/icons/iconBot';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
-import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useSeenIssues} from 'sentry/utils/seenIssuesStorage';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -98,6 +99,10 @@ export interface OmniSearchPaletteSeeryRef {
   triggerSeeryWatching: () => void;
 }
 
+interface OmniActionWithPriority extends OmniAction {
+  priority: number;
+}
+
 /**
  * Very basic palette UI using cmdk that lists all registered actions.
  *
@@ -107,23 +112,35 @@ interface OmniSearchPaletteProps {
   ref?: React.Ref<OmniSearchPaletteSeeryRef>;
 }
 
-const createActionSearch = (actions: OmniAction[]) => {
-  return createFuzzySearch(actions, {
-    keys: ['label', 'fullLabel', 'details'],
-    getFn: strGetFn,
-    shouldSort: true,
-    minMatchCharLength: 1,
-    includeScore: true,
-    threshold: 0.3,
-    ignoreLocation: true,
-  });
+const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<OmniActionWithPriority> = {
+  keys: ['label', 'fullLabel', 'details'],
+  getFn: strGetFn,
+  shouldSort: true,
+  minMatchCharLength: 1,
+  includeScore: true,
+  threshold: 0.2,
+  ignoreLocation: true,
+  // // Prioritize items with priority === 0, then fallback to Fuse default ordering
+  // sortFn: (a, b) => {
+  //   const aItem = (a as unknown as {item: OmniActionWithPriority}).item;
+  //   const bItem = (b as unknown as {item: OmniActionWithPriority}).item;
+  //   const aPriority = aItem.priority;
+  //   const bPriority = bItem.priority;
+
+  //   if (aItem.priority !== bItem.priority) {
+  //     return aPriority - bPriority;
+  //   }
+
+  //   // Default Fuse.js ordering: lower score (better) first; tie-breaker by refIndex if present
+  //   return (a.score ?? 1) - (b.score ?? 1);
+  // },
 };
 
 export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
-  const memberProjects = projects.filter(p => p.isMember);
+  const memberProjects = useMemo(() => projects.filter(p => p.isMember), [projects]);
   const {isSearchingSeer, setIsSearchingSeer} = useOmniSearchStore();
   const {
     focusedArea,
@@ -172,136 +189,89 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const currentQueryRef = useRef<string>('');
   currentQueryRef.current = debouncedQuery;
 
-  // Create Ask Seer action with dynamic label
-  const askSeerAction = useMemo<OmniAction>(() => {
-    // Create base action without label dependency
-    const baseAction: OmniAction = {
-      key: 'ask-seer',
-      label: '',
-      areaKey: 'navigate',
-      actionIcon: <IconBot />,
-      section: '', // Empty section so it appears at the top
-      keepOpen: true,
-      onAction: async () => {
-        const queryToSearch = currentQueryRef.current;
-        if (!queryToSearch) {
-          return;
-        }
-        setIsSearchingSeer(true);
-        triggerSeeryCelebrate();
+  const executeSeer = useCallback(async () => {
+    const queryToSearch = currentQueryRef.current;
+    if (!queryToSearch) {
+      return;
+    }
+    setIsSearchingSeer(true);
+    triggerSeeryCelebrate();
 
+    try {
+      const url = 'https://cmdkllm-12459da2e71a.herokuapp.com/ask-seer';
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: queryToSearch,
+        }),
+      });
+      const data: {route: 'traces' | 'issues' | 'other'} = await res.json();
+
+      if (data.route === 'traces') {
         try {
-          const url = 'https://cmdkllm-12459da2e71a.herokuapp.com/ask-seer';
-          const res = await fetch(url, {
+          const selectedProjects =
+            pageFilters.selection.projects?.length > 0 &&
+            pageFilters.selection.projects?.[0] !== -1
+              ? pageFilters.selection.projects
+              : memberProjects.map(p => p.id);
+
+          const response: any = await fetchMutation({
+            url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+            data: {
+              natural_language_query: queryToSearch,
+              project_ids: selectedProjects,
+              limit: 1,
             },
-            body: JSON.stringify({
-              query: queryToSearch,
-            }),
           });
-          const data: {route: 'traces' | 'issues' | 'other'} = await res.json();
 
-          if (data.route === 'traces') {
-            try {
-              const selectedProjects =
-                pageFilters.selection.projects?.length > 0 &&
-                pageFilters.selection.projects?.[0] !== -1
-                  ? pageFilters.selection.projects
-                  : memberProjects.map(p => p.id);
+          if (response.queries && response.queries.length > 0) {
+            const result = response.queries[0];
+            const startFilter = pageFilters.selection.datetime.start?.valueOf();
+            const start = startFilter
+              ? new Date(startFilter).toISOString()
+              : pageFilters.selection.datetime.start;
 
-              const response: any = await fetchMutation({
-                url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
-                method: 'POST',
-                data: {
-                  natural_language_query: queryToSearch,
-                  project_ids: selectedProjects,
-                  limit: 1,
-                },
-              });
+            const endFilter = pageFilters.selection.datetime.end?.valueOf();
+            const end = endFilter
+              ? new Date(endFilter).toISOString()
+              : pageFilters.selection.datetime.end;
 
-              if (response.queries && response.queries.length > 0) {
-                const result = response.queries[0];
-                const startFilter = pageFilters.selection.datetime.start?.valueOf();
-                const start = startFilter
-                  ? new Date(startFilter).toISOString()
-                  : pageFilters.selection.datetime.start;
+            const selection = {
+              ...pageFilters.selection,
+              datetime: {
+                start,
+                end,
+                utc: pageFilters.selection.datetime.utc,
+                period: result.stats_period || pageFilters.selection.datetime.period,
+              },
+            };
 
-                const endFilter = pageFilters.selection.datetime.end?.valueOf();
-                const end = endFilter
-                  ? new Date(endFilter).toISOString()
-                  : pageFilters.selection.datetime.end;
+            const mode =
+              result.group_by.length > 0
+                ? Mode.AGGREGATE
+                : result.mode === 'aggregates'
+                  ? Mode.AGGREGATE
+                  : Mode.SAMPLES;
 
-                const selection = {
-                  ...pageFilters.selection,
-                  datetime: {
-                    start,
-                    end,
-                    utc: pageFilters.selection.datetime.utc,
-                    period: result.stats_period || pageFilters.selection.datetime.period,
-                  },
-                };
+            const visualize =
+              result.visualization?.map((v: any) => ({
+                chartType: v?.chart_type,
+                yAxes: v?.y_axes,
+              })) ?? [];
 
-                const mode =
-                  result.group_by.length > 0
-                    ? Mode.AGGREGATE
-                    : result.mode === 'aggregates'
-                      ? Mode.AGGREGATE
-                      : Mode.SAMPLES;
-
-                const visualize =
-                  result.visualization?.map((v: any) => ({
-                    chartType: v?.chart_type,
-                    yAxes: v?.y_axes,
-                  })) ?? [];
-
-                const exploreUrl = getExploreUrl({
-                  organization,
-                  selection,
-                  query: result.query,
-                  visualize,
-                  groupBy: result.group_by ?? [],
-                  sort: result.sort,
-                  mode,
-                });
-
-                setIsSearchingSeer(false);
-                setSeerIsExiting(true);
-
-                // Wait slightly to let the animation finish
-                setTimeout(() => {
-                  closeModal();
-                  navigate(exploreUrl);
-                }, SEER_ANIMATION_EXIT_DURATION);
-              }
-            } catch (_error) {
-              // Fallback to basic explore page if AI query fails
-              const exploreUrl = getExploreUrl({
-                organization,
-                selection: pageFilters.selection,
-                query: queryToSearch,
-                visualize: [],
-                groupBy: [],
-                sort: '',
-                mode: Mode.SAMPLES,
-              });
-
-              setIsSearchingSeer(false);
-              setSeerIsExiting(true);
-
-              // Wait slightly to let the animation finish
-              setTimeout(() => {
-                closeModal();
-                navigate(exploreUrl);
-              }, SEER_ANIMATION_EXIT_DURATION);
-            }
-          } else if (data.route === 'issues') {
-            const response = data as TranslateResponse;
-            const environmentsParam =
-              response.environments && response.environments.length > 0
-                ? `&environments=${response.environments.join(',')}`
-                : '';
+            const exploreUrl = getExploreUrl({
+              organization,
+              selection,
+              query: result.query,
+              visualize,
+              groupBy: result.group_by ?? [],
+              sort: result.sort,
+              mode,
+            });
 
             setIsSearchingSeer(false);
             setSeerIsExiting(true);
@@ -309,138 +279,115 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
             // Wait slightly to let the animation finish
             setTimeout(() => {
               closeModal();
-              navigate(
-                `/organizations/${organization.slug}/issues?query=${response.query}&statsPeriod=${response.statsPeriod}&sort=${response.sort}${environmentsParam}`
-              );
+              navigate(exploreUrl);
             }, SEER_ANIMATION_EXIT_DURATION);
-          } else {
-            closeModal();
           }
-        } catch (err) {
-          setSeerError(true);
-        } finally {
+        } catch (_error) {
+          // Fallback to basic explore page if AI query fails
+          const exploreUrl = getExploreUrl({
+            organization,
+            selection: pageFilters.selection,
+            query: queryToSearch,
+            visualize: [],
+            groupBy: [],
+            sort: '',
+            mode: Mode.SAMPLES,
+          });
+
           setIsSearchingSeer(false);
+          setSeerIsExiting(true);
+
+          // Wait slightly to let the animation finish
+          setTimeout(() => {
+            closeModal();
+            navigate(exploreUrl);
+          }, SEER_ANIMATION_EXIT_DURATION);
         }
-      },
+      } else if (data.route === 'issues') {
+        const response = data as TranslateResponse;
+        const environmentsParam =
+          response.environments && response.environments.length > 0
+            ? `&environments=${response.environments.join(',')}`
+            : '';
+
+        setIsSearchingSeer(false);
+        setSeerIsExiting(true);
+
+        // Wait slightly to let the animation finish
+        setTimeout(() => {
+          closeModal();
+          navigate(
+            `/organizations/${organization.slug}/issues?query=${response.query}&statsPeriod=${response.statsPeriod}&sort=${response.sort}${environmentsParam}`
+          );
+        }, SEER_ANIMATION_EXIT_DURATION);
+      } else {
+        closeModal();
+      }
+    } catch (err) {
+      setSeerError(true);
+    } finally {
+      setIsSearchingSeer(false);
+    }
+  }, [memberProjects, navigate, organization, pageFilters.selection, setIsSearchingSeer]);
+
+  const askSeerAction = useMemo<OmniAction>(() => {
+    const baseAction: OmniAction = {
+      key: 'ask-seer',
+      label: `Ask Seer: "${query}"`,
+      areaKey: 'navigate',
+      actionIcon: <IconSeer />,
+      section: '', // Empty section so it appears at the top
+      keepOpen: true,
+      onAction: executeSeer,
     };
 
-    // Return action with dynamic label
-    return {
-      ...baseAction,
-      label: query ? `Ask Seer: "${query}"` : 'Ask Seer',
-    };
-  }, [
-    query,
-    setIsSearchingSeer,
-    pageFilters.selection,
-    memberProjects,
-    organization,
-    navigate,
-  ]);
+    return baseAction;
+  }, [executeSeer, query]);
 
   // Combine all dynamic actions (excluding recent issues for now)
-  const dynamicActions = useMemo(
-    () => [
-      ...routeActions,
-      ...orgActions,
-      ...commandActions,
-      ...formActions,
-      ...apiActions,
-    ],
-    [apiActions, formActions, routeActions, orgActions, commandActions]
-  );
+  const dynamicActions = useMemo(() => {
+    return [...routeActions, ...orgActions, ...commandActions, ...formActions];
+  }, [formActions, routeActions, orgActions, commandActions]);
 
-  const [filteredAvailableActions, setFilteredAvailableActions] = useState<OmniAction[]>(
-    []
-  );
-  const [filteredRecentIssues, setFilteredRecentIssues] = useState<OmniAction[]>([]);
-
-  // Fuzzy search for general actions (including children)
-  useEffect(() => {
-    const doSearch = async (instant: OmniAction[], delayed: OmniAction[]) => {
-      const fuzzySearchInstant = await createActionSearch(instant);
-      const fuzzySearchDelayed = await createActionSearch(delayed);
-
-      const resultsInstant = fuzzySearchInstant.search(query).map(r => r.item);
-      const resultsDelayed = fuzzySearchDelayed.search(debouncedQuery).map(r => r.item);
-      setFilteredAvailableActions([...resultsInstant, ...resultsDelayed]);
-    };
-
-    // If an action is selected, only search within its children
+  const searchableActions = useMemo<OmniActionWithPriority[]>(() => {
     if (selectedAction?.children?.length) {
-      if (debouncedQuery) {
-        doSearch(selectedAction.children, []);
-      } else {
-        setFilteredAvailableActions(selectedAction.children);
-      }
-      return;
+      return [...selectedAction.children.map(a => ({...a, priority: 0}))];
     }
 
-    // Flatten all actions to include their children in search
-    doSearch(flattenActions(availableActions), flattenActions(dynamicActions));
-  }, [availableActions, query, debouncedQuery, dynamicActions, selectedAction]);
+    return [
+      ...allRecentIssueActions.map(a => ({...a, priority: 0})),
+      {...askSeerAction, priority: 1},
+      ...flattenActions(availableActions).map(a => ({...a, priority: 1})),
+      ...flattenActions(dynamicActions).map(a => ({...a, priority: 2})),
+      ...flattenActions(apiActions).map(a => ({...a, priority: 3})),
+    ];
+  }, [
+    selectedAction?.children,
+    allRecentIssueActions,
+    askSeerAction,
+    availableActions,
+    dynamicActions,
+    apiActions,
+  ]);
 
-  // Fuzzy search for recent issues separately to control the limit
-  useEffect(() => {
-    setSeerError(false);
-
-    // Don't show recent issues when an action or area is selected
-    if (selectedAction?.children?.length || focusedArea) {
-      setFilteredRecentIssues([]);
-      return;
+  const fuseSearch = useFuzzySearch(searchableActions, FUZZY_SEARCH_CONFIG);
+  const filteredAvailableActions = useMemo(() => {
+    if (!fuseSearch) {
+      return [];
     }
-
-    if (debouncedQuery) {
-      createFuzzySearch(allRecentIssueActions, {
-        keys: ['label'],
-        getFn: strGetFn,
-        shouldSort: false,
-      }).then(f => {
-        // Fuzzy search ALL recent issues, then limit to max 5
-        const searchResults = f.search(debouncedQuery).map(r => r.item);
-        setFilteredRecentIssues(searchResults.slice(0, 5));
-      });
-    } else {
-      // When no query, show first 5 recent issues
-      setFilteredRecentIssues(allRecentIssueActions.slice(0, 5));
+    if (query.length === 0) {
+      return availableActions;
     }
-  }, [allRecentIssueActions, debouncedQuery, selectedAction, focusedArea]);
+    return fuseSearch
+      .search(query)
+      .map(a => a.item)
+      .sort((a, b) => a.priority - b.priority);
+  }, [fuseSearch, query, availableActions]);
 
   const grouped = useMemo(() => {
-    // If an action is selected, only show its children
-    if (selectedAction?.children?.length) {
-      const actions = debouncedQuery ? filteredAvailableActions : selectedAction.children;
-
-      // Group by section label
-      const bySection = new Map<string, OmniAction[]>();
-      for (const action of actions) {
-        const sectionLabel = action.section ?? '';
-        const list = bySection.get(sectionLabel) ?? [];
-        list.push(action);
-        bySection.set(sectionLabel, list);
-      }
-
-      const sectionKeys = Array.from(bySection.keys());
-      return sectionKeys.map(sectionKey => {
-        const label = sectionKey;
-        const items = bySection.get(sectionKey) ?? [];
-        return {sectionKey, label, items};
-      });
-    }
-
-    // Filter actions based on query
-    let actions = debouncedQuery
-      ? [...filteredAvailableActions, ...filteredRecentIssues]
-      : [...filteredRecentIssues, ...availableActions];
-
-    // Add Ask Seer action at the top if there's a query
-    if (debouncedQuery) {
-      actions = [askSeerAction, ...actions];
-    }
-
     // Group by section label
     const bySection = new Map<string, OmniAction[]>();
-    for (const action of actions) {
+    for (const action of filteredAvailableActions) {
       const sectionLabel = action.section ?? '';
       const list = bySection.get(sectionLabel) ?? [];
       list.push(action);
@@ -454,14 +401,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
       const items = bySection.get(sectionKey) ?? [];
       return {sectionKey, label, items};
     });
-  }, [
-    availableActions,
-    debouncedQuery,
-    filteredAvailableActions,
-    filteredRecentIssues,
-    selectedAction,
-    askSeerAction,
-  ]);
+  }, [filteredAvailableActions]);
 
   // Get the first item's key to set as the default selected value
   const firstItemKey = useMemo(() => {
@@ -504,7 +444,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     if (selectedAction) {
       setQuery('');
       inputRef.current?.focus();
-      setFilteredAvailableActions(selectedAction.children ?? []);
     }
   }, [selectedAction]);
 
