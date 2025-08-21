@@ -473,7 +473,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
       }
     }
 
-    return '';
+    return 'ask-seer';
   }, [grouped]);
 
   const handleSelect = (action: OmniAction) => {
