@@ -80,7 +80,7 @@ RUN_FREQUENCY = timedelta(hours=1)  # runs hourly
 DISPATCH_STEP = timedelta(seconds=17)
 
 
-def get_performance_issue_settings(projects: list[Project]):
+def get_performance_issue_settings(projects: list[Project]) -> dict[Project, dict[str, Any]]:
     project_settings = {}
 
     project_option_settings = ProjectOption.objects.get_value_bulk(
@@ -258,7 +258,7 @@ class EndpointRegressionDetector(RegressionDetector):
         )
 
     @classmethod
-    def detector_store_factory(cls) -> DetectorStore:
+    def detector_store_factory(cls) -> DetectorStore[Any]:
         return RedisDetectorStore(regression_type=RegressionType.ENDPOINT)
 
     @classmethod
@@ -304,7 +304,7 @@ class FunctionRegressionDetector(RegressionDetector):
         )
 
     @classmethod
-    def detector_store_factory(cls) -> DetectorStore:
+    def detector_store_factory(cls) -> DetectorStore[Any]:
         return RedisDetectorStore(regression_type=RegressionType.FUNCTION)
 
     @classmethod
@@ -335,10 +335,10 @@ class FunctionRegressionDetector(RegressionDetector):
     ),
 )
 def detect_transaction_trends(
-    _org_ids: list[int], project_ids: list[int], start: str, *args, **kwargs
+    _org_ids: list[int], project_ids: list[int], start: str, *args: Any, **kwargs: Any
 ) -> None:
     if not options.get("statistical_detectors.enable"):
-        return
+        return None
 
     start_time = datetime.fromisoformat(start)
 
@@ -380,7 +380,7 @@ def detect_transaction_trends(
     ),
 )
 def detect_transaction_change_points(
-    transactions: list[tuple[int, str | int]], start: str, *args, **kwargs
+    transactions: list[tuple[int, str | int]], start: str, *args: Any, **kwargs: Any
 ) -> None:
     start_time = datetime.fromisoformat(start)
 
@@ -388,10 +388,10 @@ def detect_transaction_change_points(
 
 
 def _detect_transaction_change_points(
-    transactions: list[tuple[int, str | int]], start: datetime, *args, **kwargs
+    transactions: list[tuple[int, str | int]], start: datetime, *args: Any, **kwargs: Any
 ) -> None:
     if not options.get("statistical_detectors.enable"):
-        return
+        return None
 
     EndpointRegressionDetector.configure_tags()
 
@@ -434,9 +434,9 @@ def _detect_transaction_change_points(
         processing_deadline_duration=30,
     ),
 )
-def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) -> None:
+def detect_function_trends(project_ids: list[int], start: str, *args: Any, **kwargs: Any) -> None:
     if not options.get("statistical_detectors.enable"):
-        return
+        return None
 
     start_time = datetime.fromisoformat(start)
 
@@ -478,7 +478,7 @@ def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) 
     ),
 )
 def detect_function_change_points(
-    functions_list: list[tuple[int, int]], start: str, *args, **kwargs
+    functions_list: list[tuple[int, int]], start: str, *args: Any, **kwargs: Any
 ) -> None:
     start_time = datetime.fromisoformat(start)
 
@@ -486,10 +486,10 @@ def detect_function_change_points(
 
 
 def _detect_function_change_points(
-    functions_list: list[tuple[int, int]], start: datetime, *args, **kwargs
+    functions_list: list[tuple[int, int]], start: datetime, *args: Any, **kwargs: Any
 ) -> None:
     if not options.get("statistical_detectors.enable"):
-        return
+        return None
 
     FunctionRegressionDetector.configure_tags()
 
@@ -634,7 +634,9 @@ def emit_function_regression_issue(
     return data.get("occurrences")
 
 
-def fetch_continuous_examples(raw_examples):
+def fetch_continuous_examples(
+    raw_examples: dict[tuple[int, int], dict[str, Any]],
+) -> dict[tuple[int, int], dict[str, Any]]:
     if not raw_examples:
         return raw_examples
 
