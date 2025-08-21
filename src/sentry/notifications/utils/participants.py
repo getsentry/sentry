@@ -30,7 +30,6 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.eventstore.models import GroupEvent
 from sentry.types.actor import Actor, ActorType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -40,7 +39,7 @@ from sentry.utils import json, metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
 if TYPE_CHECKING:
-    from sentry.services.eventstore.models import Event
+    from sentry.services.eventstore.models import Event, GroupEvent
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +198,7 @@ def get_participants_for_release(
 
 def get_owners(
     project: Project,
-    event: Event | None = None,
+    event: Event | GroupEvent | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> tuple[list[Actor], str]:
     """
@@ -284,7 +283,7 @@ def determine_eligible_recipients(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: int | None = None,
-    event: Event | None = None,
+    event: GroupEvent | Event | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> Iterable[Actor]:
     """

@@ -59,7 +59,7 @@ def split_key(
 def unsplit_key(
     project: Project,
     target_type: ActionTargetType,
-    target_identifier: str | None,
+    target_identifier: str | int | None,
     fallthrough_choice: FallthroughChoiceType | None,
 ) -> str:
     target_str = target_identifier if target_identifier is not None else ""
