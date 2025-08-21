@@ -63,9 +63,31 @@ def send_notification_as_sms(
                     )
                 else:
                     logger.info("Sending voice call to %s", phone)
+                    group = shared_context["group"]
+
+                    issue_parts = [
+                        "Sentry Escalation Alert:",
+                        f"Issue: {group.title}.",
+                        f"Project: {group.project.name}.",
+                        f"Issue ID: {group.qualified_short_id}.",
+                        f"Severity level: {group.level}.",
+                        f"Status: {group.get_status_display()}.",
+                        f"Times seen: {group.times_seen}.",
+                        f"First seen: {group.first_seen.strftime('%Y-%m-%d at %H:%M')}.",
+                        f"Last seen: {group.last_seen.strftime('%Y-%m-%d at %H:%M')}.",
+                    ]
+
+                    if group.culprit:
+                        issue_parts.append(f"Culprit: {group.culprit}.")
+
+                    if group.platform:
+                        issue_parts.append(f"Platform: {group.platform}.")
+
+                    full_issue_summary = " ".join(issue_parts)
+
                     send_voice_call(
                         phone,
-                        VoiceAgentParameters(issue_summary=shared_context["group"].title),
+                        VoiceAgentParameters(issue_summary=full_issue_summary),
                     )
 
             notification.record_notification_sent(recipient_actor, ExternalProviders.SMS)
