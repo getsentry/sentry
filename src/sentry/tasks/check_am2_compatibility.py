@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any
 
 import sentry_sdk
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 
 from sentry.dynamic_sampling import get_redis_client_for_ds
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -296,15 +296,15 @@ class CheckStatus(Enum):
 
 class CheckAM2Compatibility:
     @classmethod
-    def get_widget_url(cls, org_slug, dashboard_id, widget_id) -> str:
+    def get_widget_url(cls, org_slug: str, dashboard_id: str | int, widget_id: int) -> str:
         return f"https://{org_slug}.sentry.io/organizations/{org_slug}/dashboard/{dashboard_id}/widget/{widget_id}/"
 
     @classmethod
-    def get_alert_url(cls, org_slug, alert_id) -> str:
+    def get_alert_url(cls, org_slug: str, alert_id: int) -> str:
         return f"https://{org_slug}.sentry.io/organizations/{org_slug}/alerts/rules/details/{alert_id}/"
 
     @classmethod
-    def get_found_sdks_url(cls, org_slug):
+    def get_found_sdks_url(cls, org_slug: str) -> str:
         return (
             f"https://{org_slug}.sentry.io/organizations/{org_slug}/discover/homepage/?field=count%28%29&field"
             f"=project&field=sdk.name&field=sdk.version&query=event.type%3Atransaction&statsPeriod=30d&yAxis=count%28"
@@ -312,7 +312,7 @@ class CheckAM2Compatibility:
         )
 
     @classmethod
-    def compare_versions(cls, version1, version2):
+    def compare_versions(cls, version1: str, version2: str) -> int:
         # Split the version strings into individual numbers
         nums1 = version1.split(".")
         nums2 = version2.split(".")
@@ -335,12 +335,12 @@ class CheckAM2Compatibility:
     @classmethod
     def format_results(
         cls,
-        organization,
-        unsupported_widgets,
-        unsupported_alerts,
-        ondemand_supported_widgets,
-        outdated_sdks_per_project,
-    ):
+        organization: Organization,
+        unsupported_widgets: Mapping[str, list[tuple[int, list[str], list[str]]]],
+        unsupported_alerts: list[tuple[int, str, str]],
+        ondemand_supported_widgets: Mapping[str, list[tuple[int, list[str], list[str]]]],
+        outdated_sdks_per_project: Mapping[str, Mapping[str, set[tuple[str, str | None]]]],
+    ) -> dict[str, Any]:
         results: dict[str, Any] = {}
 
         widgets = []
@@ -414,7 +414,7 @@ class CheckAM2Compatibility:
         return results
 
     @classmethod
-    def extract_sdks_from_data(cls, data):
+    def extract_sdks_from_data(cls, data: Any) -> Mapping[str, Mapping[str, set[str]]]:
         found_sdks_per_project: Mapping[str, Mapping[str, set[str]]] = defaultdict(
             lambda: defaultdict(set)
         )
@@ -430,7 +430,9 @@ class CheckAM2Compatibility:
         return found_sdks_per_project
 
     @classmethod
-    def get_outdated_sdks(cls, found_sdks_per_project):
+    def get_outdated_sdks(
+        cls, found_sdks_per_project: Any
+    ) -> Mapping[str, Mapping[str, set[tuple[str, str | None]]]]:
         outdated_sdks_per_project: Mapping[str, Mapping[str, set[tuple[str, str | None]]]] = (
             defaultdict(lambda: defaultdict(set))
         )
@@ -471,7 +473,9 @@ class CheckAM2Compatibility:
         return outdated_sdks_per_project
 
     @classmethod
-    def get_sdks_version_used(cls, organization, project_objects):
+    def get_sdks_version_used(
+        cls, organization: Organization, project_objects: list[Project]
+    ) -> Mapping[str, Mapping[str, set[tuple[str, str | None]]]] | None:
         # We use the count() operation in order to group by project, sdk.name and sdk.version.
         selected_columns = ["count()", "project", "sdk.name", "sdk.version"]
         params = SnubaParams(
@@ -496,7 +500,9 @@ class CheckAM2Compatibility:
             return None
 
     @classmethod
-    def is_metrics_data(cls, organization_id, project_objects, query):
+    def is_metrics_data(
+        cls, organization_id: int, project_objects: list[Project], query: str
+    ) -> bool | None:
         selected_columns = ["count()"]
         params = {
             "organization_id": organization_id,
@@ -526,13 +532,13 @@ class CheckAM2Compatibility:
             return None
 
     @classmethod
-    def is_on_demand_metrics_data(cls, aggregate, query):
+    def is_on_demand_metrics_data(cls, aggregate: str, query: str) -> bool:
         return should_use_on_demand_metrics(
             Dataset.Transactions.value, aggregate, query, None, True
         )
 
     @classmethod
-    def get_excluded_conditions(cls):
+    def get_excluded_conditions(cls) -> Q:
         # We want an empty condition as identity for the AND chaining.
         qs = Q()
 
@@ -544,7 +550,7 @@ class CheckAM2Compatibility:
         return qs
 
     @classmethod
-    def get_all_widgets_of_organization(cls, organization_id):
+    def get_all_widgets_of_organization(cls, organization_id: int) -> QuerySet[Any]:
         return DashboardWidgetQuery.objects.filter(
             cls.get_excluded_conditions(),
             widget__dashboard__organization_id=organization_id,
@@ -558,7 +564,7 @@ class CheckAM2Compatibility:
         )
 
     @classmethod
-    def get_all_alerts_of_organization(cls, organization_id):
+    def get_all_alerts_of_organization(cls, organization_id: int) -> QuerySet[Any]:
         return (
             AlertRule.objects.filter(
                 organization_id=organization_id,
@@ -569,7 +575,7 @@ class CheckAM2Compatibility:
         )
 
     @classmethod
-    def get_ondemand_widget_ids(cls, organization_id):
+    def get_ondemand_widget_ids(cls, organization_id: int) -> set[int]:
         current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization_id)
         widget_ids = DashboardWidgetQueryOnDemand.objects.filter(
             spec_version=current_version.version,
@@ -579,7 +585,7 @@ class CheckAM2Compatibility:
         return set(widget_ids)
 
     @classmethod
-    def run_compatibility_check(cls, org_id):
+    def run_compatibility_check(cls, org_id: int) -> dict[str, Any] | None:
         organization = Organization.objects.get(id=org_id)
 
         all_projects = list(Project.objects.using_replica().filter(organization=organization))
@@ -658,15 +664,15 @@ class CheckAM2Compatibility:
         )
 
 
-def generate_cache_key_for_async_progress(org_id) -> str:
+def generate_cache_key_for_async_progress(org_id: int) -> str:
     return f"ds::o:{org_id}:check_am2_compatibility_status"
 
 
-def generate_cache_key_for_async_result(org_id) -> str:
+def generate_cache_key_for_async_result(org_id: int) -> str:
     return f"ds::o:{org_id}:check_am2_compatibility_results"
 
 
-def set_check_status(org_id, status, ttl=CACHING_TTL_IN_SECONDS):
+def set_check_status(org_id: int, status: CheckStatus, ttl: int = CACHING_TTL_IN_SECONDS) -> None:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_cache_key_for_async_progress(org_id)
 
@@ -674,7 +680,7 @@ def set_check_status(org_id, status, ttl=CACHING_TTL_IN_SECONDS):
     redis_client.expire(cache_key, ttl)
 
 
-def get_check_status(org_id):
+def get_check_status(org_id: int) -> CheckStatus | None:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_cache_key_for_async_progress(org_id)
 
@@ -690,7 +696,7 @@ def get_check_status(org_id):
     return None
 
 
-def set_check_results(org_id, results):
+def set_check_results(org_id: int, results: dict[str, Any]) -> None:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_cache_key_for_async_result(org_id)
 
@@ -698,7 +704,7 @@ def set_check_results(org_id, results):
     redis_client.expire(cache_key, CACHING_TTL_IN_SECONDS)
 
 
-def get_check_results(org_id):
+def get_check_results(org_id: int) -> dict[str, Any] | None:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_cache_key_for_async_result(org_id)
 
@@ -707,11 +713,12 @@ def get_check_results(org_id):
         # We check if there is a value in cache.
         if serialised_val:
             return json.loads(serialised_val)
+        return None
     except (TypeError, ValueError):
         return None
 
 
-def refresh_check_state(org_id):
+def refresh_check_state(org_id: int) -> None:
     redis_client = get_redis_client_for_ds()
     status_cache_key = generate_cache_key_for_async_progress(org_id)
     results_cache_key = generate_cache_key_for_async_result(org_id)
@@ -736,7 +743,7 @@ def refresh_check_state(org_id):
         ),
     ),
 )
-def run_compatibility_check_async(org_id):
+def run_compatibility_check_async(org_id: int) -> None:
     try:
         set_check_status(org_id, CheckStatus.IN_PROGRESS)
         results = CheckAM2Compatibility.run_compatibility_check(org_id)
