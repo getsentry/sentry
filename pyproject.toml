@@ -680,6 +680,7 @@ module = [
     "tests.sentry.flags.providers.*",
     "tests.sentry.grouping.*",
     "tests.sentry.hybridcloud.*",
+    "tests.sentry.incidents.action_handlers.*",
     "tests.sentry.incidents.handlers.*",
     "tests.sentry.incidents.serializers.*",
     "tests.sentry.insights.*",
