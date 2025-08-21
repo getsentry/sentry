@@ -100,9 +100,9 @@ def test_sdk_crash_is_reported_with_android_paths(
     mock_random,
     store_event,
     configs,
-    sdk_frame_module,
-    system_frame_module,
-    detected,
+    sdk_frame_module: str,
+    system_frame_module: str,
+    detected: bool,
 ):
     event = store_event(
         data=get_crash_event(
@@ -225,10 +225,10 @@ def test_sdk_crash_is_reported_for_android_runtime_tracer_crashes(
     mock_random,
     store_event,
     configs,
-    apex_frame_function,
-    apex_frame_package,
-    system_frame_package,
-    detected,
+    apex_frame_function: str,
+    apex_frame_package: str,
+    system_frame_package: str,
+    detected: bool,
 ):
     event = store_event(
         data=get_apex_crash_event(
