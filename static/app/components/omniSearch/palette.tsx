@@ -46,6 +46,7 @@ import type {OmniAction} from './types';
 import {useApiDynamicActions} from './useApiDynamicActions';
 import {useCommandDynamicActions} from './useCommandDynamicActions';
 import {useFormDynamicActions} from './useFormDynamicActions';
+import {useNavigationActions} from './useGlobalOmniActions';
 import {useOmniSearchState} from './useOmniSearchState';
 import {useOrganizationsDynamicActions} from './useOrganizationsDynamicActions';
 import {useRouteDynamicActions} from './useRouteDynamicActions';
@@ -56,6 +57,88 @@ type TranslateResponse = {
   route: 'issues';
   sort: string;
   statsPeriod: string;
+};
+
+type NavigationRoutes =
+  // ISSUES - Main and children
+  | 'nav-issues'
+  | 'nav-issues-feed'
+  | 'nav-issues-errors-outages' // Issue taxonomy: errors and outages
+  | 'nav-issues-breached-metrics' // Issue taxonomy: breached metrics
+  | 'nav-issues-warnings' // Issue taxonomy: warnings
+  | 'nav-issues-feedback'
+  | 'nav-issues-all-views'
+
+  // EXPLORE - Main and children
+  | 'nav-explore'
+  | 'nav-explore-traces'
+  | 'nav-explore-logs'
+  | 'nav-explore-discover'
+  | 'nav-explore-profiles'
+  | 'nav-explore-replays'
+  | 'nav-explore-releases'
+  | 'nav-explore-all-queries'
+
+  // DASHBOARDS - Main and children
+  | 'nav-dashboards'
+  | 'nav-dashboards-all'
+
+  // INSIGHTS - Main and children
+  | 'nav-insights'
+  | 'nav-insights-frontend'
+  | 'nav-insights-backend'
+  | 'nav-insights-mobile'
+  | 'nav-insights-crons'
+  | 'nav-insights-uptime'
+  | 'nav-insights-projects'
+
+  // PREVENT - Main
+  | 'nav-prevent';
+
+// Used when Seer returns a navigation instruction
+type NavigateResponse = {
+  description: string;
+  navigation_route: NavigationRoutes;
+  route: 'navigate';
+};
+
+// Mapping from NavigationRoutes to URL patterns
+// Use {slug} as placeholder for organization slug
+const NAVIGATION_ROUTES_MAP: Record<NavigationRoutes, string> = {
+  // ISSUES - Main and children
+  'nav-issues': '/organizations/{slug}/issues/',
+  'nav-issues-feed': '/organizations/{slug}/issues/',
+  'nav-issues-errors-outages': '/organizations/{slug}/issues/errors-outages/',
+  'nav-issues-breached-metrics': '/organizations/{slug}/issues/breached-metrics/',
+  'nav-issues-warnings': '/organizations/{slug}/issues/warnings/',
+  'nav-issues-feedback': '/organizations/{slug}/issues/feedback/',
+  'nav-issues-all-views': '/organizations/{slug}/issues/views/',
+
+  // EXPLORE - Main and children
+  'nav-explore': '/organizations/{slug}/explore/', // Will need to append default route
+  'nav-explore-traces': '/organizations/{slug}/explore/traces/',
+  'nav-explore-logs': '/organizations/{slug}/explore/logs/',
+  'nav-explore-discover': '/organizations/{slug}/explore/discover/homepage/',
+  'nav-explore-profiles': '/organizations/{slug}/explore/profiling/',
+  'nav-explore-replays': '/organizations/{slug}/explore/replays/',
+  'nav-explore-releases': '/organizations/{slug}/explore/releases/',
+  'nav-explore-all-queries': '/organizations/{slug}/explore/saved-queries/',
+
+  // DASHBOARDS - Main and children
+  'nav-dashboards': '/organizations/{slug}/dashboards/',
+  'nav-dashboards-all': '/organizations/{slug}/dashboards/',
+
+  // INSIGHTS - Main and children
+  'nav-insights': '/organizations/{slug}/insights/',
+  'nav-insights-frontend': '/organizations/{slug}/insights/frontend/',
+  'nav-insights-backend': '/organizations/{slug}/insights/backend/',
+  'nav-insights-mobile': '/organizations/{slug}/insights/mobile/',
+  'nav-insights-crons': '/organizations/{slug}/insights/crons/',
+  'nav-insights-uptime': '/organizations/{slug}/insights/uptime/',
+  'nav-insights-projects': '/organizations/{slug}/insights/projects/',
+
+  // PREVENT - Main
+  'nav-prevent': '/organizations/{slug}/prevent/prevent-ai/new/',
 };
 
 /**
@@ -108,6 +191,7 @@ interface OmniSearchPaletteProps {
 }
 
 export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
+  const navigationActions = useNavigationActions();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
@@ -126,6 +210,10 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const seeryRef = useRef<SeeryCharacterRef>(null);
+
+  const [dynamicallyAddedSeerActions, setDynamicallyAddedSeerActions] = useState<
+    OmniAction[]
+  >([]);
 
   const debouncedQuery = useDebouncedValue(query, 300);
 
@@ -178,7 +266,8 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
         triggerSeeryCelebrate();
 
         try {
-          const url = 'https://cmdkllm-12459da2e71a.herokuapp.com/ask-seer';
+          // const url = 'https://cmdkllm-12459da2e71a.herokuapp.com/ask-seer';
+          const url = 'http://localhost:5000/ask-seer';
           const res = await fetch(url, {
             method: 'POST',
             headers: {
@@ -188,7 +277,8 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
               query: queryToSearch,
             }),
           });
-          const data: {route: 'traces' | 'issues' | 'other'} = await res.json();
+          const data: {route: 'traces' | 'issues' | 'navigate' | 'other'} =
+            await res.json();
 
           if (data.route === 'traces') {
             try {
@@ -300,8 +390,53 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
                 `/organizations/${organization.slug}/issues?query=${response.query}&statsPeriod=${response.statsPeriod}&sort=${response.sort}${environmentsParam}`
               );
             }, SEER_ANIMATION_EXIT_DURATION);
-          } else {
-            closeModal();
+          } else if (data.route === 'navigate') {
+            const navResponse = data as NavigateResponse;
+            const urlPattern = NAVIGATION_ROUTES_MAP[navResponse.navigation_route];
+
+            if (urlPattern) {
+              const flattenedNavigationActions = flattenActions(navigationActions);
+              const navigationAction = flattenedNavigationActions.find(
+                action => action.key === navResponse.navigation_route
+              );
+
+              if (!navigationAction) {
+                setIsSearchingSeer(false);
+                setSeerError(true);
+                return;
+              }
+
+              setDynamicallyAddedSeerActions([
+                {
+                  ...navigationAction,
+                  details: navResponse.description,
+                },
+              ]);
+
+              //
+              // setDynamicallyAddedSeerActions([
+              // {
+              //     key: navResponse.navigation_route,
+              //     areaKey: 'global',
+              //     section: 'Other',
+              //     label: navResponse.description,
+              //     to: finalUrl,
+              //     //
+              //     // onAction: () => {
+              //     // closeModal();
+              //     // navigate(finalUrl);
+              //     // },
+              //     //
+              // },
+              // ]);
+              //
+
+              setIsSearchingSeer(false);
+            } else {
+              // Fallback if route not found in mapping
+              setIsSearchingSeer(false);
+              setSeerError(true);
+            }
           }
         } catch (err) {
           setSeerError(true);
@@ -323,6 +458,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     memberProjects,
     organization,
     navigate,
+    navigationActions,
   ]);
 
   // Combine all dynamic actions (excluding recent issues for now)
@@ -427,8 +563,12 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
 
     // Filter actions based on query
     let actions = debouncedQuery
-      ? [...filteredAvailableActions, ...filteredRecentIssues]
-      : [...filteredRecentIssues, ...availableActions];
+      ? [
+          ...filteredAvailableActions,
+          ...filteredRecentIssues,
+          ...dynamicallyAddedSeerActions,
+        ]
+      : [...filteredRecentIssues, ...availableActions, ...dynamicallyAddedSeerActions];
 
     // Add Ask Seer action at the top if there's a query
     if (debouncedQuery) {
@@ -458,6 +598,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     filteredRecentIssues,
     selectedAction,
     askSeerAction,
+    dynamicallyAddedSeerActions,
   ]);
 
   // Get the first item's key to set as the default selected value

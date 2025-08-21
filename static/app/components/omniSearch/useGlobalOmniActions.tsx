@@ -32,7 +32,7 @@ const GlobalActionSection = {
   OTHER: t('Actions'),
 };
 
-function useNavigationActions() {
+export function useNavigationActions() {
   const organization = useOrganization();
   const slug = organization.slug;
   const prefix = `/organizations/${slug}`;
