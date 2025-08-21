@@ -1,5 +1,7 @@
 import logging
 import time
+from collections.abc import MutableMapping
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.db import router, transaction
@@ -12,6 +14,9 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import relay_tasks
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
+
+if TYPE_CHECKING:
+    from sentry.models.projectkey import ProjectKey
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +35,7 @@ logger = logging.getLogger(__name__)
         processing_deadline_duration=30,
     ),
 )
-def build_project_config(public_key=None, **kwargs):
+def build_project_config(public_key: str, **kwargs: Any) -> None:
     """Build a project config and put it in the Redis cache.
 
     This task is used to compute missing project configs, it is aggressively
@@ -66,7 +71,7 @@ def build_project_config(public_key=None, **kwargs):
         )
 
 
-def schedule_build_project_config(public_key):
+def schedule_build_project_config(public_key: str) -> None:
     """Schedule the `build_project_config` with debouncing applied.
 
     See documentation of `build_project_config` for documentation of parameters.
@@ -80,7 +85,7 @@ def schedule_build_project_config(public_key):
             tags={"reason": "debounce", "task": "build"},
         )
         # If this task is already in the queue, do not schedule another task.
-        return
+        return None
 
     metrics.incr(
         "relay.projectconfig_cache.scheduled",
@@ -98,7 +103,9 @@ def schedule_build_project_config(public_key):
     )
 
 
-def validate_args(organization_id=None, project_id=None, public_key=None):
+def validate_args(
+    organization_id: int | None = None, project_id: int | None = None, public_key: str | None = None
+) -> None:
     """Validates arguments for the tasks and sets sentry scope.
 
     The tasks should be invoked for only one of these arguments, however because of Celery
@@ -109,7 +116,9 @@ def validate_args(organization_id=None, project_id=None, public_key=None):
         raise TypeError("Must provide exactly one of organzation_id, project_id or public_key")
 
 
-def compute_configs(organization_id=None, project_id=None, public_key=None):
+def compute_configs(
+    organization_id: int | None = None, project_id: int | None = None, public_key: str | None = None
+) -> dict[str | None, MutableMapping[str, Any]]:
     """Computes all configs for the org, project or single public key.
 
     You must only provide one single argument, not all.
@@ -185,7 +194,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
     return configs
 
 
-def compute_projectkey_config(key):
+def compute_projectkey_config(key: "ProjectKey") -> MutableMapping[str, Any]:
     """Computes a single config for the given :class:`ProjectKey`.
 
     :returns: A dict with the project config.
@@ -211,13 +220,13 @@ def compute_projectkey_config(key):
     ),
 )
 def invalidate_project_config(
-    organization_id=None,
-    project_id=None,
-    public_key=None,
-    trigger="invalidated",
-    trigger_details=None,
-    **kwargs,
-):
+    organization_id: int | None = None,
+    project_id: int | None = None,
+    public_key: str | None = None,
+    trigger: str = "invalidated",
+    trigger_details: str | None = None,
+    **kwargs: Any,
+) -> None:
     """Task which re-computes an invalidated project config.
 
     This task can be scheduled regardless of whether the :func:`build_project_config` task
@@ -264,14 +273,14 @@ def invalidate_project_config(
 @sentry_sdk.tracing.trace
 def schedule_invalidate_project_config(
     *,
-    trigger,
-    trigger_details=None,
-    organization_id=None,
-    project_id=None,
-    public_key=None,
-    countdown=5,
-    transaction_db=None,
-):
+    trigger: str,
+    trigger_details: str | None = None,
+    organization_id: int | None = None,
+    project_id: int | None = None,
+    public_key: str | None = None,
+    countdown: int = 5,
+    transaction_db: str | None = None,
+) -> None:
     """Schedules the :func:`invalidate_project_config` task.
 
     Pass exactly one of ``organization_id``, ``project_id`` or ``public_key``. If none or
@@ -338,13 +347,13 @@ def schedule_invalidate_project_config(
 
 def _schedule_invalidate_project_config(
     *,
-    trigger,
-    trigger_details=None,
-    organization_id=None,
-    project_id=None,
-    public_key=None,
-    countdown=5,
-):
+    trigger: str,
+    trigger_details: str | None = None,
+    organization_id: int | None = None,
+    project_id: int | None = None,
+    public_key: str | None = None,
+    countdown: int = 5,
+) -> None:
     """For param docs, see :func:`schedule_invalidate_project_config`."""
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
@@ -384,7 +393,7 @@ def _schedule_invalidate_project_config(
             "relay.projectconfig_cache.skipped",
             tags={"reason": "debounce", "update_reason": trigger, "task": "invalidation"},
         )
-        return
+        return None
 
     metrics.incr(
         "relay.projectconfig_cache.scheduled",
