@@ -6,6 +6,8 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useIncidentCases} from 'sentry/views/incidents/hooks/useIncidentCases';
+import {getIncidentLabel} from 'sentry/views/incidents/util';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useNavContext} from 'sentry/views/nav/context';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
@@ -83,8 +85,13 @@ export function IssuesSecondaryNav() {
 }
 
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
+  const organization = useOrganization();
   const {layout} = useNavContext();
   const hasWorkflowEngine = useWorkflowEngineFeatureGate();
+  const {incidentCases = []} = useIncidentCases({organizationSlug: organization.slug});
+  const ongoingIncidents = incidentCases.filter(
+    incident => incident.status !== 'resolved'
+  );
 
   const isSticky = layout === NavLayout.SIDEBAR;
 
@@ -128,6 +135,18 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
           >
             {t('Incidents')}
           </SecondaryNav.Item>
+          <div style={{marginLeft: 12}}>
+            {ongoingIncidents.map(incident => (
+              <SecondaryNav.Item
+                key={incident.id}
+                to={`${baseUrl}/incidents/${incident.id}/`}
+                activeTo={`${baseUrl}/incidents/${incident.id}/`}
+                analyticsItemName="issues_incidents_details"
+              >
+                {getIncidentLabel(incident)}
+              </SecondaryNav.Item>
+            ))}
+          </div>
         </Fragment>
       )}
     </StickyBottomSection>

@@ -32,7 +32,7 @@ export default function IncidentHub() {
   return (
     <Layout.Page>
       <SentryDocumentTitle title={t('Incident Hub')} />
-      <Layout.Header unified>
+      <Layout.Header>
         <Layout.HeaderContent>
           <Flex justify="between" align="center">
             <Layout.Title>{t('Incident Hub')}</Layout.Title>
@@ -68,7 +68,7 @@ export default function IncidentHub() {
           </Flex>
         </Layout.HeaderContent>
       </Layout.Header>
-      <Layout.Body style={{paddingTop: 0}}>
+      <Layout.Body>
         <Layout.Main fullWidth>
           {incidentCaseTemplate ? (
             <IncidentCaseList template={incidentCaseTemplate} />
