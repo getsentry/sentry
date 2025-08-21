@@ -1,14 +1,15 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Text} from 'sentry/components/core/text/text';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {IconLab, IconSeer} from 'sentry/icons';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -21,6 +22,8 @@ interface PRSeerAnalysisProps {
   repoName: string;
 }
 
+type AnalysisType = 'custom' | 'tests' | 'explain';
+
 interface SeerAnalysis {
   analysis: string;
   insights: Array<{
@@ -29,6 +32,7 @@ interface SeerAnalysis {
     type: 'suggestion' | 'warning' | 'info';
   }>;
   status: 'pending' | 'completed' | 'error';
+  type: AnalysisType;
   custom_instructions?: string;
 }
 
@@ -39,32 +43,79 @@ function PRSeerAnalysis({repoName: _repoName, prId: _prId, issues}: PRSeerAnalys
   const [analysis, setAnalysis] = useState<SeerAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [analysisType, setAnalysisType] = useState<AnalysisType>('custom');
   const [customInstructions, setCustomInstructions] = useState('');
-  const [showInstructionsInput, setShowInstructionsInput] = useState(false);
 
   const runSeerAnalysis = useCallback(
-    async (instructions?: string) => {
-      if (issues.length === 0) return;
+    async (type: AnalysisType, instructions?: string) => {
+      if (type !== 'custom' && type !== 'explain' && issues.length === 0) return;
 
       setLoading(true);
       setError(null);
 
       try {
-        // Use the first issue for analysis (simplified mock)
-        const firstIssue = issues[0];
+        let analysisContent = '';
+        let insights: SeerAnalysis['insights'] = [];
 
-        // For now, simulate Seer analysis since the endpoint may not exist yet
-        // TODO: Replace with actual API call when backend is ready
+        // Generate different content based on analysis type
+        switch (type) {
+          case 'custom': {
+            const customPrompt = instructions || customInstructions || 'Analyze this PR';
+            analysisContent = `Custom Analysis: ${customPrompt}\n\nBased on your request, here's the analysis of the PR changes. The modifications appear to focus on improving the user interface and functionality.`;
+            insights = [
+              {
+                title: 'Custom Analysis Result',
+                description: 'Analysis completed based on your specific instructions.',
+                type: 'info' as const,
+              },
+            ];
+            break;
+          }
+          case 'tests': {
+            analysisContent = `Test Generation Analysis:\n\nBased on the PR changes, here are recommended tests to add:\n\n1. Unit tests for new components\n2. Integration tests for modified workflows\n3. Edge case testing for error handling`;
+            insights = [
+              {
+                title: 'Suggested Unit Tests',
+                description:
+                  'Add tests for the new snapshot components and their vertical layout functionality.',
+                type: 'suggestion' as const,
+              },
+              {
+                title: 'Integration Testing',
+                description: 'Test the tab switching behavior and URL state management.',
+                type: 'suggestion' as const,
+              },
+            ];
+            break;
+          }
+          case 'explain': {
+            analysisContent = `PR Change Summary:\n\nThis PR improves the snapshot testing interface with the following key changes:\n\n• Replaced tab navigation with a modern segmented control\n• Redesigned snapshot cards to use vertical layout\n• Added URL state management for tab persistence\n• Improved spacing and visual design\n• Added proper error handling for missing image data`;
+            insights = [
+              {
+                title: 'UI/UX Improvements',
+                description:
+                  'Enhanced the snapshot testing interface with better navigation and card layout.',
+                type: 'info' as const,
+              },
+              {
+                title: 'Technical Improvements',
+                description:
+                  'Added URL state persistence and better error handling for a more robust user experience.',
+                type: 'info' as const,
+              },
+            ];
+            break;
+          }
+          default:
+            break;
+        }
+
         const aggregatedAnalysis: SeerAnalysis = {
-          analysis: `Analysis for issue "${firstIssue.title}" (${firstIssue.shortId}):\n\nThis issue appears to be related to the changes in this PR. The error pattern suggests potential issues with the modified code paths.`,
-          insights: [
-            {
-              title: `Issue ${firstIssue.shortId} Root Cause`,
-              description: `The error may be caused by changes in the PR files. Consider reviewing the modified functions and their error handling.`,
-              type: 'suggestion' as const,
-            },
-          ],
-          custom_instructions: instructions || customInstructions,
+          analysis: analysisContent,
+          insights,
+          type,
+          custom_instructions:
+            type === 'custom' ? instructions || customInstructions : undefined,
           status: 'completed',
         };
 
@@ -73,7 +124,7 @@ function PRSeerAnalysis({repoName: _repoName, prId: _prId, issues}: PRSeerAnalys
 
         setAnalysis(aggregatedAnalysis);
       } catch (err) {
-        setError(t('Failed to analyze issues with Seer. Please try again.'));
+        setError(t('Failed to analyze with Seer. Please try again.'));
       } finally {
         setLoading(false);
       }
@@ -82,28 +133,10 @@ function PRSeerAnalysis({repoName: _repoName, prId: _prId, issues}: PRSeerAnalys
   );
 
   const handleRunAnalysis = useCallback(() => {
-    runSeerAnalysis(customInstructions);
-    setShowInstructionsInput(false);
-  }, [runSeerAnalysis, customInstructions]);
+    runSeerAnalysis(analysisType, customInstructions);
+  }, [runSeerAnalysis, analysisType, customInstructions]);
 
-  // Memoize issues to prevent unnecessary re-analysis
-  const issuesHash = useMemo(() => {
-    return issues
-      .map(issue => issue.id)
-      .sort()
-      .join(',');
-  }, [issues]);
-
-  // Use ref to track if we've analyzed these specific issues
-  const lastAnalyzedHashRef = useRef<string>('');
-
-  // Auto-run analysis when issues are first loaded or changed
-  useEffect(() => {
-    if (issues.length > 0 && issuesHash !== lastAnalyzedHashRef.current && !loading) {
-      lastAnalyzedHashRef.current = issuesHash;
-      runSeerAnalysis();
-    }
-  }, [issues.length, issuesHash, loading, runSeerAnalysis]);
+  // Remove auto-run behavior - let user choose what they want
 
   const getInsightIcon = (type: string) => {
     switch (type) {
@@ -119,42 +152,64 @@ function PRSeerAnalysis({repoName: _repoName, prId: _prId, issues}: PRSeerAnalys
   return (
     <SeerPanel>
       <PanelHeader>
-        <HeaderContent justify="between" align="center">
+        <HeaderContent justify="flex-start" align="center">
           <HeaderText align="center" gap="md">
             <IconSeer size="sm" />
             {t('Seer Analysis')}
           </HeaderText>
-          <ButtonGroup align="center" gap="md">
-            {!loading && (
-              <Fragment>
-                <Button
-                  size="xs"
-                  onClick={() => setShowInstructionsInput(!showInstructionsInput)}
-                >
-                  {t('Custom Instructions')}
-                </Button>
-              </Fragment>
-            )}
-          </ButtonGroup>
         </HeaderContent>
       </PanelHeader>
 
       <StyledPanelBody>
-        {showInstructionsInput && (
-          <InstructionsSection direction="column" gap="md">
+        <ControlsSection direction="column" gap="md">
+          <SegmentedControl
+            aria-label={t('Analysis type')}
+            value={analysisType}
+            onChange={setAnalysisType}
+          >
+            <SegmentedControl.Item key="custom">
+              {t('Custom analysis')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="tests">
+              {t('Generate tests')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="explain">
+              {t('Explain changes')}
+            </SegmentedControl.Item>
+          </SegmentedControl>
+
+          <CustomInputSection direction="column" gap="sm">
             <Text as="label" bold size="sm">
-              {t('Custom Instructions for Analysis:')}
+              {analysisType === 'custom'
+                ? t('What would you like to analyze?')
+                : t('Additional instructions (optional):')}
             </Text>
             <InstructionsTextarea
               value={customInstructions}
               onChange={e => setCustomInstructions(e.target.value)}
-              placeholder={t('Add specific context or questions for Seer to focus on...')}
+              placeholder={
+                analysisType === 'custom'
+                  ? t(
+                      'Ask about code quality, security concerns, performance, or anything else...'
+                    )
+                  : analysisType === 'tests'
+                    ? t('Specify test types, frameworks, or focus areas...')
+                    : t('Ask for specific aspects of the changes to explain...')
+              }
             />
-            <Button size="sm" onClick={handleRunAnalysis}>
-              {t('Run Analysis')}
-            </Button>
-          </InstructionsSection>
-        )}
+          </CustomInputSection>
+
+          <Button
+            priority="primary"
+            size="sm"
+            onClick={handleRunAnalysis}
+            disabled={analysisType === 'custom' && !customInstructions.trim()}
+          >
+            {analysisType === 'custom' && t('Run Custom Analysis')}
+            {analysisType === 'tests' && t('Generate Test Suggestions')}
+            {analysisType === 'explain' && t('Explain Changes')}
+          </Button>
+        </ControlsSection>
 
         {loading ? (
           <LoadingContainer direction="column" align="center" gap="md">
@@ -198,24 +253,7 @@ function PRSeerAnalysis({repoName: _repoName, prId: _prId, issues}: PRSeerAnalys
               </CustomInstructionsUsed>
             )}
           </AnalysisContent>
-        ) : issues.length === 0 ? (
-          <PlaceholderMessage variant="muted" italic>
-            {t(
-              'No issues found to analyze. When issues are detected in this PR, Seer will provide AI-powered insights.'
-            )}
-          </PlaceholderMessage>
-        ) : (
-          <PlaceholderMessage>
-            <Button
-              priority="primary"
-              size="sm"
-              icon={<IconLab />}
-              onClick={() => runSeerAnalysis()}
-            >
-              {t('Analyze with Seer')}
-            </Button>
-          </PlaceholderMessage>
-        )}
+        ) : null}
       </StyledPanelBody>
     </SeerPanel>
   );
@@ -226,7 +264,7 @@ const SeerPanel = styled(Panel)`
 `;
 
 const StyledPanelBody = styled(PanelBody)`
-  padding: ${space(2)};
+  padding: 0;
 `;
 
 const HeaderContent = styled(Flex)`
@@ -237,8 +275,6 @@ const HeaderText = styled(Flex)`
   font-weight: 600;
 `;
 
-const ButtonGroup = styled(Flex)``;
-
 const LoadingContainer = styled(Flex)`
   padding: ${space(3)};
 `;
@@ -248,11 +284,6 @@ const ErrorMessage = styled(Text)`
   background: ${p => p.theme.red100};
   border: 1px solid ${p => p.theme.red200};
   border-radius: 4px;
-`;
-
-const PlaceholderMessage = styled(Text)`
-  padding: ${space(2)};
-  text-align: center;
 `;
 
 const AnalysisContent = styled(Flex)``;
@@ -280,12 +311,12 @@ const AnalysisText = styled(Text)`
   border-radius: 4px;
 `;
 
-const InstructionsSection = styled(Flex)`
-  margin-bottom: ${space(2)};
-  padding: ${space(1.5)};
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: 4px;
-  margin-top: 0;
+const ControlsSection = styled(Flex)`
+  padding: ${space(2)};
+`;
+
+const CustomInputSection = styled(Flex)`
+  margin-top: ${space(1)};
 `;
 
 const InstructionsTextarea = styled('textarea')`
