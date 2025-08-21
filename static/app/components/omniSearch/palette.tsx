@@ -155,8 +155,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const seeryRef = useRef<SeeryCharacterRef>(null);
-  const [selectedItemKey, setSelectedItemKey] = useState<string>('');
-
   const debouncedQuery = useDebouncedValue(query, 300);
 
   const {getSeenIssues} = useSeenIssues();
@@ -330,7 +328,11 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     }
   }, [memberProjects, navigate, organization, pageFilters.selection, setIsSearchingSeer]);
 
-  const askSeerAction = useMemo<OmniAction>(() => {
+  const askSeerAction = useMemo<OmniAction | null>(() => {
+    if (query.length < 8 && !query.includes(' ')) {
+      return null;
+    }
+
     const baseAction: OmniAction = {
       key: 'ask-seer',
       label: `Ask Seer: "${query}"`,
@@ -356,7 +358,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
 
     return [
       ...allRecentIssueActions.map(a => ({...a, priority: 0})),
-      {...askSeerAction, priority: 1},
+      ...(askSeerAction ? [{...askSeerAction, priority: 1}] : []),
       ...flattenActions(availableActions).map(a => ({...a, priority: 1})),
       ...flattenActions(dynamicActions).map(a => ({...a, priority: 2})),
       ...flattenActions(apiActions).map(a => ({...a, priority: 3})),
@@ -402,19 +404,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
       return {sectionKey, label, items};
     });
   }, [filteredAvailableActions]);
-
-  // Get the first item's key to set as the default selected value
-  const firstItemKey = useMemo(() => {
-    for (const group of grouped) {
-      for (const item of group.items) {
-        if (item.key && !item.disabled && !item.hidden && item.key !== 'ask-seer') {
-          return item.key;
-        }
-      }
-    }
-
-    return 'ask-seer';
-  }, [grouped]);
 
   const handleSelect = (action: OmniAction) => {
     resetInactivityTimer();
@@ -548,17 +537,11 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     };
   }, []);
 
-  useEffect(() => {
-    if (firstItemKey) {
-      setSelectedItemKey(firstItemKey);
-    }
-  }, [firstItemKey]);
-
   return (
     <Fragment>
       <SeeryCharacter ref={seeryRef} animationData={serryLottieAnimation} size={400} />
       <SeerSearchAnimation />
-      <StyledCommand label="OmniSearch" shouldFilter={false} loop value={selectedItemKey}>
+      <StyledCommand label="OmniSearch" shouldFilter={false} loop>
         <Header>
           {focusedArea && (
             <FocusedAreaContainer>
