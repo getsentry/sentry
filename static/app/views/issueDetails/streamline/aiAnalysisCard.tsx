@@ -30,13 +30,13 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import type {Actor} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -516,11 +516,43 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
       <MainContent>
         {/* Header Section - Use real group data immediately */}
         <HeaderCard>
-          <CardContent>
+          <HeaderCardContent>
             {/* Issue Title - Use AI title once available, fallback to group title */}
             <IssueTitle>
               {analysisData?.success ? analysisData.analysis.title : group.title}
             </IssueTitle>
+
+            {/* Action Pills Row */}
+            <ActionPillsRow>
+              <Button
+                size="xs"
+                priority="primary"
+                onClick={() => setShowStacktraceDrawer(true)}
+              >
+                {t('View Stack Trace')}
+              </Button>
+              <CopyDropdownContainer
+                onMouseEnter={() => setShowCopyDropdown(true)}
+                onMouseLeave={() => setShowCopyDropdown(false)}
+              >
+                <Button size="xs" priority="default" icon={<IconCopy />}>
+                  <span style={{marginRight: '4px'}}>{t('Copy')}</span>
+                  <span style={{transform: 'rotate(180deg) translateY(1px)', display: 'inline-block'}}>
+                    <IconChevron size="xs" />
+                  </span>
+                </Button>
+                {showCopyDropdown && (
+                  <CopyDropdown>
+                    <CopyOption onClick={() => console.log('Copy as markdown')}>
+                      {t('Copy issue as markdown for LLMs')}
+                    </CopyOption>
+                    <CopyOption onClick={() => console.log('Copy as JSON')}>
+                      {t('Copy as JSON')}
+                    </CopyOption>
+                  </CopyDropdown>
+                )}
+              </CopyDropdownContainer>
+            </ActionPillsRow>
 
             {/* Timeline and Metrics Row - Use real group data */}
             <TimelineMetricsRow>
@@ -539,44 +571,21 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                 <MetricsSection>
                   <MetricItem>
                     <MetricLabel>{t('Events')}</MetricLabel>
-                    <MetricValue>{formatAbbreviatedNumber(group.count || 0, 2, true)}</MetricValue>
+                    <MetricValue>
+                      {formatAbbreviatedNumber(group.count || 0, 2, true)}
+                    </MetricValue>
                   </MetricItem>
 
                   <MetricItem>
                     <MetricLabel>{t('Users Affected')}</MetricLabel>
-                    <MetricValue>{formatAbbreviatedNumber(group.userCount || 0, 2, true)}</MetricValue>
+                    <MetricValue>
+                      {formatAbbreviatedNumber(group.userCount || 0, 2, true)}
+                    </MetricValue>
                   </MetricItem>
                 </MetricsSection>
               </TimelineMetricsContent>
-              
-              {/* Action Pills Row */}
-              <ActionPillsRow>
-                <ViewStacktracePill onClick={() => setShowStacktraceDrawer(true)}>
-                  {t('View Stack Trace')}
-                </ViewStacktracePill>
-                <CopyDropdownContainer
-                  onMouseEnter={() => setShowCopyDropdown(true)}
-                  onMouseLeave={() => setShowCopyDropdown(false)}
-                >
-                  <CopyIssuePill>
-                    <IconCopy size="sm" />
-                    {t('Copy')}
-                    <IconChevron size="xs" />
-                  </CopyIssuePill>
-                  {showCopyDropdown && (
-                    <CopyDropdown>
-                      <CopyOption onClick={() => console.log('Copy as markdown')}>
-                        {t('Copy issue as markdown for LLMs')}
-                      </CopyOption>
-                      <CopyOption onClick={() => console.log('Copy as JSON')}>
-                        {t('Copy as JSON')}
-                      </CopyOption>
-                    </CopyDropdown>
-                  )}
-                </CopyDropdownContainer>
-              </ActionPillsRow>
             </TimelineMetricsRow>
-          </CardContent>
+          </HeaderCardContent>
         </HeaderCard>
 
         <SeverityCard>
@@ -762,7 +771,6 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
           </SolutionWrapper>
         )}
 
-
         {/* Activity Section */}
         <ActivityWrapper>
           <ActivityCard>
@@ -917,7 +925,7 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
           </CardContent>
         </SidebarCard>
       </Sidebar>
-      
+
       {/* Stacktrace Drawer */}
       {showStacktraceDrawer && (
         <StacktraceDrawer>
@@ -952,12 +960,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
                   }}
                 />
               </DrawerSearchSection>
-              
+
               {/* Event Navigation */}
               <DrawerNavigationSection>
                 <IssueDetailsEventNavigation event={event} group={group} />
               </DrawerNavigationSection>
-              
+
               {event ? (
                 <Fragment>
                   <EventDetailsHeader event={event} group={group} project={project} />
@@ -1022,7 +1030,7 @@ const HeaderCard = styled(Card)`
 const SeverityCard = styled(Card)`
   max-width: 768px;
   width: 100%;
-  margin-top: -${space(1.5)};
+  margin-top: -${space(1)};
 `;
 
 const AnalysisCard = styled(Card)`
@@ -1100,6 +1108,10 @@ const CardTitle = styled('h3')`
 
 const CardContent = styled('div')`
   padding: ${space(2)};
+`;
+
+const HeaderCardContent = styled('div')`
+  padding: ${space(2)} ${space(2)} ${space(1)} ${space(2)};
 `;
 
 const LoadingText = styled('div')`
@@ -1936,58 +1948,12 @@ const ExitAIModeLink = styled('button')`
 const ActionPillsRow = styled('div')`
   display: flex;
   gap: ${space(1)};
-  margin-top: ${space(2)};
-`;
-
-const ViewStacktracePill = styled('button')`
-  display: inline-flex;
-  align-items: center;
-  padding: ${space(0.5)} ${space(1.5)};
-  background: ${p => p.theme.purple300};
-  color: ${p => p.theme.white};
-  border: 1px solid ${p => p.theme.purple300};
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    background: ${p => p.theme.purple400};
-    border-color: ${p => p.theme.purple400};
-  }
+  margin: ${space(2)} 0;
 `;
 
 const CopyDropdownContainer = styled('div')`
   position: relative;
   display: inline-block;
-`;
-
-const CopyIssuePill = styled('button')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  padding: ${space(0.5)} ${space(1.5)};
-  background: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.textColor};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSize.sm};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    background: ${p => p.theme.backgroundTertiary};
-  }
-
-  svg:last-child {
-    transform: rotate(180deg);
-  }
 `;
 
 const CopyDropdown = styled('div')`
@@ -2051,7 +2017,7 @@ const DrawerContent = styled('div')`
   display: flex;
   flex-direction: column;
   animation: slideUp 0.3s ease-out;
-  
+
   @keyframes slideUp {
     from {
       transform: translateY(100%);
@@ -2091,7 +2057,7 @@ const DrawerCloseButton = styled('button')`
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   transition: all 0.2s ease;
-  
+
   &:hover {
     background: ${p => p.theme.backgroundTertiary};
     color: ${p => p.theme.textColor};
