@@ -4,7 +4,13 @@ import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {IncidentCase} from 'sentry/views/incidents/types';
 
-export function useCreateIncidentCase({organizationSlug}: {organizationSlug: string}) {
+export function useCreateIncidentCase({
+  organizationSlug,
+  onSuccess,
+}: {
+  organizationSlug: string;
+  onSuccess?: (result: IncidentCase) => void;
+}) {
   const createMutation = useMutation<IncidentCase, RequestError, Partial<IncidentCase>>({
     mutationFn: data =>
       fetchMutation({
@@ -12,7 +18,10 @@ export function useCreateIncidentCase({organizationSlug}: {organizationSlug: str
         method: 'POST',
         data,
       }),
-    onSuccess: () => addSuccessMessage(t('Incident Created')),
+    onSuccess: (result: IncidentCase) => {
+      addSuccessMessage(t('Incident Created'));
+      onSuccess?.(result);
+    },
   });
 
   return {createMutation};

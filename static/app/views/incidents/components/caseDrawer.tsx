@@ -13,6 +13,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useCreateIncidentCase} from 'sentry/views/incidents/hooks/useCreateIncidentCase';
@@ -34,6 +35,7 @@ const STATUS_OPTIONS = [
 ];
 
 export function CaseDrawer({template}: CaseDrawerProps) {
+  const navigate = useNavigate();
   const organization = useOrganization();
   const user = useUser();
 
@@ -49,6 +51,9 @@ export function CaseDrawer({template}: CaseDrawerProps) {
 
   const createCase = useCreateIncidentCase({
     organizationSlug: organization.slug,
+    onSuccess: (result: IncidentCase) => {
+      navigate(`/organizations/${organization.slug}/issues/incidents/${result.id}/`);
+    },
   });
 
   const handleSubmit = () => {
@@ -178,7 +183,7 @@ export function CaseDrawer({template}: CaseDrawerProps) {
               </Flex>
             </InfoRow>
             <InfoRow>
-              <InfoLabel>{t('A task will be created in...')}</InfoLabel>
+              <InfoLabel>{t('A task will be added to...')}</InfoLabel>
               <Flex gap="md" align="center">
                 <PluginIcon pluginId={template.task_provider!} />
                 <Text>
@@ -188,7 +193,7 @@ export function CaseDrawer({template}: CaseDrawerProps) {
               </Flex>
             </InfoRow>
             <InfoRow>
-              <InfoLabel>{t('A retro doc will be added to...')}</InfoLabel>
+              <InfoLabel>{t('A retro doc will setup in...')}</InfoLabel>
               <Flex gap="md" align="center">
                 <PluginIcon pluginId={template.retro_provider!} />
                 <Text>
@@ -254,7 +259,9 @@ export function CaseDrawer({template}: CaseDrawerProps) {
             disabled={createCase.createMutation.isPending}
             onClick={handleSubmit}
           >
-            {createCase.createMutation.isPending ? t('Creating...') : t('Create Case')}
+            {createCase.createMutation.isPending
+              ? t('Creating...')
+              : t('Declare Incident')}
           </Button>
         </Flex>
       </CaseDrawerBody>

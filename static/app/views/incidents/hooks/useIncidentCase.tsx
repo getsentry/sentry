@@ -5,8 +5,8 @@ export function useIncidentCase({
   organizationSlug,
   caseId,
 }: {
-  caseId: number;
   organizationSlug: string;
+  caseId?: string;
 }) {
   const {
     data: incidentCase,
@@ -15,7 +15,10 @@ export function useIncidentCase({
     refetch,
   } = useApiQuery<IncidentCase>(
     [`/organizations/${organizationSlug}/incident-cases/${caseId}/`],
-    {staleTime: 30000}
+    {
+      staleTime: 30000,
+      enabled: !!caseId,
+    }
   );
 
   return {
