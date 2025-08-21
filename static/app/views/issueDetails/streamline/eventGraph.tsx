@@ -578,6 +578,7 @@ export function EventGraph({
     outageCounter.major > 0 ||
     outageCounter.minor > 0 ||
     outageCounter.maintenance > 0;
+  const outageCount = Object.values(outageCounter).reduce((acc, curr) => acc + curr, 0);
 
   return (
     <GraphWrapper {...styleProps}>
@@ -610,12 +611,12 @@ export function EventGraph({
       <Fragment>
         <ChartContainer role="figure" ref={chartContainerRef}>
           {outagePresent ? (
-            incidentOutages?.data?.length === 1 ? (
+            incidentOutages?.data && outageCount === 1 ? (
               // @ts-expect-error - HACKWEEK
               <Text variant={incidentTextLevel} bold={incidentTextBold} size="sm">
                 Ongoing Incident: {incidentOutages?.data?.at(-1)?.host?.name} outage
               </Text>
-            ) : incidentOutages?.data && incidentOutages?.data?.length > 1 ? (
+            ) : incidentOutages?.data && outageCount > 1 ? (
               // @ts-expect-error - HACKWEEK
               <Text variant={incidentTextLevel} bold={incidentTextBold} size="sm">
                 Multiple ongoing incidents:{' '}
