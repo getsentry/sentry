@@ -4,7 +4,7 @@ import heapq
 import logging
 import uuid
 import zoneinfo
-from collections.abc import Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
@@ -186,7 +186,7 @@ def prepare_organization_report(
     dry_run: bool = False,
     target_user: int | None = None,
     email_override: str | None = None,
-):
+) -> None:
     batch_id = str(batch_id)
     if email_override and not isinstance(target_user, int):
         logger.error(
@@ -488,12 +488,14 @@ def get_local_dates(ctx: OrganizationReportContext, user_id: int) -> tuple[datet
     return (local_start, local_end)
 
 
-def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
+def render_template_context(
+    ctx: OrganizationReportContext, user_id: int | None
+) -> dict[str, Any] | None:
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
     if user_id and user_id in ctx.project_ownership:
-        user_projects = [
+        user_projects: list[Any] = [
             project_ctx
             for project_ctx in ctx.projects_context_map.values()
             if project_ctx.project.id in ctx.project_ownership[user_id]
@@ -508,9 +510,11 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
-    def trends():
+    def trends() -> dict[str, Any]:
         # Given an iterator of event counts, sum up their accepted/dropped errors/transaction counts.
-        def sum_event_counts(project_ctxs):
+        def sum_event_counts(
+            project_ctxs: list[Any],
+        ) -> tuple[int, ...]:
             event_counts = [
                 (
                     project_ctx.accepted_error_count,
@@ -652,8 +656,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
             ),
         }
 
-    def key_errors():
-        def all_key_errors():
+    def key_errors() -> list[dict[str, Any]]:
+        def all_key_errors() -> Generator[dict[str, Any]]:
             for project_ctx in user_projects:
                 for group, count in project_ctx.key_errors_by_group:
                     (
@@ -674,8 +678,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
 
-    def key_transactions():
-        def all_key_transactions():
+    def key_transactions() -> list[dict[str, Any]]:
+        def all_key_transactions() -> Generator[dict[str, Any]]:
             for project_ctx in user_projects:
                 for (
                     transaction_name,
@@ -694,8 +698,8 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
         return heapq.nlargest(3, all_key_transactions(), lambda d: d["count"])
 
-    def key_performance_issues():
-        def all_key_performance_issues():
+    def key_performance_issues() -> list[dict[str, Any]]:
+        def all_key_performance_issues() -> Generator[dict[str, Any]]:
             for project_ctx in user_projects:
                 for group, group_history, count in project_ctx.key_performance_issues:
                     yield {
@@ -713,7 +717,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
 
-    def issue_summary():
+    def issue_summary() -> dict[str, int]:
         new_substatus_count = 0
         escalating_substatus_count = 0
         ongoing_substatus_count = 0
@@ -749,7 +753,7 @@ def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
 
 def prepare_template_context(
     ctx: OrganizationReportContext, user_ids: Sequence[int | None]
-) -> list[Mapping[str, Any]] | list:
+) -> list[dict[str, dict[str, Any] | int | None]]:
     user_template_context_by_user_id_list = []
     for user_id in user_ids:
         template_ctx = render_template_context(ctx, user_id)

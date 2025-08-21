@@ -83,11 +83,11 @@ def taskworker_override(
 
 
 def override_task(
-    celery_task: Task,
-    taskworker_task: TaskworkerTask,
+    celery_task: Task[Any],
+    taskworker_task: TaskworkerTask[..., Any],
     taskworker_config: TaskworkerConfig,
     task_name: str,
-) -> Task:
+) -> Task[Any]:
     """
     This function is used to override SentryTasks methods with TaskworkerTask methods
     depending on the rollout percentage set in sentry options.
@@ -120,13 +120,13 @@ def load_model_from_db(
 
 
 def instrumented_task(
-    name,
-    stat_suffix=None,
-    silo_mode=None,
-    record_timing=False,
-    taskworker_config=None,
-    **kwargs,
-):
+    name: str,
+    stat_suffix: Callable[..., Any] | None = None,
+    silo_mode: SiloMode | None = None,
+    record_timing: bool = False,
+    taskworker_config: TaskworkerConfig | None = None,
+    **kwargs: Any,
+) -> Callable[..., Any]:
     """
     Decorator for defining celery tasks.
 
@@ -138,9 +138,9 @@ def instrumented_task(
     - disabling of result collection.
     """
 
-    def wrapped(func):
+    def wrapped(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def _wrapped(*args, **kwargs):
+        def _wrapped(*args: Any, **kwargs: Any) -> Any:
             record_queue_wait_time = record_timing
 
             # Use a try/catch here to contain the blast radius of an exception being unhandled through the options lib
@@ -239,13 +239,13 @@ def retry(
     if not timeouts:
         timeout_exceptions = ()
 
-    def inner(func):
+    def inner(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args: Any, **kwargs: Any) -> Any | None:
             try:
                 return func(*args, **kwargs)
             except ignore:
-                return
+                return None
             except (RetryError, Retry, Ignore, Reject, MaxRetriesExceededError):
                 # We shouldn't interfere with exceptions that exist to communicate
                 # retry state.
@@ -266,7 +266,7 @@ def retry(
                     raise
             except ignore_and_capture:
                 sentry_sdk.capture_exception(level="info")
-                return
+                return None
             except exclude:
                 raise
             except on_silent as exc:
@@ -281,8 +281,8 @@ def retry(
     return inner
 
 
-def track_group_async_operation(function):
-    def wrapper(*args, **kwargs):
+def track_group_async_operation(function: Callable[..., Any]) -> Callable[..., Any]:
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         from sentry.utils import snuba
 
         try:

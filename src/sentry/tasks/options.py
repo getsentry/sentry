@@ -20,7 +20,7 @@ logger = logging.getLogger("sentry")
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(namespace=options_control_tasks),
 )
-def sync_options_control(cutoff=ONE_HOUR):
+def sync_options_control(cutoff: int = ONE_HOUR) -> None:
     _sync_options(cutoff)
 
 
@@ -29,11 +29,11 @@ def sync_options_control(cutoff=ONE_HOUR):
     queue="options",
     taskworker_config=TaskworkerConfig(namespace=options_tasks),
 )
-def sync_options(cutoff=ONE_HOUR):
+def sync_options(cutoff: int = ONE_HOUR) -> None:
     _sync_options(cutoff)
 
 
-def _sync_options(cutoff):
+def _sync_options(cutoff: int) -> None:
     """
     Ensures all options that have been updated (within the database) since
     ``cutoff`` have their correct values stored in the cache.

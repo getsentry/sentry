@@ -1,4 +1,6 @@
+from collections.abc import Generator
 from datetime import timedelta
+from typing import Any
 
 from django.utils import timezone
 
@@ -12,7 +14,7 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 
 
-def paginate_project_ids(paginate):
+def paginate_project_ids(paginate: int) -> Generator[list[int]]:
     id_cursor = -1
     while True:
         queryset = (
@@ -34,7 +36,7 @@ def paginate_project_ids(paginate):
         processing_deadline_duration=30,
     ),
 )
-def collect_project_platforms(paginate=1000, **kwargs):
+def collect_project_platforms(paginate: int = 1000, **kwargs: Any) -> None:
     now = timezone.now()
 
     for page_of_project_ids in paginate_project_ids(paginate):

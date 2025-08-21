@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
+from typing import Any
 
 from django.db import router
 from django.db.models import F
@@ -35,7 +36,9 @@ logger = logging.getLogger("sentry.auth")
         namespace=auth_control_tasks, processing_deadline_duration=30
     ),
 )
-def email_missing_links_control(org_id: int, actor_id: int, provider_key: str, **kwargs):
+def email_missing_links_control(
+    org_id: int, actor_id: int, provider_key: str, **kwargs: Any
+) -> None:
     # This seems dumb as the region method is the same, but we need to keep
     # queues separate so that the transition from monolith to siloed is clean
     _email_missing_links(org_id=org_id, sending_user_id=actor_id, provider_key=provider_key)
@@ -46,7 +49,7 @@ def email_missing_links_control(org_id: int, actor_id: int, provider_key: str, *
     queue="auth",
     taskworker_config=TaskworkerConfig(namespace=auth_tasks),
 )
-def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs):
+def email_missing_links(org_id: int, actor_id: int, provider_key: str, **kwargs: Any) -> None:
     _email_missing_links(org_id=org_id, sending_user_id=actor_id, provider_key=provider_key)
 
 
@@ -74,7 +77,7 @@ def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -
 )
 def email_unlink_notifications(
     org_id: int, sending_user_email: str, provider_key: str, actor_id: int | None = None
-):
+) -> None:
     try:
         org = Organization.objects.get(id=org_id)
         provider = manager.get(provider_key)
@@ -111,16 +114,16 @@ class OrganizationComplianceTask(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember):
+    def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember) -> None:
         """Prompt a member to comply with the new requirement."""
         raise NotImplementedError()
 
     def remove_non_compliant_members(
         self, org_id: int, actor_id: int | None, actor_key_id: int | None, ip_address: str | None
-    ):
+    ) -> None:
         actor = user_service.get_user(user_id=actor_id) if actor_id else None
 
-        def remove_member(org_member: OrganizationMember, user: RpcUser):
+        def remove_member(org_member: OrganizationMember, user: RpcUser) -> None:
             logging_data = {
                 "organization_id": org_id,
                 "user_id": user.id,
@@ -182,7 +185,7 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
             return user.has_2fa()
         return False
 
-    def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember):
+    def call_to_action(self, org: Organization, user: RpcUser, member: OrganizationMember) -> None:
         # send invite to setup 2fa
         email_context = {"url": member.get_invite_link(), "organization": org}
         subject = "{} {} Mandatory: Enable Two-Factor Authentication".format(
@@ -212,7 +215,12 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     ),
 )
 @retry
-def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):
+def remove_2fa_non_compliant_members(
+    org_id: int,
+    actor_id: int | None = None,
+    actor_key_id: int | None = None,
+    ip_address: str | None = None,
+) -> None:
     TwoFactorComplianceTask().remove_non_compliant_members(
         org_id, actor_id, actor_key_id, ip_address
     )

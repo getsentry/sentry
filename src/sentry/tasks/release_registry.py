@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.conf import settings
 from django.core.cache import cache
@@ -21,7 +22,7 @@ REQUEST_TIMEOUT = 10
 CACHE_TTL = 3600
 
 
-def _fetch_registry_url(relative_url):
+def _fetch_registry_url(relative_url: str) -> dict[str, Any]:
     if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
         return {}
 
@@ -39,7 +40,7 @@ def _fetch_registry_url(relative_url):
         return response.json()
 
 
-def _fetch_release_registry_data(**kwargs):
+def _fetch_release_registry_data(**kwargs: Any) -> None:
     """
     Fetch information about the latest SDK version from the release registry.
 
@@ -75,7 +76,7 @@ def _fetch_release_registry_data(**kwargs):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(namespace=sdk_tasks, processing_deadline_duration=65),
 )
-def fetch_release_registry_data(**kwargs):
+def fetch_release_registry_data(**kwargs: Any) -> None:
     _fetch_release_registry_data(**kwargs)
 
 
@@ -89,5 +90,5 @@ def fetch_release_registry_data(**kwargs):
         namespace=sdk_control_tasks, processing_deadline_duration=65
     ),
 )
-def fetch_release_registry_data_control(**kwargs):
+def fetch_release_registry_data_control(**kwargs: Any) -> None:
     _fetch_release_registry_data(**kwargs)

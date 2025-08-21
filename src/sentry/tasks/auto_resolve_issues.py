@@ -41,7 +41,7 @@ ONE_HOUR = 3600
     ),
 )
 @log_error_if_queue_has_items
-def schedule_auto_resolution():
+def schedule_auto_resolution() -> None:
     options_qs = ProjectOption.objects.filter(
         key__in=["sentry:resolve_age", "sentry:_last_auto_resolve"]
     )
@@ -80,7 +80,12 @@ def schedule_auto_resolution():
     ),
 )
 @log_error_if_queue_has_items
-def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
+def auto_resolve_project_issues(
+    project_id: int,
+    cutoff: datetime | None = None,
+    chunk_size: int = 1000,
+    **kwargs: Any,
+) -> None:
     project = Project.objects.get_from_cache(id=project_id)
     age = project.get_option("sentry:resolve_age", None)
     if not age:
@@ -89,7 +94,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     project.update_option("sentry:_last_auto_resolve", int(time()), reload_cache=False)
 
     if cutoff:
-        cutoff = datetime.fromtimestamp(cutoff, timezone.utc)
+        cutoff = datetime.fromtimestamp(float(str(cutoff)), timezone.utc)
     else:
         cutoff = django_timezone.now() - timedelta(hours=int(age))
 

@@ -6,6 +6,7 @@ from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry import eventstream, similarity, tsdb
+from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.config import TaskworkerConfig
@@ -37,8 +38,8 @@ def merge_groups(
     transaction_id: int | None = None,
     recursed: bool = False,
     eventstream_state: Mapping[str, Any] | None = None,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> bool | None:
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models.activity import Activity
     from sentry.models.environment import Environment
@@ -204,9 +205,17 @@ def merge_groups(
     elif eventstream_state:
         # All `from_object_ids` have been merged!
         eventstream.backend.end_merge(eventstream_state)
+    return None
 
 
-def merge_objects(models, group, new_group, limit=1000, logger=None, transaction_id=None):
+def merge_objects(
+    models: tuple[type[Any], ...],
+    group: Group,
+    new_group: Group,
+    limit: int = 1000,
+    logger: logging.Logger | None = None,
+    transaction_id: int | None = None,
+) -> bool:
     has_more = False
     for model in models:
         all_fields = [f.name for f in model._meta.get_fields()]

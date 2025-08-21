@@ -1,6 +1,7 @@
 import logging
 import time
 from collections import Counter
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
@@ -82,12 +83,12 @@ class GroupStacktraceData(TypedDict):
 
 
 def filter_snuba_results(
-    snuba_results,
-    groups_to_backfill_with_no_embedding,
-    project,
-    worker_number,
-    project_index_in_cohort,
-):
+    snuba_results: list[dict[str, Any]],
+    groups_to_backfill_with_no_embedding: list[int],
+    project: Project,
+    worker_number: int,
+    project_index_in_cohort: int,
+) -> tuple[list[GroupEventRow], list[int]]:
     """
     Not all of the groups in `groups_to_backfill_with_no_embedding` are guaranteed to have
     corresponding snuba data. Filter both that and the snuba results to weed out groups which don't
@@ -161,7 +162,9 @@ def create_project_cohort(
     return list(project_cohort_list)
 
 
-def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_size: int):
+def _make_postgres_call_with_filter(
+    group_id_filter: Q, project_id: int, batch_size: int
+) -> tuple[list[tuple[int, Any | None]], int | None, int]:
     """
     Return the filtered batch of group ids to be backfilled, the last group id in the raw batch,
     and the length of the raw batch.
@@ -207,13 +210,13 @@ def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_s
 
 @sentry_sdk.tracing.trace
 def get_current_batch_groups_from_postgres(
-    project,
-    last_processed_group_id,
-    batch_size,
-    worker_number,
-    project_index_in_cohort,
+    project: Project,
+    last_processed_group_id: int | None,
+    batch_size: int,
+    worker_number: int,
+    project_index_in_cohort: int,
     enable_ingestion: bool = False,
-):
+) -> tuple[list[int], int | None]:
     group_id_filter = Q()
     if last_processed_group_id is not None:
         group_id_filter = Q(id__lt=last_processed_group_id)
@@ -282,7 +285,11 @@ def get_current_batch_groups_from_postgres(
 
 
 @sentry_sdk.tracing.trace
-def get_data_from_snuba(project, groups_to_backfill_with_no_embedding, worker_number=None):
+def get_data_from_snuba(
+    project: Project,
+    groups_to_backfill_with_no_embedding: list[int],
+    worker_number: int | None = None,
+) -> list[dict[str, Any]]:
     # TODO(jangjodi): Only query per group if it has over 1 million events, or batch queries with new where condition
     events_entity = Entity("events", alias="events")
 
@@ -336,7 +343,7 @@ def get_data_from_snuba(project, groups_to_backfill_with_no_embedding, worker_nu
                 project,
                 snuba_requests,
                 Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                worker_number,
+                worker_number or 0,
             )
 
         snuba_results += snuba_results_chunk
@@ -344,7 +351,9 @@ def get_data_from_snuba(project, groups_to_backfill_with_no_embedding, worker_nu
     return snuba_results
 
 
-def _make_snuba_call(project, snuba_requests, referrer, worker_number):
+def _make_snuba_call(
+    project: Project, snuba_requests: list[Request], referrer: str, worker_number: int
+) -> list[dict[str, Any]]:
     try:
         snuba_results = _retry_operation(
             bulk_snuba_queries,
@@ -377,12 +386,12 @@ def _make_snuba_call(project, snuba_requests, referrer, worker_number):
 
 @sentry_sdk.tracing.trace
 def get_events_from_nodestore(
-    project,
-    snuba_results,
-    groups_to_backfill_with_no_embedding_has_snuba_row,
-    worker_number=None,
-    project_index_in_cohort=None,
-):
+    project: Project,
+    snuba_results: list[GroupEventRow],
+    groups_to_backfill_with_no_embedding_has_snuba_row: list[int],
+    worker_number: int | None = None,
+    project_index_in_cohort: int | None = None,
+) -> tuple[GroupStacktraceData, dict[int, str]]:
     nodestore_events = lookup_group_data_stacktrace_bulk(project, snuba_results, worker_number)
     # If nodestore returns no data
     if len(nodestore_events) == 0:
@@ -483,10 +492,10 @@ def _make_seer_call(
 
 @sentry_sdk.tracing.trace
 def send_group_and_stacktrace_to_seer(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-    nodestore_results,
-    project_id,
-):
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row: list[int],
+    nodestore_results: GroupStacktraceData,
+    project_id: int,
+) -> BulkCreateGroupingRecordsResponse | None:
     with metrics.timer(
         f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -504,11 +513,13 @@ def send_group_and_stacktrace_to_seer(
 
 @sentry_sdk.tracing.trace
 def send_group_and_stacktrace_to_seer_multithreaded(
-    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-    nodestore_results,
-    project_id,
-):
-    def process_chunk(chunk_data, chunk_stacktrace):
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row: list[int],
+    nodestore_results: GroupStacktraceData,
+    project_id: int,
+) -> dict[str, Any]:
+    def process_chunk(
+        chunk_data: dict[str, Any], chunk_stacktrace: list[str]
+    ) -> BulkCreateGroupingRecordsResponse | None:
         return _make_seer_call(
             CreateGroupingRecordsRequest(
                 group_id_list=chunk_data["group_ids"],
@@ -559,13 +570,17 @@ def send_group_and_stacktrace_to_seer_multithreaded(
             "groups_with_neighbor": {},
         }
         for seer_response in seer_responses:
+            if seer_response is None:
+                aggregated_response["success"] = False
+                aggregated_response.update({"reason": "seer_response is None"})
+                return aggregated_response
             if not seer_response["success"]:
                 aggregated_response["success"] = False
-                aggregated_response.update({"reason": seer_response["reason"]})
+                aggregated_response.update({"reason": seer_response.get("reason")})
                 return aggregated_response
 
             aggregated_response["groups_with_neighbor"].update(
-                seer_response["groups_with_neighbor"]
+                seer_response.get("groups_with_neighbor", {})
             )
 
         return aggregated_response
@@ -573,14 +588,14 @@ def send_group_and_stacktrace_to_seer_multithreaded(
 
 @sentry_sdk.tracing.trace
 def update_groups(
-    project,
-    seer_response,
-    group_id_batch_filtered,
-    group_hashes_dict,
-    worker_number,
-    project_index_in_cohort,
-):
-    groups_with_neighbor = seer_response["groups_with_neighbor"]
+    project: Project,
+    seer_response: BulkCreateGroupingRecordsResponse,
+    group_id_batch_filtered: list[int],
+    group_hashes_dict: dict[int, str],
+    worker_number: int,
+    project_index_in_cohort: int | None,
+) -> None:
+    groups_with_neighbor = seer_response.get("groups_with_neighbor", {})
     groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
     for group in groups:
         seer_similarity: dict[str, Any] = {
@@ -640,7 +655,7 @@ def update_groups(
     )
 
 
-def _make_nodestore_call(project, node_keys):
+def _make_nodestore_call(project: Project, node_keys: list[str]) -> dict[str, Any]:
     bulk_data = _retry_operation(
         nodestore.backend.get_multi,
         node_keys,
@@ -653,8 +668,8 @@ def _make_nodestore_call(project, node_keys):
 
 
 @sentry_sdk.trace
-def make_nodestore_call_multithreaded(project, node_keys):
-    def process_chunk(chunk):
+def make_nodestore_call_multithreaded(project: Project, node_keys: list[str]) -> dict[str, Any]:
+    def process_chunk(chunk: list[str]) -> dict[str, Any]:
         return _make_nodestore_call(project, chunk)
 
     chunk_size = options.get("similarity.backfill_nodestore_chunk_size")
@@ -748,7 +763,14 @@ def lookup_group_data_stacktrace_bulk(
         return groups_to_event
 
 
-def _retry_operation(operation, *args, retries, delay, exceptions, **kwargs):
+def _retry_operation(
+    operation: Callable[..., Any],
+    *args: Any,
+    retries: int,
+    delay: int,
+    exceptions: Any,
+    **kwargs: Any,
+) -> Any:
     for attempt in range(retries):
         try:
             return operation(*args, **kwargs)
@@ -761,7 +783,7 @@ def _retry_operation(operation, *args, retries, delay, exceptions, **kwargs):
 
 def delete_seer_grouping_records(
     project_id: int,
-):
+) -> None:
     """
     Delete seer grouping records for the project_id.
     Delete seer_similarity from the project's groups metadata.
@@ -789,7 +811,9 @@ def delete_seer_grouping_records(
         Group.objects.bulk_update(groups_with_seer_metadata, ["data"])
 
 
-def get_next_project_from_cohort(current_project_index, cohort_projects):
+def get_next_project_from_cohort(
+    current_project_index: int, cohort_projects: list[int]
+) -> tuple[int | None, int | None]:
     next_project_index = current_project_index + 1
     if next_project_index >= len(cohort_projects):
         return None, None

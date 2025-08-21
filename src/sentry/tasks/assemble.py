@@ -4,7 +4,8 @@ import hashlib
 import logging
 import uuid
 from datetime import datetime
-from typing import IO, TYPE_CHECKING, NamedTuple
+from types import TracebackType
+from typing import IO, TYPE_CHECKING, Any, NamedTuple
 
 import orjson
 import sentry_sdk
@@ -73,15 +74,22 @@ class AssembleResult(NamedTuple):
     # File object stored in the database.
     bundle: File
     # Temporary in-memory object representing the file used for efficiency.
-    bundle_temp_file: IO
+    bundle_temp_file: IO[bytes]
 
-    def delete_bundle(self):
+    def delete_bundle(self) -> None:
         self.bundle.delete()
         self.bundle_temp_file.close()
 
 
 @sentry_sdk.tracing.trace
-def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> AssembleResult | None:
+def assemble_file(
+    task: str,
+    org_or_project: Project | Organization,
+    name: str,
+    checksum: str,
+    chunks: list[str],
+    file_type: str,
+) -> AssembleResult | None:
     """
     Verifies and assembles a file model from chunks.
 
@@ -161,7 +169,7 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
     return AssembleResult(bundle=file, bundle_temp_file=temp_file)
 
 
-def _get_cache_key(task, scope, checksum):
+def _get_cache_key(task: str, scope: str | int, checksum: str) -> str:
     """Computes the cache key for assemble status.
 
     ``task`` must be one of the ``AssembleTask`` values. The scope can be the
@@ -184,13 +192,15 @@ def _get_cache_key(task, scope, checksum):
     )
 
 
-def _get_redis_cluster_for_assemble() -> RedisCluster:
+def _get_redis_cluster_for_assemble() -> RedisCluster[Any]:
     cluster_key = settings.SENTRY_ASSEMBLE_CLUSTER
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
 @sentry_sdk.tracing.trace
-def get_assemble_status(task, scope, checksum):
+def get_assemble_status(
+    task: str, scope: str, checksum: str
+) -> tuple[ChunkFileState | None, str | None]:
     """
     Checks the current status of an assembling task.
 
@@ -210,7 +220,13 @@ def get_assemble_status(task, scope, checksum):
 
 
 @sentry_sdk.tracing.trace
-def set_assemble_status(task, scope, checksum, state, detail=None):
+def set_assemble_status(
+    task: str,
+    scope: str | int,
+    checksum: str,
+    state: str | ChunkFileState,
+    detail: str | None = None,
+) -> None:
     """
     Updates the status of an assembling task. It is cached for 10 minutes.
     """
@@ -220,7 +236,7 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
 
 
 @sentry_sdk.tracing.trace
-def delete_assemble_status(task, scope, checksum):
+def delete_assemble_status(task: str, scope: str | int, checksum: str) -> None:
     """
     Deletes the status of an assembling task.
     """
@@ -238,7 +254,14 @@ def delete_assemble_status(task, scope, checksum):
         processing_deadline_duration=60 * 3,
     ),
 )
-def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
+def assemble_dif(
+    project_id: int,
+    name: str,
+    checksum: str,
+    chunks: list[str],
+    debug_id: str | None = None,
+    **kwargs: Any,
+) -> None:
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
@@ -332,7 +355,7 @@ class ArtifactBundlePostAssembler:
         self.project_ids = project_ids
         self.is_release_bundle_migration = is_release_bundle_migration
 
-    def _validate_bundle_guarded(self):
+    def _validate_bundle_guarded(self) -> None:
         try:
             self._validate_bundle()
         except Exception:
@@ -342,16 +365,21 @@ class ArtifactBundlePostAssembler:
             self.delete_bundle_file_object()
             raise AssembleArtifactsError("the bundle is invalid")
 
-    def _validate_bundle(self):
+    def _validate_bundle(self) -> None:
         self.archive = ArtifactBundleArchive(self.assemble_result.bundle_temp_file)
         metrics.incr(
             "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
         )
 
-    def __enter__(self):
+    def __enter__(self) -> ArtifactBundlePostAssembler:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         # In case any exception happens in the `with` block, we will capture it, and we want to delete the actual `File`
         # object created in the database, to avoid orphan entries.
         if exc_type is not None:
@@ -359,10 +387,10 @@ class ArtifactBundlePostAssembler:
 
         self.archive.close()
 
-    def delete_bundle_file_object(self):
+    def delete_bundle_file_object(self) -> None:
         self.assemble_result.delete_bundle()
 
-    def post_assemble(self):
+    def post_assemble(self) -> None:
         if self.archive.artifact_count == 0:
             metrics.incr("tasks.assemble.artifact_bundle.discarded_empty_bundle")
             self.delete_bundle_file_object()
@@ -569,7 +597,7 @@ class ArtifactBundlePostAssembler:
 
             return existing_artifact_bundle, False
 
-    def _remove_duplicate_artifact_bundles(self, ids: list[int]):
+    def _remove_duplicate_artifact_bundles(self, ids: list[int]) -> None:
         # In case there are no ids to delete, we don't want to run the query, otherwise it will result in a deletion of
         # all ArtifactBundle(s) with the specific bundle_id.
         if not ids:
@@ -580,7 +608,9 @@ class ArtifactBundlePostAssembler:
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
     @sentry_sdk.tracing.trace
-    def _index_bundle_if_needed(self, artifact_bundle: ArtifactBundle, release: str, dist: str):
+    def _index_bundle_if_needed(
+        self, artifact_bundle: ArtifactBundle, release: str, dist: str
+    ) -> None:
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
 
@@ -618,15 +648,15 @@ class ArtifactBundlePostAssembler:
     ),
 )
 def assemble_artifacts(
-    org_id,
-    version,
-    checksum,
-    chunks,
+    org_id: int,
+    version: str,
+    checksum: str,
+    chunks: list[str],
     # These params have been added for supporting artifact bundles assembling.
-    project_ids=None,
-    dist=None,
-    is_release_bundle_migration=False,
-    **kwargs,
+    project_ids: list[int] | None = None,
+    dist: str | None = None,
+    is_release_bundle_migration: bool = False,
+    **kwargs: Any,
 ) -> None:
     """
     Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.

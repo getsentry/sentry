@@ -76,8 +76,8 @@ def process_incr(
     extra: dict[str, Any] | None = None,
     signal_only: bool | None = None,
     model_name: str | None = None,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> None:
     """
     Processes a buffer event.
     """
@@ -101,7 +101,7 @@ def process_incr(
     )
 
 
-def buffer_incr(model: type[Model], *args, **kwargs):
+def buffer_incr(model: type[Model], *args: Any, **kwargs: Any) -> None:
     from sentry import buffer
 
     sentry_sdk.set_tag("model", model._meta.model_name)

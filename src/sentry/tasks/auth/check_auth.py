@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from random import randrange
+from typing import Any
 
 from django.db import router
 from django.utils import timezone
@@ -33,7 +34,7 @@ AUTH_CHECK_SKEW = 3600 * 2
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(namespace=auth_control_tasks),
 )
-def check_auth(chunk_size=100, **kwargs):
+def check_auth(chunk_size: int = 100, **kwargs: Any) -> None:
     """
     Checks for batches of auth identities and schedules them to refresh in a batched job.
     That batched job can recursively trigger check_auth to continue processing auth identities if necessary.
@@ -65,7 +66,7 @@ def check_auth(chunk_size=100, **kwargs):
     silo_mode=SiloMode.CONTROL,
     taskworker_config=TaskworkerConfig(namespace=auth_control_tasks),
 )
-def check_auth_identity(auth_identity_id: int, **kwargs):
+def check_auth_identity(auth_identity_id: int, **kwargs: Any) -> None:
     check_single_auth_identity(auth_identity_id)
 
 
@@ -80,9 +81,9 @@ def check_auth_identity(auth_identity_id: int, **kwargs):
 def check_auth_identities(
     auth_identity_id: int | None = None,
     auth_identity_ids: list[int] | None = None,
-    chunk_size=100,
-    **kwargs,
-):
+    chunk_size: int = 100,
+    **kwargs: Any,
+) -> None:
     if auth_identity_ids is None and isinstance(auth_identity_id, int):
         auth_identity_ids = [auth_identity_id]
 
@@ -99,7 +100,7 @@ def check_auth_identities(
     check_auth.apply_async(kwargs={"chunk_size": chunk_size})
 
 
-def check_single_auth_identity(auth_identity_id: int):
+def check_single_auth_identity(auth_identity_id: int) -> None:
     try:
         auth_identity = AuthIdentity.objects.get(id=auth_identity_id)
     except AuthIdentity.DoesNotExist:
