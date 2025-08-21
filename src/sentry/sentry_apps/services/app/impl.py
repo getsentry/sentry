@@ -33,6 +33,7 @@ from sentry.sentry_apps.services.app import (
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
+from sentry.sentry_apps.services.app.model import SentryAppUpdateArgs
 from sentry.sentry_apps.services.app.serial import (
     serialize_sentry_app,
     serialize_sentry_app_component,
@@ -341,6 +342,24 @@ class DatabaseBackedAppService(AppService):
             owner_id=organization_id, application__isnull=False
         ).exclude(status=SentryAppStatus.PUBLISHED)
         return [serialize_sentry_app(app) for app in sentry_apps]
+
+    def update_sentry_app(
+        self,
+        *,
+        id: int,
+        attrs: SentryAppUpdateArgs,
+    ) -> Any:
+        try:
+            sentry_app = SentryApp.objects.using_replica().get(id=id)
+        except SentryApp.DoesNotExist:
+            return None
+
+        if len(attrs):
+            for k, v in attrs.items():
+                setattr(sentry_app, k, v)
+            sentry_app.save()
+
+        return serialize(sentry_app)
 
     def get_internal_integrations(
         self, *, organization_id: int, integration_name: str

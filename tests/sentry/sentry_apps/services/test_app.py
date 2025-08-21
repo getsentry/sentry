@@ -260,6 +260,26 @@ def test_get_sentry_apps_for_organization() -> None:
 
 @django_db_all(transaction=True)
 @all_silo_test
+def test_update_sentry_app() -> None:
+    org = Factories.create_organization()
+
+    sentry_app = Factories.create_internal_integration(
+        name="Test Integration",
+        organization_id=org.id,
+        events=[
+            "issue.resolved",
+            "issue.unresolved",
+            "issue.ignored",
+            "issue.assigned",
+            "error.created",
+        ],
+    )
+    result = app_service.update_sentry_app(id=sentry_app.id, attrs=dict(events=["error.created"]))
+    assert result["events"] == ["error.created"]
+
+
+@django_db_all(transaction=True)
+@all_silo_test
 def test_get_internal_integrations() -> None:
     org = Factories.create_organization()
     other_org = Factories.create_organization()
