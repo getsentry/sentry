@@ -613,7 +613,7 @@ export function EventGraph({
             incidentOutages?.data?.length === 1 ? (
               // @ts-expect-error - HACKWEEK
               <Text variant={incidentTextLevel} bold={incidentTextBold} size="sm">
-                Ongoing Incident: {incidentOutages?.data?.pop()?.host?.name} outage
+                Ongoing Incident: {incidentOutages?.data?.at(-1)?.host?.name} outage
               </Text>
             ) : incidentOutages?.data && incidentOutages?.data?.length > 1 ? (
               // @ts-expect-error - HACKWEEK
