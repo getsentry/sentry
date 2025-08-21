@@ -250,8 +250,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert de.date_finished is not None
         assert de.date_expired is not None
         assert de.file_id is not None
-        assert isinstance(de._get_file(), File)
         file = de._get_file()
+        assert isinstance(file, File)
         assert file.headers == {"Content-Type": "text/csv"}
         assert file.size is not None
         assert file.checksum is not None
@@ -599,8 +599,10 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         with self.tasks():
             assemble_download(de.id, batch_size=1)
         de = ExportedData.objects.get(id=de.id)
+        file = de._get_file()
+        assert isinstance(file, File)
         # Convert raw csv to list of line-strings
-        with de._get_file().getfile() as f:
+        with file.getfile() as f:
             header, raw1, raw2, raw3 = f.read().strip().split(b"\r\n")
         assert header == b"environment"
 

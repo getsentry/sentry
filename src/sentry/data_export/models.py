@@ -69,7 +69,7 @@ class ExportedData(Model):
         return f"{export_type}_{date}_{self.id}.csv"
 
     @staticmethod
-    def format_date(date: datetime) -> str | None:
+    def format_date(date: datetime | None) -> str | None:
         # Example: 12:21 PM on July 21, 2020 (UTC)
         return None if date is None else date.strftime("%-I:%M %p on %B %d, %Y (%Z)")
 
