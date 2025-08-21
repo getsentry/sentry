@@ -17,7 +17,7 @@ interface SeenIssue {
 /**
  * Get all seen issue IDs
  */
-export function getSeenIssues(): SeenIssue[] {
+function getSeenIssues(): SeenIssue[] {
   try {
     const stored = localStorage.getItem(SEEN_ISSUES_KEY);
     if (!stored) {
@@ -59,7 +59,7 @@ export function markIssueSeen(issue: Group): void {
 /**
  * Get all seen issue objects
  */
-export function getSeenIssueObjects(): Group[] {
+function getSeenIssueObjects(): Group[] {
   const stored = localStorage.getItem(SEEN_ISSUES_KEY);
   if (!stored) {
     return [];
@@ -72,7 +72,7 @@ export function getSeenIssueObjects(): Group[] {
 /**
  * Get seen issue IDs only (backward compatibility)
  */
-export function getSeenIssueIds(): string[] {
+function getSeenIssueIds(): string[] {
   const seenIssues = getSeenIssues();
   return seenIssues.map(issue => issue.id);
 }
@@ -80,7 +80,7 @@ export function getSeenIssueIds(): string[] {
 /**
  * Check if an issue has been seen
  */
-export function hasSeenIssue(issueId: string): boolean {
+function hasSeenIssue(issueId: string): boolean {
   const seenIssues = getSeenIssues();
   return seenIssues.some(issue => issue.id === issueId);
 }
@@ -88,7 +88,7 @@ export function hasSeenIssue(issueId: string): boolean {
 /**
  * Clear all seen issues (optional utility for user settings)
  */
-export function clearSeenIssues(): void {
+function clearSeenIssues(): void {
   localStorage.removeItem(SEEN_ISSUES_KEY);
 }
 
