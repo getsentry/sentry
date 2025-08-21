@@ -180,6 +180,10 @@ export function useInfiniteTestResults({
               lastRun: updatedAt,
               flakeRate: flakeRate * 100,
               isBrokenTest,
+              totalPassCount,
+              totalFailCount,
+              totalSkipCount,
+              totalFlakyFailCount,
             };
           }
         )

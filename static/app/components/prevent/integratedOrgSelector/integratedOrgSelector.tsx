@@ -40,10 +40,11 @@ function OrgFooterMessage() {
         <IconInfo size="sm" style={{margin: '2px 0'}} />
         <div>
           <FooterInfoHeading>
-            To access <Link to="placeholder">Integrated Organization</Link>
+            To access{' '}
+            <Link to="https://github.com/apps/sentry-io">Integrated Organization</Link>
           </FooterInfoHeading>
           <FooterInfoSubheading>
-            Ensure you log in to the same <Link to="placeholder">GitHub identity</Link>
+            Ensure admins approve the installation.
           </FooterInfoSubheading>
         </div>
       </Flex>
