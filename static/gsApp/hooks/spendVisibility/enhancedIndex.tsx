@@ -1,4 +1,5 @@
-import type {OrganizationStatsProps} from 'sentry/views/organizationStats/index';
+import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import {OrganizationStats} from 'sentry/views/organizationStats/index';
 
 import EnhancedUsageStatsOrganization from './enhancedUsageStatsOrganization';
@@ -29,9 +30,6 @@ class EnhancedOrganizationStats extends OrganizationStats {
   }
 }
 
-// HACK: Typescript does not like the inheritance from OrganizationStats
-function ComponentWrapper(props: OrganizationStatsProps) {
-  return <EnhancedOrganizationStats {...props} />;
-}
-
-export default ComponentWrapper;
+export default withPageFilters(
+  withOrganization(EnhancedOrganizationStats)
+) as React.ComponentType;

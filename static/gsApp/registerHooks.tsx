@@ -63,7 +63,6 @@ import hookRootRoutes from 'getsentry/hooks/rootRoutes';
 import hookSettingsRoutes from 'getsentry/hooks/settingsRoutes';
 import hookSidebarDropdownMenu from 'getsentry/hooks/sidebarDropdownMenu';
 import hookSidebarHelpMenu from 'getsentry/hooks/sidebarHelpMenu';
-import EnhancedOrganizationStats from 'getsentry/hooks/spendVisibility/enhancedIndex';
 import SpikeProtectionProjectSettings from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
 import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
@@ -100,6 +99,10 @@ const DisabledDashboardPage = lazy(
 );
 
 const DisabledMemberViewLazy = lazy(() => import('getsentry/hooks/disabledMemberView'));
+
+const LazyEnhancedOrganizationStats = lazy(
+  () => import('getsentry/hooks/spendVisibility/enhancedIndex')
+);
 
 const GETSENTRY_HOOKS: Partial<Hooks> = {
   /**
@@ -227,7 +230,9 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:dashboards-header': () => DashboardBanner,
   'component:org-stats-banner': () => OrgStatsBanner,
   'component:org-stats-profiling-banner': () => OrgStatsProfilingBanner,
-  'component:enhanced-org-stats': () => EnhancedOrganizationStats,
+  'component:enhanced-org-stats': () => (
+    <LazyLoad LazyComponent={LazyEnhancedOrganizationStats} />
+  ),
   'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,

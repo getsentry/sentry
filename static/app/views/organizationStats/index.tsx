@@ -439,12 +439,14 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
   }
 }
 
+const WrappedHookOrgStats = withPageFilters(withOrganization(OrganizationStats)) as any;
+
 const HookOrgStats = HookOrDefault({
   hookName: 'component:enhanced-org-stats',
-  defaultComponent: OrganizationStats,
+  defaultComponent: WrappedHookOrgStats,
 });
 
-export default withPageFilters(withOrganization(HookOrgStats));
+export default HookOrgStats;
 
 const DropdownDataCategory = styled(CompactSelect)`
   width: auto;
