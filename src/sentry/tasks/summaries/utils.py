@@ -1,4 +1,5 @@
-from datetime import timedelta
+from collections.abc import Mapping
+from datetime import datetime, timedelta
 from typing import Any, cast
 
 import sentry_sdk
@@ -57,7 +58,7 @@ class OrganizationReportContext:
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """
         Returns True if every project context is empty.
         """
@@ -81,24 +82,24 @@ class ProjectContext:
     regression_substatus_count = 0
     total_substatus_count = 0
 
-    def __init__(self, project):
+    def __init__(self, project: Project) -> None:
         self.project = project
 
         self.key_errors_by_id: list[tuple[int, int]] = []
         self.key_errors_by_group: list[tuple[Group, int]] = []
         # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
-        self.key_transactions = []
-        # Array of (Group, count)
-        self.key_performance_issues = []
+        self.key_transactions: list[tuple[str, int, float, int, float]] = []
+        # Array of (Group, count) or (Group, GroupHistory | None, count)
+        self.key_performance_issues: list[tuple[Group, ...]] = []
 
-        self.key_replay_events = []
+        self.key_replay_events: list[tuple[str, int, float, int, float]] = []
 
         # Dictionary of { timestamp: count }
-        self.error_count_by_day = {}
+        self.error_count_by_day: dict[datetime, int] = {}
         # Dictionary of { timestamp: count }
-        self.transaction_count_by_day = {}
+        self.transaction_count_by_day: dict[datetime, int] = {}
         # Dictionary of { timestamp: count }
-        self.replay_count_by_day = {}
+        self.replay_count_by_day: dict[datetime, int] = {}
 
     def __repr__(self) -> str:
         return "\n".join(
@@ -110,7 +111,7 @@ class ProjectContext:
             ]
         )
 
-    def check_if_project_is_empty(self):
+    def check_if_project_is_empty(self) -> bool:
         return (
             not self.key_errors_by_group
             and not self.key_transactions
@@ -132,12 +133,12 @@ class DailySummaryProjectContext:
         self.project = project
         self.key_errors_by_id: list[tuple[int, int]] = []
         self.key_errors_by_group: list[tuple[Group, int]] = []
-        self.key_performance_issues: list[tuple[Group, int]] = []
+        self.key_performance_issues: list[tuple[Group, ...]] = []
         self.escalated_today: list[Group] = []
         self.regressed_today: list[Group] = []
         self.new_in_release: dict[int, list[Group]] = {}
 
-    def check_if_project_is_empty(self):
+    def check_if_project_is_empty(self) -> bool:
         return (
             not self.key_errors_by_group
             and not self.key_performance_issues
@@ -228,9 +229,11 @@ def project_key_errors(
         return key_errors
 
 
-def project_key_performance_issues(ctx: OrganizationReportContext, project: Project, referrer: str):
+def project_key_performance_issues(
+    ctx: OrganizationReportContext, project: Project, referrer: str
+) -> list[tuple[Group, int]] | None:
     if not project.first_event:
-        return
+        return None
 
     prefix = (
         "daily_summary"
@@ -257,7 +260,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
         group_id_to_group = {group.id: group for group in groups}
 
         if len(group_id_to_group) == 0:
-            return
+            return None
 
         # Fine grained query for 3 most frequent events happend during last week
         query = Query(
@@ -295,9 +298,11 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
         return key_performance_issues
 
 
-def project_key_transactions_this_week(ctx, project):
+def project_key_transactions_this_week(
+    ctx: OrganizationReportContext, project: Project
+) -> Mapping[str, Any]:
     if not project.flags.has_transactions:
-        return
+        return {}
     with sentry_sdk.start_span(op="weekly_reports.project_key_transactions"):
         # Take the 3 most frequently occuring transactions this week
         query = Query(
@@ -322,7 +327,9 @@ def project_key_transactions_this_week(ctx, project):
         return key_transactions
 
 
-def project_key_transactions_last_week(ctx, project, key_transactions):
+def project_key_transactions_last_week(
+    ctx: OrganizationReportContext, project: Project, key_transactions: list[dict[str, Any]]
+) -> Mapping[str, Any]:
     # Query the p95 for those transactions last week
     query = Query(
         match=Entity("transactions"),
@@ -374,14 +381,14 @@ def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
         ]
 
 
-def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
+def fetch_key_performance_issue_groups(ctx: OrganizationReportContext) -> None:
     # Organization pass. Depends on project_key_performance_issue.
     all_groups = []
     for project_ctx in ctx.projects_context_map.values():
         all_groups.extend([group for group, count in project_ctx.key_performance_issues])
 
     if len(all_groups) == 0:
-        return
+        return None
 
     group_id_to_group = {group.id: group for group in all_groups}
 
@@ -397,12 +404,14 @@ def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
 
     for project_ctx in ctx.projects_context_map.values():
         project_ctx.key_performance_issues = [
-            (group, group_id_to_group_history.get(group.id, None), count)
+            (group, group_id_to_group_history.get(group.id, None), count)  # type: ignore[misc]
             for group, count in project_ctx.key_performance_issues
         ]
 
 
-def project_event_counts_for_organization(start, end, ctx, referrer: str) -> list[dict[str, Any]]:
+def project_event_counts_for_organization(
+    start: datetime, end: datetime, ctx: OrganizationReportContext, referrer: str
+) -> list[dict[str, Any]]:
     """
     Populates context.projects which is { project_id: ProjectContext }
     """
