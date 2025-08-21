@@ -3,7 +3,9 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {Severity} from 'sentry/components/charts/incidentSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {useIncidentOutage} from 'sentry/components/charts/useIncidentOutage';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
@@ -36,6 +38,22 @@ export function ChartVisualization({
   chartRef,
 }: ChartVisualizationProps) {
   const theme = useTheme();
+
+  const {incidentData, isPendingIncidentData} = useIncidentOutage();
+
+  const incidents = useMemo(() => {
+    return [
+      {
+        hostId: incidentData?.host?.id?.toString() ?? '0',
+        id: incidentData?.id ?? 0,
+        regionId: incidentData?.regions?.[0]?.id?.toString() ?? '0',
+        severity: (incidentData?.severity ?? 'maintenance') as Severity,
+        start: new Date(incidentData?.start ?? '').getTime(),
+        title: incidentData?.aiSummary ?? '',
+        end: incidentData?.end ? new Date(incidentData?.end).getTime() : undefined,
+      },
+    ];
+  }, [incidentData]);
 
   const plottables = useMemo(() => {
     const formattedYAxis = prettifyAggregation(chartInfo.yAxis) ?? chartInfo.yAxis;
@@ -72,7 +90,7 @@ export function ChartVisualization({
     chartInfo.timeseriesResult.isPending
   );
 
-  if (chartInfo.timeseriesResult.isPending) {
+  if (chartInfo.timeseriesResult.isPending || isPendingIncidentData) {
     if (previousPlottables.length === 0) {
       const loadingMessage =
         chartInfo.timeseriesResult.isFetching &&
@@ -122,6 +140,7 @@ export function ChartVisualization({
       onBrushStart={onBrushStart}
       toolBox={toolBox}
       plottables={plottables}
+      incidents={incidents}
     />
   );
 }
