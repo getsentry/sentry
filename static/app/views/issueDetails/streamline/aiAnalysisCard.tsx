@@ -230,6 +230,19 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
     };
   }, [showStacktraceDrawer]);
 
+  // Prevent body scroll when drawer is open
+  useEffect(() => {
+    if (showStacktraceDrawer) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showStacktraceDrawer]);
+
   const startAutofix = async () => {
     try {
       console.log('Starting autofix for issue', group.id);
@@ -1336,7 +1349,7 @@ const ChevronIcon = styled('span')<{direction: 'down' | 'right'}>`
   display: flex;
   align-items: center;
   transition: transform 0.2s ease;
-  transform: ${p => (p.direction === 'down' ? 'rotate(0)' : 'rotate(-90deg)')};
+  transform: ${p => (p.direction === 'down' ? 'rotate(180deg)' : 'rotate(90deg)')};
   color: ${p => p.theme.gray300};
 
   svg {
@@ -1952,7 +1965,7 @@ const CopyDropdown = styled('div')`
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   overflow: hidden;
-  margin-top: ${space(0.5)};
+  margin-top: ${space(0.25)};
 `;
 
 const CopyOption = styled('div')`
@@ -1994,7 +2007,7 @@ const DrawerOverlay = styled('div')`
 
 const DrawerContent = styled('div')`
   position: relative;
-  width: 100%;
+  width: calc(100% - 320px);
   height: 85vh;
   background: ${p => p.theme.background};
   border-radius: ${space(2)} ${space(2)} 0 0;
