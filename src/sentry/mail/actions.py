@@ -13,7 +13,7 @@ from sentry.notifications.types import (
 from sentry.notifications.utils.participants import determine_eligible_recipients
 from sentry.rules.actions.base import EventAction
 from sentry.rules.base import CallbackFuture
-from sentry.services.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -38,9 +38,10 @@ class NotifyEmailAction(EventAction):
         return self.label.format(**self.data)
 
     def after(
-        self, event: GroupEvent, notification_uuid: str | None = None
+        self, event: GroupEvent | Event, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture]:
         group = event.group
+        assert group is not None
         extra = {
             "event_id": event.event_id,
             "group_id": group.id,

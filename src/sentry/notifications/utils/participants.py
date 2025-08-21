@@ -228,7 +228,7 @@ def get_owners(
 def get_owner_reason(
     project: Project,
     target_type: ActionTargetType,
-    event: Event | None = None,
+    event: Event | GroupEvent | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> str | None:
     """
@@ -283,7 +283,7 @@ def determine_eligible_recipients(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: int | None = None,
-    event: GroupEvent | Event | None = None,
+    event: Event | GroupEvent | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> Iterable[Actor]:
     """
@@ -353,7 +353,7 @@ def get_send_to(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: int | None = None,
-    event: Event | None = None,
+    event: Event | GroupEvent | None = None,
     notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
     rules: Iterable[Rule] | None = None,

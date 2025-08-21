@@ -21,7 +21,7 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.plugins.base.structs import Notification
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.types.actor import Actor, ActorType
 from sentry.utils import metrics
@@ -42,7 +42,7 @@ class MailAdapter:
 
     def rule_notify(
         self,
-        event: Event,
+        event: Event | GroupEvent,
         futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
         target_identifier: int | None = None,
