@@ -1,4 +1,5 @@
 import {useMemo, useState} from 'react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -96,6 +97,8 @@ function CommentsList({
   showLineNumbers = false,
   filename,
 }: CommentsListProps) {
+  const [loadingComments, setLoadingComments] = useState<Set<number>>(new Set());
+
   const sortedComments = useMemo(
     () =>
       comments.sort(
@@ -111,17 +114,17 @@ function CommentsList({
         filename={commentFilename}
         comment={comment}
         onRun={(_instructions: string) => {
-          // Here you would call your Seer analysis API
-          // TODO: Implement actual Seer API call
-          // const analysis = await api.requestPromise('/seer/analyze', {
-          //   method: 'POST',
-          //   data: {
-          //     filename: commentFilename,
-          //     instructions: _instructions,
-          //     comment,
-          //     comments: comments.filter(c => c.path === commentFilename)
-          //   }
-          // });
+          // Set loading state for this specific comment (permanent for demo)
+          setLoadingComments(prev => new Set(prev).add(comment.id));
+
+          // Immediately close modal for demo
+          modalProps.closeModal();
+
+          // For demo: button stays in loading state until page refresh
+          // In real implementation, you would:
+          // - Make API call to Seer
+          // - Handle response/error
+          // - Update button state accordingly
         }}
       />
     ));
@@ -150,10 +153,15 @@ function CommentsList({
                 {filename && (
                   <Button
                     size="xs"
-                    icon={<IconSeer />}
+                    icon={
+                      loadingComments.has(comment.id) ? <SlowSpinner /> : <IconSeer />
+                    }
                     onClick={() => handleFixWithSeer(filename, comment)}
+                    disabled={loadingComments.has(comment.id)}
                   >
-                    Fix with Seer
+                    {loadingComments.has(comment.id)
+                      ? 'Fixing with Seer...'
+                      : 'Fix with Seer'}
                   </Button>
                 )}
                 {hasFeedbackPrompt && <FeedbackButtons commentId={comment.id} />}
@@ -197,6 +205,26 @@ const CommentActions = styled('div')`
   align-items: center;
   gap: ${space(2)};
   flex-wrap: wrap;
+`;
+
+const spin = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const SlowSpinner = styled('div')`
+  width: 12px;
+  height: 12px;
+  border: 2px solid ${p => p.theme.gray100};
+  border-top: 2px solid ${p => p.theme.purple300};
+  border-radius: 50%;
+  animation: ${spin} 0.9s linear infinite;
+  margin: 0;
+  display: inline-block;
 `;
 
 export default CommentsList;
