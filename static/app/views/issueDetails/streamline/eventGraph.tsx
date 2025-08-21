@@ -573,6 +573,12 @@ export function EventGraph({
     );
   }
 
+  const outagePresent =
+    outageCounter.critical > 0 ||
+    outageCounter.major > 0 ||
+    outageCounter.minor > 0 ||
+    outageCounter.maintenance > 0;
+
   return (
     <GraphWrapper {...styleProps}>
       {showSummary ? (
@@ -603,17 +609,19 @@ export function EventGraph({
       )}
       <Fragment>
         <ChartContainer role="figure" ref={chartContainerRef}>
-          {incidentOutages?.data?.length === 1 ? (
-            // @ts-expect-error - HACKWEEK
-            <Text variant={incidentTextLevel} bold={incidentTextBold} size="sm">
-              Ongoing Incident: {incidentOutages?.data?.pop()?.host?.name} outage
-            </Text>
-          ) : incidentOutages?.data && incidentOutages?.data?.length > 1 ? (
-            // @ts-expect-error - HACKWEEK
-            <Text variant={incidentTextLevel} bold={incidentTextBold} size="sm">
-              Multiple ongoing incidents:{' '}
-              {`${outageCounter.critical} critical, ${outageCounter.major} major, ${outageCounter.minor} minor, ${outageCounter.maintenance} maintenance`}
-            </Text>
+          {outagePresent ? (
+            incidentOutages?.data?.length === 1 ? (
+              // @ts-expect-error - HACKWEEK
+              <Text variant={incidentTextLevel} bold={incidentTextBold} size="sm">
+                Ongoing Incident: {incidentOutages?.data?.pop()?.host?.name} outage
+              </Text>
+            ) : incidentOutages?.data && incidentOutages?.data?.length > 1 ? (
+              // @ts-expect-error - HACKWEEK
+              <Text variant={incidentTextLevel} bold={incidentTextBold} size="sm">
+                Multiple ongoing incidents:{' '}
+                {`${outageCounter.critical} critical, ${outageCounter.major} major, ${outageCounter.minor} minor, ${outageCounter.maintenance} maintenance`}
+              </Text>
+            ) : null
           ) : null}
           <BarChart
             ref={mergeRefs(ref, handleConnectRef)}
