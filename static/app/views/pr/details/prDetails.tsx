@@ -10,6 +10,8 @@ import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -26,6 +28,8 @@ export default function PRDetails() {
   const params = useParams<{prId: string; repoName: string}>();
   const organization = useOrganization();
   const api = useApi();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Check if we're in the prevent context
   const isInPreventContext = window.location.pathname.includes('/prevent/pull-requests/');
@@ -39,7 +43,11 @@ export default function PRDetails() {
   const [error, setError] = useState<string | null>(null);
   const [issuesError, setIssuesError] = useState<string | null>(null);
   const [commentsError, setCommentsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('files');
+  // Initialize activeTab from URL query parameter, default to 'files'
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const tabFromUrl = location.query.tab as TabType;
+    return tabFromUrl === 'files' || tabFromUrl === 'snapshots' ? tabFromUrl : 'files';
+  });
 
   // Fetch PR data (files, details, performance, etc.)
   useEffect(() => {
@@ -250,7 +258,13 @@ export default function PRDetails() {
             activeTab={activeTab}
             breadcrumbItems={breadcrumbItems}
             isInPreventContext={isInPreventContext}
-            onTabChange={setActiveTab}
+            onTabChange={tab => {
+              setActiveTab(tab);
+              // Update URL with new tab
+              const newQuery = new URLSearchParams(location.search);
+              newQuery.set('tab', tab);
+              navigate(`${location.pathname}?${newQuery.toString()}`);
+            }}
             prData={prData}
             prDetails={prDetails}
             prId={params.prId}

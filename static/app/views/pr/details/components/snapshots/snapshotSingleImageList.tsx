@@ -64,8 +64,7 @@ const EmptyState = styled('div')`
 `;
 
 const SnapshotContainer = styled('div')`
-  max-height: 70vh;
-  overflow-y: auto;
+  /* Removed max-height and overflow-y to allow full page scroll */
 `;
 
 const SnapshotGrid = styled('div')`

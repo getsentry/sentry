@@ -65,8 +65,6 @@ const DiffGrid = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
   padding: ${space(2)};
-  max-height: 70vh;
-  overflow-y: auto;
 `;
 
 const DiffCard = styled('div')`
