@@ -8,19 +8,7 @@ export const incidentRoutes: SentryRouteObject = {
       index: true,
       component: make(() => import('sentry/views/incidents/hub')),
     },
-    {
-      path: 'setup/',
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/incidents/caseSetup')),
-        },
-        {
-          path: 'template/',
-          component: make(() => import('sentry/views/incidents/templateSetup')),
-        },
-      ],
-    },
+
     {
       path: ':caseId/',
       children: [

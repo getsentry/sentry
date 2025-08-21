@@ -166,6 +166,7 @@ const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
   z-index: ${p => p.theme.zIndex.drawer + 1};
   background: ${p => p.theme.background};
   justify-content: flex-start;
+  align-items: center;
   display: flex;
   gap: ${p => (p.hideBar ? space(1) : 0)};
   padding: ${space(1.5)};

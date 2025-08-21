@@ -13,10 +13,14 @@ import {
 export function TemplateStep() {
   const {template: templateContext, setStepContext} = useIncidentSetupContext();
 
-  const [caseHandle, setCaseHandle] = useState('');
-  const [severityHandle, setSeverityHandle] = useState('');
-  const [leadTitle, setLeadTitle] = useState('');
-  const [updateFrequency, setUpdateFrequency] = useState('15');
+  const [caseHandle, setCaseHandle] = useState(templateContext?.case_handle ?? '');
+  const [severityHandle, setSeverityHandle] = useState(
+    templateContext?.severity_handle ?? ''
+  );
+  const [leadTitle, setLeadTitle] = useState(templateContext?.lead_title ?? '');
+  const [updateFrequency, setUpdateFrequency] = useState(
+    templateContext?.update_frequency ?? '15'
+  );
 
   useEffect(() => {
     if (!caseHandle || !severityHandle || !leadTitle || !updateFrequency) {
@@ -61,8 +65,8 @@ export function TemplateStep() {
             </Flex>
             <Input
               placeholder={t('e.g. INC, OUT')}
-              max={12}
               size="sm"
+              maxLength={8}
               value={caseHandle}
               onChange={e => setCaseHandle(e.target.value)}
             />
@@ -76,8 +80,8 @@ export function TemplateStep() {
             </Flex>
             <Input
               placeholder={t('e.g. P, SEV')}
-              max={12}
               size="sm"
+              maxLength={8}
               value={severityHandle}
               onChange={e => setSeverityHandle(e.target.value)}
             />
@@ -91,8 +95,8 @@ export function TemplateStep() {
             </Flex>
             <Input
               placeholder={t('e.g. Commander')}
-              max={12}
               size="sm"
+              maxLength={32}
               value={leadTitle}
               onChange={e => setLeadTitle(e.target.value)}
             />

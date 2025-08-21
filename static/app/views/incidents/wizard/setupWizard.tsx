@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/core/button/';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
-import {IconArrow, IconCheckmark} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -20,12 +20,7 @@ import {
   IncidentSetupStep,
 } from 'sentry/views/incidents/wizard/context';
 
-interface SetupWizardProps {
-  onAbandon?: () => void;
-  onComplete?: () => void;
-}
-
-export function SetupWizard({onComplete}: SetupWizardProps) {
+export function SetupWizard() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -163,16 +158,6 @@ export function SetupWizard({onComplete}: SetupWizardProps) {
                     icon={<IconArrow direction="right" />}
                   >
                     {t('Next')}
-                  </Button>
-                )}
-                {currentStepIndex === INCIDENT_STEP_ORDER.length - 1 && (
-                  <Button
-                    size="sm"
-                    priority="primary"
-                    onClick={onComplete}
-                    icon={<IconCheckmark />}
-                  >
-                    {t('Finish Setup')}
                   </Button>
                 )}
               </ButtonBar>

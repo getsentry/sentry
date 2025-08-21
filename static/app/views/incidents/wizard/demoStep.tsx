@@ -1,60 +1,35 @@
-import styled from '@emotion/styled';
+import pageImage from 'sentry-images/spot/waiting-for-page.svg';
 
-import {Button} from 'sentry/components/core/button/';
-import {Heading, Text} from 'sentry/components/core/text';
-import {t} from 'sentry/locale';
+import {Grid} from 'sentry/components/core/layout';
+import {TemplateSummary} from 'sentry/views/incidents/components/templateSummary';
+import type {IncidentCaseTemplate} from 'sentry/views/incidents/types';
+import {FULL_CTX} from 'sentry/views/incidents/wizard/hack';
 
-interface DemoStepProps {
-  onComplete: (stepId: string) => void;
-}
+// import {useIncidentSetupContext} from 'sentry/views/incidents/wizard/context';
 
-export function DemoStep({onComplete}: DemoStepProps) {
+export function DemoStep() {
+  const {tools, template} = FULL_CTX;
+
+  const {complete: toolsComplete, ...toolsPayload} = tools;
+  const {complete: templateComplete, ...templatePayload} = template;
+
+  const payload = {
+    ...(toolsComplete ? toolsPayload : {}),
+    ...(templateComplete ? templatePayload : {}),
+    name: 'Demo Template',
+  } as Partial<IncidentCaseTemplate>;
+
   return (
-    <StepContent>
-      <Heading as="h3" size="lg">
-        {t('Test It Out')}
-      </Heading>
-      <Text variant="muted">
-        {t(
-          'Create a demo incident to verify your setup works correctly. This will help you understand the flow and identify any issues.'
-        )}
-      </Text>
-
-      <DemoIncident>
-        <Heading as="h4" size="md">
-          Demo Incident: Test API Response
-        </Heading>
-        <Text variant="muted">This is a test incident to verify your setup</Text>
-
-        <IncidentActions>
-          <Button size="sm" priority="primary">
-            Start Incident
-          </Button>
-          <Button size="sm">Assign Responders</Button>
-          <Button size="sm">Update Status</Button>
-        </IncidentActions>
-      </DemoIncident>
-
-      <Button priority="primary" onClick={() => onComplete('test')}>
-        {t('Complete Setup')}
-      </Button>
-    </StepContent>
+    <Grid columns="1fr 1fr" gap="3xl" align="center">
+      <TemplateSummary template={payload as IncidentCaseTemplate} allowCreate />
+      <img
+        src={pageImage}
+        alt="Sentaur ready for on-call"
+        style={{
+          transform: 'scaleX(-1) scale(2)',
+          opacity: 0.2,
+        }}
+      />
+    </Grid>
   );
 }
-
-const StepContent = styled('div')`
-  max-width: 600px;
-`;
-
-const DemoIncident = styled('div')`
-  padding: 1.5rem;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: 2rem;
-`;
-
-const IncidentActions = styled('div')`
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-`;

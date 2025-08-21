@@ -6,8 +6,10 @@ import type {IncidentCaseTemplate} from 'sentry/views/incidents/types';
 
 export function useCreateIncidentCaseTemplate({
   organizationSlug,
+  onSuccess,
 }: {
   organizationSlug: string;
+  onSuccess?: () => void;
 }) {
   const createMutation = useMutation<
     IncidentCaseTemplate,
@@ -20,7 +22,10 @@ export function useCreateIncidentCaseTemplate({
         method: 'POST',
         data,
       }),
-    onSuccess: () => addSuccessMessage(t('Template Created')),
+    onSuccess: () => {
+      addSuccessMessage(t('Incident Management Configured!'));
+      onSuccess?.();
+    },
   });
 
   return {createMutation};

@@ -285,6 +285,7 @@ function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme
         background: 'transparent',
         color: theme.linkColor,
       };
+
     default:
       return {};
   }

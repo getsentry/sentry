@@ -1,13 +1,4 @@
-export interface IncidentCase {
-  created_at: string;
-  id: number;
-  organization_id: number;
-  severity: string;
-  status: string;
-  title: string;
-  updated_at: string;
-  description?: string;
-}
+import type {Member} from 'sentry/types/organization';
 
 export interface IncidentComponent {
   created_at: string;
@@ -21,14 +12,37 @@ export interface IncidentComponent {
 }
 
 export interface IncidentCaseTemplate {
-  created_at: string;
-  id: number;
+  id: string;
   name: string;
-  organization_id: number;
-  severity_levels: string[];
-  updated_at: string;
-  auto_assign_to?: string;
+  case_handle?: string;
+  case_lead_title?: string;
+  channel_config?: Record<string, any>;
+  channel_provider?: string;
+  retro_config?: Record<string, any>;
+  retro_provider?: string;
+  schedule_config?: Record<string, any>;
+  schedule_provider?: string;
+  severity_handle?: string;
+  status_page_config?: Record<string, any>;
+  status_page_provider?: string;
+  task_config?: Record<string, any>;
+  task_provider?: string;
+  update_frequency_minutes?: number;
+}
+
+export interface IncidentCase {
+  case_lead: Member;
+  id: number;
+  severity: number;
+  status: string;
+  template: IncidentCaseTemplate;
+  title: string;
+  channel_record?: Record<string, any>;
   description?: string;
+  retro_record?: Record<string, any>;
+  schedule_record?: Record<string, any>;
+  status_page_record?: Record<string, any>;
+  task_record?: Record<string, any>;
 }
 
 export type IncidentToolKey = 'schedule' | 'task' | 'channel' | 'status_page' | 'retro';

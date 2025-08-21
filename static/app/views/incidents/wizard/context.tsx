@@ -61,8 +61,8 @@ export const INCIDENT_SETUP_STEPS: Record<IncidentSetupStep, SetupStep> = {
     content: SmokeyStep,
   },
   [IncidentSetupStep.DEMO]: {
-    title: t('Test It Out'),
-    description: t('Create a demo incident to verify your setup'),
+    title: t('Finalize'),
+    description: t('Verify your setup and create your first incident'),
     icon: IconLightning,
     content: DemoStep,
   },

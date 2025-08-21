@@ -19,7 +19,6 @@ import {
   IncidentSetupStep,
   useIncidentSetupContext,
 } from 'sentry/views/incidents/wizard/context';
-import {TEMP_TOOL_STEP_STATE} from 'sentry/views/incidents/wizard/hack';
 import {ToolConnectCard} from 'sentry/views/incidents/wizard/toolConnectCard';
 import {ToolDrawer} from 'sentry/views/incidents/wizard/toolDrawer';
 
@@ -58,7 +57,7 @@ const checklistItems: ToolStepItem[] = [
   {
     key: 'task',
     IconComponent: IconList,
-    heading: t('Connect a task ksdfeeper'),
+    heading: t('Connect a task keeper'),
     subtext: t('Keep track of action items, during and after the incident.'),
     tools: [
       {
@@ -158,8 +157,13 @@ export function ToolStep() {
   }, [integrations]);
 
   const {openDrawer, closeDrawer} = useDrawer();
-  const [configState, setConfigState] =
-    useState<Record<IncidentToolKey, any>>(TEMP_TOOL_STEP_STATE);
+  const [configState, setConfigState] = useState<Record<IncidentToolKey, any>>({
+    schedule: toolsContext?.schedule_config ?? null,
+    task: toolsContext?.task_config ?? null,
+    channel: toolsContext?.channel_config ?? null,
+    status_page: toolsContext?.status_page_config ?? null,
+    retro: toolsContext?.retro_config ?? null,
+  });
 
   useEffect(() => {
     if (
@@ -176,13 +180,15 @@ export function ToolStep() {
     }
     setStepContext(IncidentSetupStep.TOOLS, {
       complete: true,
-      task_provider: configState.task.integrationKey,
+      schedule_provider: configState.schedule?.integrationKey,
+      schedule_config: configState.schedule,
+      task_provider: configState.task?.integrationKey,
       task_config: configState.task,
-      channel_provider: configState.channel.integrationKey,
+      channel_provider: configState.channel?.integrationKey,
       channel_config: configState.channel,
-      status_page_provider: configState.status_page.integrationKey,
+      status_page_provider: configState.status_page?.integrationKey,
       status_page_config: configState.status_page,
-      retro_provider: configState.retro.integrationKey,
+      retro_provider: configState.retro?.integrationKey,
       retro_config: configState.retro,
     });
   }, [configState, setStepContext, toolsContext.complete]);
@@ -243,7 +249,7 @@ export function ToolStep() {
           </ChecklistItem>
           <ToolConnectCard
             config={configState[item.key]}
-            integration={integrationsByProvider[configState[item.key].integrationKey]}
+            integration={integrationsByProvider[configState[item.key]?.integrationKey]}
           />
         </Fragment>
       ))}

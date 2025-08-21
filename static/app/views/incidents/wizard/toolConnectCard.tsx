@@ -4,12 +4,12 @@ import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 
-export function ToolConnectCard({config, integration}: any) {
+export function ToolConnectCard({config, integration, className}: any) {
   if (!config || !integration) {
     return null;
   }
   return (
-    <ToolConnectCardContainer>
+    <ToolConnectCardContainer className={className}>
       <ToolIcon config={config} integration={integration} />
       <Flex direction="column" gap="sm">
         <Text bold size="sm">
@@ -32,7 +32,7 @@ function getConfigCardHeader({config, integration}: any): string {
     case 'slack':
       return integration.name;
     case 'statuspage':
-      return config.statusPage?.headline || 'StatusPage';
+      return config.statuspage?.headline || 'StatusPage';
     case 'notion':
       return config.database?.title?.plain_text || 'Notion Database';
     default:
@@ -49,7 +49,7 @@ function getConfigCardDescription({config, integration}: any): string | null {
     case 'slack':
       return integration.domainName;
     case 'statuspage':
-      return config.statusPage?.url || null;
+      return config.statuspage?.url || null;
     case 'notion':
       return config.database?.url || null;
     default:
@@ -63,7 +63,7 @@ function ToolIcon({config, integration}: any): React.ReactNode {
       return (
         <img
           style={{width: '24px', height: '24px'}}
-          src={config.statusPage?.favicon_logo?.url}
+          src={config.statuspage?.favicon_logo?.url}
         />
       );
     case 'notion':

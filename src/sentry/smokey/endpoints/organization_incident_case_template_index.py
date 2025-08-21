@@ -22,7 +22,18 @@ class OrganizationIncidentCaseTemplateIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        """
+        List the first incident case template for an organization
+        (obviously this is a hack to get the template for the demo)
+        """
+        template = IncidentCaseTemplate.objects.filter(organization=organization).first()
+        if template:
+            return self.respond(serialize(template))
+        return self.respond()
 
     def post(self, request: Request, organization: Organization) -> Response:
         """
