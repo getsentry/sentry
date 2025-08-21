@@ -17,6 +17,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useCreateIncidentCase} from 'sentry/views/incidents/hooks/useCreateIncidentCase';
+import {useIncidentComponents} from 'sentry/views/incidents/hooks/useIncidentComponents';
 import type {IncidentCase, IncidentCaseTemplate} from 'sentry/views/incidents/types';
 
 interface CaseDrawerProps {
@@ -38,7 +39,9 @@ export function CaseDrawer({template}: CaseDrawerProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const user = useUser();
-
+  const {incidentComponents} = useIncidentComponents({
+    organizationSlug: organization.slug,
+  });
   const [caseData, setCaseData] = useState<Partial<IncidentCase>>({
     title: '',
     description: '',
@@ -47,6 +50,7 @@ export function CaseDrawer({template}: CaseDrawerProps) {
     // HACK: Need to dodge TS here to get to the API
     template: template.id as any,
     case_lead: '1' as any,
+    affected_components: [],
   });
 
   const createCase = useCreateIncidentCase({
@@ -59,6 +63,13 @@ export function CaseDrawer({template}: CaseDrawerProps) {
   const handleSubmit = () => {
     createCase.createMutation.mutate(caseData);
   };
+
+  const canSubmit =
+    caseData.title &&
+    caseData.description &&
+    caseData.severity &&
+    caseData.status &&
+    caseData.case_lead;
 
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -114,7 +125,7 @@ export function CaseDrawer({template}: CaseDrawerProps) {
                   label={t('Severity')}
                   options={Array.from({length: SEVERITY_COUNT}, (_, i) => ({
                     label: `${template.severity_handle}${i}`,
-                    value: i + 1,
+                    value: i,
                   }))}
                   required
                   value={caseData.severity}
@@ -154,6 +165,28 @@ export function CaseDrawer({template}: CaseDrawerProps) {
                     leadingItems: <UserAvatar user={user} style={{margin: 0}} />,
                   },
                 ]}
+                required
+              />
+            </Flex>
+            <Flex direction="column" flex={1}>
+              <Text size="md" bold>
+                Affected Components
+              </Text>
+              <Select
+                name="affectedComponents"
+                label={t('Affected Components')}
+                multiple
+                value={caseData.affected_components}
+                onChange={(value: any) => {
+                  setCaseData({
+                    ...caseData,
+                    affected_components: value.map((v: any) => v.value),
+                  });
+                }}
+                options={incidentComponents.map(component => ({
+                  label: component.name,
+                  value: component.id,
+                }))}
                 required
               />
             </Flex>
@@ -256,7 +289,7 @@ export function CaseDrawer({template}: CaseDrawerProps) {
           <Button
             type="submit"
             priority="danger"
-            disabled={createCase.createMutation.isPending}
+            disabled={createCase.createMutation.isPending || !canSubmit}
             onClick={handleSubmit}
           >
             {createCase.createMutation.isPending

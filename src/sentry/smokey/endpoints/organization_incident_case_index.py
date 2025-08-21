@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from django.db import router, transaction
+from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,6 +13,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.smokey.models.incidentcase import IncidentCase
+from sentry.smokey.models.incidentcomponent import IncidentCaseComponent
 from sentry.smokey.serializers.inbound import IncidentCaseInboundSerializer
 
 
@@ -48,8 +51,16 @@ class OrganizationIncidentCaseIndexEndpoint(OrganizationEndpoint):
         )
         serializer.is_valid(raise_exception=True)
 
-        incident_case = IncidentCase.objects.create(
-            organization=organization, **serializer.validated_data
-        )
+        affected_components = serializer.validated_data.pop("affected_components")
+
+        with transaction.atomic(using=router.db_for_write(IncidentCase)):
+            incident_case = IncidentCase.objects.create(
+                organization=organization,
+                **serializer.validated_data,
+                started_at=timezone.now(),
+            )
+
+            for component in affected_components:
+                IncidentCaseComponent.objects.create(case=incident_case, component_id=component)
 
         return self.respond(serialize(incident_case), status=201)

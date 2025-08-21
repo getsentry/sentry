@@ -58,6 +58,7 @@ export default function IncidentHub() {
                     ),
                     {
                       ariaLabel: t('Incident Case Creator'),
+                      closeOnOutsideClick: false,
                     }
                   )
                 }

@@ -88,6 +88,9 @@ class IncidentCaseInboundSerializer(serializers.Serializer):
     channel_record = serializers.JSONField(required=False, default=dict)
     status_page_record = serializers.JSONField(required=False, default=dict)
     retro_record = serializers.JSONField(required=False, default=dict)
+    affected_components = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list
+    )
 
     def validate_template(self, value):
         try:
@@ -106,3 +109,13 @@ class IncidentCaseInboundSerializer(serializers.Serializer):
         except OrganizationMember.DoesNotExist:
             raise serializers.ValidationError("Case lead must be a valid organization member")
         return member
+
+    def validate_affected_components(self, value):
+        for component in value:
+            try:
+                IncidentComponent.objects.get(
+                    id=component, organization=self.context["organization"]
+                )
+            except IncidentComponent.DoesNotExist:
+                raise serializers.ValidationError("Affected component does not exist")
+        return value
