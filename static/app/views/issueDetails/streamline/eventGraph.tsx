@@ -15,7 +15,9 @@ import Color from 'color';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
+import {IncidentSeries} from 'sentry/components/charts/incidentSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
+import {useIncidentOutage} from 'sentry/components/charts/useIncidentOutage';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -465,6 +467,8 @@ export function EventGraph({
     [setLegendSelected]
   );
 
+  const {incidentData, isPendingIncidentData} = useIncidentOutage();
+
   if (error) {
     return (
       <GraphAlert type="error" {...styleProps}>
@@ -473,7 +477,7 @@ export function EventGraph({
     );
   }
 
-  if (isLoadingStats || isPendingUniqueUsersCount) {
+  if (isLoadingStats || isPendingUniqueUsersCount || isPendingIncidentData) {
     return (
       <GraphWrapper {...styleProps}>
         {showSummary ? (
@@ -531,7 +535,34 @@ export function EventGraph({
         <BarChart
           ref={mergeRefs(ref, handleConnectRef)}
           height={100}
-          series={series}
+          series={[
+            ...series,
+            ...(IncidentSeries(
+              theme,
+              [
+                {
+                  hostId: incidentData?.host?.id?.toString() ?? '0',
+                  id: incidentData?.id ?? 0,
+                  regionId: incidentData?.regions?.[0]?.id?.toString() ?? '0',
+                  // @ts-expect-error - we're passing just a string ... and it's hackweek
+                  severity: incidentData?.severity ?? 'maintenance',
+                  start: new Date(incidentData?.start ?? '').getTime(),
+                  title: incidentData?.aiSummary ?? '',
+                  end: incidentData?.end
+                    ? new Date(incidentData?.end).getTime()
+                    : undefined,
+                },
+              ],
+              () => {
+                if (incidentData?.host?.id) {
+                  window.open(
+                    `http://localhost:3001/service/${incidentData?.host?.id}`,
+                    '_blank'
+                  );
+                }
+              }
+            ) as unknown as BarChartSeries[]),
+          ]}
           additionalSeries={releaseBubbleSeries ? [releaseBubbleSeries] : []}
           legend={legend}
           onLegendSelectChanged={onLegendSelectChanged}
