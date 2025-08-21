@@ -1276,6 +1276,12 @@ export const lightTheme = {
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
+  incident: {
+    maintenance: lightColors.blue300,
+    minor: lightColors.yellow300,
+    major: lightColors.red300,
+    critical: lightColors.red400,
+  },
   prismVariables: generateThemePrismVariables(
     prismLight,
     lightAliases.backgroundSecondary
@@ -1328,6 +1334,12 @@ export const darkTheme: typeof lightTheme = {
     neutral: darkColors.gray200,
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
+  },
+  incident: {
+    maintenance: darkColors.blue300,
+    minor: darkColors.yellow300,
+    major: darkColors.red300,
+    critical: darkColors.red400,
   },
   sidebar: {
     // @TODO(jonasbadalic) What are these colors and where do they come from?
