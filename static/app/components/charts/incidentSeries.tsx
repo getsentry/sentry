@@ -5,18 +5,25 @@ import {escape} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import type {Theme} from 'sentry/utils/theme';
 
+export enum Severity {
+  MAINTENANCE = 'maintenance',
+  MINOR = 'minor',
+  MAJOR = 'major',
+  CRITICAL = 'critical',
+}
+
 export interface Incident {
   // Useful for generating links
   hostId: string;
   id: number;
   regionId: string;
-  severity: 'maintenance' | 'minor' | 'major' | 'critical';
+  severity: Severity;
   start: number;
   title: string;
   end?: number;
 }
 
-function getIncidentColor(severity: Incident['severity'], theme: Theme): string {
+function getIncidentColor(severity: Severity, theme: Theme): string {
   switch (severity) {
     case 'maintenance':
       return theme.incident.maintenance;
@@ -72,14 +79,31 @@ export function IncidentSeries(
             {
               xAxis: incident.start,
               onClick: () => {
-                onClick?.(incident);
-                // TODO: Have a fallback to redirect to main status page
+                if (onClick) {
+                  onClick(incident);
+                  return;
+                }
+                if (incident?.hostId) {
+                  window.open(
+                    `http://localhost:3001/service/${incident?.hostId}`,
+                    '_blank'
+                  );
+                }
               },
             },
             {
               xAxis: lastTime,
               onClick: () => {
-                onClick?.(incident);
+                if (onClick) {
+                  onClick(incident);
+                  return;
+                }
+                if (incident?.hostId) {
+                  window.open(
+                    `http://localhost:3001/service/${incident?.hostId}`,
+                    '_blank'
+                  );
+                }
               },
             },
           ],
