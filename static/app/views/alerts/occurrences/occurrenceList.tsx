@@ -65,11 +65,24 @@ function OccurrencesPage() {
   const organization = useOrganization();
   const location = useLocation();
 
-  const {refetch, getResponseHeader, isLoading, isError} = useFetchEscationPolicyStates(
-    {orgSlug: organization.slug},
-    {}
-  );
+  const {
+    data: escalationPolicyStates = [],
+    refetch,
+    getResponseHeader,
+    isLoading,
+    isError,
+  } = useFetchEscationPolicyStates({orgSlug: organization.slug}, {});
   const escalationPolicyStatesPageLinks = getResponseHeader?.('Link');
+
+  const unacknowledgedOccurrences = escalationPolicyStates.filter(
+    state => state.state === 'unacknowledged'
+  );
+  const ongoingOccurrences = escalationPolicyStates.filter(
+    state => state.state === 'acknowledged'
+  );
+  const resolvedOccurrences = escalationPolicyStates.filter(
+    state => state.state === 'resolved'
+  );
 
   type SortField = 'date_added' | 'status';
   const defaultSort: SortField = 'date_added';
@@ -83,8 +96,6 @@ function OccurrencesPage() {
     <IconArrow color="gray300" size="xs" direction={sort.asc ? 'up' : 'down'} />
   );
 
-  /* END COPY */
-
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Occurrences')} orgSlug={organization.slug} />
@@ -93,11 +104,11 @@ function OccurrencesPage() {
         <EscalationPolicyHeaderTabs activeTab="alerts" />
         <Layout.Body>
           <Layout.Main fullWidth>
-            <SectionTitle>{t('Ongoing')}</SectionTitle>
+            <SectionTitle>{t('Unacknowledged')}</SectionTitle>
             <StyledPanelTable
               isLoading={isLoading}
-              isEmpty={ongoingOccurrences.length === 0 && !isError}
-              emptyMessage={t('No ongoing alerts found.')}
+              isEmpty={unacknowledgedOccurrences.length === 0 && !isError}
+              emptyMessage={t('No unacknowledged alerts found.')}
               headers={[
                 t('Title'),
                 <StyledSortLink
@@ -150,10 +161,10 @@ function OccurrencesPage() {
                 />
               ) : null}
               <VisuallyCompleteWithData
-                id="Ongoing-EscalationPolicyStates-Body"
-                hasData={ongoingOccurrences.length > 0}
+                id="Unacknowledged-EscalationPolicyStates-Body"
+                hasData={unacknowledgedOccurrences.length > 0}
               >
-                {ongoingOccurrences.map(policyState => {
+                {unacknowledgedOccurrences.map(policyState => {
                   return (
                     <OccurrenceListRow
                       key={policyState.id}
@@ -164,11 +175,11 @@ function OccurrencesPage() {
               </VisuallyCompleteWithData>
             </StyledPanelTable>
 
-            <SectionTitle>{t('Acknowledged')}</SectionTitle>
+            <SectionTitle>{t('Ongoing')}</SectionTitle>
             <StyledPanelTable
               isLoading={isLoading}
-              isEmpty={pastOccurrences.length === 0 && !isError}
-              emptyMessage={t('No past alerts found.')}
+              isEmpty={ongoingOccurrences.length === 0 && !isError}
+              emptyMessage={t('No ongoing alerts found.')}
               headers={[
                 t('Title'),
                 <StyledSortLink
@@ -215,10 +226,74 @@ function OccurrencesPage() {
               ]}
             >
               <VisuallyCompleteWithData
-                id="Past-EscalationPolicyStates-Body"
-                hasData={pastOccurrences.length > 0}
+                id="Ongoing-EscalationPolicyStates-Body"
+                hasData={ongoingOccurrences.length > 0}
               >
-                {pastOccurrences.map(policyState => {
+                {ongoingOccurrences.map(policyState => {
+                  return (
+                    <OccurrenceListRow
+                      key={policyState.id}
+                      escalationPolicyState={policyState}
+                    />
+                  );
+                })}
+              </VisuallyCompleteWithData>
+            </StyledPanelTable>
+
+            <SectionTitle>{t('Resolved')}</SectionTitle>
+            <StyledPanelTable
+              isLoading={isLoading}
+              isEmpty={resolvedOccurrences.length === 0 && !isError}
+              emptyMessage={t('No resolved alerts found.')}
+              headers={[
+                t('Title'),
+                <StyledSortLink
+                  key="status-resolved"
+                  role="columnheader"
+                  aria-sort={
+                    sort.field === 'status'
+                      ? sort.asc
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                  }
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      asc: sort.field === 'status' && sort.asc ? undefined : '1',
+                      sort: 'status',
+                    },
+                  }}
+                >
+                  {t('Status')} {sort.field === 'status' ? sortArrow : null}
+                </StyledSortLink>,
+
+                <StyledSortLink
+                  key="created-resolved"
+                  role="columnheader"
+                  aria-sort={sort.asc ? 'ascending' : 'descending'}
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      asc: sort.asc ? '1' : undefined,
+                      sort: 'date_added',
+                    },
+                  }}
+                >
+                  {t('Created')} {sort.field === 'date_added' ? sortArrow : null}
+                </StyledSortLink>,
+
+                t('Assigned To'),
+                t('Actions'),
+              ]}
+            >
+              <VisuallyCompleteWithData
+                id="Resolved-EscalationPolicyStates-Body"
+                hasData={resolvedOccurrences.length > 0}
+              >
+                {resolvedOccurrences.map(policyState => {
                   return (
                     <OccurrenceListRow
                       key={policyState.id}
