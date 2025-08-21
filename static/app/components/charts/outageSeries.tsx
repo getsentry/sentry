@@ -12,7 +12,7 @@ export enum Severity {
   CRITICAL = 'critical',
 }
 
-export interface Incident {
+export interface Outage {
   // Useful for generating links
   hostId: string;
   id: number;
@@ -23,40 +23,40 @@ export interface Incident {
   end?: number;
 }
 
-function getIncidentColor(severity: Severity, theme: Theme): string {
+function getOutageColor(severity: Severity, theme: Theme): string {
   switch (severity) {
     case 'maintenance':
-      return theme.incident.maintenance;
+      return theme.outageSeries.maintenance;
     case 'minor':
-      return theme.incident.minor;
+      return theme.outageSeries.minor;
     case 'major':
-      return theme.incident.major;
+      return theme.outageSeries.major;
     case 'critical':
-      return theme.incident.critical;
+      return theme.outageSeries.critical;
     default:
-      return theme.incident.maintenance;
+      return theme.outageSeries.maintenance;
   }
 }
 
-export function IncidentSeries(
+export function OutageSeries(
   theme: Theme,
-  incidents: Incident[],
-  onClick?: (incident: Incident) => void
+  outages: Outage[],
+  onClick?: (outage: Outage) => void
 ): SeriesOption[] {
-  return incidents.map(incident => {
-    // Either incident has a end point, or use the current time to be the end point
-    const lastTime = incident.end ?? Date.now();
+  return outages.map(outage => {
+    // Either outage has a end point, or use the current time to be the end point
+    const lastTime = outage.end ?? Date.now();
 
     const startTime = getFormattedDate(
-      incident.start,
+      outage.start,
       getFormat({timeZone: true, year: true})
     );
 
     let currentStatus = `${startTime} - `;
 
-    if (incident.end) {
+    if (outage.end) {
       const endTime = getFormattedDate(
-        incident.end,
+        outage.end,
         getFormat({timeZone: true, year: true})
       );
       currentStatus += `${endTime}`;
@@ -64,12 +64,12 @@ export function IncidentSeries(
       currentStatus += t('ongoing');
     }
 
-    const title = escape(incident.title);
-    const severity = escape(incident.severity);
+    const title = escape(outage.title);
+    const severity = escape(outage.severity);
     currentStatus = escape(currentStatus);
 
     return {
-      name: incident.title,
+      name: outage.title,
       type: 'line',
       data: [],
       symbol: 'none', // Hide the points
@@ -77,15 +77,15 @@ export function IncidentSeries(
         data: [
           [
             {
-              xAxis: incident.start,
+              xAxis: outage.start,
               onClick: () => {
                 if (onClick) {
-                  onClick(incident);
+                  onClick(outage);
                   return;
                 }
-                if (incident?.hostId) {
+                if (outage?.hostId) {
                   window.open(
-                    `http://localhost:3001/service/${incident?.hostId}`,
+                    `http://localhost:3001/service/${outage?.hostId}`,
                     '_blank'
                   );
                 }
@@ -95,12 +95,12 @@ export function IncidentSeries(
               xAxis: lastTime,
               onClick: () => {
                 if (onClick) {
-                  onClick(incident);
+                  onClick(outage);
                   return;
                 }
-                if (incident?.hostId) {
+                if (outage?.hostId) {
                   window.open(
-                    `http://localhost:3001/service/${incident?.hostId}`,
+                    `http://localhost:3001/service/${outage?.hostId}`,
                     '_blank'
                   );
                 }
@@ -109,9 +109,9 @@ export function IncidentSeries(
           ],
         ] as any,
         itemStyle: {
-          color: getIncidentColor(incident.severity, theme),
+          color: getOutageColor(outage.severity, theme),
           opacity: 0.3,
-          borderColor: getIncidentColor(incident.severity, theme),
+          borderColor: getOutageColor(outage.severity, theme),
           borderWidth: 2,
         },
         tooltip: {
@@ -119,7 +119,7 @@ export function IncidentSeries(
           formatter: function (_params: any) {
             return [
               '<div class="tooltip-series">',
-              `<div><span class="tooltip-label"><strong>${title} <br> Click to visit incident page
+              `<div><span class="tooltip-label"><strong>${title} <br> Click to visit outage page
               </strong></span>${severity}</div>`,
               `<div class="tooltip-footer">${currentStatus}</div>`,
               '</div>',

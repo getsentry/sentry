@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {Severity} from 'sentry/components/charts/incidentSeries';
+import type {Severity} from 'sentry/components/charts/outageSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {useIncidentOutage} from 'sentry/components/charts/useIncidentOutage';
 import {t} from 'sentry/locale';

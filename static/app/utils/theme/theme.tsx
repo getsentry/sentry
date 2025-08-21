@@ -1276,7 +1276,7 @@ export const lightTheme = {
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
-  incident: {
+  outageSeries: {
     maintenance: lightColors.blue300,
     minor: lightColors.yellow300,
     major: lightColors.red300,
@@ -1335,7 +1335,7 @@ export const darkTheme: typeof lightTheme = {
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
-  incident: {
+  outageSeries: {
     maintenance: darkColors.blue300,
     minor: darkColors.yellow300,
     major: darkColors.red300,
