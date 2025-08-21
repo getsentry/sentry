@@ -108,19 +108,9 @@ export interface TimeSeriesWidgetVisualizationProps
    */
   chartRef?: React.Ref<ReactEchartsRef>;
   /**
-   * Array of ongoing outages to highlight on the chart
-   */
-  incidents?: Outage[];
-
-  /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
-
-  /**
-   * Callback when an outage region is clicked
-   */
-  onIncidentClick?: (outage: Outage) => void;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -128,9 +118,19 @@ export interface TimeSeriesWidgetVisualizationProps
   onLegendSelectionChange?: (selection: LegendSelection) => void;
 
   /**
+   * Callback when an outage region is clicked
+   */
+  onOutageClick?: (outage: Outage) => void;
+
+  /**
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
   onZoom?: EChartDataZoomHandler;
+
+  /**
+   * Array of ongoing outages to highlight on the chart
+   */
+  outages?: Outage[];
 
   ref?: React.Ref<ReactEchartsRef>;
 
@@ -572,8 +572,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     seriesIndexToPlottableMapRanges
   );
 
-  const outageSeries = props.incidents
-    ? OutageSeries(theme, props.incidents, props.onIncidentClick)
+  const outageSeries = props.outages
+    ? OutageSeries(theme, props.outages, props.onOutageClick)
     : [];
 
   const allSeries = [...seriesFromPlottables, releaseSeries, ...outageSeries].filter(
