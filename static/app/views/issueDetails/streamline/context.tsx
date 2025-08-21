@@ -93,6 +93,9 @@ export const enum SectionKey {
   MCP_OUTPUT = 'mcp-output',
 
   SPAN_LINKS = 'span-links',
+
+  INCIDENT_TIMELINE = 'incident-timeline',
+  INCIDENT_TRANSCRIPT = 'incident-transcript',
 }
 
 /**

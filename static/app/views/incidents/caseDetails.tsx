@@ -1,17 +1,19 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
+import {Flex, Grid} from 'sentry/components/core/layout';
 import {Heading, Text} from 'sentry/components/core/text';
+import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconClock, IconFire} from 'sentry/icons';
+import {Timeline} from 'sentry/components/timeline';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
@@ -22,6 +24,9 @@ import {
 import {LinkCard} from 'sentry/views/incidents/components/linkCard';
 import {useIncidentCase} from 'sentry/views/incidents/hooks/useIncidentCase';
 import {getIncidentLabel} from 'sentry/views/incidents/util';
+import {CONVERSATION_DATA, MOCK_TIMELINE} from 'sentry/views/incidents/wizard/hack';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 export default function IncidentCaseDetails() {
   const organization = useOrganization();
@@ -112,132 +117,42 @@ export default function IncidentCaseDetails() {
               <Flex gap="2xl" />
             </Flex>
           </Flex>
-          <Flex direction="column" gap="md">
-            <Heading as="h2">{t('Timeline')}</Heading>
-            <Timeline>
-              <TimelineItem>
-                <IconFire size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Incident Declared')}</strong>
-                  </div>
-                  <div>{t('High severity incident declared by engineering team')}</div>
-                  <small>30 minutes ago</small>
-                </div>
-              </TimelineItem>
-              <TimelineItem>
-                <IconClock size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Team Notified')}</strong>
-                  </div>
-                  <div>{t('PagerDuty alert sent to on-call engineer')}</div>
-                  <small>25 minutes ago</small>
-                </div>
-              </TimelineItem>
-
-              <TimelineItem>
-                <IconClock size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Team Notified')}</strong>
-                  </div>
-                  <div>{t('PagerDuty alert sent to on-call engineer')}</div>
-                  <small>25 minutes ago</small>
-                </div>
-              </TimelineItem>
-              <TimelineItem>
-                <IconClock size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Team Notified')}</strong>
-                  </div>
-                  <div>{t('PagerDuty alert sent to on-call engineer')}</div>
-                  <small>25 minutes ago</small>
-                </div>
-              </TimelineItem>
-              <TimelineItem>
-                <IconClock size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Team Notified')}</strong>
-                  </div>
-                  <div>{t('PagerDuty alert sent to on-call engineer')}</div>
-                  <small>25 minutes ago</small>
-                </div>
-              </TimelineItem>
-              <TimelineItem>
-                <IconClock size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Team Notified')}</strong>
-                  </div>
-                  <div>{t('PagerDuty alert sent to on-call engineer')}</div>
-                  <small>25 minutes ago</small>
-                </div>
-              </TimelineItem>
-              <TimelineItem>
-                <IconClock size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Team Notified')}</strong>
-                  </div>
-                  <div>{t('PagerDuty alert sent to on-call engineer')}</div>
-                  <small>25 minutes ago</small>
-                </div>
-              </TimelineItem>
-              <TimelineItem>
-                <IconClock size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Team Notified')}</strong>
-                  </div>
-                  <div>{t('PagerDuty alert sent to on-call engineer')}</div>
-                  <small>25 minutes ago</small>
-                </div>
-              </TimelineItem>
-              <TimelineItem>
-                <IconClock size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Team Notified')}</strong>
-                  </div>
-                  <div>{t('PagerDuty alert sent to on-call engineer')}</div>
-                  <small>25 minutes ago</small>
-                </div>
-              </TimelineItem>
-              <TimelineItem>
-                <IconClock size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Team Notified')}</strong>
-                  </div>
-                  <div>{t('PagerDuty alert sent to on-call engineer')}</div>
-                  <small>25 minutes ago</small>
-                </div>
-              </TimelineItem>
-              <TimelineItem>
-                <IconClock size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Team Notified')}</strong>
-                  </div>
-                  <div>{t('PagerDuty alert sent to on-call engineer')}</div>
-                  <small>25 minutes ago</small>
-                </div>
-              </TimelineItem>
-              <TimelineItem>
-                <IconClock size="sm" />
-                <div>
-                  <div>
-                    <strong>{t('Team Notified')}</strong>
-                  </div>
-                  <div>{t('PagerDuty alert sent to on-call engineer')}</div>
-                  <small>25 minutes ago</small>
-                </div>
-              </TimelineItem>
-            </Timeline>
-          </Flex>
+          <SectionContainer>
+            <InterimSection type={SectionKey.INCIDENT_TIMELINE} title={t('Timeline')}>
+              <Timeline.Container>
+                {MOCK_TIMELINE.map(item => (
+                  <Timeline.Item
+                    icon={item.icon}
+                    timestamp={<DateTime date={item.time} />}
+                    key={item.title}
+                    colorConfig={item.colorConfig}
+                    title={item.title}
+                  >
+                    <Timeline.Text>{item.text}</Timeline.Text>
+                  </Timeline.Item>
+                ))}
+              </Timeline.Container>
+            </InterimSection>
+            <InterimSection
+              type={SectionKey.INCIDENT_TRANSCRIPT}
+              title={
+                <Flex align="center" gap="sm">
+                  <PluginIcon pluginId="slack" size={24} />
+                  <Text size="lg">{t('Transcript')}</Text>
+                </Flex>
+              }
+            >
+              <Grid columns="auto auto auto" gap="md">
+                {CONVERSATION_DATA.map((item, index) => (
+                  <Fragment key={index}>
+                    <Text bold>{item.name}</Text>
+                    <DateTime format="HH:mm" date={item.timestamp} />
+                    <Text>{item.message}</Text>
+                  </Fragment>
+                ))}
+              </Grid>
+            </InterimSection>
+          </SectionContainer>
         </Layout.Main>
         <Layout.Side style={{position: 'relative'}}>
           <Flex direction="column" gap="2xl" style={{position: 'sticky', top: 12}}>
@@ -332,17 +247,8 @@ export default function IncidentCaseDetails() {
   );
 }
 
-const Timeline = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
-
-const TimelineItem = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-  padding: ${space(2)};
-  background: ${p => p.theme.backgroundSecondary};
+const SectionContainer = styled('div')`
+  padding: ${p => p.theme.space.lg};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
