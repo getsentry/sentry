@@ -34,7 +34,7 @@ INTEGRATION_SERVICES = {
 
 
 # Note the ordering of fields affects the Spike Protection API Documentation
-class NotificationActionInputData(TypedDict):
+class NotificationActionInputData(TypedDict, total=False):
     trigger_type: int
     service_type: int
     integration_id: NotRequired[int]
@@ -46,7 +46,7 @@ class NotificationActionInputData(TypedDict):
 
 
 @extend_schema_serializer(exclude_fields=["sentry_app_id", "target_type"])
-class NotificationActionSerializer(CamelSnakeModelSerializer[NotificationActionInputData]):
+class NotificationActionSerializer(CamelSnakeModelSerializer[NotificationAction]):
     """
     Django Rest Framework serializer for incoming NotificationAction API payloads
     """

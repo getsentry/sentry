@@ -59,7 +59,6 @@ def get_test_notification_event_data(project: Project) -> GroupEvent | None:
     )
 
     # Load mock data
-    assert project.platform is not None, "Project must have a platform to load mock data"
     event_data = load_data(
         platform=project.platform,
         default="javascript",
