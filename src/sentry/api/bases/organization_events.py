@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import timedelta
 from typing import Any, cast
 from urllib.parse import quote as urlquote
@@ -115,7 +115,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if not request.user:
             return []
 
-        teams = get_teams(request, organization)
+        teams: Iterable[Team] = get_teams(request, organization)
         if not teams:
             teams = Team.objects.get_for_user(organization, request.user)
 
