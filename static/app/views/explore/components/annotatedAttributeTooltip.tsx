@@ -4,7 +4,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
-import {TraceItemMetaInfo} from 'sentry/views/explore/logs/utils';
+import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 
 export function AnnotatedAttributeTooltip({
   children,
@@ -12,7 +12,7 @@ export function AnnotatedAttributeTooltip({
   fieldKey,
 }: {
   children: React.ReactNode;
-  extra: RendererExtra;
+  extra: Pick<RendererExtra, 'traceItemMeta' | 'organization' | 'project'>;
   fieldKey?: string;
 }) {
   // Fetch full project details including `project.relayPiiConfig`

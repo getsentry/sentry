@@ -7,7 +7,7 @@ import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
 import {getAttributeItem} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import {TraceItemMetaInfo} from 'sentry/views/explore/logs/utils';
+import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 
 import type {
   AttributesFieldRender,
