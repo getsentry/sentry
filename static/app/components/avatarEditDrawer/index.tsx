@@ -38,19 +38,23 @@ import office2 from 'sentry-images/avatar/backgrounds/office2.jpg';
 
 import {updateUser} from 'sentry/actionCreators/account';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {AvatarCropper} from 'sentry/components/avatarChooser/avatarCropper';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {TextArea} from 'sentry/components/core/textarea';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DrawerComponents} from 'sentry/components/globalDrawer/components';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconImage, IconStar, IconUpload} from 'sentry/icons';
+import {IconEdit, IconImage, IconStar, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types/user';
 import {saveUserAvatarVariation} from 'sentry/utils/avatarWithBackground';
 import useApi from 'sentry/utils/useApi';
+
+// These values must be synced with the avatar endpoint in backend.
+const MIN_DIMENSION = 256;
+const MAX_DIMENSION = 1024;
 
 interface AvatarEditDrawerProps {
   onClose: () => void;
@@ -214,6 +218,7 @@ export function AvatarEditDrawer({
   const [selectedEnhancements, setSelectedEnhancements] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [cropperOpen, setCropperOpen] = useState<boolean>(false);
 
   // Debug when isGenerating changes
   useEffect(() => {
@@ -635,6 +640,8 @@ export function AvatarEditDrawer({
         console.log('🚨 Resetting selectedVariation to original in handleFileUpload');
         setSelectedVariation('original');
       }
+      // Automatically open the cropper when an image is uploaded
+      setCropperOpen(true);
     }
   };
 
@@ -660,12 +667,14 @@ export function AvatarEditDrawer({
     const avatarType = selectedMode === 'initials' ? 'letter_avatar' : 'upload';
     const data: any = {avatar_type: avatarType};
 
-    // Handle uploaded photo with background (new upload)
-    if (selectedMode === 'upload' && uploadedFile) {
-      console.log('🔍 Branch: New upload with file');
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64Data = (reader.result as string).split(',')[1];
+    // Handle uploaded photo with background (new upload OR cropped image)
+    if (selectedMode === 'upload' && (uploadedFile || previewUrl)) {
+      console.log('🔍 Branch: Upload with file or cropped image');
+
+      // If we have a previewUrl (cropped data), use it directly
+      if (previewUrl && previewUrl.startsWith('data:')) {
+        console.log('🔍 Using cropped image data from previewUrl');
+        const base64Data = previewUrl.split(',')[1];
         data.avatar_photo = base64Data;
 
         // Include variation metadata if selected
@@ -728,9 +737,81 @@ export function AvatarEditDrawer({
             setIsSaving(false);
           },
         });
-      };
-      reader.readAsDataURL(uploadedFile);
-      return;
+        return;
+      }
+
+      // Otherwise, handle original file upload
+      if (uploadedFile) {
+        console.log('🔍 Using original file upload');
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64Data = (reader.result as string).split(',')[1];
+          data.avatar_photo = base64Data;
+
+          // Include variation metadata if selected
+          if (selectedVariation && selectedVariation !== 'original') {
+            data.variation = selectedVariation;
+          }
+
+          api.request(endpoint, {
+            method: 'PUT',
+            data,
+            success: resp => {
+              console.log('✅ Upload save response:', resp);
+              console.log('🎨 Saving variation for upload:', selectedVariation);
+
+              // Fix avatar URL for proper display
+              const updatedResp = {...resp};
+
+              // Handle relative URLs from backend
+              if (updatedResp.avatar?.avatarUrl?.startsWith('/avatar/')) {
+                updatedResp.avatar.avatarUrl = `http://localhost:8000${updatedResp.avatar.avatarUrl}`;
+              }
+
+              // Ensure avatarUrl is at the top level for ConfigStore
+              if (updatedResp.avatar?.avatarUrl) {
+                updatedResp.avatarUrl = updatedResp.avatar.avatarUrl;
+              }
+
+              // Add cache busting to force avatar refresh
+              if (updatedResp.avatarUrl) {
+                const timestamp = Date.now();
+                const random = Math.random().toString(36).substring(7);
+                updatedResp.avatarUrl = `${updatedResp.avatarUrl}?v=${timestamp}&r=${random}&bust=1`;
+              }
+
+              console.log('📸 Updated upload response for ConfigStore:', updatedResp);
+
+              // Save the variation choice locally
+              if (selectedVariation && selectedVariation !== 'original') {
+                saveUserAvatarVariation(user.id, selectedVariation);
+                console.log('🎨 Saved variation to localStorage:', selectedVariation);
+              } else if (selectedVariation === 'original') {
+                // Clear any saved variation for original
+                localStorage.removeItem(`avatar-variation-${user.id}`);
+                console.log('🎨 Cleared variation from localStorage');
+              }
+
+              updateUser(updatedResp);
+              onSave(avatarType, updatedResp);
+              addSuccessMessage(t('Avatar saved successfully!'));
+              setIsSaving(false);
+              onClose();
+            },
+            error: resp => {
+              const avatarPhotoErrors = resp?.responseJSON?.avatar_photo || [];
+              if (avatarPhotoErrors.length) {
+                avatarPhotoErrors.forEach(addErrorMessage);
+              } else {
+                addErrorMessage(t('Failed to save avatar. Please try again.'));
+              }
+              setIsSaving(false);
+            },
+          });
+        };
+        reader.readAsDataURL(uploadedFile);
+        return;
+      }
     }
 
     // Handle existing uploaded photo with background change
@@ -861,92 +942,102 @@ export function AvatarEditDrawer({
       console.log('🤖 Saving AI avatar as upload to prevent regeneration');
 
       try {
-        const response = await fetch(generatedAvatarUrl);
-        const blob = await response.blob();
-        const reader = new FileReader();
+        let base64Data: string;
 
-        reader.onload = () => {
-          const base64Data = reader.result as string;
-          const data = {
-            avatar_type: 'upload', // Save as upload to prevent regeneration
-            avatar_photo: base64Data,
-            variation: selectedVariation,
-          };
+        // Check if generatedAvatarUrl is already a data URL (cropped image)
+        if (generatedAvatarUrl.startsWith('data:')) {
+          console.log('🤖 Using cropped AI avatar data directly');
+          const parts = generatedAvatarUrl.split(',');
+          base64Data = parts[1] || parts[0] || ''; // Extract just the base64 part
+        } else {
+          console.log('🤖 Fetching AI avatar from URL');
+          const response = await fetch(generatedAvatarUrl);
+          const blob = await response.blob();
 
-          console.log('🤖 Saving AI avatar as upload with data:', data);
-
-          api.request(endpoint, {
-            method: 'PUT',
-            data,
-            success: resp => {
-              console.log('✅ AI save response:', resp);
-
-              // Fix avatar URL for proper display
-              const updatedResp = {...resp};
-
-              // Handle relative URLs from backend
-              if (updatedResp.avatar?.avatarUrl?.startsWith('/avatar/')) {
-                updatedResp.avatar.avatarUrl = `http://localhost:8000${updatedResp.avatar.avatarUrl}`;
-              }
-
-              // Fix hostname mismatch
-              if (updatedResp.avatar?.avatarUrl?.includes('dev.getsentry.net:8000')) {
-                updatedResp.avatar.avatarUrl = updatedResp.avatar.avatarUrl.replace(
-                  'dev.getsentry.net:8000',
-                  'localhost:8000'
-                );
-              }
-
-              // Ensure avatarUrl is at the top level for ConfigStore
-              if (updatedResp.avatar?.avatarUrl) {
-                updatedResp.avatarUrl = updatedResp.avatar.avatarUrl;
-              }
-
-              // Add cache busting to force avatar refresh
-              if (updatedResp.avatarUrl) {
-                const timestamp = Date.now();
-                const random = Math.random().toString(36).substring(7);
-                updatedResp.avatarUrl = `${updatedResp.avatarUrl}?v=${timestamp}&r=${random}&bust=1`;
-              }
-
-              // Keep the response as-is since we're saving as upload type
-              // The avatar will be treated as an uploaded image
-
-              console.log('🤖 Updated AI response for ConfigStore:', updatedResp);
-              console.log('🤖 Final avatarUrl for navigation:', updatedResp.avatarUrl);
-              console.log('🤖 Final avatarType for navigation:', updatedResp.avatarType);
-
-              // Save the variation choice locally for AI avatars
-              if (selectedVariation && selectedVariation !== 'original') {
-                saveUserAvatarVariation(user.id, selectedVariation);
-              } else {
-                // Clear any saved variation for original
-                localStorage.removeItem(`avatar-variation-${user.id}`);
-              }
-
-              console.log('🤖 Calling updateUser with:', updatedResp);
-              updateUser(updatedResp);
-
-              console.log('🤖 Calling onSave with:', 'ai_generated', updatedResp);
-              onSave('ai_generated', updatedResp);
-
-              addSuccessMessage(t('AI avatar saved successfully!'));
-              setIsSaving(false);
-              onClose();
-            },
-            error: resp => {
-              addErrorMessage(t('Failed to save AI avatar. Please try again.'));
-              setIsSaving(false);
-            },
+          // Convert blob to base64
+          const fullBase64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
           });
+
+          const parts = fullBase64.split(',');
+          base64Data = parts[1] || parts[0] || '';
+        }
+
+        const aiData = {
+          avatar_type: 'upload', // Save as upload to prevent regeneration
+          avatar_photo: base64Data,
+          variation: selectedVariation,
         };
 
-        reader.onerror = () => {
-          addErrorMessage(t('Failed to process AI avatar image.'));
-          setIsSaving(false);
-        };
+        console.log('🤖 Saving AI avatar as upload with data:', aiData);
 
-        reader.readAsDataURL(blob);
+        api.request(endpoint, {
+          method: 'PUT',
+          data: aiData,
+          success: resp => {
+            console.log('✅ AI save response:', resp);
+
+            // Fix avatar URL for proper display
+            const updatedResp = {...resp};
+
+            // Handle relative URLs from backend
+            if (updatedResp.avatar?.avatarUrl?.startsWith('/avatar/')) {
+              updatedResp.avatar.avatarUrl = `http://localhost:8000${updatedResp.avatar.avatarUrl}`;
+            }
+
+            // Fix hostname mismatch
+            if (updatedResp.avatar?.avatarUrl?.includes('dev.getsentry.net:8000')) {
+              updatedResp.avatar.avatarUrl = updatedResp.avatar.avatarUrl.replace(
+                'dev.getsentry.net:8000',
+                'localhost:8000'
+              );
+            }
+
+            // Ensure avatarUrl is at the top level for ConfigStore
+            if (updatedResp.avatar?.avatarUrl) {
+              updatedResp.avatarUrl = updatedResp.avatar.avatarUrl;
+            }
+
+            // Add cache busting to force avatar refresh
+            if (updatedResp.avatarUrl) {
+              const timestamp = Date.now();
+              const random = Math.random().toString(36).substring(7);
+              updatedResp.avatarUrl = `${updatedResp.avatarUrl}?v=${timestamp}&r=${random}&bust=1`;
+            }
+
+            // Keep the response as-is since we're saving as upload type
+            // The avatar will be treated as an uploaded image
+
+            console.log('🤖 Updated AI response for ConfigStore:', updatedResp);
+            console.log('🤖 Final avatarUrl for navigation:', updatedResp.avatarUrl);
+            console.log('🤖 Final avatarType for navigation:', updatedResp.avatarType);
+
+            // Save the variation choice locally for AI avatars
+            if (selectedVariation && selectedVariation !== 'original') {
+              saveUserAvatarVariation(user.id, selectedVariation);
+            } else {
+              // Clear any saved variation for original
+              localStorage.removeItem(`avatar-variation-${user.id}`);
+            }
+
+            console.log('🤖 Calling updateUser with:', updatedResp);
+            updateUser(updatedResp);
+
+            console.log('🤖 Calling onSave with:', 'ai_generated', updatedResp);
+            onSave('ai_generated', updatedResp);
+
+            addSuccessMessage(t('AI avatar saved successfully!'));
+            setIsSaving(false);
+            onClose();
+          },
+          error: resp => {
+            addErrorMessage(t('Failed to save AI avatar. Please try again.'));
+            setIsSaving(false);
+          },
+        });
       } catch (fetchError) {
         console.error('🤖 Failed to fetch AI avatar image:', fetchError);
         addErrorMessage(t('Failed to save AI avatar. Please try again.'));
@@ -959,7 +1050,7 @@ export function AvatarEditDrawer({
           selectedMode === 'upload' && uploadedFile,
         'selectedMode === upload && previewUrl && !uploadedFile':
           selectedMode === 'upload' && previewUrl && !uploadedFile,
-        'selectedMode === initials': selectedMode === 'initials',
+        'selectedMode is initials': selectedMode === 'initials' ? 'true' : 'false',
         'selectedMode === ai && generatedAvatarUrl':
           selectedMode === 'ai' && generatedAvatarUrl,
         selectedMode,
@@ -1013,31 +1104,39 @@ export function AvatarEditDrawer({
 
       if (variation?.backgroundImage) {
         return (
-          <AvatarWithBackground
-            backgroundImage={variation.backgroundImage}
-            patternColor={variation.patternColor}
-            size={150}
-          >
-            <PreviewAvatar
-              src={previewUrl}
-              alt="Avatar preview"
-              style={{filter: variation?.filter || 'none'}}
-            />
-          </AvatarWithBackground>
+          <CroppableAvatar onCropClick={() => setCropperOpen(true)}>
+            <AvatarWithBackground
+              backgroundImage={variation.backgroundImage}
+              patternColor={variation.patternColor}
+              size={150}
+            >
+              <PreviewAvatar
+                src={previewUrl}
+                alt="Avatar preview"
+                style={{filter: variation?.filter || 'none'}}
+              />
+            </AvatarWithBackground>
+          </CroppableAvatar>
         );
       }
 
       return (
-        <PreviewAvatar
-          src={previewUrl}
-          alt="Avatar preview"
-          style={{filter: variation?.filter || 'none'}}
-        />
+        <CroppableAvatar onCropClick={() => setCropperOpen(true)}>
+          <PreviewAvatar
+            src={previewUrl}
+            alt="Avatar preview"
+            style={{filter: variation?.filter || 'none'}}
+          />
+        </CroppableAvatar>
       );
     }
 
     if (selectedMode === 'upload' && previewUrl) {
-      return <PreviewAvatar src={previewUrl} alt="Avatar preview" />;
+      return (
+        <CroppableAvatar onCropClick={() => setCropperOpen(true)}>
+          <PreviewAvatar src={previewUrl} alt="Avatar preview" />
+        </CroppableAvatar>
+      );
     }
 
     if (selectedMode === 'upload') {
@@ -1069,22 +1168,28 @@ export function AvatarEditDrawer({
         if (variation?.backgroundImage) {
           console.log('🤖 Rendering AI avatar with background:', variation.id);
           return (
-            <AvatarWithBackground
-              backgroundImage={variation.backgroundImage}
-              patternColor={variation.patternColor}
-              size={150}
-            >
-              <PreviewAvatar
-                src={generatedAvatarUrl}
-                alt={t('Generated Avatar')}
-                style={{filter: variation.filter}}
-              />
-            </AvatarWithBackground>
+            <CroppableAvatar onCropClick={() => setCropperOpen(true)}>
+              <AvatarWithBackground
+                backgroundImage={variation.backgroundImage}
+                patternColor={variation.patternColor}
+                size={150}
+              >
+                <PreviewAvatar
+                  src={generatedAvatarUrl}
+                  alt={t('Generated Avatar')}
+                  style={{filter: variation.filter}}
+                />
+              </AvatarWithBackground>
+            </CroppableAvatar>
           );
         }
 
         console.log('🤖 Rendering plain AI avatar preview');
-        return <PreviewAvatar src={generatedAvatarUrl} alt={t('Generated Avatar')} />;
+        return (
+          <CroppableAvatar onCropClick={() => setCropperOpen(true)}>
+            <PreviewAvatar src={generatedAvatarUrl} alt={t('Generated Avatar')} />
+          </CroppableAvatar>
+        );
       }
 
       return (
@@ -1317,7 +1422,40 @@ export function AvatarEditDrawer({
       </DrawerComponents.DrawerHeader>
 
       <DrawerContent>
-        <AvatarSection>{renderAvatarPreview()}</AvatarSection>
+        <AvatarSection>
+          {cropperOpen ? (
+            <SimpleCropperContainer>
+              <AvatarCropper
+                minDimension={MIN_DIMENSION}
+                maxDimension={MAX_DIMENSION}
+                dataUrl={
+                  selectedMode === 'upload' ? previewUrl || '' : generatedAvatarUrl || ''
+                }
+                updateDataUrlState={dataUrl => {
+                  if (selectedMode === 'upload') {
+                    setPreviewUrl(dataUrl);
+                  } else if (selectedMode === 'ai') {
+                    setGeneratedAvatarUrl(dataUrl);
+                  }
+                }}
+              />
+              <CropperButtonsContainer>
+                <Button size="xs" priority="danger" onClick={() => setCropperOpen(false)}>
+                  {t('Cancel')}
+                </Button>
+                <Button
+                  size="xs"
+                  priority="primary"
+                  onClick={() => setCropperOpen(false)}
+                >
+                  {t('Looks good')}
+                </Button>
+              </CropperButtonsContainer>
+            </SimpleCropperContainer>
+          ) : (
+            renderAvatarPreview()
+          )}
+        </AvatarSection>
 
         <SegmentedControlSection>
           <FullWidthSegmentedControl
@@ -1359,7 +1497,6 @@ export function AvatarEditDrawer({
 
         <ContentSection>{renderModeContent()}</ContentSection>
       </DrawerContent>
-
       <DrawerFooter>
         <Button onClick={onClose} priority="default">
           {t('Cancel')}
@@ -1964,6 +2101,85 @@ const FileInput = styled('input')`
   opacity: 0 !important;
   position: absolute !important;
   left: -9999px !important;
+`;
+
+const CropperSection = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: ${space(2)};
+`;
+
+const SimpleCropperContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  padding: ${space(2)};
+  max-width: 300px;
+  margin: 0 auto;
+`;
+
+const CropperButtonsContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  gap: ${space(1)};
+`;
+
+// Simple croppable avatar component that shows edit icon on hover
+function CroppableAvatar({
+  children,
+  onCropClick,
+}: {
+  children: React.ReactNode;
+  onCropClick: () => void;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <CroppableAvatarWrapper
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {children}
+      <CropEditIcon isVisible={isHovered} onClick={onCropClick} title={t('Crop Avatar')}>
+        <IconEdit size="xs" />
+      </CropEditIcon>
+    </CroppableAvatarWrapper>
+  );
+}
+
+const CroppableAvatarWrapper = styled('div')`
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+`;
+
+const CropEditIcon = styled('div')<{isVisible: boolean}>`
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  background: ${p => p.theme.button.default.background};
+  border: 1px solid ${p => p.theme.button.default.border};
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: ${p => (p.isVisible ? 1 : 0)};
+  transition: opacity 0.2s ease;
+  z-index: 10;
+
+  &:hover {
+    background: ${p => p.theme.hover};
+  }
+
+  svg {
+    color: ${p => p.theme.button.default.color};
+    width: 10px;
+    height: 10px;
+  }
 `;
 
 const DrawerFooter = styled('div')`

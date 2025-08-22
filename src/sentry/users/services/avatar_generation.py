@@ -1,5 +1,5 @@
 """
-Service for generating AI-powered user avatars using OpenAI's DALL-E API.
+Service for generating AI-powered user avatars using OpenAI's latest GPT Image 1 API.
 """
 
 from __future__ import annotations
@@ -12,7 +12,6 @@ from openai import OpenAI
 from PIL import Image
 
 from sentry import options
-from sentry.llm.providers.openai import get_openai_client
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ class AvatarGenerationError(Exception):
 
 
 class AvatarGenerationService:
-    """Service for generating AI avatars using OpenAI DALL-E."""
+    """Service for generating AI avatars using OpenAI's GPT Image 1 model."""
 
     def __init__(self):
         self._client = None
@@ -33,8 +32,29 @@ class AvatarGenerationService:
         """Get configured OpenAI client for avatar generation."""
         import os
 
+        # Prioritize user's personal OpenAI account
         api_key = os.environ.get("OPENAI_API_KEY")
+        organization = os.environ.get("OPENAI_ORG_ID")
+        project = os.environ.get("OPENAI_PROJECT_ID")
 
+        # If user has their own API key, use it exclusively (don't fallback to Sentry config)
+        if api_key:
+            logger.info(
+                "Using personal OpenAI API key",
+                extra={
+                    "has_api_key": True,
+                    "has_organization": bool(organization),
+                    "has_project": bool(project),
+                },
+            )
+            client_kwargs = {"api_key": api_key}
+            if organization:
+                client_kwargs["organization"] = organization
+            if project:
+                client_kwargs["project"] = project
+            return OpenAI(**client_kwargs)
+
+        # Only fallback to Sentry's configuration if no personal key is provided
         if not api_key:
             try:
                 provider_options = options.get("llm.provider.options", {})
@@ -84,7 +104,8 @@ class AvatarGenerationService:
                 "3. SENTRY_OPTIONS environment variable with proper JSON structure"
             )
 
-        return get_openai_client(api_key)
+        # Use the fallback API key if found
+        return OpenAI(api_key=api_key)
 
     @property
     def client(self) -> OpenAI:
@@ -107,13 +128,31 @@ class AvatarGenerationService:
                 },
             )
 
-            response = self.client.images.generate(
-                model="dall-e-3",
-                prompt=prompt,
-                size="1024x1024",
-                quality="hd",
-                n=1,
-            )
+            # Try latest model first, fallback to DALL-E 3 if not accessible yet
+            try:
+                response = self.client.images.generate(
+                    model="gpt-image-1",
+                    prompt=prompt,
+                    size="1024x1024",
+                    quality="high",
+                    n=1,
+                )
+            except Exception as e:
+                # If gpt-image-1 isn't accessible yet, fallback to DALL-E 3
+                if "must be verified" in str(e) or "gpt-image-1" in str(e):
+                    logger.info(
+                        "Falling back to DALL-E 3 while waiting for gpt-image-1 access",
+                        extra={"error": str(e), "user_id": user_id},
+                    )
+                    response = self.client.images.generate(
+                        model="dall-e-3",
+                        prompt=prompt,
+                        size="1024x1024",
+                        quality="hd",
+                        n=1,
+                    )
+                else:
+                    raise
 
             image_url = response.data[0].url
             if not image_url:

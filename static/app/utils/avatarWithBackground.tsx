@@ -226,35 +226,31 @@ export function EnhancedUserAvatar({forceVariation, ...props}: EnhancedUserAvata
           }}
         />
       );
-    } else {
-      // For uploaded photos AND AI avatars, treat color as a solid background
-      console.log(
-        '🎨 Rendering solid color background for uploaded/AI photo:',
-        colorKey,
-        colorMap[colorKey],
-        'avatarType:',
-        props.user.avatar?.avatarType
-      );
-
-      return (
-        <AvatarWithBackground
-          backgroundImage={colorMap[colorKey]}
-          size={props.size || 40}
-        >
-          <StyledUserAvatar
-            {...props}
-            style={{
-              filter: backgroundConfig.filter || 'none',
-              ...props.style,
-            }}
-            onError={e => console.log('🤖 AI avatar image failed to load:', e.target.src)}
-            onLoad={e =>
-              console.log('🤖 AI avatar image loaded successfully:', e.target.src)
-            }
-          />
-        </AvatarWithBackground>
-      );
     }
+    // For uploaded photos AND AI avatars, treat color as a solid background
+    console.log(
+      '🎨 Rendering solid color background for uploaded/AI photo:',
+      colorKey,
+      colorMap[colorKey],
+      'avatarType:',
+      props.user.avatar?.avatarType
+    );
+
+    return (
+      <AvatarWithBackground backgroundImage={colorMap[colorKey]} size={props.size || 40}>
+        <StyledUserAvatar
+          {...props}
+          style={{
+            filter: backgroundConfig.filter || 'none',
+            ...props.style,
+          }}
+          onError={e => console.log('🤖 AI avatar image failed to load:', e.target.src)}
+          onLoad={e =>
+            console.log('🤖 AI avatar image loaded successfully:', e.target.src)
+          }
+        />
+      </AvatarWithBackground>
+    );
   }
 
   // For all other variations (beach, patterns, filters, etc.) - apply background wrapper
