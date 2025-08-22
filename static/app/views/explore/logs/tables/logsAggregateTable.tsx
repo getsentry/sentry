@@ -1,16 +1,23 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination from 'sentry/components/pagination';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
+  useLogsFields,
+  useLogsSearch,
+  useLogsSortBys,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
@@ -18,7 +25,7 @@ import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
-import {SeverityLevel} from 'sentry/views/explore/logs/utils';
+import {SeverityLevel, viewLogsSamplesTarget} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -34,13 +41,17 @@ export function LogsAggregateTable() {
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const search = useLogsSearch();
+  const fields = useLogsFields();
+  const sorts = useLogsSortBys();
   const location = useLocation();
   const theme = useTheme();
   const organization = useOrganization();
+  const {projects} = useProjects();
 
-  const fields: string[] = [];
-  fields.push(...groupBys.filter(Boolean));
-  fields.push(...visualizes.map(visualize => visualize.yAxis));
+  const allFields: string[] = [];
+  allFields.push(...groupBys.filter(Boolean));
+  allFields.push(...visualizes.map(visualize => visualize.yAxis));
 
   return (
     <TableContainer>
@@ -49,14 +60,14 @@ export function LogsAggregateTable() {
         isLoading={isLoading}
         error={error}
         data={data?.data ?? []}
-        columnOrder={fields.map(field => ({
+        columnOrder={allFields.map(field => ({
           key: field,
           name: field,
           width: COL_WIDTH_UNDEFINED,
         }))}
         columnSortBy={[
           {
-            key: fields[0]!,
+            key: allFields[0]!,
             order: 'desc',
           },
         ]}
@@ -123,6 +134,35 @@ export function LogsAggregateTable() {
               />
             );
           },
+          prependColumnWidths: ['40px'],
+          renderPrependColumns: (isHeader, dataRow, rowIndex) => {
+            if (isHeader) {
+              return [<span key="header-icon" />];
+            }
+
+            const target = viewLogsSamplesTarget({
+              location,
+              search,
+              fields,
+              groupBys,
+              visualizes,
+              sorts,
+              row: dataRow || {},
+              projects,
+            });
+
+            return [
+              <Tooltip
+                key={`sample-${rowIndex}`}
+                title={t('View Samples')}
+                containerDisplayMode="flex"
+              >
+                <StyledLink to={target}>
+                  <IconStack />
+                </StyledLink>
+              </Tooltip>,
+            ];
+          },
         }}
       />
       <Pagination
@@ -136,4 +176,8 @@ export function LogsAggregateTable() {
 const TableContainer = styled('div')`
   display: flex;
   flex-direction: column;
+`;
+
+const StyledLink = styled(Link)`
+  display: flex;
 `;

@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
+import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import type {ApiResult} from 'sentry/api';
@@ -7,12 +8,14 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
+  parseFunction,
   type ColumnValueType,
   type Sort,
 } from 'sentry/utils/discover/fields';
@@ -27,6 +30,7 @@ import {
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
+  setLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -50,7 +54,11 @@ import {
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeFunction,
+  type BaseVisualize,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -503,4 +511,105 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
     }
   }
   return JSON.stringify(copy, null, 2);
+}
+
+export function viewLogsSamplesTarget({
+  location,
+  search,
+  fields,
+  groupBys,
+  visualizes,
+  sorts,
+  row,
+  projects,
+}: {
+  fields: string[];
+  groupBys: readonly string[];
+  location: Location;
+  // needed to generate targets when `project` is in the group by
+  projects: Project[];
+  row: Record<string, any>;
+  search: MutableSearch;
+  sorts: Sort[];
+  visualizes: readonly Visualize[];
+}) {
+  search = search.copy();
+
+  // first update the resulting query to filter for the target group
+  for (const groupBy of groupBys) {
+    const value = row[groupBy];
+    // some fields require special handling so make sure to handle it here
+    if (groupBy === 'project' && typeof value === 'string') {
+      const project = projects.find(p => p.slug === value);
+      if (defined(project)) {
+        location.query.project = project.id;
+      }
+    } else if (groupBy === 'project.id' && typeof value === 'number') {
+      location.query.project = String(value);
+    } else if (groupBy === 'environment' && typeof value === 'string') {
+      location.query.environment = value;
+    } else if (typeof value === 'string') {
+      search.setFilterValues(groupBy, [value]);
+    }
+  }
+
+  const newFields = [...fields];
+  const seenFields = new Set(newFields);
+
+  // add all the arguments of the visualizations as columns
+  for (const visualize of visualizes) {
+    if (isVisualizeFunction(visualize)) {
+      const parsedFunction = visualize.parsedFunction;
+      if (!parsedFunction?.arguments[0]) {
+        continue;
+      }
+      const field = parsedFunction.arguments[0];
+      if (seenFields.has(field)) {
+        continue;
+      }
+      newFields.push(field);
+      seenFields.add(field);
+    }
+  }
+
+  // fall back, force timestamp to be a column so we
+  // always have at least 1 column
+  if (newFields.length === 0) {
+    newFields.push('timestamp');
+    seenFields.add('timestamp');
+  }
+
+  // fall back, sort the last column present
+  let sortBy: Sort = {
+    field: newFields[newFields.length - 1]!,
+    kind: 'desc' as const,
+  };
+
+  // find the first valid sort and sort on that
+  for (const sort of sorts) {
+    const parsedFunction = parseFunction(sort.field);
+    if (!parsedFunction?.arguments[0]) {
+      continue;
+    }
+    const field = parsedFunction.arguments[0];
+
+    // on the odd chance that this sorted column was not added
+    // already, make sure to add it
+    if (!seenFields.has(field)) {
+      newFields.push(field);
+    }
+
+    sortBy = {
+      field,
+      kind: sort.kind,
+    };
+    break;
+  }
+
+  return setLogsPageParams(location, {
+    mode: Mode.SAMPLES,
+    fields: newFields,
+    search,
+    sortBys: [sortBy],
+  });
 }
