@@ -10,7 +10,13 @@ from sentry.api.base import region_silo_endpoint
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
+from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.smokey.help import HELP_BLOCKS
+from sentry.integrations.slack.smokey.incident_modal import get_incident_modal_view
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
+from sentry.smokey.hack import DEMO_ORG_ID
+from sentry.smokey.models.incidentcasetemplate import IncidentCaseTemplate
+from sentry.smokey.models.incidentcomponent import IncidentComponent
 
 
 class IncidentManagementCommand(StrEnum):
@@ -32,61 +38,21 @@ class SlackIncidentManagementEndpoint(SlackDMEndpoint):
     slack_request_class = SlackCommandRequest
 
     def handle_help(self, slack_request: SlackDMRequest) -> Response:
-        return self.respond(
-            {
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": (
-                                ":bear: *Smokey is here to help you fight the fire!* :fire:\n\n"
-                                "Here are the available commands you can use to manage incidents:"
-                            ),
-                        },
-                    },
-                    {"type": "divider"},
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": (
-                                "*From anywhere:*\n"
-                                "*`/smokey new`* — Create a new incident, and channel to track it."
-                            ),
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": (
-                                "*From an incident channel:*\n"
-                                "*`/smokey huddle`* — Start a huddle for the current incident.\n"
-                                "*`/smokey update`* — Update the current incident.\n"
-                                "*`/smokey close`* — Close the current incident.\n"
-                                "*`/smokey reopen`* — Reopen a closed incident.\n"
-                                "*`/smokey status new`* — Start a public incident on the status page.\n"
-                                "*`/smokey status update`* — Update the existing incident on the status page."
-                            ),
-                        },
-                    },
-                    {"type": "divider"},
-                    {
-                        "type": "context",
-                        "elements": [
-                            {
-                                "type": "mrkdwn",
-                                "text": "Need more help? Call 911 (or 112 if you're in VIE)",
-                            }
-                        ],
-                    },
-                ]
-            }
-        )
+        return self.respond(HELP_BLOCKS)
 
     def handle_new_incident(self, slack_request: SlackDMRequest) -> Response:
-        return self.handle_help(slack_request)
+        """Open a modal to create a new incident with required fields."""
+        slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
+        template = IncidentCaseTemplate.objects.filter(
+            organization_id=DEMO_ORG_ID,
+        ).first()
+        if not template:
+            return self.respond(HELP_BLOCKS)
+
+        components = IncidentComponent.objects.filter(organization_id=DEMO_ORG_ID)
+        view = get_incident_modal_view(template=template, components=list(components))
+        slack_client.views_open(trigger_id=slack_request.data.get("trigger_id"), view=view)
+        return self.respond()
 
     def handle_huddle(self, slack_request: SlackDMRequest) -> Response:
         return self.handle_help(slack_request)

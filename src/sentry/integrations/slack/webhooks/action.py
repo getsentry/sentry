@@ -36,6 +36,7 @@ from sentry.integrations.slack.message_builder.routing import decode_action_id
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.smokey.create_incident import run_create_incident
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
@@ -627,6 +628,10 @@ class SlackActionEndpoint(Endpoint):
 
         if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
+
+        if slack_request.data.get("view", {}).get("callback_id") == "new_incident_modal":
+            run_create_incident(slack_request)
+            return self.respond()
 
         action_list = self.get_action_list(slack_request=slack_request)
         return self._handle_group_actions(slack_request, request, action_list)
