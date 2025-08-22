@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TypedDict
+
 from django.http import HttpRequest, HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
@@ -9,13 +11,13 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.perforce.depot import PerforceDepot
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.source_code_management.code_store import CodeStoreIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import render_react_view
 
 from .client import PerforceClient
-from .models import PerforceFileInfo
 
 DESCRIPTION = """
 Connect your Sentry organization with your Perforce server to enable stacktrace linking.
@@ -42,6 +44,14 @@ metadata = IntegrationMetadata(
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/perforce",
     aspects={},
 )
+
+
+class PerforceFileInfo(TypedDict):
+    depot_path: str
+    revision: int
+    file_size: int
+    file_type: str
+    file_name: str
 
 
 class PerforceIntegration(CodeStoreIntegration):
@@ -85,14 +95,14 @@ class PerforceIntegration(CodeStoreIntegration):
         For Perforce, we'll construct a URL to the P4 Code Review interface.
         """
         base_url = self.model.metadata.get("base_url", "").rstrip("/")
-        # Convert filepath to depot path if needed
-        if not filepath.startswith("//"):
-            filepath = f"//{filepath}"
-
+        depot_name = self.model.metadata.get("depot_name", "")
+        assert depot_name, "Depot name is required"
+        depot = PerforceDepot(depot_name)
         # Return a URL to the P4 Code Review file viewer
         if revision:
-            return f"{base_url}/files{filepath}#{revision}"
-        return f"{base_url}/files{filepath}"
+            return f"{base_url}/files/{depot.encode_path(filepath)}#{revision}"
+
+        return f"{base_url}/files/{depot.encode_path(filepath)}"
 
     def extract_source_path_from_source_url(self, url: str) -> str:
         """Extract source path from URL."""
@@ -211,6 +221,9 @@ class PerforceIntegrationProvider(IntegrationProvider):
             "metadata": {
                 "base_url": config["base_url"],
                 "depot_name": config["depot_name"],
+                "username": config["username"],
+                "password": config["password"],
+                "verify_ssl": config["verify_ssl"],
             },
             "config": config,
         }

@@ -23,14 +23,15 @@ class PerforceDepot:
 
         self.depot_path = depot_path
 
-    def encode_path(self) -> str:
+    def encode_path(self, file_path: str) -> str:
         """
         Base64 encode the full depot path including the leading //.
 
         Returns:
             Base64 encoded depot path
         """
-        return base64.b64encode(self.depot_path.encode("utf-8")).decode("ascii")
+        full_path = f"{self.depot_path}/{file_path or ''}"
+        return base64.b64encode(full_path.encode("utf-8")).decode("ascii")
 
     def get_raw_path(self) -> str:
         """

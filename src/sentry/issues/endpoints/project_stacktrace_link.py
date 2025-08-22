@@ -17,7 +17,9 @@ from sentry.api.serializers import serialize
 from sentry.integrations.analytics import IntegrationStacktraceLinkEvent
 from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.perforce.stacktrace_link import get_perforce_stacktrace_link
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.stacktrace_link import StacktraceLinkOutcome, get_stacktrace_config
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.project import Project
@@ -98,6 +100,41 @@ def set_tags(scope: Scope, result: StacktraceLinkOutcome, integrations: list[Non
     scope.set_tag("stacktrace_link.has_integration", len(integrations) > 0)
 
 
+def _handle_perforce_integrations(
+    project: Project,
+    filepath: str,
+    integrations: list,
+    ctx: StacktraceLinkContext,
+    request: Request,
+) -> tuple[list, dict | None]:
+    """
+    Handle Perforce integrations separately from traditional repository-based integrations.
+
+    Returns:
+        Tuple of (perforce_integrations, perforce_result)
+    """
+    perforce_integrations = [
+        integration
+        for integration in integrations
+        if (
+            integration.has_feature(IntegrationFeatures.STACKTRACE_LINK)
+            and integration.provider == IntegrationProviderSlug.PERFORCE
+        )
+    ]
+
+    perforce_result = None
+    if perforce_integrations:
+        perforce_result = get_perforce_stacktrace_link(
+            project=project,
+            organization=project.organization,
+            filepath=filepath,
+            perforce_integrations=perforce_integrations,
+            ctx=ctx,
+        )
+
+    return perforce_integrations, perforce_result
+
+
 @region_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     publish_status = {
@@ -127,23 +164,58 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             return Response({"detail": "Filepath is required"}, status=400)
 
         integrations = integration_service.get_integrations(organization_id=project.organization_id)
+
+        # Handle Perforce integrations separately
+        perforce_integrations, perforce_result = _handle_perforce_integrations(
+            project=project,
+            filepath=filepath,
+            integrations=integrations,
+            ctx=ctx,
+            request=request,
+        )
+
+        # Filter out Perforce integrations for traditional code mapping flow
+        # non_perforce_integrations = [
+        #     integration
+        #     for integration in integrations
+        #     if (
+        #         integration.has_feature(IntegrationFeatures.STACKTRACE_LINK)
+        #         and integration.provider != IntegrationProviderSlug.PERFORCE
+        #     )
+        # ]
+
         # TODO(meredith): should use get_provider.has_feature() instead once this is
         # no longer feature gated and is added as an IntegrationFeature
         serializer = IntegrationSerializer()
-        serialized_integrations = [
+
+        # Serialize all integrations (including Perforce) for response
+        all_serialized_integrations = [
             serialize(i, request.user, serializer)
             for i in integrations
             if i.has_feature(IntegrationFeatures.STACKTRACE_LINK)
         ]
 
         configs = get_sorted_code_mapping_configs(project)
-        if not configs:
+        if not configs and not perforce_integrations:
             return Response(
                 {
                     "config": None,
                     "sourceUrl": None,
-                    "integrations": serialized_integrations,
+                    "integrations": all_serialized_integrations,
                     "error": "no_code_mappings_for_project",
+                }
+            )
+
+        # If we only have Perforce integrations and no traditional configs
+        if not configs and perforce_result:
+            return Response(
+                {
+                    "config": perforce_result["config"],
+                    "sourceUrl": perforce_result["source_url"],
+                    "sourcePath": perforce_result["src_path"],
+                    "error": perforce_result["error"],
+                    "integrations": all_serialized_integrations,
+                    "attemptedUrl": None,
                 }
             )
 
@@ -170,7 +242,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 if result["current_config"]["outcome"].get("attemptedUrl"):
                     attempted_url = result["current_config"]["outcome"]["attemptedUrl"]
         try:
-            set_tags(scope, result, serialized_integrations)
+            set_tags(scope, result, all_serialized_integrations)
         except Exception:
             logger.exception("Failed to set tags.")
 
@@ -194,7 +266,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                     "sourcePath": src_path,
                     "sourceUrl": result["source_url"],
                     "attemptedUrl": attempted_url,
-                    "integrations": serialized_integrations,
+                    "integrations": all_serialized_integrations,
                 }
             )
 
@@ -205,6 +277,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 "sourcePath": src_path,
                 "sourceUrl": None,
                 "attemptedUrl": attempted_url,
-                "integrations": serialized_integrations,
+                "integrations": all_serialized_integrations,
             }
         )
