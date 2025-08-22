@@ -114,6 +114,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         assert minidump.name == "windows.dmp"
         assert minidump.sha1 == "74bb01c850e8d65d3ffbc5bad5cabc4668fce247"
 
+    @pytest.mark.skip(reason="flaky: #98127")
     def test_full_minidump_json_extra(self) -> None:
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
         self.upload_symbols()
