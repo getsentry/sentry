@@ -34,6 +34,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import addBillingMetricUsage from 'admin/components/addBillingMetricUsage';
 import addGiftBudgetAction from 'admin/components/addGiftBudgetAction';
 import AddGiftEventsAction from 'admin/components/addGiftEventsAction';
+import addRecurringCreditAction from 'admin/components/addRecurringCreditAction';
 import {triggerAM2CompatibilityCheck} from 'admin/components/am2CompatibilityCheckModal';
 import CancelSubscriptionAction from 'admin/components/cancelSubscriptionAction';
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
@@ -468,6 +469,19 @@ export default function CustomerDetails() {
                 orgId,
                 subscription,
                 onSuccess: reloadData,
+              }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
+            key: 'addRecurringCredit',
+            name: 'Add Recurring Credit',
+            help: 'Add a recurring credit that applies each billing period.',
+            skipConfirmModal: true,
+            onAction: () =>
+              addRecurringCreditAction({
+                onSuccess: reloadData,
+                organization,
+                subscription,
               }),
             ...actionRequiresBillingAdmin,
           },
