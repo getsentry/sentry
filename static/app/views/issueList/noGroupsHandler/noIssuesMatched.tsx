@@ -254,7 +254,9 @@ function RunnerGame() {
         // Smooth arc that starts below the barrier, peaks mid-way, and lands exactly at baseY
         const y =
           introT < 1
-            ? baseY + offsetBelow * (1 - introT) - introHeight * Math.sin(Math.PI * introT)
+            ? baseY +
+              offsetBelow * (1 - introT) -
+              introHeight * Math.sin(Math.PI * introT)
             : baseY;
         setPlayerY(y);
         setPlayerRot(900 * introT);
