@@ -41,6 +41,7 @@ import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
+import RecentlyViewedIssuesButton from 'sentry/views/issueDetails/recentlyViewedIssuesButton';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/header/assigneeSelector';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/attachmentsBadge';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/streamline/header/issueIdBreadcrumb';
@@ -146,6 +147,7 @@ export default function StreamlinedGroupHeader({
             )}
           </Flex>
           <ButtonBar gap="xs">
+            <RecentlyViewedIssuesButton currentIssueId={group.id} />
             {!hasOnlyOneUIOption && !isQueryInjection && (
               <LinkButton
                 size="xs"

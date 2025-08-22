@@ -16,6 +16,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import RecentlyViewedIssuesButton from 'sentry/views/issueDetails/recentlyViewedIssuesButton';
 import {EditableIssueViewHeader} from 'sentry/views/issueList/editableIssueViewHeader';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import {
@@ -232,6 +233,7 @@ function IssueViewsHeader({
         <StyledLayoutTitle>
           <PageTitle title={title} description={description} />
           <Actions>
+            <RecentlyViewedIssuesButton />
             {headerActions}
             {!viewId && (
               <DisableInDemoMode>

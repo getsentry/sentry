@@ -100,6 +100,12 @@ interface GroupDetailsContentProps {
   project: Project;
 }
 
+export interface RecentlyViewedIssue {
+  id: string;
+  title: string;
+  url: string;
+}
+
 function getFetchDataRequestErrorType(status?: number | null): Error {
   if (!status) {
     return null;
@@ -564,6 +570,41 @@ function useTrackView({
   useDisableRouteAnalytics(!group || !event || !project);
 }
 
+// Viewing a issue will show up to 8 others
+const MAX_RECENTLY_VIEWED_ISSUES = 9;
+
+function useTrackRecentlyViewedIssue(group: Group) {
+  const location = useLocation();
+  useEffect(() => {
+    if (group?.id) {
+      const recentlyViewedIssues = localStorage.getItem('recentlyViewedIssues');
+      const newIssue = {
+        id: group.id,
+        title: group.title,
+        url: `${location.pathname}${location.search}`,
+      };
+      if (recentlyViewedIssues) {
+        let recentlyViewedIssuesArray: RecentlyViewedIssue[] =
+          JSON.parse(recentlyViewedIssues) ?? [];
+        if (!recentlyViewedIssuesArray.some(issue => issue.id === group.id)) {
+          recentlyViewedIssuesArray =
+            recentlyViewedIssuesArray.length >= MAX_RECENTLY_VIEWED_ISSUES
+              ? recentlyViewedIssuesArray.slice(1)
+              : recentlyViewedIssuesArray;
+          recentlyViewedIssuesArray.push(newIssue);
+          localStorage.setItem(
+            'recentlyViewedIssues',
+            JSON.stringify(recentlyViewedIssuesArray)
+          );
+        }
+      } else {
+        localStorage.setItem('recentlyViewedIssues', JSON.stringify([newIssue]));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group.id]);
+}
+
 const trackTabChanged = ({
   organization,
   project,
@@ -704,6 +745,7 @@ function GroupDetailsContent({
   ]);
 
   useTrackView({group, event, project, tab: currentTab, organization});
+  useTrackRecentlyViewedIssue(group);
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
