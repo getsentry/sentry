@@ -537,7 +537,12 @@ export function AIAnalysisCard({group, event, project}: AIAnalysisCardProps) {
               >
                 <Button size="xs" priority="default" icon={<IconCopy />}>
                   <span style={{marginRight: '4px'}}>{t('Copy')}</span>
-                  <span style={{transform: 'rotate(180deg) translateY(1px)', display: 'inline-block'}}>
+                  <span
+                    style={{
+                      transform: 'rotate(180deg) translateY(1px)',
+                      display: 'inline-block',
+                    }}
+                  >
                     <IconChevron size="xs" />
                   </span>
                 </Button>

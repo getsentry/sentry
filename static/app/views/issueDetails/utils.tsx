@@ -16,12 +16,12 @@ import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useUser} from 'sentry/utils/useUser';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {useUser} from 'sentry/utils/useUser';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 export function markEventSeen(
@@ -299,7 +299,7 @@ const AI_MODE_STORAGE_KEY = 'issue-details-ai-mode';
 
 export function useHasAIMode() {
   const location = useLocation();
-  
+
   // Initialize state by reading current localStorage value synchronously or URL override
   const [isAIMode, setIsAIMode] = useState(() => {
     // Check for URL parameter first
@@ -307,7 +307,7 @@ export function useHasAIMode() {
     if (aiModeParam === 'true' || aiModeParam === '1') {
       return true;
     }
-    
+
     const currentValue = localStorage.getItem(AI_MODE_STORAGE_KEY);
     if (currentValue === null) {
       return false;
@@ -353,7 +353,7 @@ export function useHasAIMode() {
 
     // Broadcast to other hook instances
     window.dispatchEvent(
-      new CustomEvent(SYNCED_AI_MODE_EVENT, { detail: { value: newValue } })
+      new CustomEvent(SYNCED_AI_MODE_EVENT, {detail: {value: newValue}})
     );
   }, []);
 

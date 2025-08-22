@@ -17,7 +17,6 @@ import {
   IssueDetailsContextProvider,
   useIssueDetails,
 } from 'sentry/views/issueDetails/streamline/context';
-import {useHasAIMode} from 'sentry/views/issueDetails/utils';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
@@ -26,6 +25,7 @@ import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggle
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
+  useHasAIMode,
 } from 'sentry/views/issueDetails/utils';
 
 function GroupLayoutBody({children}: {children: React.ReactNode}) {
@@ -80,7 +80,10 @@ export function GroupDetailsLayout({
               <EventDetailsHeader event={event} group={group} project={project} />
             </SharedTourElement>
           )}
-          {!isAIMode ? (
+          {isAIMode ? (
+            // AI mode: render children directly without the event details wrapper
+            <ContentPadding>{children}</ContentPadding>
+          ) : (
             <SharedTourElement<IssueDetailsTour>
               id={IssueDetailsTour.EVENT_DETAILS}
               demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
@@ -102,9 +105,6 @@ export function GroupDetailsLayout({
                 <ContentPadding>{children}</ContentPadding>
               </GroupContent>
             </SharedTourElement>
-          ) : (
-            // AI mode: render children directly without the event details wrapper
-            <ContentPadding>{children}</ContentPadding>
           )}
         </div>
         {!isAIMode && (
