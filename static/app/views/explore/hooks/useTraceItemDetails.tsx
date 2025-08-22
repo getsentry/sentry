@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 
+import type {Meta} from 'sentry/types/group';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -39,10 +40,21 @@ interface UseTraceItemDetailsProps {
   enabled?: boolean;
 }
 
+export type TraceItemAttributeMeta = Pick<Meta, 'len' | 'rem'>;
+interface TraceItemDetailsMetaRecord {
+  meta: {
+    value: {
+      '': TraceItemAttributeMeta;
+    };
+  };
+}
+
+export type TraceItemDetailsMeta = Record<string, TraceItemDetailsMetaRecord>;
+
 export interface TraceItemDetailsResponse {
   attributes: TraceItemResponseAttribute[];
   itemId: string;
-  meta: Record<string, any>;
+  meta: TraceItemDetailsMeta;
   timestamp: string;
   links?: TraceItemResponseLink[];
 }

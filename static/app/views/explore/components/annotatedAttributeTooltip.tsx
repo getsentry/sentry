@@ -23,7 +23,7 @@ export function AnnotatedAttributeTooltip({
     {
       staleTime: Infinity,
       retry: false,
-      enabled: !!extra.project?.slug && !!fieldKey && !!extra.meta,
+      enabled: !!extra.project?.slug && !!fieldKey && !!extra.traceItemMeta,
       notifyOnChangeProps: ['data'],
     }
   );

@@ -34,6 +34,8 @@ import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {
+  TraceItemAttributeMeta,
+  TraceItemDetailsMeta,
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -53,7 +55,6 @@ import {
 } from 'sentry/views/explore/logs/types';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
-import type {TraceItemMetaRemark} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -517,43 +518,43 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
 export class TraceItemMetaInfo {
   private static readonly META_PATH_CURRENT = '';
 
-  private meta: Record<string, any>;
+  private meta: TraceItemDetailsMeta;
 
-  constructor(meta: Record<string, any>) {
+  constructor(meta: TraceItemDetailsMeta) {
     this.meta = meta;
   }
 
-  getAttributeMeta(attribute: string): any {
+  getAttributeMeta(attribute: string): TraceItemAttributeMeta | undefined {
     return this.meta?.[attribute]?.meta?.value?.[TraceItemMetaInfo.META_PATH_CURRENT];
   }
 
-  getRemarks(attribute: string): TraceItemMetaRemark[] {
+  getRemarks(attribute: string): RemarkObject[] {
     const attributeMeta = this.getAttributeMeta(attribute);
     if (!attributeMeta?.rem?.length) {
       return [];
     }
 
-    const properlyFormedRemarks = attributeMeta.rem.filter((r: any) => r.length >= 2); // Defensive against unexpected length remarks.
+    const properlyFormedRemarks = attributeMeta.rem.filter(r => r.length >= 2); // Defensive against unexpected length remarks.
 
-    return properlyFormedRemarks.map((rem: any[]): TraceItemMetaRemark => {
+    return properlyFormedRemarks.map((rem): RemarkObject => {
       const [ruleId, type, rangeStart, rangeEnd] = rem;
       return {
-        ruleId,
-        type,
-        rangeStart,
-        rangeEnd,
+        ruleId: String(ruleId),
+        type: String(type),
+        rangeStart: Number(rangeStart),
+        rangeEnd: Number(rangeEnd),
       };
     });
   }
 
   hasRemarks(attribute: string): boolean {
     const attributeMeta = this.getAttributeMeta(attribute);
-    return attributeMeta?.rem?.length > 0;
+    return (attributeMeta?.rem?.length ?? 0) > 0;
   }
 
   static getTooltipText(
     attribute: string,
-    meta: Record<string, any>,
+    meta: TraceItemDetailsMeta,
     organization?: Organization,
     project?: Project
   ): string | React.ReactNode | null {
@@ -572,4 +573,11 @@ export class TraceItemMetaInfo {
       project,
     });
   }
+}
+
+interface RemarkObject {
+  rangeEnd: number;
+  rangeStart: number;
+  ruleId: string;
+  type: string;
 }
