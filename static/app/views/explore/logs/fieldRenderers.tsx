@@ -52,8 +52,8 @@ import {
   logsFieldAlignment,
   SeverityLevel,
   severityLevelToText,
-  TraceItemMetaInfo,
 } from 'sentry/views/explore/logs/utils';
+import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
