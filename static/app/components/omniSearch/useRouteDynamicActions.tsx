@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import {IconSettings} from 'sentry/icons';
 import HookStore from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
@@ -8,6 +9,7 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import useRouter from 'sentry/utils/useRouter';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import accountSettingsNavigation from 'sentry/views/settings/account/navigationConfiguration';
 import {getOrganizationNavigationConfiguration} from 'sentry/views/settings/organization/navigationConfiguration';
@@ -50,6 +52,7 @@ const mapFunc = (config: Config, context: Context | null = null) =>
 export function useRouteDynamicActions(): OmniAction[] {
   const organization = useOrganization({allowNull: true});
   const params = useParams<{orgId: string; projectId?: string}>();
+  const router = useRouter();
   const project = useProjectFromSlug({
     organization: organization!,
     projectSlug: params.projectId,
@@ -98,18 +101,32 @@ export function useRouteDynamicActions(): OmniAction[] {
       return [];
     }
 
-    const replaceParams = {...params, orgId: organization.slug};
+    const replaceParams = {
+      ...params,
+      orgId: organization.slug,
+      projectId: params.projectId,
+    };
 
-    return navigationItems.map((item, index) => ({
-      key: `route-${index}`,
-      areaKey: 'global',
-      label: item.title,
-      details: item.description as string,
-      section: 'Navigation',
-      actionIcon: <IconSettings />,
-      to: replaceRouterParams(item.path, replaceParams),
-    }));
-  }, [navigationItems, organization, params]);
+    return navigationItems.map((item, index) => {
+      const path = replaceRouterParams(item.path, replaceParams);
+
+      return {
+        key: `route-${index}`,
+        areaKey: 'global',
+        label: item.title,
+        details: item.description as string,
+        section: 'Navigation',
+        actionIcon: <IconSettings />,
+        onAction: () => {
+          // navigateTo() might open a new modal, and the omnisearch
+          // will close it after an action is taken
+          setTimeout(() => {
+            navigateTo(path, router);
+          }, 0);
+        },
+      };
+    });
+  }, [navigationItems, organization, params, router]);
 
   return dynamicActions;
 }
