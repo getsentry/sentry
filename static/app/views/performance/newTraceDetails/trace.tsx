@@ -1115,9 +1115,10 @@ const TraceStylingWrapper = styled('div')`
         --pattern-even: transparent;
       }
 
+      /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: ${p => p.theme.gray200};
-        --pattern-even: ${p => p.theme.gray100};
+        --pattern-odd: #c3c2c6;
+        --pattern-even: #e6e5e9;
       }
 
       &.error,
@@ -1156,9 +1157,10 @@ const TraceStylingWrapper = styled('div')`
         --pattern-even: transparent;
       }
 
+      /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: ${p => p.theme.gray200};
-        --pattern-even: ${p => p.theme.gray100};
+        --pattern-odd: #222225;
+        --pattern-even: #37363a;
       }
 
       &.error,
