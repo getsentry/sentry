@@ -70,14 +70,7 @@ jobs:
       - run: docker buildx create --driver docker-container --use
 
       - run: |
-          if [ ${{ github.event_name }} = 'push' ]; then
-            args=(
-              --tag ghcr.io/getsentry/sentry-self-hosted:latest
-              --push
-            )
-          else
-            args=()
-          fi
+          args=()
 
           docker buildx build \
             --pull \
