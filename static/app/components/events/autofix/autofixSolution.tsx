@@ -453,6 +453,39 @@ function AutofixSolutionDisplay({
     [organization, solutionItems]
   );
 
+  const handleCodeItUp = () => {
+    let finalSolutionItems = solutionItems;
+
+    // Check if there are instructions typed but not added
+    if (instructions.trim()) {
+      // Create a new step from the instructions input
+      const newStep: AutofixSolutionTimelineEvent = {
+        title: instructions,
+        timeline_item_type: 'human_instruction',
+        is_most_important_event: false,
+        is_active: true,
+      };
+
+      // Add the new step to the solution
+      finalSolutionItems = [...solutionItems, newStep];
+      setSolutionItems(finalSolutionItems);
+
+      // Clear the input
+      setInstructions('');
+
+      trackAnalytics('autofix.solution.add_step', {
+        organization,
+        solution: solutionItems,
+        newStep,
+      });
+    }
+
+    handleContinue({
+      mode: 'fix',
+      solution: finalSolutionItems,
+    });
+  };
+
   useEffect(() => {
     setSolutionItems(
       solution.map(item => ({
@@ -614,12 +647,7 @@ function AutofixSolutionDisplay({
               }
               busy={isPending}
               disabled={hasNoRepos || cantReadRepos || codingDisabled}
-              onClick={() => {
-                handleContinue({
-                  mode: 'fix',
-                  solution: solutionItems,
-                });
-              }}
+              onClick={handleCodeItUp}
               analyticsEventName="Autofix: Code It Up"
               analyticsEventKey="autofix.solution.code"
               title={t('Implement this solution in code with Seer')}
