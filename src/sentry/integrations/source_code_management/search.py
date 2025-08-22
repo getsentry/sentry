@@ -61,7 +61,12 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
         raise NotImplementedError
 
-    def record_event(self, event: SCMIntegrationInteractionType):
+    def record_event(
+        self,
+        event: SCMIntegrationInteractionType,
+        organization_id: int,
+        integration_id: int,
+    ):
         # XXX (mifu67): self.integration_provider is None for the GithubSharedSearchEndpoint,
         # which is used by both GitHub and GitHub Enterprise.
         provider_name = (
@@ -72,6 +77,8 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
         return SCMIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=provider_name,
+            organization_id=organization_id,
+            integration_id=integration_id,
         )
 
     # not used in VSTS
@@ -83,7 +90,11 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
     def get(
         self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
     ) -> Response:
-        with self.record_event(SCMIntegrationInteractionType.GET).capture() as lifecycle:
+        with self.record_event(
+            SCMIntegrationInteractionType.GET,
+            organization_id=organization.id,
+            integration_id=integration_id,
+        ).capture() as lifecycle:
             integration_query = Q(
                 organizationintegration__organization_id=organization.id, id=integration_id
             )

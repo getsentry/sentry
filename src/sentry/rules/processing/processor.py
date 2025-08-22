@@ -4,7 +4,7 @@ import logging
 import random
 import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 from random import randrange
 from typing import Any
 
@@ -28,7 +28,6 @@ from sentry.rules.filters.base import EventFilter
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
-from sentry.utils.dates import ensure_aware
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
@@ -213,10 +212,12 @@ class RuleProcessor:
         is_new_group_environment: bool,
         has_reappeared: bool,
         has_escalated: bool = False,
+        start_timestamp: datetime | None = None,
     ) -> None:
         self.event = event
         self.group = event.group
         self.project = event.project
+        self.start_timestamp = start_timestamp or timezone.now()
 
         self.is_new = is_new
         self.is_regression = is_regression
@@ -282,7 +283,11 @@ class RuleProcessor:
         buffer.backend.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 
         value = json.dumps(
-            {"event_id": self.event.event_id, "occurrence_id": self.event.occurrence_id}
+            {
+                "event_id": self.event.event_id,
+                "occurrence_id": self.event.occurrence_id,
+                "start_timestamp": self.start_timestamp,
+            }
         )
         buffer.backend.push_to_hash(
             model=Project,
@@ -400,24 +405,10 @@ class RuleProcessor:
                 )
             )
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows-logs",
-            rule.project.organization,
-        ):
-            logger.info(
-                "post_process.process_rules.triggered_rule",
-                extra={
-                    "rule_id": rule.id,
-                    "payload": state.__dict__,
-                    "group_id": self.group.id,
-                    "event_id": self.event.event_id,
-                },
-            )
-
         notification_uuid = str(uuid.uuid4())
         metrics.timing(
             "rule_fire_history.latency",
-            (timezone.now() - ensure_aware(self.event.datetime)).total_seconds(),
+            (timezone.now() - self.start_timestamp).total_seconds(),
             tags={"delayed": False, "group_type": self.group.issue_type.slug},
         )
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)

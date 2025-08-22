@@ -21,24 +21,30 @@ type OptionCache<T extends Option> = Map<SelectKey, T>;
  * cache is returned on next call of the hook.
  */
 export function useCompactSelectOptionsCache<T extends Option>(
-  options: T[]
+  options: T[],
+  cacheKey = 'cacheKey'
 ): {
   clear: () => void;
   options: T[];
 } {
-  const cache = useRef<OptionCache<T>>(new Map());
+  const cacheMap = useRef<Record<string, OptionCache<T>>>({[cacheKey]: new Map()});
+  if (!cacheMap.current[cacheKey]) {
+    cacheMap.current[cacheKey] = new Map();
+  }
 
   const clearCache = useCallback(() => {
-    cache.current.clear();
-  }, []);
+    cacheMap.current[cacheKey]?.clear();
+  }, [cacheKey]);
 
   const outgoingOptions = useMemo(() => {
     options.forEach(option => {
-      cache.current.set(option.value, option);
+      cacheMap.current[cacheKey]?.set(option.value, option);
     });
 
-    return Array.from(cache.current.values()).sort(alphabeticalCompare);
-  }, [options]);
+    return Array.from(cacheMap.current[cacheKey]?.values() ?? []).sort(
+      alphabeticalCompare
+    );
+  }, [options, cacheKey]);
 
   return {options: outgoingOptions, clear: clearCache};
 }

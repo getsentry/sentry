@@ -38,7 +38,7 @@ describe('OnDemandBudgets', () => {
     setOnDemandBudget: jest.fn(),
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
@@ -54,7 +54,7 @@ describe('OnDemandBudgets', () => {
     SubscriptionStore.set(organization.slug, {});
   });
 
-  it('renders on-demand not supported state', function () {
+  it('renders on-demand not supported state', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -83,7 +83,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByText('Contact Support')).toBeInTheDocument();
   });
 
-  it('renders credit card modal on the on-demand setting for account without a credit card', async function () {
+  it('renders credit card modal on the on-demand setting for account without a credit card', async () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -120,7 +120,7 @@ describe('OnDemandBudgets', () => {
     ModalStore.reset();
   });
 
-  it('allows VC partner accounts to set up on-demand budget without credit card', function () {
+  it('allows VC partner accounts to set up on-demand budget without credit card', () => {
     const subscription = SubscriptionFixture({
       plan: 'am3_business',
       planTier: PlanTier.AM3,
@@ -159,7 +159,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.queryByText('Add Credit Card')).not.toBeInTheDocument();
   });
 
-  it('renders initial on-demand budget setup state', function () {
+  it('renders initial on-demand budget setup state', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -185,7 +185,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByText('Set Up On-Demand')).toBeInTheDocument();
   });
 
-  it('renders shared on-demand budget', function () {
+  it('renders shared on-demand budget', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -217,7 +217,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByText('$42')).toBeInTheDocument();
   });
 
-  it('renders per-category budget', function () {
+  it('renders per-category budget', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       planTier: PlanTier.AM1,
@@ -256,7 +256,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByText('$30')).toBeInTheDocument();
   });
 
-  it('initialize shared budget', async function () {
+  it('initialize shared budget', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -332,7 +332,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByTestId('shared-budget-info')).toBeInTheDocument();
   });
 
-  it('initialize per-category budget', async function () {
+  it('initialize per-category budget', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -437,7 +437,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByTestId('per-category-budget-info')).toBeInTheDocument();
   });
 
-  it('renders pay-as-you-go instead of on-demand for am3', async function () {
+  it('renders pay-as-you-go instead of on-demand for am3', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -517,7 +517,7 @@ describe('OnDemandBudgets', () => {
     expect(screen.getByTestId('shared-budget-info')).toBeInTheDocument();
   });
 
-  it('renders billed through partner for self serve partner', async function () {
+  it('renders billed through partner for self serve partner', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',

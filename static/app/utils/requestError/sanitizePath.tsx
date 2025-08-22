@@ -39,7 +39,7 @@ export function sanitizePath(path: string) {
       .split('?')[0]!
       .replace(
         /(?<start>.*?\/)(?<type>organizations|issues|groups|customers|subscriptions|projects|teams|users)\/(?<second>[^/]+)\/(?<third>[^/]+\/)?(?<fourth>[^/]+\/)?(?<fifth>[^/]+\/)?(?<sixth>[^/]+\/)?(?<seventh>[^/]+\/)?(?<end>.*)/,
-        function (...args) {
+        (...args) => {
           const matches = args[args.length - 1];
 
           const {type} = matches;

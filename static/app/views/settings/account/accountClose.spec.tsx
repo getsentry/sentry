@@ -9,12 +9,12 @@ import {
 
 import AccountClose from 'sentry/views/settings/account/accountClose';
 
-describe('AccountClose', function () {
+describe('AccountClose', () => {
   let deleteMock: jest.Mock;
   const soloOrgSlug = 'solo-owner';
   const nonSingleOwnerSlug = 'non-single-owner';
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/',
@@ -41,7 +41,7 @@ describe('AccountClose', function () {
     });
   });
 
-  it('lists all orgs user is an owner of', async function () {
+  it('lists all orgs user is an owner of', async () => {
     render(<AccountClose />);
     renderGlobalModal();
 

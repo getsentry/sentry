@@ -6,11 +6,11 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {CronsOnDemandStepWarning} from 'getsentry/components/cronsOnDemandStepWarning';
 
-describe('CronsOnDemandStepWarning', function () {
+describe('CronsOnDemandStepWarning', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization, plan: 'am2_team'});
 
-  it('shows warning only for insufficient funds', async function () {
+  it('shows warning only for insufficient funds', async () => {
     const plan = PlanFixture({});
     const url = `/organizations/${organization.slug}/monitor-count/`;
     const mockApiCall = MockApiClient.addMockResponse({
@@ -55,7 +55,7 @@ describe('CronsOnDemandStepWarning', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('shows warning only for insufficient funds for enterprise', async function () {
+  it('shows warning only for insufficient funds for enterprise', async () => {
     const enterpriseSubscription = SubscriptionFixture({
       organization,
       plan: 'am2_business_ent',

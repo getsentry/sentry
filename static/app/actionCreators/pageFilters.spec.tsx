@@ -24,14 +24,14 @@ const {organization, projects} = initializeOrg({
   ],
 });
 
-describe('PageFilters ActionCreators', function () {
-  beforeEach(function () {
+describe('PageFilters ActionCreators', () => {
+  beforeEach(() => {
     jest.spyOn(PageFiltersStore, 'updateProjects');
     jest.spyOn(PageFiltersStore, 'onInitializeUrlState').mockImplementation();
     jest.clearAllMocks();
   });
 
-  describe('initializeUrlState', function () {
+  describe('initializeUrlState', () => {
     let router: ReturnType<typeof RouterFixture>;
     const key = `global-selection:${organization.slug}`;
 
@@ -46,7 +46,7 @@ describe('PageFilters ActionCreators', function () {
       );
     });
 
-    it('loads from local storage when no query params and filters are pinned', function () {
+    it('loads from local storage when no query params and filters are pinned', () => {
       localStorage.setItem(
         key,
         JSON.stringify({
@@ -85,7 +85,7 @@ describe('PageFilters ActionCreators', function () {
       );
     });
 
-    it('does not load from local storage when no query params and `skipLoadLastUsed` is true', function () {
+    it('does not load from local storage when no query params and `skipLoadLastUsed` is true', () => {
       jest.spyOn(localStorage, 'getItem');
       initializeUrlState({
         organization,
@@ -100,7 +100,7 @@ describe('PageFilters ActionCreators', function () {
       expect(localStorage.getItem).not.toHaveBeenCalled();
     });
 
-    it('does not update local storage (persist) when `shouldPersist` is false', async function () {
+    it('does not update local storage (persist) when `shouldPersist` is false', async () => {
       jest.clearAllMocks();
       jest.spyOn(localStorage, 'getItem').mockReturnValueOnce(
         JSON.stringify({
@@ -146,7 +146,7 @@ describe('PageFilters ActionCreators', function () {
       expect(localStorage.setItem).not.toHaveBeenCalled();
     });
 
-    it('does not change dates with no query params or defaultSelection', function () {
+    it('does not change dates with no query params or defaultSelection', () => {
       initializeUrlState({
         organization,
         queryParams: {
@@ -171,7 +171,7 @@ describe('PageFilters ActionCreators', function () {
       );
     });
 
-    it('does changes to default dates with defaultSelection and no query params', function () {
+    it('does changes to default dates with defaultSelection and no query params', () => {
       initializeUrlState({
         organization,
         queryParams: {
@@ -204,7 +204,7 @@ describe('PageFilters ActionCreators', function () {
       );
     });
 
-    it('uses query params statsPeriod over defaults', function () {
+    it('uses query params statsPeriod over defaults', () => {
       initializeUrlState({
         organization,
         queryParams: {
@@ -236,7 +236,7 @@ describe('PageFilters ActionCreators', function () {
       );
     });
 
-    it('uses absolute dates over defaults', function () {
+    it('uses absolute dates over defaults', () => {
       initializeUrlState({
         organization,
         queryParams: {
@@ -270,7 +270,7 @@ describe('PageFilters ActionCreators', function () {
       );
     });
 
-    it('does not load from local storage when there are query params', function () {
+    it('does not load from local storage when there are query params', () => {
       initializeUrlState({
         organization,
         queryParams: {
@@ -306,7 +306,7 @@ describe('PageFilters ActionCreators', function () {
       );
     });
 
-    it('does not invalidate all projects from query params', function () {
+    it('does not invalidate all projects from query params', () => {
       initializeUrlState({
         organization,
         queryParams: {
@@ -333,7 +333,7 @@ describe('PageFilters ActionCreators', function () {
       );
     });
 
-    it('does invalidate all projects from query params if forced into single project', function () {
+    it('does invalidate all projects from query params if forced into single project', () => {
       initializeUrlState({
         organization,
         queryParams: {
@@ -361,7 +361,7 @@ describe('PageFilters ActionCreators', function () {
       );
     });
 
-    it('does not add non-pinned filters to query for pages with new page filters', function () {
+    it('does not add non-pinned filters to query for pages with new page filters', () => {
       // Mock storage to have a saved value
       const pageFilterStorageMock = jest
         .spyOn(PageFilterPersistence, 'getPageFilterStorage')
@@ -393,7 +393,7 @@ describe('PageFilters ActionCreators', function () {
       pageFilterStorageMock.mockRestore();
     });
 
-    it('uses pinned filters for pages with new page filters', function () {
+    it('uses pinned filters for pages with new page filters', () => {
       // Mock storage to have a saved/pinned value
       const pageFilterStorageMock = jest
         .spyOn(PageFilterPersistence, 'getPageFilterStorage')
@@ -433,7 +433,7 @@ describe('PageFilters ActionCreators', function () {
       pageFilterStorageMock.mockRestore();
     });
 
-    it('retrieves filters from a separate key when storageNamespace is provided', function () {
+    it('retrieves filters from a separate key when storageNamespace is provided', () => {
       const starfishKey = `global-selection:starfish:${organization.slug}`;
       localStorage.setItem(
         starfishKey,
@@ -474,13 +474,13 @@ describe('PageFilters ActionCreators', function () {
     });
   });
 
-  describe('updateProjects()', function () {
-    it('updates', function () {
+  describe('updateProjects()', () => {
+    it('updates', () => {
       updateProjects([1, 2]);
       expect(PageFiltersStore.updateProjects).toHaveBeenCalledWith([1, 2], null);
     });
 
-    it('updates history when queries are different', function () {
+    it('updates history when queries are different', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -496,7 +496,7 @@ describe('PageFilters ActionCreators', function () {
         query: {project: ['1']},
       });
     });
-    it('does not update history when queries are the same', function () {
+    it('does not update history when queries are the same', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -511,7 +511,7 @@ describe('PageFilters ActionCreators', function () {
       expect(router.push).not.toHaveBeenCalled();
     });
 
-    it('updates history when queries are different with replace', function () {
+    it('updates history when queries are different with replace', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -526,7 +526,7 @@ describe('PageFilters ActionCreators', function () {
       });
     });
 
-    it('does not update history when queries are the same with replace', function () {
+    it('does not update history when queries are the same with replace', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -538,7 +538,7 @@ describe('PageFilters ActionCreators', function () {
       expect(router.replace).not.toHaveBeenCalled();
     });
 
-    it('does not override an absolute date selection', function () {
+    it('does not override an absolute date selection', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -554,8 +554,8 @@ describe('PageFilters ActionCreators', function () {
     });
   });
 
-  describe('updateEnvironments()', function () {
-    it('updates single', function () {
+  describe('updateEnvironments()', () => {
+    it('updates single', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -570,7 +570,7 @@ describe('PageFilters ActionCreators', function () {
       });
     });
 
-    it('updates multiple', function () {
+    it('updates multiple', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -585,7 +585,7 @@ describe('PageFilters ActionCreators', function () {
       });
     });
 
-    it('removes environment', function () {
+    it('removes environment', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -599,7 +599,7 @@ describe('PageFilters ActionCreators', function () {
       });
     });
 
-    it('does not override an absolute date selection', function () {
+    it('does not override an absolute date selection', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -623,8 +623,8 @@ describe('PageFilters ActionCreators', function () {
     });
   });
 
-  describe('updateDateTime()', function () {
-    it('updates statsPeriod when there is no existing stats period', function () {
+  describe('updateDateTime()', () => {
+    it('updates statsPeriod when there is no existing stats period', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -641,7 +641,7 @@ describe('PageFilters ActionCreators', function () {
       });
     });
 
-    it('updates statsPeriod when there is an existing stats period', function () {
+    it('updates statsPeriod when there is an existing stats period', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -658,7 +658,7 @@ describe('PageFilters ActionCreators', function () {
       });
     });
 
-    it('changes to absolute date', function () {
+    it('changes to absolute date', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',
@@ -677,8 +677,8 @@ describe('PageFilters ActionCreators', function () {
     });
   });
 
-  describe('revertToPinnedFilters()', function () {
-    it('reverts all filters that are desynced from localStorage', function () {
+  describe('revertToPinnedFilters()', () => {
+    it('reverts all filters that are desynced from localStorage', () => {
       const router = RouterFixture({
         location: {
           pathname: '/test/',

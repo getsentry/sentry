@@ -13,8 +13,8 @@ function renderMockRequests() {
   });
 }
 
-describe('unity onboarding docs', function () {
-  it('renders docs correctly', async function () {
+describe('unity onboarding docs', () => {
+  it('renders docs correctly', async () => {
     renderMockRequests();
 
     renderWithOnboardingLayout(docs);

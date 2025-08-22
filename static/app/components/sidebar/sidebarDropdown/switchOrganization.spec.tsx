@@ -7,7 +7,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {Config} from 'sentry/types/system';
 
-describe('SwitchOrganization', function () {
+describe('SwitchOrganization', () => {
   let configstate: Config;
 
   beforeEach(() => {
@@ -18,7 +18,7 @@ describe('SwitchOrganization', function () {
     ConfigStore.loadInitialData(configstate);
   });
 
-  it('can list organizations', async function () {
+  it('can list organizations', async () => {
     OrganizationsStore.load([
       OrganizationFixture({name: 'Organization 1'}),
       OrganizationFixture({name: 'Organization 2', slug: 'org2'}),
@@ -47,7 +47,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('uses sentryUrl when customer domain is disabled', async function () {
+  it('uses sentryUrl when customer domain is disabled', async () => {
     ConfigStore.set('features', new Set([]));
     ConfigStore.set('customerDomain', null);
 
@@ -81,7 +81,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('uses organizationUrl when customer domain enabled', async function () {
+  it('uses organizationUrl when customer domain enabled', async () => {
     jest.useFakeTimers();
     const currentOrg = OrganizationFixture({
       name: 'Organization 2',
@@ -124,7 +124,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('shows "Create an Org" if they have permission', async function () {
+  it('shows "Create an Org" if they have permission', async () => {
     jest.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization />);
 
@@ -139,7 +139,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('does not have "Create an Org" if they do not have permission', async function () {
+  it('does not have "Create an Org" if they do not have permission', async () => {
     jest.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization={false} />);
 
@@ -150,7 +150,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('uses sentry URL for "Create an Org"', async function () {
+  it('uses sentry URL for "Create an Org"', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
 
     const currentOrg = OrganizationFixture({
@@ -178,7 +178,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('shows orgs pending deletion with a special icon', async function () {
+  it('shows orgs pending deletion with a special icon', async () => {
     const orgPendingDeletion = OrganizationFixture({
       slug: 'org-2',
       status: {id: 'pending_deletion', name: 'pending_deletion'},
@@ -196,7 +196,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('renders when there is no current organization', async function () {
+  it('renders when there is no current organization', async () => {
     OrganizationsStore.load([
       OrganizationFixture({name: 'Organization 1'}),
       OrganizationFixture({name: 'Organization 2', slug: 'org2'}),
