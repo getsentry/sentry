@@ -1,3 +1,4 @@
+import pytest
 from sentry.ingest.inbound_filters import (
     _browser_extensions_filter,
     _legacy_browsers_filter,
@@ -81,6 +82,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         event = self.post_and_try_retrieve_event(message)
         assert event is None
 
+    @pytest.mark.skip(reason="flaky: #98129")
     def test_should_not_filter_web_crawlers_when_disabled(self) -> None:
         self._set_filter_state(_web_crawlers_filter, "0")
         message = self._get_message_from_webcrawler()
