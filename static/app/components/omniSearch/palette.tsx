@@ -12,7 +12,6 @@ import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
 import type Fuse from 'fuse.js';
 import serryLottieAnimation from 'getsentry-images/omni_search/seer-y.json';
-import {PlatformIcon} from 'platformicons';
 
 import error from 'sentry-images/spot/cmd-k-error.svg';
 
@@ -30,13 +29,11 @@ import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {useSeenIssues} from 'sentry/utils/seenIssuesStorage';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
@@ -156,25 +153,7 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const seeryRef = useRef<SeeryCharacterRef>(null);
   const debouncedQuery = useDebouncedValue(query, 300);
-
-  const {getSeenIssues} = useSeenIssues();
-  const {groupId} = useParams();
-
   useTraceExploreAiQuerySetup({enableAISearch: true});
-
-  // Get ALL seen issues (no limit here)
-  const allRecentIssueActions: OmniAction[] = useMemo(() => {
-    return getSeenIssues()
-      .filter(issue => groupId !== issue.issue.id)
-      .map(issue => ({
-        key: `recent-issue-${issue.id}`,
-        areaKey: 'recent',
-        section: 'Recently Viewed',
-        label: issue.issue.title || issue.issue.id,
-        actionIcon: <PlatformIcon platform={issue.issue.platform} size={16} />,
-        to: `/organizations/${organization.slug}/issues/${issue.id}/`,
-      }));
-  }, [getSeenIssues, groupId, organization.slug]);
 
   // Get dynamic actions from all sources (no filtering - palette handles the search)
   const apiActions = useApiDynamicActions(debouncedQuery);
@@ -357,7 +336,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     }
 
     return [
-      ...allRecentIssueActions.map(a => ({...a, priority: 0})),
       ...(askSeerAction ? [{...askSeerAction, priority: 1}] : []),
       ...flattenActions(availableActions).map(a => ({...a, priority: 1})),
       ...flattenActions(dynamicActions).map(a => ({...a, priority: 2})),
@@ -365,7 +343,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     ];
   }, [
     selectedAction?.children,
-    allRecentIssueActions,
     askSeerAction,
     availableActions,
     dynamicActions,
@@ -378,13 +355,13 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
       return [];
     }
     if (query.length === 0) {
-      return [...allRecentIssueActions.slice(0, 5), ...availableActions];
+      return availableActions;
     }
     return fuseSearch
       .search(query)
       .map(a => a.item)
       .sort((a, b) => a.priority - b.priority);
-  }, [fuseSearch, query, availableActions, allRecentIssueActions]);
+  }, [fuseSearch, query, availableActions]);
 
   const grouped = useMemo(() => {
     // Group by section label
@@ -392,7 +369,9 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     for (const action of filteredAvailableActions) {
       const sectionLabel = action.section ?? '';
       const list = bySection.get(sectionLabel) ?? [];
-      list.push(action);
+      if (sectionLabel !== 'Recently Viewed' || list.length < 5) {
+        list.push(action);
+      }
       bySection.set(sectionLabel, list);
     }
 
