@@ -138,7 +138,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
 
-  const scrollQueueRef = useTraceScrollToPath();
+  const scrollQueueRef = useTraceScrollToPath(props.traceSlug);
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
@@ -194,12 +194,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     });
   }, [props.tree.list.length, traceDispatch]);
 
-  // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
-    if (props.tree.type !== 'trace') {
-      return;
-    }
-
     traceDispatch({
       type: 'initialize tabs reducer',
       payload: {
@@ -663,6 +658,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     onTraceLoad,
     pathToNodeOrEventId: scrollQueueRef.current,
     tree: props.tree,
+    traceSlug: props.traceSlug,
   });
 
   // Sync part of the state with the URL

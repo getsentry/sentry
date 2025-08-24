@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef, useState} from 'react';
+import {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
@@ -74,6 +74,7 @@ async function maybeAutoExpandTrace(
 type UseTraceScrollToEventOnLoadOptions = {
   onTraceLoad: () => void;
   pathToNodeOrEventId: ReturnType<typeof useTraceScrollToPath>['current'];
+  traceSlug: string;
   tree: TraceTree;
 };
 
@@ -95,6 +96,10 @@ export function useTraceOnLoad(
     Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
   >(traceState.preferences);
   traceStatePreferencesRef.current = traceState.preferences;
+
+  useEffect(() => {
+    initializedRef.current = false;
+  }, [options.traceSlug]);
 
   useLayoutEffect(() => {
     if (initializedRef.current) {
@@ -151,7 +156,7 @@ export function useTraceOnLoad(
     return () => {
       cancel = true;
     };
-  }, [tree, api, onTraceLoad, organization, pathToNodeOrEventId]);
+  }, [tree, api, onTraceLoad, organization, pathToNodeOrEventId, options.traceSlug]);
 
   return status;
 }
