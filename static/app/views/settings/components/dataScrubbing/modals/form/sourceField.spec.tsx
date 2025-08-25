@@ -35,8 +35,8 @@ describe('Source', () => {
 
     const suggestions = screen.getAllByRole('listitem');
 
-    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
-    expect(suggestions).toHaveLength(18);
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 20 (includes new $log.body and $log.attributes suggestions)
+    expect(suggestions).toHaveLength(20);
   });
 
   it('display defaultSuggestions if input is empty, focused and has length 3', async () => {
@@ -53,8 +53,8 @@ describe('Source', () => {
 
     const suggestions = screen.getAllByRole('listitem');
 
-    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
-    expect(suggestions).toHaveLength(18);
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 20 (includes new $log.body and $log.attributes suggestions)
+    expect(suggestions).toHaveLength(20);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue has type string', async () => {
@@ -93,10 +93,10 @@ describe('Source', () => {
 
     const suggestions = screen.getAllByRole('listitem');
 
-    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
-    expect(suggestions).toHaveLength(18);
+    // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 20 (includes new $log.body and $log.attributes suggestions)
+    expect(suggestions).toHaveLength(20);
     // !
-    expect(suggestions[17]).toHaveTextContent(unarySuggestions[0]!.value);
+    expect(suggestions[19]).toHaveTextContent(unarySuggestions[0]!.value);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue has type value', async () => {
@@ -157,8 +157,8 @@ describe('Source', () => {
 
     const suggestions = screen.getAllByRole('listitem');
 
-    // defaultSuggestions.length === 17
-    expect(suggestions).toHaveLength(17);
+    // defaultSuggestions.length === 19 (includes new $log.body and $log.attributes suggestions)
+    expect(suggestions).toHaveLength(19);
 
     // everywhere
     expect(suggestions[0]).toHaveTextContent(

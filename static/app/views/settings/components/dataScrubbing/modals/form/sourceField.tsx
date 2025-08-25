@@ -10,6 +10,7 @@ import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubb
 import {SourceSuggestionType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   binarySuggestions,
+  sourceAttributeSuggestions,
   unarySuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
@@ -25,7 +26,9 @@ type Props = {
   suggestions: SourceSuggestion[];
   value: string;
   error?: string;
+  nested?: boolean;
   onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
+  onSwitchToAttribute?: () => void;
 };
 
 type State = {
@@ -385,14 +388,14 @@ class SourceField extends Component<Props, State> {
   };
 
   render() {
-    const {error, value, onBlur} = this.props;
+    const {error, value, onBlur, nested, onSwitchToAttribute} = this.props;
     const {showSuggestions, suggestions, activeSuggestion, hideCaret, help} = this.state;
 
     return (
       <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
         <StyledTextField
           data-test-id="source-field"
-          label={t('Source')}
+          label={nested ? t('Selector') : t('Source')}
           name="source"
           placeholder={t('Enter a custom attribute, variable or header name')}
           onChange={this.handleChange}
@@ -421,6 +424,12 @@ class SourceField extends Component<Props, State> {
                   key={suggestion.value}
                   onClick={event => {
                     event.preventDefault();
+                    if (
+                      sourceAttributeSuggestions.some(s => s.value === suggestion.value)
+                    ) {
+                      onSwitchToAttribute?.();
+                      return;
+                    }
                     this.handleClickSuggestionItem(suggestion);
                   }}
                   active={index === activeSuggestion}
