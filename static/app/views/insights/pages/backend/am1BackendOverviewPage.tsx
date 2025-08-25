@@ -183,7 +183,7 @@ export function Am1BackendOverviewPage() {
     mepSetting
   );
 
-  if (organization.features.includes('insights-initial-modules')) {
+  if (organization.features.includes('insight-modules')) {
     doubleChartRowCharts.unshift(
       PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
     );

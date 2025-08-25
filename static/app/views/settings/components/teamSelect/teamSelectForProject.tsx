@@ -94,7 +94,6 @@ function TeamSelect({
         <DropdownAddTeam
           disabled={disabled}
           isLoadingTeams={isLoadingTeams}
-          isAddingTeamToProject
           canCreateTeam={canCreateTeam}
           onSearch={onSearch}
           onSelect={onAddTeam}

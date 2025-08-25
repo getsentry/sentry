@@ -122,7 +122,7 @@ class Provider(PipelineProvider["AuthHelper"], abc.ABC):
         raise NotImplementedError
 
     def update_identity(
-        self, new_data: Mapping[str, Any], current_data: Mapping[str, Any]
+        self, new_data: dict[str, Any], current_data: Mapping[str, Any]
     ) -> Mapping[str, Any]:
         """
         When re-authenticating with a provider, the identity data may need to

@@ -219,9 +219,9 @@ describe('utils', () => {
       expect(utils.getEventsWithUnit(1_000_000, DataCategory.TRANSACTIONS)).toBe('1M');
       expect(utils.getEventsWithUnit(4_000_000, DataCategory.TRANSACTIONS)).toBe('4M');
       expect(utils.getEventsWithUnit(1, DataCategory.ATTACHMENTS)).toBe('1GB');
-      expect(utils.getEventsWithUnit(25, DataCategory.ATTACHMENTS)).toBe('25GB');
-      expect(utils.getEventsWithUnit(1_000, DataCategory.ATTACHMENTS)).toBe('1,000GB');
-      expect(utils.getEventsWithUnit(4_000, DataCategory.ATTACHMENTS)).toBe('4,000GB');
+      expect(utils.getEventsWithUnit(999, DataCategory.ATTACHMENTS)).toBe('999GB');
+      expect(utils.getEventsWithUnit(1_000, DataCategory.ATTACHMENTS)).toBe('1TB');
+      expect(utils.getEventsWithUnit(4_000, DataCategory.ATTACHMENTS)).toBe('4TB');
       expect(utils.getEventsWithUnit(1_000_000_000, DataCategory.ERRORS)).toBe('1B');
       expect(utils.getEventsWithUnit(10_000_000_000, DataCategory.ERRORS)).toBe('10B');
       expect(utils.getEventsWithUnit(1, DataCategory.LOG_BYTE)).toBe('1GB');

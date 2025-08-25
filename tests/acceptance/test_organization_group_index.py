@@ -16,7 +16,7 @@ event_time = before_now(days=3)
 
 @no_silo_test
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -31,7 +31,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.page = IssueListPage(self.browser, self.client)
         self.dismiss_assistant()
 
-    def create_issues(self):
+    def create_issues(self) -> None:
         self.event_a = self.store_event(
             data={
                 "event_id": "a" * 32,

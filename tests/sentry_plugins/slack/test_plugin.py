@@ -19,7 +19,7 @@ def test_conf_key() -> None:
 
 class SlackPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> SlackPlugin:
         return SlackPlugin()
 
     @responses.activate

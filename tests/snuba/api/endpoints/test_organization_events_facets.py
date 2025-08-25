@@ -12,7 +12,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
         self.day_ago = before_now(days=1).replace(microsecond=0)
