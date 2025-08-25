@@ -127,7 +127,7 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_options({"codecov.forward-webhooks.rollout": 1.0})
-    def test_forward_to_codecov(self):
+    def test_forward_to_codecov(self) -> None:
         class MockParser(BaseRequestParser):
             webhook_identifier = WebhookProviderIdentifier.GITHUB
             provider = "github"

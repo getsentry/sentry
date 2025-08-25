@@ -1,7 +1,7 @@
 import datetime
 import logging
 from enum import StrEnum
-from typing import Any, TypeAlias
+from typing import TypeAlias
 
 import requests
 from django.conf import settings
@@ -78,7 +78,7 @@ class CodecovApiClient:
 
         self.base_url = settings.CODECOV_API_BASE_URL
         self.signing_secret = signing_secret
-        self.custom_claims: dict[str, Any] = {
+        self.custom_claims: dict[str, GitProvider | GitProviderId] = {
             "g_p": git_provider,
         }
 
