@@ -49,6 +49,7 @@ import {
 import {
   adjustLogTraceID,
   getLogSeverityLevel,
+  logOnceFactory,
   logsFieldAlignment,
   SeverityLevel,
   severityLevelToText,
@@ -427,6 +428,8 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   );
 }
 
+const logInfoOnceHasRemarks = logOnceFactory('info');
+
 function AnnotatedAttributeWrapper(props: {
   children: React.ReactNode;
   extra: RendererExtra;
@@ -435,6 +438,23 @@ function AnnotatedAttributeWrapper(props: {
   if (props.extra.traceItemMeta) {
     const metaInfo = new TraceItemMetaInfo(props.extra.traceItemMeta);
     if (metaInfo.hasRemarks(props.fieldKey)) {
+      try {
+        logInfoOnceHasRemarks(
+          `AnnotatedAttributeWrapper: ${props.fieldKey} has remarks, rendering tooltip`,
+          {
+            organization: props.extra.organization,
+            project: props.extra.project,
+            text: TraceItemMetaInfo.getTooltipText(
+              props.fieldKey,
+              props.extra.traceItemMeta,
+              props.extra.organization,
+              props.extra.project
+            ),
+          }
+        );
+      } catch {
+        // defensive
+      }
       return (
         <AnnotatedAttributeTooltip extra={props.extra} fieldKey={props.fieldKey}>
           {props.children}
