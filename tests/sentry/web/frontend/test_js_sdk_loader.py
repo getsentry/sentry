@@ -13,14 +13,14 @@ from sentry.utils import json
 
 class JavaScriptSdkLoaderTest(TestCase):
     @pytest.fixture(autouse=True)
-    def set_settings(self):
+    def set_settings(self) -> None:
         settings.JS_SDK_LOADER_SDK_VERSION = "0.5.2"
         settings.JS_SDK_LOADER_DEFAULT_SDK_URL = (
             "https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/%s/bundle.min.js"
         )
 
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key])
 
     def test_noop_no_pub_key(self) -> None:

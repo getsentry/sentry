@@ -110,7 +110,7 @@ class EventsDatasetTestSetup(SharedSnubaMixin):
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.base_datetime = before_now(days=3).replace(microsecond=0)
 
@@ -3009,7 +3009,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.base_datetime = before_now(days=3)
 
@@ -3376,7 +3376,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.base_datetime = before_now(days=3)
 

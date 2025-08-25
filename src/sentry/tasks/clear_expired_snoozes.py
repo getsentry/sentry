@@ -21,7 +21,7 @@ from sentry.taskworker.namespaces import issues_tasks
         processing_deadline_duration=65,
     ),
 )
-def clear_expired_snoozes():
+def clear_expired_snoozes() -> None:
     groupsnooze_list = list(
         GroupSnooze.objects.filter(until__lte=timezone.now()).values_list("id", "group", "until")[
             :1000

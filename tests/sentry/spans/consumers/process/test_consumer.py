@@ -14,7 +14,7 @@ from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
 @override_options({**DEFAULT_OPTIONS, "spans.drop-in-buffer": []})
 @pytest.mark.parametrize("kafka_slice_id", [None, 2])
-def test_basic(kafka_slice_id) -> None:
+def test_basic(kafka_slice_id: int | None) -> None:
     # Flush very aggressively to make test pass instantly
     with mock.patch("time.sleep"):
         topic = Topic("test")

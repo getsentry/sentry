@@ -9,7 +9,7 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

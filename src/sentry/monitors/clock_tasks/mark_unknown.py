@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 CHECKINS_LIMIT = 10_000
 
 
-def dispatch_mark_unknown(ts: datetime):
+def dispatch_mark_unknown(ts: datetime) -> None:
     """
     Given a clock tick timestamp datetime which was processed where an anomaly
     had been detected in the volume of check-ins that have been processed,

@@ -655,5 +655,5 @@ class TestRedisBuffer:
         datetime.date.today(),
     ],
 )
-def test_dump_value(value) -> None:
+def test_dump_value(value: datetime.datetime) -> None:
     assert RedisBuffer._load_value(json.loads(json.dumps(RedisBuffer._dump_value(value)))) == value

@@ -41,7 +41,7 @@ class SyncArtifactBundlesTest(TestCase):
         organization: Organization,
         project: Project,
         date_uploaded: datetime | None = None,
-    ):
+    ) -> tuple[ArtifactBundle, ProjectArtifactBundle, ReleaseArtifactBundle]:
         date_uploaded = date_uploaded or timezone.now()
         artifact_bundle = self.create_artifact_bundle(org=organization, date_uploaded=date_uploaded)
         project_artifact_bundle = ProjectArtifactBundle.objects.create(
@@ -64,7 +64,7 @@ class SyncArtifactBundlesTest(TestCase):
         organization: Organization,
         project: Project,
         date_added: datetime | None = None,
-    ):
+    ) -> ProguardArtifactRelease:
         date_added = date_added or timezone.now()
         proguard_artifact_release = ProguardArtifactRelease.objects.create(
             organization_id=organization.id,
@@ -76,7 +76,7 @@ class SyncArtifactBundlesTest(TestCase):
         )
         return proguard_artifact_release
 
-    def last_three_days(self):
+    def last_three_days(self) -> datetime:
         return timezone.now() - timedelta(days=3)
 
     def test_sync_artifact_bundles_no_bundles(self) -> None:

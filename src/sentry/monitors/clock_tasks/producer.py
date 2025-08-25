@@ -24,6 +24,6 @@ def _get_producer() -> KafkaProducer:
 _clock_task_producer = SingletonProducer(_get_producer)
 
 
-def produce_task(payload: KafkaPayload):
+def produce_task(payload: KafkaPayload) -> None:
     topic = get_topic_definition(Topic.MONITORS_CLOCK_TASKS)["real_topic_name"]
     _clock_task_producer.produce(ArroyoTopic(topic), payload)

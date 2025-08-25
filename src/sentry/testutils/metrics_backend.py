@@ -14,7 +14,9 @@ class GenericMetricsTestMixIn:
     retention_days = 90
     unit = "millisecond"
 
-    def get_mri(self, metric_name: str, metric_type: str, use_case_id: UseCaseID, unit: str | None):
+    def get_mri(
+        self, metric_name: str, metric_type: str, use_case_id: UseCaseID, unit: str | None
+    ) -> str:
         mri_string = build_mri(metric_name, metric_type, use_case_id, unit)
 
         return mri_string

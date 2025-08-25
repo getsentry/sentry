@@ -22,7 +22,7 @@ def shim_to_feedback(
     event: Event | GroupEvent,
     project: Project,
     source: FeedbackCreationSource,
-):
+) -> None:
     """
     takes user reports from the legacy user report form/endpoint and
     user reports that come from relay envelope ingestion and

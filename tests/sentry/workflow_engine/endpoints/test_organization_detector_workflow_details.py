@@ -40,7 +40,7 @@ class OrganizationDetectorWorkflowAPITestCase(APITestCase):
             organization=self.organization,
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         return super().tearDown()
 
 

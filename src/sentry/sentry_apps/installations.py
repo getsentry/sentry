@@ -248,13 +248,13 @@ class SentryAppInstallationUpdater:
             self.record_analytics()
             return self.sentry_app_installation
 
-    def _update_status(self):
+    def _update_status(self) -> None:
         # convert from string to integer
         if self.status == SentryAppInstallationStatus.INSTALLED_STR:
             for install in SentryAppInstallation.objects.filter(id=self.sentry_app_installation.id):
                 install.update(status=SentryAppInstallationStatus.INSTALLED)
 
-    def record_analytics(self):
+    def record_analytics(self) -> None:
         analytics.record(
             "sentry_app_installation.updated",
             sentry_app_installation_id=self.sentry_app_installation.id,

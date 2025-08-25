@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -24,7 +25,7 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
-    def get(self, request: Request, organization: Organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns all ProjectCodeOwners associations for an organization as a dict with projects as keys
         e.g. {"projectSlug": {associations: {...}, errors: {...}}, ...]

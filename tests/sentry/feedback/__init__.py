@@ -1,11 +1,12 @@
 import time
 from datetime import UTC, datetime
+from typing import Any
 
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
 
-def create_dummy_openai_response(*args, **kwargs):
+def create_dummy_openai_response(*args: object, **kwargs: Any) -> ChatCompletion:
     return ChatCompletion(
         id="test",
         choices=[
@@ -31,7 +32,7 @@ def create_dummy_openai_response(*args, **kwargs):
     )
 
 
-def mock_feedback_event(project_id: int, dt: datetime | None = None):
+def mock_feedback_event(project_id: int, dt: datetime | None = None) -> dict[str, Any]:
     if dt is None:
         dt = datetime.now(UTC)
 

@@ -14,7 +14,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework.dashboard import DashboardStarredOrderSerializer
-from sentry.models.dashboard import DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.organization import Organization
 
 
@@ -31,7 +31,7 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DASHBOARDS
     permission_classes = (MemberPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:dashboards-starred-reordering", organization, actor=request.user
         )
@@ -56,7 +56,7 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
                 new_dashboard_positions=[favorite.dashboard.id for favorite in favorites],
             )
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[Dashboard]:
             return [favorite.dashboard for favorite in favorites[offset : offset + limit]]
 
         return self.paginate(
@@ -78,7 +78,7 @@ class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DASHBOARDS
     permission_classes = (MemberPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:dashboards-starred-reordering", organization, actor=request.user
         )

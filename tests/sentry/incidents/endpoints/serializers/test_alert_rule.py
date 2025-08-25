@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.api.serializers import serialize
@@ -82,7 +83,7 @@ class BaseAlertRuleSerializerTest:
         else:
             assert result["comparisonDelta"] is None
 
-    def create_issue_alert_rule(self, data):
+    def create_issue_alert_rule(self, data: dict[str, Any]) -> Rule:
         """data format
         {
             "project": project

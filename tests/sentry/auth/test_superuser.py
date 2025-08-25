@@ -35,6 +35,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.utils.auth import mark_sso_complete
 
@@ -95,35 +96,39 @@ class SuperuserTestCase(TestCase):
     def test_ips(self) -> None:
         request = self.make_request(user=self.superuser)
         request.META["REMOTE_ADDR"] = "10.0.0.1"
+        user = request.user
+        assert isinstance(user, User)
 
         # no ips = any host
         superuser = Superuser(request, allowed_ips=())
-        superuser.set_logged_in(request.user)
+        superuser.set_logged_in(user)
         assert superuser.is_active is True
 
         superuser = Superuser(request, allowed_ips=("127.0.0.1",))
-        superuser.set_logged_in(request.user)
+        superuser.set_logged_in(user)
         assert superuser.is_active is False
 
         superuser = Superuser(request, allowed_ips=("10.0.0.1",))
-        superuser.set_logged_in(request.user)
+        superuser.set_logged_in(user)
         assert superuser.is_active is True
 
     def test_sso(self) -> None:
         request = self.make_request(user=self.superuser)
+        user = request.user
+        assert isinstance(user, User)
 
         # no ips = any host
         superuser = Superuser(request, org_id=None)
-        superuser.set_logged_in(request.user)
+        superuser.set_logged_in(user)
         assert superuser.is_active is True
 
         superuser = Superuser(request, org_id=1)
-        superuser.set_logged_in(request.user)
+        superuser.set_logged_in(user)
         assert superuser.is_active is False
 
         mark_sso_complete(request, 1)
         superuser = Superuser(request, org_id=1)
-        superuser.set_logged_in(request.user)
+        superuser.set_logged_in(user)
         assert superuser.is_active is True
 
     def test_valid_data(self) -> None:
@@ -185,7 +190,9 @@ class SuperuserTestCase(TestCase):
         ).encode()
 
         superuser = Superuser(request, org_id=None)
-        superuser.set_logged_in(request.user)
+        user = request.user
+        assert isinstance(user, User)
+        superuser.set_logged_in(user)
         assert superuser.is_active is True
         assert logger.info.call_count == 3
         logger.info.assert_any_call(
@@ -206,7 +213,9 @@ class SuperuserTestCase(TestCase):
         superuser = Superuser(request, org_id=None)
 
         with pytest.raises(SuperuserAccessFormInvalidJson):
-            superuser.set_logged_in(request.user)
+            user = request.user
+            assert isinstance(user, User)
+            superuser.set_logged_in(user)
         assert superuser.is_active is False
 
     @freeze_time(BASETIME + OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME)
@@ -257,7 +266,9 @@ class SuperuserTestCase(TestCase):
 
         superuser = Superuser(request, org_id=None)
 
-        superuser.set_logged_in(request.user)
+        user = request.user
+        assert isinstance(user, User)
+        superuser.set_logged_in(user)
         logger.exception.assert_any_call("superuser.superuser_access.missing_user_info")
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
@@ -270,7 +281,9 @@ class SuperuserTestCase(TestCase):
         superuser = Superuser(request, org_id=None)
 
         with pytest.raises(SuperuserAccessFormInvalidJson):
-            superuser.set_logged_in(request.user)
+            user = request.user
+            assert isinstance(user, User)
+            superuser.set_logged_in(user)
         assert superuser.is_active is False
 
     def test_login_saves_session(self) -> None:
@@ -397,7 +410,9 @@ class SuperuserTestCase(TestCase):
     ) -> None:
         request = self.make_request(user=self.superuser, method="PUT")
         superuser = Superuser(request, org_id=None)
-        superuser.set_logged_in(request.user)
+        user = request.user
+        assert isinstance(user, User)
+        superuser.set_logged_in(user)
         assert superuser.is_active is True
         assert logger.info.call_count == 2
         logger.info.assert_any_call(

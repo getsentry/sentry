@@ -12,7 +12,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 
 
 class NotificationTaskTests(TestCase):
-    def tearDown(self):
+    def tearDown(self) -> None:
         manager.classes.pop("AnotherDummyNotification", None)
 
     @patch(

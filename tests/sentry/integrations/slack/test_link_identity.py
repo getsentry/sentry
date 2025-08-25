@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -26,7 +27,7 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
         self.idp = add_identity(self.integration, self.user, self.external_id)
 
     @pytest.fixture(autouse=True)
-    def mock_webhook_send(self):
+    def mock_webhook_send(self) -> Generator[None]:
         with patch(
             "slack_sdk.webhook.WebhookClient.send",
             return_value=WebhookResponse(
@@ -39,7 +40,7 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_chat_postMessage(self):
+    def mock_chat_postMessage(self) -> Generator[None]:
         with patch(
             "slack_sdk.web.WebClient.chat_postMessage",
             return_value=SlackResponse(

@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 from django.core.exceptions import SuspiciousFileOperation
 
+from sentry.models.project import Project
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.platform_categories import CONSOLES
 from sentry.utils.samples import create_sample_event, load_data
@@ -20,7 +21,7 @@ from sentry.utils.samples import create_sample_event, load_data
         "../../../etc/passwd",
     ],
 )
-def test_path_traversal_attempt_raises_exception(platform) -> None:
+def test_path_traversal_attempt_raises_exception(platform: str) -> None:
     with pytest.raises(SuspiciousFileOperation) as excinfo:
         load_data(platform)
 
@@ -54,7 +55,9 @@ def test_sample_as_directory_raises_exception(tmp_path) -> None:
 class TestConsoleSamples:
 
     @pytest.mark.parametrize("platform", list(CONSOLES))
-    def test_console_platforms_trigger_screenshot_attachment(self, default_project, platform):
+    def test_console_platforms_trigger_screenshot_attachment(
+        self, default_project: Project, platform: str
+    ):
         with mock.patch(
             "sentry.utils.samples.create_console_screenshot_attachment"
         ) as mock_attachment:

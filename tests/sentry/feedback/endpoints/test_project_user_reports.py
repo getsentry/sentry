@@ -11,7 +11,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-def _make_url(project: Project):
+def _make_url(project: Project) -> str:
     return f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
 
 

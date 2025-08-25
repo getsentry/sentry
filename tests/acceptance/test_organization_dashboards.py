@@ -39,7 +39,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 @no_silo_test
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
@@ -54,7 +54,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def capture_screenshots(self, screenshot_name):
+    def capture_screenshots(self, screenshot_name: str) -> None:
         """
         Captures screenshots in both a pre and post refresh state.
 
@@ -193,7 +193,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
     def test_add_issue_widgets_do_not_overlap(self) -> None:
-        def add_issue_widget(widget_title):
+        def add_issue_widget(widget_title: str) -> None:
             self.browser.wait_until_clickable('[data-test-id="widget-add"]')
             self.page.click_dashboard_add_widget_button()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
@@ -396,7 +396,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
     def test_cancel_without_changes_does_not_trigger_confirm_with_custom_widget_through_header(
         self,
-    ):
+    ) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
 
@@ -416,7 +416,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
     def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_edit(
         self,
-    ):
+    ) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
@@ -436,7 +436,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="flaky: DD-1217")
     def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_create(
         self,
-    ):
+    ) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_create_dashboard()
 
@@ -463,7 +463,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
     def test_deleting_stacked_widgets_by_context_menu_does_not_trigger_confirm_on_edit_cancel(
         self,
-    ):
+    ) -> None:
         layouts = [
             {"x": 0, "y": 0, "w": 2, "h": 2, "minH": 2},
             {"x": 0, "y": 2, "w": 2, "h": 2, "minH": 2},
@@ -518,7 +518,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
     def test_changing_number_widget_to_area_updates_widget_height(
         self,
-    ):
+    ) -> None:
         layouts = [
             (DashboardWidgetDisplayTypes.BIG_NUMBER, {"x": 0, "y": 0, "w": 2, "h": 1, "minH": 1}),
             (DashboardWidgetDisplayTypes.LINE_CHART, {"x": 0, "y": 1, "w": 2, "h": 2, "minH": 2}),
@@ -578,7 +578,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="flaky behaviour due to loading spinner")
     def test_changing_number_widget_larger_than_min_height_for_area_chart_keeps_height(
         self,
-    ):
+    ) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,
@@ -619,7 +619,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     @pytest.mark.skip(reason="flaky: DD-1211")
     def test_changing_area_widget_larger_than_min_height_for_number_chart_keeps_height(
         self,
-    ):
+    ) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,
@@ -660,7 +660,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
 @no_silo_test
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.team = self.create_team(organization=self.organization, name="Mariachi Band")
         self.project = self.create_project(
@@ -689,7 +689,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
 
         self.default_path = f"/organizations/{self.organization.slug}/dashboards/"
 
-    def wait_until_loaded(self):
+    def wait_until_loaded(self) -> None:
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 

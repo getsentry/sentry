@@ -56,7 +56,7 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
             raise OutboxRecursionLimitError
 
 
-def assert_no_webhook_payloads():
+def assert_no_webhook_payloads() -> None:
     messages = WebhookPayload.objects.filter().count()
     assert messages == 0, "No webhookpayload messages should be created"
 
@@ -65,7 +65,7 @@ def assert_webhook_payloads_for_mailbox(
     request: WSGIRequest,
     mailbox_name: str,
     region_names: list[str],
-):
+) -> None:
     """
     A test method for asserting that a webhook payload is properly queued for
      the given request

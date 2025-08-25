@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fixtures.page_objects.explore_spans import ExploreSpansPage
 from fixtures.page_objects.trace_view import TraceViewWaterfallPage
@@ -18,7 +18,7 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
         "organizations:trace-spans-format",
     ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.snuba_eventstream = SnubaEventStream()
         self.start = self.day_ago = before_now(days=1).replace(
@@ -42,7 +42,7 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
         self.dismiss_assistant(which="tour.explore.spans")
 
     @patch("django.utils.timezone.now")
-    def test_navigation(self, mock_now):
+    def test_navigation(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 
         assert (

@@ -6,6 +6,7 @@ import responses
 from sentry.interfaces.base import Interface
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.victorops.plugin import VictorOpsPlugin
 
@@ -16,10 +17,10 @@ SUCCESS = """{
 
 
 class UnicodeTestInterface(Interface):
-    def to_string(self, event) -> str:
+    def to_string(self, event: Event) -> str:
         return self.body
 
-    def get_title(self):
+    def get_title(self) -> str:
         return self.title
 
 
@@ -29,7 +30,7 @@ def test_conf_key() -> None:
 
 class VictorOpsPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> VictorOpsPlugin:
         return VictorOpsPlugin()
 
     def test_is_configured(self) -> None:

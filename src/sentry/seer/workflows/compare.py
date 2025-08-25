@@ -63,7 +63,7 @@ def keyed_rrf_score(
         [("key", "true", 93), ("key", "false", 219), ("other", "true", 1)]
     """
 
-    def _scoring_fn(baseline: list[float], outliers: list[float]):
+    def _scoring_fn(baseline: list[float], outliers: list[float]) -> tuple[float, float]:
         return (entropy(outliers), kl_divergence(baseline, outliers))
 
     scored_keys = _score_each_key(
@@ -217,7 +217,7 @@ def keyed_rrf_score_with_filter(
         [("key", 0.5, True), ("key", 0.3, False), ("other", 0.1, False)]
     """
 
-    def _scoring_fn(baseline: list[float], outliers: list[float]):
+    def _scoring_fn(baseline: list[float], outliers: list[float]) -> tuple[float, float]:
         return (entropy(outliers), kl_divergence(baseline, outliers))
 
     scored_keys = _score_each_key(

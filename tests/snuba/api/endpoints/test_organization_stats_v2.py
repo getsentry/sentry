@@ -12,7 +12,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
     _now = datetime.now(UTC).replace(hour=12, minute=27, second=28, microsecond=0)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user)

@@ -8,6 +8,7 @@ from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.requests import drf_request_from_request
 from sentry_plugins.github.plugin import GitHubPlugin
 
 
@@ -17,21 +18,23 @@ def test_conf_key() -> None:
 
 class GitHubPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> GitHubPlugin:
         return GitHubPlugin()
 
     @cached_property
-    def request(self):
+    def request(self) -> RequestFactory:
         return RequestFactory()
 
     def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        assert self.plugin.get_issue_label(group, 1) == "GH-1"
+        assert self.plugin.get_issue_label(group, "1") == "GH-1"
 
     def test_get_issue_url(self) -> None:
         self.plugin.set_option("repo", "getsentry/sentry", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        assert self.plugin.get_issue_url(group, 1) == "https://github.com/getsentry/sentry/issues/1"
+        assert (
+            self.plugin.get_issue_url(group, "1") == "https://github.com/getsentry/sentry/issues/1"
+        )
 
     def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
@@ -49,7 +52,7 @@ class GitHubPluginTest(PluginTestCase):
         self.plugin.set_option("repo", "getsentry/sentry", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = self.request.get("/")
+        request = drf_request_from_request(self.request.get("/"))
         request.user = AnonymousUser()
         form_data = {"title": "Hello", "description": "Fix this."}
         with pytest.raises(PluginError):
@@ -83,7 +86,7 @@ class GitHubPluginTest(PluginTestCase):
         self.plugin.set_option("repo", "getsentry/sentry", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = self.request.get("/")
+        request = drf_request_from_request(self.request.get("/"))
         request.user = AnonymousUser()
         form_data = {"comment": "Hello", "issue_id": "1"}
         with pytest.raises(PluginError):

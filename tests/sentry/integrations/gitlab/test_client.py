@@ -58,7 +58,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
     def setUp(self) -> None:
         super().setUp()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         responses.reset()
 
     def make_users_request(self):

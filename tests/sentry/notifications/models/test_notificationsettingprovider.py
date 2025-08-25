@@ -7,7 +7,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
 
 
-def assert_no_notification_settings():
+def assert_no_notification_settings() -> None:
     assert NotificationSettingProvider.objects.all().count() == 0
 
 

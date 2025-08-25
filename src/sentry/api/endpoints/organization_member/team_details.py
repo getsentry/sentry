@@ -52,7 +52,7 @@ class OrganizationMemberTeamSerializerResponse(TypedDict):
 
 
 @extend_schema_serializer(exclude_fields=["isActive"])
-class OrganizationMemberTeamSerializer(serializers.Serializer):
+class OrganizationMemberTeamSerializer(serializers.Serializer[dict[str, Any]]):
     isActive = serializers.BooleanField()
     teamRole = serializers.ChoiceField(
         choices=team_roles.get_descriptions(),

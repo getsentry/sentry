@@ -27,7 +27,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
     @receivers_raise_on_send()
     def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_does_not_exist(
         self,
-    ):
+    ) -> None:
         with Feature(
             {
                 "organizations:dynamic-sampling": True,
@@ -45,7 +45,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
     @receivers_raise_on_send()
     def test_post_save_signal_runs_if_dynamic_sampling_is_enabled_and_latest_release_rule_exists(
         self,
-    ):
+    ) -> None:
         with Feature(
             {
                 "organizations:dynamic-sampling": True,

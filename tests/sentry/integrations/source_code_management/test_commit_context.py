@@ -4,6 +4,7 @@ import pytest
 
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.source_code_management.commit_context import (
+    CommitContextClient,
     CommitContextIntegration,
     SourceLineInfo,
 )
@@ -20,11 +21,11 @@ class MockCommitContextIntegration(CommitContextIntegration):
 
     integration_name = "mock_integration"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.client = Mock()
         self.client.base_url = "https://example.com"
 
-    def get_client(self):
+    def get_client(self) -> CommitContextClient:
         return self.client
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
@@ -155,7 +156,7 @@ class TestCommitContextIntegrationSLO(TestCase):
             integration_name = "gitlab"
             base_url = "https://bufo-bot.gitlab.com"
 
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.client.base_url = self.base_url
 
@@ -181,7 +182,7 @@ class TestCommitContextIntegrationSLO(TestCase):
             integration_name = "gitlab"
             base_url = GITLAB_CLOUD_BASE_URL
 
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__()
                 self.client.base_url = self.base_url
 

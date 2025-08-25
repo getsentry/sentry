@@ -119,7 +119,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider):
 
         return file_changes
 
-    def pull_request_url(self, repo, pull_request):
+    def pull_request_url(self, repo, pull_request) -> str:
         return f"{repo.url}/merge_requests/{pull_request.key}"
 
     def repository_external_slug(self, repo):

@@ -29,7 +29,7 @@ class OAuth2CallbackViewTest(TestCase):
         self.request = RequestFactory().get("/")
         self.request.subdomain = None
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         sentry.identity.unregister(DummyProvider)
 
@@ -167,7 +167,7 @@ class OAuth2LoginViewTest(TestCase):
         self.request.session = Client().session
         self.request.subdomain = None
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         sentry.identity.unregister(DummyProvider)
 

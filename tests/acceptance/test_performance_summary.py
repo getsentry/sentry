@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
@@ -15,7 +16,7 @@ FEATURES = {"organizations:performance-view": True}
 pytestmark = pytest.mark.sentry_metrics
 
 
-def make_event(event_data):
+def make_event(event_data: dict[str, Any]) -> dict[str, object]:
     event_data["event_id"] = "c" * 32
     event_data["contexts"]["trace"]["trace_id"] = "a" * 32
     return event_data
@@ -23,7 +24,7 @@ def make_event(event_data):
 
 @no_silo_test
 class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
