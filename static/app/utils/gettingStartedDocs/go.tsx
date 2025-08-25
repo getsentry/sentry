@@ -65,7 +65,7 @@ func main() {
         {
           type: 'text',
           text: tct(
-            'You can also add [link:logging integrations] to automatically capture logs from your application from libraries like [code:slog], [code:logrus], or [code:zerolog].',
+            'You can also add [link:logging integrations] to automatically capture logs from your application from libraries like [code:slog] or [code:logrus].',
             {
               link: (
                 <ExternalLink
