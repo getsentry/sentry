@@ -287,7 +287,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
             rows = response.data[key]["data"][0:6]
             for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
                 assert result[1][0]["count"] == expected, key
-            assert response.data[projects[0].slug]["meta"]["dataset"] == "logs"
+            assert response.data[key]["meta"]["dataset"] == "logs"
 
     def test_top_events_with_project_and_project_id(self) -> None:
         projects = [self.create_project(), self.create_project()]
