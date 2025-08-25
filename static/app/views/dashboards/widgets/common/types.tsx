@@ -58,7 +58,6 @@ export type TimeSeries = {
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
   yAxis: string;
-  confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   groupBy?: TimeSeriesGroupBy[];
   sampleCount?: AccuracyStats<number>;
