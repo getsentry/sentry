@@ -24,7 +24,7 @@ from sentry.testutils.cases import TestCase
 class TestSerializeColumnarUptimeItem(TestCase):
     """Test serialization of columnar uptime data to span format."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project_slugs = {1: "test-project", 2: "another-project"}
         self.snuba_params = mock.MagicMock(spec=SnubaParams)
@@ -466,7 +466,7 @@ class OrganizationEventsTraceEndpointTest(
             guid = (
                 item.attributes.get("guid", ProtoAttributeValue(val_str="")).string_value
                 if hasattr(item, "attributes")
-                else item.get("event_id", "")
+                else item.get("additional_attributes", {}).get("guid", "")
             )
             seq = (
                 item.attributes.get("request_sequence", ProtoAttributeValue(val_int=0)).int_value

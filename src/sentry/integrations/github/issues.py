@@ -48,12 +48,19 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
                     ) from exc
             elif exc.code == 410:
                 raise IntegrationInstallationConfigurationError(
-                    {
-                        "detail": "Issues are disabled for this repo, please check your repo's permissions"
-                    }
+                    "Issues are disabled for this repository, please check your repository permissions"
                 ) from exc
             elif exc.code == 404:
                 raise IntegrationResourceNotFoundError from exc
+            elif exc.code == 403:
+                if exc.json is not None:
+                    detail = exc.json.get("message")
+                    if detail:
+                        raise IntegrationInstallationConfigurationError(detail) from exc
+
+                raise IntegrationInstallationConfigurationError(
+                    "You are not authorized to create issues in this repository. Please check your repository permissions."
+                ) from exc
 
         raise super().raise_error(exc=exc, identity=identity)
 
@@ -215,6 +222,9 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             raise IntegrationError("repo kwarg must be provided")
 
         # Create clean issue data with required fields
+        if not data.get("title") or not data.get("description"):
+            raise IntegrationError("title and description kwarg must be provided")
+
         issue_data = {
             "title": data["title"],
             "body": data["description"],
