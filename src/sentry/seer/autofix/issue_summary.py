@@ -244,6 +244,9 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
 
+    if use_gpu:
+        logger.info("GPU fixability request successful", extra={"group_id": group.id})
+
     response_data = orjson.loads(response.data)
     return SummarizeIssueResponse.validate(response_data)
 
