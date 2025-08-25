@@ -298,3 +298,344 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         monitor = validator.save()
 
         assert monitor.is_muted is True
+
+
+class MonitorValidatorUpdateTest(MonitorTestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+
+        self.monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="Test Monitor",
+            slug="test-monitor",
+            config={
+                "schedule": "0 * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "checkin_margin": 5,
+                "max_runtime": 30,
+            },
+        )
+        self.team = self.create_team(organization=self.organization)
+        self.request = RequestFactory().get("/")
+        self.request.user = self.user
+
+        # Create a mock access object
+        self.access = MagicMock()
+        self.access.has_project_scope.return_value = True
+
+    def test_update_name(self):
+        """Test updating monitor name."""
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"name": "Updated Monitor Name"},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.name == "Updated Monitor Name"
+        assert updated_monitor.slug == "test-monitor"  # Slug unchanged
+
+    def test_update_slug(self):
+        """Test updating monitor slug."""
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"slug": "new-monitor-slug"},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.slug == "new-monitor-slug"
+        assert updated_monitor.name == "Test Monitor"  # Name unchanged
+
+    def test_update_config(self):
+        """Test updating monitor config."""
+        new_config = {
+            "schedule": "*/30 * * * *",
+            "schedule_type": "crontab",
+            "checkin_margin": 10,
+            "max_runtime": 60,
+            "timezone": "America/New_York",
+        }
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": new_config},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["schedule"] == "*/30 * * * *"
+        assert updated_monitor.config["checkin_margin"] == 10
+        assert updated_monitor.config["max_runtime"] == 60
+        assert updated_monitor.config["timezone"] == "America/New_York"
+
+    def test_update_owner_to_user(self):
+        """Test updating monitor owner to a user."""
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"owner": f"user:{self.user.id}"},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid(), validator.errors
+
+        updated_monitor = validator.save()
+        assert updated_monitor.owner_user_id == self.user.id
+        assert updated_monitor.owner_team_id is None
+
+    def test_update_owner_to_team(self):
+        """Test updating monitor owner to a team."""
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"owner": f"team:{self.team.id}"},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.owner_user_id is None
+        assert updated_monitor.owner_team_id == self.team.id
+
+    def test_update_owner_to_none(self):
+        """Test removing monitor owner."""
+        # First set an owner
+        self.monitor.update(owner_user_id=self.user.id)
+
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"owner": None},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.owner_user_id is None
+        assert updated_monitor.owner_team_id is None
+
+    def test_update_is_muted(self):
+        """Test updating is_muted field."""
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"is_muted": True},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.is_muted is True
+
+    def test_update_status_to_disabled(self):
+        """Test updating monitor status to disabled."""
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"status": "disabled"},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+                "monitor": self.monitor,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.status == ObjectStatus.DISABLED
+
+    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    def test_update_status_to_active_with_quota_check(self, mock_check_seat):
+        """Test updating monitor status to active checks quota."""
+        # Start with disabled monitor
+        self.monitor.update(status=ObjectStatus.DISABLED)
+
+        mock_result = MagicMock()
+        mock_result.assignable = True
+        mock_check_seat.return_value = mock_result
+
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"status": "active"},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+                "monitor": self.monitor,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.status == ObjectStatus.ACTIVE
+        mock_check_seat.assert_called_once_with(self.monitor)
+
+    @patch("sentry.quotas.backend.check_assign_monitor_seat")
+    def test_update_status_to_active_quota_exceeded(self, mock_check_seat):
+        """Test updating monitor status to active fails when quota exceeded."""
+        # Start with disabled monitor
+        self.monitor.update(status=ObjectStatus.DISABLED)
+
+        mock_result = MagicMock()
+        mock_result.assignable = False
+        mock_result.reason = "Monitor quota exceeded"
+        mock_check_seat.return_value = mock_result
+
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"status": "active"},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+                "monitor": self.monitor,
+            },
+        )
+        assert not validator.is_valid()
+        assert "Monitor quota exceeded" in str(validator.errors["status"])
+
+    def test_update_multiple_fields(self):
+        """Test updating multiple fields at once."""
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={
+                "name": "New Name",
+                "slug": "new-slug",
+                "is_muted": True,
+                "owner": f"team:{self.team.id}",
+            },
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.name == "New Name"
+        assert updated_monitor.slug == "new-slug"
+        assert updated_monitor.is_muted is True
+        assert updated_monitor.owner_team_id == self.team.id
+
+    def test_update_slug_already_exists(self):
+        """Test updating slug to one that already exists fails."""
+        # Create another monitor with target slug
+        Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="Another Monitor",
+            slug="existing-slug",
+            config={
+                "schedule": "0 * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+            },
+        )
+
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"slug": "existing-slug"},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert not validator.is_valid()
+        assert 'The slug "existing-slug" is already in use.' in str(validator.errors["slug"])
+
+    def test_update_preserves_unchanged_fields(self):
+        """Test that update preserves fields that aren't being updated."""
+        original_config = self.monitor.config.copy()
+
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"name": "Just Update Name"},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.name == "Just Update Name"
+        assert updated_monitor.slug == "test-monitor"
+        assert updated_monitor.config == original_config
+
+    def test_partial_config_update_preserves_existing_fields(self):
+        """Test that partial config updates preserve fields not included in the update."""
+        # Set up a monitor with a complete config
+        original_config = {
+            "schedule": "0 * * * *",
+            "schedule_type": ScheduleType.CRONTAB,
+            "checkin_margin": 5,
+            "max_runtime": 30,
+            "timezone": "UTC",
+            "failure_issue_threshold": 3,
+            "recovery_threshold": 1,
+        }
+        self.monitor.update(config=original_config)
+
+        # Update only the schedule - other fields should be preserved
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": {"schedule": "*/30 * * * *", "schedule_type": "crontab"}},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["schedule"] == "*/30 * * * *"
+        assert updated_monitor.config["checkin_margin"] == 5
+        assert updated_monitor.config["max_runtime"] == 30
+        assert updated_monitor.config["timezone"] == "UTC"
+        assert updated_monitor.config["failure_issue_threshold"] == 3
+        assert updated_monitor.config["recovery_threshold"] == 1
