@@ -670,13 +670,13 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         endpoint = f"/repos/{repo}/statuses/{sha}"
         return self.post(endpoint, data=data)
 
-    def get_status(self, repo: str, ref: str) -> Any:
+    def get_status(self, repo: str, sha: str) -> Any:
         """
         https://docs.github.com/en/rest/commits/statuses#list-commit-statuses-for-a-reference
 
         The repo must be in the format of "owner/repo".
         """
-        endpoint = f"/repos/{repo}/commits/{ref}/statuses"
+        endpoint = f"/repos/{repo}/commits/{sha}/statuses"
         return self.get(endpoint)
 
 
