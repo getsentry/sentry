@@ -218,77 +218,14 @@ describe('Edit Modal', () => {
     expect(
       screen.queryByText('Errors, Transactions, Attachments')
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Logs')).not.toBeInTheDocument();
-  });
-
-  it('does not show dataset selector with only ourlogs-enabled feature', () => {
-    const organizationWithOnlyOurlogs = OrganizationFixture({
-      features: ['ourlogs-enabled'],
-    });
-
-    render(
-      <OrganizationContext.Provider value={organizationWithOnlyOurlogs}>
-        <Edit
-          Body={ModalBody}
-          closeModal={jest.fn()}
-          CloseButton={makeCloseButton(jest.fn())}
-          Header={makeClosableHeader(jest.fn())}
-          Footer={ModalFooter}
-          projectId={projectId}
-          savedRules={rules}
-          api={api}
-          endpoint={endpoint}
-          orgSlug={organizationSlug}
-          onSubmitSuccess={jest.fn()}
-          rule={rule}
-          attributeResults={emptyAttributeResults}
-        />
-      </OrganizationContext.Provider>
-    );
-
     expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Errors, Transactions, Attachments')
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('Logs')).not.toBeInTheDocument();
-  });
-
-  it('does not show dataset selector with only ourlogs-visualize-sidebar feature', () => {
-    const organizationWithOnlyVisualizeSidebar = OrganizationFixture({
-      features: ['organizations:ourlogs-visualize-sidebar'],
-    });
-
-    render(
-      <OrganizationContext.Provider value={organizationWithOnlyVisualizeSidebar}>
-        <Edit
-          Body={ModalBody}
-          closeModal={jest.fn()}
-          CloseButton={makeCloseButton(jest.fn())}
-          Header={makeClosableHeader(jest.fn())}
-          Footer={ModalFooter}
-          projectId={projectId}
-          savedRules={rules}
-          api={api}
-          endpoint={endpoint}
-          orgSlug={organizationSlug}
-          onSubmitSuccess={jest.fn()}
-          rule={rule}
-          attributeResults={emptyAttributeResults}
-        />
-      </OrganizationContext.Provider>
-    );
-
-    expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Errors, Transactions, Attachments')
-    ).not.toBeInTheDocument();
     expect(screen.queryByText('Logs')).not.toBeInTheDocument();
   });
 });
 
-describe('Edit Modal with ourlogs-enabled and ourlogs-visualize-sidebar', () => {
+describe('Edit Modal with ourlogs-enabled', () => {
   const organization = OrganizationFixture({
-    features: ['ourlogs-enabled', 'organizations:ourlogs-visualize-sidebar'],
+    features: ['ourlogs-enabled', 'ourlogs-visualize-sidebar'],
   });
 
   beforeEach(() => {

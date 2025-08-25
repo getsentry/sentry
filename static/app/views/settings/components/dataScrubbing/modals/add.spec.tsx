@@ -223,7 +223,7 @@ describe('Add Modal', () => {
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(20);
+    expect(screen.getAllByRole('listitem')).toHaveLength(18);
 
     expect(screen.getByText('Event ID (Optional)')).toBeInTheDocument();
 
@@ -265,75 +265,11 @@ describe('Add Modal', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Logs')).not.toBeInTheDocument();
   });
-
-  it('does not show dataset selector with only ourlogs-enabled feature', () => {
-    const handleCloseModal = jest.fn();
-    const organizationWithOnlyOurlogs = OrganizationFixture({
-      features: ['ourlogs-enabled'],
-    });
-
-    render(
-      <OrganizationContext.Provider value={organizationWithOnlyOurlogs}>
-        <Add
-          Header={makeClosableHeader(handleCloseModal)}
-          Body={ModalBody}
-          Footer={ModalFooter}
-          closeModal={handleCloseModal}
-          CloseButton={makeCloseButton(handleCloseModal)}
-          projectId={projectId}
-          savedRules={rules}
-          api={api}
-          endpoint={endpoint}
-          orgSlug={organizationSlug}
-          onSubmitSuccess={successfullySaved}
-          attributeResults={emptyAttributeResults}
-        />
-      </OrganizationContext.Provider>
-    );
-
-    expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Errors, Transactions, Attachments')
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('Logs')).not.toBeInTheDocument();
-  });
-
-  it('does not show dataset selector with only ourlogs-visualize-sidebar feature', () => {
-    const handleCloseModal = jest.fn();
-    const organizationWithOnlyVisualizeSidebar = OrganizationFixture({
-      features: ['organizations:ourlogs-visualize-sidebar'],
-    });
-
-    render(
-      <OrganizationContext.Provider value={organizationWithOnlyVisualizeSidebar}>
-        <Add
-          Header={makeClosableHeader(handleCloseModal)}
-          Body={ModalBody}
-          Footer={ModalFooter}
-          closeModal={handleCloseModal}
-          CloseButton={makeCloseButton(handleCloseModal)}
-          projectId={projectId}
-          savedRules={rules}
-          api={api}
-          endpoint={endpoint}
-          orgSlug={organizationSlug}
-          onSubmitSuccess={successfullySaved}
-          attributeResults={emptyAttributeResults}
-        />
-      </OrganizationContext.Provider>
-    );
-
-    expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Errors, Transactions, Attachments')
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('Logs')).not.toBeInTheDocument();
-  });
 });
 
-describe('Add Modal with ourlogs-enabled and ourlogs-visualize-sidebar', () => {
+describe('Add Modal with ourlogs-enabled', () => {
   const organization = OrganizationFixture({
-    features: ['ourlogs-enabled', 'organizations:ourlogs-visualize-sidebar'],
+    features: ['ourlogs-enabled', 'ourlogs-visualize-sidebar'],
   });
   const mockAttributeResults = defaultAttributeResults;
 

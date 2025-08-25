@@ -115,14 +115,6 @@ const unarySuggestions: SourceSuggestion[] = [
   },
 ];
 
-export const sourceAttributeSuggestions: SourceSuggestion[] = [
-  {
-    type: SourceSuggestionType.VALUE,
-    value: '$log.attributes',
-    description: t('selecting this will switch to attribute selection'),
-  },
-];
-
 const valueSuggestions: SourceSuggestion[] = [
   {
     type: SourceSuggestionType.VALUE,
@@ -196,12 +188,6 @@ const valueSuggestions: SourceSuggestion[] = [
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$log.body',
-    description: t('the log message'),
-  },
-  ...sourceAttributeSuggestions,
-  {
-    type: SourceSuggestionType.VALUE,
     value: '$minidump.heap_memory',
     description: t('the heap memory region in a native crash report'),
   },
@@ -261,7 +247,7 @@ export function areScrubbingDatasetsEnabled(organization: Organization) {
   // Currently only logs supports scrubbing datasets.
   return (
     organization.features.includes('ourlogs-enabled') &&
-    organization.features.includes('organizations:ourlogs-visualize-sidebar')
+    organization.features.includes('ourlogs-visualize-sidebar')
   );
 }
 
