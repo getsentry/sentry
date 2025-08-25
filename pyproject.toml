@@ -103,7 +103,7 @@ dependencies = [
     # note: we cannot resolve urllib3[brotli] but brotli is installed
     #       and will be used
     "urllib3>=2.2.2",
-    "vroomrs>=0.1.17",
+    "vroomrs>=0.1.18",
     "xmlsec>=1.3.14",
     "zstandard>=0.18.0",
     # [begin] getsentry
@@ -644,9 +644,11 @@ module = [
     "sentry.web.frontend.cli",
     "sentry.web.frontend.csv",
     "sentry.web.frontend.mixins.*",
+    "sentry.workflow_engine.buffer.*",
     "sentry.workflow_engine.handlers.condition.*",
     "sentry.workflow_engine.migrations.*",
     "sentry.workflow_engine.processors.*",
+    "sentry.workflow_engine.tasks.*",
     "sentry.workflow_engine.typings.*",
     "sentry.workflow_engine.utils.*",
     "sentry_plugins.base",
@@ -668,7 +670,6 @@ module = [
     "tests.sentry.auth.services.*",
     "tests.sentry.celery.*",
     "tests.sentry.charts.*",
-    "tests.sentry.coreapi.*",
     "tests.sentry.data_export.processors.*",
     "tests.sentry.data_secrecy.*",
     "tests.sentry.debug.*",

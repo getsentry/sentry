@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
-import ModalStore from 'sentry/stores/modalStore';
 
 describe('FeatureTourModal', () => {
   const onCloseModal = jest.fn();
@@ -26,7 +25,6 @@ describe('FeatureTourModal', () => {
     );
 
   beforeEach(() => {
-    ModalStore.reset();
     jest.clearAllMocks();
   });
 

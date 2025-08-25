@@ -38,7 +38,6 @@ SUMMARY_CACHE_TIMEOUT = 86400
 class SummaryRequest(TypedDict):
     """Corresponds to SummarizeFeedbacksRequest in Seer."""
 
-    organization_id: int
     feedbacks: list[str]
 
 
@@ -91,14 +90,16 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
         summary_cache = cache.get(summary_cache_key)
+        # TODO(vishnupsatish): remove this once we are to EA. This is to allow users to regenerate the summary on reload.
         if summary_cache:
-            return Response(
-                {
-                    "summary": summary_cache["summary"],
-                    "success": True,
-                    "numFeedbacksUsed": summary_cache["numFeedbacksUsed"],
-                }
-            )
+            # return Response(
+            #     {
+            #         "summary": summary_cache["summary"],
+            #         "success": True,
+            #         "numFeedbacksUsed": summary_cache["numFeedbacksUsed"],
+            #     }
+            # )
+            pass
 
         filters = {
             "type": FeedbackGroup.type_id,
@@ -136,7 +137,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             logger.error("Too few feedbacks to summarize after enforcing the character limit")
 
         seer_request = SummaryRequest(
-            organization_id=organization.id,
             feedbacks=group_feedbacks,
         )
 
@@ -147,11 +147,12 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             logger.exception("Error generating summary of user feedbacks")
             return Response({"detail": "Error generating summary"}, status=500)
 
-        cache.set(
-            summary_cache_key,
-            {"summary": summary, "numFeedbacksUsed": len(group_feedbacks)},
-            timeout=SUMMARY_CACHE_TIMEOUT,
-        )
+        # TODO(vishnupsatish): remove this once we are to EA. This is to allow users to regenerate the summary on reload.
+        # cache.set(
+        #     summary_cache_key,
+        #     {"summary": summary, "numFeedbacksUsed": len(group_feedbacks)},
+        #     timeout=SUMMARY_CACHE_TIMEOUT,
+        # )
 
         return Response(
             {

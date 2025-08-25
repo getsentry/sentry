@@ -480,6 +480,20 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
+        if value is None:
+            exists_filter = TraceItemFilter(
+                exists_filter=ExistsFilter(
+                    key=resolved_column.proto_definition,
+                )
+            )
+            if term.operator == "=":
+                not_exists_filter = TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
+                return not_exists_filter, context_definition
+            elif term.operator == "!=":
+                return exists_filter, context_definition
+            else:
+                raise InvalidSearchQuery(f"Unsupported operator for None {term.operator}")
+
         if value == "" and context_definition is None:
             exists_filter = TraceItemFilter(
                 exists_filter=ExistsFilter(

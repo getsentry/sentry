@@ -365,7 +365,7 @@ function CellAction({
         {cellActions?.length ? (
           <DropdownMenu
             items={cellActions}
-            usePortal
+            strategy="fixed"
             size="sm"
             offset={4}
             position={align === 'left' ? 'bottom-start' : 'bottom-end'}
