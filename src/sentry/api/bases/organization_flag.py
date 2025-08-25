@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from rest_framework.request import Request
 
 from sentry import features
@@ -22,7 +24,9 @@ class FlaggedOrganizationEndpoint(OrganizationEndpoint):
             "Requires set 'feature_flags' property to restrict this endpoint."
         )
 
-    def convert_args(self, request: Request, *args, **kwargs):
+    def convert_args(
+        self, request: Request, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
         organization = parsed_kwargs.get("organization")
         feature_gate = [

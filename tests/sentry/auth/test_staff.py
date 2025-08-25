@@ -25,6 +25,7 @@ from sentry.middleware.staff import StaffMiddleware
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
 from sentry.utils.auth import mark_sso_complete
 
 UNSET = object()
@@ -90,36 +91,41 @@ class StaffTestCase(TestCase):
         request = self.make_request(user=self.staff_user)
         request.META["REMOTE_ADDR"] = "10.0.0.1"
 
+        user = request.user
+        assert isinstance(user, User)
+
         # no ips = any host
         staff = Staff(request, allowed_ips=())
-        staff.set_logged_in(request.user)
+        staff.set_logged_in(user)
         assert staff.is_active is True
 
         staff = Staff(request, allowed_ips=("127.0.0.1",))
-        staff.set_logged_in(request.user)
+        staff.set_logged_in(user)
         assert staff.is_active is False
 
         staff = Staff(request, allowed_ips=("10.0.0.1",))
-        staff.set_logged_in(request.user)
+        staff.set_logged_in(user)
         assert staff.is_active is True
 
     def test_sso(self) -> None:
         request = self.make_request(user=self.staff_user)
+        user = request.user
+        assert isinstance(user, User)
 
         # no ips = any host
         staff = Staff(request)
-        staff.set_logged_in(request.user)
+        staff.set_logged_in(user)
         assert staff.is_active is True
 
         # Set ORG_ID so we run the SSO check
         with override_org_id(new_org_id=self.organization.id):
             staff = Staff(request)
-            staff.set_logged_in(request.user)
+            staff.set_logged_in(user)
             assert staff.is_active is False
 
             mark_sso_complete(request, self.organization.id)
             staff = Staff(request)
-            staff.set_logged_in(request.user)
+            staff.set_logged_in(user)
             assert staff.is_active is True
 
     def test_valid_data(self) -> None:
