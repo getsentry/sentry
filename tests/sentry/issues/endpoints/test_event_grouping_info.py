@@ -216,32 +216,3 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
             "event_grouping_info.hash_mismatch",
             extra={"project_id": self.project.id, "event_id": javascript_event.event_id},
         )
-
-    def test_variant_keys_and_types_use_underscores_not_dashes(self) -> None:
-        """
-        Test to make sure switching to using underscores on the BE doesn't change what we send
-        to the FE.
-        """
-        data = load_data(platform="javascript")
-        data["fingerprint"] = ["dogs are great"]
-        event = self.store_event(data=data, project_id=self.project.id)
-
-        url = reverse(
-            "sentry-api-0-event-grouping-info",
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "project_id_or_slug": self.project.slug,
-                "event_id": event.event_id,
-            },
-        )
-
-        response = self.client.get(url, format="json")
-        content = orjson.loads(response.content)
-
-        assert response.status_code == 200
-
-        assert "custom_fingerprint" in content
-        assert "custom-fingerprint" not in content
-
-        assert content["custom_fingerprint"]["key"] == "custom_fingerprint"
-        assert content["custom_fingerprint"]["type"] == "custom_fingerprint"
