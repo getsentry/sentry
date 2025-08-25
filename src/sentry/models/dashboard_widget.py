@@ -263,7 +263,10 @@ class DashboardWidgetSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     widget = FlexibleForeignKey("sentry.DashboardWidget")
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = models.JSONField()
+
+    class Meta:
+        app_label = "sentry"
 
 
 @region_silo_model
