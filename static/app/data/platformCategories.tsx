@@ -305,7 +305,16 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
 ]);
 
 // List of platforms that have logging onboarding checklist content
-export const withLoggingOnboarding: Set<PlatformKey> = new Set(['javascript-react']);
+export const withLoggingOnboarding: Set<PlatformKey> = new Set([
+  'javascript-angular',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript',
+  'javascript-react',
+  'javascript-solid',
+  'javascript-svelte',
+  'javascript-vue',
+]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
 export const withoutLoggingSupport: Set<PlatformKey> = new Set([
