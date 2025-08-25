@@ -17,7 +17,7 @@ hybridcloud: 0023_correct_webhook_payload_constraint
 
 insights: 0002_backfill_team_starred
 
-monitors: 0008_fix_processing_error_keys
+monitors: 0009_backfill_monitor_detectors
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
