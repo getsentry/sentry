@@ -10,8 +10,6 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
-
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
@@ -116,8 +114,6 @@ describe('OnDemandBudgets', () => {
 
     await userEvent.click(screen.getByTestId('add-cc-card'));
     expect(await screen.findByText('Stripe')).toBeInTheDocument();
-
-    ModalStore.reset();
   });
 
   it('allows VC partner accounts to set up on-demand budget without credit card', () => {

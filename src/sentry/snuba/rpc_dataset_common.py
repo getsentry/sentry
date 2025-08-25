@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     Expression,
     TimeSeries,
@@ -148,6 +149,16 @@ class RPCBase:
         sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
         meta = resolver.resolve_meta(referrer=query.referrer, sampling_mode=query.sampling_mode)
         where, having, query_contexts = resolver.resolve_query(query.query_string)
+
+        trace_column, _ = resolver.resolve_column("trace")
+        if isinstance(trace_column, ResolvedAttribute) and has_top_level_trace_condition(
+            where, trace_column
+        ):
+            # We noticed that the query has a top level condition for trace id, in this situation,
+            # we want to force the query to to highest accuracy mode to ensure we get an accurate
+            # response as the different tiers are sampled based on trace id and is likely to contain
+            # incomplete traces.
+            meta.downsampled_storage_config.mode = DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
 
         all_columns: list[AnyResolved] = []
         equations, equation_contexts = resolver.resolve_equations(
@@ -457,6 +468,17 @@ class RPCBase:
         timeseries_filter, params = cls.update_timestamps(params, search_resolver)
         meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
         query, _, query_contexts = search_resolver.resolve_query(query_string)
+
+        trace_column, _ = search_resolver.resolve_column("trace")
+        if isinstance(trace_column, ResolvedAttribute) and has_top_level_trace_condition(
+            query, trace_column
+        ):
+            # We noticed that the query has a top level condition for trace id, in this situation,
+            # we want to force the query to to highest accuracy mode to ensure we get an accurate
+            # response as the different tiers are sampled based on trace id and is likely to contain
+            # incomplete traces.
+            meta.downsampled_storage_config.mode = DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+
         selected_equations, selected_axes = arithmetic.categorize_columns(y_axes)
         (functions, _) = search_resolver.resolve_functions(selected_axes)
         equations, _ = search_resolver.resolve_equations(selected_equations)
@@ -742,3 +764,35 @@ class RPCBase:
         additional_attributes: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         raise NotImplementedError()
+
+
+def has_top_level_trace_condition(
+    where: TraceItemFilter | None, trace_column: ResolvedAttribute
+) -> bool:
+    if where is None:
+        return False
+
+    if where.HasField("and_filter"):
+        return any(has_top_level_trace_condition(f, trace_column) for f in where.and_filter.filters)
+
+    if where.HasField("or_filter"):
+        return all(has_top_level_trace_condition(f, trace_column) for f in where.or_filter.filters)
+
+    if where.HasField("not_filter"):
+        return False
+
+    if where.HasField("comparison_filter"):
+        attribute_key = where.comparison_filter.key
+        if attribute_key.type != AttributeKey.TYPE_STRING:
+            return False
+        if attribute_key.name != trace_column.internal_name:
+            return False
+        op = where.comparison_filter.op
+        if op != ComparisonFilter.Op.OP_EQUALS:
+            return False
+        return True
+
+    if where.HasField("exists_filter"):
+        return False
+
+    return False
