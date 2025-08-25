@@ -12,6 +12,7 @@ from sentry.locks import locks
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import (
     _call_seer,
+    _generate_fixability_score,
     _get_event,
     _get_trace_connected_issues,
     _run_automation,
@@ -717,8 +718,6 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         # First call (GPU) fails, second call (CPU) succeeds
         mock_make_request.side_effect = [Exception("GPU connection failed"), cpu_response]
 
-        from sentry.seer.autofix.issue_summary import _generate_fixability_score
-
         result = _generate_fixability_score(self.group)
 
         # Verify the result is returned successfully
@@ -746,8 +745,6 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
 
         # CPU request fails
         mock_make_request.side_effect = Exception("CPU connection failed")
-
-        from sentry.seer.autofix.issue_summary import _generate_fixability_score
 
         # Should raise the exception since no fallback is available
         with pytest.raises(Exception, match="CPU connection failed"):

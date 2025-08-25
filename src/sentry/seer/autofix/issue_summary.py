@@ -240,12 +240,12 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
                 body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
                 timeout=settings.SEER_FIXABILITY_TIMEOUT,
             )
+    else:
+        if use_gpu:
+            logger.info("GPU fixability request successful", extra={"group_id": group.id})
 
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
-
-    if use_gpu:
-        logger.info("GPU fixability request successful", extra={"group_id": group.id})
 
     response_data = orjson.loads(response.data)
     return SummarizeIssueResponse.validate(response_data)
