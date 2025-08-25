@@ -60,7 +60,6 @@ export type TimeSeries = {
   yAxis: string;
   dataScanned?: 'full' | 'partial';
   groupBy?: TimeSeriesGroupBy[];
-  sampleCount?: AccuracyStats<number>;
   samplingRate?: AccuracyStats<number | null>;
 };
 
