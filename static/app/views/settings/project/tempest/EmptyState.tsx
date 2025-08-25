@@ -24,8 +24,6 @@ import type {TempestCredentials} from 'sentry/views/settings/project/tempest/typ
 
 interface EmptyStateProps {
   hasWriteAccess: boolean;
-  isEmpty: boolean;
-  isLoading: boolean;
   isRemoving: boolean;
   onRemoveCredential: (data: {id: number}) => void;
   project: Project;
@@ -34,8 +32,6 @@ interface EmptyStateProps {
 
 export default function EmptyState({
   project,
-  isLoading,
-  isEmpty,
   tempestCredentials,
   isRemoving,
   hasWriteAccess,
@@ -86,7 +82,9 @@ export default function EmptyState({
                 )}
               </DescriptionWrapper>
               <Flex direction="column" align="end" gap="xl">
-                {!isEmpty && <AddCredentialsButton project={project} />}
+                {!tempestCredentials?.length && (
+                  <AddCredentialsButton project={project} />
+                )}
                 <StyledPanelTable
                   headers={[
                     t('Client ID'),
@@ -95,8 +93,7 @@ export default function EmptyState({
                     t('Created By'),
                     '',
                   ]}
-                  isLoading={isLoading}
-                  isEmpty={isEmpty}
+                  isEmpty={!tempestCredentials?.length}
                   emptyMessage={t('No credentials found')}
                   emptyAction={<AddCredentialsButton project={project} />}
                 >

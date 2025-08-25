@@ -139,8 +139,6 @@ export default function PlayStationSettings({organization, project}: Props) {
             <Panel>
               <EmptyState
                 project={project}
-                isEmpty={!tempestCredentials?.length}
-                isLoading={isLoading}
                 isRemoving={isRemoving}
                 hasWriteAccess={hasWriteAccess}
                 tempestCredentials={tempestCredentials}
