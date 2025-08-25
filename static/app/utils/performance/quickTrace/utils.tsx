@@ -319,12 +319,6 @@ export function isTraceError(
   return 'event_type' in transaction && transaction.event_type === 'error';
 }
 
-export function isTraceRoot(
-  transaction: TraceRoot | TraceError | TraceFullDetailed
-): transaction is TraceRoot {
-  return 'traceSlug' in transaction;
-}
-
 export function isTraceSplitResult<
   U extends Record<PropertyKey, unknown>,
   V extends readonly unknown[],
