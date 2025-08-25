@@ -372,6 +372,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -382,14 +391,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
                 "build_configuration": None,
-                "head_sha": None,
-                "base_sha": None,
-                "provider": None,
-                "head_repo_name": None,
-                "base_repo_name": None,
-                "head_ref": None,
-                "base_ref": None,
-                "pr_number": None,
             }
         )
 
@@ -441,6 +442,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration="release",
+            release_notes=None,
+            head_sha="e" * 40,
+            base_sha="f" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/xyz",
+            base_ref="main",
+            pr_number=123,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -451,14 +461,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
                 "build_configuration": "release",
-                "head_sha": "e" * 40,
-                "base_sha": "f" * 40,
-                "provider": "github",
-                "head_repo_name": "owner/repo",
-                "base_repo_name": "owner/repo",
-                "head_ref": "feature/xyz",
-                "base_ref": "main",
-                "pr_number": 123,
             }
         )
 
@@ -726,4 +728,13 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
         )

@@ -88,7 +88,7 @@ const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
   }
 `;
 
-const GroupingHint = styled('small')`
+export const GroupingHint = styled('small')`
   font-size: 0.8em;
 `;
 

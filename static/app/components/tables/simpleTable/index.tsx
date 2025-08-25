@@ -1,4 +1,4 @@
-import type {ComponentProps, CSSProperties, HTMLAttributes} from 'react';
+import type {ComponentProps, CSSProperties, HTMLAttributes, RefObject} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,7 +9,7 @@ import {IconArrow} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 
 interface TableProps extends HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
+  ref?: RefObject<HTMLDivElement | null>;
 }
 
 interface RowProps extends HTMLAttributes<HTMLDivElement> {
@@ -24,8 +24,12 @@ export function SimpleTable({children, ...props}: TableProps) {
   );
 }
 
-function Header({children}: {children: React.ReactNode}) {
-  return <StyledPanelHeader role="row">{children}</StyledPanelHeader>;
+function Header({children, ...props}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <StyledPanelHeader {...props} role="row">
+      {children}
+    </StyledPanelHeader>
+  );
 }
 
 function HeaderCell({
