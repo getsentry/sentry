@@ -181,6 +181,29 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         keys = {item["key"] for item in response.data}
         assert keys == {"severity", "message", "project", "sentry.item_type2"}
 
+    def test_message_parameters_wildcard_attributes(self) -> None:
+        """Test that sentry.message.parameters.* wildcard matching works in attribute listing"""
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.message.parameters.username": {"string_value": "alice"},
+                    "sentry.message.parameters.ip": {"string_value": "192.168.1.1"},
+                    "sentry.message.parameters.0": {"string_value": "laptop"},
+                    "sentry.message.parameters.1": {"string_value": "charlie"},
+                },
+            ),
+        ]
+
+        self.store_ourlogs(logs)
+
+        response = self.do_request()
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        # TODO: Assert that the keys are correct and don't have sentry. prefix
+
     def test_attribute_collision(self) -> None:
         logs = [
             self.create_ourlog(

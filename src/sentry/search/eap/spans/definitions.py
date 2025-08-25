@@ -17,4 +17,5 @@ SPAN_DEFINITIONS = ColumnDefinitions(
     contexts=SPAN_VIRTUAL_CONTEXTS,
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
     filter_aliases=SPAN_FILTER_ALIAS_DEFINITIONS,
+    transform_aliases={},
 )

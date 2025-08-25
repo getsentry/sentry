@@ -97,6 +97,10 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
     ]
 }
 
+OURLOG_TRANSFORM_ALIAS_DEFINITIONS: dict[str, str] = {
+    "sentry.message.parameters.*": "sentry.message.parameters",
+}
+
 OURLOG_VIRTUAL_CONTEXTS = {
     key: VirtualColumnDefinition(
         constructor=project_context_constructor(key),

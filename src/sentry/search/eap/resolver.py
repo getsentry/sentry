@@ -862,6 +862,11 @@ class SearchResolver:
                     search_type=column_definition.search_type,
                 )
         else:
+            for pattern, internal_prefix in self.definitions.transform_aliases.items():
+                if column.startswith(internal_prefix):
+                    column = column.replace(internal_prefix, pattern)
+                    break
+
             if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
                 raise InvalidSearchQuery(
                     f"{column} is too long, can be a maximum of 200 characters"
