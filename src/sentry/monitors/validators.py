@@ -1,15 +1,18 @@
 import re
-from typing import Literal
+from typing import Any, Literal
 
+import jsonschema
 import sentry_sdk
 from cronsim import CronSimError
 from django.core.exceptions import ValidationError
+from django.db.models import F
+from django.db.models.functions import TruncMinute
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
-from sentry import quotas
+from sentry import audit_log, quotas
 from sentry.api.fields.actor import ActorField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
@@ -18,11 +21,26 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
+from sentry.models.project import Project
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
-from sentry.monitors.models import CheckInStatus, Monitor, ScheduleType
+from sentry.monitors.models import (
+    MONITOR_CONFIG,
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    ScheduleType,
+)
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
-from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
+from sentry.monitors.utils import (
+    create_issue_alert_rule,
+    get_checkin_margin,
+    get_max_runtime,
+    signal_monitor_created,
+    update_issue_alert_rule,
+)
+from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.utils.outcomes import Outcome
 
@@ -162,7 +180,7 @@ class ConfigValidator(serializers.Serializer):
         super().bind(*args, **kwargs)
         # Inherit instance data when used as a nested serializer
         if self.parent.instance:
-            self.instance = self.parent.instance.get("config")
+            self.instance = self.parent.instance.config
         self.partial = self.parent.partial
 
     def validate_schedule_type(self, value):
@@ -300,7 +318,7 @@ class MonitorValidator(CamelSnakeSerializer):
 
         value = slugify_monitor_slug(value)
         # Ignore if slug is equal to current value
-        if self.instance and value == self.instance.get("slug"):
+        if self.instance and value == self.instance.slug:
             return value
 
         if Monitor.objects.filter(
@@ -308,14 +326,6 @@ class MonitorValidator(CamelSnakeSerializer):
         ).exists():
             raise ValidationError(f'The slug "{value}" is already in use.')
         return value
-
-    def update(self, instance, validated_data):
-        config = instance.get("config", {})
-        config.update(validated_data.get("config", {}))
-        instance.update(validated_data)
-        if "config" in instance or "config" in validated_data:
-            instance["config"] = config
-        return instance
 
     def create(self, validated_data):
         project = validated_data.get("project", self.context.get("project"))
@@ -360,6 +370,126 @@ class MonitorValidator(CamelSnakeSerializer):
                 config["alert_rule_id"] = issue_alert_rule_id
                 monitor.update(config=config)
         return monitor
+
+    def update(self, instance, validated_data):
+        """
+        Update an existing Monitor instance.
+        """
+        if "project" in validated_data and validated_data["project"].id != instance.project_id:
+            raise serializers.ValidationError(
+                {"detail": {"message": "existing monitors may not be moved between projects"}}
+            )
+
+        existing_config = instance.config.copy()
+        existing_margin = existing_config.get("checkin_margin")
+        existing_max_runtime = existing_config.get("max_runtime")
+        existing_slug = instance.slug
+
+        params: dict[str, Any] = {}
+        if "owner" in validated_data:
+            owner = validated_data["owner"]
+            params["owner_user_id"] = None
+            params["owner_team_id"] = None
+            if owner and owner.is_user:
+                params["owner_user_id"] = owner.id
+            elif owner and owner.is_team:
+                params["owner_team_id"] = owner.id
+
+        if "name" in validated_data:
+            params["name"] = validated_data["name"]
+        if "slug" in validated_data:
+            params["slug"] = validated_data["slug"]
+        if "status" in validated_data:
+            params["status"] = validated_data["status"]
+        if "is_muted" in validated_data:
+            params["is_muted"] = validated_data["is_muted"]
+        if "config" in validated_data:
+            merged_config = instance.config.copy()
+            merged_config.update(validated_data["config"])
+
+            try:
+                jsonschema.validate(merged_config, MONITOR_CONFIG)
+            except jsonschema.ValidationError as e:
+                raise serializers.ValidationError({"config": f"Invalid config: {e.message}"})
+
+            params["config"] = merged_config
+
+        if "status" in params:
+            # Attempt to assign a monitor seat
+            if params["status"] == ObjectStatus.ACTIVE and instance.status != ObjectStatus.ACTIVE:
+                outcome = quotas.backend.assign_monitor_seat(instance)
+                # The MonitorValidator checks if a seat assignment is available.
+                # This protects against a race condition
+                if outcome != Outcome.ACCEPTED:
+                    raise serializers.ValidationError(
+                        {"status": "Failed to enable monitor due to quota limits"}
+                    )
+
+            # Attempt to unassign the monitor seat
+            if (
+                params["status"] == ObjectStatus.DISABLED
+                and instance.status != ObjectStatus.DISABLED
+            ):
+                quotas.backend.disable_monitor_seat(instance)
+
+        if params:
+            instance.update(**params)
+            create_audit_entry(
+                request=self.context["request"],
+                organization_id=instance.organization_id,
+                target_object=instance.id,
+                event=audit_log.get_event_id("MONITOR_EDIT"),
+                data=instance.get_audit_log_data(),
+            )
+
+        # Update monitor slug in billing
+        if "slug" in params:
+            quotas.backend.update_monitor_slug(existing_slug, params["slug"], instance.project_id)
+
+        if "config" in validated_data:
+            new_config = validated_data["config"]
+            checkin_margin = new_config.get("checkin_margin")
+            if checkin_margin != existing_margin:
+                MonitorEnvironment.objects.filter(monitor_id=instance.id).update(
+                    next_checkin_latest=F("next_checkin") + get_checkin_margin(checkin_margin)
+                )
+
+            max_runtime = new_config.get("max_runtime")
+            if max_runtime != existing_max_runtime:
+                MonitorCheckIn.objects.filter(
+                    monitor_id=instance.id, status=CheckInStatus.IN_PROGRESS
+                ).update(timeout_at=TruncMinute(F("date_added")) + get_max_runtime(max_runtime))
+
+        # Update alert rule after in case slug or name changed
+        if "alert_rule" in validated_data:
+            alert_rule_data = validated_data["alert_rule"]
+            request = self.context.get("request")
+            if not request:
+                return instance
+
+            project = Project.objects.get(id=instance.project_id)
+
+            # Check to see if rule exists
+            issue_alert_rule = instance.get_issue_alert_rule()
+            # If rule exists, update as necessary
+            if issue_alert_rule:
+                issue_alert_rule_id = update_issue_alert_rule(
+                    request, project, instance, issue_alert_rule, alert_rule_data
+                )
+            # If rule does not exist, create
+            else:
+                # Type assertion for mypy - create_issue_alert_rule expects AuthenticatedHttpRequest
+                # but in tests we might have a regular Request object
+                issue_alert_rule_id = create_issue_alert_rule(
+                    request, project, instance, alert_rule_data
+                )
+
+            if issue_alert_rule_id:
+                # If config is not sent, use existing config to update alert_rule_id
+                instance.config["alert_rule_id"] = issue_alert_rule_id
+                instance.update(config=instance.config)
+
+        return instance
 
 
 class TraceContextValidator(serializers.Serializer):
