@@ -697,7 +697,7 @@ describe('OnDemandBudgets', () => {
     // When logs-billing is enabled, should show the logs warning
     expect(
       screen.getByText(
-        'Logs and additional Seer usage require a shared on-demand budget. Individual budgets cannot be used for these products.'
+        'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
       )
     ).toBeInTheDocument();
 
@@ -716,7 +716,7 @@ describe('OnDemandBudgets', () => {
     // When both features are enabled
     expect(
       screen.getByText(
-        'Logs and additional Seer usage require a shared on-demand budget. Individual budgets cannot be used for these products.'
+        'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
       )
     ).toBeInTheDocument();
   });
