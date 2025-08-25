@@ -3,8 +3,8 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './qt';
 
-describe('getting started with native-qt', function () {
-  it('renders gradle docs correctly', function () {
+describe('getting started with native-qt', () => {
+  it('renders gradle docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings

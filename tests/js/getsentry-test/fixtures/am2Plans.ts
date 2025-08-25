@@ -68,7 +68,6 @@ const AM2_TEAM_FEATURES = [
   ...AM2_FREE_FEATURES,
   'codecov-integration',
   'crash-rate-alerts',
-  'dashboards-basic',
   'discover-basic',
   'incidents',
   'integrations-issue-basic',
@@ -90,11 +89,9 @@ const AM2_BUSINESS_FEATURES = [
   'change-alerts',
   'custom-inbound-filters',
   'custom-symbol-sources',
-  'dashboards-edit',
   'data-forwarding',
   'discard-groups',
   'discover-query',
-  'global-views',
   'integrations-codeowners',
   'integrations-enterprise-alert-rule',
   'integrations-enterprise-incident-management',
@@ -841,6 +838,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
   },
   am2_f: {
     id: 'am2_f',
@@ -936,6 +934,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 10,
   },
   am2_team: {
     id: 'am2_team',
@@ -1663,6 +1662,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
   },
   am2_t: {
     id: 'am2_t',
@@ -1758,6 +1758,7 @@ const AM2_PLANS: Record<string, Plan> = {
     },
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
   },
   am2_team_auf: {
     id: 'am2_team_auf',
@@ -2448,6 +2449,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       ...SEER_TIERS_ANNUAL,
     },
+    dashboardLimit: 20,
   },
   am2_business_auf: {
     id: 'am2_business_auf',
@@ -3138,6 +3140,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ...SEER_TIERS_ANNUAL,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
   },
   am2_sponsored: {
     // NOTE: being deprecated
@@ -3179,6 +3182,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 20,
   },
   am2_sponsored_team_auf: {
     id: 'am2_sponsored_team_auf',
@@ -3219,6 +3223,7 @@ const AM2_PLANS: Record<string, Plan> = {
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
+    dashboardLimit: 20,
   },
   am2_business_bundle: {
     id: 'am2_business_bundle',
@@ -3719,6 +3724,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ...SEER_TIERS,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
   },
   am2_business_249_bundle: {
     id: 'am2_business_249_bundle',
@@ -4269,6 +4275,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ...SEER_TIERS,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
   },
   am2_team_bundle: {
     id: 'am2_team_bundle',
@@ -4834,6 +4841,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ...SEER_TIERS,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
   },
   am2_business_ent_auf: {
     id: 'am2_business_ent_auf',
@@ -4928,6 +4936,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
   },
   am2_business_ent: {
     id: 'am2_business_ent',
@@ -5023,6 +5032,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ...SEER_TIERS_TRIAL_OR_ENTERPRISE,
     },
     availableReservedBudgetTypes: AM2_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
   },
 };
 

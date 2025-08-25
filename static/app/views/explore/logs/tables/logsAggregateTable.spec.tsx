@@ -13,6 +13,7 @@ import {
   LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import * as useLogsQueryModule from 'sentry/views/explore/logs/useLogsQuery';
 
 import {LogsAggregateTable} from './logsAggregateTable';
@@ -27,9 +28,13 @@ describe('LogsAggregateTable', () => {
   });
   function LogsAggregateTableWithParamsProvider() {
     return (
-      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-        <LogsAggregateTable />
-      </LogsPageParamsProvider>
+      <LogsQueryParamsProvider source="location">
+        <LogsPageParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        >
+          <LogsAggregateTable />
+        </LogsPageParamsProvider>
+      </LogsQueryParamsProvider>
     );
   }
 
@@ -67,7 +72,7 @@ describe('LogsAggregateTable', () => {
     route: '/organizations/:orgId/explore/logs/',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 

@@ -6,14 +6,14 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventTags} from 'sentry/components/events/eventTags';
 
-describe('event tags', function () {
+describe('event tags', () => {
   const {organization, project} = initializeOrg({
     organization: {
       relayPiiConfig: null,
     },
   });
 
-  it('display redacted tags', async function () {
+  it('display redacted tags', async () => {
     const event = EventFixture({
       tags: null,
       _meta: {
@@ -33,7 +33,7 @@ describe('event tags', function () {
     ).toBeInTheDocument(); // tooltip description
   });
 
-  it('display redacted "app.device" tag', async function () {
+  it('display redacted "app.device" tag', async () => {
     const tags = [
       {key: 'app.device', value: null},
       {key: 'device.family', value: 'iOS'},
@@ -75,7 +75,7 @@ describe('event tags', function () {
     ).toBeInTheDocument(); // tooltip description
   });
 
-  it('transaction tag links to transaction overview', async function () {
+  it('transaction tag links to transaction overview', async () => {
     const tags = [{key: 'transaction', value: 'mytransaction'}];
 
     const event = EventFixture({

@@ -6,8 +6,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 
-describe('EventExtraData', function () {
-  it('display redacted data', async function () {
+describe('EventExtraData', () => {
+  it('display redacted data', async () => {
     const event = EventFixture({
       context: {
         'sys.argv': ['', '', '', '', '', '', '', '', '', ''],

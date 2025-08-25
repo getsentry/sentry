@@ -6,8 +6,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import UpdatedEmptyState from 'sentry/components/updatedEmptyState';
 
-describe('UpdatedEmptyState', function () {
-  it('Renders updated empty state', async function () {
+describe('UpdatedEmptyState', () => {
+  it('Renders updated empty state', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/keys/`,
       method: 'GET',

@@ -201,7 +201,13 @@ function DropdownMenuItem({
       };
     }
 
-    return {as: 'div' as const};
+    return {
+      as: 'div' as const,
+      onClick: (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+      },
+    };
   };
   const mergedMenuItemContentProps = mergeProps(
     props,

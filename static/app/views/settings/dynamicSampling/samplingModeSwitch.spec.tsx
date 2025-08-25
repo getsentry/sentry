@@ -7,7 +7,7 @@ import {openSamplingModeSwitchModal} from 'sentry/views/settings/dynamicSampling
 
 jest.mock('sentry/views/settings/dynamicSampling/samplingModeSwitchModal');
 
-describe('SamplingModeSwitch', function () {
+describe('SamplingModeSwitch', () => {
   const organization = OrganizationFixture({
     access: ['org:write'],
     samplingMode: 'organization',
@@ -17,7 +17,7 @@ describe('SamplingModeSwitch', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders correctly in organization mode', function () {
+  it('renders correctly in organization mode', () => {
     render(<SamplingModeSwitch />, {
       organization,
     });
@@ -27,7 +27,7 @@ describe('SamplingModeSwitch', function () {
     expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
 
-  it('renders correctly in project mode', function () {
+  it('renders correctly in project mode', () => {
     render(<SamplingModeSwitch />, {
       organization: {...organization, samplingMode: 'project'},
     });
@@ -35,7 +35,7 @@ describe('SamplingModeSwitch', function () {
     expect(screen.getByRole('checkbox')).toBeChecked();
   });
 
-  it('opens modal when switch is clicked', async function () {
+  it('opens modal when switch is clicked', async () => {
     render(<SamplingModeSwitch initialTargetRate={0.3} />, {
       organization,
     });
@@ -48,7 +48,7 @@ describe('SamplingModeSwitch', function () {
     });
   });
 
-  it('disables switch when user lacks permission', function () {
+  it('disables switch when user lacks permission', () => {
     const orgWithoutAccess = OrganizationFixture({
       access: [], // No project:write access
       samplingMode: 'organization',

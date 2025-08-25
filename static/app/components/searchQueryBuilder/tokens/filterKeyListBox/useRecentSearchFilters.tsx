@@ -5,8 +5,8 @@ import {useRecentSearches} from 'sentry/components/searchQueryBuilder/tokens/fil
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
-  type ParseResult,
   Token,
+  type ParseResult,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';

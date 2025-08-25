@@ -13,7 +13,6 @@ from datetime import datetime
 from typing import Any, TypeIs, cast
 
 from sentry import options
-from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
@@ -43,6 +42,7 @@ from sentry.models.grouphashmetadata import (
     HashBasis,
 )
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
 from sentry.types.grouphash_metadata import (
     ChecksumHashingMetadata,
     FallbackHashingMetadata,
