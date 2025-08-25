@@ -420,3 +420,87 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                 "message": source.attributes["sentry.body"].string_value,
             }
         assert meta["dataset"] == self.dataset
+
+    def test_strip_sentry_prefix_from_message_parameters(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "User {username} logged in from {ip}"},
+                attributes={
+                    "sentry.message.parameters.username": "alice",
+                    "sentry.message.parameters.ip": "192.168.1.1",
+                },
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "User {username} logged out"},
+                attributes={"sentry.message.parameters.username": "bob"},
+                timestamp=self.nine_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "Item {0} was purchased by {1}"},
+                attributes={
+                    "sentry.message.parameters.0": "laptop",
+                    "sentry.message.parameters.1": "charlie",
+                },
+                timestamp=self.nine_mins_ago - timedelta(minutes=1),
+            ),
+        ]
+
+        self.store_ourlogs(logs)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "timestamp",
+                    "message",
+                    "message.parameters.username",
+                    "message.parameters.ip",
+                ],
+                "query": 'message.parameters.username:"alice"',
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["message"] == "User {username} logged in from {ip}"
+        assert data[0]["message.parameters.username"] == "alice"
+        assert data[0]["message.parameters.ip"] == "192.168.1.1"
+
+        response = self.do_request(
+            {
+                "field": [
+                    "timestamp",
+                    "message",
+                    "message.parameters.0",
+                    "message.parameters.1",
+                ],
+                "query": 'message.parameters.0:"laptop"',
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["message"] == "Item {0} was purchased by {1}"
+        assert data[0]["message.parameters.0"] == "laptop"
+        assert data[0]["message.parameters.1"] == "charlie"
+
+        response = self.do_request(
+            {
+                "field": ["timestamp", "message", "message.parameters.username"],
+                "query": 'message.parameters.username:["alice", "bob"]',
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["message.parameters.username"] == "bob"
+        assert data[1]["message.parameters.username"] == "alice"
