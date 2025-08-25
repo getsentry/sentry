@@ -13,7 +13,7 @@ interface AdditionalDropdownProps
     'onChange' | 'busyItemsStillVisible'
   > {}
 
-export interface BreadcrumbDropdownProps extends AdditionalDropdownProps {
+interface BreadcrumbDropdownProps extends AdditionalDropdownProps {
   items: Item[];
   name: React.ReactNode;
   onSelect: (item: Item) => void;
