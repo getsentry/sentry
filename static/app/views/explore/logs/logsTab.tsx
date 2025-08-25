@@ -209,6 +209,7 @@ export function LogsTabContent({
   }, []);
 
   const refreshTable = useCallback(async () => {
+    setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     queryClient.setQueryData(
       tableData.queryKey,
       (data: InfiniteData<OurLogsResponseItem[]>) => {
