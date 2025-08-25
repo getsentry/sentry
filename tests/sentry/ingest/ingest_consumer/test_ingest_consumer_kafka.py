@@ -69,7 +69,7 @@ def get_test_message(default_project):
 
 
 @pytest.fixture
-def random_group_id():
+def random_group_id() -> str:
     return f"test-consumer-{random.randint(0, 2 ** 16)}"
 
 

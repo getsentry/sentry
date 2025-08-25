@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
@@ -11,7 +12,7 @@ from sentry.utils.samples import load_data
 
 @no_silo_test
 class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -23,7 +24,9 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
 
-    def create_sample_event(self, platform, default=None, sample_name=None):
+    def create_sample_event(
+        self, platform: str, default: str | None = None, sample_name: str | None = None
+    ) -> Event:
         event_data = load_data(platform, default=default, sample_name=sample_name)
         event_data["event_id"] = "d964fdbd649a4cf8bfc35d18082b6b0e"
         event = self.store_event(
@@ -37,6 +40,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_resolve_basic(self) -> None:
         event = self.create_sample_event(platform="python")
+        assert event.group is not None
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.resolve_issue()
         self.wait_for_loading()
@@ -47,6 +51,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_archive_basic(self) -> None:
         event = self.create_sample_event(platform="python")
+        assert event.group is not None
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.archive_issue()
         self.wait_for_loading()
@@ -57,6 +62,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_bookmark(self) -> None:
         event = self.create_sample_event(platform="python")
+        assert event.group is not None
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.bookmark_issue()
         self.wait_for_loading()
@@ -67,6 +73,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_assign_issue(self) -> None:
         event = self.create_sample_event(platform="python")
+        assert event.group is not None
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.assign_to(self.user.email)
 
@@ -76,6 +83,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_create_comment(self) -> None:
         event = self.create_sample_event(platform="python")
+        assert event.group is not None
         self.page.visit_issue_activity(self.org.slug, event.group.id)
 
         form = self.page.find_comment_form()
@@ -86,6 +94,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
 
     def test_mark_reviewed(self) -> None:
         event = self.create_sample_event(platform="python")
+        assert event.group is not None
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.mark_reviewed()
