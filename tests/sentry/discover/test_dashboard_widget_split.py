@@ -26,7 +26,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @property
-    def now(self):
+    def now(self) -> datetime:
         return before_now(minutes=10)
 
     def setUp(self) -> None:

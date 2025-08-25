@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.db import IntegrityError
 from django.db.models import Q
@@ -13,6 +14,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.auth.services.auth import auth_service
 from sentry.demo_mode.utils import is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
@@ -23,11 +25,13 @@ from sentry.users.api.parsers.email import AllowedEmailField
 logger = logging.getLogger(__name__)
 
 
-class JoinRequestSerializer(serializers.Serializer):
+class JoinRequestSerializer(serializers.Serializer[dict[str, Any]]):
     email = AllowedEmailField(max_length=75, required=True)
 
 
-def create_organization_join_request(organization, email, ip_address=None):
+def create_organization_join_request(
+    organization: Organization, email: str, ip_address: str | None = None
+) -> OrganizationMember | None:
     with outbox_context(flush=False):
         om = OrganizationMember.objects.filter(
             Q(email__iexact=email)
@@ -35,7 +39,7 @@ def create_organization_join_request(organization, email, ip_address=None):
             organization=organization,
         ).first()
         if om:
-            return
+            return None
 
         try:
             om = OrganizationMember.objects.create(
@@ -66,7 +70,7 @@ class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
         }
     }
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         if organization.get_option("sentry:join_requests") is False:
             return Response(
                 {"detail": "Your organization does not allow join requests."}, status=403

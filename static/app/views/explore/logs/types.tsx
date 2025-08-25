@@ -1,6 +1,5 @@
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {
-  ColumnValueType,
   CountUnit,
   CurrencyUnit,
   DurationUnit,
@@ -90,7 +89,6 @@ export type LogAttributeUnits =
 
 export interface LogRowItem {
   fieldKey: OurLogFieldKey;
-  metaFieldType: ColumnValueType;
   unit: LogAttributeUnits;
   value: OurLogsResponseItem[OurLogFieldKey];
 }
