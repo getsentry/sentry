@@ -22,7 +22,7 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
   const {isLoading, isError, getResponseHeader} = useDetectorsQuery(
     {
       query: 'type:metric',
-      limit: 0,
+      limit: 1,
     },
     {enabled: hasFlag}
   );
