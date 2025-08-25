@@ -155,3 +155,15 @@ for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values():
     )
     secondary_aliases.add(definition.public_alias)
     LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING[definition.internal_name] = secondary_aliases
+
+
+def ourlog_custom_alias_to_column(alias: str) -> str | None:
+    if alias.startswith("message.parameters."):
+        return f"sentry.{alias}"
+    return None
+
+
+def ourlog_column_to_custom_alias(column: str) -> str | None:
+    if column.startswith("sentry.message.parameters."):
+        return column[len("sentry.") :]
+    return None
