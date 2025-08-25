@@ -30,7 +30,7 @@ class BlankJSONFieldTestModel(models.Model):
         app_label = "fixtures"
 
 
-def default():
+def default() -> dict[str, int]:
     return {"x": 2}
 
 

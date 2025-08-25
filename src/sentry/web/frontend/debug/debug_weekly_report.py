@@ -118,9 +118,9 @@ class DebugWeeklyReportView(MailPreviewView):
         return render_template_context(ctx, None)
 
     @property
-    def html_template(self):
+    def html_template(self) -> str:
         return "sentry/emails/reports/body.html"
 
     @property
-    def text_template(self):
+    def text_template(self) -> str:
         return "sentry/emails/reports/body.txt"

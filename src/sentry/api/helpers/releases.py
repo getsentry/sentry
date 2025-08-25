@@ -1,11 +1,15 @@
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
+from sentry.organizations.services.organization import RpcOrganization
 
 
-def get_group_ids_resolved_in_release(organization, version):
+def get_group_ids_resolved_in_release(
+    organization: Organization | RpcOrganization, version: str
+) -> set[int]:
     try:
         release = Release.objects.get(version=version, organization=organization)
     except Release.DoesNotExist:
