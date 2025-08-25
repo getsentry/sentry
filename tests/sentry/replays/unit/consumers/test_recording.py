@@ -9,6 +9,7 @@ from django.test import override_settings
 
 from sentry.replays.consumers.recording import (
     DropSilently,
+    ProcessReplayRecordingStrategyFactory,
     commit_message_with_profiling,
     decompress_segment,
     parse_headers,
@@ -590,11 +591,9 @@ def make_valid_processed_event() -> ProcessedEvent:
 )
 @patch("sentry_sdk.profiler.start_profiler")
 @patch("sentry_sdk.profiler.stop_profiler")
-@patch("sentry_sdk.init")
 @patch("sentry.replays.consumers.recording.process_message")
 def test_process_message_with_profiling(
     mock_process_message,
-    mock_sdk_init,
     mock_stop_profiler,
     mock_start_profiler,
     mock_dsn,
@@ -618,11 +617,9 @@ def test_process_message_with_profiling(
 
     profiling_active = mock_dsn is not None and sample_rate > 0
     if profiling_active:
-        mock_sdk_init.assert_called_once()
         mock_start_profiler.assert_called_once()
         mock_stop_profiler.assert_called_once()
     else:
-        mock_sdk_init.assert_not_called()
         mock_start_profiler.assert_not_called()
         mock_stop_profiler.assert_not_called()
 
@@ -630,7 +627,7 @@ def test_process_message_with_profiling(
 @pytest.mark.parametrize(
     "mock_dsn,sample_rate",
     [
-        ("http://test@localhost:8000/1", 1.0),  # Profiling active: DSN and sample rate > 0
+        ("http://test@localhost:8000/1", 1.0),  # Profiling active: sample rate > 0
         ("http://test@localhost:8000/1", 0),  # Profiling inactive: sample rate = 0
         (None, 1.0),  # Profiling inactive: no DSN
         (None, 0),  # Profiling inactive: no DSN and sample rate = 0
@@ -638,11 +635,9 @@ def test_process_message_with_profiling(
 )
 @patch("sentry_sdk.profiler.start_profiler")
 @patch("sentry_sdk.profiler.stop_profiler")
-@patch("sentry_sdk.init")
 @patch("sentry.replays.consumers.recording.commit_message")
 def test_commit_message_with_profiling(
     mock_commit_message,
-    mock_sdk_init,
     mock_stop_profiler,
     mock_start_profiler,
     mock_dsn,
@@ -664,10 +659,162 @@ def test_commit_message_with_profiling(
 
     profiling_active = mock_dsn is not None and sample_rate > 0
     if profiling_active:
-        mock_sdk_init.assert_called_once()
         mock_start_profiler.assert_called_once()
         mock_stop_profiler.assert_called_once()
     else:
-        mock_sdk_init.assert_not_called()
         mock_start_profiler.assert_not_called()
         mock_stop_profiler.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "mock_dsn,sample_rate",
+    [
+        ("http://test@localhost:8000/1", 0.5),  # Profiling active: DSN and sample rate > 0
+        ("http://test@localhost:8000/1", 0),  # Profiling inactive: DSN but sample rate = 0
+        (None, 0.5),  # Profiling inactive: no DSN
+        (None, 0),  # Profiling inactive: no DSN and sample rate = 0
+    ],
+)
+@patch("sentry_sdk.init")
+def test_strategy_factory_sentry_sdk_initialization(mock_sdk_init, mock_dsn, sample_rate):
+    """Test that Sentry SDK is initialized only when profiling is enabled."""
+    settings_overrides = {
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": mock_dsn,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE": 0.1,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": sample_rate,
+    }
+
+    with override_settings(**settings_overrides):
+        ProcessReplayRecordingStrategyFactory(
+            input_block_size=None,
+            max_batch_size=100,
+            max_batch_time=1000,
+            num_processes=1,
+            output_block_size=None,
+            num_threads=4,
+        )
+
+    profiling_active = mock_dsn is not None and sample_rate > 0
+    if profiling_active:
+        mock_sdk_init.assert_called_once()
+        call_args = mock_sdk_init.call_args
+        assert call_args[1]["dsn"] == mock_dsn
+        assert call_args[1]["traces_sample_rate"] == 0.1
+        assert call_args[1]["profile_session_sample_rate"] == sample_rate
+        assert call_args[1]["profile_lifecycle"] == "manual"
+    else:
+        mock_sdk_init.assert_not_called()
+
+
+@patch("sentry_sdk.init")
+@patch("sentry_sdk.get_client")
+def test_strategy_factory_reinitializes_sentry_sdk_when_dsn_changes(mock_get_client, mock_sdk_init):
+    """Test that Sentry SDK is reinitialized when client DSN changes."""
+    mock_client = mock_get_client.return_value
+    mock_client.dsn = "http://different@localhost:8000/1"
+
+    settings_overrides = {
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": "http://test@localhost:8000/1",
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE": 0.1,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": 0.5,
+    }
+
+    with override_settings(**settings_overrides):
+        ProcessReplayRecordingStrategyFactory(
+            input_block_size=None,
+            max_batch_size=100,
+            max_batch_time=1000,
+            num_processes=1,
+            output_block_size=None,
+            num_threads=4,
+        )
+
+    mock_sdk_init.assert_called_once()
+    call_args = mock_sdk_init.call_args
+    assert call_args[1]["dsn"] == "http://test@localhost:8000/1"
+
+
+@patch("sentry_sdk.init")
+@patch("sentry_sdk.get_client")
+def test_strategy_factory_does_not_reinitialize_sentry_sdk_when_dsn_same(
+    mock_get_client, mock_sdk_init
+):
+    """Test that Sentry SDK is not reinitialized when client DSN is the same."""
+    mock_client = mock_get_client.return_value
+    mock_client.dsn = "http://test@localhost:8000/1"
+
+    settings_overrides = {
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": "http://test@localhost:8000/1",
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE": 0.1,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": 0.5,
+    }
+
+    with override_settings(**settings_overrides):
+        ProcessReplayRecordingStrategyFactory(
+            input_block_size=None,
+            max_batch_size=100,
+            max_batch_time=1000,
+            num_processes=1,
+            output_block_size=None,
+            num_threads=4,
+        )
+
+    mock_sdk_init.assert_not_called()
+
+
+@patch("sentry_sdk.init")
+def test_strategy_factory_handles_sdk_not_initialized_exception(mock_sdk_init):
+    """Test that exception when getting client triggers SDK initialization."""
+    # If we just mock a side_effect exception, it will interfere with Django's test setup and break before even getting to this test
+    # Instead let's just mock a client missing the dsn attribute to raise an AttributeError when accessing sentry_sdk.get_client().dsn
+    with patch("sentry.replays.consumers.recording.sentry_sdk.get_client") as mock_get_client:
+        mock_client = mock_get_client.return_value
+        del mock_client.dsn
+
+        settings_overrides = {
+            "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": "http://test@localhost:8000/1",
+            "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE": 0.1,
+            "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": 0.5,
+        }
+
+        with override_settings(**settings_overrides):
+            ProcessReplayRecordingStrategyFactory(
+                input_block_size=None,
+                max_batch_size=100,
+                max_batch_time=1000,
+                num_processes=1,
+                output_block_size=None,
+                num_threads=4,
+            )
+
+    mock_sdk_init.assert_called_once()
+    call_args = mock_sdk_init.call_args
+    assert call_args[1]["dsn"] == "http://test@localhost:8000/1"
+
+
+@patch("sentry_sdk.init")
+@patch("sentry_sdk.get_client")
+def test_strategy_factory_handles_client_options_missing_dsn(mock_get_client, mock_sdk_init):
+    """Test that missing client DSN triggers SDK initialization."""
+    mock_client = mock_get_client.return_value
+    mock_client.dsn = None
+
+    settings_overrides = {
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": "http://test@localhost:8000/1",
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE": 0.1,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": 0.5,
+    }
+
+    with override_settings(**settings_overrides):
+        ProcessReplayRecordingStrategyFactory(
+            input_block_size=None,
+            max_batch_size=100,
+            max_batch_time=1000,
+            num_processes=1,
+            output_block_size=None,
+            num_threads=4,
+        )
+
+    mock_sdk_init.assert_called_once()
+    call_args = mock_sdk_init.call_args
+    assert call_args[1]["dsn"] == "http://test@localhost:8000/1"

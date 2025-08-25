@@ -59,6 +59,41 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         self.force_synchronous = force_synchronous
         self.max_pending_futures = max_pending_futures
 
+        # Initialize Sentry SDK once at factory creation if profiling is enabled
+        self._initialize_sentry_sdk_if_needed()
+
+    def _initialize_sentry_sdk_if_needed(self) -> None:
+        """Initialize Sentry SDK once if profiling is enabled and SDK not already initialized."""
+        profiling_dsn = getattr(
+            settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
+        )
+        profile_session_sample_rate = getattr(
+            settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
+        )
+
+        if profiling_dsn is not None and profile_session_sample_rate > 0:
+            try:
+                if sentry_sdk.get_client().dsn != profiling_dsn:
+                    # Different DSN, reinitialize
+                    sentry_sdk.init(
+                        dsn=profiling_dsn,
+                        traces_sample_rate=getattr(
+                            settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
+                        ),
+                        profile_session_sample_rate=profile_session_sample_rate,
+                        profile_lifecycle="manual",
+                    )
+            except Exception:
+                # SDK not initialized, initialize it
+                sentry_sdk.init(
+                    dsn=profiling_dsn,
+                    traces_sample_rate=getattr(
+                        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
+                    ),
+                    profile_session_sample_rate=profile_session_sample_rate,
+                    profile_lifecycle="manual",
+                )
+
     def create_with_partitions(
         self,
         commit: Commit,
@@ -91,22 +126,14 @@ def process_message_with_profiling(
     profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
 
     if profiling_active:
-        sentry_sdk.init(
-            dsn=profiling_dsn,
-            traces_sample_rate=getattr(
-                settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
-            ),
-            profile_session_sample_rate=profile_session_sample_rate,
-            profile_lifecycle="manual",
-        )
         sentry_sdk.profiler.start_profiler()
-
-    result = process_message(message)
-
-    if profiling_active:
-        sentry_sdk.profiler.stop_profiler()
-
-    return result
+        try:
+            result = process_message(message)
+            return result
+        finally:
+            sentry_sdk.profiler.stop_profiler()
+    else:
+        return process_message(message)
 
 
 def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | FilteredPayload:
@@ -212,20 +239,13 @@ def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
     profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
 
     if profiling_active:
-        sentry_sdk.init(
-            dsn=profiling_dsn,
-            traces_sample_rate=getattr(
-                settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
-            ),
-            profile_session_sample_rate=profile_session_sample_rate,
-            profile_lifecycle="manual",
-        )
         sentry_sdk.profiler.start_profiler()
-
-    commit_message(message)
-
-    if profiling_active:
-        sentry_sdk.profiler.stop_profiler()
+        try:
+            commit_message(message)
+        finally:
+            sentry_sdk.profiler.stop_profiler()
+    else:
+        commit_message(message)
 
 
 def commit_message(message: Message[ProcessedEvent]) -> None:
