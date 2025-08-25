@@ -75,11 +75,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         return self.respond({"challenge": data["challenge"]})
 
     def prompt_link(self, slack_request: SlackDMRequest) -> None:
-        if (
-            slack_request.channel_id is None
-            or slack_request.user_id is None
-            or slack_request.user is None
-        ):
+        if slack_request.channel_id is None or slack_request.user_id is None:
             _logger.info("prompt_link.post-ephemeral.missing-data", extra=slack_request.data)
             return
 
