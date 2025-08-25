@@ -284,3 +284,9 @@ export function isRootEvent(value: TraceTree.NodeValue): boolean {
   // Root events has no parent_span_id
   return !!value && 'parent_span_id' in value && value.parent_span_id === null;
 }
+
+export function isTraceSplitResult(
+  result: TraceTree.Trace
+): result is TraceSplitResults<TraceTree.Transaction> {
+  return 'transactions' in result;
+}

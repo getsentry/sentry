@@ -12,7 +12,6 @@ import type {
   TracePerformanceIssue as TracePerformanceIssueType,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
@@ -39,6 +38,7 @@ import {
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
+  isTraceSplitResult,
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
