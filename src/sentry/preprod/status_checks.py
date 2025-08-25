@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_status import (
@@ -17,52 +16,83 @@ from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
 
+SIZE_ANALYZER_TITLE = "Sentry Size Analysis"
 
-def update_preprod_status_on_upload(preprod_artifact: PreprodArtifact) -> None:
+
+def update_preprod_size_analysis_status_on_upload(preprod_artifact: PreprodArtifact) -> None:
     """Create IN_PROGRESS status when artifact upload is complete."""
     text = f"⏳ Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing..."
     return _create_preprod_status_check(
-        preprod_artifact,
-        CommitStatus.PENDING,
-        text,
+        preprod_artifact=preprod_artifact,
+        state=CommitStatus.PENDING,
+        title=SIZE_ANALYZER_TITLE,
+        text=text,
+        summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing...",
     )
 
 
-def update_preprod_status_on_completion(
+def update_preprod_size_analysis_status_on_completion(
     preprod_artifact: PreprodArtifact, target_url: str | None = None
 ) -> None:
     """Update status to SUCCESS when artifact processing is complete."""
     text = f"✅ Build {preprod_artifact.id} processed successfully."
     return _create_preprod_status_check(
-        preprod_artifact,
-        CommitStatus.SUCCESS,
-        text,
-        target_url,
+        preprod_artifact=preprod_artifact,
+        state=CommitStatus.SUCCESS,
+        title=SIZE_ANALYZER_TITLE,
+        text=text,
+        summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} processed successfully.",
+        target_url=target_url,
     )
 
 
-def update_preprod_status_on_failure(
+def update_preprod_size_analysis_status_on_failure(
     preprod_artifact: PreprodArtifact, error_message: str | None = None
 ) -> None:
     """Update status to FAILURE when artifact processing fails."""
     text = f"❌ Build {preprod_artifact.id} failed. Error: {error_message}"
-    return _create_preprod_status_check(preprod_artifact, CommitStatus.FAILURE, text)
+    return _create_preprod_status_check(
+        preprod_artifact=preprod_artifact,
+        state=CommitStatus.FAILURE,
+        title=SIZE_ANALYZER_TITLE,
+        text=text,
+        summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} failed.",
+    )
 
 
 def _create_preprod_status_check(
-    preprod_artifact: PreprodArtifact, state: CommitStatus, text: str, target_url: str | None = None
+    preprod_artifact: PreprodArtifact,
+    state: CommitStatus,
+    title: str,
+    text: str,
+    summary: str,
+    target_url: str | None = None,
 ) -> None:
-    if not _create_preprod_status_check_impl(preprod_artifact, state, text, target_url):
-        logger.error(
+    try:
+        if not _create_preprod_status_check_impl(
+            preprod_artifact, state, title, text, summary, target_url
+        ):
+            logger.error(
+                "Failed to create preprod status check",
+                extra={"artifact_id": preprod_artifact.id, "state": state.value},
+            )
+    except Exception as e:
+        logger.exception(
             "Failed to create preprod status check",
-            extra={"artifact_id": preprod_artifact.id, "state": state.value},
+            extra={
+                "artifact_id": preprod_artifact.id,
+                "state": state.value,
+                "error": str(e),
+            },
         )
 
 
 def _create_preprod_status_check_impl(
     preprod_artifact: PreprodArtifact,
     state: CommitStatus,
-    description: str,
+    title: str,
+    text: str,
+    summary: str,
     target_url: str | None = None,
 ) -> bool:
     if not preprod_artifact.commit_comparison:
@@ -87,52 +117,31 @@ def _create_preprod_status_check_impl(
     if not client:
         return False
 
-    try:
-        # Get the appropriate provider for this integration
-        provider = _get_status_check_provider(client, commit_comparison.provider)
-        if provider:
-            provider.create_status_check(
-                repo=commit_comparison.head_repo_name,
-                sha=commit_comparison.head_sha,
-                state=state,
-                title=description,
-                preprod_artifact=preprod_artifact,
-                target_url=target_url,
-            )
-        else:
-            # Fallback to generic status API
-            context = f"sentry/preprod-{preprod_artifact.project.slug}"
-            status_data = _get_status_data(
-                state, context, description, target_url, commit_comparison.provider
-            )
-            client.create_status(
-                repo=commit_comparison.head_repo_name,
-                sha=commit_comparison.head_sha,
-                data=status_data,
-            )
-
-        logger.info(
-            "Created preprod status check",
-            extra={
-                "artifact_id": preprod_artifact.id,
-                "state": state.value,
-                "repo": commit_comparison.head_repo_name,
-                "sha": commit_comparison.head_sha,
-            },
-        )
-        return True
-    except Exception as e:
-        logger.exception(
-            "Failed to create preprod status check",
-            extra={
-                "artifact_id": preprod_artifact.id,
-                "state": state.value,
-                "error": str(e),
-                "repo": commit_comparison.head_repo_name,
-                "sha": commit_comparison.head_sha,
-            },
-        )
+    provider = _get_status_check_provider(client, commit_comparison.provider)
+    if not provider:
         return False
+
+    provider.create_status_check(
+        repo=commit_comparison.head_repo_name,
+        sha=commit_comparison.head_sha,
+        state=state,
+        title=title,
+        text=text,
+        summary=summary,
+        external_id=str(preprod_artifact.id),
+        target_url=target_url,
+    )
+
+    logger.info(
+        "Created preprod status check",
+        extra={
+            "artifact_id": preprod_artifact.id,
+            "state": state.value,
+            "repo": commit_comparison.head_repo_name,
+            "sha": commit_comparison.head_sha,
+        },
+    )
+    return True
 
 
 def _get_status_check_provider(
@@ -188,26 +197,6 @@ def _get_status_check_client(
         return None
 
 
-def _get_status_data(
-    state: CommitStatus,
-    context: str,
-    description: str,
-    target_url: str | None = None,
-    provider: str | None = None,
-) -> dict[str, Any]:
-    """Create status data dict for fallback commit status API."""
-    # This is only used for providers that don't have create_preprod_status_check method
-    data = {
-        "state": state.value,
-        "context": context,
-        "description": description,
-    }
-    if target_url:
-        data["target_url"] = target_url
-
-    return data
-
-
 class _StatusCheckProvider(ABC):
     """Abstract base class for provider-specific status check implementations."""
 
@@ -225,7 +214,7 @@ class _StatusCheckProvider(ABC):
         summary: str,
         external_id: str,
         target_url: str | None = None,
-    ) -> Any:
+    ) -> None:
         """Create a status check using provider-specific format."""
         raise NotImplementedError
 
@@ -243,7 +232,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         summary: str,
         external_id: str,
         target_url: str | None = None,
-    ) -> Any:
+    ) -> None:
 
         # Get status and conclusion from mapper
         status_data = GitHubStatusMapper.to_check_run_data(state)
@@ -266,4 +255,4 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         if target_url:
             check_data["details_url"] = target_url
 
-        return self.client.create_check_run(repo=repo, data=check_data)
+        self.client.create_check_run(repo=repo, data=check_data)
