@@ -10,13 +10,19 @@ from pydantic import BaseModel
 
 from sentry import features, options, ratelimits
 from sentry.constants import DataCategory
-from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.issues.auto_source_code_config.code_mapping import (
+    get_sorted_code_mapping_configs,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    sign_with_seer_secret,
+)
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -46,6 +52,11 @@ class CodingAgentStatus(StrEnum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class AutofixTriggerSource(StrEnum):
+    ROOT_CAUSE = "root_cause"
+    SOLUTION = "solution"
 
 
 class CodingAgentResult(BaseModel):
@@ -84,6 +95,12 @@ class AutofixState(BaseModel):
 
     class Config:
         extra = "allow"
+
+
+# Reuse a persistent HTTP connection pool for Autofix requests
+autofix_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+)
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
@@ -301,60 +318,42 @@ def is_seer_autotriggered_autofix_rate_limited(
     return is_rate_limited
 
 
-def get_autofix_prompt(run_id: int, trigger_source: str) -> str | None:
+def get_autofix_prompt(run_id: int, include_root_cause: bool, include_solution: bool) -> str | None:
     """Get the autofix prompt from Seer API."""
-    try:
-        include_root_cause = trigger_source in ["root_cause", "solution"]
-        include_solution = trigger_source == "solution"
 
-        path = "/v1/automation/autofix/prompt"
-        body = orjson.dumps(
-            {
-                "run_id": run_id,
-                "include_root_cause": include_root_cause,
-                "include_solution": include_solution,
-            }
-        )
+    path = "/v1/automation/autofix/prompt"
+    body = orjson.dumps(
+        {
+            "run_id": run_id,
+            "include_root_cause": include_root_cause,
+            "include_solution": include_solution,
+        }
+    )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
-            timeout=30,
-        )
+    response = make_signed_seer_api_request(
+        autofix_connection_pool,
+        path,
+        body=body,
+        timeout=15,
+    )
 
-        response.raise_for_status()
-        response_data = response.json()
+    if response.status >= 400:
+        raise Exception(f"Seer API error: {response.status}")
 
-        logger.info(
-            "coding_agent.prompt_fetched_from_seer",
-            extra={
-                "run_id": run_id,
-                "trigger_source": trigger_source,
-                "status_code": response.status_code,
-            },
-        )
+    response_data = orjson.loads(response.data)
 
-        return response_data.get("prompt")
-
-    except Exception as e:
-        logger.warning(
-            "coding_agent.seer_prompt_error",
-            extra={
-                "run_id": run_id,
-                "trigger_source": trigger_source,
-                "error": str(e),
-            },
-        )
-        return None
+    return response_data.get("prompt")
 
 
-def get_coding_agent_prompt(run_id: int, trigger_source: str) -> str | None:
+def get_coding_agent_prompt(run_id: int, trigger_source: AutofixTriggerSource) -> str | None:
     """Get the coding agent prompt with prefix from Seer API."""
-    autofix_prompt = get_autofix_prompt(run_id, trigger_source)
+    include_root_cause = trigger_source in [
+        AutofixTriggerSource.ROOT_CAUSE,
+        AutofixTriggerSource.SOLUTION,
+    ]
+    include_solution = trigger_source == AutofixTriggerSource.SOLUTION
+
+    autofix_prompt = get_autofix_prompt(run_id, include_root_cause, include_solution)
 
     if autofix_prompt is None:
         return None
