@@ -38,11 +38,11 @@ export default function PlayStationSettings({organization, project}: Props) {
     invalidateCredentialsCache,
   } = useFetchTempestCredentials(organization, project);
 
-  const {mutate: handleRemoveCredential, isPending: isRemoving} = useMutation<
-    unknown,
-    RequestError,
-    {id: number}
-  >({
+  const {
+    mutate: handleRemoveCredential,
+    isPending: isRemoving,
+    variables: removingCredential,
+  } = useMutation<unknown, RequestError, {id: number}>({
     mutationFn: ({id}) =>
       fetchMutation({
         method: 'DELETE',
@@ -115,7 +115,7 @@ export default function PlayStationSettings({organization, project}: Props) {
             <CredentialRow
               key={credential.id}
               credential={credential}
-              isRemoving={isRemoving}
+              isRemoving={isRemoving && removingCredential?.id === credential.id}
               removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
             />
           ))}
