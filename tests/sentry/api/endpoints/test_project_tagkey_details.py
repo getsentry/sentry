@@ -15,7 +15,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
     def test_simple(self) -> None:
         project = self.create_project()
 
-        def make_event(i):
+        def make_event(i: int) -> None:
             self.store_event(
                 data={
                     "tags": {"foo": f"val{i}"},

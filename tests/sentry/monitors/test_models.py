@@ -285,7 +285,7 @@ class MonitorEnvironmentTestCase(TestCase):
 
 
 class CronMonitorDataSourceHandlerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.monitor = self.create_monitor(
             project=self.project,
@@ -298,11 +298,11 @@ class CronMonitorDataSourceHandlerTest(TestCase):
             organization_id=self.organization.id,
         )
 
-    def test_bulk_get_query_object(self):
+    def test_bulk_get_query_object(self) -> None:
         result = CronMonitorDataSourceHandler.bulk_get_query_object([self.data_source])
         assert result[self.data_source.id] == self.monitor
 
-    def test_bulk_get_query_object__multiple_monitors(self):
+    def test_bulk_get_query_object__multiple_monitors(self) -> None:
         monitor2 = self.create_monitor(
             project=self.project,
             name="Test Monitor 2",
@@ -319,7 +319,7 @@ class CronMonitorDataSourceHandlerTest(TestCase):
         assert result[self.data_source.id] == self.monitor
         assert result[data_source2.id] == monitor2
 
-    def test_bulk_get_query_object__incorrect_data_source(self):
+    def test_bulk_get_query_object__incorrect_data_source(self) -> None:
         ds_with_invalid_monitor_id = DataSource.objects.create(
             type=DATA_SOURCE_CRON_MONITOR,
             source_id="not_an_int",
@@ -341,7 +341,7 @@ class CronMonitorDataSourceHandlerTest(TestCase):
                 },
             )
 
-    def test_bulk_get_query_object__missing_monitor(self):
+    def test_bulk_get_query_object__missing_monitor(self) -> None:
         ds_with_deleted_monitor = DataSource.objects.create(
             type=DATA_SOURCE_CRON_MONITOR,
             source_id="99999999",
@@ -354,11 +354,11 @@ class CronMonitorDataSourceHandlerTest(TestCase):
         assert result[self.data_source.id] == self.monitor
         assert result[ds_with_deleted_monitor.id] is None
 
-    def test_bulk_get_query_object__empty_list(self):
+    def test_bulk_get_query_object__empty_list(self) -> None:
         result = CronMonitorDataSourceHandler.bulk_get_query_object([])
         assert result == {}
 
-    def test_related_model(self):
+    def test_related_model(self) -> None:
         relations = CronMonitorDataSourceHandler.related_model(self.data_source)
         assert len(relations) == 1
         relation = relations[0]
@@ -366,9 +366,9 @@ class CronMonitorDataSourceHandlerTest(TestCase):
         assert relation.params["model"] == Monitor
         assert relation.params["query"] == {"id": self.data_source.source_id}
 
-    def test_get_instance_limit(self):
+    def test_get_instance_limit(self) -> None:
         assert CronMonitorDataSourceHandler.get_instance_limit(self.organization) is None
 
-    def test_get_current_instance_count(self):
+    def test_get_current_instance_count(self) -> None:
         with pytest.raises(NotImplementedError):
             CronMonitorDataSourceHandler.get_current_instance_count(self.organization)
