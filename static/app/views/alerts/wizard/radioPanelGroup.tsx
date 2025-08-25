@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Radio} from 'sentry/components/core/radio';
 import {space} from 'sentry/styles/space';
 
@@ -7,7 +8,12 @@ type RadioPanelGroupProps<C extends string> = {
   /**
    * An array of [id, name]
    */
-  choices: Array<[C, React.ReactNode, React.ReactNode?]>;
+  choices: Array<{
+    id: C;
+    name: React.ReactNode;
+    badge?: React.ReactNode;
+    trailingContent?: React.ReactNode;
+  }>;
   label: string;
   onChange: (id: C, e: React.FormEvent<HTMLInputElement>) => void;
   value: string | null;
@@ -25,17 +31,20 @@ function RadioPanelGroup<C extends string>({
 }: Props<C>) {
   return (
     <Container {...props} role="radiogroup" aria-labelledby={label}>
-      {(choices || []).map(([id, name, extraContent], index) => (
+      {(choices || []).map(({id, name, badge, trailingContent}, index) => (
         <RadioPanel key={index}>
           <RadioLineItem role="radio" index={index} aria-checked={value === id}>
-            <Radio
-              size="sm"
-              aria-label={id}
-              checked={value === id}
-              onChange={(e: React.FormEvent<HTMLInputElement>) => onChange(id, e)}
-            />
-            <div>{name}</div>
-            {extraContent}
+            <Flex align="center" gap="sm">
+              <Radio
+                size="sm"
+                aria-label={id}
+                checked={value === id}
+                onChange={(e: React.FormEvent<HTMLInputElement>) => onChange(id, e)}
+              />
+              {name}
+              {badge}
+            </Flex>
+            {trailingContent && <div>{trailingContent}</div>}
           </RadioLineItem>
         </RadioPanel>
       ))}
@@ -56,10 +65,10 @@ const Container = styled('div')`
 const RadioLineItem = styled('label')<{
   index: number;
 }>`
-  display: grid;
-  gap: ${space(0.25)} ${space(1)};
-  grid-template-columns: max-content auto max-content;
+  display: flex;
+  gap: ${p => p.theme.space.sm};
   align-items: center;
+  justify-content: space-between;
   cursor: pointer;
   outline: none;
   font-weight: ${p => p.theme.fontWeight.normal};
@@ -72,11 +81,6 @@ const RadioLineItem = styled('label')<{
   &:hover,
   &:focus {
     color: ${p => p.theme.textColor};
-  }
-
-  svg {
-    display: none;
-    opacity: 0;
   }
 
   &[aria-checked='true'] {

@@ -11,9 +11,9 @@ describe('RadioGroupPanel', () => {
         label="test"
         value="choice_one"
         choices={[
-          ['choice_one', 'Choice One'],
-          ['choice_two', 'Choice Two'],
-          ['choice_three', 'Choice Three'],
+          {id: 'choice_one', name: 'Choice One'},
+          {id: 'choice_two', name: 'Choice Two'},
+          {id: 'choice_three', name: 'Choice Three'},
         ]}
         onChange={mock}
       />
@@ -32,9 +32,9 @@ describe('RadioGroupPanel', () => {
         label="test"
         value="choice_one"
         choices={[
-          ['choice_one', 'Choice One'],
-          ['choice_two', 'Choice Two', 'extra content'],
-          ['choice_three', 'Choice Three'],
+          {id: 'choice_one', name: 'Choice One'},
+          {id: 'choice_two', name: 'Choice Two', trailingContent: 'extra content'},
+          {id: 'choice_three', name: 'Choice Three'},
         ]}
         onChange={mock}
       />

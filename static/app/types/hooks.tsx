@@ -196,6 +196,8 @@ type ComponentHooks = {
   'component:insights-date-range-query-limit-footer': () => React.ComponentType;
   'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:metric-alert-quota-icon': React.ComponentType;
+  'component:metric-alert-quota-message': React.ComponentType;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:org-stats-profiling-banner': () => React.ComponentType;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
@@ -327,6 +329,13 @@ type ReactHooks = {
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-get-max-retention-days': () => number | undefined;
+  'react-hook:use-metric-detector-limit': () => {
+    detectorCount: number;
+    detectorLimit: number;
+    hasReachedLimit: boolean;
+    isError: boolean;
+    isLoading: boolean;
+  };
 };
 
 /**
