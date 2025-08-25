@@ -62,10 +62,10 @@ function getContentForPlan(
     features: {
       discover: t('Advanced analytics with Discover'),
       enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
-      dashboard: t('Custom dashboards'),
-      ...(checkoutTier === PlanTier.AM3
-        ? {application_insights: t('Application Insights')}
-        : {cross_project_visibility: t('Cross-project visibility')}),
+      dashboard: t('Unlimited custom dashboards'),
+      ...(checkoutTier === PlanTier.AM3 && {
+        application_insights: t('Application Insights'),
+      }),
       advanced_filtering: t('Advanced server-side filtering'),
       saml: t('SAML support'),
     },
@@ -80,13 +80,11 @@ const REFERRER_FEATURE_HIGHLIGHTS = {
   'upgrade-business-landing.discover-query': ['discover'],
   'upgrade-business-landing.discover-saved-query': ['discover'],
   'upgrade-business-landing.discover2': ['discover'],
-  'upgrade-business-landing.global-views': ['cross_project_visibility'],
   'upgrade-business-landing.custom-dashboards': ['dashboard'],
   'upgrade-business-landing.dashboards-edit': ['dashboard'],
   'upgrade-business-landing.feature.auth_provider.saml2': ['saml'],
   'upsell-dashboards': ['dashboard'],
   'upsell-discover2': ['discover'],
-  'upsell-all-projects-select': ['cross_project_visibility'],
 };
 
 function getHighlightedFeatures(referrer?: string): string[] {
