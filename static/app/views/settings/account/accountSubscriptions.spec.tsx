@@ -6,12 +6,12 @@ import AccountSubscriptions from 'sentry/views/settings/account/accountSubscript
 
 const ENDPOINT = '/users/me/subscriptions/';
 
-describe('AccountSubscriptions', function () {
-  beforeEach(function () {
+describe('AccountSubscriptions', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty', function () {
+  it('renders empty', () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [],
@@ -19,7 +19,7 @@ describe('AccountSubscriptions', function () {
     render(<AccountSubscriptions />);
   });
 
-  it('renders list and can toggle', async function () {
+  it('renders list and can toggle', async () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: SubscriptionsFixture(),
@@ -50,7 +50,7 @@ describe('AccountSubscriptions', function () {
     );
   });
 
-  it('can handle multiple email addresses', async function () {
+  it('can handle multiple email addresses', async () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [

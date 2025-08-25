@@ -10,8 +10,8 @@ import {
   AlertRuleThresholdType,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
-import {type Anomaly, AnomalyType} from 'sentry/views/alerts/types';
-import {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {AnomalyType, type Anomaly} from 'sentry/views/alerts/types';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -96,9 +96,10 @@ describe('useMetricDetectorAnomalyPeriods', () => {
           environment: undefined,
           projectId: '1',
           statsPeriod: TimePeriod.SEVEN_DAYS,
-          timePeriod: 900, // 15 minutes
+          interval: 900, // 15 minutes
           thresholdType: AlertRuleThresholdType.ABOVE,
           sensitivity: AlertRuleSensitivity.MEDIUM,
+          isLoadingSeries: false,
           enabled: true,
         }),
       {wrapper: TestContext}

@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {AutofixTimelineItem} from 'sentry/components/events/autofix/autofixTimelineItem';
 import {Timeline} from 'sentry/components/timeline';
 
@@ -22,9 +24,15 @@ export function AutofixTimeline({
   retainInsightCardIndex = null,
   eventCodeUrls,
 }: Props) {
+  const [expandedItemIndex, setExpandedItemIndex] = useState<number | null>(null);
+
   if (!events?.length) {
     return null;
   }
+
+  const handleToggleExpand = (index: number) => {
+    setExpandedItemIndex(prevIndex => (prevIndex === index ? null : index));
+  };
 
   return (
     <Timeline.Container>
@@ -44,6 +52,8 @@ export function AutofixTimeline({
             stepIndex={stepIndex}
             retainInsightCardIndex={retainInsightCardIndex}
             codeUrl={eventCodeUrls ? eventCodeUrls[index] : null}
+            isExpanded={expandedItemIndex === index}
+            onToggleExpand={handleToggleExpand}
           />
         );
       })}

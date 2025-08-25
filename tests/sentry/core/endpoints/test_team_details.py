@@ -3,10 +3,10 @@ from sentry.audit_log.services.log.service import log_rpc_service
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.deletedteam import DeletedTeam
 from sentry.models.team import Team, TeamStatus
-from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 class TeamDetailsTestBase(APITestCase):

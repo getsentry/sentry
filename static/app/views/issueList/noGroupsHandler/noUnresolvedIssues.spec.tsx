@@ -2,8 +2,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import NoUnresolvedIssues from 'sentry/views/issueList/noGroupsHandler/noUnresolvedIssues';
 
-describe('NoUnresolvedIssues', function () {
-  it('renders', function () {
+describe('NoUnresolvedIssues', () => {
+  it('renders', () => {
     render(<NoUnresolvedIssues title="No issues" subtitle="Go make some issues!" />);
 
     expect(screen.getByText('No issues')).toBeInTheDocument();

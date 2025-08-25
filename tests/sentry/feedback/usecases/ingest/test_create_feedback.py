@@ -6,7 +6,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 import responses
-from django.conf import settings
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import (
@@ -19,6 +18,7 @@ from sentry.feedback.usecases.label_generation import (
     MAX_AI_LABELS,
     MAX_AI_LABELS_JSON_LENGTH,
 )
+from sentry.feedback.usecases.title_generation import SEER_GENERATE_TITLE_URL
 from sentry.models.group import Group, GroupStatus
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
@@ -28,11 +28,24 @@ from sentry.utils import json
 from tests.sentry.feedback import create_dummy_openai_response, mock_feedback_event
 
 
-def mock_seer_response(**kwargs) -> None:
-    """Use with @responses.activate to mock Seer API responses."""
+@pytest.fixture(autouse=True)
+def mock_has_seer_access():
+    """
+    Auto mocks `has_seer_access` so it returns false by default.
+    To enable, request the fixture and set mock_has_seer_access.return_value = True
+    """
+    with patch(
+        "sentry.feedback.usecases.ingest.create_feedback.has_seer_access",
+        return_value=False,
+    ) as mck:
+        yield mck
+
+
+def mock_seer_title_response(**kwargs) -> None:
+    """Use with @responses.activate to mock Seer title generation response."""
     responses.add(
         responses.POST,
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/title",
+        SEER_GENERATE_TITLE_URL,
         **kwargs,
     )
 
@@ -909,7 +922,7 @@ def test_create_feedback_issue_updates_project_flag(default_project) -> None:
 
 @django_db_all
 def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to_kafka) -> None:
-    """Test that create_feedback_issue uses the formatted feedback message title."""
+    """Test that create_feedback_issue uses the formatted feedback message title when AI titles are disabled."""
     long_message = "This is a very long feedback message that describes multiple issues with the application including performance problems, UI bugs, and various other concerns that users are experiencing"
 
     with Feature({"organizations:user-feedback-ai-titles": False}):
@@ -932,19 +945,15 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
 @django_db_all
 @responses.activate
 def test_create_feedback_issue_title_from_seer(
-    default_project, mock_produce_occurrence_to_kafka
+    default_project, mock_produce_occurrence_to_kafka, mock_has_seer_access
 ) -> None:
     """Test that create_feedback_issue uses the generated title from Seer."""
-    with Feature(
-        {
-            "organizations:gen-ai-features": True,
-            "organizations:user-feedback-ai-titles": True,
-        }
-    ):
+    mock_has_seer_access.return_value = True
+    with Feature({"organizations:user-feedback-ai-titles": True}):
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_seer_response(
+        mock_seer_title_response(
             status=200,
             body='{"title": "Login Button Issue"}',
         )
@@ -957,20 +966,27 @@ def test_create_feedback_issue_title_from_seer(
 
 @django_db_all
 @responses.activate
+@pytest.mark.parametrize(
+    "seer_response_body",
+    [
+        Exception("Network Error"),
+        '{"title": ""}',
+    ],
+)
 def test_create_feedback_issue_title_from_seer_fallback(
-    default_project, mock_produce_occurrence_to_kafka
+    default_project, mock_produce_occurrence_to_kafka, mock_has_seer_access, seer_response_body
 ) -> None:
     """Test that the title falls back to message-based title if Seer call fails."""
+    mock_has_seer_access.return_value = True
     with Feature(
         {
-            "organizations:gen-ai-features": True,
             "organizations:user-feedback-ai-titles": True,
         }
     ):
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_seer_response(body=Exception("Network Error"))
+        mock_seer_title_response(body=seer_response_body)
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         assert mock_produce_occurrence_to_kafka.call_count == 1
@@ -982,39 +998,41 @@ def test_create_feedback_issue_title_from_seer_fallback(
 
 @django_db_all
 @responses.activate
-def test_create_feedback_issue_title_from_seer_none(
-    default_project, mock_produce_occurrence_to_kafka
+def test_create_feedback_issue_title_from_seer_skips_if_spam(
+    default_project,
+    mock_produce_occurrence_to_kafka,
+    mock_has_seer_access,
 ) -> None:
-    """Test that the title falls back to message-based title if Seer call returns None."""
-    with Feature(
-        {
-            "organizations:gen-ai-features": True,
-            "organizations:user-feedback-ai-titles": True,
-        }
+    """Test title generation endpoint is not called if marked as spam."""
+    mock_has_seer_access.return_value = True
+    with (
+        patch("sentry.feedback.usecases.ingest.create_feedback.is_spam", return_value=True),
+        # XXX: this is not ideal to mock, we should refactor spam and AI processors to their own unit testable function.
+        patch(
+            "sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled",
+            return_value=True,
+        ),
+        Feature(
+            {
+                "organizations:user-feedback-ai-titles": True,
+            }
+        ),
     ):
         event = mock_feedback_event(default_project.id)
-        event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
-
-        mock_seer_response(
-            status=200,
-            body='{"title": ""}',
-        )
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-
-        assert mock_produce_occurrence_to_kafka.call_count == 1
-        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
-        assert (
-            occurrence.issue_title == "User Feedback: The login button is broken and the UI is slow"
-        )
+        urls = [call.request.url for call in responses.calls]
+        assert SEER_GENERATE_TITLE_URL not in urls
 
 
 @django_db_all
-def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence_to_kafka) -> None:
+def test_create_feedback_adds_ai_labels(
+    default_project, mock_produce_occurrence_to_kafka, mock_has_seer_access
+) -> None:
     """Test that create_feedback_issue adds AI labels to tags when label generation succeeds."""
+    mock_has_seer_access.return_value = True
     with Feature(
         {
             "organizations:user-feedback-ai-categorization": True,
-            "organizations:gen-ai-features": True,
         }
     ):
         event = mock_feedback_event(default_project.id)
@@ -1050,13 +1068,13 @@ def test_create_feedback_adds_ai_labels(default_project, mock_produce_occurrence
 
 @django_db_all
 def test_create_feedback_handles_label_generation_errors(
-    default_project, mock_produce_occurrence_to_kafka
+    default_project, mock_produce_occurrence_to_kafka, mock_has_seer_access
 ) -> None:
     """Test that create_feedback_issue continues to work even when generate_labels raises an error."""
+    mock_has_seer_access.return_value = True
     with Feature(
         {
             "organizations:user-feedback-ai-categorization": True,
-            "organizations:gen-ai-features": True,
         }
     ):
         event = mock_feedback_event(default_project.id)
@@ -1088,13 +1106,13 @@ def test_create_feedback_handles_label_generation_errors(
 
 @django_db_all
 def test_create_feedback_truncates_ai_labels_max_list_length(
-    default_project, mock_produce_occurrence_to_kafka
+    default_project, mock_produce_occurrence_to_kafka, mock_has_seer_access
 ) -> None:
     """Test that create_feedback_issue truncates AI labels when more than MAX_AI_LABELS are returned. If the list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters, the list is truncated in this test to match the intended behaviour."""
+    mock_has_seer_access.return_value = True
     with Feature(
         {
             "organizations:user-feedback-ai-categorization": True,
-            "organizations:gen-ai-features": True,
         }
     ):
         event = mock_feedback_event(default_project.id)
@@ -1150,13 +1168,13 @@ def test_create_feedback_truncates_ai_labels_max_list_length(
 
 @django_db_all
 def test_create_feedback_truncates_ai_labels_max_json_length(
-    default_project, mock_produce_occurrence_to_kafka
+    default_project, mock_produce_occurrence_to_kafka, mock_has_seer_access
 ) -> None:
     """Test that create_feedback_issue truncates AI labels when the serialized list of labels is longer than MAX_AI_LABELS_JSON_LENGTH characters."""
+    mock_has_seer_access.return_value = True
     with Feature(
         {
             "organizations:user-feedback-ai-categorization": True,
-            "organizations:gen-ai-features": True,
         }
     ):
         event = mock_feedback_event(default_project.id)

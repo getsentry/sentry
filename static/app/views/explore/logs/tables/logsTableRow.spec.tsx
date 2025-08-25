@@ -16,16 +16,19 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 function ProviderWrapper({children}: {children?: React.ReactNode}) {
   return (
-    <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
-      <table>
-        <tbody>{children}</tbody>
-      </table>
-    </LogsPageParamsProvider>
+    <LogsQueryParamsProvider source="location">
+      <LogsPageParamsProvider analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}>
+        <table>
+          <tbody>{children}</tbody>
+        </table>
+      </LogsPageParamsProvider>
+    </LogsQueryParamsProvider>
   );
 }
 
@@ -47,6 +50,7 @@ describe('logsTableRow', () => {
     [OurLogKnownFieldKey.PROJECT_ID]: project.id,
     [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
     [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
+    [OurLogKnownFieldKey.SEVERITY]: 'info',
   });
 
   // These are the detailed attributes of the row - only displayed when you click the row.
@@ -283,7 +287,7 @@ describe('logsTableRow', () => {
 
     // Check that the attribute values are rendered
     expect(screen.queryByText(projects[0]!.id)).not.toBeInTheDocument();
-    expect(screen.getByText('error')).toBeInTheDocument();
+    expect(screen.getAllByText('info')).toHaveLength(2); // Severity circle and text
     expect(screen.getByText('7b91699f')).toBeInTheDocument();
 
     // Check that the attributes keys are rendered
@@ -379,5 +383,75 @@ describe('logsTableRow', () => {
       'href',
       'https://github.com/example/repo/blob/main/file.py'
     );
+  });
+
+  it('copies log as JSON when Copy as JSON button is clicked', async () => {
+    const mockWriteText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText,
+      },
+      writable: true,
+    });
+
+    render(
+      <ProviderWrapper>
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={
+            {
+              current: null,
+            } as React.MutableRefObject<NodeJS.Timeout | null>
+          }
+          canDeferRenderElements={false}
+        />
+      </ProviderWrapper>,
+      {organization, initialRouterConfig}
+    );
+
+    // Expand the row to show the action buttons
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.click(logTableRow);
+
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Find and click the Copy as JSON button
+    const copyButton = await screen.findByRole('button', {name: 'Copy as JSON'});
+    expect(copyButton).toBeInTheDocument();
+
+    await userEvent.click(copyButton);
+
+    // Verify clipboard was called with JSON representation of the log
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledTimes(1);
+    });
+
+    const callArgs = mockWriteText.mock.calls[0];
+    expect(callArgs).toBeDefined();
+    expect(callArgs).toHaveLength(1);
+
+    const copiedText = callArgs![0];
+    expect(typeof copiedText).toBe('string');
+
+    // Verify it's valid JSON
+    expect(() => JSON.parse(copiedText)).not.toThrow();
+
+    // Verify it contains expected log data
+    const parsedData = JSON.parse(copiedText);
+    expect(parsedData).toMatchObject({
+      message: 'test log body',
+      trace: '7b91699f',
+      severity: 'info',
+      item_id: '1',
+    });
+
+    // Verify the JSON structure matches what ourlogToJson produces
+    expect(parsedData).toHaveProperty('item_id', '1');
+    expect(parsedData[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBeDefined();
+    expect(parsedData).not.toHaveProperty('sentry.item_id');
   });
 });

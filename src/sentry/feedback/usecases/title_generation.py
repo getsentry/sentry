@@ -6,38 +6,18 @@ from typing import TypedDict
 import requests
 from django.conf import settings
 
-from sentry import features
-from sentry.models.organization import Organization
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
+SEER_GENERATE_TITLE_URL = f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/title"
+
 
 class GenerateFeedbackTitleRequest(TypedDict):
     """Corresponds to GenerateFeedbackTitleRequest in Seer."""
 
-    organization_id: int
     feedback_message: str
-
-
-def should_get_ai_title(organization: Organization) -> bool:
-    """Check if AI title generation should be used for the given organization."""
-    if not features.has("organizations:gen-ai-features", organization):
-        metrics.incr(
-            "feedback.ai_title_generation.skipped",
-            tags={"reason": "gen_ai_disabled"},
-        )
-        return False
-
-    if not features.has("organizations:user-feedback-ai-titles", organization):
-        metrics.incr(
-            "feedback.ai_title_generation.skipped",
-            tags={"reason": "feedback_ai_titles_disabled"},
-        )
-        return False
-
-    return True
 
 
 def format_feedback_title(title: str, max_words: int = 10) -> str:
@@ -73,7 +53,8 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
     return title
 
 
-def get_feedback_title_from_seer(feedback_message: str, organization_id: int) -> str | None:
+@metrics.wraps("feedback.ai_title_generation")
+def get_feedback_title_from_seer(feedback_message: str) -> str | None:
     """
     Generate an AI-powered title for user feedback using Seer, or None if generation fails.
 
@@ -86,7 +67,6 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         A title string or None if generation fails
     """
     seer_request = GenerateFeedbackTitleRequest(
-        organization_id=organization_id,
         feedback_message=feedback_message,
     )
 
@@ -117,9 +97,6 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         )
         return None
 
-    metrics.incr(
-        "feedback.ai_title_generation.success",
-    )
     return title
 
 
@@ -128,15 +105,26 @@ def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:
     serialized_request = json.dumps(request)
 
     response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/title",
+        SEER_GENERATE_TITLE_URL,
         data=serialized_request,
         headers={
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(serialized_request.encode()),
         },
+        timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
     )
 
     if response.status_code != 200:
         response.raise_for_status()
 
     return response.content
+
+
+def get_feedback_title(feedback_message: str, use_seer: bool) -> str:
+    if use_seer:
+        # Message is fallback if Seer fails.
+        raw_title = get_feedback_title_from_seer(feedback_message) or feedback_message
+    else:
+        raw_title = feedback_message
+
+    return format_feedback_title(raw_title)

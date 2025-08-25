@@ -38,12 +38,12 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
 
         fields = [
             "error.type",
-            "error.value",  # Deprecated, use title instead. See replayDataUtils.tsx
             "id",
             "issue.id",
             "issue",
             "timestamp",
             "title",
+            "level",
         ]
         dataset_label = request.GET.get("dataset", Dataset.Discover.value)
         if dataset_label == Dataset.Discover.value:
