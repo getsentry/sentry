@@ -48,6 +48,7 @@ def find_commit_context_for_event_all_frames(
     """
     Given a list of event frames and code mappings, finds the most recent commit.
     Will also emit analytics events for success or failure.
+    This is the logic behind SuspectCommitStrategy.SCM_BASED
     """
     valid_frames = list(
         OrderedSet(
