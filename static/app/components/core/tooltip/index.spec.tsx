@@ -2,7 +2,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 
-describe('Tooltip', function () {
+describe('Tooltip', () => {
   function mockOverflow(width: number, containerWidth: number) {
     Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
       configurable: true,
@@ -25,7 +25,7 @@ describe('Tooltip', function () {
     jest.clearAllMocks();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <Tooltip delay={0} title="test">
         <span>My Button</span>
@@ -44,7 +44,7 @@ describe('Tooltip', function () {
     });
   });
 
-  it('updates title', async function () {
+  it('updates title', async () => {
     const {rerender} = render(
       <Tooltip delay={0} title="test">
         <span>My Button</span>
@@ -67,7 +67,7 @@ describe('Tooltip', function () {
     });
   });
 
-  it('disables and does not render', async function () {
+  it('disables and does not render', async () => {
     render(
       <Tooltip delay={0} title="test" disabled>
         <span>My Button</span>
@@ -81,7 +81,7 @@ describe('Tooltip', function () {
     await userEvent.unhover(screen.getByText('My Button'));
   });
 
-  it('resets visibility when becoming disabled', async function () {
+  it('resets visibility when becoming disabled', async () => {
     const {rerender} = render(
       <Tooltip delay={0} title="test" disabled={false}>
         <span>My Button</span>
@@ -107,7 +107,7 @@ describe('Tooltip', function () {
     expect(screen.queryByText('test')).not.toBeInTheDocument();
   });
 
-  it('does not render an empty tooltip', async function () {
+  it('does not render an empty tooltip', async () => {
     render(
       <Tooltip delay={0} title="">
         <span>My Button</span>
@@ -120,7 +120,7 @@ describe('Tooltip', function () {
     await userEvent.unhover(screen.getByText('My Button'));
   });
 
-  it('displays a tooltip if the content overflows with showOnlyOnOverflow', async function () {
+  it('displays a tooltip if the content overflows with showOnlyOnOverflow', async () => {
     // Mock this to return true because scrollWidth and clientWidth are 0 in JSDOM
     mockOverflow(100, 50);
 
@@ -137,7 +137,7 @@ describe('Tooltip', function () {
     await userEvent.unhover(screen.getByText('This text overflows'));
   });
 
-  it('does not display a tooltip if the content does not overflow with showOnlyOnOverflow', async function () {
+  it('does not display a tooltip if the content does not overflow with showOnlyOnOverflow', async () => {
     mockOverflow(50, 100);
 
     render(

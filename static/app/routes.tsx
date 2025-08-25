@@ -2506,6 +2506,13 @@ function buildRoutes(): RouteObject[] {
       deprecatedRouteProps: true,
     },
     {
+      path: 'compare/:headArtifactId/',
+      component: make(
+        () => import('sentry/views/preprod/buildComparison/buildComparison')
+      ),
+      deprecatedRouteProps: true,
+    },
+    {
       path: 'compare/:headArtifactId/:baseArtifactId/',
       component: make(
         () => import('sentry/views/preprod/buildComparison/buildComparison')

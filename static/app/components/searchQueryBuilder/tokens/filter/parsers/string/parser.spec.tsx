@@ -1,8 +1,8 @@
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
 import {WildcardPositions} from 'sentry/components/searchSyntax/parser';
 
-describe('parseMultiSelectValue', function () {
-  it('single value', function () {
+describe('parseMultiSelectValue', () => {
+  it('single value', () => {
     const result = parseMultiSelectFilterValue('a');
 
     expect(result).not.toBeNull();
@@ -11,7 +11,7 @@ describe('parseMultiSelectValue', function () {
     expect(result!.items[0]!.value?.value).toBe('a');
   });
 
-  it('multiple value', function () {
+  it('multiple value', () => {
     const result = parseMultiSelectFilterValue('a,b,c');
 
     expect(result).not.toBeNull();
@@ -22,7 +22,7 @@ describe('parseMultiSelectValue', function () {
     expect(result?.items[2]!.value?.value).toBe('c');
   });
 
-  it('quoted value', function () {
+  it('quoted value', () => {
     const result = parseMultiSelectFilterValue('a,"b",c');
 
     expect(result).not.toBeNull();
@@ -37,7 +37,7 @@ describe('parseMultiSelectValue', function () {
     expect(result!.items[2]!.value?.value).toBe('c');
   });
 
-  it('just quotes', function () {
+  it('just quotes', () => {
     const result = parseMultiSelectFilterValue('""');
 
     expect(result).not.toBeNull();
@@ -50,7 +50,7 @@ describe('parseMultiSelectValue', function () {
     expect(item!.value?.quoted).toBe(true);
   });
 
-  it('single empty value', function () {
+  it('single empty value', () => {
     const result = parseMultiSelectFilterValue('');
 
     expect(result).not.toBeNull();
@@ -61,7 +61,7 @@ describe('parseMultiSelectValue', function () {
     expect(item!.value!.value).toBe('');
   });
 
-  it('multiple empty value', function () {
+  it('multiple empty value', () => {
     const result = parseMultiSelectFilterValue('a,,b');
 
     expect(result).not.toBeNull();
@@ -73,7 +73,7 @@ describe('parseMultiSelectValue', function () {
     expect(result?.items[2]!.value?.value).toBe('b');
   });
 
-  it('trailing comma', function () {
+  it('trailing comma', () => {
     const result = parseMultiSelectFilterValue('a,');
 
     expect(result).not.toBeNull();
@@ -84,7 +84,7 @@ describe('parseMultiSelectValue', function () {
     expect(result?.items[1]!.value?.value).toBe('');
   });
 
-  it('spaces', function () {
+  it('spaces', () => {
     const result = parseMultiSelectFilterValue('a,b c,d');
 
     expect(result).not.toBeNull();
@@ -96,7 +96,7 @@ describe('parseMultiSelectValue', function () {
     expect(result?.items[2]!.value?.value).toBe('d');
   });
 
-  it('sets wildcard to false when not wrapped in `*`', function () {
+  it('sets wildcard to false when not wrapped in `*`', () => {
     const result = parseMultiSelectFilterValue('a');
 
     expect(result).not.toBeNull();
@@ -106,7 +106,7 @@ describe('parseMultiSelectValue', function () {
     expect(result!.items[0]!.value?.wildcard).toBe(false);
   });
 
-  it('quoted asterisk value', function () {
+  it('quoted asterisk value', () => {
     const result = parseMultiSelectFilterValue('"**"');
 
     expect(result).not.toBeNull();
@@ -119,7 +119,7 @@ describe('parseMultiSelectValue', function () {
     expect(item!.value?.quoted).toBe(true);
   });
 
-  it('single empty asterisk value', function () {
+  it('single empty asterisk value', () => {
     const result = parseMultiSelectFilterValue('**');
 
     expect(result).not.toBeNull();
@@ -132,8 +132,8 @@ describe('parseMultiSelectValue', function () {
     expect(item!.value!.wildcard).toBe(false);
   });
 
-  describe('wildcard surrounded', function () {
-    it('single value', function () {
+  describe('wildcard surrounded', () => {
+    it('single value', () => {
       const result = parseMultiSelectFilterValue('*a*');
 
       expect(result).not.toBeNull();
@@ -143,7 +143,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items[0]!.value?.wildcard).toBe(WildcardPositions.SURROUNDED);
     });
 
-    it('multiple value', function () {
+    it('multiple value', () => {
       const result = parseMultiSelectFilterValue('*a*,*b*,c');
 
       expect(result).not.toBeNull();
@@ -162,7 +162,7 @@ describe('parseMultiSelectValue', function () {
       expect(result?.items[2]!.value?.wildcard).toBe(false);
     });
 
-    it('quoted value', function () {
+    it('quoted value', () => {
       const result = parseMultiSelectFilterValue('a,"*b*",c');
 
       expect(result).not.toBeNull();
@@ -178,7 +178,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items[2]!.value?.value).toBe('c');
     });
 
-    it('spaces', function () {
+    it('spaces', () => {
       const result = parseMultiSelectFilterValue('a,*b c*,d');
 
       expect(result).not.toBeNull();
@@ -194,8 +194,8 @@ describe('parseMultiSelectValue', function () {
     });
   });
 
-  describe('trailing wildcard', function () {
-    it('single value', function () {
+  describe('trailing wildcard', () => {
+    it('single value', () => {
       const result = parseMultiSelectFilterValue('a*');
 
       expect(result).not.toBeNull();
@@ -205,7 +205,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items[0]!.value?.wildcard).toBe(WildcardPositions.TRAILING);
     });
 
-    it('multiple value', function () {
+    it('multiple value', () => {
       const result = parseMultiSelectFilterValue('a*,b*,c');
 
       expect(result).not.toBeNull();
@@ -224,7 +224,7 @@ describe('parseMultiSelectValue', function () {
       expect(result?.items[2]!.value?.wildcard).toBe(false);
     });
 
-    it('quoted value', function () {
+    it('quoted value', () => {
       const result = parseMultiSelectFilterValue('a,"b*",c');
 
       expect(result).not.toBeNull();
@@ -240,7 +240,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items[2]!.value?.value).toBe('c');
     });
 
-    it('spaces', function () {
+    it('spaces', () => {
       const result = parseMultiSelectFilterValue('a,b c*,d');
 
       expect(result).not.toBeNull();
@@ -256,8 +256,8 @@ describe('parseMultiSelectValue', function () {
     });
   });
 
-  describe('leading wildcard', function () {
-    it('single value', function () {
+  describe('leading wildcard', () => {
+    it('single value', () => {
       const result = parseMultiSelectFilterValue('*a');
 
       expect(result).not.toBeNull();
@@ -267,7 +267,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items[0]!.value?.wildcard).toBe(WildcardPositions.LEADING);
     });
 
-    it('multiple value', function () {
+    it('multiple value', () => {
       const result = parseMultiSelectFilterValue('*a,*b,c');
 
       expect(result).not.toBeNull();
@@ -286,7 +286,7 @@ describe('parseMultiSelectValue', function () {
       expect(result?.items[2]!.value?.wildcard).toBe(false);
     });
 
-    it('quoted value', function () {
+    it('quoted value', () => {
       const result = parseMultiSelectFilterValue('a,"*b",c');
 
       expect(result).not.toBeNull();
@@ -302,7 +302,7 @@ describe('parseMultiSelectValue', function () {
       expect(result!.items[2]!.value?.value).toBe('c');
     });
 
-    it('spaces', function () {
+    it('spaces', () => {
       const result = parseMultiSelectFilterValue('a,*b c,d');
 
       expect(result).not.toBeNull();

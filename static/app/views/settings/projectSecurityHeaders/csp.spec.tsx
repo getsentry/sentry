@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectCspReports from 'sentry/views/settings/projectSecurityHeaders/csp';
 
-describe('ProjectCspReports', function () {
+describe('ProjectCspReports', () => {
   const {project, organization} = initializeOrg();
 
   const projectUrl = `/projects/${organization.slug}/${project.slug}/`;
@@ -15,7 +15,7 @@ describe('ProjectCspReports', function () {
     route: '/settings/:orgId/projects/:projectId/settings/security-headers/csp/',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/keys/`,
@@ -31,7 +31,7 @@ describe('ProjectCspReports', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<ProjectCspReports />, {
       organization,
       initialRouterConfig,
@@ -43,7 +43,7 @@ describe('ProjectCspReports', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders loading error', async function () {
+  it('renders loading error', async () => {
     MockApiClient.addMockResponse({
       url: projectUrl,
       method: 'GET',
@@ -60,7 +60,7 @@ describe('ProjectCspReports', function () {
     ).toBeInTheDocument();
   });
 
-  it('can enable default ignored sources', async function () {
+  it('can enable default ignored sources', async () => {
     render(<ProjectCspReports />, {
       organization,
       initialRouterConfig,
@@ -90,7 +90,7 @@ describe('ProjectCspReports', function () {
     );
   });
 
-  it('can set additional ignored sources', async function () {
+  it('can set additional ignored sources', async () => {
     render(<ProjectCspReports />, {
       organization,
       initialRouterConfig,

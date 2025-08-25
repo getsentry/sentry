@@ -4,8 +4,8 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-describe('EnvironmentSelector', function () {
-  it('renders & handles selection', async function () {
+describe('EnvironmentSelector', () => {
+  it('renders & handles selection', async () => {
     const {projects} = initializeOrg({
       projects: [
         {id: '1', slug: 'project-1', environments: ['prod', 'staging'], isMember: true},

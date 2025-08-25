@@ -14,7 +14,7 @@ import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 // XXX(epurkhiser): This appears to also be tested by ./index.spec.tsx
 
-describe('OrganizationAuditLog', function () {
+describe('OrganizationAuditLog', () => {
   const {organization, router} = initializeOrg({
     projects: [],
     router: {
@@ -23,7 +23,7 @@ describe('OrganizationAuditLog', function () {
   });
   const ENDPOINT = `/organizations/${organization.slug}/audit-logs/`;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -31,7 +31,7 @@ describe('OrganizationAuditLog', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<OrganizationAuditLog location={router.location} />);
 
     expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
@@ -45,7 +45,7 @@ describe('OrganizationAuditLog', function () {
     expect(await screen.findByText('edited project ludic-science')).toBeInTheDocument();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -64,7 +64,7 @@ describe('OrganizationAuditLog', function () {
     expect(screen.getAllByText('Foo Bar')).toHaveLength(2);
   });
 
-  it('replaces rule and alertrule audit types in dropdown', async function () {
+  it('replaces rule and alertrule audit types in dropdown', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -83,7 +83,7 @@ describe('OrganizationAuditLog', function () {
     expect(screen.getByText('member.add')).toBeInTheDocument();
   });
 
-  it('replaces text in rule and alertrule entries', async function () {
+  it('replaces text in rule and alertrule entries', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/audit-logs/`,

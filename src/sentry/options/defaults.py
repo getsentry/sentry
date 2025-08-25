@@ -949,6 +949,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate to route issue summary requests to the summarization URL
+register(
+    "issues.summary.summarization-url-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "issues.priority.projects-allowlist",
     type=Sequence,
@@ -3451,14 +3459,6 @@ register(
     "grouping.experimental_parameterization",
     type=Float,
     default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Use "first-seen" group instead of "most-seen" group when merging
-register(
-    "issues.merging.first-seen",
-    type=Bool,
-    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
