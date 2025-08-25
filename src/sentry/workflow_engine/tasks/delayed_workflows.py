@@ -13,10 +13,8 @@ from django.utils import timezone
 from pydantic import BaseModel, validator
 
 import sentry.workflow_engine.buffer as buffer
-from sentry import options
-from sentry.buffer.base import Buffer
 from sentry import buffer, features, nodestore, options
-from sentry.buffer.base import BufferField
+from sentry.buffer.base import Buffer, BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -35,12 +33,10 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import workflow_engine_tasks
-from sentry.taskworker.retry import Retry
-from sentry.utils.lazy_service_wrapper import LazyServiceWrapper
-from sentry.workflow_engine.models import Workflow
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
+from sentry.utils.lazy_service_wrapper import LazyServiceWrapper
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import SnubaError
