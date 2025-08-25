@@ -910,7 +910,7 @@ def test_create_feedback_issue_updates_project_flag(default_project) -> None:
 
 
 @django_db_all
-@patch("sentry.feedback.usecases.title_generation.get_feedback_title")
+@patch("sentry.feedback.usecases.ingest.create_feedback.get_feedback_title")
 def test_create_feedback_issue_title(
     mock_get_feedback_title,
     default_project,
@@ -923,9 +923,13 @@ def test_create_feedback_issue_title(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = long_message
 
+        mock_get_feedback_title.return_value = (
+            "User Feedback: This is a very long feedback message that describes multiple..."
+        )
+
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-        mock_get_feedback_title.assert_called_once_with(long_message, use_seer=False)
+        mock_get_feedback_title.assert_called_once_with(long_message, False)
         assert mock_produce_occurrence_to_kafka.call_count == 1
         call_args = mock_produce_occurrence_to_kafka.call_args
         occurrence = call_args[1]["occurrence"]
@@ -936,7 +940,7 @@ def test_create_feedback_issue_title(
 
 
 @django_db_all
-@patch("sentry.feedback.usecases.title_generation.get_feedback_title")
+@patch("sentry.feedback.usecases.ingest.create_feedback.get_feedback_title")
 def test_create_feedback_issue_title_from_seer(
     mock_get_feedback_title,
     default_project,
@@ -954,7 +958,7 @@ def test_create_feedback_issue_title_from_seer(
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         mock_get_feedback_title.assert_called_once_with(
-            "The login button is broken and the UI is slow", use_seer=True
+            "The login button is broken and the UI is slow", True
         )
 
         assert mock_produce_occurrence_to_kafka.call_count == 1
