@@ -39,6 +39,7 @@ import {
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
+  isUptimeCheckNode,
   shouldAddMissingInstrumentationSpan,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {
@@ -414,6 +415,114 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
   }
 
+  /**
+   * Generate fake timing spans for uptime check requests to show DNS, TCP, TLS,
+   * Request, Response, and FirstByte phases in the main trace waterfall.
+   */
+  static CreateUptimeTimingSpans(
+    uptimeNode: TraceTreeNode<TraceTree.UptimeCheck>
+  ): Array<TraceTreeNode<TraceTree.Span>> {
+    const uptimeCheck = uptimeNode.value;
+    const attrs = uptimeCheck.additional_attributes || {};
+
+    // Helper to generate a pseudo-random span ID
+    const generateSpanId = (suffix: string) => {
+      return Math.random().toString(16).substring(2, 18) + suffix;
+    };
+
+    // Helper to convert microseconds to seconds (timestamp format)
+    const usToSeconds = (microseconds: number | string | undefined): number => {
+      return microseconds ? Number(microseconds) / 1_000_000 : 0;
+    };
+
+    // Extract timing data from attributes (same pattern as uptime details component)
+    const timingData = {
+      dns: {
+        durationUs: Number(attrs.dns_lookup_duration_us || 0),
+        startUs: Number(attrs.dns_lookup_start_us || 0),
+      },
+      tcpConn: {
+        durationUs: Number(attrs.tcp_connection_duration_us || 0),
+        startUs: Number(attrs.tcp_connection_start_us || 0),
+      },
+      tlsHandshake: {
+        durationUs: Number(attrs.tls_handshake_duration_us || 0),
+        startUs: Number(attrs.tls_handshake_start_us || 0),
+      },
+      sendRequest: {
+        durationUs: Number(attrs.send_request_duration_us || 0),
+        startUs: Number(attrs.send_request_start_us || 0),
+      },
+      receiveResponse: {
+        durationUs: Number(attrs.receive_response_duration_us || 0),
+        startUs: Number(attrs.receive_response_start_us || 0),
+      },
+      firstByte: {
+        durationUs: Number(attrs.time_to_first_byte_duration_us || 0),
+        startUs: Number(attrs.time_to_first_byte_start_us || 0),
+      },
+    };
+
+    const fakeSpans: Array<TraceTreeNode<TraceTree.Span>> = [];
+
+    // Create fake spans for each timing phase
+    const phases: Array<{
+      description: string;
+      key: keyof typeof timingData;
+      op: string;
+    }> = [
+      {key: 'dns', op: 'dns', description: 'DNS lookup'},
+      {key: 'tcpConn', op: 'tcp.connect', description: 'TCP connect'},
+      {key: 'tlsHandshake', op: 'tls', description: 'TLS handshake'},
+      {key: 'sendRequest', op: 'http.client', description: 'Send request'},
+      {key: 'receiveResponse', op: 'http.response', description: 'Receive response'},
+      {key: 'firstByte', op: 'browser.first-byte', description: 'Time to first byte'},
+    ];
+
+    phases.forEach(phase => {
+      const timing = timingData[phase.key];
+
+      // Skip phases with no timing data
+      if (!timing.durationUs || !timing.startUs) {
+        return;
+      }
+
+      const startTimestamp = usToSeconds(timing.startUs);
+      const duration = usToSeconds(timing.durationUs);
+
+      const fakeSpan: TraceTree.Span = {
+        span_id: generateSpanId(phase.key.substring(0, 4)),
+        start_timestamp: startTimestamp,
+        timestamp: startTimestamp + duration,
+        trace_id: uptimeCheck.transaction_id, // Use the same trace ID
+        parent_span_id: uptimeCheck.event_id, // Parent to the uptime check
+        op: phase.op,
+        description: phase.description,
+        data: {
+          'uptime.synthetic': true, // Mark as synthetic span
+          'uptime.phase': phase.key,
+        },
+      };
+
+      const spanNode = new TraceTreeNode(uptimeNode, fakeSpan, {
+        project_slug: uptimeCheck.project_slug,
+        event_id: fakeSpan.span_id,
+      });
+
+      // Calculate space bounds for the waterfall (start time in ms, duration in ms)
+      const startMs = startTimestamp * 1000;
+      const durationMs = duration * 1000;
+      spanNode.space = [startMs, durationMs];
+
+      fakeSpans.push(spanNode);
+    });
+
+    // Sort spans chronologically
+    fakeSpans.sort((a, b) => a.value.start_timestamp - b.value.start_timestamp);
+
+    return fakeSpans;
+  }
+
   static FromTrace(
     trace: TraceTree.Trace,
     options: {
@@ -490,6 +599,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       parentNode.children.push(node);
+
+      // Inject fake timing spans for uptime check nodes
+      if (isUptimeCheckNode(node)) {
+        const timingSpans = TraceTree.CreateUptimeTimingSpans(node);
+        timingSpans.forEach(spanNode => {
+          node.children.push(spanNode);
+        });
+      }
 
       // Since we are reparenting EAP transactions at this stage, we need to sort the children
       if (isEAPTransactionNode(node)) {
