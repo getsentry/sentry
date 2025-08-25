@@ -416,9 +416,16 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
 
     # -1 minutes guarantees a timeout, even during synchronous execution.
-    @patch("sentry.relocation.tasks.process.CROSS_REGION_EXPORT_TIMEOUT", timedelta(minutes=-1))
+    @patch("sentry.relocation.tasks.process.CROSS_REGION_EXPORT_TIMEOUT", timedelta(minutes=0))
+    @patch(
+        "sentry.relocation.services.relocation_export.service.control_relocation_export_service.request_new_export"
+    )
     def test_fail_due_to_timeout(
-        self, uploading_complete_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
+        self,
+        mock_export_service: Mock,
+        uploading_complete_mock: Mock,
+        fake_message_builder: Mock,
+        fake_kms_client: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
@@ -441,7 +448,7 @@ class UploadingStartTest(RelocationTaskTestCase):
             assert relocation.status == Relocation.Status.FAILURE.value
             assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
             assert relocation.failure_reason == ERR_UPLOADING_CROSS_REGION_TIMEOUT.substitute(
-                delta=timedelta(minutes=-1)
+                delta=timedelta(minutes=0)
             )
             assert fake_message_builder.call_count == 1
             assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
@@ -451,6 +458,9 @@ class UploadingStartTest(RelocationTaskTestCase):
 
         assert fake_kms_client.return_value.get_public_key.call_count == 1
         assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
+
+        # Verify that the export service was called but didn't complete successfully
+        assert mock_export_service.call_count == 1
 
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
 
