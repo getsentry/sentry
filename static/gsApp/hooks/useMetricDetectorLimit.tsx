@@ -25,7 +25,10 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
       query: 'type:metric',
       limit: 1,
     },
-    {enabled: hasFlag && detectorLimit !== UNLIMITED_QUOTA}
+    {
+      enabled: hasFlag && detectorLimit !== UNLIMITED_QUOTA,
+      staleTime: 5 * 60 * 1000, // Set stale time to 5 mins to avoid unnecessary re-fetching
+    }
   );
 
   const hits = getResponseHeader?.('X-Hits');
