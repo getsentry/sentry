@@ -665,7 +665,7 @@ def test_commit_message_with_profiling(
 @pytest.mark.parametrize("dsn", ["http://test@localhost:8000/1", None])
 @pytest.mark.parametrize("sample_rate", [1.0, 0])
 @pytest.mark.parametrize("profiling_enabled", [True, False])
-@patch("sentry.options.get")  # for mocking replay.consumer.recording.profiling.enabledue
+@patch("sentry.options.get")  # for mocking replay.consumer.recording.profiling.enabled
 @patch("sentry_sdk.init")
 def test_strategy_factory_sentry_sdk_initialization(
     mock_sdk_init,
