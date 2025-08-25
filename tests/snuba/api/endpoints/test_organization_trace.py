@@ -24,7 +24,7 @@ from sentry.testutils.cases import TestCase
 class TestSerializeColumnarUptimeItem(TestCase):
     """Test serialization of columnar uptime data to span format."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project_slugs = {1: "test-project", 2: "another-project"}
         self.snuba_params = mock.MagicMock(spec=SnubaParams)

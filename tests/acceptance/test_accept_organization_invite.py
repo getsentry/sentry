@@ -12,7 +12,7 @@ from sentry.testutils.silo import no_silo_test
 # See the accept_organization_invite.py#get_invite_state logic
 @no_silo_test
 class AcceptOrganizationInviteTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
@@ -25,7 +25,7 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
             teams=[self.team],
         )
 
-    def _sign_in_user(self, email, password):
+    def _sign_in_user(self, email: str, password: str) -> None:
         """
         Helper method to sign in a user with given email and password.
         """

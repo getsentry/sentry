@@ -18,7 +18,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         "organizations:performance-view",
     )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self._transaction_count = 0
