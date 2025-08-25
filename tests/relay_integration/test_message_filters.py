@@ -1,4 +1,5 @@
 import pytest
+
 from sentry.ingest.inbound_filters import (
     _browser_extensions_filter,
     _legacy_browsers_filter,
