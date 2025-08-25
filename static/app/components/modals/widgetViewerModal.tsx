@@ -24,8 +24,6 @@ import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -66,7 +64,6 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -103,7 +100,6 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
-import type {ReleaseWidgetQueriesProps} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
@@ -117,12 +113,6 @@ import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
-import {
-  renderDiscoverGridHeaderCell,
-  renderGridBodyCell,
-  renderIssueGridHeaderCell,
-  renderReleaseGridHeaderCell,
-} from './widgetViewerModal/widgetViewerTableCell';
 
 export interface WidgetViewerModalOptions {
   organization: Organization;
@@ -217,7 +207,6 @@ function WidgetViewerModal(props: Props) {
   } = props;
   const theme = useTheme();
   const location = useLocation();
-  const {projects} = useProjects();
   const navigate = useNavigate();
   // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
   // let widgetContentLoadingStatus: boolean | undefined = undefined;
@@ -255,7 +244,6 @@ function WidgetViewerModal(props: Props) {
   const [totalResults, setTotalResults] = useState<string | undefined>();
 
   // Get pagination settings from location
-  const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const cursor = decodeScalar(location.query[WidgetViewerQueryField.CURSOR]);
 
   // Get table column widths from location
@@ -394,17 +382,6 @@ function WidgetViewerModal(props: Props) {
     modalSelection
   );
 
-  let columnOrder = decodeColumnOrder(
-    fields.map(field => ({
-      field,
-    }))
-  );
-  const columnSortBy = eventView.getSorts();
-  columnOrder = columnOrder.map((column, index) => ({
-    ...column,
-    width: parseInt(widths[index]!, 10) || -1,
-  }));
-
   const getOnDemandFilterWarning = createOnDemandFilterWarning(
     t(
       'We don’t routinely collect metrics from this property. As such, historical data may be limited.'
@@ -448,25 +425,6 @@ function WidgetViewerModal(props: Props) {
     };
   });
 
-  const onResizeColumn = (columnIndex: number, nextColumn: GridColumnOrder) => {
-    const newWidth = nextColumn.width ? Number(nextColumn.width) : COL_WIDTH_UNDEFINED;
-    const newWidths: number[] = new Array(Math.max(columnIndex, widths.length)).fill(
-      COL_WIDTH_UNDEFINED
-    );
-    widths.forEach((width, index) => (newWidths[index] = parseInt(width, 10)));
-    newWidths[columnIndex] = newWidth;
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          [WidgetViewerQueryField.WIDTH]: newWidths,
-        },
-      },
-      {replace: true}
-    );
-  };
-
   // Get discover result totals
   useEffect(() => {
     const getDiscoverTotals = async () => {
@@ -489,98 +447,26 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  function DiscoverTable({
+  function renderTable({
     tableResults,
     loading,
     pageLinks,
   }: GenericWidgetQueriesChildrenProps) {
-    const {isMetricsData} = useDashboardsMEPContext();
-    const links = parseLinkHeader(pageLinks ?? null);
-    const isFirstPage = links.previous?.results === false;
-
-    if (organization.features.includes('dashboards-use-widget-table-visualization')) {
-      return ViewerTableV2({
-        tableResults,
-        loading,
-        pageLinks,
-        fields,
-        widget,
-        tableWidget,
-        setChartUnmodified,
-        widths,
-        location,
-        organization,
-        navigate,
-        eventView,
-        theme,
-      });
-    }
-
-    return (
-      <Fragment>
-        <GridEditable
-          isLoading={loading}
-          data={tableResults?.[0]?.data ?? []}
-          columnOrder={columnOrder}
-          columnSortBy={columnSortBy}
-          grid={{
-            renderHeadCell: renderDiscoverGridHeaderCell({
-              ...props,
-              location,
-              widget: tableWidget,
-              tableData: tableResults?.[0],
-              theme,
-              onHeaderClick: () => {
-                if (
-                  [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
-                  defined(widget.limit)
-                ) {
-                  setChartUnmodified(false);
-                }
-              },
-              isMetricsData,
-            }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
-            renderBodyCell: renderGridBodyCell({
-              ...props,
-              location,
-              tableData: tableResults?.[0],
-              isFirstPage,
-              projects,
-              eventView,
-              theme,
-            }),
-            onResizeColumn,
-          }}
-        />
-        {(links?.previous?.results || links?.next?.results) && (
-          <Pagination
-            pageLinks={pageLinks}
-            onCursor={newCursor => {
-              navigate(
-                {
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    [WidgetViewerQueryField.CURSOR]: newCursor,
-                  },
-                },
-                {replace: true, preventScrollReset: true}
-              );
-
-              if (widget.displayType === DisplayType.TABLE) {
-                setChartUnmodified(false);
-              }
-
-              trackAnalytics('dashboards_views.widget_viewer.paginate', {
-                organization,
-                widget_type: WidgetType.DISCOVER,
-                display_type: widget.displayType,
-              });
-            }}
-          />
-        )}
-      </Fragment>
-    );
+    return ViewerTableV2({
+      tableResults,
+      loading,
+      pageLinks,
+      fields,
+      widget,
+      tableWidget,
+      setChartUnmodified,
+      widths,
+      location,
+      organization,
+      navigate,
+      eventView,
+      theme,
+    });
   }
 
   const renderIssuesTable = ({
@@ -592,176 +478,21 @@ function WidgetViewerModal(props: Props) {
     if (totalResults === undefined && totalCount) {
       setTotalResults(totalCount);
     }
-    if (organization.features.includes('dashboards-use-widget-table-visualization')) {
-      return ViewerTableV2({
-        tableResults,
-        loading,
-        pageLinks,
-        fields,
-        widget,
-        tableWidget,
-        setChartUnmodified,
-        widths,
-        location,
-        organization,
-        navigate,
-        eventView,
-        theme,
-      });
-    }
-    const links = parseLinkHeader(pageLinks ?? null);
-    return (
-      <Fragment>
-        <GridEditable
-          isLoading={loading}
-          data={tableResults?.[0]?.data ?? []}
-          columnOrder={columnOrder}
-          columnSortBy={columnSortBy}
-          grid={{
-            renderHeadCell: renderIssueGridHeaderCell({
-              location,
-              organization,
-              theme,
-              selection,
-              widget: tableWidget,
-              onHeaderClick: () => {
-                setChartUnmodified(false);
-              },
-            }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
-            renderBodyCell: renderGridBodyCell({
-              location,
-              tableData: tableResults?.[0],
-              theme,
-              organization,
-              selection,
-              widget: tableWidget,
-            }),
-            onResizeColumn,
-          }}
-        />
-        {(links?.previous?.results || links?.next?.results) && (
-          <Pagination
-            pageLinks={pageLinks}
-            onCursor={(nextCursor, _path, _query, delta) => {
-              let nextPage = isNaN(page) ? delta : page + delta;
-              let newCursor = nextCursor;
-              // unset cursor and page when we navigate back to the first page
-              // also reset cursor if somehow the previous button is enabled on
-              // first page and user attempts to go backwards
-              if (nextPage <= 0) {
-                newCursor = undefined;
-                nextPage = 0;
-              }
-              navigate(
-                {
-                  pathname: location.pathname,
-                  query: {
-                    ...location.query,
-                    [WidgetViewerQueryField.CURSOR]: newCursor,
-                    [WidgetViewerQueryField.PAGE]: nextPage,
-                  },
-                },
-                {replace: true}
-              );
-
-              if (widget.displayType === DisplayType.TABLE) {
-                setChartUnmodified(false);
-              }
-
-              trackAnalytics('dashboards_views.widget_viewer.paginate', {
-                organization,
-                widget_type: WidgetType.ISSUE,
-                display_type: widget.displayType,
-              });
-            }}
-          />
-        )}
-      </Fragment>
-    );
-  };
-
-  const renderReleaseTable: ReleaseWidgetQueriesProps['children'] = ({
-    tableResults,
-    loading,
-    pageLinks,
-  }) => {
-    if (organization.features.includes('dashboards-use-widget-table-visualization')) {
-      return ViewerTableV2({
-        tableResults,
-        loading,
-        pageLinks,
-        fields,
-        widget,
-        tableWidget,
-        setChartUnmodified,
-        widths,
-        location,
-        organization,
-        navigate,
-        eventView,
-        theme,
-      });
-    }
-    const links = parseLinkHeader(pageLinks ?? null);
-    const isFirstPage = links.previous?.results === false;
-    return (
-      <Fragment>
-        <GridEditable
-          isLoading={loading}
-          data={tableResults?.[0]?.data ?? []}
-          columnOrder={columnOrder}
-          columnSortBy={columnSortBy}
-          grid={{
-            renderHeadCell: renderReleaseGridHeaderCell({
-              ...props,
-              location,
-              theme,
-              widget: tableWidget,
-              tableData: tableResults?.[0],
-              onHeaderClick: () => {
-                if (
-                  [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
-                  defined(widget.limit)
-                ) {
-                  setChartUnmodified(false);
-                }
-              },
-            }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
-            renderBodyCell: renderGridBodyCell({
-              ...props,
-              location,
-              theme,
-              tableData: tableResults?.[0],
-              isFirstPage,
-            }),
-            onResizeColumn,
-          }}
-        />
-        {!tableWidget.queries[0]!.orderby.match(/^-?release$/) &&
-          (links?.previous?.results || links?.next?.results) && (
-            <Pagination
-              pageLinks={pageLinks}
-              onCursor={newCursor => {
-                navigate(
-                  {
-                    pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      [WidgetViewerQueryField.CURSOR]: newCursor,
-                    },
-                  },
-                  {replace: true}
-                );
-                trackAnalytics('dashboards_views.widget_viewer.paginate', {
-                  organization,
-                  widget_type: WidgetType.RELEASE,
-                  display_type: widget.displayType,
-                });
-              }}
-            />
-          )}
-      </Fragment>
-    );
+    return ViewerTableV2({
+      tableResults,
+      loading,
+      pageLinks,
+      fields,
+      widget,
+      tableWidget,
+      setChartUnmodified,
+      widths,
+      location,
+      organization,
+      navigate,
+      eventView,
+      theme,
+    });
   };
 
   const onZoom = (_evt: any, chart: any) => {
@@ -824,7 +555,7 @@ function WidgetViewerModal(props: Props) {
         );
       case WidgetType.RELEASE:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return renderReleaseTable({
+          return renderTable({
             tableResults: tableData,
             loading: false,
             pageLinks: defaultPageLinks,
@@ -844,19 +575,17 @@ function WidgetViewerModal(props: Props) {
             cursor={cursor}
             dashboardFilters={dashboardFilters}
           >
-            {renderReleaseTable}
+            {renderTable}
           </ReleaseWidgetQueries>
         );
       case WidgetType.DISCOVER:
       default:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return (
-            <DiscoverTable
-              tableResults={tableData}
-              loading={false}
-              pageLinks={defaultPageLinks}
-            />
-          );
+          return renderTable({
+            tableResults: tableData,
+            loading: false,
+            pageLinks: defaultPageLinks,
+          });
         }
         return (
           <WidgetQueries
@@ -876,13 +605,11 @@ function WidgetViewerModal(props: Props) {
               // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
               // small hack that improves the concurrency render of the warning triangle
               // widgetContentLoadingStatus = loading;
-              return (
-                <DiscoverTable
-                  tableResults={tableResults}
-                  loading={loading}
-                  pageLinks={pageLinks}
-                />
-              );
+              return renderTable({
+                tableResults,
+                loading,
+                pageLinks,
+              });
             }}
           </WidgetQueries>
         );
