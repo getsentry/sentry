@@ -6,16 +6,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import GlobalModal from 'sentry/components/globalModal';
-import ModalStore from 'sentry/stores/modalStore';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 
 const relayPiiConfig = JSON.stringify(DataScrubbingRelayPiiConfigFixture());
 
 describe('Data Scrubbing', () => {
-  beforeEach(() => {
-    ModalStore.reset();
-  });
-
   describe('Organization level', () => {
     const {organization} = initializeOrg();
     const additionalContext = 'These rules can be configured for each project.';

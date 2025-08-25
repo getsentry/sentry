@@ -31,10 +31,7 @@ import {
   useLogsSearch,
   useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {
-  usePrefetchTraceItemDetailsOnHover,
-  useTraceItemDetails,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   AlwaysPresentLogFields,
   MAX_LOG_INGEST_DELAY,
@@ -74,33 +71,6 @@ export function useExploreLogsTableRow(props: {
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
     enabled: props.enabled && pageFiltersReady,
-  });
-}
-
-export function usePrefetchLogTableRowOnHover({
-  logId,
-  projectId,
-  traceId,
-  hoverPrefetchDisabled,
-  sharedHoverTimeoutRef,
-  timeout,
-}: {
-  logId: string | number;
-  projectId: string;
-  sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
-  timeout: number;
-  traceId: string;
-  hoverPrefetchDisabled?: boolean;
-}) {
-  return usePrefetchTraceItemDetailsOnHover({
-    traceItemId: String(logId),
-    projectId,
-    traceId,
-    traceItemType: TraceItemDataset.LOGS,
-    hoverPrefetchDisabled,
-    sharedHoverTimeoutRef,
-    timeout,
-    referrer: 'api.explore.log-item-details',
   });
 }
 

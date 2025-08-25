@@ -1,4 +1,5 @@
 import React, {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -7,6 +8,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -20,9 +22,13 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {
+  TraceItemDetailsResponse,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import LogsTimestampTooltip from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
@@ -44,12 +50,16 @@ import {
 import {
   adjustLogTraceID,
   getLogSeverityLevel,
+  logOnceFactory,
   logsFieldAlignment,
   SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
+import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+
+const {fmt} = Sentry.logger;
 
 interface LogFieldRendererProps extends AttributesFieldRendererProps<RendererExtra> {}
 
@@ -62,8 +72,11 @@ export interface RendererExtra extends RenderFunctionBaggage {
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
+  meta?: EventsMetaType;
+  project?: Project;
   projectSlug?: string;
   shouldRenderHoverElements?: boolean;
+  traceItemMeta?: TraceItemDetailsResponse['meta'];
   useFullSeverityText?: boolean;
   wrapBody?: true;
 }
@@ -250,6 +263,11 @@ function useLazyLoadAttributeOnHover(hoverTimeout: number, props: LogFieldRender
   };
 }
 
+/**
+ * This should only wrap the 'body' attribute as it is the only 'field' that is not returned by the trace-items endpoint (since it is not an attribute but rather a field).
+ *
+ * Once the trace-items endpoint returns 'body', we can remove this component.
+ */
 function FilteredTooltip({
   value,
   children,
@@ -346,13 +364,11 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
 
 function LogTemplateRenderer(props: LogFieldRendererProps) {
   return (
-    <FilteredTooltip value={props.item.value} extra={props.extra}>
-      <span>
-        {typeof props.item.value === 'string'
-          ? stripAnsi(props.item.value)
-          : props.basicRendered}
-      </span>
-    </FilteredTooltip>
+    <span>
+      {typeof props.item.value === 'string'
+        ? stripAnsi(props.item.value)
+        : props.basicRendered}
+    </span>
   );
 }
 
@@ -399,14 +415,59 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   const align = logsFieldAlignment(adjustedFieldKey, type);
 
   if (!customRenderer) {
-    return <Fragment>{basicRendered}</Fragment>;
+    return (
+      <AnnotatedAttributeWrapper extra={props.extra} fieldKey={props.item.fieldKey}>
+        {basicRendered}
+      </AnnotatedAttributeWrapper>
+    );
   }
 
   return (
-    <AlignedCellContent align={align}>
-      {customRenderer({...props, basicRendered})}
-    </AlignedCellContent>
+    <AnnotatedAttributeWrapper extra={props.extra} fieldKey={props.item.fieldKey}>
+      <AlignedCellContent align={align}>
+        {customRenderer({...props, basicRendered})}
+      </AlignedCellContent>
+    </AnnotatedAttributeWrapper>
   );
+}
+
+const logInfoOnceHasRemarks = logOnceFactory('info');
+
+function AnnotatedAttributeWrapper(props: {
+  children: React.ReactNode;
+  extra: RendererExtra;
+  fieldKey: string;
+}) {
+  if (props.extra.traceItemMeta) {
+    const metaInfo = new TraceItemMetaInfo(props.extra.traceItemMeta);
+    if (metaInfo.hasRemarks(props.fieldKey)) {
+      try {
+        const remarks = metaInfo.getRemarks(props.fieldKey);
+        const remark = remarks[0];
+        if (remark) {
+          const remarkType = remark.type;
+          const remarkRuleId = remark.ruleId;
+          logInfoOnceHasRemarks(
+            fmt`AnnotatedAttributeWrapper: ${props.fieldKey} has remarks, rendering tooltip`,
+            {
+              organizationId: props.extra.organization.id,
+              projectId: props.extra.projectSlug,
+              remarkType,
+              remarkRuleId,
+            }
+          );
+        }
+      } catch {
+        // defensive
+      }
+      return (
+        <AnnotatedAttributeTooltip extra={props.extra} fieldKey={props.fieldKey}>
+          {props.children}
+        </AnnotatedAttributeTooltip>
+      );
+    }
+  }
+  return props.children;
 }
 
 /**

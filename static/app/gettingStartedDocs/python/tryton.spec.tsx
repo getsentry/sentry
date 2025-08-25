@@ -4,6 +4,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './tryton';
 
 describe('tryton onboarding docs', () => {
@@ -72,5 +74,25 @@ describe('tryton onboarding docs', () => {
     expect(
       screen.getByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).toBeInTheDocument();
+  });
+
+  it('renders with logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders without logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).not.toBeInTheDocument();
   });
 });
