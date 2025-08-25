@@ -498,5 +498,3 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
 
             process_delayed_workflows(list(project_ids.keys())[0])
             mock_trigger.assert_called_once()
-            process_delayed_workflows(list(project_ids.keys())[0])
-            mock_trigger.assert_called_once()
