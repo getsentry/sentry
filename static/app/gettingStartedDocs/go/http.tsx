@@ -18,6 +18,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
+import {getGoLogsOnboarding} from 'sentry/utils/gettingStartedDocs/go';
 
 type Params = DocsParams;
 
@@ -257,6 +258,9 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  logsOnboarding: getGoLogsOnboarding({
+    docsPlatform: 'http',
+  }),
 };
 
 export default docs;

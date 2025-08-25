@@ -315,9 +315,7 @@ function WidgetCard(props: Props) {
           noVisualizationPadding
         >
           <WidgetCardChartContainer
-            location={location}
             api={api}
-            organization={organization}
             selection={selection}
             widget={widget}
             isMobile={isMobile}
