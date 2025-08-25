@@ -308,7 +308,6 @@ export function parseAssembly(assembly: string | null) {
   for (let i = 1; i < pieces.length; i++) {
     const [key, value] = pieces[i]!.trim().split('=');
 
-    // eslint-disable-next-line default-case
     switch (key) {
       case 'Version':
         version = value;
@@ -323,6 +322,7 @@ export function parseAssembly(assembly: string | null) {
           publicKeyToken = value;
         }
         break;
+      // no default
     }
   }
 
@@ -387,7 +387,6 @@ export function isStacktraceNewestFirst() {
     case StacktraceOrder.MOST_RECENT_LAST:
       return false;
     case StacktraceOrder.DEFAULT:
-    default:
       return true;
   }
 }

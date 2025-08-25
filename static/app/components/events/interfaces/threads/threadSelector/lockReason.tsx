@@ -37,8 +37,6 @@ export function getLockReason(
       reason =
         `waiting to lock <${address}>` + (defined(tid) ? ` held by thread ${tid}` : '');
       break;
-    default:
-      reason = undefined;
   }
   return reason;
 }

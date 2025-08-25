@@ -133,8 +133,6 @@ export function getConfigName(
       return 'createIssueConfig';
     case 'link':
       return 'linkIssueConfig';
-    default:
-      throw new Error('illegal action');
   }
 }
 

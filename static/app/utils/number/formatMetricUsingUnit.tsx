@@ -192,7 +192,6 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
     case 'exabyte':
     case 'exabytes':
       return formatBytesBase10(value, 6);
-    case 'none':
     default:
       return formatAbbreviatedNumberWithDynamicPrecision(value);
   }

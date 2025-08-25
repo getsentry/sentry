@@ -57,7 +57,7 @@ export function flamegraphSearchReducer(
   action: FlamegraphSearchAction
 ): FlamegraphSearch {
   switch (action.type) {
-    case 'clear search': {
+    case 'clear search':
       return {
         ...state,
         query: '',
@@ -68,21 +68,14 @@ export function flamegraphSearchReducer(
           spans: new Map(),
         },
       };
-    }
-    case 'set highlight all frames': {
+    case 'set highlight all frames':
       return {
         ...state,
         highlightFrames: action.payload,
       };
-    }
-    case 'set search results': {
+    case 'set search results':
       return {...state, highlightFrames: null, ...action.payload};
-    }
-    case 'set search index position': {
+    case 'set search index position':
       return {...state, index: action.payload};
-    }
-    default: {
-      return state;
-    }
   }
 }

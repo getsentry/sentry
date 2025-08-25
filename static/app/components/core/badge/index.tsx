@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import {withChonk} from 'sentry/utils/theme/withChonk';
-import {unreachable} from 'sentry/utils/unreachable';
 
 import * as ChonkBadge from './index.chonk';
 
@@ -41,9 +40,6 @@ function makeBadgeTheme(
         background: theme.yellow300,
         color: theme.gray500,
       };
-    default:
-      unreachable(props.type);
-      throw new TypeError(`Unsupported badge type: ${props.type}`);
   }
 }
 

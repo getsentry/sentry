@@ -44,8 +44,6 @@ function getFirstEvent(eventType: EventWaiterProps['eventType'], resp: Project) 
       return resp.hasProfiles;
     case 'log':
       return resp.hasLogs;
-    default:
-      return null;
   }
 }
 

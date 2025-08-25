@@ -26,7 +26,5 @@ export function parsePeriodToHours(str: string): number {
       return periodNumber * 24;
     case 'w':
       return periodNumber * 24 * 7;
-    default:
-      return -1;
   }
 }

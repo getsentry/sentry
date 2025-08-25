@@ -707,8 +707,6 @@ export function useQueryBuilderState({
           return updateAggregateArgs(state, action, {getFieldDefinition});
         case 'TOGGLE_FILTER_VALUE':
           return multiSelectTokenValue(state, action);
-        default:
-          return state;
       }
     },
     [disabled, getFieldDefinition, hasWildcardOperators]

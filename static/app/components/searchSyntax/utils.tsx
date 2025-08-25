@@ -270,8 +270,6 @@ export const getKeyName = (
       return key.text;
     case Token.KEY_EXPLICIT_STRING_FLAG:
       return key.text;
-    default:
-      return '';
   }
 };
 
@@ -310,8 +308,6 @@ export const getKeyLabel = (
       return key.text;
     case Token.KEY_EXPLICIT_STRING_FLAG:
       return key.text;
-    default:
-      return '';
   }
 };
 

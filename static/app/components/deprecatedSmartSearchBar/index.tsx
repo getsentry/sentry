@@ -825,8 +825,6 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
           this.moveToNextToken(filterTokens.reverse());
           break;
         }
-        default:
-          break;
       }
     }
   };

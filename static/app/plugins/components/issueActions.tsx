@@ -102,8 +102,6 @@ class IssueActions extends PluginComponentBase<Props, State> {
         return 'unlinkFieldList';
       case 'create':
         return 'createFieldList';
-      default:
-        throw new Error('Unexpeced action type');
     }
   }
 
@@ -115,8 +113,6 @@ class IssueActions extends PluginComponentBase<Props, State> {
         return 'unlinkFormData';
       case 'create':
         return 'createFormData';
-      default:
-        throw new Error('Unexpeced action type');
     }
   }
 
@@ -472,8 +468,6 @@ class IssueActions extends PluginComponentBase<Props, State> {
             </Button>
           </div>
         );
-      default:
-        return null;
     }
     return null;
   }

@@ -283,8 +283,6 @@ function paginationReducer(
         ...state,
         page: Math.max(state.page - 1, 0),
       };
-    default:
-      return state;
   }
 }
 

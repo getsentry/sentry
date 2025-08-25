@@ -10,15 +10,11 @@ type FlamegraphZoomPosition = {
 };
 
 export function flamegraphZoomPositionReducer(
-  state: FlamegraphZoomPosition,
+  _state: FlamegraphZoomPosition,
   action: FlamegraphZoomPositionAction
 ): FlamegraphZoomPosition {
   switch (action.type) {
-    case 'checkpoint': {
+    case 'checkpoint':
       return {view: Rect.From(action.payload)};
-    }
-    default: {
-      return state;
-    }
   }
 }

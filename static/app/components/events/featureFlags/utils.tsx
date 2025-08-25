@@ -67,7 +67,6 @@ export const getDefaultOrderBy = (sortBy: SortBy): OrderBy => {
       return OrderBy.HIGH_TO_LOW;
     case SortBy.EVAL_ORDER:
       return OrderBy.NEWEST;
-    case SortBy.ALPHABETICAL:
     default:
       return OrderBy.A_TO_Z;
   }

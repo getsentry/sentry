@@ -77,7 +77,6 @@ export function generateSingleErrorTarget(
   switch (destination) {
     case 'issue':
       return generateIssueEventTarget(event, organization, referrer);
-    case 'discover':
     default:
       return generateDiscoverEventTarget(event, organization, location, referrer);
   }

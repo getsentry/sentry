@@ -1183,8 +1183,6 @@ function parseDuration(
     case 'w':
       number *= 1e3 * 60 * 60 * 24 * 7;
       break;
-    default:
-      throw new Error('Invalid unit');
   }
 
   return {
@@ -1213,8 +1211,6 @@ function parseNumber(
     case null:
     case undefined:
       break;
-    default:
-      throw new Error('Invalid unit');
   }
 
   return {value: number};

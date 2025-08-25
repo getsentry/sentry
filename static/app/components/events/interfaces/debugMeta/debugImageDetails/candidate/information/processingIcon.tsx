@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 import type {CandidateProcessingInfo} from 'sentry/types/debugImage';
@@ -28,15 +26,6 @@ function ProcessingIcon({processingInfo}: Props) {
           <IconWarning color="warningText" size="xs" />
         </Tooltip>
       );
-    }
-    default: {
-      Sentry.withScope(scope => {
-        scope.setLevel('warning');
-        Sentry.captureException(
-          new Error('Unknown image candidate ProcessingIcon status')
-        );
-      });
-      return null; // this shall never happen
     }
   }
 }

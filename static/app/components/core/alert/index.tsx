@@ -12,7 +12,6 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {withChonk} from 'sentry/utils/theme/withChonk';
-import {unreachable} from 'sentry/utils/unreachable';
 
 import * as ChonkAlert from './index.chonk';
 
@@ -160,11 +159,7 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
         borderHover: theme.red300,
         color: theme.red400,
       };
-    default:
-      unreachable(type);
   }
-
-  throw new Error(`Invalid alert type, got ${type}`);
 }
 
 function getAlertGridLayout(p: AlertProps) {
@@ -309,11 +304,7 @@ function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
     case 'info':
     case 'muted':
       return <IconInfo />;
-    default:
-      unreachable(type);
   }
-
-  return null;
 }
 
 /**

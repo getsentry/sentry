@@ -163,8 +163,6 @@ function tourReducer<T extends TourEnumType>(
       return completeTourState;
     case 'SET_REGISTRATION':
       return {...state, isRegistered: action.isRegistered};
-    default:
-      return state;
   }
 }
 

@@ -106,8 +106,6 @@ export class CanvasView<T extends {configSpace: Rect}> {
         );
         return;
       }
-      case 'anchorBottom':
-      case 'anchorTop':
       default: {
         this.configSpace = new Rect(
           0,
@@ -143,8 +141,6 @@ export class CanvasView<T extends {configSpace: Rect}> {
         );
         return;
       }
-      default:
-        throw new Error(`Unknown CanvasView mode: ${this.mode}`);
     }
   }
 

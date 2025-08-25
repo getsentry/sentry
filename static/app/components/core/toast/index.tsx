@@ -1,6 +1,5 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
 import {motion} from 'framer-motion';
 
@@ -96,9 +95,6 @@ function ToastIcon({type}: {type: Indicator['type']}) {
     case 'undo':
       return null;
     case '':
-      return null;
-    default:
-      Sentry.captureException(new Error(`Unknown toast type: ${type}`));
       return null;
   }
 }

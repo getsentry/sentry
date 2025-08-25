@@ -79,8 +79,6 @@ function trailToCrumb(
         preservePageFilters: true,
       };
     }
-    default:
-      throw new Error(`Unknown breadcrumb type: ${JSON.stringify(trail)}`);
   }
 }
 

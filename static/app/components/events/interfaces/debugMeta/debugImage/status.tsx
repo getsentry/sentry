@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {t} from 'sentry/locale';
@@ -28,13 +27,6 @@ function Status({status}: Props) {
     }
     case ImageStatus.UNUSED: {
       return <StyledTag>{t('Unreferenced')}</StyledTag>;
-    }
-    default: {
-      Sentry.withScope(scope => {
-        scope.setLevel('warning');
-        Sentry.captureException(new Error('Unknown image status'));
-      });
-      return <StyledTag>{t('Unknown')}</StyledTag>; // This shall not happen
     }
   }
 }

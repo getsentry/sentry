@@ -117,8 +117,6 @@ export const Grid = styled(Container, {
           return 'space-evenly';
         case 'stretch':
           return 'stretch';
-        default:
-          return value;
       }
     })};
 
@@ -139,8 +137,6 @@ export const Grid = styled(Container, {
           return 'space-evenly';
         case 'stretch':
           return 'stretch';
-        default:
-          return value;
       }
     })};
 

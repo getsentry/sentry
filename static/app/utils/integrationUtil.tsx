@@ -9,7 +9,6 @@ import {
   IconGithub,
   IconGitlab,
   IconJira,
-  IconSentry,
   IconVsts,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -276,8 +275,6 @@ export function getCodeOwnerIcon(
       return <IconGithub size={iconSize} />;
     case 'gitlab':
       return <IconGitlab size={iconSize} />;
-    default:
-      return <IconSentry size={iconSize} />;
   }
 }
 const isSlackIntegrationUpToDate = (integrations: Integration[]): boolean => {

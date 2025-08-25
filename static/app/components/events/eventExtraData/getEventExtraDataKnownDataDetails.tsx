@@ -21,10 +21,10 @@ export function getEventExtraDataKnownDataDetails({
         subject: t('Crashed Process'),
         value: data[type],
       };
-    default:
-      return {
-        subject: type,
-        value: data[type],
-      };
+    // default:
+    //   return {
+    //     subject: type,
+    //     value: data[type],
+    //   };
   }
 }

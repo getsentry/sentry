@@ -30,7 +30,6 @@ function ReplayCurrentTimeNew() {
       return <DateTime date={currentTime.timeMs + startTimestamp} seconds timeOnly />;
     }
     case 'relative':
-    default:
       return <Duration duration={[currentTime.timeMs, 'ms']} precision="sec" />;
   }
 }

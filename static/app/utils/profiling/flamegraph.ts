@@ -126,8 +126,6 @@ export class Flamegraph {
         }
         this.frames = this.buildCallOrderChart(profile);
         break;
-      default:
-        throw new TypeError(`Unknown flamechart sort type: ${this.sort}`);
     }
 
     this.unit = profile.unit;

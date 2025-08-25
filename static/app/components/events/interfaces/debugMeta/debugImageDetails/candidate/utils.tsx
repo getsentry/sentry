@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
 import {t} from 'sentry/locale';
 import type {ImageCandidate} from 'sentry/types/debugImage';
@@ -35,13 +33,6 @@ export function getImageFeatureDescription(type: ImageFeature) {
           'Stack unwinding information improves the quality of stack traces extracted from minidumps'
         ),
       };
-    default: {
-      Sentry.withScope(scope => {
-        scope.setLevel('warning');
-        Sentry.captureException(new Error('Unknown image candidate feature'));
-      });
-      return {}; // this shall not happen
-    }
   }
 }
 
@@ -95,13 +86,6 @@ export function getStatusTooltipDescription(
               'This issue was processed before this debug information file was available'
             ),
       };
-    }
-    default: {
-      Sentry.withScope(scope => {
-        scope.setLevel('warning');
-        Sentry.captureException(new Error('Unknown image candidate download status'));
-      });
-      return {}; // This shall not happen
     }
   }
 }

@@ -169,15 +169,10 @@ const decodeFields = (location: Location): Field[] => {
 
 export const encodeSort = (sort: Sort): string => {
   switch (sort.kind) {
-    case 'desc': {
+    case 'desc':
       return `-${sort.field}`;
-    }
-    case 'asc': {
+    case 'asc':
       return String(sort.field);
-    }
-    default: {
-      throw new Error('Unexpected sort type');
-    }
   }
 };
 

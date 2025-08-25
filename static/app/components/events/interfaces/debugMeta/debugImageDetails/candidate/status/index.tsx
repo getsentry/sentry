@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import {Tag} from 'sentry/components/core/badge/tag';
 import {t} from 'sentry/locale';
 import {CandidateDownloadStatus} from 'sentry/types/debugImage';
@@ -48,13 +46,6 @@ function Status({status, ...props}: Props) {
           {t('Unapplied')}
         </Tag>
       );
-    }
-    default: {
-      Sentry.withScope(scope => {
-        scope.setLevel('warning');
-        Sentry.captureException(new Error('Unknown image candidate download status'));
-      });
-      return <Tag {...props}>{t('Unknown')}</Tag>; // This shall not happen
     }
   }
 }

@@ -33,8 +33,6 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
       return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
     case 'help':
       return <Help data={data as HelpProps['data']} />;
-    default:
-      throw new TypeError(`Invalid view: ${view}`);
   }
 }
 

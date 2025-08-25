@@ -62,6 +62,7 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
   }, [threads, event, exception]);
 
   const orderedThreads = useMemo(() => {
+    // eslint-disable-next-line array-callback-return
     const sortedThreads: readonly Thread[] = threads.toSorted((threadA, threadB) => {
       const threadInfoA = threadInfoMap[threadA.id] ?? {};
       const threadInfoB = threadInfoMap[threadB.id] ?? {};
@@ -81,8 +82,6 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
           return isSortAscending
             ? (threadInfoA.state?.localeCompare(threadInfoB.state ?? '') ?? 0)
             : (threadInfoB.state?.localeCompare(threadInfoA.state ?? '') ?? 0);
-        default:
-          return 0;
       }
     });
     const currentThreadIndex = sortedThreads.findIndex(

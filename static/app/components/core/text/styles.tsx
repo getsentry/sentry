@@ -21,7 +21,6 @@ export function getLineHeight(density: TextProps<any>['density']) {
     case 'comfortable':
       return '1.4';
     // @TODO: Fixed density is 16, how does that work with larger sizes?
-    case undefined:
     default:
       return '1.2';
   }

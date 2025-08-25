@@ -26,8 +26,6 @@ function getEventIcon(eventType: AutofixTimelineEvent['timeline_item_type']) {
   switch (eventType) {
     case 'external_system':
       return <IconBroadcast {...iconProps} />;
-    case 'internal_code':
-      return <IconCode {...iconProps} />;
     case 'human_action':
       return <IconUser {...iconProps} />;
     default:

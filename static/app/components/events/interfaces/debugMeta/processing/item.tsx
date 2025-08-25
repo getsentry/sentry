@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,10 +16,6 @@ function Item({type, icon, className}: Props) {
         return t('Stack Unwinding');
       case 'symbolication':
         return t('Symbolication');
-      default: {
-        Sentry.captureException(new Error('Unknown Images Loaded processing item type'));
-        return null; // This shall not happen
-      }
     }
   }
 

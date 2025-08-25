@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import type {RequestCallbacks, RequestOptions} from 'sentry/api';
 import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
@@ -82,12 +80,6 @@ export function assignToActor({
     case 'team':
       actorId = buildTeamId(actor.id);
       break;
-
-    default:
-      Sentry.withScope(scope => {
-        scope.setExtra('actor', actor);
-        Sentry.captureException('Unknown assignee type');
-      });
   }
 
   return api

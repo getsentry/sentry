@@ -40,7 +40,6 @@ function getPath(direction: NonNullable<ChevronProps['direction']>) {
       // Flip Y axis (so 14 - …)
       return `M${base[0][0]} ${14 - base[0][1]}L${base[1][0]} ${14 - base[1][1]}L${base[2][0]} ${14 - base[2][1]}`;
     case 'down':
-    default:
       return `M${base[0][0]} ${base[0][1]}L${base[1][0]} ${base[1][1]}L${base[2][0]} ${base[2][1]}`;
   }
 }

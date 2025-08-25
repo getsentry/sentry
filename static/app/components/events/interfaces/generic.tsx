@@ -32,8 +32,6 @@ function getView({
       );
     case 'raw':
       return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
-    default:
-      throw new TypeError(`Invalid view: ${view}`);
   }
 }
 

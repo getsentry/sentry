@@ -137,8 +137,6 @@ export default function formatDuration({
 
       return output.join('');
     }
-    default:
-      throw new Error('Invalid style');
   }
 }
 

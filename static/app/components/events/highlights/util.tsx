@@ -181,7 +181,6 @@ export function getRuntimeLabelAndTooltip(
     return null;
   }
 
-  // eslint-disable-next-line default-case
   switch (event.contexts.runtime?.name || '') {
     case 'node':
       return {label: t('Backend'), tooltip: t('Error from Node.js Server Runtime')};
@@ -193,6 +192,7 @@ export function getRuntimeLabelAndTooltip(
       return {label: t('Backend'), tooltip: t('Error from Cloudflare Workers')};
     case 'vercel-edge':
       return {label: t('Backend'), tooltip: t('Error from Vercel Edge Runtime')};
+    // No default
   }
 
   if (event.contexts.runtime?.name) {

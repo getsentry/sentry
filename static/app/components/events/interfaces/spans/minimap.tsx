@@ -117,10 +117,6 @@ class ActualMinimap extends PureComponent<{
           width: toPercent(bounds.end - bounds.start),
         };
       }
-      default: {
-        const _exhaustiveCheck: never = bounds;
-        return _exhaustiveCheck;
-      }
     }
   }
 

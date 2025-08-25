@@ -4,7 +4,6 @@ import {css} from '@emotion/react';
 import type {AlertProps} from 'sentry/components/core/alert';
 import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
-import {unreachable} from 'sentry/utils/unreachable';
 
 export const chonkAlertPropMapping: ChonkPropMapping<
   AlertProps,
@@ -90,11 +89,7 @@ function getChonkAlertTokens(
         iconBackground: theme.colors.surface500,
         border: theme.tokens.border.primary,
       };
-    default:
-      unreachable(type);
   }
-
-  throw new TypeError(`Invalid alert type, got ${type}`);
 }
 
 function generateAlertBackground(

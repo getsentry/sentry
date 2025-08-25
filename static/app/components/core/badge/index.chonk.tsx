@@ -1,7 +1,6 @@
 import type {BadgeProps} from 'sentry/components/core/badge';
 import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
-import {unreachable} from 'sentry/utils/unreachable';
 
 type FeatureBadgeType = 'alpha' | 'beta' | 'new' | 'experimental';
 interface ChonkBadgeProps extends Omit<BadgeProps, 'type'> {
@@ -103,8 +102,5 @@ function makeChonkBadgeTheme(
         color: theme.colors.content.success,
         background: theme.colors.green100,
       };
-    default:
-      unreachable(p.type);
-      throw new TypeError(`Unsupported badge type: ${p.type}`);
   }
 }

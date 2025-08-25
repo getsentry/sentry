@@ -285,7 +285,6 @@ function getTextColor({
       return theme.activeText;
     case 'danger':
       return theme.errorText;
-    case 'default':
     default:
       return theme.textColor;
   }

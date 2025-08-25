@@ -67,8 +67,6 @@ export const Heading = styled(
 
 function getDefaultHeadingFontSize(as: HeadingProps['as']): TextProps<any>['size'] {
   switch (as) {
-    case 'h1':
-      return '2xl';
     case 'h2':
       return 'xl';
     case 'h3':

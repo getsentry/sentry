@@ -211,10 +211,6 @@ export const boundsGenerator = (bounds: {
           isSpanVisibleInView,
         };
       }
-      default: {
-        const _exhaustiveCheck: never = timestampStatus;
-        return _exhaustiveCheck;
-      }
     }
   };
 };

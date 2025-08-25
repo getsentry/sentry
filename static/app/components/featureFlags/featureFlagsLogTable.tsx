@@ -96,10 +96,7 @@ function renderBodyCell(
       return dataRow.provider || t('unknown');
     case 'createdAt':
       return FIELD_FORMATTERS.date.renderFunc('createdAt', dataRow);
-    case 'action': {
+    case 'action':
       return getFlagActionLabel(dataRow.action);
-    }
-    default:
-      return dataRow[column.key];
   }
 }
