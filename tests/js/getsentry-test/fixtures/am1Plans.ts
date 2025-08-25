@@ -57,7 +57,6 @@ const AM1_TEAM_FEATURES = [
   ...AM1_FREE_FEATURES,
   'codecov-integration',
   'crash-rate-alerts',
-  'dashboards-basic',
   'discover-basic',
   'incidents',
   'integrations-issue-basic',
@@ -79,7 +78,6 @@ const AM1_BUSINESS_FEATURES = [
   'change-alerts',
   'custom-inbound-filters',
   'custom-symbol-sources',
-  'dashboards-edit',
   'data-forwarding',
   'discard-groups',
   'discover-query',
@@ -175,6 +173,7 @@ const AM1_PLANS: Record<string, Plan> = {
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: 10,
+    metricDetectorLimit: 20,
   },
   am1_t: {
     allowAdditionalReservedEvents: false,
@@ -249,6 +248,7 @@ const AM1_PLANS: Record<string, Plan> = {
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: 10,
+    metricDetectorLimit: 20,
   },
   am1_team: {
     allowAdditionalReservedEvents: false,
@@ -833,6 +833,7 @@ const AM1_PLANS: Record<string, Plan> = {
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am1_team_auf: {
     allowAdditionalReservedEvents: false,
@@ -1417,6 +1418,7 @@ const AM1_PLANS: Record<string, Plan> = {
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: 20,
+    metricDetectorLimit: 20,
   },
   am1_business: {
     allowAdditionalReservedEvents: false,
@@ -2001,6 +2003,7 @@ const AM1_PLANS: Record<string, Plan> = {
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am1_business_auf: {
     allowAdditionalReservedEvents: false,
@@ -2585,6 +2588,7 @@ const AM1_PLANS: Record<string, Plan> = {
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
   am1_business_ent: {
     id: 'am1_business_ent',
@@ -2666,6 +2670,7 @@ const AM1_PLANS: Record<string, Plan> = {
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
     dashboardLimit: -1,
+    metricDetectorLimit: -1,
   },
 };
 

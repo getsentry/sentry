@@ -68,8 +68,8 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         A title string or None if generation fails
     """
     seer_request = GenerateFeedbackTitleRequest(
-        organization_id=organization_id,
         feedback_message=feedback_message,
+        organization_id=organization_id,
     )
 
     try:

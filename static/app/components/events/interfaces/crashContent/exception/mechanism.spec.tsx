@@ -3,9 +3,9 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import {Mechanism} from 'sentry/components/events/interfaces/crashContent/exception/mechanism';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 
-describe('ExceptionMechanism', function () {
-  describe('basic attributes', function () {
-    it('should render the exception mechanism', function () {
+describe('ExceptionMechanism', () => {
+  describe('basic attributes', () => {
+    it('should render the exception mechanism', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: true,
@@ -13,7 +13,7 @@ describe('ExceptionMechanism', function () {
       render(<Mechanism data={mechanism} />);
     });
 
-    it('should render a help_link icon', function () {
+    it('should render a help_link icon', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: true,
@@ -23,7 +23,7 @@ describe('ExceptionMechanism', function () {
       render(<Mechanism data={mechanism} />);
     });
 
-    it('should render a description hovercard', function () {
+    it('should render a description hovercard', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: true,
@@ -33,7 +33,7 @@ describe('ExceptionMechanism', function () {
       render(<Mechanism data={mechanism} />);
     });
 
-    it('should add the help_link to the description hovercard', function () {
+    it('should add the help_link to the description hovercard', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: true,
@@ -44,7 +44,7 @@ describe('ExceptionMechanism', function () {
       render(<Mechanism data={mechanism} />);
     });
 
-    it('should not add the help_link if not starts with http(s)', function () {
+    it('should not add the help_link if not starts with http(s)', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: true,
@@ -54,7 +54,7 @@ describe('ExceptionMechanism', function () {
       render(<Mechanism data={mechanism} />);
     });
 
-    it('should render the handled pill', function () {
+    it('should render the handled pill', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: false,
@@ -63,8 +63,8 @@ describe('ExceptionMechanism', function () {
     });
   });
 
-  describe('errno meta', function () {
-    it('should render the errno number', function () {
+  describe('errno meta', () => {
+    it('should render the errno number', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: false,
@@ -74,7 +74,7 @@ describe('ExceptionMechanism', function () {
       render(<Mechanism data={mechanism} />);
     });
 
-    it('should prefer the errno name if present', function () {
+    it('should prefer the errno name if present', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: false,
@@ -85,8 +85,8 @@ describe('ExceptionMechanism', function () {
     });
   });
 
-  describe('mach_exception meta', function () {
-    it('should render the mach exception number', function () {
+  describe('mach_exception meta', () => {
+    it('should render the mach exception number', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: false,
@@ -96,7 +96,7 @@ describe('ExceptionMechanism', function () {
       render(<Mechanism data={mechanism} />);
     });
 
-    it('should prefer the exception name if present', function () {
+    it('should prefer the exception name if present', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: false,
@@ -109,8 +109,8 @@ describe('ExceptionMechanism', function () {
     });
   });
 
-  describe('signal meta', function () {
-    it('should render the signal number', function () {
+  describe('signal meta', () => {
+    it('should render the signal number', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: false,
@@ -120,7 +120,7 @@ describe('ExceptionMechanism', function () {
       render(<Mechanism data={mechanism} />);
     });
 
-    it('should add the signal code if present', function () {
+    it('should add the signal code if present', () => {
       const mechanism = {
         type: 'generic',
         handled: false,
@@ -130,7 +130,7 @@ describe('ExceptionMechanism', function () {
       render(<Mechanism data={mechanism} />);
     });
 
-    it('should prefer signal and code names if present', function () {
+    it('should prefer signal and code names if present', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: false,
@@ -141,8 +141,8 @@ describe('ExceptionMechanism', function () {
     });
   });
 
-  describe('additional data', function () {
-    it('should render all fields in the data object', function () {
+  describe('additional data', () => {
+    it('should render all fields in the data object', () => {
       const mechanism = {
         type: 'generic',
         handled: false,
@@ -152,7 +152,7 @@ describe('ExceptionMechanism', function () {
       render(<Mechanism data={mechanism} />);
     });
 
-    it('should skip object-like values', function () {
+    it('should skip object-like values', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: false,

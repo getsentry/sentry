@@ -8,7 +8,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
 describe('useRoutes', () => {
-  it('returns the current routes object', function () {
+  it('returns the current routes object', () => {
     let routes: any;
     function HomePage() {
       routes = useRoutes();

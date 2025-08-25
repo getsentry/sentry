@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import VitalCard from 'sentry/views/insights/mobile/screens/components/vitalCard';
 
-describe('VitalCard', function () {
+describe('VitalCard', () => {
   const mockProps = {
     description: 'This is a test description',
     formattedValue: '123ms',
@@ -11,20 +11,20 @@ describe('VitalCard', function () {
     title: 'Test Vital',
   };
 
-  it('renders correctly', function () {
+  it('renders correctly', () => {
     render(<VitalCard {...mockProps} />);
     expect(screen.getByText(mockProps.title)).toBeInTheDocument();
     expect(screen.getByText(mockProps.formattedValue)).toBeInTheDocument();
     expect(screen.getByText(mockProps.statusLabel)).toBeInTheDocument();
   });
 
-  it('displays the description tooltip on hover', async function () {
+  it('displays the description tooltip on hover', async () => {
     render(<VitalCard {...mockProps} />);
     await userEvent.hover(await screen.findByTestId('more-information'));
     expect(await screen.findByText(mockProps.description)).toBeInTheDocument();
   });
 
-  it('displays default values when props are undefined', async function () {
+  it('displays default values when props are undefined', async () => {
     const defaultProps = {
       description: '',
       formattedValue: undefined,

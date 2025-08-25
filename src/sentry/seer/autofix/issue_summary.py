@@ -10,7 +10,7 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import eventstore, features, quotas
+from sentry import eventstore, features, options, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory, ObjectStatus
@@ -161,14 +161,48 @@ def _call_seer(
         option=orjson.OPT_NON_STR_KEYS,
     )
 
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
+    # Route to summarization URL based on rollout rate
+    rollout_rate = options.get("issues.summary.summarization-url-rollout-rate")
+    url = settings.SEER_AUTOFIX_URL
+    use_summarization_url = in_random_rollout("issues.summary.summarization-url-rollout-rate")
+
+    logger.info(
+        "Issue summary rollout decision",
+        extra={
+            "rollout_rate": rollout_rate,
+            "use_summarization_url": use_summarization_url,
+            "autofix_url": settings.SEER_AUTOFIX_URL,
+            "summarization_url": settings.SEER_SUMMARIZATION_URL,
         },
     )
+
+    if use_summarization_url:
+        url = settings.SEER_SUMMARIZATION_URL
+
+    try:
+        response = requests.post(
+            f"{url}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(body),
+            },
+        )
+    except Exception:
+        if use_summarization_url:
+            # If the new pod fails, fall back to the old pod
+            logger.warning("New Summarization pod connection failed", exc_info=True)
+            response = requests.post(
+                f"{settings.SEER_AUTOFIX_URL}{path}",
+                data=body,
+                headers={
+                    "content-type": "application/json;charset=utf-8",
+                    **sign_with_seer_secret(body),
+                },
+            )
+        else:
+            # Primary (autofix) request failed; propagate error
+            raise
 
     response.raise_for_status()
 

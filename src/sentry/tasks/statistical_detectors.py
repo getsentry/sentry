@@ -29,8 +29,8 @@ from snuba_sdk import (
 )
 
 from sentry import features, options, projectoptions
-from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.constants import ObjectStatus
+from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType

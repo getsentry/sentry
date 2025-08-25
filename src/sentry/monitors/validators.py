@@ -1,6 +1,7 @@
 import re
 from typing import Any, Literal
 
+import jsonschema
 import sentry_sdk
 from cronsim import CronSimError
 from django.core.exceptions import ValidationError
@@ -23,6 +24,7 @@ from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.models.project import Project
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import (
+    MONITOR_CONFIG,
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
@@ -402,7 +404,15 @@ class MonitorValidator(CamelSnakeSerializer):
         if "is_muted" in validated_data:
             params["is_muted"] = validated_data["is_muted"]
         if "config" in validated_data:
-            params["config"] = validated_data["config"]
+            merged_config = instance.config.copy()
+            merged_config.update(validated_data["config"])
+
+            try:
+                jsonschema.validate(merged_config, MONITOR_CONFIG)
+            except jsonschema.ValidationError as e:
+                raise serializers.ValidationError({"config": f"Invalid config: {e.message}"})
+
+            params["config"] = merged_config
 
         if "status" in params:
             # Attempt to assign a monitor seat

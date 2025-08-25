@@ -40,6 +40,7 @@ import {
   LogAttributesHumanLabel,
   LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
 } from 'sentry/views/explore/logs/constants';
+import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
@@ -48,6 +49,8 @@ import {
   type OurLogFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -130,14 +133,14 @@ export enum SeverityLevel {
  */
 export function severityLevelToText(level: SeverityLevel) {
   return {
-    [SeverityLevel.TRACE]: t('TRACE'),
-    [SeverityLevel.DEBUG]: t('DEBUG'),
-    [SeverityLevel.INFO]: t('INFO'),
-    [SeverityLevel.WARN]: t('WARN'),
-    [SeverityLevel.ERROR]: t('ERROR'),
-    [SeverityLevel.FATAL]: t('FATAL'),
-    [SeverityLevel.DEFAULT]: t('DEFAULT'),
-    [SeverityLevel.UNKNOWN]: t('UNKNOWN'), // Maps to info for now.
+    [SeverityLevel.TRACE]: t('trace'),
+    [SeverityLevel.DEBUG]: t('debug'),
+    [SeverityLevel.INFO]: t('info'),
+    [SeverityLevel.WARN]: t('warn'),
+    [SeverityLevel.ERROR]: t('error'),
+    [SeverityLevel.FATAL]: t('fatal'),
+    [SeverityLevel.DEFAULT]: t('default'),
+    [SeverityLevel.UNKNOWN]: t('unknown'), // Maps to info for now.
   }[level];
 }
 
@@ -358,10 +361,12 @@ export function getLogsUrl({
   referrer,
   sortBy,
   title,
+  aggregateFields,
   aggregateFn,
   aggregateParam,
 }: {
   organization: Organization;
+  aggregateFields?: Array<GroupBy | BaseVisualize>;
   aggregateFn?: string;
   aggregateParam?: string;
   field?: string[];
@@ -392,6 +397,9 @@ export function getLogsUrl({
     mode,
     referrer,
     [LOGS_SORT_BYS_KEY]: sortBy,
+    [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields?.map(aggregateField =>
+      JSON.stringify(aggregateField)
+    ),
     [LOGS_AGGREGATE_FN_KEY]: aggregateFn,
     [LOGS_AGGREGATE_PARAM_KEY]: aggregateParam,
     title,
@@ -428,15 +436,16 @@ export function getLogsUrlFromSavedQueryUrl({
   return getLogsUrl({
     organization,
     field: firstQuery.fields,
-    groupBy: firstQuery.groupby,
+    groupBy: defined(firstQuery.aggregateField) ? undefined : firstQuery.groupby,
     sortBy: firstQuery.orderby,
     title: savedQuery.name,
     id: savedQuery.id,
     interval: savedQuery.interval,
     mode: firstQuery.mode,
     query: firstQuery.query,
-    aggregateFn,
-    aggregateParam,
+    aggregateFn: defined(firstQuery.aggregateField) ? undefined : aggregateFn,
+    aggregateParam: defined(firstQuery.aggregateField) ? undefined : aggregateParam,
+    aggregateFields: firstQuery.aggregateField,
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
@@ -495,3 +504,19 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
   }
   return JSON.stringify(copy, null, 2);
 }
+
+export const logOnceFactory = (logSeverity: 'info' | 'warn') => {
+  let fired = false;
+  return (...args: Parameters<(typeof Sentry.logger)[typeof logSeverity]>) => {
+    if (!fired) {
+      fired = true;
+      if (logSeverity === 'info') {
+        return Sentry.logger.info(args[0], args[1]);
+      }
+      return Sentry.logger.warn(args[0], args[1]);
+    }
+    return () => {
+      // Do nothing
+    };
+  };
+};

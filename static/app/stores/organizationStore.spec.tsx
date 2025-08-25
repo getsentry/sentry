@@ -3,12 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import RequestError from 'sentry/utils/requestError/requestError';
 
-describe('OrganizationStore', function () {
-  beforeEach(function () {
+describe('OrganizationStore', () => {
+  beforeEach(() => {
     OrganizationStore.reset();
   });
 
-  it('starts with loading state', function () {
+  it('starts with loading state', () => {
     expect(OrganizationStore.get()).toMatchObject({
       loading: true,
       error: null,
@@ -18,7 +18,7 @@ describe('OrganizationStore', function () {
     });
   });
 
-  it('updates correctly', function () {
+  it('updates correctly', () => {
     const organization = OrganizationFixture();
     OrganizationStore.onUpdate(organization);
     expect(OrganizationStore.get()).toMatchObject({
@@ -41,7 +41,7 @@ describe('OrganizationStore', function () {
     });
   });
 
-  it('updates correctly from setting changes', function () {
+  it('updates correctly from setting changes', () => {
     const organization = OrganizationFixture();
     OrganizationStore.onUpdate(organization);
     expect(OrganizationStore.get()).toMatchObject({
@@ -53,7 +53,7 @@ describe('OrganizationStore', function () {
     });
   });
 
-  it('errors correctly', function () {
+  it('errors correctly', () => {
     const error = new RequestError('GET', '/some/path', new Error('uh oh'));
     error.status = 404;
     OrganizationStore.onFetchOrgError(error);
@@ -66,7 +66,7 @@ describe('OrganizationStore', function () {
     });
   });
 
-  it('returns a stable reference from getState', function () {
+  it('returns a stable reference from getState', () => {
     const organization = OrganizationFixture();
     OrganizationStore.onUpdate(organization);
     const state = OrganizationStore.getState();

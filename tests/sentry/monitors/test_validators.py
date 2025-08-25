@@ -15,7 +15,7 @@ from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 class MonitorValidatorCreateTest(MonitorTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -604,3 +604,38 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.name == "Just Update Name"
         assert updated_monitor.slug == "test-monitor"
         assert updated_monitor.config == original_config
+
+    def test_partial_config_update_preserves_existing_fields(self):
+        """Test that partial config updates preserve fields not included in the update."""
+        # Set up a monitor with a complete config
+        original_config = {
+            "schedule": "0 * * * *",
+            "schedule_type": ScheduleType.CRONTAB,
+            "checkin_margin": 5,
+            "max_runtime": 30,
+            "timezone": "UTC",
+            "failure_issue_threshold": 3,
+            "recovery_threshold": 1,
+        }
+        self.monitor.update(config=original_config)
+
+        # Update only the schedule - other fields should be preserved
+        validator = MonitorValidator(
+            instance=self.monitor,
+            data={"config": {"schedule": "*/30 * * * *", "schedule_type": "crontab"}},
+            partial=True,
+            context={
+                "organization": self.organization,
+                "access": self.access,
+                "request": self.request,
+            },
+        )
+        assert validator.is_valid()
+
+        updated_monitor = validator.save()
+        assert updated_monitor.config["schedule"] == "*/30 * * * *"
+        assert updated_monitor.config["checkin_margin"] == 5
+        assert updated_monitor.config["max_runtime"] == 30
+        assert updated_monitor.config["timezone"] == "UTC"
+        assert updated_monitor.config["failure_issue_threshold"] == 3
+        assert updated_monitor.config["recovery_threshold"] == 1

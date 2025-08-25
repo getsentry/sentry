@@ -10,7 +10,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
 
 import Broadcasts from 'admin/views/broadcasts';
 
@@ -21,15 +20,14 @@ function renderMockRequests() {
   });
 }
 
-describe('Broadcasts', function () {
+describe('Broadcasts', () => {
   const mockUser = UserFixture({permissions: new Set(['broadcasts.admin'])});
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const {router} = initializeOrg();
 
     ConfigStore.loadInitialData(

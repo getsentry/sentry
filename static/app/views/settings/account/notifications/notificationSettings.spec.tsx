@@ -18,8 +18,8 @@ function renderMockRequests() {
   });
 }
 
-describe('NotificationSettings', function () {
-  it('should render', async function () {
+describe('NotificationSettings', () => {
+  it('should render', async () => {
     const {organization} = initializeOrg();
 
     renderMockRequests();
@@ -43,7 +43,7 @@ describe('NotificationSettings', function () {
     expect(screen.getByText('Issue Alerts')).toBeInTheDocument();
   });
 
-  it('renders quota section with feature flag', async function () {
+  it('renders quota section with feature flag', async () => {
     const {organization} = initializeOrg({
       organization: {
         features: ['user-spend-notifications-settings'],
@@ -73,7 +73,7 @@ describe('NotificationSettings', function () {
     expect(screen.getByText('Issue Alerts')).toBeInTheDocument();
   });
 
-  it('renders spend section instead of quota section with feature flag', async function () {
+  it('renders spend section instead of quota section with feature flag', async () => {
     const {organization} = initializeOrg({
       organization: {
         features: ['user-spend-notifications-settings', 'spend-visibility-notifications'],
