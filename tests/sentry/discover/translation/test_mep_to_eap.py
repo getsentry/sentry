@@ -131,6 +131,20 @@ def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str
     "input,expected",
     [
         pytest.param(
+            ["count() + 5"],
+            ["count(span.duration) + 5"],
+        ),
+        pytest.param(
+            [
+                "user_misery(300) + count()",
+            ],
+            ["user_misery(span.duration,300) + count(span.duration)"],
+        ),
+        pytest.param(
+            ["sum(transaction.duration) + 5", "percentile(transaction.duration,0.437)"],
+            ["sum(span.duration) + 5", "p50(span.duration)"],
+        ),
+        pytest.param(
             ["count(span.duration) + 5", "count_web_vitals(user,300) * 3"],
             ["count(span.duration) + 5"],
         ),
