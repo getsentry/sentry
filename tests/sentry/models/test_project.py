@@ -461,7 +461,7 @@ class ProjectOptionsTests(TestCase):
         self.project_template = self.create_project_template(organization=self.project.organization)
         self.project.template = self.project_template
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
 
         self.project_template.delete()

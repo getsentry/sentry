@@ -43,7 +43,8 @@ from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.delayed_workflow import (
+from sentry.workflow_engine.tasks.delayed_workflows import (
+    DelayedWorkflow,
     EventInstance,
     EventKey,
     EventRedisData,
@@ -60,7 +61,6 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_group_to_groupevent,
     get_groups_to_fire,
 )
-from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -122,7 +122,7 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project.id)
         buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project2.id)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.mock_redis_buffer.__exit__(None, None, None)
 
     def create_project_event_freq_workflow(
@@ -322,18 +322,6 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
         for instance in event_data.events.values():
             assert instance.timestamp == timezone.now()
 
-    @override_options(
-        {"delayed_processing.batch_size": 1, "delayed_workflow.use_workflow_engine_pool": True}
-    )
-    @patch(
-        "sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows_shim.apply_async"
-    )
-    def test_delayed_workflow_shim(self, mock_process_delayed: MagicMock) -> None:
-        self._push_base_events()
-
-        process_in_batches(buffer.backend, self.project.id, "delayed_workflow")
-        assert mock_process_delayed.call_count == 2
-
 
 class TestDelayedWorkflowQueries(BaseWorkflowTest):
     def setUp(self) -> None:
@@ -512,7 +500,7 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
 
 @freeze_time(FROZEN_TIME)
 class TestGetSnubaResults(BaseWorkflowTest):
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
 
     def create_events(self, comparison_type: ComparisonType) -> Event:
@@ -991,9 +979,7 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         assert data == {}
 
     @override_options({"delayed_processing.batch_size": 1})
-    @patch(
-        "sentry.workflow_engine.processors.delayed_workflow.process_delayed_workflows.apply_async"
-    )
+    @patch("sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows.apply_async")
     def test_batched_cleanup(self, mock_process_delayed: MagicMock) -> None:
         self._push_base_events()
         all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
@@ -1106,7 +1092,7 @@ class TestEventKeyAndInstance:
         assert instance.event_id == "test"
         assert instance.occurrence_id == "test"
 
-    @patch("sentry.workflow_engine.processors.delayed_workflow.logger")
+    @patch("sentry.workflow_engine.tasks.delayed_workflows.logger")
     def test_from_redis_data_continue_on_error(self, mock_logger: MagicMock) -> None:
         # Create a mix of valid and invalid data
         redis_data = {
@@ -1137,7 +1123,7 @@ class TestEventKeyAndInstance:
         with pytest.raises(ValueError, match="event_id"):
             EventRedisData.from_redis_data(redis_data, continue_on_error=False)
 
-    @patch("sentry.workflow_engine.processors.delayed_workflow.logger")
+    @patch("sentry.workflow_engine.tasks.delayed_workflows.logger")
     def test_from_redis_data_invalid_keys(self, mock_logger: MagicMock) -> None:
         # Create data with an invalid key structure
         redis_data = {

@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class OrganizationDetailsDocs(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         organization = self.create_organization(owner=self.user, name="Rowdy Tiger")
 
         self.url = reverse(

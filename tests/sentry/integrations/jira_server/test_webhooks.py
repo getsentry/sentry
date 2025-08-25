@@ -23,7 +23,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
         self.integration = get_integration(self.organization, self.user)
 
     @property
-    def jwt_token(self):
+    def jwt_token(self) -> str:
         return jwt.encode(
             {"id": self.integration.external_id}, self.integration.metadata["webhook_secret"]
         )

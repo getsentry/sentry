@@ -10,7 +10,7 @@ from .react_page import ReactPageView
 
 @control_silo_view
 class DisabledMemberView(ReactPageView):
-    def is_member_disabled_from_limit(self, request: object, organization):
+    def is_member_disabled_from_limit(self, request: object, organization) -> bool:
         return False
 
     def handle(self, request: HttpRequest, organization, **kwargs) -> HttpResponse:

@@ -3372,7 +3372,7 @@ register(
 # Taskbroker flags
 register(
     "taskworker.enabled",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

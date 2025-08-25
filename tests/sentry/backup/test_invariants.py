@@ -47,11 +47,11 @@ def test_all_many_to_many_fields_explicitly_set_through_attribute() -> None:
     assert visited > 0
 
 
-def relocation_scopes_as_set(mr: ModelRelations):
+def relocation_scopes_as_set(mr: ModelRelations) -> set[RelocationScope]:
     return mr.relocation_scope if isinstance(mr.relocation_scope, set) else {mr.relocation_scope}
 
 
-def validate_dependency_scopes(allowed: set[RelocationScope]):
+def validate_dependency_scopes(allowed: set[RelocationScope]) -> None:
     deps = dependencies()
     models_being_validated = [
         mr.model

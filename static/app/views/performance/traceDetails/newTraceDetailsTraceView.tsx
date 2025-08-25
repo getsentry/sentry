@@ -1,25 +1,12 @@
 import {Fragment, memo, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
-import MeasurementsPanel from 'sentry/components/events/interfaces/spans/measurementsPanel';
-import TraceViewHeader from 'sentry/components/events/interfaces/spans/newTraceDetailsHeader';
-import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
-import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import {
   boundsGenerator,
   getMeasurements,
 } from 'sentry/components/events/interfaces/spans/utils';
-import Panel from 'sentry/components/panels/panel';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
-import {
-  DividerSpacer,
-  ScrollbarContainer,
-  VirtualScrollbar,
-  VirtualScrollbarGrip,
-} from 'sentry/components/performance/waterfall/miniHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -27,21 +14,12 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
-import toPercent from 'sentry/utils/number/toPercent';
 import type {
   TraceError,
   TraceFullDetailed,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
-import type {
-  TraceShape,
-  TraceTree,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {
-  TraceDetailBody,
-  TraceViewContainer,
-  TraceViewHeaderContainer,
-} from 'sentry/views/performance/traceDetails/styles';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import TransactionGroup from 'sentry/views/performance/traceDetails/transactionGroup';
 import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
 import {
@@ -50,7 +28,6 @@ import {
   isRootEvent,
 } from 'sentry/views/performance/traceDetails/utils';
 
-import LimitExceededMessage from './limitExceededMessage';
 import type {EventDetail} from './newTraceDetailsContent';
 import TraceNotFound from './traceNotFound';
 
@@ -62,15 +39,13 @@ type AccType = {
 
 type Props = Pick<RouteComponentProps, 'location'> & {
   meta: TraceMeta | null;
-  onRowClick: (detailKey: EventDetail | SpanDetailProps | undefined) => void;
+  onRowClick: (detailKey: EventDetail | undefined) => void;
   organization: Organization;
   rootEvent: EventTransaction | undefined;
   traceEventView: EventView;
   traceSlug: string;
-  traceType: TraceShape;
   traces: TraceTree.Transaction[];
   filteredEventIds?: Set<string>;
-  handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
   traceInfo?: TraceInfo;
 };
@@ -152,8 +127,6 @@ function NewTraceView({
   traceEventView,
   filteredEventIds,
   orphanErrors,
-  traceType,
-  handleLimitChange,
   onRowClick,
   ...props
 }: Props) {
@@ -167,7 +140,6 @@ function NewTraceView({
   });
 
   const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
-  const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);
   useEffect(() => {
     trackAnalytics('performance_views.trace_view.view', {
       organization,
@@ -276,7 +248,6 @@ function NewTraceView({
   }
 
   const traceViewRef = useRef<HTMLDivElement>(null);
-  const virtualScrollbarContainerRef = useRef<HTMLDivElement>(null);
 
   if (!hasTraceData(traces, orphanErrors)) {
     return (
@@ -335,7 +306,6 @@ function NewTraceView({
 
   // Build transaction groups for orphan errors
   let numOfHiddenErrorsAbove = 0;
-  let totalNumOfHiddenErrors = 0;
   if (hasOrphanErrors) {
     orphanErrors.forEach((error, index) => {
       const isLastError = index === orphanErrors.length - 1;
@@ -346,7 +316,6 @@ function NewTraceView({
         numOfHiddenErrorsAbove = 0;
       } else {
         numOfHiddenErrorsAbove += 1;
-        totalNumOfHiddenErrors += 1;
       }
 
       transactionGroups.push(
@@ -389,132 +358,10 @@ function NewTraceView({
     });
   }
 
-  const bounds = generateBounds(traceInfo);
-  const measurements =
-    traces.length > 0 && Object.keys(traces[0]!.measurements ?? {}).length > 0
-      ? getMeasurements(traces[0]!, bounds)
-      : undefined;
-
-  const traceView = (
-    <TraceDetailBody>
-      <DividerHandlerManager.Provider interactiveLayerRef={traceViewRef}>
-        <DividerHandlerManager.Consumer>
-          {({dividerPosition}) => (
-            <ScrollbarManager.Provider
-              dividerPosition={dividerPosition}
-              interactiveLayerRef={virtualScrollbarContainerRef}
-              isEmbedded
-            >
-              <StyledTracePanel>
-                <TraceViewHeader
-                  traceInfo={traceInfo}
-                  traceType={traceType}
-                  traceViewHeaderRef={traceViewRef}
-                  organization={organization}
-                  event={props.rootEvent}
-                />
-                <TraceViewHeaderContainer>
-                  <ScrollbarManager.Consumer>
-                    {({virtualScrollbarRef, scrollBarAreaRef, onDragStart, onScroll}) => {
-                      return (
-                        <ScrollbarContainer
-                          ref={virtualScrollbarContainerRef}
-                          style={{
-                            // the width of this component is shrunk to compensate for half of the width of the divider line
-                            width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                          }}
-                          onScroll={onScroll}
-                        >
-                          <div
-                            style={{
-                              width: 0,
-                              height: '1px',
-                            }}
-                            ref={scrollBarAreaRef}
-                          />
-                          <VirtualScrollbar
-                            data-type="virtual-scrollbar"
-                            ref={virtualScrollbarRef}
-                            onMouseDown={onDragStart}
-                          >
-                            <VirtualScrollbarGrip />
-                          </VirtualScrollbar>
-                        </ScrollbarContainer>
-                      );
-                    }}
-                  </ScrollbarManager.Consumer>
-                  <DividerSpacer />
-                  {measurements ? (
-                    <MeasurementsPanel
-                      measurements={measurements}
-                      generateBounds={bounds}
-                      dividerPosition={dividerPosition}
-                    />
-                  ) : null}
-                </TraceViewHeaderContainer>
-                <TraceViewContainer ref={traceViewRef}>
-                  <TransactionGroup
-                    isBarScrolledTo={isTransactionBarScrolledTo}
-                    onBarScrolledTo={() => setIsTransactionBarScrolledTo(true)}
-                    onRowClick={onRowClick}
-                    location={location}
-                    organization={organization}
-                    traceInfo={traceInfo}
-                    transaction={{
-                      traceSlug,
-                      generation: 0,
-                      'transaction.duration':
-                        traceInfo.endTimestamp - traceInfo.startTimestamp,
-                      children: traces,
-                      start_timestamp: traceInfo.startTimestamp,
-                      timestamp: traceInfo.endTimestamp,
-                    }}
-                    measurements={measurements}
-                    generateBounds={bounds}
-                    continuingDepths={[]}
-                    isOrphan={false}
-                    isLast={false}
-                    index={0}
-                    isVisible
-                    hasGuideAnchor={false}
-                    renderedChildren={transactionGroups}
-                    barColor={pickBarColor('', theme)}
-                    onlyOrphanErrors={onlyOrphanErrors}
-                    traceViewRef={traceViewRef}
-                    numOfOrphanErrors={orphanErrors?.length}
-                  />
-                  <TraceHiddenMessage
-                    isVisible
-                    numberOfHiddenTransactionsAbove={numberOfHiddenTransactionsAbove}
-                    numberOfHiddenErrorsAbove={totalNumOfHiddenErrors}
-                  />
-                  <LimitExceededMessage
-                    traceInfo={traceInfo}
-                    organization={organization}
-                    traceEventView={traceEventView}
-                    meta={meta}
-                    handleLimitChange={handleLimitChange}
-                  />
-                </TraceViewContainer>
-              </StyledTracePanel>
-            </ScrollbarManager.Provider>
-          )}
-        </DividerHandlerManager.Consumer>
-      </DividerHandlerManager.Provider>
-    </TraceDetailBody>
-  );
+  const traceView = null;
 
   sentrySpan?.end();
 
   return traceView;
 }
 export default memo(NewTraceView);
-
-const StyledTracePanel = styled(Panel)`
-  height: 100%;
-  overflow-x: visible;
-
-  ${TraceViewContainer} {
-    overflow-x: visible;
-  }
-`;
