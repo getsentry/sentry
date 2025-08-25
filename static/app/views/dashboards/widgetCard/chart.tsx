@@ -12,7 +12,6 @@ import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
@@ -28,7 +27,7 @@ import type {
   EChartEventHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
@@ -473,10 +472,6 @@ function TableComponent({
 
   const datasetConfig = getDatasetConfig(widget.widgetType);
 
-  const getCustomFieldRenderer = (field: string, meta: MetaType, org?: Organization) => {
-    return datasetConfig.getCustomFieldRenderer?.(field, meta, widget, org) || null;
-  };
-
   return tableResults.map((result, i) => {
     const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
     const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
@@ -487,13 +482,20 @@ function TableComponent({
         field,
       })),
       tableResults[i]?.meta
-    ).map((column, index) => ({
-      key: column.key,
-      width: widget.tableWidths?.[index] ?? minTableColumnWidth ?? column.width,
-      type: column.type === 'never' ? null : column.type,
-      sortable:
-        widget.widgetType === WidgetType.RELEASE ? isAggregateField(column.key) : true,
-    }));
+    ).map((column, index) => {
+      let sortable = false;
+      if (widget.widgetType === WidgetType.RELEASE) {
+        sortable = isAggregateField(column.key);
+      } else if (widget.widgetType !== WidgetType.ISSUE) {
+        sortable = true;
+      }
+      return {
+        key: column.key,
+        width: widget.tableWidths?.[index] ?? minTableColumnWidth ?? column.width,
+        type: column.type === 'never' ? null : column.type,
+        sortable,
+      };
+    });
     const aliases = decodeColumnAliases(columns, fieldAliases, fieldHeaderMap);
     const tableData = convertTableDataToTabularData(tableResults?.[i]);
     const sort = decodeSorts(widget.queries[0]?.orderby)?.[0];
@@ -516,72 +518,50 @@ function TableComponent({
 
     return (
       <TableWrapper key={`table:${result.title}`}>
-        {organization.features.includes('dashboards-use-widget-table-visualization') ? (
-          <TableWidgetVisualization
-            columns={columns}
-            tableData={tableData}
-            frameless
-            scrollable
-            fit="max-content"
-            aliases={aliases}
-            onChangeSort={onWidgetTableSort}
-            sort={sort}
-            getRenderer={(field, _dataRow, meta) => {
-              const customRenderer = datasetConfig.getCustomFieldRenderer?.(
-                field,
-                meta as MetaType,
+        <TableWidgetVisualization
+          columns={columns}
+          tableData={tableData}
+          frameless
+          scrollable
+          fit="max-content"
+          aliases={aliases}
+          onChangeSort={onWidgetTableSort}
+          sort={sort}
+          getRenderer={(field, _dataRow, meta) => {
+            const customRenderer = datasetConfig.getCustomFieldRenderer?.(
+              field,
+              meta as MetaType,
+              widget,
+              organization
+            )!;
+
+            return customRenderer;
+          }}
+          makeBaggage={(field, _dataRow, meta) => {
+            const unit = meta.units?.[field] as string | undefined;
+
+            return {
+              location,
+              organization,
+              theme,
+              unit,
+              eventView,
+            } satisfies RenderFunctionBaggage;
+          }}
+          onResizeColumn={onWidgetTableResizeColumn}
+          allowedCellActions={cellActions}
+          onTriggerCellAction={(action, _value, dataRow) => {
+            if (action === Actions.OPEN_ROW_IN_EXPLORE) {
+              const getExploreUrl = getWidgetTableRowExploreUrlFunction(
+                selection,
                 widget,
-                organization
-              )!;
-
-              return customRenderer;
-            }}
-            makeBaggage={(field, _dataRow, meta) => {
-              const unit = meta.units?.[field] as string | undefined;
-
-              return {
-                location,
                 organization,
-                theme,
-                unit,
-                eventView,
-              } satisfies RenderFunctionBaggage;
-            }}
-            onResizeColumn={onWidgetTableResizeColumn}
-            allowedCellActions={cellActions}
-            onTriggerCellAction={(action, _value, dataRow) => {
-              if (action === Actions.OPEN_ROW_IN_EXPLORE) {
-                const getExploreUrl = getWidgetTableRowExploreUrlFunction(
-                  selection,
-                  widget,
-                  organization,
-                  dashboardFilters
-                );
-                navigate(getExploreUrl(dataRow));
-              }
-            }}
-          />
-        ) : (
-          <StyledSimpleTableChart
-            eventView={eventView}
-            fieldAliases={fieldAliases}
-            location={location}
-            fields={fields}
-            title={tableResults.length > 1 ? result.title : ''}
-            // Bypass the loading state for span widgets because this renders the loading placeholder
-            // and we want to show the underlying data during preflight instead
-            loading={widget.widgetType === WidgetType.SPANS ? false : loading}
-            loader={<LoadingPlaceholder />}
-            metadata={result.meta}
-            data={result.data}
-            stickyHeaders
-            fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
-            getCustomFieldRenderer={getCustomFieldRenderer}
-            minColumnWidth={
-              minTableColumnWidth ? minTableColumnWidth.toString() + 'px' : undefined
+                dashboardFilters
+              );
+              navigate(getExploreUrl(dataRow));
             }
-          />
-        )}
+          }}
+        />
       </TableWrapper>
     );
   });
@@ -764,11 +744,6 @@ const TableWrapper = styled('div')`
   min-height: 0;
   border-bottom-left-radius: ${p => p.theme.borderRadius};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
-`;
-
-const StyledSimpleTableChart = styled(SimpleTableChart)`
-  overflow: auto;
-  height: 100%;
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`

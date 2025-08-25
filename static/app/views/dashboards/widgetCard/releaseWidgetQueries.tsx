@@ -37,7 +37,7 @@ import type {
 } from './genericWidgetQueries';
 import GenericWidgetQueries from './genericWidgetQueries';
 
-export interface ReleaseWidgetQueriesProps {
+interface ReleaseWidgetQueriesProps {
   api: Client;
   children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
   organization: Organization;
