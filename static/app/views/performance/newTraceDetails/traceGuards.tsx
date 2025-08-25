@@ -279,3 +279,8 @@ export function isStandaloneSpanMeasurementNode(
 
   return false;
 }
+
+export function isRootEvent(value: TraceTree.NodeValue): boolean {
+  // Root events has no parent_span_id
+  return !!value && 'parent_span_id' in value && value.parent_span_id === null;
+}

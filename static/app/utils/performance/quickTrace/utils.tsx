@@ -16,7 +16,6 @@ import type {
   TraceFullDetailed,
   TraceLite,
 } from 'sentry/utils/performance/quickTrace/types';
-import type {TraceRoot} from 'sentry/views/performance/traceDetails/types';
 
 export function isTransaction(event: Event): event is EventTransaction {
   return event.type === 'transaction';
@@ -307,14 +306,8 @@ export function filterTrace(
   );
 }
 
-export function isTraceTransaction<U extends TraceFull | TraceFullDetailed>(
-  transaction: TraceRoot | TraceError | QuickTraceEvent | U
-): transaction is U {
-  return 'transaction' in transaction;
-}
-
 export function isTraceError(
-  transaction: TraceRoot | TraceError | TraceFullDetailed | QuickTraceEvent
+  transaction: TraceError | TraceFullDetailed | QuickTraceEvent
 ): transaction is TraceError {
   return 'event_type' in transaction && transaction.event_type === 'error';
 }

@@ -17,7 +17,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import useProjects from 'sentry/utils/useProjects';
-import {TraceView} from 'sentry/views/performance/newTraceDetails/index';
+import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
   makeEventTransaction,
   makeSpan,

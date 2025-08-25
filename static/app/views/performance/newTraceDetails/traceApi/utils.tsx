@@ -5,10 +5,10 @@ import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTrace
 import {
   isEAPTraceNode,
   isEAPTransaction,
+  isRootEvent,
   isTraceNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
 
 export function isEmptyTrace(trace: TraceTree.Trace): boolean {
   if (isTraceSplitResult(trace)) {
