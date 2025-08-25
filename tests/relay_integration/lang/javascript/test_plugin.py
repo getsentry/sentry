@@ -648,6 +648,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.context_line == "\treturn a + b; // fôo"
         assert frame.post_context == ["}"]
 
+    @pytest.mark.skip(reason="flaky: #98102")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_indexed_sourcemap_source_expansion(self) -> None:
