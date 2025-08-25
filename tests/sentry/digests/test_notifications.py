@@ -152,6 +152,11 @@ class SplitKeyTestCase(TestCase):
             f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}:"
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier, None)
 
+    def test_handles_none_identifier_gracefully(self) -> None:
+        assert split_key(
+            f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:None:"
+        ) == (self.project, ActionTargetType.ISSUE_OWNERS, "None", None)
+
 
 class UnsplitKeyTestCase(TestCase):
     def test_no_identifier(self) -> None:
