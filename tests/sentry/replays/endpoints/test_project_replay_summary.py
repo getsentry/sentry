@@ -19,10 +19,10 @@ from sentry.utils import json
 
 
 class MockSeerResponse:
-    def __init__(self, status: int, json_data: dict, raw_data: str | bytes):
+    def __init__(self, status: int, json_data: dict):
         self.status = status
         self.json_data = json_data
-        self.data = raw_data
+        self.data = json.dumps(json_data)
 
     def json(self):
         return self.json_data
