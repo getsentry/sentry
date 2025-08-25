@@ -119,7 +119,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 def process_message_with_profiling(
     message: Message[KafkaPayload],
 ) -> ProcessedEvent | FilteredPayload:
-    # Only initialize profiling if we have a DSN and sample rate > 0
+    # Only initialize profiling if it's enabled and we have a DSN and sample rate > 0
     profiling_dsn = getattr(
         settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
     )
@@ -132,8 +132,7 @@ def process_message_with_profiling(
     if profiling_active and profiling_enabled:
         sentry_sdk.profiler.start_profiler()
         try:
-            result = process_message(message)
-            return result
+            return process_message(message)
         finally:
             sentry_sdk.profiler.stop_profiler()
     else:
@@ -234,7 +233,7 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 
 
 def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
-    # Only initialize profiling if we have a DSN and sample rate > 0
+    # Only initialize profiling if it's enabled and we have a DSN and sample rate > 0
     profiling_dsn = getattr(
         settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
     )
