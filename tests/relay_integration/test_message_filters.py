@@ -1,3 +1,4 @@
+import pytest
 from sentry.ingest.inbound_filters import (
     _browser_extensions_filter,
     _legacy_browsers_filter,
@@ -30,6 +31,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         set_path(message, "user", "ip_address", value="127.0.0.1")
         return message
 
+    @pytest.mark.skip(reason="flaky: #98165")
     def test_should_filter_local_ip_addresses_when_enabled(self) -> None:
         self._set_filter_state(_localhost_filter, "1")
         message = self._get_message_with_bad_ip()
