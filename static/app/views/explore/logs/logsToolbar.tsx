@@ -5,7 +5,8 @@ import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {AggregationKey, prettifyTagKey} from 'sentry/utils/fields';
+import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -20,6 +21,7 @@ import {
   ToolbarVisualizeDropdown,
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   OurLogKnownFieldKey,
@@ -37,6 +39,7 @@ import {
   VisualizeFunction,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export const LOG_AGGREGATES: Array<SelectOption<OurLogsAggregate>> = [
   {
@@ -288,17 +291,41 @@ function ToolbarGroupBy({numberTags, stringTags}: LogsToolbarProps) {
         ...Object.keys(numberTags ?? {}).map(key => ({
           label: prettifyTagKey(key),
           value: key,
+          textValue: key,
+          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={key}
+              kind={FieldKind.MEASUREMENT}
+              label={key}
+              traceItemType={TraceItemDataset.LOGS}
+            />
+          ),
         })),
         ...Object.keys(stringTags ?? {}).map(key => ({
           label: prettifyTagKey(key),
           value: key,
+          textValue: key,
+          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
+          showDetailsInOverlay: true,
+          details: (
+            <AttributeDetails
+              column={key}
+              kind={FieldKind.TAG}
+              label={key}
+              traceItemType={TraceItemDataset.LOGS}
+            />
+          ),
         })),
       ].toSorted((a, b) => {
-        if (a.label < b.label) {
+        const aLabel = prettifyTagKey(a.value);
+        const bLabel = prettifyTagKey(b.value);
+        if (aLabel < bLabel) {
           return -1;
         }
 
-        if (a.label > b.label) {
+        if (aLabel > bLabel) {
           return 1;
         }
 
