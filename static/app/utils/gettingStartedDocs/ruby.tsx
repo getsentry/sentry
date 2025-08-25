@@ -82,7 +82,9 @@ end`,
         {
           type: 'code',
           language: 'ruby',
-          code: `logger = Logger.new($stdout)
+          code: `require 'logger'
+
+logger = Logger.new($stdout)
 logger.info("Sentry test log from stdlib logger")`,
         },
         {
