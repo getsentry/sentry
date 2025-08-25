@@ -1181,6 +1181,10 @@ function OpenButton({
       openLabel = t('Open in Explore');
       path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
       break;
+    case WidgetType.LOGS:
+      openLabel = t('Open in Explore');
+      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
+      break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
