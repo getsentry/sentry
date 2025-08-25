@@ -579,9 +579,7 @@ sentry_sdk.init(
               code: `
 from anthropic import Anthropic
 
-client = Anthropic(
-    api_key=os.environ.get("ANTHROPIC_API_KEY"),
-)
+client = Anthropic()
 message = client.messages.create(
     max_tokens=1024,
     messages=[
