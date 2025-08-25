@@ -394,12 +394,13 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
-        assert GroupOwner.objects.get(
+        created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
             project=self.event.project,
             organization=self.event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-        ).context == {
+        )
+        assert created_group_owner.context == {
             "commitId": created_commit.id,
             "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
         }
