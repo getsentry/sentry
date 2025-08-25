@@ -13,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import ModalStore from 'sentry/stores/modalStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import IntegrationCodeMappings from 'sentry/views/settings/organizationIntegrations/integrationCodeMappings';
 
@@ -59,7 +58,6 @@ describe('IntegrationCodeMappings', () => {
   });
 
   beforeEach(() => {
-    ModalStore.init();
     ProjectsStore.loadInitialData(projects);
 
     MockApiClient.addMockResponse({
@@ -77,8 +75,6 @@ describe('IntegrationCodeMappings', () => {
   });
 
   afterEach(() => {
-    // Clear the fields from the GlobalModal after every test
-    ModalStore.reset();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });

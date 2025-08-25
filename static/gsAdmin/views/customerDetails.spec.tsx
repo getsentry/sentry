@@ -31,7 +31,6 @@ import {
 import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
@@ -685,7 +684,6 @@ describe('Customer Details', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
   it('populates chart data', () => {
@@ -3555,7 +3553,6 @@ describe('Customer Details', () => {
     afterEach(() => {
       MockApiClient.clearMockResponses();
       jest.restoreAllMocks();
-      ModalStore.reset();
     });
 
     it('shows option when feature flag is enabled', async () => {

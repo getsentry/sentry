@@ -56,7 +56,6 @@ describe('GroupActions', () => {
 
   beforeEach(() => {
     ConfigStore.init();
-    ModalStore.init();
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();

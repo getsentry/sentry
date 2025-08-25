@@ -13,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import ModalStore from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import ProjectSeer from 'sentry/views/settings/projectSeer';
@@ -36,7 +35,6 @@ describe('ProjectSeer', () => {
   let organization: Organization;
 
   beforeEach(() => {
-    ModalStore.init();
     project = ProjectFixture();
     organization = OrganizationFixture({
       features: ['autofix-seer-preferences'],

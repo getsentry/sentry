@@ -6,7 +6,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
-import ModalStore from 'sentry/stores/modalStore';
 import type {CustomRepo, CustomRepoHttp} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 import CustomRepositories from 'sentry/views/settings/projectDebugFiles/sources/customRepositories';
@@ -55,10 +54,6 @@ describe('Custom Repositories', () => {
     url: 'https://msdl.microsoft.com/download/symbols/',
     username: 'admin',
   };
-
-  beforeEach(() => {
-    ModalStore.reset();
-  });
 
   beforeAll(async () => {
     // TODO: figure out why this transpile is so slow

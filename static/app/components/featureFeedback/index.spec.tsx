@@ -6,13 +6,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
-import ModalStore from 'sentry/stores/modalStore';
 
 describe('FeatureFeedback', () => {
-  beforeEach(() => {
-    ModalStore.reset();
-  });
-
   it('shows the modal on click', async () => {
     render(<FeatureFeedback featureName="test" />);
     renderGlobalModal();

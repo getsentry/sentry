@@ -13,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventTags} from 'sentry/components/events/eventTags';
-import ModalStore from 'sentry/stores/modalStore';
 
 describe('EventTagsTree', () => {
   const {organization, project} = initializeOrg();
@@ -67,7 +66,6 @@ describe('EventTagsTree', () => {
   let mockDetailedProject: jest.Mock;
 
   beforeEach(() => {
-    ModalStore.reset();
     MockApiClient.clearMockResponses();
     mockDetailedProject = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,

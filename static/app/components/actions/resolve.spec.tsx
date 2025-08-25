@@ -10,13 +10,9 @@ import {
 import selectEvent from 'sentry-test/selectEvent';
 
 import ResolveActions from 'sentry/components/actions/resolve';
-import ModalStore from 'sentry/stores/modalStore';
 
 describe('ResolveActions', () => {
   const spy = jest.fn();
-  beforeEach(() => {
-    ModalStore.reset();
-  });
   afterEach(() => {
     spy.mockClear();
     MockApiClient.clearMockResponses();

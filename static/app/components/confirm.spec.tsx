@@ -10,14 +10,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import Confirm from 'sentry/components/confirm';
-import ModalStore from 'sentry/stores/modalStore';
 
 describe('Confirm', () => {
   beforeEach(() => {
     jest.useRealTimers();
-  });
-  afterEach(() => {
-    ModalStore.reset();
   });
 
   it('renders', () => {

@@ -18,7 +18,6 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -157,7 +156,6 @@ describe('OrganizationMembersList', () => {
       },
     });
     OrganizationsStore.load([organization]);
-    ModalStore.init();
   });
 
   it('can remove a member', async () => {

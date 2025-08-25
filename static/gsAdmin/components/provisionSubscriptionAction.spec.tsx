@@ -16,7 +16,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 
 import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
@@ -84,7 +83,6 @@ describe('provisionSubscriptionAction', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
   it('renders modal with form', async () => {
