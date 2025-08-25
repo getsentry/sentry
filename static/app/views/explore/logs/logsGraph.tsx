@@ -124,6 +124,7 @@ function Graph({timeseriesResult, visualize}: GraphProps) {
       Footer={
         <ConfidenceFooter chartInfo={chartInfo} isLoading={timeseriesResult.isLoading} />
       }
+      height={200}
       revealActions="always"
     />
   );
