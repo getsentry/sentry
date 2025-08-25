@@ -43,7 +43,6 @@ from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     get_slow_conditions_for_groups,
 )
-from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
 from sentry.workflow_engine.tasks.delayed_workflows import (
     DelayedWorkflow,
     EventInstance,

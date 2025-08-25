@@ -23,9 +23,7 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_source import process_data_source
-from sentry.workflow_engine.processors.delayed_workflow import process_delayed_workflows
 from sentry.workflow_engine.processors.detector import process_detectors
-from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
 from sentry.workflow_engine.tasks.delayed_workflows import (
     DelayedWorkflow,
     process_delayed_workflows,
@@ -498,5 +496,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
                 max=timezone.now().timestamp(),
             )
 
+            process_delayed_workflows(list(project_ids.keys())[0])
+            mock_trigger.assert_called_once()
             process_delayed_workflows(list(project_ids.keys())[0])
             mock_trigger.assert_called_once()
