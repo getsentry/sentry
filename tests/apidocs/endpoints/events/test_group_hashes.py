@@ -4,7 +4,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ProjectGroupHashesDocs(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.create_event("a")
         event = self.create_event("b")
 

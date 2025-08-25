@@ -7,7 +7,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class OrganizationReleaseDetailsDocsTest(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org2 = self.create_organization()

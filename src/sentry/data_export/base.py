@@ -9,7 +9,7 @@ DEFAULT_EXPIRATION = timedelta(weeks=4)
 
 
 class ExportError(Exception):
-    def __init__(self, message: str, recoverable: bool = False) -> None:
+    def __init__(self, message, recoverable=False):
         super().__init__(message)
         self.recoverable = recoverable
 
@@ -27,31 +27,29 @@ class ExportQueryType:
     DISCOVER_STR = "Discover"
 
     @classmethod
-    def as_choices(cls) -> tuple[tuple[int, str], tuple[int, str]]:
+    def as_choices(cls):
         return (
             (cls.ISSUES_BY_TAG, str(cls.ISSUES_BY_TAG_STR)),
             (cls.DISCOVER, str(cls.DISCOVER_STR)),
         )
 
     @classmethod
-    def as_str_choices(cls) -> tuple[tuple[str, str], tuple[str, str]]:
+    def as_str_choices(cls):
         return (
             (cls.ISSUES_BY_TAG_STR, cls.ISSUES_BY_TAG_STR),
             (cls.DISCOVER_STR, cls.DISCOVER_STR),
         )
 
     @classmethod
-    def as_str(cls, integer: int) -> str:
+    def as_str(cls, integer):
         if integer == cls.ISSUES_BY_TAG:
             return cls.ISSUES_BY_TAG_STR
         elif integer == cls.DISCOVER:
             return cls.DISCOVER_STR
-        raise ValueError(f"Invalid ExportQueryType: {integer}")
 
     @classmethod
-    def from_str(cls, string: str) -> int:
+    def from_str(cls, string):
         if string == cls.ISSUES_BY_TAG_STR:
             return cls.ISSUES_BY_TAG
         elif string == cls.DISCOVER_STR:
             return cls.DISCOVER
-        raise ValueError(f"Invalid ExportQueryType: {string}")

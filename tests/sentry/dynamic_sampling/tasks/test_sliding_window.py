@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.utils import timezone
 
@@ -15,7 +15,7 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 @freeze_time(MOCK_DATETIME)
 class SlidingWindowOrgSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @property
-    def now(self) -> datetime:
+    def now(self):
         return MOCK_DATETIME
 
     def test_query_with_one_org_and_multiple_projects(self) -> None:

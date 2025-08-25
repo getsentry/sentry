@@ -105,13 +105,13 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
 
 
 def load_data(
-    platform: str,
-    default: str | None = None,
-    sample_name: str | None = None,
+    platform,
+    default=None,
+    sample_name=None,
     timestamp=None,
     start_timestamp=None,
-    trace: str | None = None,
-    span_id: str | None = None,
+    trace=None,
+    span_id=None,
     spans=None,
     trace_context=None,
     fingerprint=None,

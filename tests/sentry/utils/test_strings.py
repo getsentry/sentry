@@ -42,7 +42,7 @@ SHY = "\u00ad"  # soft hyphen
         ("hello\nworld", "hello\nworld"),
     ),
 )
-def test_unescape_string(s: str, expected: str) -> None:
+def test_unescape_string(s, expected) -> None:
     assert unescape_string(s) == expected
 
 

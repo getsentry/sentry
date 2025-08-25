@@ -93,7 +93,7 @@ class Unit:
             parameters=[query_expression, self.scaling_factor],
         )
 
-    def __hash__(self) -> int:
+    def __hash__(self):
         return hash(self.name)
 
 

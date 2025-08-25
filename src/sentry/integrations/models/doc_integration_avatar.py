@@ -29,5 +29,5 @@ class DocIntegrationAvatar(ControlAvatarBase):
 
     url_path = "doc-integration-avatar"
 
-    def get_cache_key(self, size) -> str:
+    def get_cache_key(self, size):
         return f"doc_integration_avatar:{self.doc_integration_id}:{size}"

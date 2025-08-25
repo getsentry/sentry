@@ -50,7 +50,7 @@ class BitbucketIssueTest(APITestCase):
             ("myaccount/repo2", "myaccount/repo2"),
         ]
 
-    def build_autocomplete_url(self) -> str:
+    def build_autocomplete_url(self):
         return "/extensions/bitbucket/search/baz/%d/" % self.integration.id
 
     @responses.activate

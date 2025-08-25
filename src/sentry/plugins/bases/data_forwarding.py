@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class DataForwardingPlugin(Plugin):
-    def has_project_conf(self) -> bool:
+    def has_project_conf(self):
         return True
 
     def get_rate_limit(self):
@@ -28,10 +28,10 @@ class DataForwardingPlugin(Plugin):
     def get_event_payload(self, event):
         return serialize(event)
 
-    def get_plugin_type(self) -> str:
+    def get_plugin_type(self):
         return "data-forwarding"
 
-    def get_rl_key(self, event) -> str:
+    def get_rl_key(self, event):
         return f"{self.conf_key}:{event.project.organization_id}"
 
     def initialize_variables(self, event):

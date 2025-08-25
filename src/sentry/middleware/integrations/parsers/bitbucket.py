@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from django.http.response import HttpResponseBase
-
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.bitbucket.webhook import BitbucketWebhookEndpoint
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
@@ -19,7 +17,7 @@ class BitbucketRequestParser(BaseRequestParser):
     provider = IntegrationProviderSlug.BITBUCKET.value
     webhook_identifier = WebhookProviderIdentifier.BITBUCKET
 
-    def get_bitbucket_webhook_response(self) -> HttpResponseBase:
+    def get_bitbucket_webhook_response(self):
         """
         Used for identifying regions from Bitbucket and Bitbucket Server webhooks
         """
@@ -52,7 +50,7 @@ class BitbucketRequestParser(BaseRequestParser):
             regions=[region], identifier=mapping.organization_id
         )
 
-    def get_response(self) -> HttpResponseBase:
+    def get_response(self):
         if self.view_class == BitbucketWebhookEndpoint:
             return self.get_bitbucket_webhook_response()
         return self.get_response_from_control_silo()

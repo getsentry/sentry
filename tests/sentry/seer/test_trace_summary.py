@@ -86,7 +86,7 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
 
         cache.clear()
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         super().tearDown()
         cache.delete(f"ai-trace-summary:{self.trace_id}")
 

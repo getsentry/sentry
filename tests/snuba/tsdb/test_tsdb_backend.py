@@ -52,7 +52,7 @@ def has_shape(data, shape):
 
 
 class SnubaTSDBTest(TestCase, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
 
         self.db = SnubaTSDB()
@@ -606,7 +606,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
 
 
 class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
 
         self.db = SnubaTSDB()
@@ -884,7 +884,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
 
 
 class AddJitterToSeriesTest(TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.db = SnubaTSDB()
 
     def run_test(self, end, interval, jitter, expected_start, expected_end):

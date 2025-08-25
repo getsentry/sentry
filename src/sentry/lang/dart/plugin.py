@@ -13,7 +13,7 @@ class DartPlugin(Plugin2):
     This plugin is responsible for Dart specific processing on events or attachments.
     """
 
-    def can_configure_for_project(self, project, **kwargs) -> bool:
+    def can_configure_for_project(self, project, **kwargs):
         return False
 
     def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:

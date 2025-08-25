@@ -15,7 +15,7 @@ from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 class MonitorValidatorCreateTest(MonitorTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(self.user)
 

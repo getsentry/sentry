@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ProjectUserFeedbackDocs(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         event = self.create_event("a", message="oh no")
         self.event_id = event.event_id
         self.create_userreport(

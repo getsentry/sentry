@@ -30,7 +30,7 @@ class TestGitHub(TestCase):
         self.subpath = "secret_scanning"
 
     @responses.activate
-    def _verify(self) -> None:
+    def _verify(self):
         responses.add(
             responses.GET,
             "https://api.github.com/meta/public_keys/secret_scanning",

@@ -31,7 +31,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1)

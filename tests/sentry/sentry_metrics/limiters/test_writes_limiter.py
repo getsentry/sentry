@@ -16,7 +16,7 @@ WRITES_LIMITERS = {
 }
 
 
-def get_writes_limiter(namespace: str) -> WritesLimiter:
+def get_writes_limiter(namespace: str):
     return WRITES_LIMITERS[namespace]
 
 

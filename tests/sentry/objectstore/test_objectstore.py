@@ -12,7 +12,7 @@ class Testserver:
     secret = ""
 
 
-def test_stores_uncompressed() -> None:
+def test_stores_uncompressed():
     server = Testserver()
     client = ClientBuilder(
         "test", {"base_url": server.url, "jwt_secret": server.secret}
@@ -28,7 +28,7 @@ def test_stores_uncompressed() -> None:
     assert result.payload.read() == b"oh hai!"
 
 
-def test_uses_zstd_by_default() -> None:
+def test_uses_zstd_by_default():
     server = Testserver()
     client = ClientBuilder(
         "test", {"base_url": server.url, "jwt_secret": server.secret}
@@ -51,7 +51,7 @@ def test_uses_zstd_by_default() -> None:
     assert result.payload.read() == b"oh hai!"
 
 
-def test_deletes_stored_stuff() -> None:
+def test_deletes_stored_stuff():
     server = Testserver()
     client = ClientBuilder(
         "test", {"base_url": server.url, "jwt_secret": server.secret}

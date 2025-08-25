@@ -13,7 +13,7 @@ from tools import docker_memory_check
         ("never", False),
     ),
 )
-def test_should_use_color_forced(option: str, expected: bool) -> None:
+def test_should_use_color_forced(option, expected) -> None:
     assert docker_memory_check.should_use_color(option) is expected
 
 

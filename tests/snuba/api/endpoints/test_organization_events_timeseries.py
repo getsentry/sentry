@@ -14,7 +14,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.authed_user = self.user

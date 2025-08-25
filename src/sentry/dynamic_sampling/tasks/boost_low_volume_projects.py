@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
@@ -310,7 +308,6 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     """
     func_name = fetch_projects_with_total_root_transaction_count_and_rates.__name__
     timer = context.get_timer(func_name)
-    aggregated_projects = defaultdict(list)
     with timer:
         context.incr_function_state(func_name, num_iterations=1)
 
@@ -321,6 +318,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
                 query_interval,
             )
         )
+        aggregated_projects = defaultdict(list)
         for chunk in TimedIterator(context, project_count_query_iter, func_name):
             for org_id, project_id, root_count_value, keep_count, drop_count in chunk:
                 aggregated_projects[org_id].append(
@@ -340,7 +338,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
             )
             context.get_function_state(func_name).num_orgs = len(aggregated_projects)
 
-    return aggregated_projects
+        return aggregated_projects
 
 
 def query_project_counts_by_org(

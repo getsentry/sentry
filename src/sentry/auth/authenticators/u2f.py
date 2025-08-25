@@ -3,7 +3,7 @@ from __future__ import annotations
 from base64 import urlsafe_b64encode
 from functools import cached_property
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import orjson
@@ -28,15 +28,14 @@ from sentry.utils.http import absolute_uri
 from .base import ActivationChallengeResult, AuthenticatorInterface
 
 if TYPE_CHECKING:
-    from sentry.users.models.authenticator import Authenticator
     from sentry.users.models.user import User
 
 
-def decode_credential_id(device: dict[str, Any]) -> str:
+def decode_credential_id(device) -> str:
     return urlsafe_b64encode(device["binding"].credential_data.credential_id).decode("ascii")
 
 
-def create_credential_object(registeredKey: dict[str, str]) -> base.AttestedCredentialData:
+def create_credential_object(registeredKey: dict[str, str]) -> base:
     return base.AttestedCredentialData.from_ctap1(
         websafe_decode(registeredKey["keyHandle"]),
         websafe_decode(registeredKey["publicKey"]),
@@ -72,9 +71,7 @@ class U2fInterface(AuthenticatorInterface):
         return Fido2Server(self.rp)
 
     def __init__(
-        self,
-        authenticator: Authenticator | None = None,
-        status: EnrollmentStatus = EnrollmentStatus.EXISTING,
+        self, authenticator=None, status: EnrollmentStatus = EnrollmentStatus.EXISTING
     ) -> None:
         super().__init__(authenticator, status)
 
@@ -83,24 +80,24 @@ class U2fInterface(AuthenticatorInterface):
         )
 
     @classproperty
-    def u2f_app_id(cls) -> str:
+    def u2f_app_id(cls):
         rv = options.get("u2f.app-id")
         return rv or absolute_uri(reverse("sentry-u2f-app-id"))
 
     @classproperty
-    def u2f_facets(cls) -> list[str]:
+    def u2f_facets(cls):
         facets = options.get("u2f.facets")
         if not facets:
             return [_get_url_prefix()]
         return [x.rstrip("/") for x in facets]
 
     @classproperty
-    def is_available(cls) -> bool:
+    def is_available(cls):
         url_prefix = _get_url_prefix()
-        return bool(url_prefix) and url_prefix.startswith("https://")
+        return url_prefix and url_prefix.startswith("https://")
 
-    def _get_kept_devices(self, key: str) -> list[dict[str, Any]]:
-        def _key_does_not_match(device: dict[str, Any]) -> bool:
+    def _get_kept_devices(self, key: str):
+        def _key_does_not_match(device):
             if isinstance(device["binding"], AuthenticatorData):
                 return decode_credential_id(device) != key
             else:
@@ -108,7 +105,7 @@ class U2fInterface(AuthenticatorInterface):
 
         return [device for device in self.config.get("devices", ()) if _key_does_not_match(device)]
 
-    def generate_new_config(self) -> dict[str, Any]:
+    def generate_new_config(self):
         return {}
 
     def start_enrollment(self, user: User) -> tuple[cbor, Fido2Server]:
@@ -126,7 +123,7 @@ class U2fInterface(AuthenticatorInterface):
         )
         return cbor.encode(registration_data), state
 
-    def get_u2f_devices(self) -> list[AuthenticatorData | DeviceRegistration]:
+    def get_u2f_devices(self):
         rv = []
         for data in self.config.get("devices", ()):
             # XXX: The previous version of python-u2flib-server didn't store
@@ -139,7 +136,7 @@ class U2fInterface(AuthenticatorInterface):
                 rv.append(DeviceRegistration(data["binding"]))
         return rv
 
-    def credentials(self) -> list[base.AttestedCredentialData]:
+    def credentials(self):
         credentials = []
         # there are 2 types of registered keys from the registered devices, those with type
         # AuthenticatorData are those from WebAuthn registered devices that we don't have to modify
@@ -162,16 +159,15 @@ class U2fInterface(AuthenticatorInterface):
             return True
         return False
 
-    def get_device_name(self, key: str) -> str | None:
+    def get_device_name(self, key: str):
         for device in self.config.get("devices", ()):
             if isinstance(device["binding"], AuthenticatorData):
                 if decode_credential_id(device) == key:
                     return device["name"]
             elif device["binding"]["keyHandle"] == key:
                 return device["name"]
-        return None
 
-    def get_registered_devices(self) -> list[dict[str, Any]]:
+    def get_registered_devices(self):
         rv = []
         for device in self.config.get("devices", ()):
             if isinstance(device["binding"], AuthenticatorData):
@@ -196,11 +192,7 @@ class U2fInterface(AuthenticatorInterface):
         return rv
 
     def try_enroll(
-        self,
-        enrollment_data: str,
-        response_data: str,
-        device_name: str | None = None,
-        state: dict[str, Any] | None = None,
+        self, enrollment_data: str, response_data: str, device_name=None, state=None
     ) -> None:
         data = orjson.loads(response_data)
         client_data = ClientData(websafe_decode(data["response"]["clientDataJSON"]))
@@ -219,9 +211,7 @@ class U2fInterface(AuthenticatorInterface):
         request.session["webauthn_authentication_state"] = state
         return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
 
-    def validate_response(
-        self, request: HttpRequest, challenge: bytes | None, response: dict[str, Any]
-    ) -> bool:
+    def validate_response(self, request: HttpRequest, challenge, response) -> bool:
         try:
             credentials = self.credentials()
             self.webauthn_authentication_server.authenticate_complete(

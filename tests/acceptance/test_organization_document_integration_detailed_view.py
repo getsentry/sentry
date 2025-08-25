@@ -8,7 +8,7 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
     As a developer, I can view an document-based integration, and learn more about it with the linked resources.
     """
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.user, name="Walter Mitty")
         self.doc = self.create_doc_integration(
@@ -16,7 +16,7 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def load_page(self, slug: str) -> None:
+    def load_page(self, slug):
         url = f"/settings/{self.organization.slug}/document-integrations/{slug}/"
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')

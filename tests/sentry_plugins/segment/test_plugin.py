@@ -13,7 +13,7 @@ def test_conf_key() -> None:
 
 class SegmentPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self) -> SegmentPlugin:
+    def plugin(self):
         return SegmentPlugin()
 
     @responses.activate

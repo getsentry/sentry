@@ -21,7 +21,7 @@ from sentry_plugins.github.testutils import (
 
 class GitHubPluginTest(TestCase):
     @cached_property
-    def provider(self) -> GitHubRepositoryProvider:
+    def provider(self):
         return GitHubRepositoryProvider("github")
 
     def test_compare_commits(self) -> None:
@@ -172,7 +172,7 @@ class GitHubPluginTest(TestCase):
 
 class GitHubAppsProviderTest(TestCase):
     @cached_property
-    def provider(self) -> GitHubAppsRepositoryProvider:
+    def provider(self):
         return GitHubAppsRepositoryProvider("github_apps")
 
     @patch.object(
@@ -185,7 +185,7 @@ class GitHubAppsProviderTest(TestCase):
         "get_installations",
         return_value=orjson.loads(LIST_INSTALLATION_API_RESPONSE),
     )
-    def test_link_auth(self, *args: MagicMock) -> None:
+    def test_link_auth(self, *args) -> None:
         user = self.create_user()
         organization = self.create_organization()
         self.create_usersocialauth(

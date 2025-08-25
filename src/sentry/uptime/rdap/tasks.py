@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
         processing_deadline_duration=30,
     ),
 )
-def fetch_subscription_rdap_info(subscription_id: int) -> None:
+def fetch_subscription_rdap_info(subscription_id: int):
     """
     Fetches the RDAP network details for a subscriptions host and populates the
     host_provider fields in the subscription.
@@ -35,17 +35,17 @@ def fetch_subscription_rdap_info(subscription_id: int) -> None:
     except UptimeSubscription.DoesNotExist:
         # Nothing to do if this subscription was removed before we could fetch
         # the rdap details.
-        return None
+        return
 
     parsed_url = urlparse(sub.url)
 
     if parsed_url.hostname is None:
         logger.warning("rdap_url_missing_hostname", extra={"url": sub.url})
-        return None
+        return
 
     details = resolve_rdap_network_details(parsed_url.hostname)
     if details is None:
         logger.info("rdap_resolve_network_details_failure", extra={"url": sub.url})
-        return None
+        return
 
     sub.update(host_provider_id=details["handle"], host_provider_name=details["owner_name"])
