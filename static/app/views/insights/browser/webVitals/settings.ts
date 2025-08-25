@@ -12,7 +12,7 @@ export const MODULE_DOC_LINK =
 export const DEFAULT_QUERY_FILTER =
   'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"';
 
-export const MODULE_FEATURES = ['insights-initial-modules'];
+export const MODULE_FEATURES = ['insight-modules'];
 
 export const FIELD_ALIASES = {
   'p75(measurements.lcp)': 'LCP',

@@ -5,7 +5,7 @@ import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 
 describe('chartPanel', () => {
   const {organization} = initializeOrg({
-    organization: {features: ['insights-alerts', 'insights-initial-modules']},
+    organization: {features: ['insights-alerts', 'insight-modules']},
   });
   it('should render', () => {
     render(

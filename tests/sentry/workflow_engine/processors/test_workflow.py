@@ -89,7 +89,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.event_data, FROZEN_TIME)
         assert triggered_workflows == {self.error_workflow}
 
-    @patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
+    @patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
     def test_populate_workflow_env_for_filters(self, mock_filter: MagicMock) -> None:
         # this should not pass because the environment is not None
         self.error_workflow.update(environment=self.group_event.get_environment())
@@ -472,7 +472,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.mock_redis_buffer.__exit__(None, None, None)
 
     def test_enqueues_workflow_all_logic_type(self) -> None:
@@ -1004,7 +1004,7 @@ class TestDeleteWorkflow:
             "action_condition",
         ],
     )
-    def test_delete_workflow(self, instance_attr) -> None:
+    def test_delete_workflow(self, instance_attr: str) -> None:
         instance = getattr(self, instance_attr)
         instance_id = instance.id
         cls = instance.__class__
