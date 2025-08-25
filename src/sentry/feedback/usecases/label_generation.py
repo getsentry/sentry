@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 class LabelRequest(TypedDict):
     """Corresponds to GenerateFeedbackLabelsRequest in Seer."""
 
-    organization_id: int
     feedback_message: str
 
 
@@ -31,14 +30,13 @@ seer_connection_pool = connection_from_url(
 
 
 @metrics.wraps("feedback.generate_labels")
-def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
+def generate_labels(feedback_message: str) -> list[str]:
     """
     Generate labels for a feedback message.
 
     Raises exception if anything goes wrong during the API call or response processing.
     """
     request = LabelRequest(
-        organization_id=organization_id,
         feedback_message=feedback_message,
     )
 

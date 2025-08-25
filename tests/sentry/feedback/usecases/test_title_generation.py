@@ -62,7 +62,7 @@ def test_get_feedback_title_from_seer_invalid_response(
     """Test the get_feedback_title_from_seer function with various invalid responses."""
     mock_response = MockSeerResponse(status_code, json_data, raw_data)
     mock_make_seer_request.return_value = mock_response
-    assert get_feedback_title_from_seer("Login button broken", 123) is None
+    assert get_feedback_title_from_seer("Login button broken") is None
     mock_make_seer_request.assert_called_once()
 
 
@@ -71,7 +71,7 @@ def test_get_feedback_title_from_seer_http_error(mock_make_seer_request):
     """Test the get_feedback_title_from_seer function with HTTP error response."""
     mock_response = MockSeerResponse(500, {}, "Internal Server Error")
     mock_make_seer_request.return_value = mock_response
-    assert get_feedback_title_from_seer("Login button broken", 123) is None
+    assert get_feedback_title_from_seer("Login button broken") is None
     mock_make_seer_request.assert_called_once()
 
 
@@ -79,7 +79,7 @@ def test_get_feedback_title_from_seer_http_error(mock_make_seer_request):
 def test_get_feedback_title_from_seer_exception(mock_make_seer_request):
     """Test the get_feedback_title_from_seer function with exception during API call."""
     mock_make_seer_request.side_effect = Exception("Network error")
-    assert get_feedback_title_from_seer("Login button broken", 123) is None
+    assert get_feedback_title_from_seer("Login button broken") is None
     mock_make_seer_request.assert_called_once()
 
 
@@ -90,7 +90,7 @@ def test_get_feedback_title_from_seer_success(mock_make_seer_request):
         200, {"title": "Login Button Issue"}, '{"title": "Login Button Issue"}'
     )
     mock_make_seer_request.return_value = mock_response
-    assert "Login Button Issue" == get_feedback_title_from_seer("Login button broken", 123)
+    assert "Login Button Issue" == get_feedback_title_from_seer("Login button broken")
     mock_make_seer_request.assert_called_once()
 
 

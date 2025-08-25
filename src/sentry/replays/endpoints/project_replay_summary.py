@@ -43,7 +43,7 @@ seer_connection_pool = connection_from_url(
 class ReplaySummaryPermission(ProjectPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],
-        "POST": ["event:write", "event:admin"],
+        "POST": ["event:read", "event:write", "event:admin"],
         "PUT": [],
         "DELETE": [],
     }

@@ -66,7 +66,6 @@ class LabelGroupFeedbacksContext(TypedDict):
 class LabelGroupsRequest(TypedDict):
     """Corresponds to GenerateFeedbackLabelGroupsRequest in Seer."""
 
-    organization_id: int
     labels: list[str]
     # Providing the LLM context so it knows what labels are used in the same context and are direct children
     feedbacks_context: list[LabelGroupFeedbacksContext]
@@ -205,7 +204,6 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         top_labels = [result["label"] for result in top_labels_result]
 
         seer_request = LabelGroupsRequest(
-            organization_id=organization.id,
             labels=top_labels,
             feedbacks_context=context_feedbacks,
         )

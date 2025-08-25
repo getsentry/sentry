@@ -15,7 +15,7 @@ from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.match import MatchType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
@@ -122,7 +122,7 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project.id)
         buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project2.id)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.mock_redis_buffer.__exit__(None, None, None)
 
     def create_project_event_freq_workflow(
@@ -512,7 +512,7 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
 
 @freeze_time(FROZEN_TIME)
 class TestGetSnubaResults(BaseWorkflowTest):
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
 
     def create_events(self, comparison_type: ComparisonType) -> Event:
@@ -893,10 +893,15 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.group2.id: set(self.workflow2_if_dcgs),
         }
 
-        self.group_to_groupevent = {
-            self.group1: self.event1.for_group(self.group1),
-            self.group2: self.event2.for_group(self.group2),
-        }
+        self.group_to_groupevent: dict[Group, tuple[GroupEvent, datetime | None]] = {}
+        self.group_to_groupevent[self.group1] = (
+            self.event1.for_group(self.group1),
+            None,
+        )
+        self.group_to_groupevent[self.group2] = (
+            self.event2.for_group(self.group2),
+            None,
+        )
 
     def test_bulk_fetch_events(self) -> None:
         event_ids = [self.event1.event_id, self.event2.event_id]

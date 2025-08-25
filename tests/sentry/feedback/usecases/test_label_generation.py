@@ -27,14 +27,13 @@ def test_generate_labels_success_response(mock_make_seer_request) -> None:
     mock_make_seer_request.return_value = mock_response
 
     labels = generate_labels(
-        "I don't like the new right sidebar, it makes navigating everywhere hard!", 1
+        "I don't like the new right sidebar, it makes navigating everywhere hard!"
     )
 
     mock_make_seer_request.assert_called_once()
     request_body = json.loads(mock_make_seer_request.call_args[1]["body"].decode("utf-8"))
     expected_request = {
         "feedback_message": "I don't like the new right sidebar, it makes navigating everywhere hard!",
-        "organization_id": 1,
     }
     assert request_body == expected_request
 
@@ -51,15 +50,12 @@ def test_generate_labels_failed_response(mock_make_seer_request) -> None:
     mock_make_seer_request.return_value = mock_response
 
     with pytest.raises(Exception, match="Seer returned non-200 response"):
-        generate_labels(
-            "I don't like the new right sidebar, it makes navigating everywhere hard!", 1
-        )
+        generate_labels("I don't like the new right sidebar, it makes navigating everywhere hard!")
 
     mock_make_seer_request.assert_called_once()
     request_body = json.loads(mock_make_seer_request.call_args[1]["body"].decode("utf-8"))
     expected_request = {
         "feedback_message": "I don't like the new right sidebar, it makes navigating everywhere hard!",
-        "organization_id": 1,
     }
     assert request_body == expected_request
 
@@ -68,15 +64,12 @@ def test_generate_labels_failed_response(mock_make_seer_request) -> None:
 def test_generate_labels_network_error(mock_make_seer_request) -> None:
     mock_make_seer_request.side_effect = requests.exceptions.Timeout("Request timed out")
 
-    with pytest.raises(requests.exceptions.Timeout):
-        generate_labels(
-            "I don't like the new right sidebar, it makes navigating everywhere hard!", 1
-        )
+    with pytest.raises(requests.exceptions.Timeout, match="Request timed out"):
+        generate_labels("I don't like the new right sidebar, it makes navigating everywhere hard!")
 
     mock_make_seer_request.assert_called_once()
     request_body = json.loads(mock_make_seer_request.call_args[1]["body"].decode("utf-8"))
     expected_request = {
         "feedback_message": "I don't like the new right sidebar, it makes navigating everywhere hard!",
-        "organization_id": 1,
     }
     assert request_body == expected_request

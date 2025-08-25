@@ -43,7 +43,7 @@ def memoized_tick_decision(tick: datetime) -> TickAnomalyDecision | None:
 
 def _process_incident_occurrence(
     message: Message[KafkaPayload | FilteredPayload], txn: Transaction | Span
-):
+) -> None:
     """
     Process a incident occurrence message. This will immediately dispatch an
     issue occurrence via send_incident_occurrence.
@@ -74,7 +74,7 @@ def _process_incident_occurrence(
         incident = MonitorIncident.objects.get(id=int(wrapper["incident_id"]))
     except MonitorIncident.DoesNotExist:
         logger.exception("missing_incident")
-        return
+        return None
 
     # previous_checkin_ids includes the failed_checkin_id
     checkins = MonitorCheckIn.objects.filter(id__in=wrapper["previous_checkin_ids"])
@@ -89,7 +89,7 @@ def _process_incident_occurrence(
     # Unlikely, but if we can't find all the check-ins we can't produce an occurrence
     if failed_checkin is None or not has_all(previous_checkins):
         logger.error("missing_check_ins")
-        return
+        return None
 
     received = datetime.fromtimestamp(wrapper["received_ts"], UTC)
 
@@ -115,7 +115,7 @@ def _process_incident_occurrence(
         # Do NOT send the occurrence
         txn.set_tag("result", "dropped")
         metrics.incr("monitors.incident_ocurrences.dropped_incident_occurrence")
-        return
+        return None
 
     try:
         send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
@@ -125,7 +125,7 @@ def _process_incident_occurrence(
         logger.exception("failed_send_incident_occurrence")
 
 
-def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]):
+def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]) -> None:
     with sentry_sdk.start_transaction(
         op="_process_incident_occurrence",
         name="monitors.incident_occurrence_consumer",

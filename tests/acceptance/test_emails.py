@@ -73,7 +73,7 @@ def replace_amp(text: str) -> str:
 
 @no_silo_test
 class EmailTestCase(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         create_default_projects()
         # This email address is required to match FIXTURES.

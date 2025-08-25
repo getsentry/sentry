@@ -504,3 +504,19 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
   }
   return JSON.stringify(copy, null, 2);
 }
+
+export const logOnceFactory = (logSeverity: 'info' | 'warn') => {
+  let fired = false;
+  return (...args: Parameters<(typeof Sentry.logger)[typeof logSeverity]>) => {
+    if (!fired) {
+      fired = true;
+      if (logSeverity === 'info') {
+        return Sentry.logger.info(args[0], args[1]);
+      }
+      return Sentry.logger.warn(args[0], args[1]);
+    }
+    return () => {
+      // Do nothing
+    };
+  };
+};
