@@ -67,7 +67,7 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
   [ModuleFormat.CJS]: {
     introduction: () =>
       tct(
-        'In this quick guide you’ll use set up Sentry for your AWS Lambda function. For more information visit [link:docs].',
+        "In this quick guide you'll use set up Sentry for your AWS Lambda function. For more information visit [link:docs].",
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/cjs-layer/" />
@@ -124,7 +124,7 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
         ...params,
       }),
     ],
-    verify: (params: Params) => [
+    verify: () => [
       {
         type: StepType.VERIFY,
         description: t(
@@ -133,16 +133,7 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
         configurations: [
           {
             language: 'javascript',
-            code: `${
-              params.isLogsSelected
-                ? `
-// Send a log before throwing the error
-Sentry.logger.info('User triggered test error', {
-  action: 'test_error_lambda',
-});`
-                : ''
-            }
-throw new Error("This should show up in Sentry!");`,
+            code: `throw new Error("This should show up in Sentry!");`,
           },
         ],
       },
@@ -185,7 +176,7 @@ throw new Error("This should show up in Sentry!");`,
         ],
       },
     ],
-    verify: (params: Params) => [
+    verify: () => [
       {
         type: StepType.VERIFY,
         description: t(
@@ -195,15 +186,7 @@ throw new Error("This should show up in Sentry!");`,
           {
             language: 'javascript',
             code: `
-export const handler = Sentry.wrapHandler(async (event, context) => {${
-              params.isLogsSelected
-                ? `
-  // Send a log before throwing the error
-  Sentry.logger.info('User triggered test error', {
-    action: 'test_error_lambda',
-  });`
-                : ''
-            }
+export const handler = Sentry.wrapHandler(async (event, context) => {
   throw new Error("This should show up in Sentry!")
 });`,
           },
@@ -222,22 +205,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     moduleFormatOnboarding[params.platformOptions.moduleFormat].configure(params),
   verify: (params: Params) =>
     moduleFormatOnboarding[params.platformOptions.moduleFormat].verify(params),
-  nextSteps: (params: Params) => {
-    const steps = [];
-
-    if (params.isLogsSelected) {
-      steps.push({
-        id: 'logs',
-        name: t('Logging Integrations'),
-        description: t(
-          'Add logging integrations to automatically capture logs from your application.'
-        ),
-        link: 'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/logs/#integrations',
-      });
-    }
-
-    return steps;
-  },
 };
 
 const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {

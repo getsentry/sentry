@@ -178,6 +178,13 @@ Sentry.init({
   ],`
       : ''
   }${
+    params.isLogsSelected
+      ? `
+
+  // Send structured logs to Sentry
+  enableLogs: true,`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
       // Tracing
@@ -199,15 +206,7 @@ Sentry.init({
     // Trace lifecycle automatically enables profiling during active traces
     profileLifecycle: 'trace',`
       : ''
-  }${
-    params.isLogsSelected
-      ? `
-
-  // Send structured logs to Sentry
-  enableLogs: true,`
-      : ''
   }
-
   // Setting this option to true will send default PII data to Sentry.
   // For example, automatic IP address collection on events
   sendDefaultPii: true,
