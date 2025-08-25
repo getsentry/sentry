@@ -409,7 +409,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             except KeyError:
                 return Response(status=400)
 
-            if not can_set_team_role(request, team, new_role):
+            can_set_new_role = can_set_team_role(request, team, new_role)
+            can_set_old_role = (
+                can_set_team_role(request, team, team_roles.get(omt.role)) if omt.role else True
+            )
+
+            # Verify that the request is allowed to set both the old and new role to prevent role downgrades by low-privilege users
+            if not (can_set_new_role and can_set_old_role):
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
             self._change_team_member_role(omt, new_role)
