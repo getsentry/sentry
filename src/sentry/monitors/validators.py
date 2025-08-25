@@ -49,7 +49,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseDetectorTypeValidator,
 )
-from sentry.workflow_engine.models import DataSourceDetector, Detector
+from sentry.workflow_engine.models import DataSource, Detector
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
@@ -664,8 +664,7 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
 
         if "data_source" in validated_data:
             data_source_data = validated_data.pop("data_source")
-            data_source_detector = DataSourceDetector.objects.get(detector=instance)
-            data_source = data_source_detector.data_source
+            data_source = DataSource.objects.get(detectors=instance)
             monitor = Monitor.objects.get(id=data_source.source_id)
 
             monitor_validator = MonitorDataSourceValidator(
