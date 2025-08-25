@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -15,9 +14,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {decodeBoolean} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
@@ -45,31 +42,6 @@ export default function PlayStationSettings({organization, project}: Props) {
     invalidateCredentialsCache,
   } = useFetchTempestCredentials(organization, project);
 
-  const {mutate: handleRemoveCredential, isPending: isRemoving} = useMutation<
-    unknown,
-    RequestError,
-    {id: number}
-  >({
-    mutationFn: ({id}) =>
-      fetchMutation({
-        method: 'DELETE',
-        url: `/projects/${organization.slug}/${project.slug}/tempest-credentials/${id}/`,
-      }),
-    onSuccess: () => {
-      addSuccessMessage(t('Removed the credentials.'));
-      trackAnalytics('tempest.credentials.removed', {
-        organization,
-        project_slug: project.slug,
-      });
-      invalidateCredentialsCache();
-    },
-    onError: error => {
-      const message = t('Failed to remove the credentials.');
-      handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
-    },
-  });
-
   const credentialErrors = useMemo(() => {
     return tempestCredentials?.filter(
       credential => credential.messageType === MessageType.ERROR && credential.message
@@ -87,7 +59,7 @@ export default function PlayStationSettings({organization, project}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credentialErrors]);
 
-  const isSetupInstructionsOpen = location.query.setupInstructions === 'true';
+  const isSetupInstructionsOpen = decodeBoolean(location.query.setupInstructions);
   const hasCredentials = (tempestCredentials ?? []).length > 0;
   const showEmptyState = isSetupInstructionsOpen || !hasCredentials;
 
@@ -141,10 +113,9 @@ export default function PlayStationSettings({organization, project}: Props) {
                 project={project}
                 isEmpty={!tempestCredentials?.length}
                 isLoading={isLoading}
-                isRemoving={isRemoving}
                 hasWriteAccess={hasWriteAccess}
                 tempestCredentials={tempestCredentials}
-                onRemoveCredential={handleRemoveCredential}
+                onRemoveCredentialSuccess={invalidateCredentialsCache}
               />
             </Panel>
           ) : (
@@ -162,8 +133,9 @@ export default function PlayStationSettings({organization, project}: Props) {
                 <CredentialRow
                   key={credential.id}
                   credential={credential}
-                  isRemoving={isRemoving}
-                  removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
+                  hasWriteAccess={hasWriteAccess}
+                  onRemoveCredentialSuccess={invalidateCredentialsCache}
+                  project={project}
                 />
               ))}
             </StyledPanelTable>
