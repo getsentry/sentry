@@ -496,7 +496,7 @@ SENTRY_ENABLE_LOGS=true
             {
               code: <code />,
               externalLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-laravel/blob/master/config/sentry.php/" />
+                <ExternalLink href="https://github.com/getsentry/sentry-laravel/blob/master/config/sentry.php" />
               ),
             }
           ),

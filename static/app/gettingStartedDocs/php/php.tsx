@@ -343,7 +343,7 @@ const logsOnboarding: OnboardingConfig = {
             'If you are on an older version of the SDK, follow our [link:migration guide] to upgrade.',
             {
               link: (
-                <ExternalLink href="https://github.com/getsentry/sentry-php/blob/master/UPGRADE-4.0.md/" />
+                <ExternalLink href="https://github.com/getsentry/sentry-php/blob/master/UPGRADE-4.0.md" />
               ),
             }
           ),
