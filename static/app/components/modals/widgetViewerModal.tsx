@@ -1113,6 +1113,7 @@ function ViewerTableV2({
         sort={tableSort}
         onChangeSort={onChangeSort}
         getRenderer={(field, dataRow, meta) => {
+          // All datasets should have getCustomFieldRenderer defined, which should have getFieldRenderer as a fallback, guaranteeing a defined renderer is used.
           const customRenderer = datasetConfig?.getCustomFieldRenderer?.(
             field,
             meta as MetaType,
