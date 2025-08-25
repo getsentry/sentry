@@ -84,20 +84,12 @@ describe('useMetricDetectorLimit', () => {
     expect(result.current).toEqual({
       hasReachedLimit: false,
       detectorLimit: -1,
-      detectorCount: 2,
+      detectorCount: -1,
       isLoading: false,
       isError: false,
     });
 
-    expect(detectorsRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/detectors/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'type:metric',
-          per_page: 0,
-        }),
-      })
-    );
+    expect(detectorsRequest).not.toHaveBeenCalled();
   });
 
   it('handles detectors count is below limit', async () => {
@@ -140,7 +132,7 @@ describe('useMetricDetectorLimit', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'type:metric',
-          per_page: 0,
+          per_page: 1,
         }),
       })
     );
@@ -212,12 +204,12 @@ describe('useMetricDetectorLimit', () => {
     expect(result.current).toEqual({
       hasReachedLimit: false,
       detectorLimit: -1,
-      detectorCount: 10,
+      detectorCount: -1,
       isLoading: false,
       isError: false,
     });
 
-    expect(detectorsRequest).toHaveBeenCalled();
+    expect(detectorsRequest).not.toHaveBeenCalled();
   });
 
   it('handles detectors API error gracefully', async () => {

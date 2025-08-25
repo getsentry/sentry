@@ -17,6 +17,7 @@ const ERROR_COUNT = -1;
 export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
   const organization = useOrganization();
   const subscription = useSubscription();
+  const detectorLimit = subscription?.planDetails?.metricDetectorLimit ?? UNLIMITED_QUOTA;
   const hasFlag = organization.features.includes('workflow-engine-metric-detector-limit');
 
   const {isLoading, isError, getResponseHeader} = useDetectorsQuery(
@@ -24,12 +25,11 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
       query: 'type:metric',
       limit: 1,
     },
-    {enabled: hasFlag}
+    {enabled: hasFlag && detectorLimit !== UNLIMITED_QUOTA}
   );
 
   const hits = getResponseHeader?.('X-Hits');
   const detectorCount = hits ? parseInt(hits, 10) : ERROR_COUNT;
-  const detectorLimit = subscription?.planDetails?.metricDetectorLimit ?? UNLIMITED_QUOTA;
 
   if (!hasFlag || detectorLimit === UNLIMITED_QUOTA) {
     return {
