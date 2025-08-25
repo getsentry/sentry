@@ -20,6 +20,38 @@ import {IconLock} from 'sentry/icons/iconLock';
 import {t, tct} from 'sentry/locale';
 import {RequestSdkAccessButton} from 'sentry/views/settings/project/tempest/RequestSdkAccessButton';
 
+function getPlayStationRequestButtonAccessDescription(platform?: string) {
+  switch (platform) {
+    case 'unity':
+      return tct(
+        'We offer an SDK for PlayStation built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations that can be used in combination with the Sentry SDK for Unity. Request access below:',
+        {
+          sentryNativeRepoLink: (
+            <ExternalLink href="https://github.com/getsentry/sentry-native" />
+          ),
+        }
+      );
+    case 'unreal':
+      return tct(
+        'We offer an SDK for PlayStation built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations that can be used in combination with the Sentry SDK for Unreal. Request access below:',
+        {
+          sentryNativeRepoLink: (
+            <ExternalLink href="https://github.com/getsentry/sentry-native" />
+          ),
+        }
+      );
+    default:
+      return tct(
+        'We offer an SDK for PlayStation built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations. Use it as a standalone SDK for custom/proprietary engines, or extend your Native, Unreal, or Unity setup. Request access below:',
+        {
+          sentryNativeRepoLink: (
+            <ExternalLink href="https://github.com/getsentry/sentry-native" />
+          ),
+        }
+      );
+  }
+}
+
 function getEnabledPlayStationContent(params: DocsParams): ContentBlock[] {
   return [
     {
@@ -45,14 +77,7 @@ function getEnabledPlayStationContent(params: DocsParams): ContentBlock[] {
     },
     {
       type: 'text',
-      text: tct(
-        'We offer a PlayStation SDK built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations. Use it as a standalone SDK for proprietary engines, or extend your Native, Unreal, or Unity setup. Request access below:',
-        {
-          sentryNativeRepoLink: (
-            <ExternalLink href="https://github.com/getsentry/sentry-native" />
-          ),
-        }
-      ),
+      text: getPlayStationRequestButtonAccessDescription(params.project.platform),
     },
     {
       type: 'custom',
