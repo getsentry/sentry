@@ -66,7 +66,7 @@ export default Storybook.story('Input', (story, APIReference) => {
             />
           </Label>
           <Label>
-            <Storybook.JSXProperty name="readonly" value="true" />
+            <Storybook.JSXProperty name="readOnly" value="true" />
             <Input
               readOnly
               value={readonlyValue}
