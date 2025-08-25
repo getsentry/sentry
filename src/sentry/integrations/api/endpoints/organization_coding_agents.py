@@ -29,56 +29,24 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:seer-coding-agent-integrations", organization):
             return Response({"detail": "Feature not available"}, status=404)
 
-        try:
-            # Find all installed coding agent integrations using hybrid cloud service
-            org_integrations = integration_service.get_organization_integrations(
-                organization_id=organization.id,
-                providers=get_coding_agent_providers(),
-                status=ObjectStatus.ACTIVE,
-            )
+        integrations = integration_service.get_integrations(
+            organization_id=organization.id,
+            providers=get_coding_agent_providers(),
+            status=ObjectStatus.ACTIVE,
+        )
 
-            # Serialize the integrations
-            integrations_data = []
-            for org_integration in org_integrations:
-                try:
-                    # Get the full integration details using the integration service
-                    integration = integration_service.get_integration(
-                        organization_integration_id=org_integration.id,
-                        status=ObjectStatus.ACTIVE,
-                    )
+        integrations_data = [
+            {
+                "id": str(integration.id),
+                "name": integration.name,
+                "provider": integration.provider,
+            }
+            for integration in integrations
+        ]
 
-                    if not integration:
-                        continue
+        logger.info(
+            "coding_agent.list_integrations",
+            extra={"organization_id": organization.id, "count": len(integrations_data)},
+        )
 
-                    integrations_data.append(
-                        {
-                            "id": str(integration.id),
-                            "name": integration.name,
-                            "provider": integration.provider,
-                        }
-                    )
-                except Exception:
-                    logger.exception(
-                        "coding_agent.integration_processing_error",
-                        extra={
-                            "organization_id": organization.id,
-                        },
-                    )
-                    # Continue processing other integrations
-                    continue
-
-            logger.info(
-                "coding_agent.list_integrations",
-                extra={"organization_id": organization.id, "count": len(integrations_data)},
-            )
-
-            return self.respond({"integrations": integrations_data})
-
-        except Exception:
-            logger.exception(
-                "coding_agent.list_error",
-                extra={"organization_id": organization.id},
-            )
-            return self.respond(
-                {"error": "Failed to retrieve coding agent integrations"}, status=500
-            )
+        return self.respond({"integrations": integrations_data})

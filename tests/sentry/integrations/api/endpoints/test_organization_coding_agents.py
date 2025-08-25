@@ -34,11 +34,6 @@ class OrganizationCodingAgentsEndpointTest(APITestCase):
         """Test GET request with mocked coding agent integration."""
         organization = self.create_organization(owner=self.user)
 
-        # Mock the integration service
-        mock_org_integration = Mock()
-        mock_org_integration.id = 1
-        mock_org_integration.status = 1  # ObjectStatus.ACTIVE
-
         mock_integration = Mock()
         mock_integration.id = 1
         mock_integration.name = "Test Coding Agent"
@@ -46,9 +41,7 @@ class OrganizationCodingAgentsEndpointTest(APITestCase):
 
         with (
             self.feature({"organizations:seer-coding-agent-integrations": True}),
-            self.mock_integration_service_calls(
-                org_integrations=[mock_org_integration], integration=mock_integration
-            ),
+            self.mock_integration_service_calls(integrations=[mock_integration]),
         ):
             response = self.get_response(organization.slug)
 
@@ -61,24 +54,23 @@ class OrganizationCodingAgentsEndpointTest(APITestCase):
         assert integration_data["name"] == "Test Coding Agent"
         assert integration_data["provider"] == "test_provider"
 
-    def mock_integration_service_calls(self, org_integrations=None, integration=None):
+    def mock_integration_service_calls(self, integrations=None):
         """Helper to mock integration service calls."""
         import contextlib
         from unittest.mock import patch
 
         from sentry.integrations.services.integration import integration_service
 
-        org_integrations = org_integrations or []
+        integrations = integrations or []
 
         @contextlib.contextmanager
         def mock_context():
             with (
                 patch.object(
                     integration_service,
-                    "get_organization_integrations",
-                    return_value=org_integrations,
+                    "get_integrations",
+                    return_value=integrations,
                 ),
-                patch.object(integration_service, "get_integration", return_value=integration),
                 patch(
                     "sentry.integrations.coding_agent.utils.get_coding_agent_providers",
                     return_value=["test_provider"],
