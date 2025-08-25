@@ -618,7 +618,7 @@ const logsOnboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'code',
           language: 'dart',
-          code: `Sentry.logger.info("Test log from %s", ["Sentry"])`,
+          code: `Sentry.logger.fmt.info("Test log from %s", ["Sentry"])`,
         },
         {
           type: 'text',
