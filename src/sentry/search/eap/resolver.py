@@ -56,9 +56,9 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
+from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
@@ -862,6 +862,11 @@ class SearchResolver:
                     search_type=column_definition.search_type,
                 )
         else:
+            if self.definitions.alias_to_column is not None:
+                mapped_column = self.definitions.alias_to_column(column)
+                if mapped_column is not None:
+                    column = mapped_column
+
             if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
                 raise InvalidSearchQuery(
                     f"{column} is too long, can be a maximum of 200 characters"
