@@ -262,7 +262,6 @@ export function convertEventsStatsToTimeSeriesData(
       valueUnit: seriesData.meta?.units?.[seriesName] as DataUnit,
       interval,
     },
-    samplingRate: seriesData.meta?.accuracy?.samplingRate,
     dataScanned: seriesData.meta?.dataScanned,
   };
 
