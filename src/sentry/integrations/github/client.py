@@ -661,6 +661,24 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
             },
         )
 
+    def create_status(self, repo: str, sha: str, data: dict[str, Any]) -> Any:
+        """
+        https://docs.github.com/en/rest/commits/statuses#create-a-commit-status
+
+        The repo must be in the format of "owner/repo".
+        """
+        endpoint = f"/repos/{repo}/statuses/{sha}"
+        return self.post(endpoint, data=data)
+
+    def get_status(self, repo: str, ref: str) -> Any:
+        """
+        https://docs.github.com/en/rest/commits/statuses#list-commit-statuses-for-a-reference
+
+        The repo must be in the format of "owner/repo".
+        """
+        endpoint = f"/repos/{repo}/commits/{ref}/statuses"
+        return self.get(endpoint)
+
 
 class _IntegrationIdParams(TypedDict, total=False):
     integration_id: int

@@ -491,6 +491,14 @@ class CommitContextClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def create_status(self, repo: str, sha: str, data: dict[str, Any]) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_status(self, repo: str, sha: str) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
         raise NotImplementedError
 
