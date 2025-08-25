@@ -5,16 +5,7 @@ import requests
 
 from sentry.feedback.usecases.label_generation import generate_labels
 from sentry.utils import json
-
-
-class MockSeerResponse:
-    def __init__(self, status: int, json_data: dict, raw_data: str | bytes):
-        self.status = status
-        self.json_data = json_data
-        self.data = raw_data
-
-    def json(self):
-        return self.json_data
+from tests.sentry.feedback import MockSeerResponse
 
 
 @patch("sentry.feedback.usecases.label_generation.make_signed_seer_api_request")
@@ -22,7 +13,6 @@ def test_generate_labels_success_response(mock_make_seer_request) -> None:
     mock_response = MockSeerResponse(
         200,
         {"data": {"labels": ["User Interface", "Navigation", "Right Sidebar"]}},
-        '{"data": {"labels": ["User Interface", "Navigation", "Right Sidebar"]}}',
     )
     mock_make_seer_request.return_value = mock_response
 
@@ -45,7 +35,6 @@ def test_generate_labels_failed_response(mock_make_seer_request) -> None:
     mock_response = MockSeerResponse(
         500,
         {"error": "Internal Server Error"},
-        '{"error": "Internal Server Error"}',
     )
     mock_make_seer_request.return_value = mock_response
 

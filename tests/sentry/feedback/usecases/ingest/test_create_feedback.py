@@ -23,17 +23,11 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
-from tests.sentry.feedback import create_dummy_openai_response, mock_feedback_event
-
-
-class MockSeerResponse:
-    def __init__(self, status: int, json_data: dict, raw_data: str | bytes):
-        self.status = status
-        self.json_data = json_data
-        self.data = raw_data
-
-    def json(self):
-        return self.json_data
+from tests.sentry.feedback import (
+    MockSeerResponse,
+    create_dummy_openai_response,
+    mock_feedback_event,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -955,11 +949,7 @@ def test_create_feedback_issue_title_from_seer(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_response = MockSeerResponse(
-            status=200,
-            json_data={"title": "Login Button Issue"},
-            raw_data='{"title": "Login Button Issue"}',
-        )
+        mock_response = MockSeerResponse(status=200, json_data={"title": "Login Button Issue"})
         mock_make_signed_seer_api_request.return_value = mock_response
 
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
@@ -1018,7 +1008,6 @@ def test_create_feedback_issue_title_from_seer_fallback_empty_title(
         mock_response = MockSeerResponse(
             status=200,
             json_data={"title": ""},
-            raw_data='{"title": ""}',
         )
         mock_make_signed_seer_api_request.return_value = mock_response
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
@@ -1079,7 +1068,6 @@ def test_create_feedback_issue_title_from_seer_none(
         mock_response = MockSeerResponse(
             status=200,
             json_data={"title": ""},
-            raw_data='{"title": ""}',
         )
         mock_make_signed_seer_api_request.return_value = mock_response
 

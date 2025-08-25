@@ -5,6 +5,8 @@ from typing import Any
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
+from sentry.utils import json
+
 
 def create_dummy_openai_response(*args: object, **kwargs: Any) -> ChatCompletion:
     return ChatCompletion(
@@ -69,3 +71,13 @@ def mock_feedback_event(project_id: int, dt: datetime | None = None) -> dict[str
         "breadcrumbs": [],
         "platform": "javascript",
     }
+
+
+class MockSeerResponse:
+    def __init__(self, status: int, json_data: dict):
+        self.status = status
+        self.json_data = json_data
+        self.data = json.dumps(json_data)
+
+    def json(self):
+        return self.json_data

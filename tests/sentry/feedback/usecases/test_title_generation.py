@@ -8,59 +8,45 @@ from sentry.feedback.usecases.title_generation import (
     format_feedback_title,
     get_feedback_title_from_seer,
 )
-
-
-class MockSeerResponse:
-    def __init__(self, status: int, json_data: dict, raw_data: str | bytes):
-        self.status = status
-        self.json_data = json_data
-        self.data = raw_data
-
-    def json(self):
-        return self.json_data
+from tests.sentry.feedback import MockSeerResponse
 
 
 @pytest.mark.parametrize(
-    "status_code,json_data,raw_data",
+    "status_code,json_data",
     [
         pytest.param(
             200,
             {"invalid": "response"},
-            '{"invalid": "response"}',
             id="missing_title_key",
         ),
         pytest.param(
             200,
             {"title": ""},
-            '{"title": ""}',
             id="empty_title",
         ),
         pytest.param(
             200,
             {"title": "   "},
-            '{"title": "   "}',
             id="whitespace_only_title",
         ),
         pytest.param(
             200,
             {"title": 123},
-            '{"title": 123}',
             id="non_string_title",
         ),
         pytest.param(
             200,
             {},
-            '{"invalid": json}',
             id="invalid_json",
         ),
     ],
 )
 @patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
 def test_get_feedback_title_from_seer_invalid_response(
-    mock_make_seer_request, status_code, json_data, raw_data
+    mock_make_seer_request, status_code, json_data
 ):
     """Test the get_feedback_title_from_seer function with various invalid responses."""
-    mock_response = MockSeerResponse(status_code, json_data, raw_data)
+    mock_response = MockSeerResponse(status_code, json_data)
     mock_make_seer_request.return_value = mock_response
     assert get_feedback_title_from_seer("Login button broken") is None
     mock_make_seer_request.assert_called_once()
@@ -69,7 +55,7 @@ def test_get_feedback_title_from_seer_invalid_response(
 @patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
 def test_get_feedback_title_from_seer_http_error(mock_make_seer_request):
     """Test the get_feedback_title_from_seer function with HTTP error response."""
-    mock_response = MockSeerResponse(500, {}, "Internal Server Error")
+    mock_response = MockSeerResponse(500, {})
     mock_make_seer_request.return_value = mock_response
     assert get_feedback_title_from_seer("Login button broken") is None
     mock_make_seer_request.assert_called_once()
@@ -86,9 +72,7 @@ def test_get_feedback_title_from_seer_exception(mock_make_seer_request):
 @patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
 def test_get_feedback_title_from_seer_success(mock_make_seer_request):
     """Test the get_feedback_title_from_seer function with successful response."""
-    mock_response = MockSeerResponse(
-        200, {"title": "Login Button Issue"}, '{"title": "Login Button Issue"}'
-    )
+    mock_response = MockSeerResponse(200, {"title": "Login Button Issue"})
     mock_make_seer_request.return_value = mock_response
     assert "Login Button Issue" == get_feedback_title_from_seer("Login button broken")
     mock_make_seer_request.assert_called_once()

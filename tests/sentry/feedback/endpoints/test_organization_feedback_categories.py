@@ -10,18 +10,8 @@ from sentry.issues.grouptype import FeedbackGroup
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
+from tests.sentry.feedback import MockSeerResponse
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
-
-
-class MockSeerResponse:
-    def __init__(self, status: int, json_data: dict, raw_data: str | bytes):
-        self.status = status
-        self.json_data = json_data
-        self.data = raw_data
-
-    def json(self):
-        return self.json_data
 
 
 class FeedbackData(TypedDict):
@@ -165,9 +155,8 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             )
 
     def test_get_feedback_categories_without_feature_flag(self) -> None:
-        with self.feature({"organizations:user-feedback-ai-categorization-features": False}):
-            response = self.get_error_response(self.org.slug)
-            assert response.status_code == 403
+        response = self.get_error_response(self.org.slug)
+        assert response.status_code == 403
 
     def test_get_feedback_categories_without_seer_access(self) -> None:
         self.mock_has_seer_access.return_value = False
@@ -195,7 +184,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                     {"primaryLabel": "Authentication", "associatedLabels": ["Security"]},
                 ]
             },
-            raw_data='{"data": [{"primaryLabel": "User Interface","associatedLabels": ["Usability"]},{"primaryLabel": "Performance", "associatedLabels": ["Speed", "Loading"]},{"primaryLabel": "Authentication", "associatedLabels": ["Security"]}]}',
         )
         mock_seer_api_request.return_value = mock_response
 
@@ -248,7 +236,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                     {"primaryLabel": "Authentication", "associatedLabels": ["Security", "Login"]},
                 ]
             },
-            raw_data='{"data": [{"primaryLabel": "User Interface","associatedLabels": ["Performance", "Usability"]},{"primaryLabel": "Authentication", "associatedLabels": ["Security", "Login"]}]}',
         )
         mock_seer_api_request.return_value = mock_response
 
@@ -324,9 +311,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                     }
                 ]
             },
-            raw_data=json.dumps(
-                {"data": [{"primaryLabel": "User Interface", "associatedLabels": new_labels}]}
-            ),
         )
         mock_seer_api_request.return_value = mock_response
 
@@ -413,7 +397,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                     {"primaryLabel": "Navigation", "associatedLabels": ["Usability", "Design"]}
                 ]
             },
-            raw_data='{"data": [{"primaryLabel": "Navigation", "associatedLabels": ["Usability", "Design"]}]}',
         )
         mock_seer_api_request.return_value = mock_response
 
@@ -504,9 +487,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
     )
     def test_seer_http_errors(self, mock_seer_api_request) -> None:
         for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
-            mock_response = MockSeerResponse(
-                status=status, json_data={"error": "Test error"}, raw_data='{"error": "Test error"}'
-            )
+            mock_response = MockSeerResponse(status=status, json_data={"error": "Test error"})
             mock_seer_api_request.return_value = mock_response
 
             with self.feature(self.features):
@@ -546,7 +527,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                     {"primaryLabel": "Usability", "associatedLabels": ["Loading"]},
                 ]
             },
-            raw_data='{"data": [{"primaryLabel": "User Interface", "associatedLabels": ["Usability"]},{"primaryLabel": "Performance", "associatedLabels": ["Speed", "Loading"]},{"primaryLabel": "Authentication", "associatedLabels": ["Security"]},{"primaryLabel": "Usability", "associatedLabels": ["Loading"]}]}',
         )
         mock_seer_api_request.return_value = mock_response
 

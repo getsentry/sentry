@@ -109,9 +109,7 @@ class ProjectReplaySummaryTestCase(
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_get_simple(self, mock_make_seer_api_request: Mock) -> None:
-        mock_response = MockSeerResponse(
-            200, json_data={"hello": "world"}, raw_data='{"hello": "world"}'
-        )
+        mock_response = MockSeerResponse(200, json_data={"hello": "world"})
         mock_make_seer_api_request.return_value = mock_response
 
         with self.feature(self.features):
@@ -126,9 +124,7 @@ class ProjectReplaySummaryTestCase(
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_post_simple(self, mock_make_seer_api_request: Mock) -> None:
-        mock_response = MockSeerResponse(
-            200, json_data={"hello": "world"}, raw_data='{"hello": "world"}'
-        )
+        mock_response = MockSeerResponse(200, json_data={"hello": "world"})
         mock_make_seer_api_request.return_value = mock_response
 
         data = [
@@ -178,9 +174,7 @@ class ProjectReplaySummaryTestCase(
         self, mock_make_seer_api_request: Mock
     ) -> None:
         """Test handling of breadcrumbs with both direct and trace connected errors"""
-        mock_response = MockSeerResponse(
-            200, json_data={"hello": "world"}, raw_data='{"hello": "world"}'
-        )
+        mock_response = MockSeerResponse(200, json_data={"hello": "world"})
         mock_make_seer_api_request.return_value = mock_response
 
         now = datetime.now(UTC)
@@ -273,7 +267,6 @@ class ProjectReplaySummaryTestCase(
         mock_response = MockSeerResponse(
             200,
             json_data={"feedback": "Feedback was submitted"},
-            raw_data='{"feedback": "Feedback was submitted"}',
         )
         mock_make_seer_api_request.return_value = mock_response
 
@@ -338,9 +331,7 @@ class ProjectReplaySummaryTestCase(
     @patch("sentry.replays.endpoints.project_replay_summary.MAX_SEGMENTS_TO_SUMMARIZE", 1)
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_post_max_segments_exceeded(self, mock_make_seer_api_request: Mock) -> None:
-        mock_response = MockSeerResponse(
-            200, json_data={"hello": "world"}, raw_data='{"hello": "world"}'
-        )
+        mock_response = MockSeerResponse(200, json_data={"hello": "world"})
         mock_make_seer_api_request.return_value = mock_response
 
         data1 = [
@@ -388,9 +379,7 @@ class ProjectReplaySummaryTestCase(
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_post_with_temperature(self, mock_make_seer_api_request: Mock) -> None:
-        mock_response = MockSeerResponse(
-            200, json_data={"hello": "world"}, raw_data='{"hello": "world"}'
-        )
+        mock_response = MockSeerResponse(200, json_data={"hello": "world"})
         mock_make_seer_api_request.return_value = mock_response
 
         data = [
@@ -491,7 +480,6 @@ class ProjectReplaySummaryTestCase(
                 mock_response = MockSeerResponse(
                     status=status,
                     json_data={"error": "Test error"},
-                    raw_data='{"error": "Test error"}',
                 )
                 mock_make_seer_api_request.return_value = mock_response
                 self.save_recording_segment(0, json.dumps([]).encode())

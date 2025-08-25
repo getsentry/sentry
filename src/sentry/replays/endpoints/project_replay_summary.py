@@ -86,8 +86,10 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 body=data.encode("utf-8"),
             )
         except Exception:
-            logger.exception("Seer replay breadcrumbs summary endpoint failed")
-            return self.respond("Failed to generate a replay breadcrumbs summary", status=500)
+            logger.exception(
+                "Seer replay breadcrumbs summary endpoint failed", extra={"path": path}
+            )
+            return self.respond("Internal Server Error", status=500)
 
         if response.status < 200 or response.status >= 300:
             logger.error(
@@ -98,7 +100,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                     "response_data": response.data,
                 },
             )
-            return self.respond("Failed to generate a replay breadcrumbs summary", status=500)
+            return self.respond("Internal Server Error", status=500)
 
         # Note any headers in the Seer response aren't returned.
         return Response(data=response.json(), status=response.status)

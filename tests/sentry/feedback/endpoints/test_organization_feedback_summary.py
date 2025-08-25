@@ -8,17 +8,7 @@ from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
-from tests.sentry.feedback import mock_feedback_event
-
-
-class MockSeerResponse:
-    def __init__(self, status: int, json_data: dict, raw_data: str | bytes):
-        self.status = status
-        self.json_data = json_data
-        self.data = raw_data
-
-    def json(self):
-        return self.json_data
+from tests.sentry.feedback import MockSeerResponse, mock_feedback_event
 
 
 @region_silo_test
@@ -55,7 +45,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         return MockSeerResponse(
             200,
             json_data={"data": "Test summary of feedback"},
-            raw_data='{"data": "Test summary of feedback"}',
         )
 
     def test_get_feedback_summary_without_feature_flag(self) -> None:
@@ -271,7 +260,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
     def test_seer_http_errors(self, mock_make_seer_api_request: MagicMock) -> None:
         for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
             mock_make_seer_api_request.return_value = MockSeerResponse(
-                status=status, json_data={"error": "Test error"}, raw_data='{"error": "Test error"}'
+                status=status, json_data={"error": "Test error"}
             )
 
             for _ in range(15):
