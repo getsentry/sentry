@@ -608,6 +608,7 @@ from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.frontend_version import FrontendVersionEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal import (
     InternalBeaconEndpoint,
@@ -3302,6 +3303,11 @@ INTERNAL_URLS = [
         r"^beacon/$",
         InternalBeaconEndpoint.as_view(),
         name="sentry-api-0-internal-beacon",
+    ),
+    re_path(
+        r"^frontend-version/$",
+        FrontendVersionEndpoint.as_view(),
+        name="sentry-api-0-internal-frontend-version",
     ),
     re_path(
         r"^quotas/$",
