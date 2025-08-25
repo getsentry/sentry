@@ -70,7 +70,7 @@ export function InsightsSecondaryNav() {
             {MOBILE_SIDEBAR_LABEL}
           </SecondaryNav.Item>
 
-          <AIInsightsFeature organization={organization}>
+          <AIInsightsFeature organization={organization} renderDisabled={() => null}>
             <SecondaryNav.Item
               to={`${baseUrl}/${AGENTS_LANDING_SUB_PATH}/`}
               analyticsItemName="insights_agents"
