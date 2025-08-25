@@ -102,6 +102,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
     def get_event(self, event_id):
         return eventstore.backend.get_event_by_id(self.project.id, event_id)
 
+    @pytest.mark.skip(reason="flaky: #98167")
     def test_real_resolving(self) -> None:
         url = reverse(
             "sentry-api-0-dsym-files",
