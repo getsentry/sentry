@@ -12,7 +12,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
-import ModalStore from 'sentry/stores/modalStore';
 import {ImageStatus} from 'sentry/types/debugImage';
 
 describe('DebugMeta', () => {
@@ -20,7 +19,6 @@ describe('DebugMeta', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
   it('opens details modal', async () => {

@@ -38,6 +38,7 @@ import {
   useLogsIsTableFrozen,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {useFetchTraceItemDetailsOnHover} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
   DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH,
@@ -70,16 +71,14 @@ import {
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
-import {
-  useExploreLogsTableRow,
-  usePrefetchLogTableRowOnHover,
-} from 'sentry/views/explore/logs/useLogsQuery';
+import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   adjustAliases,
   getLogRowItem,
   getLogSeverityLevel,
   ourlogToJson,
 } from 'sentry/views/explore/logs/utils';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;
@@ -210,25 +209,29 @@ export const LogRowContent = memo(function LogRowContent({
   const prefetchTimeout = autorefreshEnabled
     ? DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH
     : DEFAULT_TRACE_ITEM_HOVER_TIMEOUT;
-  const hoverProps = usePrefetchLogTableRowOnHover({
-    logId: String(dataRow[OurLogKnownFieldKey.ID]),
+  const {hoverProps, traceItemsResult} = useFetchTraceItemDetailsOnHover({
+    traceItemId: String(dataRow[OurLogKnownFieldKey.ID]),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
+    traceItemType: TraceItemDataset.LOGS,
+    referrer: 'api.explore.log-item-details',
     sharedHoverTimeoutRef,
     timeout: prefetchTimeout,
   });
 
-  const rendererExtra = {
+  const rendererExtra: RendererExtra = {
     highlightTerms,
     logColors,
     useFullSeverityText: false,
-    renderSeverityCircle: true,
     location,
     organization,
     attributes: dataRow,
     attributeTypes: meta?.fields ?? {},
     theme,
     projectSlug,
+    meta,
+    project,
+    traceItemMeta: traceItemsResult?.data?.meta,
   };
 
   const rowInteractProps: ComponentProps<typeof LogTableRow> = blockRowExpanding
@@ -435,7 +438,9 @@ function LogRowDetails({
                     projectSlug,
                     attributes,
                     attributeTypes,
+                    meta,
                     theme,
+                    traceItemMeta: data?.meta,
                   },
                 })}
               </DetailsBody>
@@ -456,6 +461,9 @@ function LogRowDetails({
                     attributes,
                     attributeTypes,
                     theme,
+                    meta,
+                    project,
+                    traceItemMeta: data?.meta,
                     disableLazyLoad: true, // We disable lazy loading in the log details view since a user has to open it first.
                   }}
                 />

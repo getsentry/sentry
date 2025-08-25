@@ -38,7 +38,6 @@ ALLOWLIST_FILES: set[str] = {
     "src/sentry/flags/endpoints/secrets.py",
     "src/sentry/tasks/assemble.py",
     "src/sentry/tasks/commits.py",
-    "src/sentry/options/store.py",
     "src/sentry/services/nodestore/django/backend.py",
 }
 

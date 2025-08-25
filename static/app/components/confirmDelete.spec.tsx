@@ -6,13 +6,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import ModalStore from 'sentry/stores/modalStore';
 
 describe('ConfirmDelete', () => {
-  afterEach(() => {
-    ModalStore.reset();
-  });
-
   it('renders', async () => {
     const mock = jest.fn();
     render(
