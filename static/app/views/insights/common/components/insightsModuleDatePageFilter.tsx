@@ -14,6 +14,7 @@ import {
 } from 'sentry/views/insights/settings';
 
 const DISABLED_OPTIONS = ['90d'];
+const OLD_DISABLED_OPTIONS = ['14d', '30d', '90d'];
 
 export function InsightsModuleDatePageFilter() {
   const organization = useOrganization();
@@ -28,6 +29,10 @@ export function InsightsModuleDatePageFilter() {
     ? QUERY_DATE_RANGE_LIMIT
     : OLD_QUERY_DATE_RANGE_LIMIT;
 
+  const disabledOptions = shouldIncreaseDefaultDateRange
+    ? DISABLED_OPTIONS
+    : OLD_DISABLED_OPTIONS;
+
   const dateFilterProps: DatePageFilterProps = {};
   if (hasDateRangeQueryLimit) {
     dateFilterProps.relativeOptions = ({arbitraryOptions}) => {
@@ -36,19 +41,22 @@ export function InsightsModuleDatePageFilter() {
         '1h': t('Last 1 hour'),
         '24h': t('Last 24 hours'),
         '7d': t('Last 7 days'),
-        '14d': t('Last 14 days'),
         ...(shouldIncreaseDefaultDateRange
           ? {
+              '14d': t('Last 14 days'),
               '30d': t('Last 30 days'),
             }
-          : {'30d': <DisabledDateOption value={t('Last 30 days')} />}),
+          : {
+              '14d': <DisabledDateOption value={t('Last 14 days')} />,
+              '30d': <DisabledDateOption value={t('Last 30 days')} />,
+            }),
         '90d': <DisabledDateOption value={t('Last 90 days')} />,
       };
     };
 
     dateFilterProps.maxPickableDays = defaultPickableDays;
     dateFilterProps.isOptionDisabled = ({value}) => {
-      if (!DISABLED_OPTIONS.includes(value)) {
+      if (!disabledOptions.includes(value)) {
         return false;
       }
       return true;
