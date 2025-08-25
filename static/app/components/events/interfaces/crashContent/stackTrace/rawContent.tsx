@@ -22,6 +22,14 @@ function getJavaScriptFrame(frame: Frame, includeLocation: boolean): string {
     result += ':' + frame.colNo;
   }
   result += ')';
+  if (defined(frame.context)) {
+    frame.context.forEach(item => {
+      if (frame.lineNo === item[0]) {
+        result += '\n    ' + item[1]?.trim();
+      }
+    });
+  }
+
   return result;
 }
 
