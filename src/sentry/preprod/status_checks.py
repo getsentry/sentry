@@ -4,111 +4,18 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from sentry.integrations.source_code_management.commit_context import CommitContextClient
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_status import (
     CommitStatus,
     GitHubStatusMapper,
-    GitLabStatusMapper,
 )
+from sentry.integrations.source_code_management.status_check import StatusCheckClient
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitcomparison import CommitComparison
-from sentry.models.integrations.integration import Integration
 from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
-
-
-class StatusCheckProvider(ABC):
-    """Abstract base class for provider-specific status check implementations."""
-
-    def __init__(self, client: CommitContextClient):
-        self.client = client
-
-    @abstractmethod
-    def create_status_check(
-        self,
-        repo: str,
-        sha: str,
-        state: CommitStatus,
-        title: str,
-        preprod_artifact: PreprodArtifact,
-        target_url: str | None = None,
-    ) -> Any:
-        """Create a status check using provider-specific format."""
-        pass
-
-
-class GitHubStatusCheckProvider(StatusCheckProvider):
-    """GitHub-specific status check provider using Check Runs API."""
-
-    def create_status_check(
-        self,
-        repo: str,
-        sha: str,
-        state: CommitStatus,
-        title: str,
-        preprod_artifact: PreprodArtifact,
-        target_url: str | None = None,
-    ) -> Any:
-        # Generate summary based on state
-        if state == CommitStatus.PENDING:
-            summary = f"Build processing for artifact {preprod_artifact.id}"
-        elif state == CommitStatus.SUCCESS:
-            summary = f"Build completed successfully for artifact {preprod_artifact.id}"
-        elif state in (CommitStatus.FAILURE, CommitStatus.ERROR):
-            summary = f"Build failed for artifact {preprod_artifact.id}"
-        else:
-            summary = f"Build status update for artifact {preprod_artifact.id}"
-
-        # Get status and conclusion from mapper
-        status_data = GitHubStatusMapper.to_check_run_data(state)
-
-        check_data = {
-            "name": f"Sentry Preprod Build ({preprod_artifact.project.slug})",
-            "head_sha": sha,
-            "external_id": str(preprod_artifact.id),
-            "output": {
-                "title": title,
-                "summary": summary,
-            },
-        }
-
-        # Add status and optional conclusion
-        check_data.update(status_data)
-
-        # Add details URL if provided
-        if target_url:
-            check_data["details_url"] = target_url
-
-        return self.client.create_check_run(repo=repo, data=check_data)
-
-
-class GitLabStatusCheckProvider(StatusCheckProvider):
-    """GitLab-specific status check provider using commit status API."""
-
-    def create_status_check(
-        self,
-        repo: str,
-        sha: str,
-        state: CommitStatus,
-        title: str,
-        preprod_artifact: PreprodArtifact,
-        target_url: str | None = None,
-    ) -> Any:
-        # Map state to GitLab status
-        gitlab_state = GitLabStatusMapper.to_provider_status(state)
-
-        status_data = {
-            "state": gitlab_state,
-            "name": f"sentry/preprod-{preprod_artifact.project.slug}",
-            "description": title,
-        }
-
-        if target_url:
-            status_data["target_url"] = target_url
-
-        return self.client.create_status(repo=repo, sha=sha, data=status_data)
 
 
 def update_preprod_status_on_upload(preprod_artifact: PreprodArtifact) -> None:
@@ -229,20 +136,18 @@ def _create_preprod_status_check_impl(
 
 
 def _get_status_check_provider(
-    client: CommitContextClient, provider: str
-) -> StatusCheckProvider | None:
+    client: StatusCheckClient, provider: str
+) -> _StatusCheckProvider | None:
     """Get the appropriate status check provider for the given provider type."""
     if provider == IntegrationProviderSlug.GITHUB:
-        return GitHubStatusCheckProvider(client)
-    elif provider == IntegrationProviderSlug.GITLAB:
-        return GitLabStatusCheckProvider(client)
+        return _GitHubStatusCheckProvider(client)
     else:
         return None
 
 
 def _get_status_check_client(
     project: Project, commit_comparison: CommitComparison
-) -> CommitContextClient | None:
+) -> StatusCheckClient | None:
     """Get the appropriate status check client for the project's integration."""
     try:
         if commit_comparison.provider == IntegrationProviderSlug.GITHUB:
@@ -301,3 +206,64 @@ def _get_status_data(
         data["target_url"] = target_url
 
     return data
+
+
+class _StatusCheckProvider(ABC):
+    """Abstract base class for provider-specific status check implementations."""
+
+    def __init__(self, client: StatusCheckClient):
+        self.client = client
+
+    @abstractmethod
+    def create_status_check(
+        self,
+        repo: str,
+        sha: str,
+        state: CommitStatus,
+        title: str,
+        text: str,
+        summary: str,
+        external_id: str,
+        target_url: str | None = None,
+    ) -> Any:
+        """Create a status check using provider-specific format."""
+        raise NotImplementedError
+
+
+class _GitHubStatusCheckProvider(_StatusCheckProvider):
+    """GitHub-specific status check provider using Check Runs API."""
+
+    def create_status_check(
+        self,
+        repo: str,
+        sha: str,
+        state: CommitStatus,
+        title: str,
+        text: str,
+        summary: str,
+        external_id: str,
+        target_url: str | None = None,
+    ) -> Any:
+
+        # Get status and conclusion from mapper
+        status_data = GitHubStatusMapper.to_check_run_data(state)
+
+        check_data = {
+            "name": title,
+            "head_sha": sha,
+            "external_id": external_id,
+            "output": {
+                "title": title,
+                "summary": summary,
+                "text": text,
+            },
+        }
+
+        # Add status and optional conclusion
+        check_data.update(status_data)
+
+        # Add details URL if provided
+        if target_url:
+            check_data["details_url"] = target_url
+
+        return self.client.create_check_run(repo=repo, data=check_data)
