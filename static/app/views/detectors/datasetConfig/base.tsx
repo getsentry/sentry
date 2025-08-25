@@ -39,6 +39,12 @@ export interface DetectorSeriesQueryOptions {
    */
   query: string;
   end?: string;
+  /**
+   * Extra query parameters to pass
+   */
+  extra?: {
+    useOnDemandMetrics: 'true';
+  };
   start?: string;
   /**
    * Relative time period for the query. Example: '7d'.

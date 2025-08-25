@@ -1,5 +1,5 @@
 import type {EventsStats} from 'sentry/types/organization';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {isOnDemandAggregate, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
 import {
@@ -17,11 +17,14 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     defaultField: TransactionsConfig.defaultField,
     getAggregateOptions: TransactionsConfig.getTableFieldOptions,
     SearchBar: TraceSearchBar,
-    getSeriesQueryOptions: options =>
-      getDiscoverSeriesQueryOptions({
+    getSeriesQueryOptions: options => {
+      const isOnDemand =
+        isOnDemandAggregate(options.aggregate) && isOnDemandQueryString(options.query);
+      return getDiscoverSeriesQueryOptions({
         ...options,
-        dataset: DiscoverDatasets.TRANSACTIONS,
-      }),
+        ...(isOnDemand && {extra: {useOnDemandMetrics: 'true'}}),
+      });
+    },
     transformSeriesQueryData: (data, aggregate) => {
       return [transformEventsStatsToSeries(data, aggregate)];
     },

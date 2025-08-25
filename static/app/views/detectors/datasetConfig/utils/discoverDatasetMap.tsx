@@ -6,7 +6,7 @@ export const DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP: Record<
   DiscoverDatasets
 > = {
   [DetectorDataset.ERRORS]: DiscoverDatasets.ERRORS,
-  [DetectorDataset.TRANSACTIONS]: DiscoverDatasets.TRANSACTIONS,
+  [DetectorDataset.TRANSACTIONS]: DiscoverDatasets.METRICS_ENHANCED,
   [DetectorDataset.SPANS]: DiscoverDatasets.SPANS,
   [DetectorDataset.LOGS]: DiscoverDatasets.OURLOGS,
   [DetectorDataset.RELEASES]: DiscoverDatasets.DISCOVER,
