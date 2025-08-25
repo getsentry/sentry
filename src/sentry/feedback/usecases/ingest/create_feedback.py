@@ -310,7 +310,7 @@ def create_feedback_issue(
     use_ai_title = should_query_seer and features.has(
         "organizations:user-feedback-ai-titles", project.organization
     )
-    title = get_feedback_title(feedback_message, use_ai_title)
+    title = get_feedback_title(feedback_message, project.organization_id, use_ai_title)
 
     occurrence = IssueOccurrence(
         id=uuid4().hex,
@@ -343,7 +343,7 @@ def create_feedback_issue(
         "organizations:user-feedback-ai-categorization", project.organization
     ):
         try:
-            labels = generate_labels(feedback_message)
+            labels = generate_labels(feedback_message, project.organization_id)
             # This will rarely happen unless the user writes a really long feedback message
             if len(labels) > MAX_AI_LABELS:
                 logger.info(
