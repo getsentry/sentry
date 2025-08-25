@@ -345,7 +345,6 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'python-tryton',
   'python-wsgi',
   'node',
-  'node-awslambda',
   'node-azurefunctions',
   'node-connect',
   'node-cloudflare-pages',
