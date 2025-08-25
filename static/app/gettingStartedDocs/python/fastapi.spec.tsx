@@ -4,6 +4,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './fastapi';
 
 describe('flask onboarding docs', () => {
@@ -74,5 +76,36 @@ describe('flask onboarding docs', () => {
     expect(
       screen.getByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).toBeInTheDocument();
+  });
+
+  it('renders with logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('You can send logs to Sentry using the Sentry logging APIs:')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders without logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('You can send logs to Sentry using the Sentry logging APIs:')
+    ).not.toBeInTheDocument();
   });
 });
