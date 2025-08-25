@@ -119,15 +119,7 @@ function LogsHeader() {
 
         <Layout.Title>
           {title ? title : t('Logs')}
-          <FeatureBadge
-            type="beta"
-            tooltipProps={{
-              title: t(
-                "This feature is currently in beta and we're actively working on it"
-              ),
-              isHoverable: true,
-            }}
-          />
+          <FeatureBadge type="new" />
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
