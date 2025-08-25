@@ -3,11 +3,8 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 
+from sentry.integrations.github.commit_status import CommitStatus, GitHubStatusMapper
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.source_code_management.commit_status import (
-    CommitStatus,
-    GitHubStatusMapper,
-)
 from sentry.integrations.source_code_management.status_check import StatusCheckClient
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitcomparison import CommitComparison
