@@ -58,7 +58,7 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
         child=ReleaseHeadCommitSerializer(),
         required=False,
         allow_null=False,
-        help_text="""An optional way to indicate the start and end commits for each repository included in a release. Head commits must include parameters ``repository`` and ``commit`` (the HEAD SHA). They can optionally include ``previousCommit`` (the SHA of the HEAD of the previous release), which should be specified if this is the first time you've sent commit data.""",
+        help_text="""An optional way to indicate the start and end commits for each repository included in a release. Head commits must include parameters ``repository`` and ``commit`` (the HEAD SHA). For GitLab repositories, please use the Group name instead of the slug. They can optionally include ``previousCommit`` (the SHA of the HEAD of the previous release), which should be specified if this is the first time you've sent commit data.""",
     )
 
 
