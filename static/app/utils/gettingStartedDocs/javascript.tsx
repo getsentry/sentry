@@ -168,7 +168,7 @@ export const getJavascriptLogsOnboarding = <
         {
           type: 'text',
           text: tct(
-            'Add the Sentry SDK as a dependency using npm, yarn, or pnpm. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
+            'Add the Sentry SDK as a dependency. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
             {
               code: <code />,
               sdkPackage: <code>{sdkPackage}</code>,
@@ -246,17 +246,7 @@ Sentry.init({
           language: 'jsx',
           code: `import * as Sentry from "${sdkPackage}";
 
-function LogButton() {
-  return (
-    <button
-      onClick={() =>
-        Sentry.logger.info('User triggered test log', { action: 'test_log_button_click' })
-      }
-    >
-      Click this button to send a test log
-    </button>
-  );
-}`,
+Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
         },
       ],
     },

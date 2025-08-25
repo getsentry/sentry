@@ -26,7 +26,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptLogsOnboarding,
+  getJavascriptProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -411,6 +414,12 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
     'https://docs.sentry.io/platforms/javascript/guides/solid/profiling/browser-profiling/',
 });
 
+const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
+  installSnippetBlock,
+  docsPlatform: 'solid',
+  sdkPackage: '@sentry/solid',
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -418,6 +427,7 @@ const docs: Docs = {
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,
+  logsOnboarding,
 };
 
 export default docs;
