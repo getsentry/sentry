@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 
-from sentry.integrations.github.commit_status import CommitStatus, GitHubStatusMapper
+from sentry.integrations.github.commit_status import GitHubCheckConclusion, GitHubCheckStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.status_check import StatusCheckClient
 from sentry.integrations.types import IntegrationProviderSlug
@@ -21,7 +21,7 @@ def update_preprod_size_analysis_status_on_upload(preprod_artifact: PreprodArtif
     text = f"⏳ Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing..."
     return _create_preprod_status_check(
         preprod_artifact=preprod_artifact,
-        state=CommitStatus.PENDING,
+        status=GitHubCheckStatus.PENDING,
         title=SIZE_ANALYZER_TITLE,
         text=text,
         summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing...",
@@ -35,7 +35,7 @@ def update_preprod_size_analysis_status_on_completion(
     text = f"✅ Build {preprod_artifact.id} processed successfully."
     return _create_preprod_status_check(
         preprod_artifact=preprod_artifact,
-        state=CommitStatus.SUCCESS,
+        status=GitHubCheckStatus.SUCCESS,
         title=SIZE_ANALYZER_TITLE,
         text=text,
         summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} processed successfully.",
@@ -50,7 +50,7 @@ def update_preprod_size_analysis_status_on_failure(
     text = f"❌ Build {preprod_artifact.id} failed. Error: {error_message}"
     return _create_preprod_status_check(
         preprod_artifact=preprod_artifact,
-        state=CommitStatus.FAILURE,
+        status=GitHubCheckStatus.FAILURE,
         title=SIZE_ANALYZER_TITLE,
         text=text,
         summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} failed.",
@@ -59,26 +59,27 @@ def update_preprod_size_analysis_status_on_failure(
 
 def _create_preprod_status_check(
     preprod_artifact: PreprodArtifact,
-    state: CommitStatus,
+    status: GitHubCheckStatus,
     title: str,
     text: str,
     summary: str,
+    conclusion: GitHubCheckConclusion | None = None,
     target_url: str | None = None,
 ) -> None:
     try:
         if not _create_preprod_status_check_impl(
-            preprod_artifact, state, title, text, summary, target_url
+            preprod_artifact, status, title, text, summary, conclusion, target_url
         ):
             logger.error(
                 "Failed to create preprod status check",
-                extra={"artifact_id": preprod_artifact.id, "state": state.value},
+                extra={"artifact_id": preprod_artifact.id, "status": status.value},
             )
     except Exception as e:
         logger.exception(
             "Failed to create preprod status check",
             extra={
                 "artifact_id": preprod_artifact.id,
-                "state": state.value,
+                "status": status.value,
                 "error": str(e),
             },
         )
@@ -86,10 +87,11 @@ def _create_preprod_status_check(
 
 def _create_preprod_status_check_impl(
     preprod_artifact: PreprodArtifact,
-    state: CommitStatus,
+    status: GitHubCheckStatus,
     title: str,
     text: str,
     summary: str,
+    conclusion: GitHubCheckConclusion | None = None,
     target_url: str | None = None,
 ) -> bool:
     if not preprod_artifact.commit_comparison:
@@ -121,19 +123,20 @@ def _create_preprod_status_check_impl(
     provider.create_status_check(
         repo=commit_comparison.head_repo_name,
         sha=commit_comparison.head_sha,
-        state=state,
+        status=status,
         title=title,
         text=text,
         summary=summary,
         external_id=str(preprod_artifact.id),
         target_url=target_url,
+        conclusion=conclusion,
     )
 
     logger.info(
         "Created preprod status check",
         extra={
             "artifact_id": preprod_artifact.id,
-            "state": state.value,
+            "status": status.value,
             "repo": commit_comparison.head_repo_name,
             "sha": commit_comparison.head_sha,
         },
@@ -205,12 +208,13 @@ class _StatusCheckProvider(ABC):
         self,
         repo: str,
         sha: str,
-        state: CommitStatus,
+        status: GitHubCheckStatus,
         title: str,
         text: str,
         summary: str,
         external_id: str,
         target_url: str | None = None,
+        conclusion: GitHubCheckConclusion | None = None,
     ) -> None:
         """Create a status check using provider-specific format."""
         raise NotImplementedError
@@ -223,16 +227,14 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         self,
         repo: str,
         sha: str,
-        state: CommitStatus,
+        status: GitHubCheckStatus,
         title: str,
         text: str,
         summary: str,
         external_id: str,
         target_url: str | None = None,
+        conclusion: GitHubCheckConclusion | None = None,
     ) -> None:
-
-        # Get status and conclusion from mapper
-        status_data = GitHubStatusMapper.to_check_run_data(state)
 
         check_data = {
             "name": title,
@@ -243,12 +245,10 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 "summary": summary,
                 "text": text,
             },
+            "conclusion": conclusion.value if conclusion else None,
+            "status": status.value,
         }
 
-        # Add status and optional conclusion
-        check_data.update(status_data)
-
-        # Add details URL if provided
         if target_url:
             check_data["details_url"] = target_url
 
