@@ -1,23 +1,21 @@
-import React, {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
   type RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
-import {parseFunction, type ColumnValueType} from 'sentry/utils/discover/fields';
-import {NumberContainer, VersionContainer} from 'sentry/utils/discover/styles';
+import {type ColumnValueType} from 'sentry/utils/discover/fields';
+import {VersionContainer} from 'sentry/utils/discover/styles';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
@@ -41,12 +39,7 @@ import {
   WrappingText,
   type getLogColors,
 } from 'sentry/views/explore/logs/styles';
-import {
-  OurLogKnownFieldKey,
-  type LogAttributeItem,
-  type LogRowItem,
-  type OurLogFieldKey,
-} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/logs/types';
 import {
   adjustLogTraceID,
   getLogSeverityLevel,
@@ -372,10 +365,6 @@ function LogTemplateRenderer(props: LogFieldRendererProps) {
   );
 }
 
-function isLogRowItem(item: LogRowItem | LogAttributeItem): item is LogRowItem {
-  return 'metaFieldType' in item;
-}
-
 export function LogFieldRenderer(props: LogFieldRendererProps) {
   const type = props.meta?.fields?.[props.item.fieldKey];
   const adjustedFieldKey =
@@ -385,24 +374,6 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
     props.item.fieldKey === OurLogKnownFieldKey.TRACE_ID
       ? adjustLogTraceID(props.item.value as string)
       : props.item.value;
-
-  if (parseFunction(adjustedFieldKey)) {
-    // in the aggregates table, render sum(blah)
-    return (
-      <NumberContainer>
-        {typeof adjustedValue === 'number' ? (
-          <Count value={adjustedValue} />
-        ) : (
-          adjustedValue
-        )}
-      </NumberContainer>
-    );
-  }
-
-  if (!isLogRowItem(props.item) || !defined(adjustedValue) || !type) {
-    // Rendering inside attribute tree.
-    return <Fragment>{adjustedValue}</Fragment>;
-  }
 
   const basicRenderer = getFieldRenderer(adjustedFieldKey, props.meta ?? {}, false);
   const basicRendered = basicRenderer(

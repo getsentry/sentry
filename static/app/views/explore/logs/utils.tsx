@@ -13,7 +13,6 @@ import {
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
-  type ColumnValueType,
   type Sort,
 } from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -209,7 +208,6 @@ export function getLogRowItem(
 
   return {
     fieldKey: field,
-    metaFieldType: meta?.fields?.[field] as ColumnValueType,
     unit: isLogAttributeUnit(meta?.units?.[field] ?? null)
       ? (meta?.units?.[field] as LogAttributeUnits)
       : null,
