@@ -721,9 +721,12 @@ export class Results extends Component<Props, State> {
             }
           >
             {tctCode(
-              'The transactions dataset is being deprecated. Please use [traceLink:Explore / Traces] with the [code:is_transaction:true] filter instead.',
+              'The transactions dataset is being deprecated. Please use [traceLink:Explore / Traces] with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
               {
                 traceLink: <Link to="/explore/traces/?query=is_transaction:true" />,
+                FAQLink: (
+                  <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                ),
               }
             )}
           </Alert>
