@@ -470,6 +470,7 @@ def process_workflows(
         is_delayed=False,
         start_timestamp=event_start_time,
     )
+
     fire_actions(actions, detector, event_data)
 
     return triggered_workflows
