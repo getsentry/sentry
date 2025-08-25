@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link/link';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToName} from 'sentry/components/prevent/integratedOrgSelector/utils';
@@ -42,9 +42,9 @@ function OrgFooterMessage() {
         <div>
           <FooterInfoHeading>
             To access{' '}
-            <Link to="https://github.com/apps/sentry-io" target="_blank">
+            <ExternalLink href="https://github.com/apps/sentry-io">
               Integrated Organization
-            </Link>
+            </ExternalLink>
           </FooterInfoHeading>
           <FooterInfoSubheading>
             Ensure admins approve the installation.
