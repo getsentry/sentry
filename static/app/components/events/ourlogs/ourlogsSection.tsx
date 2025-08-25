@@ -72,7 +72,7 @@ function OurlogsSectionContent({
 
   const limitToTraceId = event.contexts?.trace?.trace_id;
   const onOpenLogsDrawer = useCallback(
-    (e: React.MouseEvent<HTMLDivElement | HTMLButtonElement>) => {
+    (e: React.MouseEvent, expandedLogId?: string) => {
       e.stopPropagation();
       trackAnalytics('logs.issue_details.drawer_opened', {
         organization,
@@ -87,7 +87,14 @@ function OurlogsSectionContent({
             >
               <LogsPageDataProvider>
                 <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-                  <OurlogsDrawer group={group} event={event} project={project} />
+                  <OurlogsDrawer
+                    group={group}
+                    event={event}
+                    project={project}
+                    embeddedOptions={
+                      expandedLogId ? {openWithExpandedIds: [expandedLogId]} : undefined
+                    }
+                  />
                 </TraceItemAttributeProvider>
               </LogsPageDataProvider>
             </LogsPageParamsProvider>
@@ -105,6 +112,13 @@ function OurlogsSectionContent({
       );
     },
     [group, event, project, openDrawer, organization, limitToTraceId]
+  );
+
+  const onEmbeddedRowClick = useCallback(
+    (logItemId: string, clickEvent: React.MouseEvent) => {
+      onOpenLogsDrawer(clickEvent, logItemId);
+    },
+    [onOpenLogsDrawer]
   );
   if (!feature) {
     return null;
@@ -125,7 +139,7 @@ function OurlogsSectionContent({
       title={t('Logs')}
       data-test-id="logs-data-section"
     >
-      <SmallTableContentWrapper onClick={onOpenLogsDrawer}>
+      <SmallTableContentWrapper>
         <SmallTable>
           <TableBody>
             {abbreviatedTableData?.map((row, index) => (
@@ -137,6 +151,7 @@ function OurlogsSectionContent({
                 sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                 key={index}
                 blockRowExpanding
+                onEmbeddedRowClick={onEmbeddedRowClick}
               />
             ))}
           </TableBody>

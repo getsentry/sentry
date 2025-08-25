@@ -86,6 +86,10 @@ type LogsRowProps = {
   embedded?: boolean;
   isExpanded?: boolean;
   onCollapse?: (logItemId: string) => void;
+  /**
+   * This should only be used in embedded views since we won't be opening the details.
+   */
+  onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
 };
@@ -123,6 +127,7 @@ export const LogRowContent = memo(function LogRowContent({
   onExpandHeight,
   blockRowExpanding,
   canDeferRenderElements,
+  onEmbeddedRowClick,
 }: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -142,6 +147,18 @@ export const LogRowContent = memo(function LogRowContent({
     },
     [canDeferRenderElements, _setShouldRenderHoverElements]
   );
+
+  // This only applies in embedded views where clicking doesn't expand row details.
+  function onClick(event: SyntheticEvent) {
+    if (onEmbeddedRowClick && event.nativeEvent instanceof MouseEvent) {
+      event.preventDefault();
+      onEmbeddedRowClick(
+        String(dataRow[OurLogKnownFieldKey.ID]),
+        event as React.MouseEvent
+      );
+      return;
+    }
+  }
 
   function onPointerUp(event: SyntheticEvent) {
     if (event.target instanceof Element && isInsideButton(event.target)) {
@@ -231,7 +248,9 @@ export const LogRowContent = memo(function LogRowContent({
   };
 
   const rowInteractProps: ComponentProps<typeof LogTableRow> = blockRowExpanding
-    ? {}
+    ? onEmbeddedRowClick
+      ? {onClick, isClickable: true}
+      : {}
     : {
         ...hoverProps,
         onPointerUp,
