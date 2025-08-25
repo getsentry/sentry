@@ -21,7 +21,6 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 
 import {TraceView as TraceViewV1} from './../newTraceDetails';
 import TraceDetailsContent from './content';
-import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import NewTraceDetailsContent from './newTraceDetailsContent';
 import {getTraceSplitResults} from './utils';
 
@@ -38,7 +37,7 @@ type State = {
 // Leaving them here for now to make sure we don't miss anything, during cleanup.
 class TraceSummary extends Component<Props> {
   state: State = {
-    limit: DEFAULT_TRACE_ROWS_LIMIT,
+    limit: 100,
   };
 
   componentDidMount(): void {
