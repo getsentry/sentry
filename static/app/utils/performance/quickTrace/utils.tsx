@@ -17,7 +17,7 @@ import type {
   TraceLite,
 } from 'sentry/utils/performance/quickTrace/types';
 
-export function isTransaction(event: Event): event is EventTransaction {
+function isTransaction(event: Event): event is EventTransaction {
   return event.type === 'transaction';
 }
 
@@ -269,41 +269,6 @@ export function getTraceTimeRangeFromEvent(event: Event): {end: string; start: s
       1000;
   const end = isTransaction(event) ? event.endTimestamp : start;
   return getTraceDateTimeRange({start, end});
-}
-
-export function reduceTrace<T>(
-  trace: TraceFullDetailed,
-  visitor: (acc: T, e: TraceFullDetailed) => T,
-  initialValue: T
-): T {
-  let result = initialValue;
-
-  const events = [trace];
-  while (events.length) {
-    const current = events.pop()!;
-    for (const child of current.children) {
-      events.push(child);
-    }
-    result = visitor(result, current);
-  }
-
-  return result;
-}
-
-export function filterTrace(
-  trace: TraceFullDetailed,
-  predicate: (transaction: TraceFullDetailed) => boolean
-): TraceFullDetailed[] {
-  return reduceTrace<TraceFullDetailed[]>(
-    trace,
-    (transactions, transaction) => {
-      if (predicate(transaction)) {
-        transactions.push(transaction);
-      }
-      return transactions;
-    },
-    []
-  );
 }
 
 export function isTraceError(

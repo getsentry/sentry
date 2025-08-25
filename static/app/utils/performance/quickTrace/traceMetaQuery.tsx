@@ -11,7 +11,7 @@ import {
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
 
-export type TraceMetaQueryChildrenProps = BaseTraceChildrenProps & {
+type TraceMetaQueryChildrenProps = BaseTraceChildrenProps & {
   meta: TraceMeta | null;
 };
 
