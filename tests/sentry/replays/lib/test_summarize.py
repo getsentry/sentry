@@ -293,6 +293,15 @@ def test_as_log_message() -> None:
     assert as_log_message({}) is None
 
 
+def test_as_log_message_long_console_message() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "console", "message": "a" * 2000}},
+    }
+    assert as_log_message(event) == f"Logged: '{'a' * 200} [truncated]' at 0.0"
+
+
 def test_parse_iso_timestamp_to_ms() -> None:
     # Without timezone
     assert _parse_iso_timestamp_to_ms("2023-01-01T12:00:00") == 1672574400000
