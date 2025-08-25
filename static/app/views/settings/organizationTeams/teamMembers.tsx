@@ -22,7 +22,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
 import {
   setApiQueryData,
@@ -121,31 +120,27 @@ function AddMemberDropdown({
     const existingMembers = new Set(teamMembers.map(member => member.id));
     return (orgMembers || [])
       .filter(m => !existingMembers.has(m.id))
-      .map(
-        m =>
-          ({
-            textValue: `${m.name} ${m.email}`,
-            value: m.id,
-            label: (
-              <StyledUserListElement>
-                <UserAvatar
-                  user={{
-                    id: m.user?.id ?? m.id,
-                    name: m.user?.name ?? m.name,
-                    email: m.user?.email ?? m.email,
-                    avatar: m.user?.avatar ?? undefined,
-                    avatarUrl: m.user?.avatarUrl ?? undefined,
-                    type: 'user',
-                  }}
-                  title={m.user?.name ?? m.name ?? m.user?.email ?? m.email}
-                  size={24}
-                  className="avatar"
-                />
-                <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
-              </StyledUserListElement>
-            ),
-          }) satisfies SelectOption<string>
-      );
+      .map<SelectOption<string>>(m => ({
+        textValue: `${m.name} ${m.email}`,
+        value: m.id,
+        leadingItems: (
+          <UserAvatar
+            user={{
+              id: m.user?.id ?? m.id,
+              name: m.user?.name ?? m.name,
+              email: m.user?.email ?? m.email,
+              avatar: m.user?.avatar ?? undefined,
+              avatarUrl: m.user?.avatarUrl ?? undefined,
+              type: 'user',
+            }}
+            title={m.user?.name ?? m.name ?? m.user?.email ?? m.email}
+            size={16}
+            className="avatar"
+          />
+        ),
+        label: m.name || m.email,
+        hideCheck: true,
+      }));
   }, [teamMembers, orgMembers]);
 
   return (
@@ -392,20 +387,6 @@ function TeamMembers({team}: TeamMembersProps) {
     </Fragment>
   );
 }
-
-const StyledUserListElement = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(0.5)};
-  align-items: center;
-  text-transform: initial;
-  font-weight: normal;
-`;
-
-const StyledNameOrEmail = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
-  ${p => p.theme.overflowEllipsis};
-`;
 
 const StyledPanelHeader = styled(PanelHeader)`
   ${GRID_TEMPLATE}
