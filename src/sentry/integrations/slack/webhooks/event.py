@@ -56,10 +56,11 @@ class SlackEventEndpoint(SlackDMEndpoint):
         }
 
         client = SlackSdkClient(integration_id=slack_request.integration.id)
+        assert slack_request.channel_id is not None, "Channel ID is required to send a message"
+
         try:
-            assert slack_request.channel_id is not None, "Channel ID is required to send a message"
             client.chat_postMessage(channel=slack_request.channel_id, text=message)
-        except (SlackApiError, AssertionError):
+        except SlackApiError:
             _logger.info("reply.post-message-error", extra=logger_params)
 
         return self.respond()
