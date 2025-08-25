@@ -17,7 +17,6 @@ import {
 
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
-import ModalStore from 'sentry/stores/modalStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
@@ -64,7 +63,6 @@ describe('GroupEventAttachments', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
   it('calls attachments api with screenshot filter', async () => {
