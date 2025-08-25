@@ -314,7 +314,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not detector_type:
             raise ValidationError({"type": ["This field is required."]})
 
-        # restrict creating metric issue detectors by plan type
+        # Restrict creating metric issue detectors by plan type
         if detector_type == MetricIssue.slug and not features.has(
             "organizations:incidents", organization, actor=request.user
         ):

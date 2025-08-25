@@ -15,10 +15,10 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 import UsageAlert from 'getsentry/views/subscriptionPage/usageAlert';
 
-describe('Subscription > UsageAlert', function () {
+describe('Subscription > UsageAlert', () => {
   const emptyUsage = CustomerUsageFixture();
 
-  it('does not render without overage', function () {
+  it('does not render without overage', () => {
     const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({organization, canTrial: false});
 
@@ -27,7 +27,7 @@ describe('Subscription > UsageAlert', function () {
     expect(screen.queryByTestId('usage-alert')).not.toBeInTheDocument();
   });
 
-  it('renders request add events CTA if business, non-billing member, and usage exceeded', function () {
+  it('renders request add events CTA if business, non-billing member, and usage exceeded', () => {
     const organization = OrganizationFixture({access: []});
     const subscription = SubscriptionFixture({
       organization,
@@ -46,7 +46,7 @@ describe('Subscription > UsageAlert', function () {
     expect(screen.getByLabelText('Request Additional Quota')).toBeInTheDocument();
   });
 
-  it('renders an upgrade CTA for mm2_b usage exceeded', function () {
+  it('renders an upgrade CTA for mm2_b usage exceeded', () => {
     const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
@@ -71,7 +71,7 @@ describe('Subscription > UsageAlert', function () {
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
-  it('renders am1_f usage exceeded errors with trial', function () {
+  it('renders am1_f usage exceeded errors with trial', () => {
     const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
@@ -100,7 +100,7 @@ describe('Subscription > UsageAlert', function () {
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
-  it('renders am1 usage exceeded errors and transactions request add events', function () {
+  it('renders am1 usage exceeded errors and transactions request add events', () => {
     const organization = OrganizationFixture({access: []});
     const subscription = SubscriptionFixture({
       organization,
@@ -135,7 +135,7 @@ describe('Subscription > UsageAlert', function () {
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
-  it('renders am2 usage exceeded errors and transactions request add events', function () {
+  it('renders am2 usage exceeded errors and transactions request add events', () => {
     const organization = OrganizationFixture({access: []});
     const subscription = SubscriptionFixture({
       organization,
@@ -170,7 +170,7 @@ describe('Subscription > UsageAlert', function () {
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
-  it('renders am1 usage exceeded errors and attachments add events', function () {
+  it('renders am1 usage exceeded errors and attachments add events', () => {
     const organization = OrganizationFixture({access: ['org:billing']});
     const subscription = SubscriptionFixture({
       organization,
@@ -209,7 +209,7 @@ describe('Subscription > UsageAlert', function () {
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
-  it('renders am1 all data categories exceeded request upgrade', function () {
+  it('renders am1 all data categories exceeded request upgrade', () => {
     const organization = OrganizationFixture({access: []});
     const plan_id = 'am1_f';
     const planDetails = PlanDetailsLookupFixture(plan_id)!;
@@ -252,7 +252,7 @@ describe('Subscription > UsageAlert', function () {
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
-  it('renders am2 all data categories exceeded request upgrade', function () {
+  it('renders am2 all data categories exceeded request upgrade', () => {
     const organization = OrganizationFixture({access: []});
     const plan_id = 'am2_f';
     const planDetails = PlanDetailsLookupFixture(plan_id)!;
@@ -295,7 +295,7 @@ describe('Subscription > UsageAlert', function () {
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
-  it('renders am3 all data categories exceeded request upgrade', function () {
+  it('renders am3 all data categories exceeded request upgrade', () => {
     const organization = OrganizationFixture({access: []});
     const plan_id = 'am3_f';
     const planDetails = PlanDetailsLookupFixture(plan_id)!;
@@ -338,8 +338,8 @@ describe('Subscription > UsageAlert', function () {
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
   });
 
-  describe('grace period', function () {
-    it('renders for grace period', function () {
+  describe('grace period', () => {
+    it('renders for grace period', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
 
@@ -359,7 +359,7 @@ describe('Subscription > UsageAlert', function () {
       expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
     });
 
-    it('renders for grace period and transactions exceeded', function () {
+    it('renders for grace period and transactions exceeded', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
 
@@ -389,7 +389,7 @@ describe('Subscription > UsageAlert', function () {
       expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
     });
 
-    it('renders for am2 grace period and transactions exceeded', function () {
+    it('renders for am2 grace period and transactions exceeded', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({
         plan: 'am2_f',
@@ -423,7 +423,7 @@ describe('Subscription > UsageAlert', function () {
       expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
     });
 
-    it('does not render upgrade buttons if cannot self-serve', function () {
+    it('does not render upgrade buttons if cannot self-serve', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
 
@@ -452,8 +452,8 @@ describe('Subscription > UsageAlert', function () {
     });
   });
 
-  describe('projected overage', function () {
-    it('renders am1 usage exceeded errors with projected overage', function () {
+  describe('projected overage', () => {
+    it('renders am1 usage exceeded errors with projected overage', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
 
@@ -492,7 +492,7 @@ describe('Subscription > UsageAlert', function () {
       expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
     });
 
-    it('renders am1 with projected errors overage', function () {
+    it('renders am1 with projected errors overage', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
 
@@ -523,7 +523,7 @@ describe('Subscription > UsageAlert', function () {
       expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     });
 
-    it('does not render without projected errors overage', function () {
+    it('does not render without projected errors overage', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
 
@@ -548,7 +548,7 @@ describe('Subscription > UsageAlert', function () {
       expect(screen.queryByTestId('usage-alert')).not.toBeInTheDocument();
     });
 
-    it('renders am1 with projected errors and transactions overage', function () {
+    it('renders am1 with projected errors and transactions overage', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
 
@@ -593,7 +593,7 @@ describe('Subscription > UsageAlert', function () {
       expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     });
 
-    it('renders am2 with projected errors and transactions overage', function () {
+    it('renders am2 with projected errors and transactions overage', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({
         plan: 'am2_f',
@@ -642,7 +642,7 @@ describe('Subscription > UsageAlert', function () {
       expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     });
 
-    it('renders am1 with projected attachments overage', function () {
+    it('renders am1 with projected attachments overage', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
 
@@ -678,7 +678,7 @@ describe('Subscription > UsageAlert', function () {
       expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     });
 
-    it('does not render without projected attachments overage', function () {
+    it('does not render without projected attachments overage', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
 
@@ -706,7 +706,7 @@ describe('Subscription > UsageAlert', function () {
       expect(screen.queryByTestId('usage-alert')).not.toBeInTheDocument();
     });
 
-    it('renders am3 with projected profile duration overage', function () {
+    it('renders am3 with projected profile duration overage', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
 
@@ -744,7 +744,7 @@ describe('Subscription > UsageAlert', function () {
       expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     });
 
-    it('does not render without projected profile duration overage', function () {
+    it('does not render without projected profile duration overage', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
 

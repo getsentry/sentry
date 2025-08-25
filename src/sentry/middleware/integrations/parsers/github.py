@@ -6,6 +6,7 @@ from typing import Any
 
 import orjson
 from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.github.webhook import (
@@ -43,7 +44,7 @@ class GithubRequestParser(BaseRequestParser):
             return None
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
-    def get_response(self):
+    def get_response(self) -> HttpResponseBase:
         if self.view_class != self.webhook_endpoint:
             return self.get_response_from_control_silo()
 

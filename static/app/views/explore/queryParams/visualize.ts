@@ -12,6 +12,8 @@ import {decodeList} from 'sentry/utils/queryString';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
+export const MAX_VISUALIZES = 4;
+
 interface VisualizeOptions {
   chartType?: ChartType;
 }
@@ -19,8 +21,8 @@ interface VisualizeOptions {
 export abstract class Visualize {
   readonly yAxis: string;
   readonly chartType: ChartType;
+  readonly selectedChartType?: ChartType;
   abstract readonly kind: 'function' | 'equation';
-  protected readonly selectedChartType?: ChartType;
 
   constructor(yAxis: string, options?: VisualizeOptions) {
     this.yAxis = yAxis;
@@ -131,7 +133,7 @@ export function isVisualizeFunction(
   return visualize.kind === 'function';
 }
 
-interface BaseVisualize {
+export interface BaseVisualize {
   yAxes: readonly string[];
   chartType?: ChartType;
 }

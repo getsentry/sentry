@@ -16,7 +16,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {EventAttachment} from 'sentry/types/group';
 
-describe('EventTagsAndScreenshot', function () {
+describe('EventTagsAndScreenshot', () => {
   const user = {
     id: '1',
     email: 'tony1@example.com',
@@ -185,8 +185,8 @@ describe('EventTagsAndScreenshot', function () {
     await assertTagsView();
     eventTagsWithAttachment.unmount();
   }
-  describe('renders tags only', function () {
-    it('tags only', async function () {
+  describe('renders tags only', () => {
+    it('tags only', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
@@ -195,7 +195,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.queryByText('Screenshot')).not.toBeInTheDocument();
     });
 
-    it('tags and attachments', async function () {
+    it('tags and attachments', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: attachments,
@@ -203,7 +203,7 @@ describe('EventTagsAndScreenshot', function () {
       await assertTagsViewAsShare();
     });
 
-    it('allows filtering tags', async function () {
+    it('allows filtering tags', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
@@ -247,7 +247,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(rows).toHaveLength(allTags.length);
     });
 
-    it('promotes custom tags', async function () {
+    it('promotes custom tags', async () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
         body: [],
@@ -277,7 +277,7 @@ describe('EventTagsAndScreenshot', function () {
     });
   });
 
-  describe('renders screenshot only', function () {
+  describe('renders screenshot only', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
@@ -289,7 +289,7 @@ describe('EventTagsAndScreenshot', function () {
       });
     });
 
-    it('no tags', async function () {
+    it('no tags', async () => {
       render(
         <Fragment>
           <GlobalModal />
@@ -324,7 +324,7 @@ describe('EventTagsAndScreenshot', function () {
     });
   });
 
-  describe('renders screenshot and tags', function () {
+  describe('renders screenshot and tags', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
@@ -332,7 +332,7 @@ describe('EventTagsAndScreenshot', function () {
       });
     });
 
-    it('has tags and attachments', async function () {
+    it('has tags and attachments', async () => {
       render(<EventTagsAndScreenshot event={event} projectSlug={project.slug} />, {
         organization,
       });
@@ -355,7 +355,7 @@ describe('EventTagsAndScreenshot', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('renders multiple screenshots correctly', async function () {
+    it('renders multiple screenshots correctly', async () => {
       MockApiClient.clearMockResponses();
       const moreAttachments = [
         ...attachments,
@@ -403,7 +403,7 @@ describe('EventTagsAndScreenshot', function () {
       );
     });
 
-    it('can delete a screenshot', async function () {
+    it('can delete a screenshot', async () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
@@ -444,7 +444,7 @@ describe('EventTagsAndScreenshot', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('attachments only', async function () {
+    it('attachments only', async () => {
       render(<EventTagsAndScreenshot event={event} projectSlug={project.slug} />, {
         organization,
       });

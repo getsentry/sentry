@@ -70,8 +70,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
@@ -110,11 +108,13 @@ import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidg
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -157,13 +157,10 @@ const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 const shouldWidgetCardChartMemo = (prevProps: any, props: any) => {
   const selectionMatches = props.selection === prevProps.selection;
-  const sortMatches =
-    props.location.query[WidgetViewerQueryField.SORT] ===
-    prevProps.location.query[WidgetViewerQueryField.SORT];
   const isNotTopNWidget =
     props.widget.displayType !== DisplayType.TOP_N && !defined(props.widget.limit);
   const legendMatches = isEqual(props.legendOptions, prevProps.legendOptions);
-  return selectionMatches && (sortMatches || isNotTopNWidget) && legendMatches;
+  return selectionMatches && isNotTopNWidget && legendMatches;
 };
 
 // WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
@@ -173,9 +170,7 @@ const MemoizedWidgetCardChartContainer = memo(
   WidgetCardChartContainer,
   shouldWidgetCardChartMemo
 );
-const MemoizedWidgetCardChart = withSentryRouter(
-  memo(WidgetCardChart, shouldWidgetCardChartMemo)
-);
+const MemoizedWidgetCardChart = memo(WidgetCardChart, shouldWidgetCardChartMemo);
 
 async function fetchDiscoverTotal(
   api: Client,
@@ -927,7 +922,6 @@ function WidgetViewerModal(props: Props) {
                 loading={false}
                 widget={widget}
                 selection={selection}
-                organization={organization}
                 onZoom={(_evt, chart) => {
                   onZoom(_evt, chart);
                   setChartUnmodified(false);
@@ -936,7 +930,6 @@ function WidgetViewerModal(props: Props) {
                 legendOptions={{
                   selected: widgetLegendState.getWidgetSelectionState(widget),
                 }}
-                expandNumbers
                 noPadding
                 widgetLegendState={widgetLegendState}
                 showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
@@ -1190,6 +1183,10 @@ function OpenButton({
       openLabel = t('Open in Explore');
       path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
       break;
+    case WidgetType.LOGS:
+      openLabel = t('Open in Explore');
+      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
+      break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
@@ -1378,6 +1375,14 @@ function ViewerTableV2({
     );
   }
 
+  let cellActions: Actions[] = [];
+  if (organization.features.includes('discover-cell-actions-v2')) {
+    cellActions =
+      tableWidget.widgetType === WidgetType.SPANS
+        ? [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE]
+        : ALLOWED_CELL_ACTIONS;
+  }
+
   return (
     <Fragment>
       <TableWidgetVisualization
@@ -1407,7 +1412,7 @@ function ViewerTableV2({
             eventView,
           } satisfies RenderFunctionBaggage;
         }}
-        allowedCellActions={[]}
+        allowedCellActions={cellActions}
       />
       {!(
         tableWidget.queries[0]!.orderby.match(/^-?release$/) &&

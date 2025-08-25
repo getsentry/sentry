@@ -480,6 +480,20 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
+        if value is None:
+            exists_filter = TraceItemFilter(
+                exists_filter=ExistsFilter(
+                    key=resolved_column.proto_definition,
+                )
+            )
+            if term.operator == "=":
+                not_exists_filter = TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
+                return not_exists_filter, context_definition
+            elif term.operator == "!=":
+                return exists_filter, context_definition
+            else:
+                raise InvalidSearchQuery(f"Unsupported operator for None {term.operator}")
+
         if value == "" and context_definition is None:
             exists_filter = TraceItemFilter(
                 exists_filter=ExistsFilter(
@@ -622,7 +636,8 @@ class SearchResolver:
         proto_definition = resolved_column.proto_definition
 
         if not isinstance(
-            proto_definition, (AttributeAggregation, AttributeConditionalAggregation)
+            proto_definition,
+            (AttributeAggregation, AttributeConditionalAggregation, Column.BinaryFormula),
         ):
             raise ValueError(f"{term.key.name} is not valid search term")
 
@@ -635,11 +650,15 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
         kwargs = {"op": operator, "val": value}
-        aggregation_key = (
-            "conditional_aggregation"
-            if isinstance(proto_definition, AttributeConditionalAggregation)
-            else "aggregation"
-        )
+        if isinstance(proto_definition, AttributeAggregation):
+            aggregation_key = "aggregation"
+        elif isinstance(proto_definition, AttributeConditionalAggregation):
+            aggregation_key = "conditional_aggregation"
+        elif isinstance(proto_definition, Column.BinaryFormula):
+            aggregation_key = "formula"
+        else:
+            raise InvalidSearchQuery(f"{term.key.name} is not a valid search")
+
         kwargs[aggregation_key] = proto_definition
         return (
             AggregationFilter(

@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectToolbarSettings from 'sentry/views/settings/project/projectToolbar';
 
-describe('ProjectToolbarSettings', function () {
+describe('ProjectToolbarSettings', () => {
   const {organization, project} = initializeOrg({
     organization: {
       features: ['sentry-toolbar-ui'],
@@ -17,11 +17,11 @@ describe('ProjectToolbarSettings', function () {
   };
   const getProjectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('displays previously saved setting', function () {
+  it('displays previously saved setting', () => {
     const initialOptionValue = 'sentry.io';
     project.options = {'sentry:toolbar_allowed_origins': initialOptionValue};
     render(<ProjectToolbarSettings project={project} />, {
@@ -31,7 +31,7 @@ describe('ProjectToolbarSettings', function () {
     expect(screen.getByRole('textbox')).toHaveValue(initialOptionValue);
   });
 
-  it('can submit new allowed origins', async function () {
+  it('can submit new allowed origins', async () => {
     render(<ProjectToolbarSettings project={project} />, {
       initialRouterConfig,
       organization,
@@ -61,7 +61,7 @@ describe('ProjectToolbarSettings', function () {
     );
   });
 
-  it('displays nothing when project options are undefined', function () {
+  it('displays nothing when project options are undefined', () => {
     project.options = undefined;
     render(<ProjectToolbarSettings project={project} />, {
       initialRouterConfig,
@@ -70,7 +70,7 @@ describe('ProjectToolbarSettings', function () {
     expect(screen.getByRole('textbox')).toHaveValue('');
   });
 
-  it('displays nothing when project options are empty', function () {
+  it('displays nothing when project options are empty', () => {
     project.options = {};
     render(<ProjectToolbarSettings project={project} />, {
       initialRouterConfig,

@@ -2,7 +2,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import TeamStore from 'sentry/stores/teamStore';
 
-describe('TeamStore', function () {
+describe('TeamStore', () => {
   const teamFoo = TeamFixture({
     id: '1',
     slug: 'team-foo',
@@ -12,12 +12,12 @@ describe('TeamStore', function () {
     slug: 'team-bar',
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     TeamStore.reset();
   });
 
-  describe('setting data', function () {
-    it('populate teams correctly', function () {
+  describe('setting data', () => {
+    it('populate teams correctly', () => {
       expect(TeamStore.getState()).toMatchObject({
         teams: [],
         loading: true,
@@ -36,7 +36,7 @@ describe('TeamStore', function () {
       });
     });
 
-    it('loads user teams', function () {
+    it('loads user teams', () => {
       expect(TeamStore.getState()).toMatchObject({
         teams: [],
         loadedUserTeams: false,
@@ -49,7 +49,7 @@ describe('TeamStore', function () {
       });
     });
 
-    it('stores cursor and hasMore correctly', function () {
+    it('stores cursor and hasMore correctly', () => {
       expect(TeamStore.getState()).toMatchObject({
         teams: [],
         hasMore: null,
@@ -67,8 +67,8 @@ describe('TeamStore', function () {
     });
   });
 
-  describe('updating teams', function () {
-    it('adds new teams', async function () {
+  describe('updating teams', () => {
+    it('adds new teams', async () => {
       TeamStore.loadInitialData([teamFoo]);
       await tick();
       expect(TeamStore.getState()).toMatchObject({
@@ -82,7 +82,7 @@ describe('TeamStore', function () {
       });
     });
 
-    it('removes teams', async function () {
+    it('removes teams', async () => {
       TeamStore.loadInitialData([teamFoo]);
       await tick();
       expect(TeamStore.getState()).toMatchObject({
@@ -96,7 +96,7 @@ describe('TeamStore', function () {
       });
     });
 
-    it('updates teams', async function () {
+    it('updates teams', async () => {
       TeamStore.loadInitialData([teamFoo]);
       await tick();
       expect(TeamStore.getState()).toMatchObject({

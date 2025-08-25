@@ -163,7 +163,7 @@ const ALL_FEATURE_LIST: Feature[] = [
   {
     id: 'custom-dashboards',
     planFeatures: ['dashboards-edit'],
-    name: t('Custom Dashboards'),
+    name: t('Unlimited Custom Dashboards'),
     image: dashboardsImg,
     desc: tct(
       `Build custom dashboards for your team with a range of rich data visualizations such as histograms, time series, tables, global maps and more.`,
