@@ -69,7 +69,7 @@ export const CONSOLE_PLATFORM_INSTRUCTIONS = {
     <Flex direction="column" gap="md">
       <p>
         {t(
-          'You can get started using Sentry on Xbox without any changes to your game — including on Xbox One and Series X|S, across both DevKits and Retail devices.'
+          'Sentry supports Xbox One and Series X|S, across both DevKits and Retail devices through an SDK.'
         )}
       </p>
       <p>
