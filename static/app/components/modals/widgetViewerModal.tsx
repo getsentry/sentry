@@ -29,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence, Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -64,6 +65,7 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -109,7 +111,11 @@ import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {TransactionLink} from 'sentry/views/discover/table/tableView';
+import {
+  decodeColumnOrder,
+  getTargetForTransactionSummaryLink,
+} from 'sentry/views/discover/utils';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
@@ -207,6 +213,7 @@ function WidgetViewerModal(props: Props) {
   } = props;
   const theme = useTheme();
   const location = useLocation();
+  const {projects} = useProjects();
   const navigate = useNavigate();
   // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
   // let widgetContentLoadingStatus: boolean | undefined = undefined;
@@ -466,6 +473,7 @@ function WidgetViewerModal(props: Props) {
       navigate,
       eventView,
       theme,
+      projects,
     });
   }
 
@@ -492,6 +500,7 @@ function WidgetViewerModal(props: Props) {
       navigate,
       eventView,
       theme,
+      projects,
     });
   };
 
@@ -985,6 +994,7 @@ interface ViewerTableV2Props {
   location: Location;
   navigate: ReactRouter3Navigate;
   organization: Organization;
+  projects: Project[];
   setChartUnmodified: React.Dispatch<React.SetStateAction<boolean>>;
   tableWidget: Widget;
   theme: Theme;
@@ -1008,6 +1018,7 @@ function ViewerTableV2({
   navigate,
   eventView,
   theme,
+  projects,
 }: ViewerTableV2Props) {
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const links = parseLinkHeader(pageLinks ?? null);
@@ -1101,13 +1112,31 @@ function ViewerTableV2({
         aliases={aliases}
         sort={tableSort}
         onChangeSort={onChangeSort}
-        getRenderer={(field, _dataRow, meta) => {
+        getRenderer={(field, dataRow, meta) => {
           const customRenderer = datasetConfig?.getCustomFieldRenderer?.(
             field,
             meta as MetaType,
             widget,
             organization
           )!;
+
+          if (field === 'transaction' && dataRow.transaction) {
+            return function (cellData, baggage) {
+              return (
+                <TransactionLink
+                  data-test-id="widget-viewer-transaction-link"
+                  to={getTargetForTransactionSummaryLink(
+                    dataRow,
+                    organization,
+                    projects,
+                    eventView
+                  )}
+                >
+                  {customRenderer(cellData, baggage)}
+                </TransactionLink>
+              );
+            };
+          }
 
           return customRenderer;
         }}
