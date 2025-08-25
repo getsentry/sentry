@@ -86,7 +86,7 @@ def adjust_end(end: datetime.datetime, interval: int) -> datetime.datetime:
 
 
 class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.setup_fixture()
 

@@ -132,7 +132,7 @@ def convert_to_async_slack_response(
     region_names: list[str],
     payload: dict[str, Any],
     response_url: str,
-):
+) -> None:
     _AsyncSlackDispatcher(payload, response_url).dispatch(region_names)
 
 

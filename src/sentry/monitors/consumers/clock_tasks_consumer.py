@@ -40,7 +40,7 @@ def is_mark_missing(wrapper: MonitorsClockTasks) -> TypeGuard[MarkMissing]:
     return wrapper["type"] == "mark_missing"
 
 
-def process_clock_task(message: Message[KafkaPayload | FilteredPayload]):
+def process_clock_task(message: Message[KafkaPayload | FilteredPayload]) -> None:
     assert not isinstance(message.payload, FilteredPayload)
     assert isinstance(message.value, BrokerValue)
 

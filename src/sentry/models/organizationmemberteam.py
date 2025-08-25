@@ -71,7 +71,7 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
             organization_member_team_id=identifier,
         )
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {
             "team_slug": self.team.slug,
             "member_id": self.organizationmember_id,

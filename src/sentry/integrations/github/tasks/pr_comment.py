@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
         namespace=integrations_tasks,
     ),
 )
-def github_comment_workflow(pullrequest_id: int, project_id: int):
+def github_comment_workflow(pullrequest_id: int, project_id: int) -> None:
     # TODO(jianyuan): Using `sentry.integrations.source_code_management.tasks.pr_comment_workflow` now.
     # Keep this task temporarily to avoid breaking changes.
     pr_comment_workflow(pr_id=pullrequest_id, project_id=project_id)
@@ -43,7 +43,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         namespace=integrations_tasks,
     ),
 )
-def github_comment_reactions():
+def github_comment_reactions() -> None:
     logger.info("github.pr_comment.reactions_task")
 
     comments = PullRequestComment.objects.filter(

@@ -12,7 +12,7 @@ from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
-def raiseStatusFalse():
+def raiseStatusFalse() -> bool:
     return False
 
 

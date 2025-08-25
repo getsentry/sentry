@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import itertools
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import timedelta
 from typing import Any, cast
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
@@ -27,9 +28,9 @@ from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQueryTypes
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.dashboard_widget import DashboardWidgetTypes
+from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -43,6 +44,7 @@ from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
+from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
@@ -51,7 +53,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
 
 
-def get_query_columns(columns, rollup):
+def get_query_columns(columns: list[str], rollup: int) -> list[str]:
     """
     Backwards compatibility for incidents which uses the old
     column aliases as it straddles both versions of events/discover.
@@ -113,7 +115,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         if not request.user:
             return []
 
-        teams = get_teams(request, organization)
+        teams: Iterable[Team] = get_teams(request, organization)
         if not teams:
             teams = Team.objects.get_for_user(organization, request.user)
 
@@ -249,7 +251,14 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return use_on_demand_metrics, on_demand_metric_type
 
-    def save_split_decision(self, widget, has_errors, has_transactions_data, organization, user):
+    def save_split_decision(
+        self,
+        widget: DashboardWidget,
+        has_errors: bool,
+        has_transactions_data: bool,
+        organization: Organization,
+        user: User | AnonymousUser,
+    ) -> int | None:
         """This can be removed once the discover dataset has been fully split"""
         source = DashboardDatasetSourcesTypes.INFERRED.value
         if has_errors and not has_transactions_data:
@@ -273,15 +282,19 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         return decision
 
     def save_discover_saved_query_split_decision(
-        self, query, dataset_inferred_from_query, has_errors, has_transactions_data
-    ):
+        self,
+        query: DiscoverSavedQuery,
+        dataset_inferred_from_query: int | None,
+        has_errors: bool,
+        has_transactions_data: bool,
+    ) -> int | None:
         """
         This can be removed once the discover dataset has been fully split.
         If dataset is ambiguous (i.e., could be either transactions or errors),
         default to errors.
         """
         dataset_source = DatasetSourcesTypes.INFERRED.value
-        if dataset_inferred_from_query:
+        if dataset_inferred_from_query is not None:
             decision = dataset_inferred_from_query
             sentry_sdk.set_tag("discover.split_reason", "inferred_from_query")
         elif has_errors and not has_transactions_data:
@@ -314,7 +327,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             units[key], meta[key] = self.get_unit_and_type(key, value)
         return meta, units
 
-    def get_unit_and_type(self, field, field_type):
+    def get_unit_and_type(self, field: str, field_type: str) -> tuple[str | None, str]:
         if field_type in SIZE_UNITS:
             return field_type, "size"
         elif field_type in DURATION_UNITS:
@@ -427,7 +440,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return results
 
-    def handle_error_upsampling(self, project_ids: Sequence[int], results: dict[str, Any]):
+    def handle_error_upsampling(self, project_ids: Sequence[int], results: dict[str, Any]) -> None:
         """
         If the query is for error upsampled projects, we convert various functions under the hood.
         We need to rename these fields before returning the results to the client, to hide the conversion.
@@ -704,7 +717,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return result
 
-    def update_meta_with_accuracy(self, meta, event_result, query_column) -> None:
+    def update_meta_with_accuracy(
+        self, meta: dict[str, Any], event_result: SnubaTSResult, query_column: str
+    ) -> None:
         if "processed_timeseries" in event_result.data:
             processed_timeseries = event_result.data["processed_timeseries"]
             meta["accuracy"] = {
@@ -724,7 +739,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         data: Any,
         column: str,
         null_zero: bool = False,
-    ):
+    ) -> list[dict[str, Any]]:
         serialized_values = []
         for timestamp, group in itertools.groupby(data, key=lambda r: r["time"]):
             for row in group:

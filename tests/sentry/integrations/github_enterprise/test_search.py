@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from sentry.integrations.models.integration import Integration
 from sentry.testutils.silo import control_silo_test
 
 from ..github import test_search
@@ -12,7 +13,7 @@ class GithubEnterpriseSearchTest(test_search.GithubSearchTest):
     provider = "github_enterprise"
     base_url = "https://github.example.org/api/v3"
 
-    def _create_integration(self):
+    def _create_integration(self) -> Integration:
         future = datetime.now() + timedelta(hours=1)
         return self.create_provider_integration(
             provider=self.provider,

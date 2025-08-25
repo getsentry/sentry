@@ -13,7 +13,7 @@ event_time = before_now(days=3)
 
 @no_silo_test
 class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.path = f"/organizations/{self.organization.slug}/alerts/"

@@ -5,7 +5,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectGroupEventBase(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         first_release = {
             "firstEvent": before_now(minutes=3),
             "lastEvent": before_now(minutes=2, seconds=30),
@@ -28,7 +28,7 @@ class ProjectGroupEventBase(APIDocsTestCase):
 
 
 class ProjectGroupEventsDocs(ProjectGroupEventBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group_id}/events/"
 
@@ -40,7 +40,7 @@ class ProjectGroupEventsDocs(ProjectGroupEventBase):
 
 
 class ProjectGroupEventDetailsDocs(ProjectGroupEventBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = (
             f"/api/0/organizations/{self.organization.slug}/issues/{self.group_id}/events/latest/"

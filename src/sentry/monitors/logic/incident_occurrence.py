@@ -269,7 +269,7 @@ def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
     }
 
 
-def resolve_incident_group(incident: MonitorIncident, project_id: int):
+def resolve_incident_group(incident: MonitorIncident, project_id: int) -> None:
     status_change = StatusChangeMessage(
         fingerprint=[incident.grouphash],
         project_id=project_id,

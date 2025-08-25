@@ -83,7 +83,7 @@ class OrganizationPageWebVitalsSummaryEndpointTest(APITestCase, SnubaTestCase):
 
         self.url = self._get_url()
 
-    def _get_url(self):
+    def _get_url(self) -> str:
         return f"/api/0/organizations/{self.org.slug}/page-web-vitals-summary/"
 
     @patch("sentry.seer.endpoints.organization_page_web_vitals_summary.get_page_web_vitals_summary")

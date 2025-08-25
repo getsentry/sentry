@@ -10,10 +10,10 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SentryAppPublishRequestTest(APITestCase):
-    def upload_logo(self):
+    def upload_logo(self) -> None:
         SentryAppAvatar.objects.create(sentry_app=self.sentry_app, avatar_type=1, color=True)
 
-    def upload_issue_link_logo(self):
+    def upload_issue_link_logo(self) -> None:
         SentryAppAvatar.objects.create(sentry_app=self.sentry_app, avatar_type=1, color=False)
 
     def setUp(self) -> None:

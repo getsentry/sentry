@@ -95,7 +95,7 @@ def build_incident_attachment(
     alert_context: AlertContext,
     metric_issue_context: MetricIssueContext,
     organization: Organization,
-    integration_key,
+    integration_key: str,
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
 

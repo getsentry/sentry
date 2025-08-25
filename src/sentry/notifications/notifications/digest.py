@@ -33,7 +33,7 @@ from sentry.notifications.utils.links import (
     get_integration_link,
     get_rules,
 )
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.actor import Actor
 from sentry.types.rules import NotificationRuleDetails
 
@@ -172,7 +172,9 @@ class DigestNotification(ProjectNotification):
 
     def get_extra_context(
         self,
-        participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]],
+        participants_by_provider_by_event: Mapping[
+            Event | GroupEvent, Mapping[ExternalProviders, set[Actor]]
+        ],
     ) -> Mapping[Actor, Mapping[str, Any]]:
         personalized_digests = get_personalized_digests(
             self.digest.digest, participants_by_provider_by_event

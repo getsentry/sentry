@@ -5,7 +5,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectGroupIssueDetailsDocs(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_release(project=self.project, version="abcdabc")
 
         first_release = {

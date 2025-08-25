@@ -11,7 +11,7 @@ current_time = datetime.now(timezone.utc)
 
 @no_silo_test
 class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)

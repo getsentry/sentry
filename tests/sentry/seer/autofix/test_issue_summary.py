@@ -33,7 +33,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         self.group = self.create_group()
         self.login_as(user=self.user)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         # Clear the cache after each test
         cache.delete(f"ai-group-summary-v2:{self.group.id}")

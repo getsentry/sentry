@@ -33,7 +33,7 @@ from sentry.utils import json
 @control_silo_test
 class AuthLoginTest(TestCase, HybridCloudTestMixin):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-login")
 
     def allow_registration(self):
@@ -553,7 +553,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 @control_silo_test
 class AuthLoginNewsletterTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-login")
 
     @pytest.fixture(autouse=True)
@@ -625,7 +625,7 @@ class AuthLoginNewsletterTest(TestCase):
 @control_silo_test
 class AuthLoginCustomerDomainTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-login")
 
     def setUp(self) -> None:

@@ -1,5 +1,6 @@
 import copy
 from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
@@ -21,8 +22,8 @@ FEATURE_NAMES = [
 ]
 
 
-def all_events_query(**kwargs):
-    options = {
+def all_events_query(**kwargs: str | list[str]) -> str:
+    options: dict[str, str | list[str]] = {
         "sort": ["-timestamp"],
         "field": ["title", "event.type", "project", "user.display", "timestamp"],
         "name": ["All Events"],
@@ -32,7 +33,7 @@ def all_events_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
-def errors_query(**kwargs):
+def errors_query(**kwargs: str | list[str]) -> str:
     options = {
         "sort": ["-title"],
         "name": ["Errors"],
@@ -46,7 +47,7 @@ def errors_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
-def transactions_query(**kwargs):
+def transactions_query(**kwargs: str | list[str]) -> str:
     options = {
         "sort": ["-count"],
         "name": ["Transactions"],
@@ -62,7 +63,7 @@ def transactions_query(**kwargs):
 
 
 # Sorted by transactions to avoid sorting issues caused by storing events
-def transactions_sorted_query(**kwargs):
+def transactions_sorted_query(**kwargs: str | list[str]) -> str:
     options = {
         "sort": ["transaction"],
         "name": ["Transactions"],
@@ -77,7 +78,7 @@ def transactions_sorted_query(**kwargs):
     return urlencode(options, doseq=True)
 
 
-def generate_transaction(trace=None, span=None):
+def generate_transaction(trace: str | None = None, span: str | None = None) -> Any:
     end_datetime = before_now(minutes=10)
     start_datetime = end_datetime - timedelta(milliseconds=500)
     event_data = load_data(
@@ -93,7 +94,7 @@ def generate_transaction(trace=None, span=None):
     reference_span = event_data["spans"][0]
     parent_span_id = reference_span["parent_span_id"]
 
-    span_tree_blueprint = {
+    span_tree_blueprint: dict[str, str | dict[str, Any]] = {
         "a": {},
         "b": {"bb": {"bbb": {"bbbb": "bbbbb"}}},
         "c": {},
@@ -113,7 +114,9 @@ def generate_transaction(trace=None, span=None):
         "e": (timedelta(milliseconds=400), timedelta(milliseconds=100)),
     }
 
-    def build_span_tree(span_tree, spans, parent_span_id):
+    def build_span_tree(
+        span_tree: dict[str, str | dict[str, Any]], spans: list[dict[str, Any]], parent_span_id: str
+    ) -> list[dict[str, Any]]:
         for span_id, child in sorted(span_tree.items(), key=lambda item: item[0]):
             span = copy.deepcopy(reference_span)
             # non-leaf node span
@@ -154,7 +157,7 @@ def generate_transaction(trace=None, span=None):
 
 @no_silo_test
 class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com", is_superuser=True)
         self.org = self.create_organization(name="Rowdy Tiger")
@@ -166,7 +169,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.landing_path = f"/organizations/{self.org.slug}/discover/queries/"
         self.result_path = f"/organizations/{self.org.slug}/discover/results/"
 
-    def wait_until_loaded(self):
+    def wait_until_loaded(self) -> None:
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 

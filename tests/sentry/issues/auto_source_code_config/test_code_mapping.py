@@ -95,7 +95,7 @@ def test_buckets_logic() -> None:
 
 class TestDerivedCodeMappings(TestCase):
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog: Any) -> None:
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture) -> None:
         self._caplog = caplog
 
     def setUp(self) -> None:

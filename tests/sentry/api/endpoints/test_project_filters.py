@@ -1,3 +1,6 @@
+from collections.abc import Iterable
+from typing import Any
+
 from sentry.testutils.cases import APITestCase
 
 
@@ -8,7 +11,9 @@ class ProjectFiltersTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def get_filter_spec(self, response_data, spec_id):
+    def get_filter_spec(
+        self, response_data: Iterable[dict[str, Any]], spec_id: str
+    ) -> dict[str, Any]:
         """
         looks in a successful response data for the specified spec_id and returns it (if found)
         """

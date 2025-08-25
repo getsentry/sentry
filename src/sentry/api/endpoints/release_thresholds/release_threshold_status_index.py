@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, DefaultDict
+from typing import TYPE_CHECKING, Any, DefaultDict, TypedDict
 
 from django.db.models import F, Q
 from django.http import HttpResponse
@@ -37,6 +37,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.release_health.base import SessionsQueryResult
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.release_threshold_status")
@@ -49,7 +50,17 @@ if TYPE_CHECKING:
     from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
 
-class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
+class ReleaseThresholdStatusIndexData(TypedDict, total=False):
+    start: datetime
+    end: datetime
+    environment: list[str]
+    projectSlug: list[str]
+    release: list[str]
+
+
+class ReleaseThresholdStatusIndexSerializer(
+    serializers.Serializer[ReleaseThresholdStatusIndexData]
+):
     start = serializers.DateTimeField(
         help_text="The start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds. "
         "Use along with `end`.",
@@ -81,7 +92,7 @@ class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
         help_text=("A list of release versions to filter your results by."),
     )
 
-    def validate(self, data):
+    def validate(self, data: ReleaseThresholdStatusIndexData) -> ReleaseThresholdStatusIndexData:
         if data["start"] >= data["end"]:
             raise serializers.ValidationError("Start datetime must be after End")
         return data
@@ -195,7 +206,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
         # ========================================================================
         # Step 3: flatten thresholds and compile projects/release-thresholds by type
         # ========================================================================
-        thresholds_by_type: DefaultDict[int, dict[str, list]] = defaultdict()
+        thresholds_by_type: DefaultDict[int, dict[str, list[Any]]] = defaultdict()
         query_windows_by_type: DefaultDict[int, dict[str, datetime]] = defaultdict()
         for release in queryset:
             # TODO:
@@ -389,7 +400,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
             elif threshold_type == ReleaseThresholdType.CRASH_FREE_SESSION_RATE:
                 metrics.incr("release.threshold_health_status.check.crash_free_session_rate")
                 query_window = query_windows_by_type[threshold_type]
-                sessions_data = {}
+                sessions_data: SessionsQueryResult | None = None
                 try:
                     sessions_data = fetch_sessions_data(
                         end=query_window["end"],
@@ -416,7 +427,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
                 if sessions_data:
                     for ethreshold in category_thresholds:
                         is_healthy, rate = is_crash_free_rate_healthy_check(
-                            ethreshold, sessions_data, CRASH_SESSIONS_DISPLAY
+                            ethreshold, dict(sessions_data), CRASH_SESSIONS_DISPLAY
                         )
                         ethreshold.update({"is_healthy": is_healthy, "metric_value": rate})
                         release_threshold_health[ethreshold["key"]].append(ethreshold)

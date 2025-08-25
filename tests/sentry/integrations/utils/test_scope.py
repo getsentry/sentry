@@ -92,7 +92,7 @@ class BindOrgContextFromIntegrationTest(TestCase):
         mock_check_tag_for_scope_bleed: MagicMock,
         mock_bind_org_context: MagicMock,
         mock_bind_ambiguous_org_context: MagicMock,
-    ):
+    ) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(name="squirrelChasers")
 

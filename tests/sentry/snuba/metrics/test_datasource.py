@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -14,7 +16,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
-    def now(self):
+    def now(self) -> datetime:
         return BaseMetricsLayerTestCase.MOCK_DATETIME
 
     def test_get_tag_values_with_mri(self) -> None:

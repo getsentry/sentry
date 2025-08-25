@@ -15,7 +15,7 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import compute_adjus
     ],
 )
 def test_adjusted_factor(
-    prev_factor, actual_rate, desired_sample_rate, expected_adj_factor
+    prev_factor: float, actual_rate: float, desired_sample_rate: float, expected_adj_factor: float
 ) -> None:
     assert (
         compute_adjusted_factor(prev_factor, actual_rate, desired_sample_rate)

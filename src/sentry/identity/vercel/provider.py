@@ -11,10 +11,10 @@ class VercelIdentityProvider(OAuth2Provider):
     # https://vercel.com/docs/integrations/reference#using-the-vercel-api/exchange-code-for-access-token
     oauth_access_token_url = "https://api.vercel.com/v2/oauth/access_token"
 
-    def get_oauth_client_id(self):
+    def get_oauth_client_id(self) -> str | int:
         return options.get("vercel.client-id")
 
-    def get_oauth_client_secret(self):
+    def get_oauth_client_secret(self) -> str:
         return options.get("vercel.client-secret")
 
     def get_refresh_token_url(self) -> str:

@@ -146,7 +146,7 @@ def test_backpressure_not_enabled(process_profile_task: MagicMock) -> None:
     process_profile_task.assert_called_once()
 
 
-def process_one_message(consumer_type: str, topic: str, payload: str):
+def process_one_message(consumer_type: str, topic: str, payload: str) -> None:
     if consumer_type == "profiles":
         processing_strategy = ProcessProfileStrategyFactory().create_with_partitions(
             commit=Mock(), partitions={}

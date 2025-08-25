@@ -8,7 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.features = {

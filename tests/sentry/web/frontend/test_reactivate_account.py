@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class ReactivateAccountTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-reactivate-account")
 
     def test_renders(self) -> None:

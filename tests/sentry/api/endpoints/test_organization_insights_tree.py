@@ -30,7 +30,7 @@ class OrganizationInsightsTreeEndpointTest(
         self._store_nextjs_function_spans()
         self._store_unrelated_spans()
 
-    def _store_nextjs_function_spans(self):
+    def _store_nextjs_function_spans(self) -> None:
         descriptions = [
             "Page Server Component (/app/dashboard/)",
             "Loading Server Component (/app/dashboard/)",
@@ -66,7 +66,7 @@ class OrganizationInsightsTreeEndpointTest(
             self.store_span(span, is_eap=True)
             spans.append(span)
 
-    def _store_unrelated_spans(self):
+    def _store_unrelated_spans(self) -> None:
         descriptions = [
             "INSERT value INTO table",
             "SELECT * FROM table",

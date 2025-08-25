@@ -180,7 +180,7 @@ optional_access_log_fields = (
 @override_settings(LOG_API_ACCESS=True)
 class LogCaptureAPITestCase(APITestCase):
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture):
         self._caplog = caplog
 
     def assert_access_log_recorded(self):

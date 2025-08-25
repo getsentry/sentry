@@ -15,7 +15,7 @@ from sentry.organizations.services.organization_actions.impl import (
 from sentry.testutils.cases import TestCase
 
 
-def assert_outbox_update_message_exists(org: Organization, expected_count: int):
+def assert_outbox_update_message_exists(org: Organization, expected_count: int) -> None:
     outbox_messages = RegionOutbox.objects.filter()
 
     # TODO(HC): Remove this once we can ensure an expected count of 1 for every message

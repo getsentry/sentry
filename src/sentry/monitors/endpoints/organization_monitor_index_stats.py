@@ -28,7 +28,7 @@ TRACKED_STATUSES = [
 ]
 
 
-def normalize_to_epoch(timestamp: datetime, seconds: int):
+def normalize_to_epoch(timestamp: datetime, seconds: int) -> int:
     """
     Given a ``timestamp`` (datetime object) normalize to an epoch timestamp.
 

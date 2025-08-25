@@ -5,20 +5,20 @@ from sentry.utils import json
 
 @no_silo_test
 class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("owner@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.login_as(self.user)
         self.path = f"/settings/{self.org.slug}/security-and-privacy/"
 
-    def load_organization_helper(self):
+    def load_organization_helper(self) -> None:
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         assert self.browser.wait_until(
             '[data-test-id="organization-settings-security-and-privacy"]'
         )
 
-    def renders_2fa_setting(self):
+    def renders_2fa_setting(self) -> bool:
         return self.browser.wait_until("#require2FA")
 
     def test_renders_2fa_setting_for_owner(self) -> None:

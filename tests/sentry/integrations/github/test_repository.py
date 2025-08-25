@@ -35,16 +35,16 @@ class GitHubAppsProviderTest(TestCase):
             },
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         responses.reset()
 
     @cached_property
-    def provider(self):
+    def provider(self) -> GitHubRepositoryProvider:
         return GitHubRepositoryProvider("integrations:github")
 
     @cached_property
-    def repository(self):
+    def repository(self) -> Repository:
         # TODO: Refactor this out with a call to the relevant factory if possible to avoid
         # explicitly having to exempt it from silo limits
         with assume_test_silo_mode(SiloMode.REGION):
@@ -67,8 +67,8 @@ class GitHubAppsProviderTest(TestCase):
             "external_id": "654321",
             "integration_id": integration.id,
         }
-        data = self.provider.build_repository_config(organization, data)
-        assert data == {
+        repo_config_data = self.provider.build_repository_config(organization, data)
+        assert repo_config_data == {
             "config": {"name": "getsentry/example-repo"},
             "external_id": "654321",
             "integration_id": integration.id,

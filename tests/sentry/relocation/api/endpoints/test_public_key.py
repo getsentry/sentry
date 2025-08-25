@@ -22,7 +22,7 @@ class GetRelocationPublicKeyTest(APITestCase):
         (_, pub_key_pem) = generate_rsa_key_pair()
         self.pub_key_pem = pub_key_pem
 
-    def mock_kms_client(self, fake_kms_client: mock.Mock):
+    def mock_kms_client(self, fake_kms_client: mock.Mock) -> None:
         fake_kms_client.return_value.get_public_key.return_value = SimpleNamespace(
             pem=self.pub_key_pem.decode("utf-8")
         )
