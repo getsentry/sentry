@@ -80,7 +80,7 @@ describe('SidebarNavigationItem', () => {
       isFree: true,
     });
 
-    subscription.planDetails.features = ['insights-addon-modules'];
+    subscription.planDetails.features = ['insight-modules'];
 
     const id = 'llm-monitoring';
 
@@ -101,7 +101,7 @@ describe('SidebarNavigationItem', () => {
 
   it('provides ineligible items with blocking render props', () => {
     const organization = OrganizationFixture({
-      features: ['insights-initial-modules'],
+      features: ['insight-modules'],
     });
 
     const subscription = SubscriptionFixture({
@@ -130,7 +130,7 @@ describe('SidebarNavigationItem', () => {
   });
 
   it('considers features of the plan trial', async () => {
-    // The `"am3_team"` plan does not have the `insights-addon-modules` feature. The `"am3_business"` plan _does_ have the feature. The "LLM Monitoring" sidebar item should be enabled
+    // The `"am3_team"` plan does not have the `insight-modules` feature. The `"am3_business"` plan _does_ have the feature. The "LLM Monitoring" sidebar item should be enabled
     const organization = OrganizationFixture();
 
     const subscription = SubscriptionFixture({
@@ -161,9 +161,9 @@ describe('SidebarNavigationItem', () => {
   });
 
   it('considers features of the organization', async () => {
-    // The `"am3_team"` plan does not have the `insights-addon-modules` feature. The organization _does_ have the feature. This can happen if the flag is manually turned on via an allowlist. "LLM Monitoring" should be enabled
+    // The `"am3_team"` plan does not have the `insight-modules` feature. The organization _does_ have the feature. This can happen if the flag is manually turned on via an allowlist. "LLM Monitoring" should be enabled
     const organization = OrganizationFixture({
-      features: ['insights-addon-modules'],
+      features: ['insight-modules'],
     });
 
     const subscription = SubscriptionFixture({

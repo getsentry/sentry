@@ -136,7 +136,7 @@ describe('SpanDetail', () => {
           }),
           organization: OrganizationFixture({
             ...organization,
-            features: ['insights-initial-modules'],
+            features: ['insight-modules'],
           }),
         })
       );

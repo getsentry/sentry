@@ -35,7 +35,7 @@ function SpanSummaryButton(props: Props) {
   const resolvedModule = resolveSpanModule(sentryTags.op, sentryTags.category);
 
   if (
-    organization.features.includes('insights-initial-modules') &&
+    organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.DB
   ) {
     return (
@@ -60,7 +60,7 @@ function SpanSummaryButton(props: Props) {
   }
 
   if (
-    organization.features.includes('insights-initial-modules') &&
+    organization.features.includes('insight-modules') &&
     resolvedModule === ModuleName.RESOURCE &&
     resourceSummaryAvailable(sentryTags.op)
   ) {
