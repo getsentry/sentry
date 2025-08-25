@@ -349,36 +349,29 @@ export function LogsTabContent({
         )}
         <BottomSectionBody>
           <section>
-            <Feature features="organizations:ourlogs-visualize-sidebar">
-              <LogsSidebarCollapseButton
-                sidebarOpen={sidebarOpen}
-                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-                size="xs"
-                icon={
-                  <IconChevron
-                    isDouble
-                    direction={sidebarOpen ? 'left' : 'right'}
-                    size="xs"
-                  />
-                }
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              />
-            </Feature>
+            <LogsSidebarCollapseButton
+              sidebarOpen={sidebarOpen}
+              aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+              size="xs"
+              icon={
+                <IconChevron
+                  isDouble
+                  direction={sidebarOpen ? 'left' : 'right'}
+                  size="xs"
+                />
+              }
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            />
             <LogsGraphContainer>
               <LogsGraph timeseriesResult={timeseriesResult} />
             </LogsGraphContainer>
             <LogsTableActionsContainer>
-              <Feature
-                features="organizations:ourlogs-visualize-sidebar"
-                renderDisabled={() => <div />}
-              >
-                <Tabs value={tableTab} onChange={setTableTab} size="sm">
-                  <TabList hideBorder variant="floating">
-                    <TabList.Item key={'logs'}>{t('Logs')}</TabList.Item>
-                    <TabList.Item key={'aggregates'}>{t('Aggregates')}</TabList.Item>
-                  </TabList>
-                </Tabs>
-              </Feature>
+              <Tabs value={tableTab} onChange={setTableTab} size="sm">
+                <TabList hideBorder variant="floating">
+                  <TabList.Item key={'logs'}>{t('Logs')}</TabList.Item>
+                  <TabList.Item key={'aggregates'}>{t('Aggregates')}</TabList.Item>
+                </TabList>
+              </Tabs>
               <TableActionsContainer>
                 <Feature features="organizations:ourlogs-live-refresh">
                   <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
