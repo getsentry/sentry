@@ -418,21 +418,3 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         project_id = repo.config["project_id"]
         path = GitLabApiClientPath.build_pr_diffs(project=project_id, pr_key=pr.key, unidiff=True)
         return self.get(path)
-
-    def create_status(self, repo: str, sha: str, data: dict[str, Any]) -> Any:
-        """
-        See https://docs.gitlab.com/api/commits/#post-the-commit-status
-
-        The repo param must be the project ID.
-        """
-        path = GitLabApiClientPath.statuses.format(project=repo, sha=sha)
-        return self.post(path, data=data)
-
-    def get_status(self, repo: str, sha: str) -> Any:
-        """
-        See https://docs.gitlab.com/api/commits/#get-the-status-of-a-commit
-
-        The repo param must be the project ID.
-        """
-        path = GitLabApiClientPath.commit_statuses.format(project=repo, sha=sha)
-        return self.get(path)
