@@ -1,4 +1,5 @@
 import React, {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -57,6 +58,8 @@ import {
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+
+const {fmt} = Sentry.logger;
 
 interface LogFieldRendererProps extends AttributesFieldRendererProps<RendererExtra> {}
 
@@ -439,19 +442,21 @@ function AnnotatedAttributeWrapper(props: {
     const metaInfo = new TraceItemMetaInfo(props.extra.traceItemMeta);
     if (metaInfo.hasRemarks(props.fieldKey)) {
       try {
-        logInfoOnceHasRemarks(
-          `AnnotatedAttributeWrapper: ${props.fieldKey} has remarks, rendering tooltip`,
-          {
-            organization: props.extra.organization,
-            project: props.extra.project,
-            text: TraceItemMetaInfo.getTooltipText(
-              props.fieldKey,
-              props.extra.traceItemMeta,
-              props.extra.organization,
-              props.extra.project
-            ),
-          }
-        );
+        const remarks = metaInfo.getRemarks(props.fieldKey);
+        const remark = remarks[0];
+        if (remark) {
+          const remarkType = remark.type;
+          const remarkRuleId = remark.ruleId;
+          logInfoOnceHasRemarks(
+            fmt`AnnotatedAttributeWrapper: ${props.fieldKey} has remarks, rendering tooltip`,
+            {
+              organizationId: props.extra.organization.id,
+              projectId: props.extra.projectSlug,
+              remarkType,
+              remarkRuleId,
+            }
+          );
+        }
       } catch {
         // defensive
       }
