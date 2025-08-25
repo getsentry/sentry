@@ -17,6 +17,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
@@ -66,7 +67,7 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
   [ModuleFormat.CJS]: {
     introduction: () =>
       tct(
-        'In this quick guide you’ll use set up Sentry for your AWS Lambda function. For more information visit [link:docs].',
+        "In this quick guide you'll use set up Sentry for your AWS Lambda function. For more information visit [link:docs].",
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/cjs-layer/" />
@@ -204,22 +205,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     moduleFormatOnboarding[params.platformOptions.moduleFormat].configure(params),
   verify: (params: Params) =>
     moduleFormatOnboarding[params.platformOptions.moduleFormat].verify(params),
-  nextSteps: (params: Params) => {
-    const steps = [];
-
-    if (params.isLogsSelected) {
-      steps.push({
-        id: 'logs',
-        name: t('Logging Integrations'),
-        description: t(
-          'Add logging integrations to automatically capture logs from your application.'
-        ),
-        link: 'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/logs/#integrations',
-      });
-    }
-
-    return steps;
-  },
 };
 
 const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
@@ -241,6 +226,10 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/aws-serverless',
+  }),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'aws-lambda',
+    sdkPackage: '@sentry/aws-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'aws-serverless',

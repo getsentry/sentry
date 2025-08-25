@@ -28,7 +28,10 @@ import {
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptFullStackOnboarding,
+  getJavascriptLogsFullStackOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -585,6 +588,10 @@ const docs: Docs = {
   crashReportOnboarding,
   featureFlagOnboarding,
   profilingOnboarding,
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'nextjs',
+    sdkPackage: '@sentry/nextjs',
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'nextjs',
   }),
