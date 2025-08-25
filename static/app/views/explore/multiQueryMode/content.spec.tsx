@@ -58,7 +58,16 @@ describe('MultiQueryModeContent', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [{key: 'span.op', name: 'span.op'}],
+      match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [{key: 'span.duration', name: 'span.duration'}],
+      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+    });
+
     eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',

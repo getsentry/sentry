@@ -22,11 +22,13 @@ interface ToolbarGroupByProps {
 }
 
 export function ToolbarGroupBy({groupBys, setGroupBys}: ToolbarGroupByProps) {
+  const {tags: numberTags} = useTraceItemTags('number');
   const {tags: stringTags} = useTraceItemTags('string');
 
   const options: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
-    tags: stringTags,
+    numberTags,
+    stringTags,
     traceItemType: TraceItemDataset.SPANS,
   });
 
