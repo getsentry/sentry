@@ -4,7 +4,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
-from sentry.workflow_engine.tasks.workflows import process_workflow_activity
 
 SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
 
@@ -21,6 +20,7 @@ def workflow_status_update_handler(
     """
 
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+    from sentry.workflow_engine.tasks.workflows import process_workflow_activity
 
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update",
