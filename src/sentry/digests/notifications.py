@@ -32,22 +32,31 @@ class DigestInfo(NamedTuple):
 
 def split_key(
     key: str,
-) -> tuple[Project, ActionTargetType, int | None, FallthroughChoiceType | None]:
+) -> tuple[Project, ActionTargetType, int | str | None, FallthroughChoiceType | None]:
     key_parts = key.split(":", 5)
     project_id = key_parts[2]
     # XXX: We transitioned to new style keys (len == 5) a while ago on
     # sentry.io. But self-hosted users might transition at any time, so we need
     # to keep this transition code around for a while, maybe indefinitely.
+    target_identifier: int | str | None = None
     if len(key_parts) == 6:
         target_type = ActionTargetType(key_parts[3])
-        target_identifier = int(key_parts[4]) if key_parts[4] else None
+        if key_parts[4]:
+            if key_parts[4] == "None":
+                target_identifier = key_parts[4]
+            else:
+                target_identifier = int(key_parts[4])
         try:
             fallthrough_choice = FallthroughChoiceType(key_parts[5])
         except ValueError:
             fallthrough_choice = None
     elif len(key_parts) == 5:
         target_type = ActionTargetType(key_parts[3])
-        target_identifier = int(key_parts[4]) if key_parts[4] else None
+        if key_parts[4]:
+            if key_parts[4] == "None":
+                target_identifier = key_parts[4]
+            else:
+                target_identifier = int(key_parts[4])
         fallthrough_choice = None
     else:
         target_type = ActionTargetType.ISSUE_OWNERS
