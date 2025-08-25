@@ -15,6 +15,7 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.replays.usecases.ingest import (
     DropEvent,
@@ -70,8 +71,10 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         profile_session_sample_rate = getattr(
             settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
         )
+        profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
+        profiling_enabled = options.get("replay.consumer.recording.profiling.enabled")
 
-        if profiling_dsn is not None and profile_session_sample_rate > 0:
+        if profiling_active and profiling_enabled:
             try:
                 if sentry_sdk.get_client().dsn != profiling_dsn:
                     # Different DSN, reinitialize
@@ -124,8 +127,9 @@ def process_message_with_profiling(
         settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
     )
     profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
+    profiling_enabled = options.get("replay.consumer.recording.profiling.enabled")
 
-    if profiling_active:
+    if profiling_active and profiling_enabled:
         sentry_sdk.profiler.start_profiler()
         try:
             result = process_message(message)
@@ -133,7 +137,8 @@ def process_message_with_profiling(
         finally:
             sentry_sdk.profiler.stop_profiler()
     else:
-        return process_message(message)
+        result = process_message(message)
+        return result
 
 
 def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | FilteredPayload:
@@ -237,8 +242,9 @@ def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
         settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
     )
     profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
+    profiling_enabled = options.get("replay.consumer.recording.profiling.enabled")
 
-    if profiling_active:
+    if profiling_active and profiling_enabled:
         sentry_sdk.profiler.start_profiler()
         try:
             commit_message(message)

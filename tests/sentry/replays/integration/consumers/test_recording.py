@@ -2,7 +2,7 @@
 
 import zlib
 from datetime import datetime
-from unittest import mock
+from unittest.mock import patch
 
 import msgpack
 import pytest
@@ -38,9 +38,9 @@ def submit(consumer, message):
     )
     consumer.poll()
     consumer.join(1)
-    consumer.terminate()
 
 
+@patch("sentry.options.get", return_value=False)
 def test_recording_consumer(consumer) -> None:
     headers = json.dumps({"segment_id": 42}).encode()
     recording_payload = headers + b"\n" + zlib.compress(b"")
@@ -59,15 +59,16 @@ def test_recording_consumer(consumer) -> None:
         "version": 0,
     }
 
-    with mock.patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
+    with patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
         submit(consumer, message)
 
         # Message was successfully processed and the result was committed.
         assert commit.called
 
 
+@patch("sentry.options.get", return_value=False)
 def test_recording_consumer_invalid_message(consumer) -> None:
-    with mock.patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
+    with patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
         submit(consumer, {})
 
         # Message was not successfully processed and the result was dropped.

@@ -589,6 +589,7 @@ def make_valid_processed_event() -> ProcessedEvent:
         (None, 0),  # Profiling inactive: no DSN and sample rate = 0
     ],
 )
+@patch("sentry.options.get", return_value=True)
 @patch("sentry_sdk.profiler.start_profiler")
 @patch("sentry_sdk.profiler.stop_profiler")
 @patch("sentry.replays.consumers.recording.process_message")
@@ -596,6 +597,7 @@ def test_process_message_with_profiling(
     mock_process_message,
     mock_stop_profiler,
     mock_start_profiler,
+    mock_options_get,
     mock_dsn,
     sample_rate,
 ):
@@ -633,6 +635,7 @@ def test_process_message_with_profiling(
         (None, 0),  # Profiling inactive: no DSN and sample rate = 0
     ],
 )
+@patch("sentry.options.get", return_value=True)
 @patch("sentry_sdk.profiler.start_profiler")
 @patch("sentry_sdk.profiler.stop_profiler")
 @patch("sentry.replays.consumers.recording.commit_message")
@@ -640,6 +643,7 @@ def test_commit_message_with_profiling(
     mock_commit_message,
     mock_stop_profiler,
     mock_start_profiler,
+    mock_options_get,
     mock_dsn,
     sample_rate,
 ):
@@ -675,8 +679,11 @@ def test_commit_message_with_profiling(
         (None, 0),  # Profiling inactive: no DSN and sample rate = 0
     ],
 )
+@patch("sentry.options.get", return_value=True)
 @patch("sentry_sdk.init")
-def test_strategy_factory_sentry_sdk_initialization(mock_sdk_init, mock_dsn, sample_rate):
+def test_strategy_factory_sentry_sdk_initialization(
+    mock_sdk_init, mock_options_get, mock_dsn, sample_rate
+):
     """Test that Sentry SDK is initialized only when profiling is enabled."""
     settings_overrides = {
         "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": mock_dsn,
@@ -706,9 +713,12 @@ def test_strategy_factory_sentry_sdk_initialization(mock_sdk_init, mock_dsn, sam
         mock_sdk_init.assert_not_called()
 
 
+@patch("sentry.options.get", return_value=True)
 @patch("sentry_sdk.init")
 @patch("sentry_sdk.get_client")
-def test_strategy_factory_reinitializes_sentry_sdk_when_dsn_changes(mock_get_client, mock_sdk_init):
+def test_strategy_factory_reinitializes_sentry_sdk_when_dsn_changes(
+    mock_get_client, mock_sdk_init, mock_options_get
+):
     """Test that Sentry SDK is reinitialized when client DSN changes."""
     mock_client = mock_get_client.return_value
     mock_client.dsn = "http://different@localhost:8000/1"
@@ -734,10 +744,11 @@ def test_strategy_factory_reinitializes_sentry_sdk_when_dsn_changes(mock_get_cli
     assert call_args[1]["dsn"] == "http://test@localhost:8000/1"
 
 
+@patch("sentry.options.get", return_value=True)
 @patch("sentry_sdk.init")
 @patch("sentry_sdk.get_client")
 def test_strategy_factory_does_not_reinitialize_sentry_sdk_when_dsn_same(
-    mock_get_client, mock_sdk_init
+    mock_get_client, mock_sdk_init, mock_options_get
 ):
     """Test that Sentry SDK is not reinitialized when client DSN is the same."""
     mock_client = mock_get_client.return_value
@@ -762,39 +773,45 @@ def test_strategy_factory_does_not_reinitialize_sentry_sdk_when_dsn_same(
     mock_sdk_init.assert_not_called()
 
 
+@patch("sentry.replays.consumers.recording.sentry_sdk.get_client")
+@patch("sentry.options.get", return_value=True)
 @patch("sentry_sdk.init")
-def test_strategy_factory_handles_sdk_not_initialized_exception(mock_sdk_init):
+def test_strategy_factory_handles_sdk_not_initialized_exception(
+    mock_sdk_init, mock_options_get, mock_get_client
+):
     """Test that exception when getting client triggers SDK initialization."""
     # If we just mock a side_effect exception, it will interfere with Django's test setup and break before even getting to this test
     # Instead let's just mock a client missing the dsn attribute to raise an AttributeError when accessing sentry_sdk.get_client().dsn
-    with patch("sentry.replays.consumers.recording.sentry_sdk.get_client") as mock_get_client:
-        mock_client = mock_get_client.return_value
-        del mock_client.dsn
+    mock_client = mock_get_client.return_value
+    del mock_client.dsn
 
-        settings_overrides = {
-            "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": "http://test@localhost:8000/1",
-            "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE": 0.1,
-            "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": 0.5,
-        }
+    settings_overrides = {
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": "http://test@localhost:8000/1",
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE": 0.1,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": 0.5,
+    }
 
-        with override_settings(**settings_overrides):
-            ProcessReplayRecordingStrategyFactory(
-                input_block_size=None,
-                max_batch_size=100,
-                max_batch_time=1000,
-                num_processes=1,
-                output_block_size=None,
-                num_threads=4,
-            )
+    with override_settings(**settings_overrides):
+        ProcessReplayRecordingStrategyFactory(
+            input_block_size=None,
+            max_batch_size=100,
+            max_batch_time=1000,
+            num_processes=1,
+            output_block_size=None,
+            num_threads=4,
+        )
 
     mock_sdk_init.assert_called_once()
     call_args = mock_sdk_init.call_args
     assert call_args[1]["dsn"] == "http://test@localhost:8000/1"
 
 
+@patch("sentry.options.get", return_value=True)
 @patch("sentry_sdk.init")
 @patch("sentry_sdk.get_client")
-def test_strategy_factory_handles_client_options_missing_dsn(mock_get_client, mock_sdk_init):
+def test_strategy_factory_handles_client_options_missing_dsn(
+    mock_get_client, mock_sdk_init, mock_options_get
+):
     """Test that missing client DSN triggers SDK initialization."""
     mock_client = mock_get_client.return_value
     mock_client.dsn = None
