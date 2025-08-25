@@ -18,7 +18,6 @@ from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.eventstore.models import Event
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -26,6 +25,7 @@ from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.seer.similarity.utils import MAX_FRAME_COUNT
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project import (
@@ -452,7 +452,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
-    @patch("sentry.nodestore.backend.get_multi")
+    @patch("sentry.services.nodestore.backend.get_multi")
     def test_lookup_group_data_stacktrace_bulk_with_fallback_use_single_fallback(
         self, mock_get_multi
     ):
@@ -655,7 +655,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @patch("time.sleep", return_value=None)
     @patch(
-        "sentry.nodestore.backend.get_multi",
+        "sentry.services.nodestore.backend.get_multi",
         side_effect=ServiceUnavailable(message="Service Unavailable"),
     )
     def test_failure(self, mock_get_multi: MagicMock, mock_sleep: MagicMock) -> None:

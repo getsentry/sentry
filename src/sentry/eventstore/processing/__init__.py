@@ -1,31 +1,4 @@
-from django.conf import settings
+# Shim for backward compatibility with getsentry
+# The eventstore module has been moved to sentry.services.eventstore
 
-from sentry.eventstore.processing.base import EventProcessingStore
-from sentry.utils.services import LazyServiceWrapper
-
-event_processing_store = LazyServiceWrapper(
-    EventProcessingStore,
-    settings.SENTRY_EVENT_PROCESSING_STORE,
-    settings.SENTRY_EVENT_PROCESSING_STORE_OPTIONS,
-    metrics_path="event_processing_store",
-)
-
-
-if (
-    settings.SENTRY_TRANSACTION_PROCESSING_STORE
-    and settings.SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS
-):
-    transaction_processing_store = LazyServiceWrapper(
-        EventProcessingStore,
-        settings.SENTRY_TRANSACTION_PROCESSING_STORE,
-        settings.SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS,
-        metrics_path="transaction_processing_store",
-    )
-else:
-    transaction_processing_store = LazyServiceWrapper(
-        EventProcessingStore,
-        settings.SENTRY_EVENT_PROCESSING_STORE,
-        settings.SENTRY_EVENT_PROCESSING_STORE_OPTIONS,
-    )
-
-__all__ = ["event_processing_store", "transaction_processing_store"]
+from sentry.services.eventstore.processing import *  # noqa: F401, F403

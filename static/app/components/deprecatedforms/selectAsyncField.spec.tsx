@@ -4,10 +4,10 @@ import selectEvent from 'sentry-test/selectEvent';
 import Form from 'sentry/components/deprecatedforms/form';
 import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
 
-describe('SelectAsyncField', function () {
+describe('SelectAsyncField', () => {
   let api: jest.Mock;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     api = MockApiClient.addMockResponse({
       url: '/foo/bar/',
@@ -23,7 +23,7 @@ describe('SelectAsyncField', function () {
     label: 'Select me',
   };
 
-  it('supports autocomplete arguments from an integration', async function () {
+  it('supports autocomplete arguments from an integration', async () => {
     render(<SelectAsyncField {...defaultProps} />);
 
     await selectEvent.openMenu(screen.getByText('Select me'));
@@ -35,7 +35,7 @@ describe('SelectAsyncField', function () {
     await screen.findByText('Baz Label');
   });
 
-  it('with Form context', async function () {
+  it('with Form context', async () => {
     const submitMock = jest.fn();
     render(
       <Form onSubmit={submitMock} aria-label="form">

@@ -24,8 +24,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/groupEvents';
 import {
-  type GroupTag,
   useGroupTags,
+  type GroupTag,
 } from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {
   mergeAndSortTagValues,

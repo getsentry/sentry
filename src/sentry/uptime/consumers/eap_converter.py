@@ -8,6 +8,7 @@ all requests in a redirect chain.
 """
 
 import logging
+import uuid
 from collections.abc import MutableMapping
 
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -24,6 +25,8 @@ from sentry.models.project import Project
 from sentry.uptime.types import IncidentStatus
 
 logger = logging.getLogger(__name__)
+
+UPTIME_NAMESPACE = uuid.UUID("f8d7a4e2-5b3c-4a9d-8e1f-3c2b1a0d9f8e")
 
 
 def _anyvalue(value: bool | str | int | float) -> AnyValue:
@@ -98,6 +101,7 @@ def convert_uptime_request_to_trace_item(
     attributes["check_id"] = _anyvalue(result["guid"])
     attributes["request_sequence"] = _anyvalue(request_sequence)
     attributes["incident_status"] = _anyvalue(incident_status.value)
+    attributes["span_id"] = _anyvalue(result["span_id"])
 
     if request_info is not None:
         attributes["request_type"] = _anyvalue(request_info["request_type"])
@@ -162,11 +166,11 @@ def convert_uptime_result_to_trace_items(
 
     for sequence, request_info in enumerate(request_info_list):
         if sequence == 0:
-            # First request uses the span_id directly
-            item_id = result["span_id"].encode("utf-8")[:16].ljust(16, b"\x00")
+            name = result["span_id"]
         else:
-            request_id = f"{result['span_id']}_req_{sequence}"
-            item_id = request_id.encode("utf-8")[:16].ljust(16, b"\x00")
+            name = f"{result['span_id']}_req_{sequence}"
+
+        item_id = int(uuid.uuid5(UPTIME_NAMESPACE, name).hex, 16).to_bytes(16, "little")
 
         request_item = convert_uptime_request_to_trace_item(
             project, result, request_info, sequence, item_id, incident_status

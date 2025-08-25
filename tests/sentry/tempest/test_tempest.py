@@ -125,11 +125,11 @@ class TempestTasksTest(TestCase):
         with self.assertLogs("sentry.tempest.tasks", level="INFO") as cm:
             poll_tempest_crashes(self.credentials.id)
 
-        self.credentials.refresh_from_db()
-        # ID should remain unchanged when JSON parsing fails
-        assert self.credentials.latest_fetched_item_id == "42"
         mock_fetch.assert_called_once()
         assert "Fetching the crashes failed." in cm.output[0]
+        self.credentials.refresh_from_db()
+        # ID should be reset when JSON parsing fails since we don't want to retry the faulty crash
+        assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_items_from_tempest")
     def test_poll_tempest_crashes_error(self, mock_fetch: MagicMock) -> None:

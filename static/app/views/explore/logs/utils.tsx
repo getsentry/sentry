@@ -1,36 +1,56 @@
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
+import * as qs from 'query-string';
 
 import type {ApiResult} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
-  type ColumnValueType,
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
+  type ColumnValueType,
   type Sort,
 } from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
+  LOGS_AGGREGATE_FN_KEY,
+  LOGS_AGGREGATE_PARAM_KEY,
+  LOGS_FIELDS_KEY,
+  LOGS_GROUP_BY_KEY,
+  LOGS_QUERY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import type {
+  TraceItemDetailsResponse,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  DeprecatedLogDetailFields,
   LogAttributesHumanLabel,
   LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
 } from 'sentry/views/explore/logs/constants';
+import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
 import {
+  OurLogKnownFieldKey,
   type EventsLogsResult,
   type LogAttributeUnits,
   type LogRowItem,
   type OurLogFieldKey,
-  OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -113,14 +133,14 @@ export enum SeverityLevel {
  */
 export function severityLevelToText(level: SeverityLevel) {
   return {
-    [SeverityLevel.TRACE]: t('TRACE'),
-    [SeverityLevel.DEBUG]: t('DEBUG'),
-    [SeverityLevel.INFO]: t('INFO'),
-    [SeverityLevel.WARN]: t('WARN'),
-    [SeverityLevel.ERROR]: t('ERROR'),
-    [SeverityLevel.FATAL]: t('FATAL'),
-    [SeverityLevel.DEFAULT]: t('DEFAULT'),
-    [SeverityLevel.UNKNOWN]: t('UNKNOWN'), // Maps to info for now.
+    [SeverityLevel.TRACE]: t('trace'),
+    [SeverityLevel.DEBUG]: t('debug'),
+    [SeverityLevel.INFO]: t('info'),
+    [SeverityLevel.WARN]: t('warn'),
+    [SeverityLevel.ERROR]: t('error'),
+    [SeverityLevel.FATAL]: t('fatal'),
+    [SeverityLevel.DEFAULT]: t('default'),
+    [SeverityLevel.UNKNOWN]: t('unknown'), // Maps to info for now.
   }[level];
 }
 
@@ -242,8 +262,8 @@ export function logsPickableDays(organization: Organization): PickableDays {
 }
 
 export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
-  if (lastPageLength * 0.75 > LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD) {
-    return Math.floor(lastPageLength * 0.75); // Can be up to 750 on large pages.
+  if (lastPageLength * 0.25 > LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD) {
+    return Math.floor(lastPageLength * 0.25); // Can be up to 250 on large pages.
   }
   return LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD;
 }
@@ -327,4 +347,160 @@ export function hasLogsOnReplays(organization: Organization): boolean {
     organization.features.includes('ourlogs-enabled') &&
     organization.features.includes('ourlogs-replay-ui')
   );
+}
+
+export function getLogsUrl({
+  organization,
+  selection,
+  query,
+  field,
+  groupBy,
+  id,
+  interval,
+  mode,
+  referrer,
+  sortBy,
+  title,
+  aggregateFields,
+  aggregateFn,
+  aggregateParam,
+}: {
+  organization: Organization;
+  aggregateFields?: Array<GroupBy | BaseVisualize>;
+  aggregateFn?: string;
+  aggregateParam?: string;
+  field?: string[];
+  groupBy?: string[];
+  id?: number;
+  interval?: string;
+  mode?: Mode;
+  query?: string;
+  referrer?: string;
+  selection?: PageFilters;
+  sortBy?: string;
+  title?: string;
+}) {
+  const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
+  const {environments, projects} = selection ?? {};
+  const queryParams = {
+    project: projects,
+    environment: environments,
+    statsPeriod,
+    start,
+    end,
+    [LOGS_QUERY_KEY]: query,
+    utc,
+    [LOGS_FIELDS_KEY]: field,
+    [LOGS_GROUP_BY_KEY]: groupBy,
+    id,
+    interval,
+    mode,
+    referrer,
+    [LOGS_SORT_BYS_KEY]: sortBy,
+    [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields?.map(aggregateField =>
+      JSON.stringify(aggregateField)
+    ),
+    [LOGS_AGGREGATE_FN_KEY]: aggregateFn,
+    [LOGS_AGGREGATE_PARAM_KEY]: aggregateParam,
+    title,
+  };
+
+  return (
+    makeLogsPathname({organization, path: '/'}) +
+    `?${qs.stringify(queryParams, {skipNull: true})}`
+  );
+}
+
+export function makeLogsPathname({
+  organization,
+  path,
+}: {
+  organization: Organization;
+  path: string;
+}) {
+  return normalizeUrl(`/organizations/${organization.slug}/explore/logs${path}`);
+}
+
+export function getLogsUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const firstQuery = savedQuery.query[0];
+  const visualize = firstQuery.visualize?.[0]?.yAxes?.[0];
+  const aggregateFn = visualize ? visualize.split('(')[0] : undefined;
+  const aggregateParam = visualize ? visualize.split('(')[1]?.split(')')[0] : undefined;
+
+  return getLogsUrl({
+    organization,
+    field: firstQuery.fields,
+    groupBy: defined(firstQuery.aggregateField) ? undefined : firstQuery.groupby,
+    sortBy: firstQuery.orderby,
+    title: savedQuery.name,
+    id: savedQuery.id,
+    interval: savedQuery.interval,
+    mode: firstQuery.mode,
+    query: firstQuery.query,
+    aggregateFn: defined(firstQuery.aggregateField) ? undefined : aggregateFn,
+    aggregateParam: defined(firstQuery.aggregateField) ? undefined : aggregateParam,
+    aggregateFields: firstQuery.aggregateField,
+    selection: {
+      datetime: {
+        end: savedQuery.end ?? null,
+        period: savedQuery.range ?? null,
+        start: savedQuery.start ?? null,
+        utc: null,
+      },
+      environments: savedQuery.environment ? [...savedQuery.environment] : [],
+      projects: savedQuery.projects ? [...savedQuery.projects] : [],
+    },
+  });
+}
+
+export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): string {
+  if (!ourlog) {
+    warn(fmt`cannot copy undefined ourlog`);
+    return '';
+  }
+
+  const copy: Record<string, string | number | boolean> = {
+    ...ourlog.attributes.reduce((it, {name, value}) => ({...it, [name]: value}), {}),
+    id: ourlog.itemId,
+  };
+  let warned = false;
+  const warnAttributeOnce = (key: string) => {
+    if (!warned) {
+      warned = true;
+      warn(
+        fmt`Found sentry. prefix in ${key} while copying [project_id: ${copy.project_id ?? 'unknown'}, user_email: ${copy['user.email'] ?? 'unknown'}]`
+      );
+    }
+  };
+
+  // Trimming any sentry. prefixes
+  for (const key in copy) {
+    if (DeprecatedLogDetailFields.includes(key)) {
+      delete copy[key];
+      continue;
+    }
+    if (key.startsWith('sentry.')) {
+      const value = copy[key];
+      if (value !== undefined) {
+        warnAttributeOnce(key);
+        delete copy[key];
+        copy[key.replace('sentry.', '')] = value;
+      }
+    }
+    if (key.startsWith('tags[sentry.')) {
+      const value = copy[key];
+      if (value !== undefined) {
+        warnAttributeOnce(key);
+        delete copy[key];
+        copy[key.replace('tags[sentry.', 'tags[')] = value;
+      }
+    }
+  }
+  return JSON.stringify(copy, null, 2);
 }

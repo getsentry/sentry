@@ -4,8 +4,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs from './xamarin';
 
-describe('xamarin onboarding docs', function () {
-  it('renders errors onboarding docs correctly', async function () {
+describe('xamarin onboarding docs', () => {
+  it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dotnet.xamarin-forms': {

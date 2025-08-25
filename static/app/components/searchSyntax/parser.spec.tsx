@@ -78,7 +78,7 @@ const normalizeResult = (tokens: Array<TokenResult<Token>>) =>
     },
   });
 
-describe('searchSyntax/parser', function () {
+describe('searchSyntax/parser', () => {
   const testData = loadFixtures('search-syntax') as unknown as Record<string, TestCase[]>;
 
   const registerTestCase = (

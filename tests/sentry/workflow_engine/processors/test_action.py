@@ -75,7 +75,9 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             workflow=workflow, action=action_2, group=self.group
         )
 
-        _, action_3 = self.create_workflow_action(workflow=workflow)
+        action_3 = self.create_action(type=Action.Type.PLUGIN)
+        self.create_workflow_action(workflow=workflow, action=action_3)
+
         status_3 = WorkflowActionGroupStatus.objects.create(
             workflow=workflow, action=action_3, group=self.group
         )

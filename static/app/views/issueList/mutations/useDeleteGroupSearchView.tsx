@@ -3,8 +3,8 @@ import {t} from 'sentry/locale';
 import {
   setApiQueryData,
   useMutation,
-  type UseMutationOptions,
   useQueryClient,
+  type UseMutationOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';

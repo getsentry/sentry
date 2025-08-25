@@ -18,9 +18,9 @@ import {
   getLogFieldsFromLocation,
 } from 'sentry/views/explore/contexts/logs/fields';
 import {
-  type AutoRefreshState,
   LOGS_AUTO_REFRESH_KEY,
   LogsAutoRefreshProvider,
+  type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   getLogAggregateSortBysFromLocation,
@@ -32,7 +32,6 @@ import {
 import {
   getModeFromLocation,
   type Mode,
-  updateLocationWithMode,
 } from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
@@ -90,22 +89,32 @@ interface LogsPageParams {
   readonly groupBy?: string;
 
   /**
+   * The id of the query, if a saved query.
+   */
+  readonly id?: string;
+  /**
    * If provided, add a 'trace:{trace id}' to all queries.
    * Used in embedded views like error page and trace page.
    * Can be an array of trace IDs on some pages (eg. replays)
    */
   readonly limitToTraceId?: string | string[];
+
   /**
    * If provided, ignores the project in the location and uses the provided project IDs.
    * Useful for cross-project traces when project is in the location.
    */
   readonly projectIds?: number[];
+  /**
+   * The title of the query, if a saved query.
+   */
+  readonly title?: string;
 }
 
 type NullablePartial<T> = {
   [P in keyof T]?: T[P] | null;
 };
-type LogPageParamsUpdate = NullablePartial<LogsPageParams>;
+type NonUpdatableParams = 'mode' | 'aggregateFn' | 'aggregateParam' | 'groupBy';
+type LogPageParamsUpdate = NullablePartial<Omit<LogsPageParams, NonUpdatableParams>>;
 
 const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
@@ -159,6 +168,8 @@ export function LogsPageParamsProvider({
     }
   }
 
+  const title = getLogTitleFromLocation(location);
+  const id = getLogIdFromLocation(location);
   const fields = isTableFrozen ? defaultLogFields() : getLogFieldsFromLocation(location);
   const sortBys = isTableFrozen
     ? [logsTimestampDescendingSortBy]
@@ -202,6 +213,8 @@ export function LogsPageParamsProvider({
         search,
         setSearchForFrozenPages,
         sortBys,
+        title,
+        id,
         cursor,
         setCursorForFrozenPages,
         isTableFrozen,
@@ -223,7 +236,7 @@ export function LogsPageParamsProvider({
   );
 }
 
-const useLogsPageParams = _useLogsPageParams;
+export const useLogsPageParams = _useLogsPageParams;
 
 const decodeLogsQuery = (location: Location): string => {
   if (!location.query?.[LOGS_QUERY_KEY]) {
@@ -241,10 +254,6 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
   updateNullableLocation(target, LOGS_AGGREGATE_CURSOR_KEY, pageParams.aggregateCursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
-  updateNullableLocation(target, LOGS_GROUP_BY_KEY, pageParams.groupBy);
-  updateNullableLocation(target, LOGS_AGGREGATE_FN_KEY, pageParams.aggregateFn);
-  updateNullableLocation(target, LOGS_AGGREGATE_PARAM_KEY, pageParams.aggregateParam);
-  updateLocationWithMode(target, pageParams.mode); // Can be swapped with updateNullableLocation if we merge page params.
   if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
     updateLocationWithAggregateSortBys(target, pageParams.aggregateSortBys);
@@ -344,27 +353,6 @@ export function useLogsCursor() {
   return cursor;
 }
 
-export function useLogsAggregateFunction() {
-  const {aggregateFn} = useLogsPageParams();
-  return aggregateFn;
-}
-
-export function useLogsAggregateParam() {
-  const {aggregateParam} = useLogsPageParams();
-  return aggregateParam;
-}
-
-export function useLogsAggregate() {
-  const aggregateFn = useLogsAggregateFunction();
-  const aggregateParam = useLogsAggregateParam();
-  return `${aggregateFn}(${aggregateParam})`;
-}
-
-export function useLogsGroupBy() {
-  const {groupBy} = useLogsPageParams();
-  return groupBy;
-}
-
 export function useLogsLimitToTraceId() {
   const {limitToTraceId} = useLogsPageParams();
   return limitToTraceId;
@@ -401,11 +389,6 @@ export function usePersistedLogsPageParams() {
   });
 }
 
-export function useLogsAggregateSortBys() {
-  const {aggregateSortBys} = useLogsPageParams();
-  return aggregateSortBys;
-}
-
 export function useLogsAggregateCursor() {
   const {aggregateCursor} = useLogsPageParams();
   return aggregateCursor;
@@ -419,6 +402,16 @@ export function useLogsSortBys() {
 export function useLogsFields() {
   const {fields} = useLogsPageParams();
   return fields;
+}
+
+export function useLogsId() {
+  const {id} = useLogsPageParams();
+  return id;
+}
+
+export function useLogsTitle() {
+  const {title} = useLogsPageParams();
+  return title;
 }
 
 export function useLogsProjectIds() {
@@ -437,6 +430,16 @@ export function useSetLogsFields() {
       setPersistentParams(prev => ({...prev, fields}));
     },
     [setPageParams, setPersistentParams]
+  );
+}
+
+export function useSetLogsSavedQueryInfo() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (id: string, title: string) => {
+      setPageParams({id, title});
+    },
+    [setPageParams]
   );
 }
 
@@ -480,6 +483,14 @@ export function useLogsAnalyticsPageSource() {
   return analyticsPageSource;
 }
 
+function getLogTitleFromLocation(location: Location): string {
+  return decodeScalar(location.query.title, '');
+}
+
+function getLogIdFromLocation(location: Location): string {
+  return decodeScalar(location.query.id, '');
+}
+
 function getLogCursorFromLocation(location: Location): string {
   if (!location.query?.[LOGS_CURSOR_KEY]) {
     return '';
@@ -510,4 +521,26 @@ function getLogsParamsStorageKey(version: number) {
 
 function getPastLogsParamsStorageKey(version: number) {
   return `logs-params-v${version - 1}`;
+}
+
+export function useLogsAddSearchFilter() {
+  const setLogsSearch = useSetLogsSearch();
+  const search = useLogsSearch();
+
+  return useCallback(
+    ({
+      key,
+      value,
+      negated,
+    }: {
+      key: string;
+      value: string | number | boolean;
+      negated?: boolean;
+    }) => {
+      const newSearch = search.copy();
+      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      setLogsSearch(newSearch);
+    },
+    [setLogsSearch, search]
+  );
 }

@@ -19,8 +19,8 @@ const group = GroupFixture({
   pluginIssues: [],
 });
 
-describe('ReprocessEventModal', function () {
-  it('form fields & info', function () {
+describe('ReprocessEventModal', () => {
+  it('form fields & info', () => {
     const {organization} = initializeOrg({
       organization: {
         id: '4660',
@@ -68,7 +68,7 @@ describe('ReprocessEventModal', function () {
     ).toBeInTheDocument();
   });
 
-  it('reprocess all events', async function () {
+  it('reprocess all events', async () => {
     const {organization} = initializeOrg({
       organization: {
         id: '4660',
