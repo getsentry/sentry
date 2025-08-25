@@ -132,7 +132,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             lineno=30,
             commit=CommitInfo(
                 commitId="commit-id-old",
-                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=370),
+                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=62),
                 commitMessage="old commit message",
                 commitAuthorName=None,
                 commitAuthorEmail="old@localhost",
@@ -668,7 +668,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         self, mock_get_commit_context, mock_record, mock_process_suspect_commits, mock_logger_info
     ):
         """
-        A simple failure case where no blames are returned. We bail out and fall back
+        A failure case where the only blame returned is past the time threshold. We bail out and fall back
         to the release-based suspect commits.
         """
         mock_get_commit_context.return_value = [self.blame_too_old]
