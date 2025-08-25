@@ -18,14 +18,14 @@ class BackfillMonitorDetectorsTest(TestMigrations):
     app = "monitors"
     connection = "secondary"
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.no_detector = self.create_monitor()
         self.has_detector = self.create_monitor()
         ensure_cron_detector(self.has_detector)
         assert get_detector_for_monitor(self.no_detector) is None
         self.existing_detector = get_detector_for_monitor(self.has_detector)
 
-    def test(self):
+    def test(self) -> None:
         new_detector = get_detector_for_monitor(self.no_detector)
         assert new_detector is not None
         assert self.existing_detector is not None
