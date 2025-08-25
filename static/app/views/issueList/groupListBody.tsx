@@ -100,8 +100,8 @@ function GroupList({
     false
   );
   const topIssue = groupIds[0];
-  const canSelect = !useMedia(
-    `(max-width: ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
+  const selectDisabled = useMedia(
+    `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
 
   const columns: GroupListColumn[] = [
@@ -131,7 +131,7 @@ function GroupList({
             memberList={group?.project ? memberList[group.project.slug] : undefined}
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
-            canSelect={canSelect}
+            canSelect={!selectDisabled}
             onPriorityChange={priority => onActionTaken([id], {priority})}
             withColumns={columns}
           />

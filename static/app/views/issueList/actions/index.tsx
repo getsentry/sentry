@@ -179,7 +179,7 @@ function IssueListActions({
   const theme = useTheme();
 
   const disableActions = useMedia(
-    `(max-width: ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
+    `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
 
   const numIssues = selectedIdsSet.size;
