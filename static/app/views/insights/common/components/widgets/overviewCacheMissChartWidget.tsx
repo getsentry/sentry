@@ -126,7 +126,7 @@ export default function OverviewCacheMissChartWidget(props: LoadableChartWidgetP
             <div>
               <Link
                 to={
-                  organization.features.includes('insights-addon-modules')
+                  organization.features.includes('insight-modules')
                     ? `/insights/backend/caches?project=${item['project.id']}&transaction=${item.transaction}`
                     : `/insights/backend/caches`
                 }

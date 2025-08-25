@@ -29,10 +29,7 @@ describe('InsightsUpsellPage', () => {
   });
 
   it('renders module if plan includes feature', async () => {
-    subscription.planDetails.features = [
-      'insights-initial-modules',
-      'insights-addon-modules',
-    ];
+    subscription.planDetails.features = ['insight-modules'];
 
     render(
       <InsightsUpsellPage

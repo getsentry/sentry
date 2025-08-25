@@ -71,7 +71,7 @@ type State = {
 const ALL_FEATURE_LIST: Feature[] = [
   {
     id: 'insights-modules',
-    planFeatures: ['insights-addon-modules'],
+    planFeatures: ['insight-modules'],
     name: t('Application Insights'),
     image: insightsImg,
     desc: t(

@@ -16,7 +16,7 @@ jest.mock('sentry/utils/useLocation');
 
 describe('ScreensOverview', () => {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules'],
+    features: ['insight-modules'],
   });
   const project = ProjectFixture();
 

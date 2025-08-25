@@ -59,7 +59,7 @@ const rightAlignColumns = new Set([
 
 export function ClientTable() {
   const organization = useOrganization();
-  const hasWebVitalsFlag = organization.features.includes('insights-initial-modules');
+  const hasWebVitalsFlag = organization.features.includes('insight-modules');
   const webVitalsUrl = useModuleURL(ModuleName.VITAL, false, 'frontend');
 
   const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload', 'navigation', 'default'];

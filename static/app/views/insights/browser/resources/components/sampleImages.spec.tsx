@@ -19,7 +19,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('SampleImages', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
 
   beforeEach(() => {
