@@ -202,11 +202,44 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
 
         # Save the artifact if any fields were updated
         if updated_fields:
+            previous_state = preprod_artifact.state
+
             if preprod_artifact.state != PreprodArtifact.ArtifactState.FAILED:
                 preprod_artifact.state = PreprodArtifact.ArtifactState.PROCESSED
                 updated_fields.append("state")
 
             preprod_artifact.save(update_fields=updated_fields + ["date_updated"])
+
+            # Update status checks based on state changes
+            try:
+                from sentry.preprod.status_checks import (
+                    update_preprod_status_on_completion,
+                    update_preprod_status_on_failure,
+                )
+                from sentry.preprod.url_utils import get_preprod_artifact_url
+
+                if (
+                    preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+                    and previous_state != PreprodArtifact.ArtifactState.PROCESSED
+                ):
+                    # Generate artifact URL for the status check
+                    artifact_url = get_preprod_artifact_url(
+                        preprod_artifact.project.organization_id,
+                        preprod_artifact.project.slug,
+                        str(preprod_artifact.id),
+                    )
+                    update_preprod_status_on_completion(preprod_artifact, artifact_url)
+                elif preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED:
+                    error_message = preprod_artifact.error_message
+                    update_preprod_status_on_failure(preprod_artifact, error_message)
+            except Exception as e:
+                # Don't fail the update if status check fails
+                import logging
+
+                logging.getLogger(__name__).warning(
+                    "Failed to update status check for preprod artifact",
+                    extra={"artifact_id": artifact_id, "error": str(e)},
+                )
 
         return Response(
             {

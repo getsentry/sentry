@@ -101,6 +101,19 @@ def assemble_preprod_artifact(
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
 
+        # Create status check for upload completion
+        try:
+            from sentry.preprod.status_checks import update_preprod_status_on_upload
+
+            preprod_artifact = PreprodArtifact.objects.get(id=artifact_id)
+            update_preprod_status_on_upload(preprod_artifact)
+        except Exception as e:
+            # Don't fail the upload if status check fails
+            logger.warning(
+                "Failed to create status check for preprod artifact upload",
+                extra={"artifact_id": artifact_id, "error": str(e)},
+            )
+
         produce_preprod_artifact_to_kafka(
             project_id=project_id,
             organization_id=org_id,
@@ -122,6 +135,18 @@ def assemble_preprod_artifact(
         PreprodArtifact.objects.filter(id=artifact_id).update(
             state=PreprodArtifact.ArtifactState.FAILED
         )
+
+        # Update status check for failure
+        try:
+            from sentry.preprod.status_checks import update_preprod_status_on_failure
+
+            preprod_artifact = PreprodArtifact.objects.get(id=artifact_id)
+            update_preprod_status_on_failure(preprod_artifact, str(e))
+        except Exception as status_error:
+            logger.warning(
+                "Failed to update status check for preprod artifact failure",
+                extra={"artifact_id": artifact_id, "status_error": str(status_error)},
+            )
         return
 
     logger.info(
