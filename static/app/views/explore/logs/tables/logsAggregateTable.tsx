@@ -111,11 +111,13 @@ export function LogsAggregateTable() {
               location,
               organization,
               theme,
+              unit: data?.meta?.units?.[column.key],
             };
             return (
               <LogFieldRenderer
                 key={column.key}
                 extra={extra}
+                meta={data?.meta}
                 item={{
                   fieldKey: column.key,
                   value,

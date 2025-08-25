@@ -307,7 +307,10 @@ export const LogRowContent = memo(function LogRowContent({
             <LogFieldRenderer
               item={getLogRowItem(field, dataRow, meta)}
               meta={meta}
-              extra={rendererExtra}
+              extra={{
+                ...rendererExtra,
+                unit: meta?.units?.[field],
+              }}
             />
           );
 
