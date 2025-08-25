@@ -31,7 +31,7 @@ const requestMocks = {
 };
 
 describe('CacheLandingPage', () => {
-  const organization = OrganizationFixture({features: ['insights-addon-modules']});
+  const organization = OrganizationFixture({features: ['insight-modules']});
 
   jest.mocked(usePageFilters).mockReturnValue(
     PageFilterStateFixture({
