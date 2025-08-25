@@ -31,7 +31,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
             },
         )
 
-    def set_value(self, status, rule_id=None):
+    def set_value(self, status: str, rule_id: int | None = None) -> None:
         client = RedisRuleStatus(self.uuid)
         client.set_value(status, rule_id)
 

@@ -8,7 +8,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
@@ -122,7 +122,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
 
 
 class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
