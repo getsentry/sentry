@@ -4,19 +4,43 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout/flex';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types/project';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
 import {
   ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
   AllowListIPAddresses,
 } from 'sentry/views/settings/project/tempest/allowListIPAddresses';
+import {CredentialRow} from 'sentry/views/settings/project/tempest/CredentialRow';
+import type {TempestCredentials} from 'sentry/views/settings/project/tempest/types';
 
-export default function EmptyState() {
+interface EmptyStateProps {
+  hasWriteAccess: boolean;
+  isEmpty: boolean;
+  isLoading: boolean;
+  isRemoving: boolean;
+  onRemoveCredential: (data: {id: number}) => void;
+  project: Project;
+  tempestCredentials?: TempestCredentials[];
+}
+
+export default function EmptyState({
+  project,
+  isLoading,
+  isEmpty,
+  tempestCredentials,
+  isRemoving,
+  hasWriteAccess,
+  onRemoveCredential,
+}: EmptyStateProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -61,6 +85,31 @@ export default function EmptyState() {
                   'Retrieve the Back Office Server Credentials (Client ID and Secret) for the title of interest. To avoid problems with rate limiting it is preferred to have a separate set of credentials that are only used by Sentry.'
                 )}
               </DescriptionWrapper>
+              <Flex direction="column" align="end" gap="xl">
+                {!isEmpty && <AddCredentialsButton project={project} />}
+                <StyledPanelTable
+                  headers={[
+                    t('Client ID'),
+                    t('Status'),
+                    t('Created At'),
+                    t('Created By'),
+                    '',
+                  ]}
+                  isLoading={isLoading}
+                  isEmpty={isEmpty}
+                  emptyMessage={t('No credentials found')}
+                  emptyAction={<AddCredentialsButton project={project} />}
+                >
+                  {tempestCredentials?.map(credential => (
+                    <CredentialRow
+                      key={credential.id}
+                      credential={credential}
+                      isRemoving={isRemoving}
+                      removeCredential={hasWriteAccess ? onRemoveCredential : undefined}
+                    />
+                  ))}
+                </StyledPanelTable>
+              </Flex>
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
 
@@ -148,6 +197,11 @@ const BodyTitle = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
+`;
+
+const StyledPanelTable = styled(PanelTable)`
+  width: 100%;
+  margin-bottom: 0;
 `;
 
 const Setup = styled('div')`
