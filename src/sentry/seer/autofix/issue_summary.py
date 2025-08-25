@@ -167,13 +167,11 @@ def _call_seer(
     use_summarization_url = in_random_rollout("issues.summary.summarization-url-rollout-rate")
 
     logger.info(
-        "Issue summary rollout decision",
-        extra={
-            "rollout_rate": rollout_rate,
-            "use_summarization_url": use_summarization_url,
-            "autofix_url": settings.SEER_AUTOFIX_URL,
-            "summarization_url": settings.SEER_SUMMARIZATION_URL,
-        },
+        "Issue summary rollout decision: rate=%s, use_summarization=%s, autofix_url=%s, summarization_url=%s",
+        rollout_rate,
+        use_summarization_url,
+        settings.SEER_AUTOFIX_URL,
+        settings.SEER_SUMMARIZATION_URL,
     )
 
     if use_summarization_url:
