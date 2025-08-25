@@ -358,6 +358,11 @@ export function useLogsLimitToTraceId() {
   return limitToTraceId;
 }
 
+export function useLogsIsTableFrozen() {
+  const {isTableFrozen} = useLogsPageParams();
+  return isTableFrozen;
+}
+
 export function useSetLogsCursor() {
   const setPageParams = useSetLogsPageParams();
   const {setCursorForFrozenPages, isTableFrozen} = useLogsPageParams();
