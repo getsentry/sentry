@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -10,6 +10,7 @@ import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFe
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {OmniSearchArea} from 'sentry/components/omniSearch/areaContext';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -40,6 +41,7 @@ import {decodeBoolean} from 'sentry/utils/queryString';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {markIssueSeen} from 'sentry/utils/seenIssuesStorage';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
@@ -403,6 +405,13 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       markEventSeen(api, organization.slug, matchingProjectSlug, params.groupId);
     }
   }, [api, group?.hasSeen, group?.project, organization.slug, params.groupId, projects]);
+
+  // Track seen issues in localStorage for client-side filtering
+  useEffect(() => {
+    if (group) {
+      markIssueSeen(group);
+    }
+  }, [group]);
 
   useEffect(() => {
     const locationQuery = qs.parse(window.location.search) || {};
@@ -886,7 +895,11 @@ function GroupDetails() {
   const config = group && getConfigForIssueType(group, group.project);
 
   return (
-    <Fragment>
+    <OmniSearchArea
+      areaKey="issue"
+      label={(group ? group.shortId : null) ?? t('Issue')}
+      focused
+    >
       {isSampleError && group && (
         <SampleEventAlert project={group.project} organization={organization} />
       )}
@@ -902,7 +915,7 @@ function GroupDetails() {
           </GroupDetailsPageContent>
         </PageFiltersContainer>
       </SentryDocumentTitle>
-    </Fragment>
+    </OmniSearchArea>
   );
 }
 

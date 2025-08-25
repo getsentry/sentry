@@ -3,7 +3,9 @@ import {Fragment, useRef} from 'react';
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
+import {openOmniSearch} from 'sentry/components/omniSearch';
 import {
+  IconCompass,
   IconDashboard,
   IconGraph,
   IconIssues,
@@ -11,12 +13,14 @@ import {
   IconSearch,
   IconSettings,
 } from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import {
   SeparatorItem,
+  SidebarButton,
   SidebarFooterWrapper,
   SidebarLink,
   SidebarList,
@@ -97,7 +101,7 @@ export function PrimaryNavigationItems() {
             group={PrimaryNavGroup.EXPLORE}
             {...makeNavItemProps(PrimaryNavGroup.EXPLORE)}
           >
-            <IconSearch />
+            <IconCompass />
           </SidebarLink>
         </NavTourElement>
 
@@ -173,6 +177,13 @@ export function PrimaryNavigationItems() {
       </SidebarBody>
 
       <SidebarFooter>
+        <SidebarButton
+          analyticsKey="command-palette"
+          label={t('Search (⌘ + k)')}
+          onClick={() => openOmniSearch()}
+        >
+          <IconSearch />
+        </SidebarButton>
         <ChonkOptInBanner collapsed="never" />
         <PrimaryNavigationHelp />
         <ErrorBoundary customComponent={null}>
