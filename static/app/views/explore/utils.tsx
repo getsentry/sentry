@@ -8,6 +8,7 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBusiness} from 'sentry/icons/iconBusiness';
 import {t} from 'sentry/locale';
@@ -45,6 +46,10 @@ import {
   getSavedQueryTraceItemDataset,
   isRawVisualize,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
+import type {
+  TraceItemAttributeMeta,
+  TraceItemDetailsMeta,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -697,3 +702,76 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
   [TraceItemDataset.UPTIME_RESULTS]: undefined,
 };
+
+/**
+ * Metadata about trace item attributes.
+ *
+ * This can be used to extract additional information about attributes
+ * like remarks (e.g. why a value was redacted).
+ */
+export class TraceItemMetaInfo {
+  private static readonly META_PATH_CURRENT = '';
+
+  private meta: TraceItemDetailsMeta;
+
+  constructor(meta: TraceItemDetailsMeta) {
+    this.meta = meta;
+  }
+
+  getAttributeMeta(attribute: string): TraceItemAttributeMeta | undefined {
+    return this.meta?.[attribute]?.meta?.value?.[TraceItemMetaInfo.META_PATH_CURRENT];
+  }
+
+  getRemarks(attribute: string): RemarkObject[] {
+    const attributeMeta = this.getAttributeMeta(attribute);
+    if (!attributeMeta?.rem?.length) {
+      return [];
+    }
+
+    const properlyFormedRemarks = attributeMeta.rem.filter(r => r.length >= 2); // Defensive against unexpected length remarks.
+
+    return properlyFormedRemarks.map((rem): RemarkObject => {
+      const [ruleId, type, rangeStart, rangeEnd] = rem;
+      return {
+        ruleId: String(ruleId),
+        type: String(type),
+        rangeStart: Number(rangeStart),
+        rangeEnd: Number(rangeEnd),
+      };
+    });
+  }
+
+  hasRemarks(attribute: string): boolean {
+    const attributeMeta = this.getAttributeMeta(attribute);
+    return (attributeMeta?.rem?.length ?? 0) > 0;
+  }
+
+  static getTooltipText(
+    attribute: string,
+    meta: TraceItemDetailsMeta,
+    organization?: Organization,
+    project?: Project
+  ): string | React.ReactNode | null {
+    const metaInfo = new TraceItemMetaInfo(meta);
+    const remarks = metaInfo.getRemarks(attribute);
+
+    const firstRemark = remarks[0];
+    if (!firstRemark) {
+      return null;
+    }
+
+    return getAnnotatedTooltipText({
+      remark: firstRemark.type,
+      rule_id: firstRemark.ruleId,
+      organization,
+      project,
+    });
+  }
+}
+
+interface RemarkObject {
+  rangeEnd: number;
+  rangeStart: number;
+  ruleId: string;
+  type: string;
+}
