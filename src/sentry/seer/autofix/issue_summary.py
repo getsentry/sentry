@@ -189,8 +189,8 @@ def _call_seer(
             },
         )
     except Exception:
-        if not use_summarization_url:
-            # If the new pod connection fails, fall back to the old pod
+        if use_summarization_url:
+            # If the new pod fails, fall back to the old pod
             logger.warning("New Summarization pod connection failed", exc_info=True)
             response = requests.post(
                 f"{settings.SEER_AUTOFIX_URL}{path}",
