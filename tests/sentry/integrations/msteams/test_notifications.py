@@ -41,7 +41,7 @@ TEST_CARD = {"type": "test_card"}
 )
 @patch("sentry.integrations.msteams.MsTeamsClientABC.send_card")
 class MSTeamsNotificationTest(TestCase):
-    def _install_msteams_personal(self) -> None:
+    def _install_msteams_personal(self):
         self.tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
         self.integration = self.create_integration(
             self.organization,
@@ -63,7 +63,7 @@ class MSTeamsNotificationTest(TestCase):
             user=self.user_1, identity_provider=self.idp, external_id=self.user_id_1
         )
 
-    def _install_msteams_team(self) -> None:
+    def _install_msteams_team(self):
         self.team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
         self.integration = self.create_integration(
             self.organization,
@@ -89,7 +89,7 @@ class MSTeamsNotificationTest(TestCase):
     def test_simple(
         self,
         mock_send_card: MagicMock,
-    ) -> None:
+    ):
         self._install_msteams_personal()
 
         notification = DummyNotification(self.organization)
@@ -180,7 +180,7 @@ class MSTeamsNotificationIntegrationTest(MSTeamsActivityNotificationTest):
     Test the MS Teams notification flow end to end without mocking out functions.
     """
 
-    def _setup_msteams_api(self) -> None:
+    def _setup_msteams_api(self):
         responses.add(
             method=responses.POST,
             url="https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",

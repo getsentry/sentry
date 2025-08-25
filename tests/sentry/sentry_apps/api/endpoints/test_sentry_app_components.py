@@ -13,7 +13,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-def get_sentry_app_avatars(sentry_app: SentryApp) -> list[dict[str, str | bool | int]]:
+def get_sentry_app_avatars(sentry_app: SentryApp):
     return [serialize(avatar) for avatar in sentry_app.avatar.all()]
 
 

@@ -17,6 +17,6 @@ from sentry.taskworker.namespaces import issues_tasks
         processing_deadline_duration=65,
     ),
 )
-def clear_expired_rulesnoozes() -> None:
+def clear_expired_rulesnoozes():
     rule_snooze_ids = RuleSnooze.objects.filter(until__lte=timezone.now()).values_list("id")[:1000]
     RuleSnooze.objects.filter(id__in=rule_snooze_ids).delete()

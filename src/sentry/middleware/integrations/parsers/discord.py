@@ -5,7 +5,6 @@ from collections.abc import Sequence
 
 import sentry_sdk
 from django.http import HttpResponse, JsonResponse
-from django.http.response import HttpResponseBase
 from rest_framework import status
 from rest_framework.request import Request
 
@@ -104,7 +103,7 @@ class DiscordRequestParser(BaseRequestParser):
 
         return None
 
-    def get_response(self) -> HttpResponseBase:
+    def get_response(self):
         if self.view_class in self.control_classes:
             return self.get_response_from_control_silo()
 

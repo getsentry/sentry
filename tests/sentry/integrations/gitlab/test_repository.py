@@ -58,7 +58,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     def provider(self):
         return GitlabRepositoryProvider("gitlab")
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         super().tearDown()
         responses.reset()
 

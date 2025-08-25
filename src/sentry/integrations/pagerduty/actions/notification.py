@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator, Sequence
-from typing import Any, TypedDict, cast
+from collections.abc import Sequence
+from typing import cast
 
 import sentry_sdk
 
@@ -16,20 +16,10 @@ from sentry.integrations.pagerduty.client import (
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.rule import Rule
 from sentry.rules.actions import IntegrationEventAction
-from sentry.rules.base import CallbackFuture
-from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.rules import RuleFuture
 from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
-
-
-class PagerDutyService(TypedDict):
-    id: int
-    integration_key: str
-    service_name: str
-    integration_id: int
 
 
 class PagerDutyNotifyServiceAction(IntegrationEventAction):
@@ -39,7 +29,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
     provider = IntegrationProviderSlug.PAGERDUTY.value
     integration_key = "account"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "account": {
@@ -59,7 +49,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             },
         }
 
-    def _get_service(self) -> PagerDutyService | None:
+    def _get_service(self):
         oi = self.get_organization_integration()
         if not oi:
             return None
@@ -68,9 +58,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 return pds
         return None
 
-    def after(
-        self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture]:
+    def after(self, event, notification_uuid: str | None = None):
         integration = self.get_integration()
         log_context = {
             "organization_id": self.project.organization_id,
@@ -91,7 +79,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             PagerdutySeverity, self.get_option("severity", default=PAGERDUTY_DEFAULT_SEVERITY)
         )
 
-        def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
+        def send_notification(event, futures):
             installation = integration.get_installation(self.project.organization_id)
             try:
                 client = installation.get_keyring_client(self.get_option("service"))
@@ -159,7 +147,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             for v in oi.config.get("pagerduty_services", [])
         ]
 
-    def render_label(self) -> str:
+    def render_label(self):
         s = self._get_service()
         if s:
             service_name = s["service_name"]

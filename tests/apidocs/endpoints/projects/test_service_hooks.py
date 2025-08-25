@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ProjectServiceHooksDocs(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.create_service_hook(project=self.project, events=("event.created",))
         self.create_service_hook(project=self.project, events=("event.alert",))
 

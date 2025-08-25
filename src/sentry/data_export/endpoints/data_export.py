@@ -1,5 +1,3 @@
-from typing import Any
-
 import sentry_sdk
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
@@ -39,11 +37,11 @@ SUPPORTED_DATASETS = {
 }
 
 
-class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
+class DataExportQuerySerializer(serializers.Serializer):
     query_type = serializers.ChoiceField(choices=ExportQueryType.as_str_choices(), required=True)
     query_info = serializers.JSONField(required=True)
 
-    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, data):
         organization = self.context["organization"]
         has_metrics = self.context["has_metrics"]
         query_info = data["query_info"]
@@ -174,7 +172,7 @@ class DataExportEndpoint(OrganizationEndpoint):
 
         return all_features
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, organization) -> Response:
         """
         Create a new asynchronous file export task, and
         email user upon completion,

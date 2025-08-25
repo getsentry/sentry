@@ -25,11 +25,11 @@ class TestSlackImageBlockBuilder(
     ProfilesSnubaTestCase,
     OccurrenceTestMixin,
 ):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         cache.clear()
 
-    def _create_endpoint_regression_issue(self) -> Group:
+    def _create_endpoint_regression_issue(self):
         for i in range(10):
             event_id = uuid.uuid4().hex
             _ = self.process_occurrence(

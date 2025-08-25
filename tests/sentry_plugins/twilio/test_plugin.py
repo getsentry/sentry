@@ -107,7 +107,7 @@ def test_conf_key() -> None:
 
 class TwilioPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self) -> TwilioPlugin:
+    def plugin(self):
         return TwilioPlugin()
 
     def test_is_configured(self) -> None:

@@ -89,10 +89,10 @@ class UUIDField(models.Field):
         # Now pass the rest of the work to CharField.
         super().__init__(**kwargs)
 
-    def db_type(self, connection) -> str:
+    def db_type(self, connection):
         return "uuid"
 
-    def get_internal_type(self) -> str:
+    def get_internal_type(self):
         return "CharField"
 
     def get_prep_value(self, value):

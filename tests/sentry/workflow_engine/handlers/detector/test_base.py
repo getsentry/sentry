@@ -181,7 +181,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         self.handler_state_type = HandlerStateGroupType
         self.update_handler_type = HandlerUpdateGroupType
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         super().tearDown()
         self.uuid_patcher.stop()
         self.sm_comp_patcher.stop()

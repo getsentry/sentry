@@ -13,18 +13,16 @@ def test_conf_key() -> None:
 
 class PivotalPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self) -> PivotalPlugin:
+    def plugin(self):
         return PivotalPlugin()
 
     def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        assert self.plugin.get_issue_label(group, "1") == "#1"
+        assert self.plugin.get_issue_label(group, 1) == "#1"
 
     def test_get_issue_url(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        assert (
-            self.plugin.get_issue_url(group, "1") == "https://www.pivotaltracker.com/story/show/1"
-        )
+        assert self.plugin.get_issue_url(group, 1) == "https://www.pivotaltracker.com/story/show/1"
 
     def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False

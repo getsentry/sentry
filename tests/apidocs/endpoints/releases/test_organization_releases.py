@@ -11,7 +11,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationReleasesDocsTest(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization(owner=user, name="blah")
         org2 = self.create_organization(owner=user, name="bloop")

@@ -60,7 +60,7 @@ class RedisSessionStore:
         return clusters.get("default").get_local_client_for_key(self.redis_key)
 
     @property
-    def session_key(self) -> str:
+    def session_key(self):
         return f"store:{self.prefix}"
 
     @property

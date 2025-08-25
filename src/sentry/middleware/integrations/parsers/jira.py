@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 
 import sentry_sdk
-from django.http.response import HttpResponseBase
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.jira.endpoints import JiraDescriptorEndpoint, JiraSearchEndpoint
@@ -52,7 +51,7 @@ class JiraRequestParser(BaseRequestParser):
             sentry_sdk.capture_exception(e)
         return None
 
-    def get_response(self) -> HttpResponseBase:
+    def get_response(self):
         if self.view_class in self.control_classes:
             return self.get_response_from_control_silo()
 

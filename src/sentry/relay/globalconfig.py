@@ -73,7 +73,7 @@ def span_op_defaults() -> SpanOpDefaults:
 
 
 @metrics.wraps("relay.globalconfig.get")
-def get_global_config() -> GlobalConfig:
+def get_global_config():
     """Return the global configuration for Relay."""
 
     global_config: GlobalConfig = {

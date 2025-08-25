@@ -560,7 +560,7 @@ class GetRulesToFireTest(TestCase):
         self.patcher = patch("sentry.rules.processing.delayed_processing.passes_comparison")
         self.mock_passes_comparison = self.patcher.start()
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         self.patcher.stop()
 
     def test_comparison(self) -> None:

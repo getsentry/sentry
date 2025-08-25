@@ -17,7 +17,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class OrganizationMontorsTest(AcceptanceTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.path = f"/organizations/{self.organization.slug}/insights/crons/"
         self.team = self.create_team(organization=self.organization, name="Mariachi Band")

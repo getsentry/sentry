@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
-from typing import Any
+from collections.abc import Callable
 
 from django.http.request import HttpRequest
 
@@ -25,15 +24,13 @@ class GitHubOAuth2Provider(OAuth2Provider):
     name = "GitHub"
     key = IntegrationProviderSlug.GITHUB.value
 
-    def get_client_id(self) -> str:
-        assert isinstance(CLIENT_ID, str)
+    def get_client_id(self):
         return CLIENT_ID
 
-    def get_client_secret(self) -> str:
-        assert isinstance(CLIENT_SECRET, str)
+    def get_client_secret(self):
         return CLIENT_SECRET
 
-    def __init__(self, org: RpcOrganization | dict[str, Any] | None = None, **config: Any) -> None:
+    def __init__(self, org=None, **config) -> None:
         super().__init__(**config)
         self.org = org
 
@@ -64,7 +61,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
     def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
-    def build_config(self, state: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    def build_config(self, state):
         """
         On configuration, we determine which provider organization to configure SSO for
         This configuration is then stored and passed into the pipeline instances during SSO
@@ -72,7 +69,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
         """
         return {"org": {"id": state["org"]["id"], "name": state["org"]["login"]}}
 
-    def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def build_identity(self, state):
         data = state["data"]
         user_data = state["user"]
         return {
@@ -85,10 +82,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
     def refresh_identity(self, auth_identity: AuthIdentity) -> None:
         with GitHubClient(auth_identity.data["access_token"]) as client:
             try:
-                if not self.org:
-                    raise IdentityNotValid
-                org_id = self.org.id if isinstance(self.org, RpcOrganization) else self.org["id"]
-                if not client.is_org_member(org_id):
+                if not client.is_org_member(self.org["id"]):
                     raise IdentityNotValid
             except GitHubApiError as e:
                 raise IdentityNotValid(e)

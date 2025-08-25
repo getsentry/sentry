@@ -17,7 +17,7 @@ class TestLevelCondition(ConditionTestCase):
         "level": "20",
     }
 
-    def setup_group_event_and_job(self) -> None:
+    def setup_group_event_and_job(self):
         self.group_event = self.event.for_group(self.group)
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 

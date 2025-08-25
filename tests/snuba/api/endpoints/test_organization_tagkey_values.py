@@ -17,7 +17,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-tagkey-values"
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1)
@@ -491,7 +491,7 @@ class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
 
 
 class TransactionTagKeyValues(OrganizationTagKeyTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         data = load_data("transaction", timestamp=before_now(minutes=1))
         data.update(
@@ -591,7 +591,7 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
 
 
 class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex
@@ -839,7 +839,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
 
 
 class DatasetParamOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, OccurrenceTestMixin):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
 
     def run_dataset_test(self, key, expected, dataset: Dataset, **kwargs):

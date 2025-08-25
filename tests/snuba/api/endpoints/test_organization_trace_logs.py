@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
     url_name = "sentry-api-0-organization-trace-logs"
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.features = {
             "organizations:ourlogs-enabled": True,

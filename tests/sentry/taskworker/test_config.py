@@ -55,7 +55,7 @@ def test_taskworker_schedule_parameters() -> None:
             if parameter.kind in (parameter.VAR_POSITIONAL, parameter.VAR_KEYWORD):
                 continue
             # The dynamic sampling tasks splice in a TaskContext via a decorator :(
-            if parameter.annotation == TaskContext.__name__:
+            if parameter.annotation == TaskContext:
                 continue
             if parameter.default == parameter.empty:
                 raise AssertionError(

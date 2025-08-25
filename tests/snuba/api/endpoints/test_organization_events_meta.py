@@ -28,7 +28,7 @@ class OrganizationEventsMetaEndpoint(
     SpanTestCase,
     OurLogTestCase,
 ):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.login_as(user=self.user)
@@ -317,7 +317,7 @@ class OrganizationEventsMetaEndpoint(
 
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
 
     def test_find_related_issue(self) -> None:

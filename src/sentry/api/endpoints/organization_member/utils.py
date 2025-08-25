@@ -2,11 +2,6 @@ from rest_framework import serializers
 from rest_framework.request import Request
 
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.models.organization import Organization
-from sentry.organizations.services.organization.model import (
-    RpcOrganization,
-    RpcUserOrganizationContext,
-)
 
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 
@@ -55,9 +50,5 @@ class RelaxedMemberPermission(OrganizationPermission):
 
     # Allow deletions to happen for disabled members so they can remove themselves
     # allowing other methods should be fine as well even if we don't strictly need to allow them
-    def is_member_disabled_from_limit(
-        self,
-        request: Request,
-        organization: RpcUserOrganizationContext | RpcOrganization | Organization | int,
-    ) -> bool:
+    def is_member_disabled_from_limit(self, request: Request, organization):
         return False

@@ -1,4 +1,3 @@
-from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
@@ -24,7 +23,7 @@ class DummyGetsentryAppConfig(AppConfig):
 
 class TestSentryMigrationExecutor:
     @pytest.fixture(autouse=True)
-    def _mock_getsentry_if_not_registered(self) -> Generator[None]:
+    def _mock_getsentry_if_not_registered(self):
         if "getsentry" in settings.INSTALLED_APPS:
             yield
             return

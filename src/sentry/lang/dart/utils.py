@@ -63,7 +63,7 @@ def generate_dart_symbols_map(debug_ids: list[str], project: Project):
             return None
 
 
-def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
+def deobfuscate_exception_type(data: MutableMapping[str, Any]):
     """
     Deobfuscates exception types and certain values in-place.
 
@@ -77,16 +77,16 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
 
     debug_ids = get_debug_meta_image_ids(dict(data))
     if len(debug_ids) == 0:
-        return None
+        return
 
     exceptions = data.get("exception", {}).get("values", [])
     if not exceptions:
-        return None
+        return
 
     with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_exception_type"):
         symbol_map = generate_dart_symbols_map(list(debug_ids), project)
         if symbol_map is None:
-            return None
+            return
 
         for exception in exceptions:
             exception_type = exception.get("type")

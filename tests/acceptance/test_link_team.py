@@ -12,7 +12,7 @@ from sentry.users.models.identity import Identity, IdentityStatus
 
 @no_silo_test
 class SlackLinkTeamTest(AcceptanceTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=self.user)

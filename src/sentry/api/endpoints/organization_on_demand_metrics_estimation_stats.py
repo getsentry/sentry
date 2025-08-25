@@ -1,5 +1,5 @@
-from collections.abc import Callable, Sequence
-from datetime import timedelta
+from collections.abc import Sequence
+from datetime import datetime
 from enum import Enum
 from types import ModuleType
 from typing import TypedDict, Union, cast
@@ -152,9 +152,7 @@ def estimate_stats_quality(stats: list[MetricVolumeRow]) -> StatsQualityEstimati
         return StatsQualityEstimation.NO_INDEXED_DATA
 
 
-def get_stats_generator(
-    use_discover: bool, remove_on_demand: bool
-) -> Callable[[Sequence[str], str, SnubaParams, int, bool, timedelta | None], SnubaTSResult]:
+def get_stats_generator(use_discover: bool, remove_on_demand: bool):
     """
     Returns a get_stats function that can fetch from either metrics or discover and
         with or without on_demand metrics.
@@ -166,7 +164,7 @@ def get_stats_generator(
         snuba_params: SnubaParams,
         rollup: int,
         zerofill_results: bool,  # not used but required by get_event_stats_data
-        comparison_delta: timedelta | None,  # not used but required by get_event_stats_data
+        comparison_delta: datetime | None,  # not used but required by get_event_stats_data
     ) -> SnubaTSResult:
         # use discover or metrics_performance depending on the dataset
         if use_discover:

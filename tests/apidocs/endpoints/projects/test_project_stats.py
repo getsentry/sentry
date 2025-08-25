@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ProjectStatsDocs(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.create_event("a", message="oh no")
         self.create_event("b", message="oh no")
 

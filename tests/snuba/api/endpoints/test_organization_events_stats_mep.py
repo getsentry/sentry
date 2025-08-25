@@ -29,7 +29,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         "d:transactions/measurements.datacenter_memory@pebibyte",
     ]
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -43,7 +43,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             "organizations:performance-use-metrics": True,
         }
 
-        self.additional_params: dict[str, Any] = dict()
+        self.additional_params = dict()
 
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
     @pytest.mark.querybuilder
@@ -1126,7 +1126,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
 ):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)

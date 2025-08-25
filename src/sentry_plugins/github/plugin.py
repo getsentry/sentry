@@ -108,7 +108,7 @@ class GitHubPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def get_url_module(self) -> str:
+    def get_url_module(self):
         return "sentry_plugins.github.urls"
 
     def is_configured(self, project) -> bool:

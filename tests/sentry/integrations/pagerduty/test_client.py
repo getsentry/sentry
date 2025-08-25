@@ -1,4 +1,3 @@
-from collections.abc import Generator
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
 
@@ -36,7 +35,7 @@ class PagerDutyClientTest(APITestCase):
     provider = "pagerduty"
 
     @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self) -> Generator[None]:
+    def _setup_metric_patch(self):
         with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 

@@ -6,7 +6,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class SidebarTest(AcceptanceTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)

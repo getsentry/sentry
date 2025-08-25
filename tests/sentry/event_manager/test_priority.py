@@ -34,7 +34,7 @@ class TestEventManagerPriority(TestCase):
     @patch("sentry.event_manager._get_priority_for_group", return_value=PriorityLevel.HIGH)
     def test_get_priority_for_group_not_called_on_second_event(
         self, mock_get_priority_for_group: MagicMock, mock_get_severity_score: MagicMock
-    ) -> None:
+    ):
         event = EventManager(make_event(level=logging.FATAL, platform="python")).save(
             self.project.id
         )

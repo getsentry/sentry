@@ -16,7 +16,7 @@ class BufferedRequest:
     id: int
     data: RpcSentryAppRequest
 
-    def __hash__(self) -> int:
+    def __hash__(self):
         return self.id
 
 

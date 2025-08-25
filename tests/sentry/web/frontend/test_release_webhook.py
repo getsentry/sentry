@@ -22,7 +22,7 @@ class ReleaseWebhookTestBase(TestCase):
         ProjectOption.objects.set_value(self.project, "sentry:release-token", self.token)
 
     @cached_property
-    def signature(self) -> str:
+    def signature(self):
         return hmac.new(
             key=self.token.encode("utf-8"),
             msg=(f"{self.plugin_id}-{self.project.id}").encode(),
@@ -30,7 +30,7 @@ class ReleaseWebhookTestBase(TestCase):
         ).hexdigest()
 
     @cached_property
-    def path(self) -> str:
+    def path(self):
         return reverse(
             "sentry-release-hook",
             kwargs={

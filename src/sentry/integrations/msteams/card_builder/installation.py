@@ -33,9 +33,7 @@ def create_title_block(text: str) -> ColumnSetBlock:
     )
 
 
-def build_installation_card(
-    signed_params: str, title: str, description: str, instruction: str
-) -> AdaptiveCard:
+def build_installation_card(signed_params: str, title: str, description: str, instruction: str):
     url = absolute_uri(
         InstallationMessages.MSTEAMS_CONFIGURE_URL.format(signed_params=signed_params)
     )

@@ -10,7 +10,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 
 
 class ReleaseDeploysDocs(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         project = self.create_project(name="foo")
         release = self.create_release(project=project, version="1")
         release.add_project(project)

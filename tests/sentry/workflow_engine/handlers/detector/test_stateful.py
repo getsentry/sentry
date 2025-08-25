@@ -158,7 +158,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
         )
         self.detector.workflow_condition_group = self.create_data_condition_group()
 
-        def add_condition(val: str, result: DetectorPriorityLevel) -> None:
+        def add_condition(val: str, result: DetectorPriorityLevel):
             self.create_data_condition(
                 type="eq",
                 comparison=val,
@@ -181,7 +181,7 @@ class TestStatefulDetectorHandlerEvaluate(TestCase):
             },
         )
 
-    def packet(self, key: int, result: DetectorPriorityLevel) -> DataPacket:
+    def packet(self, key: int, result: DetectorPriorityLevel):
         """
         Constructs a test data packet that will evaluate to the
         DetectorPriorityLevel specified for the result parameter.

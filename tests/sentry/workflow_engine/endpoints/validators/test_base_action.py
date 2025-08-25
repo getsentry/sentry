@@ -89,7 +89,7 @@ class TestBaseActionValidator(TestCase):
     def test_validate_type__action_gated(self, mock_action_handler_get: mock.MagicMock) -> None:
         organization = self.create_organization()
 
-        def make_validator() -> BaseActionValidator:
+        def make_validator():
             return BaseActionValidator(
                 context={"organization": organization},
                 data={

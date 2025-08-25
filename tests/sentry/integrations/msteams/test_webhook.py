@@ -1,4 +1,3 @@
-from collections.abc import Generator
 from copy import deepcopy
 from unittest import mock
 from unittest.mock import MagicMock, call
@@ -39,7 +38,7 @@ kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 
 class MsTeamsWebhookTest(APITestCase):
     @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self) -> Generator[None]:
+    def _setup_metric_patch(self):
         with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 

@@ -114,7 +114,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
             last_seen=self.fresh_last_seen,
         )
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         self.table.objects.filter(id=self.fresh_id).delete()
         self.table.objects.filter(id=self.stale_id).delete()
 

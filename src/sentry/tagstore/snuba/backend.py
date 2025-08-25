@@ -1457,7 +1457,7 @@ class SnubaFlagStorage(SnubaTagStorage):
     def get_generic_groups_user_counts(self, *args, **kwargs):
         raise NotImplementedError
 
-    def get_snuba_column_name(self, key: str, dataset: Dataset) -> str:
+    def get_snuba_column_name(self, key: str, dataset: Dataset):
         return f"flags[{key}]"
 
     def is_reserved_key(self, key: str) -> bool:

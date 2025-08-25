@@ -7,7 +7,7 @@ from sentry.utils.samples import load_data
 
 @no_silo_test
 class SharedIssueTest(AcceptanceTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")

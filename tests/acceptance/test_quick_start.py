@@ -14,7 +14,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class OrganizationQuickStartTest(AcceptanceTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
@@ -56,7 +56,7 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
     @with_feature("organizations:onboarding")
     def test_quick_start_renders_even_when_all_tasks_are_overdue_but_one_is_missing_to_complete(
         self,
-    ) -> None:
+    ):
         excluded_required_task = OnboardingTask.FIRST_TRANSACTION
         tasks_to_process = list(
             OrganizationOnboardingTask.TASK_KEY_MAP.keys() - {excluded_required_task}

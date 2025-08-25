@@ -13,7 +13,6 @@ from sentry.models.counter import (
     refill_cached_short_ids,
 )
 from sentry.models.group import Group
-from sentry.models.project import Project
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -68,9 +67,7 @@ def test_group_creation_simple(default_project) -> None:
     [1, 2, 3],
     ids=[" discrepancy = 1 ", " discrepancy = 2 ", " discrepancy = 3 "],
 )
-def test_group_creation_with_stuck_project_counter(
-    default_project: Project, discrepancy: int
-) -> None:
+def test_group_creation_with_stuck_project_counter(default_project, discrepancy) -> None:
     project = default_project
 
     # Create enough groups that a discripancy larger than 1 will still land us on an existing group

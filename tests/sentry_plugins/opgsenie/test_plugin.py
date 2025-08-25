@@ -15,7 +15,7 @@ def test_conf_key() -> None:
 
 class OpsGeniePluginTest(PluginTestCase):
     @cached_property
-    def plugin(self) -> OpsGeniePlugin:
+    def plugin(self):
         return OpsGeniePlugin()
 
     def test_is_configured(self) -> None:

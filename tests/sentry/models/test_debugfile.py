@@ -355,7 +355,7 @@ class DebugFilesClearTest(APITestCase):
         ),
     ),
 )
-def test_proguard_files_detected(path: str, name: str | None, uuid: str) -> None:
+def test_proguard_files_detected(path, name, uuid) -> None:
     # ProGuard files are detected by the path/name, not the file contents.
     # So, the ProGuard check should not depend on the file existing.
     detected = detect_dif_from_path(path, name)
@@ -385,7 +385,7 @@ def test_proguard_files_detected(path: str, name: str | None, uuid: str) -> None
         ),
     ),
 )
-def test_proguard_file_not_detected(path: str, name: str | None) -> None:
+def test_proguard_file_not_detected(path, name) -> None:
     with pytest.raises(FileNotFoundError):
         # If the file is not detected as a ProGuard file, detect_dif_from_path
         # attempts to open the file, which probably doesn't exist.

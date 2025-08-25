@@ -149,16 +149,16 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         )
     ]
 
-    def can_enable_for_projects(self) -> bool:
+    def can_enable_for_projects(self):
         return True
 
-    def can_configure_for_project(self, project) -> bool:
+    def can_configure_for_project(self, project):
         return True
 
-    def has_project_conf(self) -> bool:
+    def has_project_conf(self):
         return True
 
-    def get_conf_key(self) -> str:
+    def get_conf_key(self):
         return "heroku"
 
     def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):

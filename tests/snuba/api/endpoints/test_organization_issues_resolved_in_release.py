@@ -12,7 +12,7 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase
     endpoint = "sentry-api-0-organization-release-resolved"
     method = "get"
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()

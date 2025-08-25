@@ -12,7 +12,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
 

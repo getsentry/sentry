@@ -11,17 +11,17 @@ In Sentry a user must achieve the following to be treated as a superuser:
 
 from __future__ import annotations
 
-import enum
 import ipaddress
 import logging
-from collections.abc import Container, Iterable
+from collections.abc import Container
 from datetime import datetime, timedelta, timezone
-from typing import Any, Final, Never, TypeIs, overload
+from typing import Any, Never, TypeIs, overload
 
 import orjson
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
@@ -74,9 +74,7 @@ SUPERUSER_ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
 
 SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", ["for_unit_test"])
 
-_UnsetType = enum.Enum("_UnsetType", "UNSET")
-_Unset: Final = _UnsetType.UNSET
-
+UNSET = object()
 
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
     settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
@@ -89,7 +87,7 @@ SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuse
 
 def get_superuser_scopes(
     auth_state: RpcAuthState,
-    user: User,
+    user: Any,
     organization_context: Organization | RpcUserOrganizationContext,
 ) -> set[str]:
 
@@ -186,26 +184,14 @@ class Superuser(ElevatedMode):
                 return False
         return self._is_active
 
-    def __init__(
-        self,
-        request: HttpRequest,
-        allowed_ips: Iterable[Any] | _UnsetType = _Unset,
-        org_id: int | None | _UnsetType = _Unset,
-        current_datetime: datetime | None = None,
-    ) -> None:
+    def __init__(self, request, allowed_ips=UNSET, org_id=UNSET, current_datetime=None):
         self.uid: str | None = None
         self.request = request
-        self.expires: datetime | None = None
-        self.token: str | None = None
-        self._is_active: bool = False
-        self._inactive_reason: InactiveReason = InactiveReason.NONE
-        self.is_valid: bool = False
-
-        if allowed_ips is not _Unset:
+        if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
             )
-        if org_id is not _Unset:
+        if org_id is not UNSET:
             self.org_id = org_id
         self._populate(current_datetime=current_datetime)
 
@@ -260,7 +246,7 @@ class Superuser(ElevatedMode):
             return False, InactiveReason.INVALID_IP
         return True, InactiveReason.NONE
 
-    def get_session_data(self, current_datetime: datetime | None = None) -> dict[str, Any] | None:
+    def get_session_data(self, current_datetime=None):
         """
         Return the current session data, with native types coerced.
         """
@@ -268,17 +254,14 @@ class Superuser(ElevatedMode):
 
         try:
             cookie_token = request.get_signed_cookie(
-                key=COOKIE_NAME,
-                default=None,
-                salt=COOKIE_SALT,
-                max_age=int(MAX_AGE.total_seconds()),
+                key=COOKIE_NAME, default=None, salt=COOKIE_SALT, max_age=MAX_AGE.total_seconds()
             )
         except BadSignature:
             logger.exception(
                 "superuser.bad-cookie-signature",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return None
+            return
 
         data = request.session.get(SESSION_KEY)
         if not cookie_token:
@@ -287,13 +270,13 @@ class Superuser(ElevatedMode):
                     "superuser.missing-cookie-token",
                     extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 )
-            return None
+            return
         elif not data:
             logger.warning(
                 "superuser.missing-session-data",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return None
+            return
 
         session_token = data.get("tok")
         if not session_token:
@@ -301,14 +284,14 @@ class Superuser(ElevatedMode):
                 "superuser.missing-session-token",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return None
+            return
 
         if not constant_time_compare(cookie_token, session_token):
             logger.warning(
                 "superuser.invalid-token",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return None
+            return
 
         if data["uid"] != str(request.user.id):
             logger.warning(
@@ -319,7 +302,7 @@ class Superuser(ElevatedMode):
                     "expected_user_id": data["uid"],
                 },
             )
-            return None
+            return
 
         if current_datetime is None:
             current_datetime = django_timezone.now()
@@ -332,14 +315,14 @@ class Superuser(ElevatedMode):
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 exc_info=True,
             )
-            return None
+            return
 
         if data["idl"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return None
+            return
 
         try:
             data["exp"] = datetime.fromtimestamp(float(data["exp"]), timezone.utc)
@@ -349,23 +332,23 @@ class Superuser(ElevatedMode):
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 exc_info=True,
             )
-            return None
+            return
 
         if data["exp"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
-            return None
+            return
 
         return data
 
-    def _populate(self, current_datetime: datetime | None = None) -> None:
+    def _populate(self, current_datetime=None) -> None:
         if current_datetime is None:
             current_datetime = django_timezone.now()
 
         request = self.request
-        user: User | None = getattr(request, "user", None)
+        user = getattr(request, "user", None)
         if not hasattr(request, "session"):
             data = None
         elif not (user and user.is_superuser):
@@ -376,7 +359,6 @@ class Superuser(ElevatedMode):
         if not data:
             self._set_logged_out()
         else:
-            assert user is not None
             self._set_logged_in(expires=data["exp"], token=data["tok"], user=user)
 
             if not self.is_active:
@@ -398,13 +380,7 @@ class Superuser(ElevatedMode):
                         },
                     )
 
-    def _set_logged_in(
-        self,
-        expires: datetime,
-        token: str,
-        user: User,
-        current_datetime: datetime | None = None,
-    ) -> None:
+    def _set_logged_in(self, expires, token, user, current_datetime=None) -> None:
         # we bind uid here, as if you change users in the same request
         # we wouldn't want to still support superuser auth (given
         # the superuser check happens right here)
@@ -438,9 +414,9 @@ class Superuser(ElevatedMode):
 
     def set_logged_in(
         self,
-        user: User,
+        user: User | AnonymousUser,
         current_datetime: datetime | None = None,
-        prefilled_su_modal: dict[str, Any] | None = None,
+        prefilled_su_modal=None,
     ) -> None:
         """
         Mark a session as superuser-enabled.
@@ -451,7 +427,7 @@ class Superuser(ElevatedMode):
 
         token = get_random_string(12)
 
-        def enable_and_log_superuser_access() -> None:
+        def enable_and_log_superuser_access():
             self._set_logged_in(
                 expires=current_datetime + MAX_AGE,
                 token=token,
@@ -498,7 +474,7 @@ class Superuser(ElevatedMode):
                 extra={
                     "superuser_token_id": token,
                     "user_id": request.user.id,
-                    "user_email": getattr(request.user, "email", None),
+                    "user_email": request.user.email,
                     "su_access_category": su_access_info.validated_data["superuserAccessCategory"],
                     "reason_for_su": su_access_info.validated_data["superuserReason"],
                 },
@@ -519,14 +495,14 @@ class Superuser(ElevatedMode):
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
         )
 
-    def on_response(self, response: HttpResponse) -> None:
+    def on_response(self, response) -> None:
         request = self.request
 
         # always re-bind the cookie to update the idle expiration window
         if self.is_active:
             response.set_signed_cookie(
                 COOKIE_NAME,
-                self.token or "",
+                self.token,
                 salt=COOKIE_SALT,
                 # set max_age to None, as we want this cookie to expire on browser close
                 max_age=None,

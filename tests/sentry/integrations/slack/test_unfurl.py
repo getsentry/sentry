@@ -202,7 +202,7 @@ class UnfurlTest(TestCase):
         self.frozen_time = freeze_time(datetime.now() - timedelta(days=1))
         self.frozen_time.start()
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         self.frozen_time.stop()
 
     def test_unfurl_issues(self) -> None:

@@ -121,9 +121,9 @@ class ProjectEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        *args: Any,
-        **kwargs: Any,
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        *args,
+        **kwargs,
+    ):
         if args and args[0] is not None:
             organization_id_or_slug: int | str = args[0]
             # Required so it behaves like the original convert_args, where organization_id_or_slug was another parameter
@@ -193,9 +193,7 @@ class ProjectEndpoint(Endpoint):
         kwargs["project"] = project
         return (args, kwargs)
 
-    def get_filter_params(
-        self, request: Request, project: Project, date_filter_optional: bool = False
-    ) -> dict[str, Any]:
+    def get_filter_params(self, request: Request, project, date_filter_optional=False):
         """Similar to the version on the organization just for a single project."""
         # get the top level params -- projects, time range, and environment
         # from the request
@@ -205,7 +203,7 @@ class ProjectEndpoint(Endpoint):
             raise ProjectEventsError(str(e))
 
         environments = [env.name for env in get_environments(request, project.organization)]
-        params: dict[str, Any] = {"start": start, "end": end, "project_id": [project.id]}
+        params = {"start": start, "end": end, "project_id": [project.id]}
         if environments:
             params["environment"] = environments
 

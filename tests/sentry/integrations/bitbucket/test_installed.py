@@ -94,7 +94,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
         plugins.register(BitbucketPlugin)
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         plugins.unregister(BitbucketPlugin)
         super().tearDown()
 

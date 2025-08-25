@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.db import models
 from django.utils import timezone
@@ -7,7 +7,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 
 
-def default_expiration() -> datetime:
+def default_expiration():
     return timezone.now() + timedelta(days=7)
 
 

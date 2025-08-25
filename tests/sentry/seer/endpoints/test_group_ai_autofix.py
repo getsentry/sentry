@@ -20,7 +20,7 @@ pytestmark = [requires_snuba]
 @with_feature("organizations:gen-ai-features")
 @patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
-    def _get_url(self, group_id: int) -> str:
+    def _get_url(self, group_id: int):
         return f"/api/0/issues/{group_id}/autofix/"
 
     def setUp(self) -> None:

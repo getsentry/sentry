@@ -2,7 +2,6 @@ from functools import cached_property
 
 from sentry.api.serializers import serialize
 from sentry.models.environment import Environment
-from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase
 
 
@@ -13,7 +12,7 @@ class OrganizationEnvironmentsTest(APITestCase):
         self.login_as(user=self.user)
 
     @cached_property
-    def project(self) -> Project:
+    def project(self):
         return self.create_project()
 
     def test_simple(self) -> None:

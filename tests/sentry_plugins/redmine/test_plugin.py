@@ -14,7 +14,7 @@ def test_conf_key() -> None:
 
 class RedminePluginTest(PluginTestCase):
     @cached_property
-    def plugin(self) -> RedminePlugin:
+    def plugin(self):
         return RedminePlugin()
 
     @responses.activate

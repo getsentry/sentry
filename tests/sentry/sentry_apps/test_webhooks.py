@@ -11,7 +11,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test
 class BroadcastWebhooksForOrganizationTest(TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
 

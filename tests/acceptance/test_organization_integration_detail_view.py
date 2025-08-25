@@ -17,11 +17,11 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
     As a developer, I can create an integration, install it, and uninstall it
     """
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(self.user)
 
-    def load_page(self, slug: str, configuration_tab: bool = False) -> None:
+    def load_page(self, slug, configuration_tab=False):
         url = f"/settings/{self.organization.slug}/integrations/{slug}/"
         if configuration_tab:
             url += "?tab=configurations"

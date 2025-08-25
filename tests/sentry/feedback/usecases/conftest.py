@@ -1,12 +1,10 @@
-from collections.abc import Callable, Generator
-from typing import Any
 from unittest import mock
 
 import pytest
 
 
 @pytest.fixture
-def mock_produce_occurrence_to_kafka() -> Generator[mock.MagicMock]:
+def mock_produce_occurrence_to_kafka():
     with mock.patch(
         "sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka"
     ) as mck:
@@ -14,9 +12,7 @@ def mock_produce_occurrence_to_kafka() -> Generator[mock.MagicMock]:
 
 
 @pytest.fixture(autouse=True)
-def llm_settings(
-    set_sentry_option: Callable[[str, dict[str, dict[str, Any]]], Any],
-) -> Generator[None]:
+def llm_settings(set_sentry_option):
     with (
         set_sentry_option(
             "llm.provider.options",

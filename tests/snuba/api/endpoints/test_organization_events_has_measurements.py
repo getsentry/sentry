@@ -7,12 +7,12 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
-        self.features: dict[str, bool] = {}
+        self.features = {}
 
     def do_request(self, query, features=None):
         if features is None:

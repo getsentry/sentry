@@ -9,7 +9,6 @@ from sentry.api.serializers.models.organization_member import (
 )
 from sentry.models.organizationmember import InviteStatus
 from sentry.testutils.cases import TestCase
-from sentry.users.models.user import User
 
 
 class OrganizationMemberSerializerTest(TestCase):
@@ -24,7 +23,7 @@ class OrganizationMemberSerializerTest(TestCase):
         self.project = self.create_project(teams=[self.team])
         self.project_2 = self.create_project(teams=[self.team_2])
 
-    def _get_org_members(self) -> list[User]:
+    def _get_org_members(self):
         return list(
             self.org.member_set.filter(user_id__in=[self.owner_user.id, self.user_2.id]).order_by(
                 "user_email"

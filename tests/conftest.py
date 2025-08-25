@@ -51,20 +51,20 @@ else:
 
 
 @pytest.fixture(autouse=True)
-def unclosed_files() -> Generator[None]:
+def unclosed_files():
     fds = _open_files()
     yield
     assert _open_files() == fds
 
 
 @pytest.fixture(autouse=True)
-def unclosed_threads(request: pytest.FixtureRequest) -> Generator[None]:
+def unclosed_threads(request):
     # TODO(DI-1067): strict mode
     yield from thread_leaks.check_test(request, strict=False)
 
 
 @pytest.fixture(autouse=True)
-def validate_silo_mode() -> Generator[None]:
+def validate_silo_mode():
     # NOTE!  Hybrid cloud uses many mechanisms to simulate multiple different configurations of the application
     # during tests.  It depends upon `override_settings` using the correct contextmanager behaviors and correct
     # thread handling in acceptance tests.  If you hit one of these, it's possible either that cleanup logic has
@@ -83,7 +83,7 @@ def validate_silo_mode() -> Generator[None]:
 
 
 @pytest.fixture(autouse=True)
-def setup_simulate_on_commit(request: pytest.FixtureRequest) -> Generator[None]:
+def setup_simulate_on_commit(request):
     from sentry.testutils.hybrid_cloud import simulate_on_commit
 
     with simulate_on_commit(request):
@@ -91,7 +91,7 @@ def setup_simulate_on_commit(request: pytest.FixtureRequest) -> Generator[None]:
 
 
 @pytest.fixture(autouse=True)
-def setup_enforce_monotonic_transactions(request: pytest.FixtureRequest) -> Generator[None]:
+def setup_enforce_monotonic_transactions(request):
     from sentry.testutils.hybrid_cloud import enforce_no_cross_transaction_interactions
 
     with enforce_no_cross_transaction_interactions():
@@ -99,7 +99,7 @@ def setup_enforce_monotonic_transactions(request: pytest.FixtureRequest) -> Gene
 
 
 @pytest.fixture(autouse=True)
-def audit_hybrid_cloud_writes_and_deletes(request: pytest.FixtureRequest) -> Generator[None]:
+def audit_hybrid_cloud_writes_and_deletes(request):
     """
     Ensure that write operations on hybrid cloud foreign keys are recorded
     alongside outboxes or use a context manager to indicate that the
@@ -137,13 +137,13 @@ def audit_hybrid_cloud_writes_and_deletes(request: pytest.FixtureRequest) -> Gen
 
 
 @pytest.fixture(autouse=True)
-def clear_caches() -> Generator[None]:
+def clear_caches():
     yield
     cache.clear()
 
 
 @pytest.fixture(autouse=True)
-def check_leaked_responses_mocks() -> Generator[None]:
+def check_leaked_responses_mocks():
     yield
     leaked = responses.registered()
     if leaked:

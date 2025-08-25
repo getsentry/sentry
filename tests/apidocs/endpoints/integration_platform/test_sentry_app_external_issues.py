@@ -8,7 +8,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class SentryAppDocsTest(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.project = self.create_project(organization=self.org)
         self.group = self.create_group(project=self.project)

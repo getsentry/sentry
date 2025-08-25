@@ -48,7 +48,7 @@ def handle_onboarding_result(
     uptime_subscription: UptimeSubscription,
     result: CheckResult,
     metric_tags: dict[str, str],
-) -> None:
+):
     if result["status"] == CHECKSTATUS_FAILURE:
         redis = _get_cluster()
         key = build_onboarding_failure_key(detector)

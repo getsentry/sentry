@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.utils import timezone
 
@@ -15,5 +15,5 @@ class GrantTypes:
     REFRESH = REFRESH
 
 
-def token_expiration() -> datetime:
+def token_expiration():
     return timezone.now() + timedelta(hours=TOKEN_LIFE_IN_HOURS)

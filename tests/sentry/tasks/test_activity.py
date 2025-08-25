@@ -10,7 +10,7 @@ class BasicPreprocessorPlugin(NotificationPlugin):
     def notify_about_activity(self, activity):
         pass
 
-    def is_enabled(self, project=None) -> bool:
+    def is_enabled(self, project=None):
         return True
 
 

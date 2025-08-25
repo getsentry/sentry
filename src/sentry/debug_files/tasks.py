@@ -10,7 +10,7 @@ from sentry.taskworker.namespaces import attachments_tasks
         namespace=attachments_tasks,
     ),
 )
-def refresh_artifact_bundles_in_use() -> None:
+def refresh_artifact_bundles_in_use():
     from .artifact_bundles import refresh_artifact_bundles_in_use as do_refresh
 
     do_refresh()
@@ -23,7 +23,7 @@ def refresh_artifact_bundles_in_use() -> None:
         namespace=attachments_tasks,
     ),
 )
-def backfill_artifact_bundle_db_indexing(organization_id: int, release: str, dist: str) -> None:
+def backfill_artifact_bundle_db_indexing(organization_id: int, release: str, dist: str):
     from .artifact_bundles import backfill_artifact_bundle_db_indexing as do_backfill
 
     do_backfill(organization_id, release, dist)

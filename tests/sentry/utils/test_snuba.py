@@ -452,7 +452,7 @@ def test_retries() -> None:
 
 
 class SnubaQueryRateLimitTest(TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         mock_request = Request(
             dataset="events",
             app_id="test",

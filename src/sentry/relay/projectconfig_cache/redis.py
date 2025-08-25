@@ -27,10 +27,10 @@ class RedisProjectConfigCache(ProjectConfigCache):
     def validate(self):
         validate_dynamic_cluster(True, self.cluster)
 
-    def __get_redis_key(self, public_key) -> str:
+    def __get_redis_key(self, public_key):
         return f"relayconfig:{public_key}"
 
-    def __get_redis_rev_key(self, public_key) -> str:
+    def __get_redis_rev_key(self, public_key):
         return f"{self.__get_redis_key(public_key)}.rev"
 
     def set_many(self, configs: dict[str, Mapping[str, Any]]):

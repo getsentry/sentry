@@ -22,7 +22,7 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
     """NOTE: This endpoint is a shared search endpoint for Github and Github Enterprise integrations."""
 
     @property
-    def repository_field(self) -> str:
+    def repository_field(self):
         return "repo"
 
     @property

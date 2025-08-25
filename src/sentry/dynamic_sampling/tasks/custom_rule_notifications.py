@@ -2,8 +2,6 @@
 Task for sending notifications when custom rules have gathered enough samples.
 """
 
-from __future__ import annotations
-
 from datetime import datetime, timezone
 
 from django.http import QueryDict

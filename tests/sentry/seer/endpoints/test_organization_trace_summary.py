@@ -77,7 +77,7 @@ class OrganizationTraceSummaryEndpointTest(APITestCase, SnubaTestCase):
 
         self.url = self._get_url()
 
-    def _get_url(self) -> str:
+    def _get_url(self):
         return f"/api/0/organizations/{self.org.slug}/trace-summary/"
 
     @patch("sentry.seer.endpoints.organization_trace_summary.get_trace_summary")

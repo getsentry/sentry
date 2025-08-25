@@ -9,7 +9,7 @@ from sentry.utils.dates import to_datetime
 
 if TYPE_CHECKING:
     from sentry.models.rule import Rule
-    from sentry.services.eventstore.models import Event, GroupEvent
+    from sentry.services.eventstore.models import Event
 
 
 class IdentifierKey(StrEnum):
@@ -18,7 +18,7 @@ class IdentifierKey(StrEnum):
 
 
 class Notification(NamedTuple):
-    event: Event | GroupEvent
+    event: Event
     rules: Sequence[int] = ()
     notification_uuid: str | None = None
     identifier_key: IdentifierKey = IdentifierKey.RULE
@@ -50,7 +50,7 @@ class Record(NamedTuple):
 
 
 class NotificationWithRuleObjects(NamedTuple):
-    event: Event | GroupEvent
+    event: Event
     rules: list[Rule]
     notification_uuid: str | None
 

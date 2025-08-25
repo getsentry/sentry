@@ -18,9 +18,7 @@ ATTACHMENT_CONTENT = b"File contents here" * 10_000
 
 
 class CreateAttachmentMixin(TestCase):
-    def create_attachment(
-        self, content: bytes | None = None, group_id: int | None = None
-    ) -> EventAttachment:
+    def create_attachment(self, content: bytes | None = None, group_id: int | None = None):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
         min_ago = before_now(minutes=1).isoformat()

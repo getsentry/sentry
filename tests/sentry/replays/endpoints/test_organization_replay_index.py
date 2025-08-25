@@ -25,7 +25,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
     @property
-    def features(self) -> dict[str, bool]:
+    def features(self):
         return {"organizations:session-replay": True}
 
     def test_feature_flag_disabled(self) -> None:

@@ -11,10 +11,10 @@ class DummyIndexBackend(AbstractIndexBackend):
     def record(self, scope, key, items, timestamp=None):
         return {}
 
-    def merge(self, scope, destination, items, timestamp=None) -> bool:
+    def merge(self, scope, destination, items, timestamp=None):
         return False
 
-    def delete(self, scope, items, timestamp=None) -> bool:
+    def delete(self, scope, items, timestamp=None):
         return False
 
     def scan(self, scope, indices, batch=1000, timestamp=None):

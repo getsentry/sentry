@@ -34,7 +34,7 @@ class GroupEnvironment(Model):
     __repr__ = sane_repr("group_id", "environment_id")
 
     @classmethod
-    def _get_cache_key(self, group_id, environment_id) -> str:
+    def _get_cache_key(self, group_id, environment_id):
         return f"groupenv:1:{group_id}:{environment_id}"
 
     @classmethod

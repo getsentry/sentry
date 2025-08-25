@@ -59,7 +59,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         event_count: int,
         performance_issues: bool = False,
         generic_issues: bool = False,
-    ) -> None:
+    ):
         with patch.object(sentry, "digests") as digests:
             backend = RedisBackend()
             digests.backend.digest = backend.digest

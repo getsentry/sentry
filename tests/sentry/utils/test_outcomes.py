@@ -53,7 +53,7 @@ def test_outcome_is_billing(outcome: Outcome, is_billing: bool) -> None:
         ("RATE_LIMITED", Outcome.RATE_LIMITED),
     ],
 )
-def test_parse_outcome(name: str, outcome: Outcome) -> None:
+def test_parse_outcome(name, outcome) -> None:
     """
     Asserts *case insensitive* parsing of outcomes from their canonical names,
     as used in the API and queries.
@@ -231,7 +231,7 @@ def test_track_outcome_with_event_id(setup) -> None:
         DataCategory.DEFAULT,
     ],
 )
-def test_track_outcome_with_category(setup, category: DataCategory) -> None:
+def test_track_outcome_with_category(setup, category) -> None:
     """
     Tests that `track_outcome` correctly includes different `category` values in the payload.
     """
@@ -393,7 +393,7 @@ def test_track_outcome_with_none_category(setup) -> None:
 
 
 @pytest.mark.parametrize("quantity", [0, -1, -100])
-def test_track_outcome_with_non_positive_quantity(setup, quantity: int) -> None:
+def test_track_outcome_with_non_positive_quantity(setup, quantity) -> None:
     """
     Tests that `track_outcome` handles non-positive `quantity` values.
     """

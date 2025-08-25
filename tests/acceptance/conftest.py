@@ -3,12 +3,10 @@ import subprocess
 import sys
 import time
 
-from pytest import Config
-
 from sentry.utils import json
 
 
-def pytest_configure(config: Config) -> None:
+def pytest_configure(config):
     """
     Generate frontend assets before running any acceptance tests
 

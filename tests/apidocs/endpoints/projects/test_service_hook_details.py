@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ProjectServiceHookDetailsDocs(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         hook = self.create_service_hook(project=self.project, events=("event.created",))
 
         self.url = reverse(

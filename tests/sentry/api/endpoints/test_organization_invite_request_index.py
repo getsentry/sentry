@@ -6,7 +6,6 @@ from django.core import mail
 from django.urls import reverse
 
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
@@ -18,7 +17,7 @@ class OrganizationInviteRequestListTest(APITestCase):
     endpoint = "sentry-api-0-organization-invite-request-index"
 
     @cached_property
-    def org(self) -> Organization:
+    def org(self):
         return self.create_organization(owner=self.user)
 
     def setUp(self) -> None:

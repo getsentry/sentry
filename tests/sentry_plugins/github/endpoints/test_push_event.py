@@ -1,5 +1,4 @@
 import contextlib
-from collections.abc import Generator
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -15,7 +14,7 @@ from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE
 
 
 @contextlib.contextmanager
-def mock_baxter_response() -> Generator[None]:
+def mock_baxter_response():
     with responses.RequestsMock() as mck:
         mck.add(
             "GET",

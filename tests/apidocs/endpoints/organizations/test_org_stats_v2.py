@@ -10,7 +10,7 @@ from sentry.utils.outcomes import Outcome
 
 
 class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.now = datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc)
         self.login_as(user=self.user)

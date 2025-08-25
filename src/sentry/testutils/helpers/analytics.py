@@ -1,5 +1,4 @@
 import contextlib
-from collections.abc import Generator
 from dataclasses import fields
 from unittest.mock import MagicMock, patch
 
@@ -12,7 +11,7 @@ def assert_event_equal(
     check_uuid: bool = False,
     check_datetime: bool = False,
     exclude_fields: list[str] | None = None,
-) -> None:
+):
     if type(expected_event) is not type(recorded_event):
         raise AssertionError(
             f"Expected event type {type(expected_event)} but got {type(recorded_event)}"
@@ -35,7 +34,7 @@ def assert_analytics_events_recorded(
     check_uuid: bool = False,
     check_datetime: bool = False,
     exclude_fields: list[str] | None = None,
-) -> None:
+):
     recorded_events = [call.args[0] for call in mock_record.call_args_list]
     assert len(expected_events) == len(recorded_events)
     for expected_event, recorded_event in zip(expected_events, recorded_events):
@@ -54,7 +53,7 @@ def assert_last_analytics_event(
     check_uuid: bool = False,
     check_datetime: bool = False,
     exclude_fields: list[str] | None = None,
-) -> None:
+):
     assert_event_equal(
         expected_event,
         get_last_analytics_event(mock_record),
@@ -70,7 +69,7 @@ def assert_any_analytics_event(
     check_uuid: bool = False,
     check_datetime: bool = False,
     exclude_fields: list[str] | None = None,
-) -> None:
+):
     recorded_events = [call.args[0] for call in mock_record.call_args_list]
     for recorded_event in recorded_events:
         try:
@@ -90,7 +89,7 @@ def assert_analytics_events(
     check_uuid: bool = False,
     check_datetime: bool = False,
     exclude_fields: list[str] | None = None,
-) -> Generator[None]:
+):
     """
     Context manager that allows you to track analytics events recorded during the context.
 

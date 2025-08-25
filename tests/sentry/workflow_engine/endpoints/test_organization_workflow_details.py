@@ -1,5 +1,3 @@
-from contextlib import AbstractContextManager
-
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -344,7 +342,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "DELETE"
 
-    def tasks(self) -> AbstractContextManager:
+    def tasks(self):
         return TaskRunner()
 
     def setUp(self) -> None:

@@ -43,7 +43,7 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
         )
     ]
 
-    def has_project_conf(self) -> bool:
+    def has_project_conf(self):
         return True
 
     def get_custom_contexts(self):
@@ -58,7 +58,7 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
         self.set_option("player_url", "", project)
         self.set_option("api_url", "", project)
 
-    def is_testable(self, **kwargs) -> bool:
+    def is_testable(self, **kwargs):
         return False
 
     def validate_config(self, project, config, actor=None):

@@ -32,11 +32,11 @@ from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_detector
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
-from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class ResolveUptimeIssueTest(UptimeTestCase):
-    def test(self) -> None:
+    def test(self):
         subscription = self.create_uptime_subscription(subscription_id=uuid.uuid4().hex)
         self.create_project_uptime_subscription(uptime_subscription=subscription)
         detector = get_detector(subscription)
@@ -132,9 +132,7 @@ class BuildEventDataTest(UptimeTestCase):
 
 
 class TestUptimeHandler(UptimeTestCase):
-    def handle_result(
-        self, detector: Detector, sub: UptimeSubscription, check_result: CheckResult
-    ) -> DetectorEvaluationResult | None:
+    def handle_result(self, detector: Detector, sub: UptimeSubscription, check_result: CheckResult):
         handler = UptimeDetectorHandler(detector)
 
         value = UptimePacketValue(

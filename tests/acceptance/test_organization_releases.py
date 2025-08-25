@@ -14,7 +14,7 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationReleasesTest(AcceptanceTestCase):
     release_date = datetime(2020, 5, 18, 15, 13, 58, 132928, tzinfo=UTC)
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
 
         self.user = self.create_user("foo@example.com")

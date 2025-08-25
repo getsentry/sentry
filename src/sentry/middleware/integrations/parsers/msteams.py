@@ -30,7 +30,7 @@ class MsTeamsRequestParser(BaseRequestParser):
     _synchronous_events = [MsTeamsEvents.INSTALLATION_UPDATE]
 
     @cached_property
-    def request_data(self) -> Mapping[str, Any]:
+    def request_data(self):
         data = {}
         try:
             data = orjson.loads(self.request.body)

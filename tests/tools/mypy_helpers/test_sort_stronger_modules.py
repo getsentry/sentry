@@ -1,9 +1,7 @@
-from pathlib import Path
-
 from tools.mypy_helpers.sort_stronger_modules import main
 
 
-def test_sort_stronger_modules(tmp_path: Path) -> None:
+def test_sort_stronger_modules(tmp_path) -> None:
     src = """\
 # before
 
@@ -45,7 +43,7 @@ some_setting = true
     assert main((str(f),)) == 0
 
 
-def test_removes_duplicates(tmp_path: Path) -> None:
+def test_removes_duplicates(tmp_path) -> None:
     src = """\
 # begin: stronger typing
 [[tool.mypy.overrides]]

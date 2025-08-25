@@ -18,7 +18,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
         "organizations:trace-view-load-more",
     ]
 
-    def setUp(self) -> None:
+    def setUp(self):
         """
         Span structure:
 
