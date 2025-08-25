@@ -179,4 +179,15 @@ export const BILLED_DATA_CATEGORY_INFO = {
       'Log bytes represent the amount of log data ingested and stored.'
     ),
   },
+  [DataCategoryExact.PREVENT_USER]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PREVENT_USER],
+    feature: 'prevent-billing',
+    maxAdminGift: 10_000, // TODO(prevent): Update this to the actual max admin gift
+    tallyType: 'seat',
+  },
+  [DataCategoryExact.PREVENT_REVIEW]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PREVENT_REVIEW],
+    feature: 'prevent-billing',
+    maxAdminGift: 10_000, // TODO(prevent): Update this to the actual max admin gift
+  },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;
