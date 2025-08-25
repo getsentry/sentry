@@ -91,7 +91,7 @@ export function useInfiniteTestResults({
     mappedFilterBy = SUMMARY_TO_TA_TABLE_FILTER_KEY[filterBy as SummaryTAFilterKey];
   }
 
-  const {data, ...rest} = useInfiniteQuery<
+  const {data, hasNextPage, hasPreviousPage, ...rest} = useInfiniteQuery<
     ApiResult<TestResults>,
     Error,
     InfiniteData<ApiResult<TestResults>>,
@@ -199,6 +199,8 @@ export function useInfiniteTestResults({
     totalCount: data?.pages?.[0]?.[0]?.totalCount ?? 0,
     startCursor: data?.pages?.[0]?.[0]?.pageInfo?.startCursor,
     endCursor: data?.pages?.[0]?.[0]?.pageInfo?.endCursor,
+    hasNextPage,
+    hasPreviousPage,
     // TODO: only provide the values that we're interested in
     ...rest,
   };

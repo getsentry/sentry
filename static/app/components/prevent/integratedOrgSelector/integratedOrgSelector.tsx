@@ -42,7 +42,9 @@ function OrgFooterMessage() {
         <div>
           <FooterInfoHeading>
             To access{' '}
-            <Link to="https://github.com/apps/sentry-io">Integrated Organization</Link>
+            <Link to="https://github.com/apps/sentry-io" target="_blank">
+              Integrated Organization
+            </Link>
           </FooterInfoHeading>
           <FooterInfoSubheading>
             Ensure admins approve the installation.
