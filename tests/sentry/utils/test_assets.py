@@ -48,6 +48,23 @@ def getsentry(tmp_path: pathlib.Path) -> Generator[None]:
         conf_dir.mkdir()
         conf_dir.joinpath("settings/frontend").mkdir(parents=True)
         conf_dir.joinpath("settings/frontend/frontend-versions.json").write_text(
+            '{"entrypoints": {"app.js": "app-deadbeef.js", "app.css": "app-cafecafe.css"}, "commit_sha": "8badf00d"}'
+        )
+        with mock.patch.object(settings, "CONF_DIR", conf_dir):
+            yield
+
+
+# XXX(epurkhiser): To be removed when the frontend-versions config map
+# consistently matches the FrontendVersions TypedDict.
+@pytest.fixture
+def getsentry_legacy(tmp_path: pathlib.Path) -> Generator[None]:
+    with mock.patch.object(
+        settings, "STATIC_FRONTEND_APP_URL", "https://static.example.com/_static/dist/"
+    ):
+        conf_dir = tmp_path.joinpath("conf")
+        conf_dir.mkdir()
+        conf_dir.joinpath("settings/frontend").mkdir(parents=True)
+        conf_dir.joinpath("settings/frontend/frontend-versions.json").write_text(
             '{"app.js": "app-deadbeef.js", "app.css": "app-cafecafe.css"}'
         )
         with mock.patch.object(settings, "CONF_DIR", conf_dir):
@@ -66,9 +83,25 @@ def test_frontend_app_asset_url_getsentry_no_configmap() -> None:
     assert ret == "https://static.example.com/_static/dist/sentry/entrypoints/app.js"
 
 
+# XXX(epurkhiser): To be removed when the frontend-versions config map
+# consistently matches the FrontendVersions TypedDict.
+@pytest.mark.usefixtures("getsentry_legacy")
+def test_frontend_app_asset_url_getsentry_legacy() -> None:
+    ret = assets.get_frontend_app_asset_url("sentry", "entrypoints/app.js")
+    assert (
+        ret == "https://static.example.com/_static/dist/sentry/entrypoints-hashed/app-deadbeef.js"
+    )
+
+
 @pytest.mark.usefixtures("getsentry")
 def test_frontend_app_asset_url_getsentry() -> None:
     ret = assets.get_frontend_app_asset_url("sentry", "entrypoints/app.js")
     assert (
         ret == "https://static.example.com/_static/dist/sentry/entrypoints-hashed/app-deadbeef.js"
     )
+
+
+@pytest.mark.usefixtures("getsentry")
+def test_frontend_commit_sha_getsentry() -> None:
+    ret = assets.get_frontend_commit_sha()
+    assert ret == "8badf00d"
