@@ -668,6 +668,116 @@ class GithubProxyClientTest(TestCase):
             client.assert_proxy_request(request, is_proxy=True)
 
 
+class GitHubCommitContextClientTest(TestCase):
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def setUp(self, get_jwt):
+        ten_days = timezone.now() + timedelta(days=10)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="Github Test Org",
+            external_id="1",
+            metadata={"access_token": "12345token", "expires_at": ten_days.isoformat()},
+        )
+        self.repo = self.create_repo(
+            project=self.project,
+            name="Test-Organization/foo",
+            provider="integrations:github",
+            external_id=123,
+            integration_id=self.integration.id,
+        )
+        self.install = get_installation_of_type(
+            GitHubIntegration, self.integration, self.organization.id
+        )
+        self.github_client = self.install.get_client()
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_create_status(self, get_jwt) -> None:
+        repo_name = "getsentry/sentry"
+        sha = "abc123"
+        status_data = {
+            "state": "success",
+            "description": "Build passed",
+            "context": "sentry/ci",
+            "target_url": "https://example.com/build/123",
+        }
+
+        responses.add(
+            method=responses.POST,
+            url=f"https://api.github.com/repos/{repo_name}/statuses/{sha}",
+            json={
+                "id": 1,
+                "state": "success",
+                "description": "Build passed",
+                "context": "sentry/ci",
+                "target_url": "https://example.com/build/123",
+            },
+            status=201,
+        )
+
+        result = self.github_client.create_status(repo_name, sha, status_data)
+
+        assert result["id"] == 1
+        assert result["state"] == "success"
+        assert result["description"] == "Build passed"
+        assert result["context"] == "sentry/ci"
+        assert result["target_url"] == "https://example.com/build/123"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_status(self, get_jwt) -> None:
+        repo_name = "getsentry/sentry"
+        sha = "abc123"
+
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{repo_name}/commits/{sha}/statuses",
+            json=[
+                {
+                    "id": 1,
+                    "state": "success",
+                    "description": "Build passed",
+                    "context": "sentry/ci",
+                    "target_url": "https://example.com/build/123",
+                },
+                {
+                    "id": 2,
+                    "state": "pending",
+                    "description": "Tests running",
+                    "context": "sentry/tests",
+                    "target_url": "https://example.com/tests/456",
+                },
+            ],
+            status=200,
+        )
+
+        result = self.github_client.get_status(repo_name, sha)
+
+        assert len(result) == 2
+        assert result[0]["id"] == 1
+        assert result[0]["state"] == "success"
+        assert result[1]["id"] == 2
+        assert result[1]["state"] == "pending"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_create_status_error(self, get_jwt) -> None:
+        repo_name = "getsentry/sentry"
+        sha = "abc123"
+        status_data = {"state": "success"}
+
+        responses.add(
+            method=responses.POST,
+            url=f"https://api.github.com/repos/{repo_name}/statuses/{sha}",
+            json={"message": "Validation Failed"},
+            status=422,
+        )
+
+        with pytest.raises(ApiError):
+            self.github_client.create_status(repo_name, sha, status_data)
+
+
 class GitHubClientFileBlameBase(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, get_jwt):
