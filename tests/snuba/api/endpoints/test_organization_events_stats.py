@@ -36,7 +36,7 @@ class _EventDataDict(TypedDict):
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.authed_user = self.user
@@ -81,7 +81,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def do_request(self, data, url=None, features=None):
         if features is None:
@@ -1248,7 +1248,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
 
 class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -2827,7 +2827,7 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
 ):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -2934,7 +2934,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 ):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -3020,7 +3020,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 
 class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTestCase):
     # This is implemented almost exactly the same as spans, add a simple test case for a sanity check
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -3125,7 +3125,7 @@ class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTe
 
 
 class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -3577,7 +3577,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
 class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.authed_user = self.user

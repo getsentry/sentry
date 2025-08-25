@@ -204,7 +204,7 @@ class UnfurlTest(TestCase):
         self.frozen_time.start()
         self.rpc_user = user_service.get_user(user_id=self.user.id)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.frozen_time.stop()
 
     def test_unfurl_issues(self) -> None:
