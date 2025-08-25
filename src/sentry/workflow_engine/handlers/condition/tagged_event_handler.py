@@ -1,7 +1,7 @@
 from typing import Any
 
-from sentry import tagstore
 from sentry.rules import MatchType, match_values
+from sentry.services import tagstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
