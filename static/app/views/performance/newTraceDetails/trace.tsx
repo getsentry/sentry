@@ -1117,8 +1117,8 @@ const TraceStylingWrapper = styled('div')`
 
       /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: #c3c2c6;
-        --pattern-even: #e6e5e9;
+        --pattern-odd: ${p => p.theme.backgroundTertiary};
+        --pattern-even: ${p => p.theme.background};
       }
 
       &.error,
@@ -1159,8 +1159,8 @@ const TraceStylingWrapper = styled('div')`
 
       /* hardcoded until new color scales are added to theme */
       &.missing_instrumentation {
-        --pattern-odd: #222225;
-        --pattern-even: #37363a;
+        --pattern-odd: ${p => p.theme.translucentGray100};
+        --pattern-even: ${p => p.theme.surface300};
       }
 
       &.error,
