@@ -50,7 +50,6 @@ export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
   type: number;
   issue_short_id?: string;
 };
-export type TraceErrorOrIssue = TracePerformanceIssue | TraceError;
 
 export type TraceLite = EventLite[];
 
