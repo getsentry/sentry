@@ -31,6 +31,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     StatsType,
     TraceItemStatsRequest,
 )
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
@@ -81,6 +82,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
+from sentry.utils.snuba_rpc import table_rpc
 
 logger = logging.getLogger(__name__)
 
@@ -559,6 +561,147 @@ def get_attributes_and_values(
     return {"attributes_and_values": attributes_and_values}
 
 
+def get_spans(
+    *,
+    org_id: int,
+    project_ids: list[int],
+    query: str = "",
+    sort: str = "sentry.span_id",
+    stats_period: str = "7d",
+    columns: list[dict[str, str]],
+    limit: int = 100,
+) -> dict:
+    """
+    Get spans using the TraceItemTable endpoint.
+
+    Args:
+        org_id: Organization ID
+        project_ids: List of project IDs to query
+        query: Search query string (optional) - will be converted to a TraceItemFilter
+        sort: Field to sort by (default: sentry.span_id)
+        stats_period: Time period to query (default: 7d)
+        columns: List of columns with their type
+        limit: Maximum number of results to return
+
+    Returns:
+        Dictionary containing the spans data
+    """
+    from sentry.models.organization import Organization
+    from sentry.search.eap.resolver import SearchResolver
+    from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+    from sentry.search.eap.types import SearchResolverConfig
+    from sentry.search.events.types import SnubaParams
+
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
+
+    end = datetime.datetime.now()
+    start = end - period
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+
+    request_columns = []
+    for column in columns:
+        column_name = column["name"]
+        column_type = column["type"]
+
+        request_columns.append(
+            Column(
+                key=AttributeKey(
+                    name=column_name,
+                    type=(
+                        AttributeKey.Type.TYPE_STRING
+                        if column_type == "TYPE_STRING"
+                        else AttributeKey.Type.TYPE_DOUBLE
+                    ),
+                )
+            )
+        )
+
+    order_by_list = []
+    if sort:
+        # TODO: Review how asc vs descending is handled in the RPC.
+        # Handle descending sort (starts with -)
+        descending = sort.startswith("-")
+        sort_field = sort.lstrip("-")
+
+        order_by_list.append(
+            TraceItemTableRequest.OrderBy(
+                column=Column(
+                    key=AttributeKey(
+                        name=sort_field,
+                        type=AttributeKey.Type.TYPE_STRING,
+                    )
+                ),
+                descending=descending,
+            )
+        )
+
+    # Parse the query string into a TraceItemFilter
+    query_filter = None
+    if query and query.strip():
+        try:
+            # Create a minimal SnubaParams for the resolver
+            organization = Organization.objects.get(id=org_id)
+            snuba_params = SnubaParams(
+                start=start,
+                end=end,
+                project_ids=project_ids,
+                organization=organization,
+            )
+
+            resolver = SearchResolver(
+                params=snuba_params,
+                config=SearchResolverConfig(),
+                definitions=SPAN_DEFINITIONS,
+            )
+
+            # Resolve the query string to a TraceItemFilter
+            query_filter, _, _ = resolver.resolve_query(query.strip())
+        except Exception:
+            # If query parsing fails, log it but don't fail the entire request
+            # Just proceed without the filter
+            logger.warning("Failed to parse query string: %s", query, exc_info=True)
+            query_filter = None
+
+    meta = RequestMeta(
+        organization_id=org_id,
+        project_ids=project_ids,
+        cogs_category="events_analytics_platform",
+        referrer=Referrer.SEER_RPC.value,
+        start_timestamp=start_time_proto,
+        end_timestamp=end_time_proto,
+        trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+    )
+
+    rpc_request = TraceItemTableRequest(
+        meta=meta,
+        columns=request_columns,
+        order_by=order_by_list,
+        filter=query_filter,  # Add the parsed query filter here
+        limit=min(limit, 100),  # Force the upper limit to 100 to avoid abuse
+    )
+
+    responses = table_rpc([rpc_request])
+
+    if not responses:
+        return {"data": [], "meta": {}}
+
+    response = responses[0]
+
+    return {
+        "data": response,
+        "meta": {
+            "columns": columns,
+            "total_rows": len(response),
+        },
+    }
+
+
 def get_github_enterprise_integration_config(
     *, organization_id: int, integration_id: int
 ) -> dict[str, Any]:
@@ -667,6 +810,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_attribute_names": get_attribute_names,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
+    "get_spans": get_spans,
     "get_transactions_for_project": rpc_get_transactions_for_project,
     "get_trace_for_transaction": rpc_get_trace_for_transaction,
     "get_profiles_for_trace": rpc_get_profiles_for_trace,
