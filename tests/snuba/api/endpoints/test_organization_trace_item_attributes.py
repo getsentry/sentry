@@ -181,17 +181,17 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         keys = {item["key"] for item in response.data}
         assert keys == {"severity", "message", "project", "sentry.item_type2"}
 
-    def test_strip_sentry_prefix_from_message_parameters(self) -> None:
-        """Test that sentry.message.parameters.* wildcard matching works in attribute listing"""
+    def test_strip_sentry_prefix_from_message_parameter(self) -> None:
+        """Test that sentry.message.parameter.* wildcard matching works in attribute listing"""
         logs = [
             self.create_ourlog(
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    "sentry.message.parameters.username": {"string_value": "alice"},
-                    "sentry.message.parameters.ip": {"string_value": "192.168.1.1"},
-                    "sentry.message.parameters.0": {"string_value": "laptop"},
-                    "sentry.message.parameters.1": {"string_value": "charlie"},
+                    "sentry.message.parameter.username": {"string_value": "alice"},
+                    "sentry.message.parameter.ip": {"string_value": "192.168.1.1"},
+                    "sentry.message.parameter.0": {"string_value": "laptop"},
+                    "sentry.message.parameter.1": {"string_value": "charlie"},
                 },
             ),
         ]
@@ -206,10 +206,10 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
             "project",
             "message",
             "severity",
-            "message.parameters.username",
-            "message.parameters.ip",
-            "message.parameters.0",
-            "message.parameters.1",
+            "message.parameter.username",
+            "message.parameter.ip",
+            "message.parameter.0",
+            "message.parameter.1",
         }
 
     def test_attribute_collision(self) -> None:

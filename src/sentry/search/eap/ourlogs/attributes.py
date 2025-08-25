@@ -158,12 +158,12 @@ for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values():
 
 
 def ourlog_custom_alias_to_column(alias: str) -> str | None:
-    if alias.startswith("message.parameters."):
+    if alias.startswith("message.parameter."):
         return f"sentry.{alias}"
     return None
 
 
 def ourlog_column_to_custom_alias(column: str) -> str | None:
-    if column.startswith("sentry.message.parameters."):
+    if column.startswith("sentry.message.parameter."):
         return column[len("sentry.") :]
     return None

@@ -421,26 +421,26 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
             }
         assert meta["dataset"] == self.dataset
 
-    def test_strip_sentry_prefix_from_message_parameters(self) -> None:
+    def test_strip_sentry_prefix_from_message_parameter(self) -> None:
         logs = [
             self.create_ourlog(
                 {"body": "User {username} logged in from {ip}"},
                 attributes={
-                    "sentry.message.parameters.username": "alice",
-                    "sentry.message.parameters.ip": "192.168.1.1",
+                    "sentry.message.parameter.username": "alice",
+                    "sentry.message.parameter.ip": "192.168.1.1",
                 },
                 timestamp=self.ten_mins_ago,
             ),
             self.create_ourlog(
                 {"body": "User {username} logged out"},
-                attributes={"sentry.message.parameters.username": "bob"},
+                attributes={"sentry.message.parameter.username": "bob"},
                 timestamp=self.nine_mins_ago,
             ),
             self.create_ourlog(
                 {"body": "Item {0} was purchased by {1}"},
                 attributes={
-                    "sentry.message.parameters.0": "laptop",
-                    "sentry.message.parameters.1": "charlie",
+                    "sentry.message.parameter.0": "laptop",
+                    "sentry.message.parameter.1": "charlie",
                 },
                 timestamp=self.nine_mins_ago - timedelta(minutes=1),
             ),
@@ -453,10 +453,10 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                 "field": [
                     "timestamp",
                     "message",
-                    "message.parameters.username",
-                    "message.parameters.ip",
+                    "message.parameter.username",
+                    "message.parameter.ip",
                 ],
-                "query": 'message.parameters.username:"alice"',
+                "query": 'message.parameter.username:"alice"',
                 "orderby": "-timestamp",
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -466,18 +466,18 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["message"] == "User {username} logged in from {ip}"
-        assert data[0]["message.parameters.username"] == "alice"
-        assert data[0]["message.parameters.ip"] == "192.168.1.1"
+        assert data[0]["message.parameter.username"] == "alice"
+        assert data[0]["message.parameter.ip"] == "192.168.1.1"
 
         response = self.do_request(
             {
                 "field": [
                     "timestamp",
                     "message",
-                    "message.parameters.0",
-                    "message.parameters.1",
+                    "message.parameter.0",
+                    "message.parameter.1",
                 ],
-                "query": 'message.parameters.0:"laptop"',
+                "query": 'message.parameter.0:"laptop"',
                 "orderby": "-timestamp",
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -487,13 +487,13 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["message"] == "Item {0} was purchased by {1}"
-        assert data[0]["message.parameters.0"] == "laptop"
-        assert data[0]["message.parameters.1"] == "charlie"
+        assert data[0]["message.parameter.0"] == "laptop"
+        assert data[0]["message.parameter.1"] == "charlie"
 
         response = self.do_request(
             {
-                "field": ["timestamp", "message", "message.parameters.username"],
-                "query": 'message.parameters.username:["alice", "bob"]',
+                "field": ["timestamp", "message", "message.parameter.username"],
+                "query": 'message.parameter.username:["alice", "bob"]',
                 "orderby": "-timestamp",
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -502,5 +502,5 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        assert data[0]["message.parameters.username"] == "bob"
-        assert data[1]["message.parameters.username"] == "alice"
+        assert data[0]["message.parameter.username"] == "bob"
+        assert data[1]["message.parameter.username"] == "alice"
