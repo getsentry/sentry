@@ -184,6 +184,7 @@ class IncidentOccurrenceTestCase(TestCase):
         occurrence = occurrence.to_dict()
 
         detector = get_detector_for_monitor(self.monitor)
+        assert detector
         assert dict(
             occurrence,
             **{
