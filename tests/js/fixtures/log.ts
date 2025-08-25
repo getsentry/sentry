@@ -5,17 +5,22 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {FieldKind} from 'sentry/utils/fields';
 import {LOGS_REFRESH_INTERVAL_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import type {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {
   EventsLogsResult,
   OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import type {AttributeResults} from 'sentry/views/settings/components/dataScrubbing/types';
+import {AllowedDataScrubbingDatasets} from 'sentry/views/settings/components/dataScrubbing/types';
 
 export function LogFixture({
   [OurLogKnownFieldKey.PROJECT_ID]: projectId,
@@ -373,5 +378,64 @@ export function createLogFixtures(
   return {
     baseFixtures,
     detailedFixtures,
+  };
+}
+
+/**
+ * Creates mock attribute results for data scrubbing tests
+ */
+export function createMockAttributeResults(empty = false): AttributeResults {
+  const mockAttributes: TagCollection = {
+    'user.email': {
+      key: 'user.email',
+      name: 'user.email',
+      kind: FieldKind.TAG,
+    },
+    'user.id': {
+      key: 'user.id',
+      name: 'user.id',
+      kind: FieldKind.TAG,
+    },
+    'custom.field': {
+      key: 'custom.field',
+      name: 'custom.field',
+      kind: FieldKind.TAG,
+    },
+    'request.method': {
+      key: 'request.method',
+      name: 'request.method',
+      kind: FieldKind.TAG,
+    },
+    'response.status': {
+      key: 'response.status',
+      name: 'response.status',
+      kind: FieldKind.TAG,
+    },
+  };
+
+  const mockTraceItemAttributeKeysResult: ReturnType<typeof useTraceItemAttributeKeys> = {
+    attributes: mockAttributes,
+    isLoading: false,
+    error: null,
+  };
+
+  const mockTraceItemAttributeKeysEmptyResult: ReturnType<
+    typeof useTraceItemAttributeKeys
+  > = {
+    attributes: {},
+    isLoading: false,
+    error: null,
+  };
+
+  if (empty) {
+    return {
+      [AllowedDataScrubbingDatasets.DEFAULT]: null,
+      [AllowedDataScrubbingDatasets.LOGS]: mockTraceItemAttributeKeysEmptyResult,
+    };
+  }
+
+  return {
+    [AllowedDataScrubbingDatasets.DEFAULT]: null,
+    [AllowedDataScrubbingDatasets.LOGS]: mockTraceItemAttributeKeysResult,
   };
 }
