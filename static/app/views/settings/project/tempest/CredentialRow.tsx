@@ -14,14 +14,13 @@ import {MessageType, type TempestCredentials} from './types';
 
 export function CredentialRow({
   credential,
-  removingCredentialId,
+  isRemoving,
   removeCredential,
 }: {
   credential: TempestCredentials;
+  isRemoving: boolean;
   removeCredential?: (data: {id: number}) => void;
-  removingCredentialId?: number;
 }) {
-  const isRemoving = removingCredentialId === credential.id;
   return (
     <Fragment>
       <Flex align="center" gap="md">
