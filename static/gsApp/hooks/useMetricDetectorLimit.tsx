@@ -12,7 +12,7 @@ type MetricDetectorLimitResponse = {
 };
 
 const UNLIMITED_QUOTA = -1;
-const ERROR_COUNT = -1;
+const NO_COUNT = -1;
 
 export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
   const organization = useOrganization();
@@ -32,7 +32,7 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
   );
 
   const hits = getResponseHeader?.('X-Hits');
-  const detectorCount = hits ? parseInt(hits, 10) : ERROR_COUNT;
+  const detectorCount = hits ? parseInt(hits, 10) : NO_COUNT;
 
   if (!hasFlag || detectorLimit === UNLIMITED_QUOTA) {
     return {
@@ -49,6 +49,6 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
     detectorLimit,
     hasReachedLimit: detectorCount >= detectorLimit,
     isLoading,
-    isError: isError || detectorCount === ERROR_COUNT,
+    isError,
   };
 }
