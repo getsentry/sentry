@@ -741,8 +741,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                         )
 
                 # Assert GroupOwner existence
-                group_owners = GroupOwner.objects.filter(group=self.event.group)
-                actual_exists = group_owners.exists()
+                actual_exists = GroupOwner.objects.filter(group=self.event.group).exists()
                 self.assertEqual(
                     actual_exists,
                     expected_group_owner_exists,
@@ -752,7 +751,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 # Assert correct commit selected
                 if expected_group_owner_exists and expected_commit_id:
                     created_commit = Commit.objects.get(key=expected_commit_id)
-                    group_owner = group_owners.first()
+                    group_owner = GroupOwner.objects.get(group=self.event.group)
                     self.assertEqual(
                         group_owner.context["commitId"],
                         created_commit.id,
