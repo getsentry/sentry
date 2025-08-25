@@ -307,6 +307,8 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
 // List of platforms that have logging onboarding checklist content
 export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'android',
+  'dart',
+  'flutter',
   'go',
   'go-echo',
   'go-fasthttp',
