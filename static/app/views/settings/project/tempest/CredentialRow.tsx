@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Confirm from 'sentry/components/confirm';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
@@ -9,18 +10,55 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {MessageType, type TempestCredentials} from './types';
 
+type CredentialRowProps = {
+  credential: TempestCredentials;
+  hasWriteAccess: boolean;
+  onRemoveCredentialSuccess: () => void;
+  project: Project;
+};
+
 export function CredentialRow({
   credential,
-  isRemoving,
-  removeCredential,
-}: {
-  credential: TempestCredentials;
-  isRemoving: boolean;
-  removeCredential?: (data: {id: number}) => void;
-}) {
+  project,
+  onRemoveCredentialSuccess,
+  hasWriteAccess,
+}: CredentialRowProps) {
+  const organization = useOrganization();
+
+  const {mutate: handleRemoveCredential, isPending: isRemoving} = useMutation<
+    unknown,
+    RequestError,
+    {id: number}
+  >({
+    mutationFn: ({id}) =>
+      fetchMutation({
+        method: 'DELETE',
+        url: `/projects/${organization.slug}/${project.slug}/tempest-credentials/${id}/`,
+      }),
+    onSuccess: () => {
+      addSuccessMessage(t('Removed the credentials.'));
+      trackAnalytics('tempest.credentials.removed', {
+        organization,
+        project_slug: project.slug,
+      });
+      onRemoveCredentialSuccess();
+    },
+    onError: error => {
+      const message = t('Failed to remove the credentials.');
+      handleXhrErrorResponse(message, error);
+      addErrorMessage(message);
+    },
+  });
+
   return (
     <Fragment>
       <Flex align="center" gap="md">
@@ -42,18 +80,20 @@ export function CredentialRow({
       <Flex align="center" justify="end">
         <Tooltip
           title={t('You must be an organization admin to remove credentials.')}
-          disabled={!!removeCredential}
+          disabled={!!hasWriteAccess}
         >
           <Confirm
             message={t('Are you sure you want to remove the credentials?')}
             onConfirm={
-              removeCredential ? () => removeCredential({id: credential.id}) : undefined
+              hasWriteAccess
+                ? () => handleRemoveCredential({id: credential.id})
+                : undefined
             }
-            disabled={isRemoving || !removeCredential}
+            disabled={isRemoving || !hasWriteAccess}
           >
             <Button
               size="xs"
-              disabled={isRemoving || !removeCredential}
+              disabled={isRemoving || !hasWriteAccess}
               aria-label={t('Remove credentials')}
               icon={
                 isRemoving ? (
