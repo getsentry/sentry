@@ -929,7 +929,9 @@ def test_create_feedback_issue_title(
 
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
-        mock_get_feedback_title.assert_called_once_with(long_message, False)
+        mock_get_feedback_title.assert_called_once_with(
+            long_message, default_project.organization_id, False
+        )
         assert mock_produce_occurrence_to_kafka.call_count == 1
         call_args = mock_produce_occurrence_to_kafka.call_args
         occurrence = call_args[1]["occurrence"]
@@ -958,7 +960,7 @@ def test_create_feedback_issue_title_from_seer(
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         mock_get_feedback_title.assert_called_once_with(
-            "The login button is broken and the UI is slow", True
+            "The login button is broken and the UI is slow", default_project.organization_id, True
         )
 
         assert mock_produce_occurrence_to_kafka.call_count == 1
