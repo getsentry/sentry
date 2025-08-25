@@ -439,19 +439,21 @@ function AnnotatedAttributeWrapper(props: {
     const metaInfo = new TraceItemMetaInfo(props.extra.traceItemMeta);
     if (metaInfo.hasRemarks(props.fieldKey)) {
       try {
-        logInfoOnceHasRemarks(
-          `AnnotatedAttributeWrapper: ${props.fieldKey} has remarks, rendering tooltip`,
-          {
-            organization: props.extra.organization,
-            project: props.extra.project,
-            text: TraceItemMetaInfo.getTooltipText(
-              props.fieldKey,
-              props.extra.traceItemMeta,
-              props.extra.organization,
-              props.extra.project
-            ),
-          }
-        );
+        const remarks = metaInfo.getRemarks(props.fieldKey);
+        const remark = remarks[0];
+        if (remark) {
+          const remarkType = remark.type;
+          const remarkRuleId = remark.ruleId;
+          logInfoOnceHasRemarks(
+            `AnnotatedAttributeWrapper: ${props.fieldKey} has remarks, rendering tooltip`,
+            {
+              organizationId: props.extra.organization.id,
+              projectId: props.extra.projectSlug,
+              remarkType,
+              remarkRuleId,
+            }
+          );
+        }
       } catch {
         // defensive
       }
