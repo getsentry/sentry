@@ -148,7 +148,7 @@ function getEnabledNintendoSwitchContent(params: DocsParams): ContentBlock[] {
 }
 
 function getEnabledXboxContent(params: DocsParams): ContentBlock[] {
-  const metadata = CONSOLE_PLATFORM_METADATA[ConsolePlatform.PLAYSTATION];
+  const metadata = CONSOLE_PLATFORM_METADATA[ConsolePlatform.XBOX];
   return [
     {
       type: 'text',
