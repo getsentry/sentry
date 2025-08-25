@@ -60,7 +60,7 @@ class GitlabRequestParser(BaseRequestParser):
 
         return None
 
-    def get_response_from_gitlab_webhook(self):
+    def get_response_from_gitlab_webhook(self) -> HttpResponseBase:
         maybe_http_response = self._resolve_external_id()
         if isinstance(maybe_http_response, HttpResponseBase):
             return maybe_http_response

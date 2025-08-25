@@ -603,4 +603,44 @@ describe('PlanSelect', () => {
 
     expect(mockPromptUpdate).toHaveBeenCalled();
   });
+
+  it('shows correct features for AM2 business plan', async () => {
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM2}
+      />,
+      {organization}
+    );
+
+    const businessPlan = await screen.findByLabelText('Business');
+    expect(businessPlan).toHaveTextContent('Unlimited custom dashboards');
+    expect(businessPlan).not.toHaveTextContent('Application Insights');
+  });
+
+  it('shows Application Insights for AM3 business plan only', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    const businessPlan = await screen.findByLabelText('Business');
+    expect(businessPlan).toHaveTextContent('Application Insights');
+    expect(businessPlan).toHaveTextContent('Unlimited custom dashboards');
+  });
 });
