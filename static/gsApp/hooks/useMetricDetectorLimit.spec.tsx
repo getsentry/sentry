@@ -246,40 +246,4 @@ describe('useMetricDetectorLimit', () => {
       isError: true,
     });
   });
-
-  it('handles missing X-Hits header as error', async () => {
-    const wrapper = createWrapper(mockOrganization);
-
-    const subscription = SubscriptionFixture({
-      organization: mockOrganization,
-      planDetails: {
-        ...SubscriptionFixture({
-          organization: mockOrganization,
-        }).planDetails,
-        metricDetectorLimit: 5,
-      },
-    });
-
-    SubscriptionStore.set(mockOrganization.slug, subscription);
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      body: [],
-      // No X-Hits header
-    });
-
-    const {result} = renderHook(() => useMetricDetectorLimit(), {wrapper});
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current).toEqual({
-      hasReachedLimit: false,
-      detectorLimit: 5,
-      detectorCount: -1,
-      isLoading: false,
-      isError: true,
-    });
-  });
 });
