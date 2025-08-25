@@ -24,8 +24,9 @@ import type {TempestCredentials} from 'sentry/views/settings/project/tempest/typ
 
 interface EmptyStateProps {
   hasWriteAccess: boolean;
-  isRemoving: boolean;
-  onRemoveCredential: (data: {id: number}) => void;
+  isEmpty: boolean;
+  isLoading: boolean;
+  onRemoveCredentialSuccess: () => void;
   project: Project;
   tempestCredentials?: TempestCredentials[];
 }
@@ -33,9 +34,8 @@ interface EmptyStateProps {
 export default function EmptyState({
   project,
   tempestCredentials,
-  isRemoving,
   hasWriteAccess,
-  onRemoveCredential,
+  onRemoveCredentialSuccess,
 }: EmptyStateProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -101,8 +101,9 @@ export default function EmptyState({
                     <CredentialRow
                       key={credential.id}
                       credential={credential}
-                      isRemoving={isRemoving}
-                      removeCredential={hasWriteAccess ? onRemoveCredential : undefined}
+                      hasWriteAccess={hasWriteAccess}
+                      onRemoveCredentialSuccess={onRemoveCredentialSuccess}
+                      project={project}
                     />
                   ))}
                 </StyledPanelTable>
