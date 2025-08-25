@@ -37,6 +37,7 @@ class TestRecordingConsumer(TransactionTestCase):
         )
         consumer.poll()
         consumer.join(1)
+        consumer.terminate()
 
     def test_recording_consumer(self) -> None:
         headers = json.dumps({"segment_id": 42}).encode()
