@@ -304,6 +304,52 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'xbox',
 ]);
 
+// List of platforms that have logging onboarding checklist content
+export const withLoggingOnboarding: Set<PlatformKey> = new Set([
+  'javascript',
+  'javascript-angular',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-react',
+  'javascript-solid',
+  'javascript-svelte',
+  'javascript-vue',
+  'python',
+  'python-aiohttp',
+  'python-asgi',
+  'python-awslambda',
+  'python-bottle',
+  'python-celery',
+  'python-chalice',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-gcpfunctions',
+  'python-pylons',
+  'python-pyramid',
+  'python-quart',
+  'python-rq',
+  'python-sanic',
+  'python-serverless',
+  'python-starlette',
+  'python-tornado',
+  'python-tryton',
+  'python-wsgi',
+]);
+
+// List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
+export const withoutLoggingSupport: Set<PlatformKey> = new Set([
+  'cocoa-objc',
+  'cocoa-swift',
+  'elixir',
+  'dotnet',
+  'php-symfony',
+  'unity',
+  'unreal',
+  'native',
+]);
+
 export const profiling: PlatformKey[] = [
   'android',
   'apple',

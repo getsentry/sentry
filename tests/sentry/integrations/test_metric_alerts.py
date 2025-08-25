@@ -360,7 +360,7 @@ MOCK_NOW = timezone.now().replace(hour=13, minute=0, second=0, microsecond=0)
 
 @freeze_time(MOCK_NOW)
 class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         self._5_min_ago = (self.now - timedelta(minutes=5)).timestamp()

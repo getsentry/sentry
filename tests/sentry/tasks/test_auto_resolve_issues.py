@@ -1,6 +1,6 @@
 from datetime import timedelta
 from time import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -19,7 +19,7 @@ from sentry.testutils.helpers.features import with_feature
 
 class ScheduleAutoResolutionTest(TestCase):
     @patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_task_persistent_name(self, mock_backend):
+    def test_task_persistent_name(self, mock_backend: MagicMock) -> None:
         mock_backend.get_size.return_value = 0
         assert schedule_auto_resolution.name == "sentry.tasks.schedule_auto_resolution"
 
@@ -27,7 +27,9 @@ class ScheduleAutoResolutionTest(TestCase):
     @patch("sentry.tasks.auto_ongoing_issues.backend")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
     @with_feature("organizations:issue-open-periods")
-    def test_simple(self, mock_kick_off_status_syncs, mock_backend, mock_record):
+    def test_simple(
+        self, mock_kick_off_status_syncs: MagicMock, mock_backend: MagicMock, mock_record: MagicMock
+    ) -> None:
         project = self.create_project()
         project2 = self.create_project()
         project3 = self.create_project()
@@ -95,7 +97,9 @@ class ScheduleAutoResolutionTest(TestCase):
 
     @patch("sentry.tasks.auto_ongoing_issues.backend")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
-    def test_single_event_performance(self, mock_kick_off_status_syncs, mock_backend):
+    def test_single_event_performance(
+        self, mock_kick_off_status_syncs: MagicMock, mock_backend: MagicMock
+    ) -> None:
         project = self.create_project()
 
         current_ts = int(time()) - 1
@@ -123,7 +127,7 @@ class ScheduleAutoResolutionTest(TestCase):
         assert project.get_option("sentry:_last_auto_resolve") > current_ts
 
     @patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_aggregate_performance(self, mock_backend):
+    def test_aggregate_performance(self, mock_backend: MagicMock) -> None:
         project = self.create_project()
 
         project.update_option("sentry:resolve_age", 1)

@@ -27,11 +27,11 @@ from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
@@ -126,7 +126,7 @@ class ProjectDebugFile(Model):
     project_id = BoundedBigIntegerField(null=True, db_index=True)
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
-    data: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
+    data = LegacyTextJSONField(default=dict, null=True)
     date_accessed = models.DateTimeField(default=timezone.now, db_default=Now())
 
     objects: ClassVar[ProjectDebugFileManager] = ProjectDebugFileManager()
@@ -183,6 +183,8 @@ class ProjectDebugFile(Model):
         if self.file_format == "uuidmap":
             return ".plist"
         if self.file_format == "il2cpp":
+            return ".json"
+        if self.file_format == "dartsymbolmap":
             return ".json"
 
         return ""
@@ -270,6 +272,7 @@ def create_dif_from_id(
         "bcsymbolmap",
         "uuidmap",
         "il2cpp",
+        "dartsymbolmap",
     ):
         object_name = meta.name
     elif meta.file_format == "breakpad":
@@ -443,6 +446,7 @@ class DifKind(enum.Enum):
     BcSymbolMap = enum.auto()
     UuidMap = enum.auto()
     Il2Cpp = enum.auto()
+    DartSymbolMap = enum.auto()
     # TODO(flub): should we include proguard?  The tradeoff is that we'd be matching the
     # regex of it twice.  That cost is probably not too great to worry about.
 
@@ -460,6 +464,8 @@ def determine_dif_kind(path: str) -> DifKind:
             return DifKind.UuidMap
         elif data.startswith(b"{"):  # lol
             return DifKind.Il2Cpp
+        elif data.startswith(b"["):
+            return DifKind.DartSymbolMap
         else:
             return DifKind.Object
 
@@ -550,6 +556,38 @@ def detect_dif_from_path(
             logger.debug("File loaded as il2cpp: %s", path)
             return [
                 DifMeta(file_format="il2cpp", arch="any", debug_id=debug_id, name=name, path=path)
+            ]
+    elif dif_kind == DifKind.DartSymbolMap:
+        if debug_id is None:
+            raise BadDif("Missing debug_id for dartsymbolmap")
+        try:
+            with open(path, "rb") as fp:
+                data = json.load(fp)
+                # Validate it's an array with even number of elements
+                if not isinstance(data, list):
+                    raise BadDif("dartsymbolmap must be a JSON array")
+                if len(data) % 2 != 0:
+                    raise BadDif("dartsymbolmap array must have an even number of elements")
+        except json.JSONDecodeError as e:
+            logger.debug("File failed to load as dartsymbolmap: %s", path)
+            raise BadDif("Invalid dartsymbolmap: %s" % e)
+        except BadDif:
+            raise
+        except Exception as e:
+            logger.debug("File failed validation as dartsymbolmap: %s", path)
+            raise BadDif("Invalid dartsymbolmap format: %s" % e)
+        else:
+            logger.debug("File loaded as dartsymbolmap: %s", path)
+            data = {"features": ["mapping"]}
+            return [
+                DifMeta(
+                    file_format="dartsymbolmap",
+                    arch="any",
+                    debug_id=debug_id,
+                    name=name,
+                    path=path,
+                    data=data,
+                )
             ]
     else:
         # native debug information files (MachO, ELF or Breakpad)

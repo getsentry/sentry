@@ -1,8 +1,9 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
@@ -12,6 +13,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
@@ -36,7 +38,7 @@ SERVICES = [
 class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = PagerDutyNotifyServiceAction
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.project_rule = self.create_project_rule(name="Check #project-channel")
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration, org_integration = self.create_provider_integration_for(
@@ -57,7 +59,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
     @responses.activate
     @patch("sentry.analytics.record")
-    def test_applies_correctly(self, mock_record):
+    def test_applies_correctly(self, mock_record: MagicMock) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -106,16 +108,17 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["links"][0]["href"] == event.group.get_absolute_url(
             params={"referrer": "pagerduty_integration", "notification_uuid": notification_uuid}
         )
-
-        mock_record.assert_called_with(
-            "alert.sent",
-            provider="pagerduty",
-            alert_id=self.project_rule.id,
-            alert_type="issue_alert",
-            organization_id=self.organization.id,
-            project_id=event.project_id,
-            external_id=str(self.service["id"]),
-            notification_uuid=notification_uuid,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                provider="pagerduty",
+                alert_id=self.project_rule.id,
+                alert_type="issue_alert",
+                organization_id=self.organization.id,
+                project_id=event.project_id,
+                external_id=str(self.service["id"]),
+                notification_uuid=notification_uuid,
+            ),
         )
         mock_record.assert_any_call(
             "integrations.pagerduty.notification_sent",
@@ -350,7 +353,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_invalid_service_selected(self, mock_record):
+    def test_invalid_service_selected(self, mock_record: MagicMock) -> None:
         # make a service associated with a different pagerduty account
         service_info = {
             "type": "service",

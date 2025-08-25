@@ -41,6 +41,12 @@ if err := sentry.Init(sentry.ClientOptions{
   // We recommend adjusting this value in production,
   TracesSampleRate: 1.0,`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+  // Enable structured logs to Sentry
+  EnableLogs: true,`
+      : ''
   }
 }); err != nil {
   fmt.Printf("Sentry initialization failed: %v\\n", err)
@@ -264,6 +270,22 @@ const onboarding: OnboardingConfig = {
     },
   ],
   verify: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/go/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {

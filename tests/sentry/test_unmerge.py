@@ -6,7 +6,7 @@ from sentry.unmerge import (
 )
 
 
-def test_argument_parsing_endpoint():
+def test_argument_parsing_endpoint() -> None:
     """
     Tests task invocations done from group_hashes endpoint.
     """
@@ -42,7 +42,7 @@ def test_argument_parsing_endpoint():
     assert UnmergeArgsBase.parse_arguments(**dumped) == args
 
 
-def test_argument_parsing_page2():
+def test_argument_parsing_page2() -> None:
     """
     Tests task invocations done from an older version of the unmerge task.
     This test only exists such that argument parsing is not broken across

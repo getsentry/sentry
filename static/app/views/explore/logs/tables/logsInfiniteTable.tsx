@@ -27,12 +27,14 @@ import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logs
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   useLogsFields,
-  useLogsIsTableFrozen,
   useLogsSearch,
   useLogsSortBys,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
+import {
+  LOGS_INSTRUCTIONS_URL,
+  MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
+} from 'sentry/views/explore/logs/constants';
 import {
   FirstTableHeadCell,
   FloatingBackToTopContainer,
@@ -42,20 +44,35 @@ import {
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import {
   getDynamicLogsNextFetchThreshold,
   getLogBodySearchTerms,
   getTableHeaderLabel,
   logsFieldAlignment,
 } from 'sentry/views/explore/logs/utils';
-import {EmptyStateText} from 'sentry/views/traces/styles';
+import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 type LogsTableProps = {
   allowPagination?: boolean;
+  embedded?: boolean;
+  embeddedOptions?: {
+    openWithExpandedIds?: string[];
+  };
+  embeddedStyling?: {
+    disableBodyPadding?: boolean;
+    showVerticalScrollbar?: boolean;
+  };
+  emptyRenderer?: () => React.ReactNode;
+  localOnlyItemFilters?: {
+    filterText: string;
+    filteredItems: OurLogsResponseItem[];
+  };
   numberAttributes?: TagCollection;
   scrollContainer?: React.RefObject<HTMLElement | null>;
-  showHeader?: boolean;
   stringAttributes?: TagCollection;
 };
 
@@ -63,37 +80,49 @@ const LOGS_GRID_SCROLL_PIXEL_REVERSE_THRESHOLD = LOGS_GRID_BODY_ROW_HEIGHT * 2; 
 const LOGS_OVERSCAN_AMOUNT = 50; // How many items to render beyond the visible area.
 
 export function LogsInfiniteTable({
-  showHeader = true,
+  embedded = false,
+  localOnlyItemFilters,
+  emptyRenderer,
   numberAttributes,
   stringAttributes,
   scrollContainer,
+  embeddedStyling,
+  embeddedOptions,
 }: LogsTableProps) {
   const theme = useTheme();
   const fields = useLogsFields();
   const search = useLogsSearch();
-  const isTableFrozen = useLogsIsTableFrozen();
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {infiniteLogsQueryResult} = useLogsPageData();
+  const lastFetchTime = useRef<number | null>(null);
   const {
     isPending,
     isEmpty,
     meta,
-    data,
+    data: originalData,
     isError,
     fetchNextPage,
     fetchPreviousPage,
     isFetchingNextPage,
     isFetchingPreviousPage,
     lastPageLength,
+    isRefetching,
   } = infiniteLogsQueryResult;
+
+  // Use filtered items if provided, otherwise use original data
+  const data = localOnlyItemFilters?.filteredItems ?? originalData;
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
-  const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(new Set());
+  const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(
+    new Set(embeddedOptions?.openWithExpandedIds ?? [])
+  );
   const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
     Record<string, number>
   >({});
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
+  const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
@@ -114,7 +143,13 @@ export function LogsInfiniteTable({
     [expandedLogRowsHeights, data]
   );
 
-  const highlightTerms = useMemo(() => getLogBodySearchTerms(search), [search]);
+  const highlightTerms = useMemo(() => {
+    const terms = getLogBodySearchTerms(search);
+    if (localOnlyItemFilters?.filterText) {
+      terms.push(localOnlyItemFilters.filterText);
+    }
+    return terms;
+  }, [search, localOnlyItemFilters?.filterText]);
 
   const windowVirtualizer = useWindowVirtualizer({
     count: data?.length ?? 0,
@@ -161,7 +196,7 @@ export function LogsInfiniteTable({
   }, [isFunctionScrolling, isScrolling, scrollOffset]);
 
   useEffect(() => {
-    if (isScrolling && !isFunctionScrolling) {
+    if (isScrolling && !scrollFetchDisabled) {
       if (
         scrollDirection === 'backward' &&
         scrollOffset &&
@@ -174,7 +209,13 @@ export function LogsInfiniteTable({
         lastItemIndex &&
         lastItemIndex >= data?.length - getDynamicLogsNextFetchThreshold(lastPageLength)
       ) {
-        fetchNextPage();
+        if (
+          lastFetchTime.current === null ||
+          Date.now() - lastFetchTime.current > MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS
+        ) {
+          fetchNextPage();
+          lastFetchTime.current = Date.now();
+        }
       }
     }
   }, [
@@ -187,6 +228,8 @@ export function LogsInfiniteTable({
     lastPageLength,
     scrollOffset,
     isFunctionScrolling,
+    scrollFetchDisabled,
+    lastFetchTime,
   ]);
 
   const handleExpand = useCallback((logItemId: string) => {
@@ -226,17 +269,23 @@ export function LogsInfiniteTable({
         ref={tableRef}
         style={initialTableStyles}
         css={tableStaticCSS}
-        hideBorder={isTableFrozen}
+        hideBorder={embedded}
         data-test-id="logs-table"
+        showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
       >
-        {showHeader ? (
+        {embedded ? null : (
           <LogsTableHeader
+            isFrozen={embedded}
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
             onResizeMouseDown={onResizeMouseDown}
           />
-        ) : null}
-        <LogTableBody showHeader={showHeader} ref={tableBodyRef}>
+        )}
+        <LogTableBody
+          showHeader={!embedded}
+          ref={tableBodyRef}
+          disableBodyPadding={embeddedStyling?.disableBodyPadding}
+        >
           {paddingTop > 0 && (
             <TableRow>
               {fields.map(field => (
@@ -246,9 +295,12 @@ export function LogsInfiniteTable({
           )}
           {isPending && <LoadingRenderer />}
           {isError && <ErrorRenderer />}
-          {isEmpty && <EmptyRenderer />}
+          {isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
-            <HoveringRowLoadingRenderer position="top" />
+            <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
+          )}
+          {isRefetching && (
+            <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
           {virtualItems.map(virtualRow => {
             const dataRow = data?.[virtualRow.index];
@@ -262,6 +314,7 @@ export function LogsInfiniteTable({
                   dataRow={dataRow}
                   meta={meta}
                   highlightTerms={highlightTerms}
+                  embedded={embedded}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
                   canDeferRenderElements
@@ -281,7 +334,7 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {!autoRefresh && !isPending && isFetchingNextPage && (
-            <HoveringRowLoadingRenderer position="bottom" />
+            <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
           )}
         </LogTableBody>
       </Table>
@@ -300,13 +353,14 @@ export function LogsInfiniteTable({
 }
 
 function LogsTableHeader({
+  isFrozen,
   numberAttributes,
   stringAttributes,
   onResizeMouseDown,
 }: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes'> & {
+  isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
-  const isTableFrozen = useLogsIsTableFrozen();
   const fields = useLogsFields();
   const sortBys = useLogsSortBys();
   const setSortBys = useSetLogsSortBys();
@@ -341,8 +395,8 @@ function LogsTableHeader({
               isFirst={index === 0}
             >
               <TableHeadCellContent
-                onClick={isTableFrozen ? undefined : () => setSortBys([{field}])}
-                isFrozen={isTableFrozen}
+                onClick={isFrozen ? undefined : () => setSortBys([{field}])}
+                isFrozen={isFrozen}
               >
                 <Tooltip showOnlyOnOverflow title={headerLabel}>
                   {headerLabel}
@@ -374,7 +428,7 @@ function LogsTableHeader({
   );
 }
 
-function EmptyRenderer() {
+export function EmptyRenderer() {
   return (
     <TableStatus>
       <EmptyStateWarning withIcon>
@@ -396,7 +450,7 @@ function EmptyRenderer() {
   );
 }
 
-function ErrorRenderer() {
+export function ErrorRenderer() {
   return (
     <TableStatus>
       <IconWarning color="gray300" size="lg" />
@@ -404,7 +458,7 @@ function ErrorRenderer() {
   );
 }
 
-function LoadingRenderer({size}: {size?: number}) {
+export function LoadingRenderer({size}: {size?: number}) {
   return (
     <TableStatus size={size}>
       <LoadingIndicator size={size} />
@@ -412,14 +466,24 @@ function LoadingRenderer({size}: {size?: number}) {
   );
 }
 
-function HoveringRowLoadingRenderer({position}: {position: 'top' | 'bottom'}) {
+function HoveringRowLoadingRenderer({
+  position,
+  isEmbedded,
+}: {
+  isEmbedded: boolean;
+  position: 'top' | 'bottom';
+}) {
   return (
     <HoveringRowLoadingRendererContainer
       position={position}
-      rowHeight={LOGS_GRID_BODY_ROW_HEIGHT}
-      headerHeight={45}
+      headerHeight={isEmbedded ? 0 : 45}
+      height={isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 1 : LOGS_GRID_BODY_ROW_HEIGHT * 3}
     >
-      <LoadingIndicator size={LOGS_GRID_BODY_ROW_HEIGHT * 1.5} />
+      <LoadingIndicator
+        size={
+          isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 0.8 : LOGS_GRID_BODY_ROW_HEIGHT * 1.5
+        }
+      />
     </HoveringRowLoadingRendererContainer>
   );
 }

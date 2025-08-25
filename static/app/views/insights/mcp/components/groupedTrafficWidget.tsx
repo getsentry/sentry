@@ -10,7 +10,7 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useTopNSpanSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';

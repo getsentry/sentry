@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectPreprodInstallDetailsEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.file = self.create_file(
             name="test_installable.ipa",
@@ -51,7 +51,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         return PreprodArtifact.objects.create(**defaults)
 
     @patch("sentry.analytics.record")
-    def test_ios_artifact_success(self, mock_analytics):
+    def test_ios_artifact_success(self, mock_analytics: MagicMock) -> None:
         """Test successful iOS artifact install details request"""
         self.preprod_artifact = self._create_ios_artifact()
 
@@ -86,7 +86,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         assert installable.expiration_date > timezone.now()
 
     @patch("sentry.analytics.record")
-    def test_android_artifact_success(self, mock_analytics):
+    def test_android_artifact_success(self, mock_analytics: MagicMock) -> None:
         """Test successful Android artifact install details request"""
         self.preprod_artifact = self._create_android_artifact()
 

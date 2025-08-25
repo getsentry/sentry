@@ -115,11 +115,11 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         )
 
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_assignment_generic_issue_block(self, occurrence):
+    def test_assignment_generic_issue_block(self, occurrence: mock.MagicMock) -> None:
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is assigned
         and block kit is enabled.
@@ -144,11 +144,13 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         )
 
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_assignment_performance_issue_block_with_culprit_blocks(self, occurrence):
+    def test_assignment_performance_issue_block_with_culprit_blocks(
+        self, occurrence: mock.MagicMock
+    ) -> None:
         """
         Test that a Slack message is sent with the expected payload when a performance issue is assigned
         and block kit is enabled.

@@ -7,7 +7,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class ApiApplicationRotateSecretTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.app = ApiApplication.objects.create(owner=self.user, name="a")
         self.path = reverse("sentry-api-0-api-application-rotate-secret", args=[self.app.client_id])
 

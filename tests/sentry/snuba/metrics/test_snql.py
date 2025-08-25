@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from snuba_sdk import Column, Function
@@ -33,6 +33,8 @@ from sentry.snuba.metrics.fields.snql import (
     session_duration_filters,
     subtraction,
     tolerated_count_transaction,
+    unhandled_sessions,
+    unhandled_users,
     uniq_aggregation_on_metric,
     uniq_if_column_snql,
 )
@@ -49,7 +51,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class DerivedMetricSnQLTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_id = 666
         self.metric_ids = []
         for metric_name in [
@@ -70,6 +72,7 @@ class DerivedMetricSnQLTestCase(TestCase):
                         "errored",
                         "exited",
                         "init",
+                        "unhandled",
                         "session.status",
                     }
                 }
@@ -98,6 +101,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             ("crashed", crashed_sessions),
             ("errored_preaggr", errored_preaggr_sessions),
             ("abnormal", abnormal_sessions),
+            ("unhandled", unhandled_sessions),
         ]:
             assert func(self.org_id, self.metric_ids, alias=status) == Function(
                 "sumIf",
@@ -129,6 +133,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             ("crashed", crashed_users),
             ("abnormal", abnormal_users),
             ("errored", errored_all_users),
+            ("unhandled", unhandled_users),
         ]:
             assert func(self.org_id, self.metric_ids, alias=status) == Function(
                 "uniqIf",
@@ -417,7 +422,9 @@ class DerivedMetricSnQLTestCase(TestCase):
 
     @patch("sentry.models.transaction_threshold.ProjectTransactionThresholdOverride.objects.filter")
     @patch("sentry.models.transaction_threshold.ProjectTransactionThreshold.objects.filter")
-    def test_project_threshold_called_once_with_valid_cache(self, threshold_override, threshold):
+    def test_project_threshold_called_once_with_valid_cache(
+        self, threshold_override: MagicMock, threshold: MagicMock
+    ) -> None:
         satisfaction_count_transaction(
             [self.project.id], self.organization.id, self.metric_ids, "transaction.tolerated"
         )

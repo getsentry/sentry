@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 
 
 class NewIssueCountThresholdCheckTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project1 = self.create_project(name="foo", organization=self.organization)
         self.release1 = Release.objects.create(version="v1", organization=self.organization)
 

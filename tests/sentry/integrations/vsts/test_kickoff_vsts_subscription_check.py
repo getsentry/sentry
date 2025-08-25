@@ -43,7 +43,7 @@ def assert_subscription(
 
 @control_silo_test
 class VstsSubscriptionCheckTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         responses.add(
             responses.GET,
             "https://vsts1.visualstudio.com/_apis/hooks/subscriptions/subscription1",

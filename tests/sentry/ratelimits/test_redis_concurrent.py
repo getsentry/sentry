@@ -9,7 +9,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 
 
 class ConcurrentLimiterTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.backend = ConcurrentRateLimiter()
 
     def test_add_and_remove(self) -> None:

@@ -61,6 +61,8 @@ __all__ = (
     "check_multihistogram_fields",
 )
 DEFAULT_DATASET_REASON = "unchanged"
+# What the frontend replaces Nulls with so that we can format top event arrays the same
+NO_VALUE = "(no value)"
 
 
 logger = logging.getLogger(__name__)
@@ -165,7 +167,6 @@ def query(
     orderby: list[str] | None = None,
     offset: int | None = None,
     limit: int = 50,
-    referrer: str | None = None,
     auto_fields: bool = False,
     auto_aggregations: bool = False,
     include_equation_fields: bool = False,
@@ -185,6 +186,8 @@ def query(
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
     debug: bool = False,
+    *,
+    referrer: str,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -258,7 +261,7 @@ def query(
         builder.run_query(referrer=referrer, query_source=query_source)
     )
     if debug:
-        result["meta"]["query"] = str(builder.get_snql_query().query)
+        result["meta"]["debug_info"] = {"query": str(builder.get_snql_query().query)}
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -268,7 +271,6 @@ def timeseries_query(
     query: str,
     snuba_params: SnubaParams,
     rollup: int,
-    referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
@@ -281,6 +283,8 @@ def timeseries_query(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -427,7 +431,11 @@ def create_groupby_dict(
             value = result_row.get(field)
             if isinstance(value, list):
                 if len(value) > 0:
-                    value = value[-1]
+                    # Even though frontend renders only the last element, this can cause key overlaps
+                    # For now lets just render this as a list to avoid that problem
+                    # TODO: timeseries can handle this correctly since this value isn't used as a dict key
+                    filtered_value = [val if val is not None else NO_VALUE for val in value]
+                    value = f"[{','.join(filtered_value)}]"
                 else:
                     value = ""
             values.append({"key": field, "value": str(value)})
@@ -444,7 +452,6 @@ def top_events_timeseries(
     limit: int,
     organization: Organization,
     equations: list[str] | None = None,
-    referrer: str | None = None,
     top_events: EventsResponse | None = None,
     allow_empty: bool = True,
     zerofill_results: bool = True,
@@ -456,6 +463,8 @@ def top_events_timeseries(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -802,7 +811,6 @@ def spans_histogram_query(
     min_value: float | None = None,
     max_value: float | None = None,
     data_filter: Literal["exclude_outliers"] | None = None,
-    referrer: str | None = None,
     group_by: list[str] | None = None,
     order_by: list[str] | None = None,
     limit_by: list[str] | None = None,
@@ -812,6 +820,8 @@ def spans_histogram_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    *,
+    referrer: str,
 ) -> EventsResponse | SnubaData:
     """
     API for generating histograms for span exclusive time.
@@ -891,7 +901,6 @@ def histogram_query(
     min_value: float | None = None,
     max_value: float | None = None,
     data_filter: Literal["exclude_outliers"] | None = None,
-    referrer: str | None = None,
     group_by: list[str] | None = None,
     order_by: list[str] | None = None,
     limit_by: list[str] | None = None,
@@ -902,6 +911,8 @@ def histogram_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    *,
+    referrer: str,
 ):
     """
     API for generating histograms for numeric columns.

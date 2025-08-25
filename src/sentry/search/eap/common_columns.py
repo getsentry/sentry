@@ -5,6 +5,7 @@ COMMON_COLUMNS = [
     ResolvedAttribute(
         public_alias="organization.id",
         internal_name="sentry.organization_id",
+        internal_type=constants.INT,
         search_type="string",
     ),
     ResolvedAttribute(

@@ -1,63 +1,39 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {IconChevron, IconTable} from 'sentry/icons';
+import {IconChevron, IconRefresh, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {AggregationKey} from 'sentry/utils/fields';
+import {HOUR} from 'sentry/utils/formatters';
+import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import usePrevious from 'sentry/utils/usePrevious';
-import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {
-  DashboardWidgetSource,
-  DEFAULT_WIDGET_NAME,
-  DisplayType,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
-import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {
-  TraceItemSearchQueryBuilder,
-  useSearchQueryBuilderProps,
-} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
-  useLogsAggregate,
-  useLogsAggregateFunction,
-  useLogsAggregateSortBys,
   useLogsFields,
-  useLogsGroupBy,
-  useLogsMode,
   useLogsSearch,
   useSetLogsFields,
-  useSetLogsMode,
-  useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -67,7 +43,10 @@ import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
-import {HiddenColumnEditorLogFields} from 'sentry/views/explore/logs/constants';
+import {
+  HiddenColumnEditorLogFields,
+  HiddenLogSearchFields,
+} from 'sentry/views/explore/logs/constants';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
@@ -81,25 +60,37 @@ import {
   StyledPageFilterBar,
   TableActionsContainer,
   ToolbarAndBodyContainer,
+  ToolbarContainer,
   TopSectionBody,
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
-import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import {
   getIngestDelayFilterValue,
   getMaxIngestDelayTimestamp,
 } from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
+import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsAggregateSortBys,
+  useQueryParamsGroupBys,
+  useQueryParamsMode,
+  useQueryParamsTopEventsLimit,
+  useQueryParamsVisualizes,
+  useSetQueryParamsMode,
+} from 'sentry/views/explore/queryParams/context';
+import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {PickableDays} from 'sentry/views/explore/utils';
-import {findSuggestedColumns} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 type LogsTabProps = PickableDays;
 
@@ -109,14 +100,16 @@ export function LogsTabContent({
   relativeOptions,
 }: LogsTabProps) {
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
-  const groupBy = useLogsGroupBy();
-  const mode = useLogsMode();
-  const sortBys = useLogsAggregateSortBys();
-  const setMode = useSetLogsMode();
+  const groupBys = useQueryParamsGroupBys();
+  const mode = useQueryParamsMode();
+  const topEventsLimit = useQueryParamsTopEventsLimit();
+  const queryClient = useQueryClient();
+  const sortBys = useQueryParamsAggregateSortBys();
+  const setMode = useSetQueryParamsMode();
   const setFields = useSetLogsFields();
-  const setLogsPageParams = useSetLogsPageParams();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
@@ -124,15 +117,12 @@ export function LogsTabContent({
   );
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
-  const oldLogsSearch = usePrevious(logsSearch);
-
   const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
   const [interval] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
-  const aggregateFunction = useLogsAggregateFunction();
-  const aggregate = useLogsAggregate();
+  const visualizes = useQueryParamsVisualizes();
 
   const orderby: string | string[] | undefined = useMemo(() => {
     if (!sortBys.length) {
@@ -142,8 +132,15 @@ export function LogsTabContent({
     return sortBys.map(formatSort);
   }, [sortBys]);
 
-  const [sidebarOpen, setSidebarOpen] = useState(
-    !!((aggregateFunction && aggregateFunction !== 'count') || groupBy)
+  const [sidebarOpen, setSidebarOpen] = useSidebarOpen(
+    !!(
+      groupBys.some(Boolean) ||
+      visualizes.some(
+        visualize =>
+          isVisualizeFunction(visualize) &&
+          visualize.parsedFunction?.name !== AggregationKey.COUNT
+      )
+    )
   );
 
   useEffect(() => {
@@ -162,13 +159,15 @@ export function LogsTabContent({
     return newSearch;
   }, [logsSearch, timeseriesIngestDelay]);
 
+  const yAxes = new Set(visualizes.map(visualize => visualize.yAxis));
+
   const _timeseriesResult = useSortedTimeSeries(
     {
       search,
-      yAxis: [aggregate],
+      yAxis: [...yAxes],
       interval,
-      fields: [...(groupBy ? [groupBy] : []), aggregate],
-      topEvents: groupBy?.length ? 5 : undefined,
+      fields: [...groupBys.filter(Boolean), ...yAxes],
+      topEvents: topEventsLimit,
       orderby,
     },
     'explore.ourlogs.main-chart',
@@ -184,12 +183,12 @@ export function LogsTabContent({
     attributes: stringAttributes,
     isLoading: stringAttributesLoading,
     secondaryAliases: stringSecondaryAliases,
-  } = useTraceItemAttributes('string');
+  } = useTraceItemAttributes('string', HiddenLogSearchFields);
   const {
     attributes: numberAttributes,
     isLoading: numberAttributesLoading,
     secondaryAliases: numberSecondaryAliases,
-  } = useTraceItemAttributes('number');
+  } = useTraceItemAttributes('number', HiddenLogSearchFields);
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -198,43 +197,35 @@ export function LogsTabContent({
     source: LogsAnalyticsPageSource.EXPLORE_LOGS,
   });
 
-  const onSearch = useCallback(
-    (newQuery: string) => {
-      const newSearch = new MutableSearch(newQuery);
-      const suggestedColumns = findSuggestedColumns(newSearch, oldLogsSearch, {
-        numberAttributes,
-        stringAttributes,
-      });
-
-      const existingFields = new Set(fields);
-      const newColumns = suggestedColumns.filter(col => !existingFields.has(col));
-
-      setLogsPageParams({
-        search: newSearch,
-        fields: newColumns.length ? [...fields, ...newColumns] : undefined,
-      });
-    },
-    [oldLogsSearch, numberAttributes, stringAttributes, fields, setLogsPageParams]
-  );
-
-  const tracesItemSearchQueryBuilderProps = {
-    initialQuery: logsSearch.formatString(),
-    searchSource: 'ourlogs',
-    onSearch,
-    numberAttributes,
-    stringAttributes,
-    itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
-    numberSecondaryAliases,
-    stringSecondaryAliases,
-  };
+  const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
+    useLogsSearchQueryBuilderProps({
+      numberAttributes,
+      stringAttributes,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+    });
 
   const supportedAggregates = useMemo(() => {
     return [];
   }, []);
 
-  const searchQueryBuilderProps = useSearchQueryBuilderProps(
-    tracesItemSearchQueryBuilderProps
-  );
+  const refreshTable = useCallback(async () => {
+    setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
+    queryClient.setQueryData(
+      tableData.queryKey,
+      (data: InfiniteData<OurLogsResponseItem[]>) => {
+        if (data?.pages) {
+          // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
+          return {
+            pages: data.pages.slice(0, 1),
+            pageParams: data.pageParams.slice(0, 1),
+          };
+        }
+        return data;
+      }
+    );
+    await tableData.refetch();
+  }, [tableData, queryClient]);
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -259,22 +250,49 @@ export function LogsTabContent({
   const tableTab = mode === Mode.AGGREGATE ? 'aggregates' : 'logs';
   const setTableTab = useCallback(
     (tab: 'aggregates' | 'logs') => {
-      setMode(tab === 'aggregates' ? Mode.AGGREGATE : Mode.SAMPLES);
+      if (tab === 'aggregates') {
+        setSidebarOpen(true);
+        setMode(Mode.AGGREGATE);
+      } else {
+        setMode(Mode.SAMPLES);
+      }
     },
-    [setMode]
+    [setSidebarOpen, setMode]
   );
 
   const saveAsItems = useSaveAsItems({
-    aggregate,
-    groupBy,
+    visualizes,
+    groupBys,
     interval,
     mode,
     search: logsSearch,
     sortBys,
   });
 
+  /**
+   * Manual refresh doesn't work for longer relative periods as it hits cacheing. Only allow manual refresh if the relative period or absolute time range is less than 1 day.
+   */
+  const canManuallyRefresh = useMemo(() => {
+    if (pageFilters.selection.datetime.period) {
+      const parsedPeriod = parsePeriodToHours(pageFilters.selection.datetime.period);
+      if (parsedPeriod <= 1) {
+        return true;
+      }
+    }
+
+    if (pageFilters.selection.datetime.start && pageFilters.selection.datetime.end) {
+      const start = new Date(pageFilters.selection.datetime.start).getTime();
+      const end = new Date(pageFilters.selection.datetime.end).getTime();
+      const difference = end - start;
+      const oneDayInMs = HOUR;
+      return difference <= oneDayInMs;
+    }
+
+    return false;
+  }, [pageFilters.selection.datetime]);
+
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <TopSectionBody noRowGap>
         <Layout.Main fullWidth>
           <FilterBarContainer>
@@ -325,7 +343,9 @@ export function LogsTabContent({
 
       <ToolbarAndBodyContainer sidebarOpen={sidebarOpen}>
         {sidebarOpen && (
-          <LogsToolbar stringTags={stringAttributes} numberTags={numberAttributes} />
+          <ToolbarContainer sidebarOpen={sidebarOpen}>
+            <LogsToolbar stringTags={stringAttributes} numberTags={numberAttributes} />
+          </ToolbarContainer>
         )}
         <BottomSectionBody>
           <section>
@@ -341,7 +361,7 @@ export function LogsTabContent({
                     size="xs"
                   />
                 }
-                onClick={() => setSidebarOpen(x => !x)}
+                onClick={() => setSidebarOpen(!sidebarOpen)}
               />
             </Feature>
             <LogsGraphContainer>
@@ -361,11 +381,22 @@ export function LogsTabContent({
               </Feature>
               <TableActionsContainer>
                 <Feature features="organizations:ourlogs-live-refresh">
-                  <AutorefreshToggle
-                    disabled={tableTab === 'aggregates'}
-                    averageLogsPerSecond={averageLogsPerSecond}
-                  />
+                  <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                 </Feature>
+                <Tooltip
+                  title={t(
+                    'Narrow your time range to 1hr or less for manually refreshing your logs.'
+                  )}
+                  disabled={canManuallyRefresh}
+                >
+                  <Button
+                    onClick={refreshTable}
+                    icon={<IconRefresh />}
+                    size="sm"
+                    aria-label={t('Refresh')}
+                    disabled={!canManuallyRefresh}
+                  />
+                </Tooltip>
                 <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}
                 </Button>
@@ -395,165 +426,17 @@ export function LogsTabContent({
   );
 }
 
-interface UseSaveAsItemsOptions {
-  aggregate: string;
-  groupBy: string | undefined;
-  interval: string;
-  mode: Mode;
-  search: MutableSearch;
-  sortBys: Sort[];
+function useSidebarOpen(defaultExpanded: boolean) {
+  const [sidebarOpen, _setSidebarOpen] = useLocalStorageState(
+    'explore-logs-toolbar',
+    defaultExpanded ? 'expanded' : ''
+  );
+
+  const setSidebarOpen = useCallback(
+    (expanded: boolean) => {
+      _setSidebarOpen(expanded ? 'expanded' : '');
+    },
+    [_setSidebarOpen]
+  );
+  return [sidebarOpen === 'expanded', setSidebarOpen] as const;
 }
-
-function useSaveAsItems({
-  aggregate,
-  groupBy,
-  interval,
-  mode,
-  search,
-  sortBys,
-}: UseSaveAsItemsOptions) {
-  const location = useLocation();
-  const router = useRouter();
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const pageFilters = usePageFilters();
-
-  const project =
-    projects.length === 1
-      ? projects[0]
-      : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
-
-  const aggregates = useMemo(() => [aggregate], [aggregate]);
-
-  const saveAsAlert = useMemo(() => {
-    const alertsUrls = aggregates.map((yAxis: string, index: number) => {
-      const func = parseFunction(yAxis);
-      const label = func ? prettifyParsedFunction(func) : yAxis;
-      return {
-        key: `${yAxis}-${index}`,
-        label,
-        to: getAlertsUrl({
-          project,
-          query: search.formatString(),
-          pageFilters: pageFilters.selection,
-          aggregate: yAxis,
-          organization,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
-          eventTypes: 'trace_item_log',
-        }),
-        onAction: () => {
-          trackAnalytics('logs.save_as', {
-            save_type: 'alert',
-            ui_source: 'searchbar',
-            organization,
-          });
-        },
-      };
-    });
-
-    return {
-      key: 'create-alert',
-      label: t('An Alert for'),
-      textValue: t('An Alert for'),
-      children: alertsUrls ?? [],
-      disabled: !alertsUrls || alertsUrls.length === 0,
-      isSubmenu: true,
-    };
-  }, [aggregates, interval, organization, pageFilters, project, search]);
-
-  const saveAsDashboard = useMemo(() => {
-    const dashboardsUrls = aggregates.map((yAxis: string, index: number) => {
-      const func = parseFunction(yAxis);
-      const label = func ? prettifyParsedFunction(func) : yAxis;
-
-      return {
-        key: String(index),
-        label,
-        onAction: () => {
-          trackAnalytics('logs.save_as', {
-            save_type: 'dashboard',
-            ui_source: 'searchbar',
-            organization,
-          });
-
-          const fields =
-            mode === Mode.SAMPLES
-              ? []
-              : [...new Set([groupBy, yAxis, ...sortBys.map(sort => sort.field)])].filter(
-                  defined
-                );
-
-          const discoverQuery: NewQuery = {
-            name: DEFAULT_WIDGET_NAME,
-            fields,
-            orderby: sortBys.map(formatSort),
-            query: search.formatString(),
-            version: 2,
-            dataset: DiscoverDatasets.OURLOGS,
-            yAxis: [yAxis],
-          };
-
-          const eventView = EventView.fromNewQueryWithPageFilters(
-            discoverQuery,
-            pageFilters.selection
-          );
-          // the chart currently track the chart type internally so force bar type for now
-          eventView.display = DisplayType.BAR;
-
-          handleAddQueryToDashboard({
-            organization,
-            location,
-            eventView,
-            router,
-            yAxis: eventView.yAxis,
-            widgetType: WidgetType.LOGS,
-            source: DashboardWidgetSource.LOGS,
-          });
-        },
-      };
-    });
-
-    return {
-      key: 'add-to-dashboard',
-      label: (
-        <Feature
-          hookName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
-        >
-          {t('A Dashboard widget')}
-        </Feature>
-      ),
-      textValue: t('A Dashboard widget'),
-      children: dashboardsUrls,
-      disabled: !dashboardsUrls || dashboardsUrls.length === 0,
-      isSubmenu: true,
-    };
-  }, [
-    aggregates,
-    groupBy,
-    mode,
-    organization,
-    pageFilters,
-    search,
-    sortBys,
-    location,
-    router,
-  ]);
-
-  return useMemo(() => {
-    const saveAs = [];
-    if (organization.features.includes('ourlogs-alerts')) {
-      saveAs.push(saveAsAlert);
-    }
-    if (organization.features.includes('ourlogs-dashboards')) {
-      saveAs.push(saveAsDashboard);
-    }
-    return saveAs;
-  }, [organization, saveAsAlert, saveAsDashboard]);
-}
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.disabled};
-`;

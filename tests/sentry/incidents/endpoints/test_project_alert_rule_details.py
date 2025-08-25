@@ -18,7 +18,7 @@ pytestmark = [requires_snuba]
 class AlertRuleDetailsBase(APITestCase):
     endpoint = "sentry-api-0-project-alert-rule-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.alert_rule = self.create_alert_rule(name="hello")
         self.owner_user = self.create_user()

@@ -164,7 +164,7 @@ class RoleManagerTest(TestCase):
         self._assert_minimum_team_role_is(manager, "peasant", "private")
 
     @mock.patch("sentry.roles.manager.warnings")
-    def test_team_mapping_to_legacy_roles(self, mock_warnings):
+    def test_team_mapping_to_legacy_roles(self, mock_warnings: mock.MagicMock) -> None:
         # Check that RoleManager provides sensible defaults in case the default org
         # roles have been overridden by unfamiliar values, leaving behind default
         # team roles with mapping keys that point to nothing

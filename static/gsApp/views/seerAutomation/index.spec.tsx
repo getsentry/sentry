@@ -7,7 +7,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 
 import SeerAutomationRoot from './index';
 
-describe('SeerAutomation', function () {
+describe('SeerAutomation', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/setup-check/',
@@ -38,9 +38,8 @@ describe('SeerAutomation', function () {
     ProjectsStore.reset();
   });
 
-  it('can update the org default autofix automation tuning setting', async function () {
+  it('can update the org default autofix automation tuning setting', async () => {
     const organization = OrganizationFixture({
-      features: ['trigger-autofix-on-issue-summary'],
       defaultSeerScannerAutomation: true,
     });
     const project = ProjectFixture();
@@ -102,9 +101,8 @@ describe('SeerAutomation', function () {
     );
   });
 
-  it('can update the org default scanner automation setting', async function () {
+  it('can update the org default scanner automation setting', async () => {
     const organization = OrganizationFixture({
-      features: ['trigger-autofix-on-issue-summary'],
       defaultSeerScannerAutomation: false,
     });
     const project = ProjectFixture();

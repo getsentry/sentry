@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.services import eventstore
 
 
 @pytest.fixture
@@ -17,7 +17,7 @@ def make_sdk_snapshot(insta_snapshot):
     return inner
 
 
-def test_serialize_behavior(make_sdk_snapshot):
+def test_serialize_behavior(make_sdk_snapshot) -> None:
     make_sdk_snapshot(
         {
             "name": "sentry-java",
@@ -28,9 +28,9 @@ def test_serialize_behavior(make_sdk_snapshot):
     )
 
 
-def test_missing_name(make_sdk_snapshot):
+def test_missing_name(make_sdk_snapshot) -> None:
     make_sdk_snapshot({"version": "1.0"})
 
 
-def test_missing_version(make_sdk_snapshot):
+def test_missing_version(make_sdk_snapshot) -> None:
     make_sdk_snapshot({"name": "sentry-unity"})

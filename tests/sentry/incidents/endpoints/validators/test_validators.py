@@ -23,6 +23,7 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -31,7 +32,7 @@ from tests.sentry.workflow_engine.endpoints.test_validators import BaseValidator
 
 
 class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.valid_data = {
             "type": Condition.GREATER,
@@ -113,7 +114,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
 
 
 class TestMetricAlertsDetectorValidator(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.environment = Environment.objects.create(
@@ -184,7 +185,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert snuba_query.event_types == [SnubaQueryEventType.EventType.ERROR]
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_create_with_valid_data(self, mock_audit):
+    def test_create_with_valid_data(self, mock_audit: mock.MagicMock) -> None:
         validator = MetricIssueDetectorValidator(
             data=self.valid_data,
             context=self.context,
@@ -219,7 +220,7 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         )
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_anomaly_detection(self, mock_audit):
+    def test_anomaly_detection(self, mock_audit: mock.MagicMock) -> None:
         data = {
             **self.valid_data,
             "conditionGroup": {
@@ -320,7 +321,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert not validator.is_valid()
         assert validator.errors.get("type") == [
             ErrorDetail(
-                string="Unknown detector type 'invalid_type'. Must be one of: error", code="invalid"
+                string=get_unknown_detector_type_error("invalid_type", self.organization),
+                code="invalid",
             )
         ]
 

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
@@ -107,7 +107,9 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
     @patch(
         "sentry.sentry_apps.external_issues.external_issue_creator.PlatformExternalIssue.objects.update_or_create"
     )
-    def test_external_issue_creation_fails_with_db_error(self, mock_update_or_create):
+    def test_external_issue_creation_fails_with_db_error(
+        self, mock_update_or_create: MagicMock
+    ) -> None:
         self._set_up_sentry_app("Testin", ["event:write"])
         mock_update_or_create.side_effect = Exception("bruh")
         data = self._post_data()

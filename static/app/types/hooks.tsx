@@ -5,6 +5,7 @@ import type {SelectKey} from 'sentry/components/core/compactSelect';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
+import type {SentryRouteObject} from 'sentry/components/route';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
@@ -14,11 +15,7 @@ import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProv
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 import type {Integration, IntegrationProvider} from './integrations';
-import type {
-  Route,
-  RouteComponentProps,
-  RouteContextInterface,
-} from './legacyReactRouter';
+import type {RouteComponentProps, RouteContextInterface} from './legacyReactRouter';
 import type {Member, Organization, OrgRole} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
@@ -57,9 +54,9 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 type RouteHooks = {
-  'routes:legacy-organization-redirects': RoutesHook;
-  'routes:root': RoutesHook;
-  'routes:settings': RoutesHook;
+  'routes:legacy-organization-redirects': RouteObjectHook;
+  'routes:root': RouteObjectHook;
+  'routes:settings': RouteObjectHook;
 };
 
 /**
@@ -159,6 +156,18 @@ export type GithubInstallationInstallButtonProps = {
   installationID: SelectKey;
   isSaving: boolean;
 };
+
+type DashboardLimitProviderProps = {
+  children:
+    | ((limitData: {
+        dashboardsLimit: number;
+        hasReachedDashboardLimit: boolean;
+        isLoading: boolean;
+        limitMessage: React.ReactNode | null;
+      }) => React.ReactNode)
+    | React.ReactNode;
+};
+
 /**
  * Component wrapping hooks
  */
@@ -171,6 +180,7 @@ type ComponentHooks = {
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
+  'component:dashboards-limit-provider': () => React.ComponentType<DashboardLimitProviderProps>;
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
@@ -337,7 +347,7 @@ type GenericComponentHook = () => React.ReactNode;
 /**
  * A route hook provides an injection point for a list of routes.
  */
-type RoutesHook = () => Route[];
+type RouteObjectHook = () => SentryRouteObject;
 
 /**
  * Receives an organization object and should return a React node.

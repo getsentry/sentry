@@ -202,7 +202,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             assert resp.context["register_form"] is None
 
     @mock.patch("sentry.analytics.record")
-    def test_registration_valid(self, mock_record):
+    def test_registration_valid(self, mock_record: mock.MagicMock) -> None:
         with self.feature("auth:register"), self.allow_registration():
             resp = self.client.post(
                 self.path,
@@ -268,7 +268,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
-    def test_registration_single_org_with_invite(self, from_session):
+    def test_registration_single_org_with_invite(self, from_session: mock.MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.MONOLITH):
             create_default_projects()
         self.session["can_register"] = True
@@ -325,7 +325,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         self.assertTemplateUsed("sentry/login.html")
 
     @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
-    def test_register_accepts_invite(self, from_session):
+    def test_register_accepts_invite(self, from_session: mock.MagicMock) -> None:
         self.session["can_register"] = True
         self.save_session()
 
@@ -628,7 +628,7 @@ class AuthLoginCustomerDomainTest(TestCase):
     def path(self):
         return reverse("sentry-login")
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def disable_registration(self):

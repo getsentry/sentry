@@ -22,7 +22,7 @@ def disable_internal_networks():
 class RelayProjectIdsEndpointTest(APITestCase):
     _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.path = reverse("sentry-api-0-relay-projectids")
         sk, pk = generate_key_pair()
         self.public_key = pk

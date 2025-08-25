@@ -75,7 +75,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
   ${p => ({...DO_NOT_USE_getChonkButtonStyles({...p, disabled: p.isDisabled, priority: p.isSelected && p.priority === 'primary' ? 'primary' : 'default'})})}
 
   &:has(input:focus-visible) {
-    ${p => p.theme.focusRing};
+    ${p => p.theme.focusRing()};
 
     /* Hide fallback ring when :has works */
     span {
@@ -85,7 +85,7 @@ export const ChonkStyledSegmentWrap = chonkStyled('label')<{
 
   /* Fallback ring (for Firefox, where :has doesn't work) */
   input:focus-visible + span {
-    ${({theme}) => theme.focusRing};
+    ${({theme}) => theme.focusRing()};
   }
 `;
 

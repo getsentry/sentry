@@ -70,7 +70,7 @@ def assert_fetch_type_for_tag_string_set(
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 
-def test_static_and_non_static_strings_release_health(indexer, use_case_id):
+def test_static_and_non_static_strings_release_health(indexer, use_case_id) -> None:
     static_indexer = StaticStringIndexer(indexer)
     strings = {
         use_case_id: {
@@ -100,7 +100,7 @@ def test_static_and_non_static_strings_release_health(indexer, use_case_id):
     assert_fetch_type_for_tag_string_set(meta[use_case_id][3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
-def test_static_and_non_static_strings_generic_metrics(indexer):
+def test_static_and_non_static_strings_generic_metrics(indexer) -> None:
     static_indexer = StaticStringIndexer(indexer)
     strings = {
         UseCaseID.TRANSACTIONS: {
@@ -205,7 +205,7 @@ def test_static_and_non_static_strings_generic_metrics(indexer):
     )
 
 
-def test_indexer(indexer, indexer_cache, use_case_id):
+def test_indexer(indexer, indexer_cache, use_case_id) -> None:
     with override_options(
         {
             "sentry-metrics.indexer.read-new-cache-namespace": False,
@@ -262,7 +262,7 @@ def test_indexer(indexer, indexer_cache, use_case_id):
         assert not results[use_case_id].results.get(999)
 
 
-def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id):
+def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id) -> None:
     """
     Test `resolve` and `reverse_resolve` methods
     """
@@ -446,7 +446,7 @@ def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -
         )
 
 
-def test_read_when_bulk_record(indexer, use_case_id):
+def test_read_when_bulk_record(indexer, use_case_id) -> None:
     with override_options(
         {
             "sentry-metrics.indexer.read-new-cache-namespace": False,
@@ -472,7 +472,7 @@ def test_read_when_bulk_record(indexer, use_case_id):
         )
 
 
-def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
+def test_rate_limited(indexer, use_case_id, writes_limiter_option_name) -> None:
     """
     Assert that rate limits per-org and globally are applied at all.
 
@@ -559,7 +559,7 @@ def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
     assert len(rate_limited_strings - rate_limited_strings2) == 2
 
 
-def test_bulk_reverse_resolve(indexer):
+def test_bulk_reverse_resolve(indexer) -> None:
     """
     Tests reverse resolve properly returns the corresponding strings
     in the proper order when given a combination of shared and non-shared ids.

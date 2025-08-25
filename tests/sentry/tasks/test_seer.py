@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 
 
 class TestSeerRepositoryCleanup(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.repo_external_id = "12345"

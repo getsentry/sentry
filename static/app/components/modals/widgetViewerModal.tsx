@@ -45,6 +45,8 @@ import {
   isAggregateField,
   isEquation,
   isEquationAlias,
+  parseFunction,
+  prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {
   createOnDemandFilterWarning,
@@ -153,13 +155,10 @@ const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 const shouldWidgetCardChartMemo = (prevProps: any, props: any) => {
   const selectionMatches = props.selection === prevProps.selection;
-  const sortMatches =
-    props.location.query[WidgetViewerQueryField.SORT] ===
-    prevProps.location.query[WidgetViewerQueryField.SORT];
   const isNotTopNWidget =
     props.widget.displayType !== DisplayType.TOP_N && !defined(props.widget.limit);
   const legendMatches = isEqual(props.legendOptions, prevProps.legendOptions);
-  return selectionMatches && (sortMatches || isNotTopNWidget) && legendMatches;
+  return selectionMatches && isNotTopNWidget && legendMatches;
 };
 
 // WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
@@ -919,10 +918,8 @@ function WidgetViewerModal(props: Props) {
                 tableResults={tableData}
                 errorMessage={undefined}
                 loading={false}
-                location={location}
                 widget={widget}
                 selection={selection}
-                organization={organization}
                 onZoom={(_evt, chart) => {
                   onZoom(_evt, chart);
                   setChartUnmodified(false);
@@ -931,7 +928,6 @@ function WidgetViewerModal(props: Props) {
                 legendOptions={{
                   selected: widgetLegendState.getWidgetSelectionState(widget),
                 }}
-                expandNumbers
                 noPadding
                 widgetLegendState={widgetLegendState}
                 showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
@@ -1185,6 +1181,10 @@ function OpenButton({
       openLabel = t('Open in Explore');
       path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
       break;
+    case WidgetType.LOGS:
+      openLabel = t('Open in Explore');
+      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
+      break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
@@ -1324,6 +1324,14 @@ function ViewerTableV2({
       : {}
   );
 
+  // Inject any prettified function names that aren't currently aliased into the aliases
+  for (const column of tableColumns) {
+    const parsedFunction = parseFunction(column.key);
+    if (!aliases[column.key] && parsedFunction) {
+      aliases[column.key] = prettifyParsedFunction(parsedFunction);
+    }
+  }
+
   if (loading) {
     return (
       <TableWidgetVisualization.LoadingPlaceholder
@@ -1394,6 +1402,7 @@ function ViewerTableV2({
             eventView,
           } satisfies RenderFunctionBaggage;
         }}
+        allowedCellActions={[]}
       />
       {!(
         tableWidget.queries[0]!.orderby.match(/^-?release$/) &&

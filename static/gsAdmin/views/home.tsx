@@ -30,6 +30,7 @@ function HomePage(props: Props) {
       pathname: '/_admin/customers/',
       query: {
         query,
+        regionUrl,
       },
     });
   };
@@ -116,7 +117,9 @@ function HomePage(props: Props) {
             label: r.name,
             value: r.url,
           }))}
-          onChange={opt => setRegionUrl(opt.value)}
+          onChange={opt => {
+            setRegionUrl(opt.value);
+          }}
         />
 
         <SearchLabel>Organizations</SearchLabel>

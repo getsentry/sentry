@@ -20,6 +20,7 @@ from sentry.workflow_engine.endpoints.serializers import (
 )
 from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -52,6 +53,7 @@ class TestDetectorSerializer(TestCase):
             "enabled": detector.enabled,
             "alertRuleId": None,
             "ruleId": None,
+            "latestGroup": None,
         }
 
     def test_serialize_full(self) -> None:
@@ -168,7 +170,28 @@ class TestDetectorSerializer(TestCase):
             "enabled": detector.enabled,
             "alertRuleId": None,
             "ruleId": None,
+            "latestGroup": None,
         }
+
+    def test_serialize_latest_group(self) -> None:
+        detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+        )
+
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+
+        detector_group1 = DetectorGroup.objects.create(detector=detector, group=group1)
+        detector_group2 = DetectorGroup.objects.create(detector=detector, group=group2)
+
+        detector_group1.date_added = before_now(seconds=20)
+        detector_group2.date_added = before_now(seconds=10)
+        detector_group1.save()
+        detector_group2.save()
+
+        result = serialize(detector)
+
+        assert result["latestGroup"]["id"] == str(group2.id)
 
     def test_serialize_bulk(self) -> None:
         detectors = [
@@ -229,6 +252,49 @@ class TestDataSourceSerializer(TestCase):
                 "status": 1,
                 "subscription": None,
             },
+        }
+
+
+class TestDataConditionSerializer(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.condition_group = self.create_data_condition_group(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+
+    def test_serializer_simple(self) -> None:
+        condition = self.create_data_condition(
+            condition_group=self.condition_group,
+            type=Condition.GREATER,
+            comparison=100,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+
+        result = serialize(condition)
+
+        assert result == {
+            "id": str(condition.id),
+            "type": "gt",
+            "comparison": 100,
+            "conditionResult": DetectorPriorityLevel.HIGH,
+        }
+
+    def test_complex_comparison(self) -> None:
+        condition = self.create_data_condition(
+            condition_group=self.condition_group,
+            type=Condition.GREATER,
+            comparison={"count": 100, "count_time": 60},
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        result = serialize(condition)
+
+        assert result == {
+            "id": str(condition.id),
+            "type": "gt",
+            "comparison": {"count": 100, "countTime": 60},
+            "conditionResult": DetectorPriorityLevel.HIGH,
         }
 
 
@@ -299,7 +365,7 @@ class TestDataConditionGroupSerializer(TestCase):
 
 
 class TestActionSerializer(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             provider="slack",
@@ -450,12 +516,31 @@ class TestWorkflowSerializer(TestCase):
             detector=detector,
             workflow=workflow,
         )
+
         history = WorkflowFireHistory.objects.create(
             workflow=workflow,
             group=self.group,
             event_id=self.event.event_id,
-            date_added=workflow.date_added + timedelta(seconds=1),
+            is_single_written=True,
         )
+        # Too old, shouldn't be used.
+        WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+            is_single_written=True,
+        )
+        history.date_added = workflow.date_added + timedelta(seconds=1)
+        history.save()
+        # Dual written, shouldn't be used.
+        dual_written_history = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            event_id=self.event.event_id,
+            is_single_written=False,
+        )
+        dual_written_history.date_added = workflow.date_added + timedelta(seconds=2)
+        dual_written_history.save()
 
         result = serialize(workflow)
 
@@ -526,7 +611,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 @freeze_time()
 class WorkflowGroupsPaginatedTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()
@@ -547,6 +632,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     workflow=self.workflow,
                     group=self.group,
                     event_id=uuid4().hex,
+                    is_single_written=True,
                 )
             )
         self.group_2 = self.create_group()
@@ -560,6 +646,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                 workflow=self.workflow,
                 group=self.group_2,
                 event_id=uuid4().hex,
+                is_single_written=True,
             )
         )
         self.group_3 = self.create_group()
@@ -574,8 +661,17 @@ class WorkflowGroupsPaginatedTest(TestCase):
                     workflow=self.workflow,
                     group=self.group_3,
                     event_id=uuid4().hex,
+                    is_single_written=True,
                 )
             )
+        # dual written WFH is ignored
+        WorkflowFireHistory.objects.create(
+            detector=self.detector_3,
+            workflow=self.workflow,
+            group=self.group_3,
+            event_id=uuid4().hex,
+            is_single_written=False,
+        )
         # this will be ordered after the WFH with self.detector_1
         self.detector_4 = self.create_detector(
             project_id=self.project.id,
@@ -588,6 +684,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
                 workflow=self.workflow_2,
                 group=self.group,
                 event_id=uuid4().hex,
+                is_single_written=True,
             )
         )
 
@@ -743,7 +840,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
 
 @freeze_time()
 class WorkflowHourlyStatsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group()
@@ -759,6 +856,7 @@ class WorkflowHourlyStatsTest(TestCase):
                     WorkflowFireHistory(
                         workflow=self.workflow,
                         group=self.group,
+                        is_single_written=True,
                     )
                 )
 
@@ -768,8 +866,16 @@ class WorkflowHourlyStatsTest(TestCase):
                 WorkflowFireHistory(
                     workflow=self.workflow_2,
                     group=self.group,
+                    is_single_written=True,
                 )
             )
+
+        # dual written WFH is ignored
+        WorkflowFireHistory.objects.create(
+            workflow=self.workflow_2,
+            group=self.group,
+            is_single_written=False,
+        )
 
         histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
 

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core import mail
 from django.utils import timezone
@@ -123,7 +123,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         assert Repository.objects.filter(id=repo.id).exists()
 
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
-    def test_delete_fail_email(self, mock_delete_repo):
+    def test_delete_fail_email(self, mock_delete_repo: MagicMock) -> None:
         mock_delete_repo.side_effect = PluginError("foo")
 
         org = self.create_organization()
@@ -146,7 +146,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         assert not Repository.objects.filter(id=repo.id).exists()
 
     @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.delete_repository")
-    def test_delete_fail_email_random(self, mock_delete_repo):
+    def test_delete_fail_email_random(self, mock_delete_repo: MagicMock) -> None:
         mock_delete_repo.side_effect = Exception("secrets")
 
         org = self.create_organization()

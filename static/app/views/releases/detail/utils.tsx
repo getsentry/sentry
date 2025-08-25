@@ -178,11 +178,10 @@ function generateReleaseMarkLine(
       label: {
         position: 'insideEndBottom',
         formatter: hideLabel ? '' : title,
-        // @ts-expect-error TS(2322): Type '{ position: "insideEndBottom"; formatter: st... Remove this comment to see the full error message
-        font: 'Rubik',
+        fontFamily: 'Rubik',
         fontSize: 14,
-        color: theme.chartLabel,
-        backgroundColor: theme.chartOther,
+        color: theme.tokens.content.muted,
+        backgroundColor: theme.tokens.background.secondary,
       },
       data: [
         {

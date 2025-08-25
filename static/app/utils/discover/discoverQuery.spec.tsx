@@ -3,7 +3,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 
-describe('DiscoverQuery', function () {
+describe('DiscoverQuery', () => {
   let location: any, eventView: any;
   beforeEach(() => {
     location = {
@@ -20,7 +20,7 @@ describe('DiscoverQuery', function () {
     });
   });
 
-  it('fetches data on mount', async function () {
+  it('fetches data on mount', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events/',
       body: {
@@ -44,7 +44,7 @@ describe('DiscoverQuery', function () {
     expect(await screen.findByText('/health')).toBeInTheDocument();
   });
 
-  it('applies limit and cursor props', async function () {
+  it('applies limit and cursor props', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events/',
       body: {
@@ -82,7 +82,7 @@ describe('DiscoverQuery', function () {
     );
   });
 
-  it('parses string errors correctly', async function () {
+  it('parses string errors correctly', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/test-org/events/',
       body: {
@@ -111,7 +111,7 @@ describe('DiscoverQuery', function () {
     await waitFor(() => expect(errorValue.message).toBe('Error Message'));
   });
 
-  it('parses object errors correctly', async function () {
+  it('parses object errors correctly', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/test-org/events/',
       body: {

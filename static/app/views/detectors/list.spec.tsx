@@ -21,10 +21,10 @@ import {
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import DetectorsList from 'sentry/views/detectors/list';
 
-describe('DetectorsList', function () {
+describe('DetectorsList', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
@@ -37,7 +37,7 @@ describe('DetectorsList', function () {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}), new Set());
   });
 
-  it('displays all detector info correctly', async function () {
+  it('displays all detector info correctly', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       body: [
@@ -103,9 +103,13 @@ describe('DetectorsList', function () {
     expect(within(row).getByText('count()')).toBeInTheDocument();
     expect(within(row).getByText('event.type:error')).toBeInTheDocument();
     expect(within(row).getByText('>10% high')).toBeInTheDocument();
+
+    // Last issue
+    expect(within(row).getByText('RequestError')).toBeInTheDocument();
+    expect(within(row).getByText('Last seen')).toBeInTheDocument();
   });
 
-  it('displays connected automations', async function () {
+  it('displays connected automations', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       body: [MetricDetectorFixture({id: '1', name: 'Detector 1', workflowIds: ['100']})],
@@ -125,7 +129,7 @@ describe('DetectorsList', function () {
     expect(await screen.findByText('Slack')).toBeInTheDocument();
   });
 
-  it('can filter by project', async function () {
+  it('can filter by project', async () => {
     const mockDetectorsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       body: [MetricDetectorFixture({name: 'Detector 1'})],
@@ -145,8 +149,8 @@ describe('DetectorsList', function () {
     );
   });
 
-  describe('search', function () {
-    it('can filter by type', async function () {
+  describe('search', () => {
+    it('can filter by type', async () => {
       const mockDetectorsRequestErrorType = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
         body: [ErrorDetectorFixture({name: 'Error Detector'})],
@@ -162,16 +166,16 @@ describe('DetectorsList', function () {
       const options = await screen.findAllByRole('option');
       expect(options).toHaveLength(4);
       expect(options[0]).toHaveTextContent('error');
-      expect(options[1]).toHaveTextContent('metric_issue');
-      expect(options[2]).toHaveTextContent('uptime_subscription');
-      expect(options[3]).toHaveTextContent('uptime_domain_failure');
+      expect(options[1]).toHaveTextContent('metric');
+      expect(options[2]).toHaveTextContent('cron');
+      expect(options[3]).toHaveTextContent('uptime');
       await userEvent.click(screen.getByText('error'));
 
       await screen.findByText('Error Detector');
       expect(mockDetectorsRequestErrorType).toHaveBeenCalled();
     });
 
-    it('can filter by assignee', async function () {
+    it('can filter by assignee', async () => {
       const testUser = UserFixture({id: '2', email: 'test@example.com'});
       const mockDetectorsRequestAssignee = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
@@ -196,7 +200,7 @@ describe('DetectorsList', function () {
       expect(mockDetectorsRequestAssignee).toHaveBeenCalled();
     });
 
-    it('can sort the table', async function () {
+    it('can sort the table', async () => {
       const mockDetectorsRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
         body: [MetricDetectorFixture({name: 'Detector 1'})],
@@ -204,12 +208,12 @@ describe('DetectorsList', function () {
       const {router} = render(<DetectorsList />, {organization});
       await screen.findByText('Detector 1');
 
-      // Default sort is connectedWorkflows descending
+      // Default sort is latestGroup descending
       expect(mockDetectorsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
-            sortBy: '-connectedWorkflows',
+            sortBy: '-latestGroup',
           }),
         })
       );

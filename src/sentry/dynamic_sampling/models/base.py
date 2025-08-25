@@ -1,13 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
 from typing import Generic, TypeVar
-
-
-class ModelType(Enum):
-    TRANSACTIONS_REBALANCING = 1
-    PROJECTS_REBALANCING = 2
-    FULL_REBALANCING = 3
 
 
 @dataclass

@@ -17,7 +17,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class VercelExtensionConfigurationTest(TestCase):
     path = "/extensions/vercel/configure/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization()
 

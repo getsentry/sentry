@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import calendar
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.utils import timezone
@@ -13,7 +13,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 class OrganizationSeerSetupCheckTestBase(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-seer-setup-check"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -90,7 +90,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
         }
 
     @patch("sentry.quotas.backend.has_available_reserved_budget")
-    def test_no_autofix_quota(self, mock_has_budget):
+    def test_no_autofix_quota(self, mock_has_budget: MagicMock) -> None:
         """
         Test when the organization has no autofix quota available.
         """
@@ -113,7 +113,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
         }
 
     @patch("sentry.quotas.backend.has_available_reserved_budget")
-    def test_no_scanner_quota(self, mock_has_budget):
+    def test_no_scanner_quota(self, mock_has_budget: MagicMock) -> None:
         """
         Test when the organization has no scanner quota available.
         """
@@ -136,7 +136,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
         }
 
     @patch("sentry.quotas.backend.has_available_reserved_budget")
-    def test_no_quotas_available(self, mock_has_budget):
+    def test_no_quotas_available(self, mock_has_budget: MagicMock) -> None:
         """
         Test when the organization has no quotas available for either service.
         """

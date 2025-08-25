@@ -31,7 +31,7 @@ describe('edit on-demand budget', () => {
     });
   });
 
-  it('allows VC partner accounts to edit on-demand budget without payment source', function () {
+  it('allows VC partner accounts to edit on-demand budget without payment source', () => {
     const subscription = SubscriptionFixture({
       plan: 'am3_business',
       planTier: PlanTier.AM3,
@@ -69,7 +69,7 @@ describe('edit on-demand budget', () => {
     expect(screen.getByText('$45')).toBeInTheDocument();
   });
 
-  it('requires payment source for non-VC accounts', function () {
+  it('requires payment source for non-VC accounts', () => {
     const subscription = SubscriptionFixture({
       plan: 'am3_business',
       planTier: PlanTier.AM3,
@@ -100,7 +100,7 @@ describe('edit on-demand budget', () => {
     ).toBeInTheDocument();
   });
 
-  it('switch from shared budget to per-category budget', async function () {
+  it('switch from shared budget to per-category budget', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -145,9 +145,6 @@ describe('edit on-demand budget', () => {
             attachments: 3000,
             monitorSeats: 4000,
           },
-          errorSpendUsed: 100,
-          transactionSpendUsed: 200,
-          attachmentSpendUsed: 300,
           usedSpends: {
             errors: 100,
             transactions: 200,
@@ -219,7 +216,7 @@ describe('edit on-demand budget', () => {
     expect(screen.getByTestId('per-category-budget-info')).toBeInTheDocument();
   });
 
-  it('switch from shared budget to per-category budget with sub-$1.00 budget', async function () {
+  it('switch from shared budget to per-category budget with sub-$1.00 budget', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -271,9 +268,6 @@ describe('edit on-demand budget', () => {
             replays: 300,
             monitorSeats: 200,
           },
-          errorSpendUsed: 76,
-          transactionSpendUsed: 0,
-          attachmentSpendUsed: 0,
           usedSpends: {
             errors: 76,
             transactions: 0,
@@ -336,7 +330,7 @@ describe('edit on-demand budget', () => {
     expect(screen.getByTestId('per-category-budget-info')).toBeInTheDocument();
   });
 
-  it('switch from per-category budget to shared budget', async function () {
+  it('switch from per-category budget to shared budget', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${onDemandOrg.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -365,9 +359,6 @@ describe('edit on-demand budget', () => {
           replays: 0,
           monitorSeats: 5000,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {},
       },
     });
@@ -451,7 +442,7 @@ describe('edit on-demand budget', () => {
     expect(screen.getByTestId('shared-budget-info')).toBeInTheDocument();
   });
 
-  it('disable shared on-demand budget', async function () {
+  it('disable shared on-demand budget', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${onDemandOrg.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -533,7 +524,7 @@ describe('edit on-demand budget', () => {
     expect(screen.queryByTestId('shared-budget-info')).not.toBeInTheDocument();
   });
 
-  it('disable per-category on-demand budget', async function () {
+  it('disable per-category on-demand budget', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${onDemandOrg.slug}/ondemand-budgets/`,
       method: 'POST',
@@ -562,9 +553,6 @@ describe('edit on-demand budget', () => {
           replays: 0,
           monitorSeats: 5000,
         },
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {},
       },
     });

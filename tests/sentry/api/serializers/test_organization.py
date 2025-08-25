@@ -103,7 +103,7 @@ class OrganizationSerializerTest(TestCase):
         ]
 
     @mock.patch("sentry.features.batch_has")
-    def test_organization_batch_has(self, mock_batch):
+    def test_organization_batch_has(self, mock_batch: mock.MagicMock) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
 

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
@@ -127,7 +127,9 @@ class UpdateUserReportTest(TestCase):
         assert report4.environment_id is None
 
     @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
-    def test_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
+    def test_calls_feedback_shim_if_ff_enabled(
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         project = self.create_project()
         event1 = self.store_event(
             data={
@@ -198,7 +200,7 @@ class UpdateUserReportTest(TestCase):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
     @patch("sentry.quotas.backend.get_event_retention")
-    def test_event_retention(self, mock_get_event_retention):
+    def test_event_retention(self, mock_get_event_retention: MagicMock) -> None:
         retention_days = 21
         mock_get_event_retention.return_value = retention_days
         project = self.create_project()

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from pytest import mark
 
@@ -11,7 +11,7 @@ from sentry.testutils.helpers import with_feature
 class ProjectTemplateAPIBase(APITestCase):
     endpoint = "sentry-api-0-organization-project-templates"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -110,7 +110,7 @@ class ProjectTemplateIndexPostTest(ProjectTemplateAPIBase):
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
     @patch("sentry.api.base.create_audit_entry")
-    def test_post__audit_log(self, mock_audit):
+    def test_post__audit_log(self, mock_audit: MagicMock) -> None:
         self.get_success_response(
             self.organization.id,
             name="Test Project Template",

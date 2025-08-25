@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class GoogleOAuth2ProviderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.auth_provider_inst = AuthProvider.objects.create(
             provider="google", organization_id=self.organization.id
         )

@@ -15,6 +15,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     PROJECT_ID,
     create_span,
+    get_event,
     modify_span_start,
 )
 
@@ -68,7 +69,7 @@ def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
 
 @pytest.mark.django_db
 class HTTPOverheadDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -280,3 +281,7 @@ class HTTPOverheadDetectorTest(TestCase):
         event["spans"] = [span]
 
         assert self.find_problems(event) == []
+
+    def test_filtered_url(self) -> None:
+        injection_event = get_event("http-overhead-filtered-url")
+        assert len(self.find_problems(injection_event)) == 0

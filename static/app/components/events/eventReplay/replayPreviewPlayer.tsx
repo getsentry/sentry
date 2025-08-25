@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
@@ -177,7 +178,9 @@ export default function ReplayPreviewPlayer({
                 />
               )}
               <Container>
-                <TimeAndScrubberGrid />
+                <TimelineScaleContextProvider>
+                  <TimeAndScrubberGrid />
+                </TimelineScaleContextProvider>
               </Container>
               <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
             </ButtonGrid>
@@ -251,6 +254,7 @@ const ContextContainer = styled('div')`
 `;
 
 const HeaderWrapper = styled('div')`
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;

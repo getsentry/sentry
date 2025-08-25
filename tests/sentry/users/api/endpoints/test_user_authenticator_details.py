@@ -104,7 +104,7 @@ def assert_security_email_sent(email_type: str) -> None:
 
 
 class UserAuthenticatorDetailsTestBase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
     def _require_2fa_for_organization(self) -> None:

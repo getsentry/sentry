@@ -38,9 +38,11 @@ function StoriesLanding() {
 
 function StoryDetail() {
   useStoryRedirect();
+
   const location = useLocation<{name: string; query?: string}>();
-  const files = [location.state?.storyPath ?? location.query.name];
-  const story = useStoriesLoader({files});
+  const story = useStoriesLoader({
+    files: [location.state?.storyPath ?? location.query.name],
+  });
 
   return (
     <StoriesLayout>
@@ -74,16 +76,14 @@ function StoryDetail() {
 function StoriesLayout(props: PropsWithChildren) {
   return (
     <Fragment>
-      <GlobalStoryStyles />
+      <GlobalStoryStyles key="global-story-styles" />
       <RouteAnalyticsContextProvider>
         <OrganizationContainer>
           <Layout>
             <HeaderContainer>
               <StoryHeader />
             </HeaderContainer>
-
             <StorySidebar />
-
             {props.children}
           </Layout>
         </OrganizationContainer>
@@ -124,7 +124,7 @@ function GlobalStoryStyles() {
       background: ${theme.tokens.background.primary};
     }
   `;
-  return <Global key="stories" styles={styles} />;
+  return <Global styles={styles} />;
 }
 
 const Layout = styled('div')`
@@ -175,7 +175,7 @@ const StoryMainContainer = styled('div')`
   h4,
   h5,
   h6 {
-    scroll-margin-top: 64px;
+    scroll-margin-top: 80px;
     margin: 0;
   }
 

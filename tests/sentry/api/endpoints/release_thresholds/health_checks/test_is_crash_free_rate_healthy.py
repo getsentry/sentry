@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -169,7 +169,7 @@ class TestGetGroupTotals:
 
 
 class CrashFreeRateThresholdCheckTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project1 = self.create_project(name="foo", organization=self.organization)
         self.release1 = Release.objects.create(version="v1", organization=self.organization)
         self.sessions_data = mock_sessions_data
@@ -180,7 +180,9 @@ class CrashFreeRateThresholdCheckTest(TestCase):
     @patch(
         "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
     )
-    def test_is_crash_free_rate_success(self, mock_get_groups_totals, mock_get_interval_indexes):
+    def test_is_crash_free_rate_success(
+        self, mock_get_groups_totals: MagicMock, mock_get_interval_indexes: MagicMock
+    ) -> None:
         now = datetime.utcnow()
 
         mock_get_interval_indexes.return_value = 0, 10
@@ -222,7 +224,9 @@ class CrashFreeRateThresholdCheckTest(TestCase):
     @patch(
         "sentry.api.endpoints.release_thresholds.health_checks.is_crash_free_rate_healthy.get_groups_totals"
     )
-    def test_is_crash_free_rate_failure(self, mock_get_groups_totals, mock_get_interval_indexes):
+    def test_is_crash_free_rate_failure(
+        self, mock_get_groups_totals: MagicMock, mock_get_interval_indexes: MagicMock
+    ) -> None:
         now = datetime.utcnow()
 
         mock_get_interval_indexes.return_value = 0, 10

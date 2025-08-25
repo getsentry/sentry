@@ -1,10 +1,10 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
 
 
 class OrganizationIntegrationIssuesTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.organization = self.create_organization(owner=self.user)
@@ -28,7 +28,7 @@ class OrganizationIntegrationIssuesTest(APITestCase):
         assert response.status_code == 400
 
     @patch("sentry.integrations.jira.integration.JiraIntegration.migrate_issues")
-    def test_simple(self, mock_migrate_issues):
+    def test_simple(self, mock_migrate_issues: MagicMock) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="jira", external_id="jira:1"
         )

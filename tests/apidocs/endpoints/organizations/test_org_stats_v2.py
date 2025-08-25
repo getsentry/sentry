@@ -80,7 +80,7 @@ class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_get(self):
+    def test_get(self) -> None:
         """
         Test that the organization stats endpoint returns valid schema.
         This test verifies that the endpoint correctly handles basic queries with interval, field and groupBy parameters.
@@ -91,7 +91,7 @@ class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
 
         self.validate_schema(request, response)
 
-    def test_continuous_profiling_categories(self):
+    def test_continuous_profiling_categories(self) -> None:
         for category in [
             "profile_duration",
             "profile_duration_ui",

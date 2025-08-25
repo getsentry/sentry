@@ -96,7 +96,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
         t('Unlimited users'),
         t('Application Insights'),
         t('Advanced event volume controls'),
-        t('Custom dashboards'),
+        t('Unlimited custom dashboards'),
         t('SAML2 & SCIM'),
         t('Third party integrations'),
         t('Extended data retention'),

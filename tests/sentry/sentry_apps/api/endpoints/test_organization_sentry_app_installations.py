@@ -4,17 +4,17 @@ from sentry.constants import SentryAppStatus
 from sentry.integrations.models.integration_feature import Feature
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
+from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 class SentryAppInstallationsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-app-installations"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)

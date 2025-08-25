@@ -22,7 +22,7 @@ class UserSubscriptionsNewsletterTest(APITestCase):
         with newsletter.backend.test_only__downcast_to(DummyNewsletter).enable():
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="foo@example.com")
         self.login_as(self.user)
 

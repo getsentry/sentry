@@ -48,7 +48,9 @@ class TwoFactorTest(TestCase):
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=None)
     @mock.patch("time.sleep")
-    def test_otp_submit_error(self, mock_sleep, mock_validate):
+    def test_otp_submit_error(
+        self, mock_sleep: mock.MagicMock, mock_validate: mock.MagicMock
+    ) -> None:
         user = self.create_user()
         interface = TotpInterface()
         interface.enroll(user)
@@ -63,7 +65,7 @@ class TwoFactorTest(TestCase):
         assert "Invalid confirmation code" in resp.content.decode("utf8")
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
-    def test_otp_submit_success(self, mock_validate):
+    def test_otp_submit_success(self, mock_validate: mock.MagicMock) -> None:
         user = self.create_user()
         interface = TotpInterface()
         interface.enroll(user)
@@ -81,7 +83,7 @@ class TwoFactorTest(TestCase):
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=False)
     @mock.patch("time.sleep")
-    def test_rate_limit(self, mock_validate, mock_sleep):
+    def test_rate_limit(self, mock_validate: mock.MagicMock, mock_sleep: mock.MagicMock) -> None:
         user = self.create_user()
         user.set_password("helloworld!")
         user.save()

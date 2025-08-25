@@ -33,7 +33,7 @@ class IncidentGetForSubscriptionTest(TestCase):
 
 
 class IncidentClearSubscriptionCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
         self.subscription = self.alert_rule.snuba_query.subscriptions.get()
 
@@ -74,7 +74,7 @@ class IncidentClearSubscriptionCacheTest(TestCase):
 
 
 class AlertRuleTriggerClearCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
         self.trigger = self.create_alert_rule_trigger(self.alert_rule)
 
@@ -195,7 +195,7 @@ class AlertRuleFetchForOrganizationTest(TestCase):
 
 
 class AlertRuleTriggerActionTargetTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=self.metric_alert)
 
@@ -239,7 +239,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
 class AlertRuleTriggerActionActivateBaseTest:
     method: str
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
     def tearDown(self):
@@ -286,7 +286,7 @@ class AlertRuleTriggerActionActivateTest(TestCase):
         with mock.patch("sentry.incidents.models.alert_rule.metrics") as self.metrics:
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
     def tearDown(self):

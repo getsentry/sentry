@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectTemplateOptionManagerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
         self.project_template = ProjectTemplate.objects.create(
@@ -131,7 +131,7 @@ class ProjectTemplateOptionManagerTest(TestCase):
 
 
 class ProjectTemplateOptionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization()
 
         self.project_template = ProjectTemplate.objects.create(

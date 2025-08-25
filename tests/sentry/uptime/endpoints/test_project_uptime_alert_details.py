@@ -229,7 +229,9 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         "sentry.quotas.backend.check_assign_seat",
         return_value=SeatAssignmentResult(assignable=False, reason="Assignment failed in test"),
     )
-    def test_status_enable_no_seat_assignment(self, _mock_check_assign_seat):
+    def test_status_enable_no_seat_assignment(
+        self, _mock_check_assign_seat: mock.MagicMock
+    ) -> None:
         uptime_monitor = self.create_project_uptime_subscription(status=ObjectStatus.DISABLED)
         resp = self.get_error_response(
             self.organization.slug,

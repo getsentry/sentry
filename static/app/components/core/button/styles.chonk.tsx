@@ -71,8 +71,12 @@ export function DO_NOT_USE_getChonkButtonStyles(
 
     fontWeight: p.theme.fontWeight.bold,
 
-    cursor: p.disabled ? 'not-allowed' : 'pointer',
     opacity: p.busy || p.disabled ? 0.6 : undefined,
+
+    cursor: 'pointer',
+    '&[disabled]': {
+      cursor: 'not-allowed',
+    },
 
     padding: getChonkButtonSizeTheme(p.size, p.theme).padding,
     borderRadius: getChonkButtonSizeTheme(p.size, p.theme).borderRadius,
@@ -135,7 +139,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
     },
 
     '&:hover': {
-      color: p.disabled || p.busy ? 'inherit' : chonkButtonTheme.color,
+      color: p.disabled || p.busy ? undefined : chonkButtonTheme.color,
 
       '&::after': {
         transform: `translateY(calc(-${elevation} - ${chonkHoverElevation}))`,
@@ -198,7 +202,7 @@ export function DO_NOT_USE_getChonkButtonStyles(
       },
 
       '&:focus-visible': {
-        ...p.theme.focusRing,
+        ...p.theme.focusRing(),
       },
 
       '> span:last-child': {

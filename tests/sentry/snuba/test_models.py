@@ -32,7 +32,7 @@ class SnubaQueryEventTypesTest(TestCase):
 
 
 class QuerySubscriptionDataSourceHandlerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.snuba_query = create_snuba_query(
             SnubaQuery.Type.ERROR,
             Dataset.Events,

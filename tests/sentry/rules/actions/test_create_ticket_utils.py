@@ -8,7 +8,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CreateTicketUtilsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.rule = self.create_project_rule()
 

@@ -12,7 +12,7 @@ from sentry.users.models.user_option import UserOption
 
 
 class NoteTestCase(ActivityTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.email = NoteActivityNotification(
             Activity(

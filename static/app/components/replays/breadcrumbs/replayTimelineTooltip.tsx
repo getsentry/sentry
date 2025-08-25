@@ -1,108 +1,86 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
+import {Text} from 'sentry/components/core/text';
 import {Overlay} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
-
-const TOOLTIP_OFFSET = 10;
-const FIXED_Y_POSITION = 20;
+import {getFormattedDate, shouldUse24Hours} from 'sentry/utils/dates';
+import formatDuration from 'sentry/utils/duration/formatDuration';
+import divide from 'sentry/utils/number/divide';
+import toPercent from 'sentry/utils/number/toPercent';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
 type Props = {
-  /**
-   * Text of the cursor tooltip.
-   */
-  labelText: string;
-  children?: React.ReactNode;
-  /**
-   * May be set to false to disable rendering the timeline cursor
-   */
-  enabled?: boolean;
+  container: HTMLElement;
 };
 
-function TimelineTooltip({enabled = true, labelText}: Props) {
-  const labelRef = useRef<HTMLDivElement>(null);
-  const portalRef = useRef<HTMLElement | null>(null);
-  const [position, setPosition] = useState({x: 100, y: FIXED_Y_POSITION});
-  const [isVisible, setIsVisible] = useState(true);
+export default function TimelineTooltip({container}: Props) {
+  const replay = useReplayReader();
+  const [prefs] = useReplayPrefs();
+  const timestampType = prefs.timestampType;
 
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!portalRef.current) {
-        portalRef.current = document.getElementById('replay-timeline-player');
-      }
+  const labelRef = useRef<HTMLDivElement | null>(null);
 
-      const portal = portalRef.current;
+  const durationMs = replay?.getDurationMs() ?? 0;
+  const startTimestamp = replay?.getStartTimestampMs() ?? 0;
+  const [currentHoverTime] = useCurrentHoverTime();
 
-      if (portal) {
-        const containerRect = portal.getBoundingClientRect();
+  const timeoutRef = useRef<number | undefined>(undefined);
 
-        // Instead of using onMouseEnter / onMouseLeave we check if the mouse is
-        // within the containerRect. This proves to be less glitchy as some
-        // elements within the container may trigger an onMouseLeave even when
-        // the mouse is still "inside" of the container
-        const isInsideContainer =
-          e.clientX >= containerRect.left &&
-          e.clientX <= containerRect.right &&
-          e.clientY >= containerRect.top &&
-          e.clientY <= containerRect.bottom;
-
-        setIsVisible(isInsideContainer);
-
-        if (isInsideContainer) {
-          // Only update the x position based on mouse movement
-          setPosition({
-            x: e.clientX + TOOLTIP_OFFSET,
-            y: containerRect.top + FIXED_Y_POSITION, // Keep y position fixed relative to the top of the portal
-          });
-
-          if (labelRef.current) {
-            labelRef.current.textContent = labelText;
-          }
-        }
-      }
-    },
-    [labelText]
-  );
-
+  // Use a timeout instead of hiding right away, to avoid flickering.
+  const [lastHoverTime, setLastHoverTime] = useState<number | undefined>(undefined);
   useEffect(() => {
-    if (enabled) {
-      window.addEventListener('mousemove', handleMouseMove);
+    if (currentHoverTime === undefined) {
+      timeoutRef.current = window.setTimeout(() => {
+        setLastHoverTime(undefined);
+      }, 0);
     } else {
-      setIsVisible(false);
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = undefined;
+      }
+      setLastHoverTime(currentHoverTime);
     }
 
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [enabled, handleMouseMove]);
-
-  if (!portalRef.current) {
-    return null;
-  }
+    return () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [currentHoverTime]);
 
   return createPortal(
     <CursorLabel
       ref={labelRef}
       style={{
-        left: position.x,
-        top: position.y,
-        display: isVisible ? 'block' : 'none',
+        display: lastHoverTime ? 'block' : 'none',
+        top: 0,
+        left: toPercent(divide(lastHoverTime ?? 0, durationMs)),
       }}
     >
-      {labelText}
+      <Text size="sm" tabular style={{fontWeight: 'normal'}}>
+        {timestampType === 'absolute'
+          ? getFormattedDate(
+              startTimestamp + (lastHoverTime ?? 0),
+              shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS',
+              {local: true}
+            )
+          : formatDuration({
+              duration: [lastHoverTime ?? 0, 'ms'],
+              precision: 'ms',
+              style: 'hh:mm:ss.sss',
+            })}
+      </Text>
     </CursorLabel>,
-    document.body
+    container
   );
 }
 
 const CursorLabel = styled(Overlay)`
-  font-variant-numeric: tabular-nums;
-  width: max-content;
+  position: absolute;
+  translate: 10px -10px;
   padding: ${space(0.75)} ${space(1)};
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.sm};
-  line-height: 1.2;
-  position: fixed;
-  pointer-events: none; /* Prevent tooltip from blocking mouse events */
 `;
-
-export default TimelineTooltip;

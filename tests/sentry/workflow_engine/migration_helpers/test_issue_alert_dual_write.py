@@ -39,7 +39,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class RuleMigrationHelpersTestBase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         conditions = [
             {"id": ReappearedEventCondition.id},
             {"id": RegressionEventCondition.id},
@@ -337,7 +337,7 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
 
 
 class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         IssueAlertMigrator(self.issue_alert, self.user.id).run()

@@ -16,7 +16,7 @@ class ExampleIntegration(IntegrationInstallation):
 
 @all_silo_test
 class IntegrationTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization()
         self.project = self.create_project()

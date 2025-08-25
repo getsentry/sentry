@@ -29,7 +29,7 @@ class MsTeamsClientTest(TestCase):
         with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.expires_at = 1594768808
         self.organization = self.create_organization(owner=self.user)
         self.integration = self.create_integration(
@@ -194,7 +194,7 @@ def assert_proxy_request(request, is_proxy=True):
     SENTRY_CONTROL_ADDRESS="http://controlserver",
 )
 class MsTeamsProxyApiClientTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.expires_at = 1594768808
         self.organization = self.create_organization(owner=self.user)
         self.integration = self.create_integration(

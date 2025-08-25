@@ -10,7 +10,7 @@ class IntegrationFeaturesTest(APITestCase):
     endpoint = "sentry-api-0-integration-features"
     method = "GET"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="cynthia@poke.mon")
         self.login_as(self.user)
 

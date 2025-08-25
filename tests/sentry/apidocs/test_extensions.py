@@ -50,7 +50,7 @@ class FailSerializer(Serializer):
         raise NotImplementedError
 
 
-def test_sentry_response_serializer_extension():
+def test_sentry_response_serializer_extension() -> None:
     seralizer_extension = SentryResponseSerializerExtension(BasicSerializer)
     schema = seralizer_extension.map_serializer(AutoSchema(), "response")
     assert schema == {
@@ -81,7 +81,7 @@ def test_sentry_response_serializer_extension():
     }
 
 
-def test_sentry_inline_response_serializer_extension():
+def test_sentry_inline_response_serializer_extension() -> None:
     inline_serializer = inline_sentry_response_serializer(
         "BasicStuff", list[BasicSerializerResponse]
     )
@@ -123,13 +123,13 @@ def test_sentry_inline_response_serializer_extension():
     }
 
 
-def test_sentry_fails_when_serializer_not_typed():
+def test_sentry_fails_when_serializer_not_typed() -> None:
     seralizer_extension = SentryResponseSerializerExtension(FailSerializer)
     with pytest.raises(TypeError):
         seralizer_extension.map_serializer(AutoSchema(), "response")
 
 
-def test_sentry_restricted_json_field_extension():
+def test_sentry_restricted_json_field_extension() -> None:
     seralizer_extension = RestrictedJsonFieldExtension(serializers.JSONField)
     schema = seralizer_extension.map_serializer_field(AutoSchema(), "response")
     assert schema == {"type": "object", "additionalProperties": {}}

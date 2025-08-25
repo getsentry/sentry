@@ -30,7 +30,7 @@ from tests.sentry.workflow_engine.test_base import MockModel
 
 
 class BaseValidatorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.data_condition_group = self.create_data_condition_group(
             organization_id=self.organization.id,
@@ -107,7 +107,7 @@ class MockDetectorValidator(BaseDetectorTypeValidator):
 
 # TODO - see if we can refactor and mock the grouptype / grouptype.registry
 class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.validator_class = BaseDetectorTypeValidator
@@ -154,7 +154,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
 
 # TODO - Move these tests into a base detector test file
 class DetectorValidatorTest(BaseValidatorTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.context = {
@@ -190,7 +190,7 @@ class DetectorValidatorTest(BaseValidatorTest):
 
     # TODO - Refactor into multiple tests - basically where there are comment blocks
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
-    def test_create_with_mock_validator(self, mock_audit):
+    def test_create_with_mock_validator(self, mock_audit: mock.MagicMock) -> None:
         validator = MockDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid(), validator.errors
         detector = validator.save()

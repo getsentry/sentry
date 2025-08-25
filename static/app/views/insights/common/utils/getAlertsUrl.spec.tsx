@@ -6,10 +6,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
-describe('getAlertsUrl', function () {
+describe('getAlertsUrl', () => {
   const {project} = initializeOrg();
   const pageFilters = PageFiltersFixture();
-  it('should return a url to the alert rule page prepopulated with DB params', function () {
+  it('should return a url to the alert rule page prepopulated with DB params', () => {
     const aggregate = 'avg(d:spans/duration@millisecond)';
     const query = 'span.category:db';
     const orgSlug = 'orgSlug';
@@ -24,7 +24,7 @@ describe('getAlertsUrl', function () {
       '/organizations/orgSlug/alerts/new/metric/?aggregate=avg%28d%3Aspans%2Fduration%40millisecond%29&dataset=generic_metrics&eventTypes=transaction&interval=1h&project=project-slug&query=span.category%3Adb&statsPeriod=7d'
     );
   });
-  it('should return a url to an EAP alert rule', function () {
+  it('should return a url to an EAP alert rule', () => {
     const aggregate = 'count(span.duration)';
     const query = 'span.op:http.client';
     const orgSlug = 'orgSlug';

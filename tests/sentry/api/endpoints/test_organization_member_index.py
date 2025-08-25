@@ -1,5 +1,5 @@
 from dataclasses import replace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core import mail
 
@@ -181,7 +181,7 @@ class OrganizationMemberRequestSerializerTest(TestCase):
 class OrganizationMemberListTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user2 = self.create_user("bar@localhost", username="bar")
         self.create_member(organization=self.organization, user=self.user2)
         self.external_user = self.create_external_user(self.user2, self.organization)
@@ -424,7 +424,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert response.data["email"] == "eric@localhost"
 
     def test_valid_for_invites(self) -> None:
-        data = {"email": "foo@example.com", "role": "manager", "teams": [self.team.slug]}
+        data = {"email": "foo@example.com", "orgRole": "manager", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
             self.get_success_response(self.organization.slug, method="post", **data)
 
@@ -807,7 +807,7 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         assert response.data["email"][0] == "Enter a valid email address."
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_simple(self, mock_send_invite_email):
+    def test_simple(self, mock_send_invite_email: MagicMock) -> None:
         data = {"email": "jane@gmail.com", "role": "member", "teams": [self.team.slug]}
         response = self.get_success_response(self.organization.slug, **data)
 
@@ -834,7 +834,7 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         self.assert_org_member_mapping(org_member=om)
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_no_email(self, mock_send_invite_email):
+    def test_no_email(self, mock_send_invite_email: MagicMock) -> None:
         data = {
             "email": "jane@gmail.com",
             "role": "member",
@@ -853,7 +853,7 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         assert not mock_send_invite_email.mock_calls
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_referrer_param(self, mock_send_invite_email):
+    def test_referrer_param(self, mock_send_invite_email: MagicMock) -> None:
         data = {
             "email": "jane@gmail.com",
             "role": "member",
@@ -874,7 +874,9 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         mock_send_invite_email.assert_called_with("test_referrer")
 
     @patch.object(OrganizationMember, "send_invite_email")
-    def test_internal_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+    def test_internal_integration_token_can_only_invite_member_role(
+        self, mock_send_invite_email: MagicMock
+    ) -> None:
         internal_integration = self.create_internal_integration(
             name="Internal App", organization=self.organization, scopes=["member:write"]
         )
@@ -921,7 +923,7 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         mock_send_invite_email.assert_called_once()
 
     @patch("sentry.ratelimits.for_organization_member_invite")
-    def test_rate_limited(self, mock_rate_limit):
+    def test_rate_limited(self, mock_rate_limit: MagicMock) -> None:
         mock_rate_limit.return_value = True
 
         data = {"email": "jane@gmail.com", "role": "member"}
@@ -932,7 +934,7 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         "sentry.roles.organization_roles.get",
         wraps=mock_organization_roles_get_factory(organization_roles.get),
     )
-    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get):
+    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get: MagicMock) -> None:
         owner_user = self.create_user("owner@localhost")
         self.owner = self.create_member(
             user=owner_user, organization=self.organization, role="owner"

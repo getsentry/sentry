@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestCase
 
 
 class SuperuserReceiverTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.superuser = self.create_user(is_superuser=True)
         self.non_superuser = self.create_user(is_superuser=False)

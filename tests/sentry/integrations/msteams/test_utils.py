@@ -11,7 +11,7 @@ pytestmark = [requires_snuba]
 
 
 class GetChannelIdTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         responses.reset()
 
         self.integration, _ = self.create_provider_integration_for(

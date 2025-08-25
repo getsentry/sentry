@@ -34,7 +34,7 @@ type Params = DocsParams;
 const getInstallContent = ({
   isSelfHosted,
   organization,
-  projectSlug,
+  project,
 }: Params): ContentBlock[] => [
   {
     type: 'text',
@@ -50,7 +50,7 @@ const getInstallContent = ({
   {
     type: 'code',
     language: 'bash',
-    code: `npx @sentry/wizard@latest -i remix ${isSelfHosted ? '' : '--saas'}  --org ${organization.slug} --project ${projectSlug}`,
+    code: `npx @sentry/wizard@latest -i remix ${isSelfHosted ? '' : '--saas'}  --org ${organization.slug} --project ${project.slug}`,
   },
 ];
 

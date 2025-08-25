@@ -41,7 +41,7 @@ class _Identity(TypedDict):
 
 
 class AuthIdentityHandlerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.provider = "dummy"
         self.request = _set_up_request()
 
@@ -96,7 +96,7 @@ class AuthIdentityHandlerTest(TestCase):
 @control_silo_test
 class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.analytics.record")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: mock.MagicMock) -> None:
         auth_identity = self.handler.handle_new_user()
         user = auth_identity.user
 
@@ -179,7 +179,7 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 @control_silo_test
 class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.auth.helper.auth")
-    def test_simple(self, mock_auth):
+    def test_simple(self, mock_auth: mock.MagicMock) -> None:
         mock_auth.get_login_redirect.return_value = "test_login_url"
         user, auth_identity = self.set_up_user_identity()
 
@@ -205,7 +205,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         assert login_user == user
 
     @mock.patch("sentry.auth.helper.auth")
-    def test_no_invite_members_flag(self, mock_auth):
+    def test_no_invite_members_flag(self, mock_auth: mock.MagicMock) -> None:
         with mock.patch("sentry.features.has", return_value=False) as features_has:
             mock_auth.get_login_redirect.return_value = "test_login_url"
             user, auth_identity = self.set_up_user_identity()
@@ -234,7 +234,7 @@ class HandleExistingIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
 @control_silo_test
 class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     @mock.patch("sentry.auth.helper.messages")
-    def test_new_identity(self, mock_messages):
+    def test_new_identity(self, mock_messages: mock.MagicMock) -> None:
         request_user = self.set_up_user()
 
         auth_identity = self.handler.handle_attach_identity()
@@ -262,7 +262,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         )
 
     @mock.patch("sentry.auth.helper.messages")
-    def test_new_identity_with_existing_om(self, mock_messages):
+    def test_new_identity_with_existing_om(self, mock_messages: mock.MagicMock) -> None:
         user = self.set_up_user()
         with assume_test_silo_mode(SiloMode.REGION):
             existing_om = OrganizationMember.objects.create(
@@ -283,7 +283,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         )
 
     @mock.patch("sentry.auth.helper.messages")
-    def test_new_identity_with_existing_om_idp_flags(self, mock_messages):
+    def test_new_identity_with_existing_om_idp_flags(self, mock_messages: mock.MagicMock) -> None:
         user = self.set_up_user()
         with assume_test_silo_mode(SiloMode.REGION):
             with (
@@ -318,7 +318,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         )
 
     @mock.patch("sentry.auth.helper.messages")
-    def test_existing_identity(self, mock_messages):
+    def test_existing_identity(self, mock_messages: mock.MagicMock) -> None:
         user, existing_identity = self.set_up_user_identity()
 
         returned_identity = self.handler.handle_attach_identity()
@@ -396,13 +396,13 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         return context
 
     @mock.patch("sentry.auth.helper.render_to_response")
-    def test_unauthenticated(self, mock_render):
+    def test_unauthenticated(self, mock_render: mock.MagicMock) -> None:
         context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
         assert context["existing_user"] is None
         assert "login_form" in context
 
     @mock.patch("sentry.auth.helper.render_to_response")
-    def test_authenticated(self, mock_render):
+    def test_authenticated(self, mock_render: mock.MagicMock) -> None:
         self.set_up_user()
         context = self._test_simple(mock_render, "sentry/auth-confirm-link.html")
         assert context["existing_user"] is self.request.user
@@ -410,7 +410,9 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
     @mock.patch("sentry.auth.helper.render_to_response")
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
-    def test_unauthenticated_with_existing_user(self, mock_create_key, mock_render):
+    def test_unauthenticated_with_existing_user(
+        self, mock_create_key: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
         existing_user = self.create_user(email=self.email)
         context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
         assert not mock_create_key.called
@@ -419,7 +421,9 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
     @mock.patch("sentry.auth.helper.render_to_response")
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
-    def test_automatic_migration(self, mock_create_key, mock_render):
+    def test_automatic_migration(
+        self, mock_create_key: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
         existing_user = self.create_user(email=self.email)
         existing_user.update(password="")
 
@@ -437,7 +441,9 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
     @mock.patch("sentry.auth.helper.render_to_response")
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
-    def test_does_not_migrate_user_with_password(self, mock_create_key, mock_render):
+    def test_does_not_migrate_user_with_password(
+        self, mock_create_key: mock.MagicMock, mock_render: mock.MagicMock
+    ) -> None:
         existing_user = self.create_user(email=self.email)
         context = self._test_simple(mock_render, "sentry/auth-confirm-identity.html")
         assert not mock_create_key.called
@@ -449,7 +455,7 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
 @control_silo_test
 class AuthHelperTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.provider = "dummy"
         self.auth_provider_inst = AuthProvider.objects.create(
             organization_id=self.organization.id, provider=self.provider
@@ -485,24 +491,24 @@ class AuthHelperTest(TestCase):
         return next_step
 
     @mock.patch("sentry.auth.helper.messages")
-    def test_login(self, mock_messages):
+    def test_login(self, mock_messages: mock.MagicMock) -> None:
         final_step = self._test_pipeline(FLOW_LOGIN)
         assert final_step.url == f"/auth/login/{self.organization.slug}/"
 
     @mock.patch("sentry.auth.helper.messages")
-    def test_setup_provider(self, mock_messages):
+    def test_setup_provider(self, mock_messages: mock.MagicMock) -> None:
         final_step = self._test_pipeline(FLOW_SETUP_PROVIDER)
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
 
     @mock.patch("sentry.auth.helper.messages")
-    def test_referrer_state(self, mock_messages):
+    def test_referrer_state(self, mock_messages: mock.MagicMock) -> None:
         final_step = self._test_pipeline(flow=FLOW_SETUP_PROVIDER, referrer="foobar")
         assert final_step.url == f"/settings/{self.organization.slug}/auth/"
 
 
 @control_silo_test
 class HasVerifiedAccountTest(AuthIdentityHandlerTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.REGION):
             member = OrganizationMember.objects.get(

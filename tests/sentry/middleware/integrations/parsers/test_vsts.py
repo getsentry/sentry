@@ -19,7 +19,7 @@ class VstsRequestParserTest(TestCase):
     shared_secret = "1234567890"
     path = f"{IntegrationClassification.integration_prefix}vsts/issue-updated/"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)

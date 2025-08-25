@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -29,25 +29,26 @@ def mock_report_dict() -> UserReportDict:
 
 
 @pytest.fixture
-def skip_denylist(monkeypatch):
-    monkeypatch.setattr(
-        "sentry.feedback.usecases.ingest.userreport.is_in_feedback_denylist", lambda org: False
-    )
+def skip_denylist():
+    with mock.patch(
+        "sentry.feedback.usecases.ingest.userreport.is_in_feedback_denylist", return_value=False
+    ):
+        yield
 
 
 @pytest.fixture
-def skip_filters(monkeypatch):
-    monkeypatch.setattr(
+def skip_filters():
+    with mock.patch(
         "sentry.feedback.usecases.ingest.userreport.validate_user_report",
-        Mock(return_value=(False, None, None)),
-    )
+        return_value=(False, None, None),
+    ):
+        yield
 
 
 @pytest.fixture
-def skip_eventstore(monkeypatch):
-    monkeypatch.setattr(
-        "sentry.eventstore.backend.get_event_by_id", lambda project_id, event_id: None
-    )
+def skip_eventstore():
+    with mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=None):
+        yield
 
 
 #################################
@@ -57,7 +58,7 @@ def skip_eventstore(monkeypatch):
 
 @django_db_all
 @pytest.mark.parametrize("field", ["comments", "event_id"])
-def test_validator_should_filter_missing_required_field(field, mock_report_dict):
+def test_validator_should_filter_missing_required_field(field, mock_report_dict) -> None:
     del mock_report_dict[field]
 
     should_filter, tag, reason = validate_user_report(mock_report_dict, 1)
@@ -67,7 +68,7 @@ def test_validator_should_filter_missing_required_field(field, mock_report_dict)
 
 
 @django_db_all
-def test_validator_should_filter_unreal_unattended_message_with_option(set_sentry_option):
+def test_validator_should_filter_unreal_unattended_message_with_option(set_sentry_option) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", True):
         should_filter, tag, reason = validate_user_report(
             {
@@ -84,7 +85,9 @@ def test_validator_should_filter_unreal_unattended_message_with_option(set_sentr
 
 
 @django_db_all
-def test_validator_should_not_filter_unreal_unattended_message_without_option(set_sentry_option):
+def test_validator_should_not_filter_unreal_unattended_message_without_option(
+    set_sentry_option,
+) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", False):
         should_filter, tag, reason = validate_user_report(
             {
@@ -101,7 +104,7 @@ def test_validator_should_not_filter_unreal_unattended_message_without_option(se
 
 
 @django_db_all
-def test_validator_should_filter_empty_message_with_option(set_sentry_option):
+def test_validator_should_filter_empty_message_with_option(set_sentry_option) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", True):
         should_filter, tag, reason = validate_user_report(
             {
@@ -118,7 +121,7 @@ def test_validator_should_filter_empty_message_with_option(set_sentry_option):
 
 
 @django_db_all
-def test_validator_should_not_filter_empty_message_without_option(set_sentry_option):
+def test_validator_should_not_filter_empty_message_without_option(set_sentry_option) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", False):
         should_filter, tag, reason = validate_user_report(
             {
@@ -135,7 +138,7 @@ def test_validator_should_not_filter_empty_message_without_option(set_sentry_opt
 
 
 @django_db_all
-def test_validator_should_not_filter_empty_email():
+def test_validator_should_not_filter_empty_email() -> None:
     should_filter, tag, reason = validate_user_report(
         {
             "name": "",
@@ -151,7 +154,7 @@ def test_validator_should_not_filter_empty_email():
 
 
 @django_db_all
-def test_validator_should_filter_invalid_event_id():
+def test_validator_should_filter_invalid_event_id() -> None:
     should_filter, tag, reason = validate_user_report(
         {
             "name": "",
@@ -167,7 +170,7 @@ def test_validator_should_filter_invalid_event_id():
 
 
 @django_db_all
-def test_validator_strips_event_id_dashes():
+def test_validator_strips_event_id_dashes() -> None:
     report: UserReportDict = {
         "name": "",
         "email": "andrew@example.com",
@@ -180,7 +183,7 @@ def test_validator_strips_event_id_dashes():
 
 
 @django_db_all
-def test_validator_strips_comments_whitespace():
+def test_validator_strips_comments_whitespace() -> None:
     report: UserReportDict = {
         "name": "",
         "email": "andrew@example.com",
@@ -218,15 +221,13 @@ def test_save_user_report_basic(
 
 
 @django_db_all
-def test_save_user_report_filters_denylist(
-    default_project, monkeypatch, skip_filters, mock_report_dict
-):
-    monkeypatch.setattr(
-        "sentry.feedback.usecases.ingest.userreport.is_in_feedback_denylist", lambda org: True
-    )
-    result = save_userreport(
-        default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
-    )
+def test_save_user_report_filters_denylist(default_project, skip_filters, mock_report_dict) -> None:
+    with mock.patch(
+        "sentry.feedback.usecases.ingest.userreport.is_in_feedback_denylist", return_value=True
+    ):
+        result = save_userreport(
+            default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
+        )
 
     assert result is None
 
@@ -246,7 +247,9 @@ def test_save_user_report_filters_missing_required_field(
 
 
 @django_db_all
-def test_save_user_report_missing_name_and_email(default_project, skip_denylist, skip_eventstore):
+def test_save_user_report_missing_name_and_email(
+    default_project, skip_denylist, skip_eventstore
+) -> None:
     report: UserReportDict = {
         "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
         "comments": "hello",
@@ -281,43 +284,39 @@ def test_save_user_report_filters_too_large_fields(
 
 @django_db_all
 def test_save_user_report_shims_if_event_found(
-    default_project, monkeypatch, skip_denylist, skip_filters, mock_report_dict
+    default_project, skip_denylist, skip_filters, mock_report_dict
 ):
     event = _mock_event(default_project.id, "prod")
-    monkeypatch.setattr(
-        "sentry.eventstore.backend.get_event_by_id",
-        lambda project_id, event_id: event,
-    )
+    with (
+        mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=event),
+        mock.patch(
+            "sentry.feedback.usecases.ingest.userreport.shim_to_feedback"
+        ) as mock_shim_to_feedback,
+    ):
 
-    mock_shim_to_feedback = Mock()
-    monkeypatch.setattr(
-        "sentry.feedback.usecases.ingest.userreport.shim_to_feedback", mock_shim_to_feedback
-    )
+        mock_report_dict["event_id"] = event.event_id
 
-    mock_report_dict["event_id"] = event.event_id
-
-    save_userreport(default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE)
+        save_userreport(
+            default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
+        )
     mock_shim_to_feedback.assert_called_once()
 
 
 @django_db_all
 def test_save_user_report_does_not_shim_if_event_found_but_source_is_new_feedback(
-    default_project, monkeypatch, skip_denylist, skip_filters, mock_report_dict
+    default_project, skip_denylist, skip_filters, mock_report_dict
 ):
     event = _mock_event(default_project.id, "prod")
-    monkeypatch.setattr(
-        "sentry.eventstore.backend.get_event_by_id",
-        lambda project_id, event_id: event,
-    )
-
-    mock_shim_to_feedback = Mock()
-    monkeypatch.setattr(
-        "sentry.feedback.usecases.ingest.userreport.shim_to_feedback", mock_shim_to_feedback
-    )
-    # Source is new feedback, so no shim
-    save_userreport(
-        default_project,
-        mock_report_dict,
-        FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-    )
+    with (
+        mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=event),
+        mock.patch(
+            "sentry.feedback.usecases.ingest.userreport.shim_to_feedback"
+        ) as mock_shim_to_feedback,
+    ):
+        # Source is new feedback, so no shim
+        save_userreport(
+            default_project,
+            mock_report_dict,
+            FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
+        )
     assert mock_shim_to_feedback.call_count == 0

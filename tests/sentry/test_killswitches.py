@@ -5,7 +5,7 @@ import pytest
 from sentry.killswitches import normalize_value, value_matches
 
 
-def test_normalize_value():
+def test_normalize_value() -> None:
     assert normalize_value("store.load-shed-group-creation-projects", [1, 2, 3]) == [
         {"project_id": "1", "platform": None},
         {"project_id": "2", "platform": None},
@@ -62,7 +62,7 @@ def test_normalize_value():
         ),
     ),
 )
-def test_value_matches_positive(cfg, value):
+def test_value_matches_positive(cfg, value) -> None:
     cfg = normalize_value("store.load-shed-group-creation-projects", cfg)
     assert value_matches("store.load-shed-group-creation-projects", cfg, value)
 
@@ -96,6 +96,6 @@ def test_value_matches_positive(cfg, value):
         ),
     ),
 )
-def test_value_matches_negative(cfg, value):
+def test_value_matches_negative(cfg, value) -> None:
     cfg = normalize_value("store.load-shed-group-creation-projects", cfg)
     assert not value_matches("store.load-shed-group-creation-projects", cfg, value)

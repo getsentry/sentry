@@ -8,7 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class GetFacetsTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.project = self.create_project()

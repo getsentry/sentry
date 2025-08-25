@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from django.test.utils import override_settings
@@ -12,18 +12,19 @@ from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
+from sentry.monitors.utils import get_detector_for_monitor
 from sentry.quotas.base import SeatAssignmentResult
-from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils.outcomes import Outcome
+from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 class ListOrganizationMonitorsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -365,12 +366,12 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
     @patch("sentry.analytics.record")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: MagicMock) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -402,6 +403,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             data={"upsert": False, **monitor.get_audit_log_data()},
         )
 
+        assert get_detector_for_monitor(monitor) is not None
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
 
@@ -527,7 +529,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert Monitor.objects.get(slug=response.data["slug"]).config["checkin_margin"] == 1
 
     @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_assigns_seat(self, assign_monitor_seat):
+    def test_create_monitor_assigns_seat(self, assign_monitor_seat: MagicMock) -> None:
         assign_monitor_seat.return_value = Outcome.ACCEPTED
 
         data = {
@@ -544,7 +546,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_without_seat(self, assign_monitor_seat):
+    def test_create_monitor_without_seat(self, assign_monitor_seat: MagicMock) -> None:
         assign_monitor_seat.return_value = Outcome.RATE_LIMITED
 
         data = {
@@ -577,7 +579,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -665,7 +667,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         assert monitor_two.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.check_assign_monitor_seats")
-    def test_enable_no_quota(self, check_assign_monitor_seats):
+    def test_enable_no_quota(self, check_assign_monitor_seats: MagicMock) -> None:
         monitor_one = self._create_monitor(slug="monitor_one", status=ObjectStatus.DISABLED)
         monitor_two = self._create_monitor(slug="monitor_two", status=ObjectStatus.DISABLED)
         result = SeatAssignmentResult(

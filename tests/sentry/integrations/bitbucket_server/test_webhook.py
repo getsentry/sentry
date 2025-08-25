@@ -1,6 +1,6 @@
 from time import time
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
@@ -22,7 +22,7 @@ PROVIDER = "bitbucket_server"
 class WebhookTestBase(APITestCase):
     endpoint = "sentry-extensions-bitbucketserver-webhook"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.base_url = "https://api.bitbucket.org"
@@ -120,7 +120,7 @@ class RefsChangedWebhookTest(WebhookTestBase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
 
@@ -129,21 +129,30 @@ class RefsChangedWebhookTest(WebhookTestBase):
 
         assert_success_metric(mock_record)
 
-    @patch("sentry.integrations.bitbucket_server.webhook.PushEventWebhook.__call__")
+    @patch("sentry.integrations.bitbucket_server.client.BitbucketServerClient.get_commits")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_webhook_error_metric(self, mock_record, mock_event):
+    def test_webhook_error_metric(
+        self, mock_record: MagicMock, mock_get_commits: MagicMock
+    ) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
 
         self.create_repository()
 
         error = Exception("error")
-        mock_event.side_effect = error
+        mock_get_commits.side_effect = error
 
         self.get_error_response(
             self.organization.id,
             self.integration.id,
-            raw_data=REFS_CHANGED_EXAMPLE,
+            raw_data={
+                "changes": [{"fromHash": "hash1", "toHash": "hash2"}],
+                "repository": {
+                    "id": "{b128e0f6-196a-4dde-b72d-f42abc6dc239}",
+                    "project": {"key": "my-project"},
+                    "slug": "breaking-changes",
+                },
+            },
             extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
             status_code=500,
         )

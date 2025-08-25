@@ -11,7 +11,7 @@ class BaseFetchProjectsWithRecentSessionsTest(TestCase, BaseMetricsTestCase):
 
     backend_class: type[BaseReleaseMonitorBackend]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.project1 = self.create_project()
@@ -80,7 +80,7 @@ class BaseFetchProjectReleaseHealthTotalsTest(TestCase, BaseMetricsTestCase):
 
     backend_class: type[BaseReleaseMonitorBackend]
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.project1 = self.create_project()
         self.project2 = self.create_project()
         self.environment1 = self.create_environment(project=self.project1)

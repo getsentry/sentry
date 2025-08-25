@@ -83,7 +83,7 @@ def resolve_axis_column(
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return (
@@ -167,6 +167,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 organization=organization,
                 query_string=query,
                 sampling_mode=sampling_mode,
+                debug=request.user.is_superuser and "debug" in request.GET,
             )
 
             if check_global_views:
@@ -214,7 +215,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
 
     def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
@@ -349,7 +350,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
                 full_scan = meta.pop("full_scan", None)
-                query = meta.pop("query", None)
+                debug_info = meta.pop("debug_info", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -372,8 +373,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     meta["dataScanned"] = "full"
 
                 # Only appears in meta when debug is passed to the endpoint
-                if query:
-                    meta["query"] = query
+                if debug_info:
+                    meta["debug_info"] = debug_info
             else:
                 meta = fields_meta
 

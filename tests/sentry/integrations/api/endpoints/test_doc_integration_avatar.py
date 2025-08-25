@@ -16,7 +16,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class DocIntegrationAvatarTest(APITestCase):
     endpoint = "sentry-api-0-doc-integration-avatar"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user(email="peter@marvel.com", is_superuser=True)
         self.superuser = self.create_user(email="gwen@marvel.com", is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)

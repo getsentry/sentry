@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 
 class TestUpdateNotificationMessageConstraintsForActionGroupOpenPeriod(TestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Metric Alert
         self.project = self.create_project()
         self.incident = self.create_incident()

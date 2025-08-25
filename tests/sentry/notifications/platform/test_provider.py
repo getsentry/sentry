@@ -19,7 +19,7 @@ from sentry.testutils.notifications.platform import MockNotification
 
 
 class NotificationProviderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.data = MockNotification(message="test")
         self.slack_integration = self.create_integration(
             organization=self.organization, provider="slack", external_id="ext-123"

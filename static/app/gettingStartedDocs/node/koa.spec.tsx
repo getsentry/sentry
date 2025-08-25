@@ -8,7 +8,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './koa';
 
-describe('koa onboarding docs', function () {
+describe('koa onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
@@ -52,6 +52,14 @@ describe('koa onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
+  });
+
+  it('enables logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
   });
 
   it('enables performance setting the tracesSampleRate to 1', () => {

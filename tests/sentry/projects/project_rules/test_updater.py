@@ -21,7 +21,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class TestUpdater(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.org = self.create_organization(name="bloop", owner=self.user)
         self.project = self.create_project(

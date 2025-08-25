@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid1
 
 import pytest
@@ -96,7 +96,7 @@ class OptionsStoreTest(TestCase):
 
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     @patch("sentry.options.store.time")
-    def test_key_with_grace(self, mocked_time):
+    def test_key_with_grace(self, mocked_time: MagicMock) -> None:
         store, key = self.store, self.make_key(10, 10)
 
         mocked_time.return_value = 0
@@ -116,7 +116,7 @@ class OptionsStoreTest(TestCase):
 
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     @patch("sentry.options.store.time")
-    def test_key_ttl(self, mocked_time):
+    def test_key_ttl(self, mocked_time: MagicMock) -> None:
         store, key = self.store, self.make_key(10, 0)
 
         mocked_time.return_value = 0
@@ -140,7 +140,7 @@ class OptionsStoreTest(TestCase):
         assert store.get(key) == "lol"
 
     @patch("sentry.options.store.time")
-    def test_clean_local_cache(self, mocked_time):
+    def test_clean_local_cache(self, mocked_time: MagicMock) -> None:
         store = self.store
 
         mocked_time.return_value = 0

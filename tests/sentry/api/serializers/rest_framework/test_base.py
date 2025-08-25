@@ -60,7 +60,7 @@ class CamelSnakeModelSerializerTest(TestCase):
         }
 
 
-def test_convert_dict_key_case():
+def test_convert_dict_key_case() -> None:
     camelData = {
         "appLabel": "hello",
         "model": "Something",

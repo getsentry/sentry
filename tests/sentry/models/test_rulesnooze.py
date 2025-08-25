@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class RuleSnoozeTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.issue_alert_rule = Rule.objects.create(
             label="test rule", project=self.project, owner_team=self.team
         )

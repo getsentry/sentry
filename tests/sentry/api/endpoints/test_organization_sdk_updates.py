@@ -8,7 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.project2 = self.create_project(organization=self.organization)
@@ -17,13 +17,13 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-sdk-updates",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     @mock.patch(
         "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
-    def test_simple(self, mock_index_state):
+    def test_simple(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -54,7 +54,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "1.0.1"}),
     )
-    def test_ignores_patch(self, mock_index_state):
+    def test_ignores_patch(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -110,7 +110,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
-    def test_multiple_versions_with_latest(self, mock_index_state):
+    def test_multiple_versions_with_latest(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -156,7 +156,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
-    def test_unknown_version(self, mock_index_state):
+    def test_unknown_version(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -191,7 +191,7 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         "sentry.api.endpoints.organization_sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
     )
-    def test_empty_version_sdk_name(self, mock_index_state):
+    def test_empty_version_sdk_name(self, mock_index_state: mock.MagicMock) -> None:
         min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={
@@ -225,12 +225,12 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
 class OrganizationSdks(APITestCase):
     endpoint = "sentry-api-0-organization-sdks"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
     @mock.patch("sentry.api.endpoints.organization_sdk_updates.get_sdk_index", return_value={})
-    def test_sdks_empty(self, mocked_sdk_index):
+    def test_sdks_empty(self, mocked_sdk_index: mock.MagicMock) -> None:
         response = self.get_error_response(self.organization.slug)
 
         assert mocked_sdk_index.call_count == 1
@@ -249,7 +249,7 @@ class OrganizationSdks(APITestCase):
             }
         },
     )
-    def test_sdks_contains_sdk(self, mocked_sdk_index):
+    def test_sdks_contains_sdk(self, mocked_sdk_index: mock.MagicMock) -> None:
         response = self.get_success_response(self.organization.slug)
 
         assert mocked_sdk_index.call_count == 1
@@ -259,7 +259,7 @@ class OrganizationSdks(APITestCase):
         "sentry.api.endpoints.organization_sdk_updates.get_sdk_index",
         side_effect=Exception("Something went wrong"),
     )
-    def test_sdks_error(self, mocked_sdk_index):
+    def test_sdks_error(self, mocked_sdk_index: mock.MagicMock) -> None:
         response = self.get_error_response(self.organization.slug, status_code=500)
 
         assert mocked_sdk_index.call_count == 1

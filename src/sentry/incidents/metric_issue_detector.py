@@ -80,9 +80,12 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        conditions = attrs.get("condition_group", {}).get("conditions")
-        if len(conditions) > 2:
-            raise serializers.ValidationError("Too many conditions")
+
+        if "condition_group" in attrs:
+            conditions = attrs.get("condition_group", {}).get("conditions")
+            if len(conditions) > 2:
+                raise serializers.ValidationError("Too many conditions")
+
         return attrs
 
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
@@ -128,9 +131,10 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)
 
-        data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
-        if data_source:
-            self.update_data_source(instance, data_source)
+        if "data_source" in validated_data:
+            data_source: SnubaQueryDataSourceType = validated_data.pop("data_source")
+            if data_source:
+                self.update_data_source(instance, data_source)
 
         instance.save()
         return instance

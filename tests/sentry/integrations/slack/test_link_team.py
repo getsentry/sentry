@@ -26,7 +26,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class SlackIntegrationLinkTeamTestBase(TestCase):
     url: str
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -115,7 +115,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
 
 
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = build_team_linking_url(
             integration=self.integration,
@@ -242,7 +242,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
 
 
 class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.link_team()

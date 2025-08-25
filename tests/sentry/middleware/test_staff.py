@@ -32,7 +32,7 @@ class End2EndTest(APITestCase):
     endpoint = "test-endpoint"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def test_as_superuser(self) -> None:

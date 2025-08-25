@@ -788,7 +788,7 @@ class FromRequestTest(AccessFactoryTestCase):
 
 @all_silo_test
 class FromSentryAppTest(AccessFactoryTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         # Partner's normal Sentry account.

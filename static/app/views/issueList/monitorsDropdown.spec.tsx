@@ -2,8 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MonitorsDropdown} from './monitorsDropdown';
 
-describe('MonitorsDropdown', function () {
-  beforeEach(function () {
+describe('MonitorsDropdown', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/monitors-count/',
       body: {
@@ -19,7 +19,7 @@ describe('MonitorsDropdown', function () {
     });
   });
 
-  it('displays correct counts and links', async function () {
+  it('displays correct counts and links', async () => {
     render(<MonitorsDropdown />);
 
     const dropdown = await screen.findByRole('button', {name: '7 Monitors'});

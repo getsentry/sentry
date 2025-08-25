@@ -55,7 +55,7 @@ class OrganizationRelayHistoryTest(APITestCase):
             },
         ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         for relay_data in self._history_fixture():
             RelayUsage.objects.create(**relay_data)
 

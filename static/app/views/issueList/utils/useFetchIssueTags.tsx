@@ -12,10 +12,10 @@ import {
   ISSUE_CATEGORY_TO_DESCRIPTION,
   IssueCategory,
   PriorityLevel,
-  type Tag,
-  type TagCollection,
   VALID_ISSUE_CATEGORIES_V2,
   VISIBLE_ISSUE_TYPES,
+  type Tag,
+  type TagCollection,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {escapeIssueTagKey} from 'sentry/utils';
@@ -23,6 +23,7 @@ import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {
   FieldKey,
   FieldKind,
+  getIsFieldDescriptionFromValue,
   IsFieldValues,
   ISSUE_EVENT_PROPERTY_FIELDS,
   ISSUE_FIELDS,
@@ -254,7 +255,15 @@ function builtInIssuesFields({
       ...PREDEFINED_FIELDS[FieldKey.IS],
       key: FieldKey.IS,
       name: 'Status',
-      values: Object.values(IsFieldValues),
+      values: Object.values(IsFieldValues).map(value => ({
+        icon: null,
+        title: value,
+        name: value,
+        documentation: getIsFieldDescriptionFromValue(value),
+        value,
+        type: ItemType.TAG_VALUE,
+        children: [],
+      })),
       maxSuggestedValues: Object.values(IsFieldValues).length,
       predefined: true,
     },

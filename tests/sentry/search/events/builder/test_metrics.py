@@ -96,7 +96,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
         2015, 1, 1, 10, 15, 0, tzinfo=timezone.utc
     ) + datetime.timedelta(minutes=1)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
             hour=10, minute=0, second=0, microsecond=0
@@ -1483,7 +1483,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert math.isnan(data["p50"])
 
     @mock.patch("sentry.search.events.builder.metrics.indexer.resolve", return_value=-1)
-    def test_multiple_references_only_resolve_index_once(self, mock_indexer):
+    def test_multiple_references_only_resolve_index_once(
+        self, mock_indexer: mock.MagicMock
+    ) -> None:
         MetricsQueryBuilder(
             self.params,
             query=f"project:{self.project.slug} transaction:foo_transaction transaction:foo_transaction",
@@ -1616,7 +1618,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         "sentry.search.events.builder.metrics.constants.METRICS_MAP",
         {"mocked_gauge": "g:mock/mocked_gauge@none"},
     )
-    def test_missing_function_implementation_for_metric_type(self, _mocked_function_converter):
+    def test_missing_function_implementation_for_metric_type(
+        self, _mocked_function_converter: mock.MagicMock
+    ) -> None:
         # Mocks count_unique to allow the mocked_gauge column
         # but the metric type does not have a gauge implementation
         with pytest.raises(IncompatibleMetricsQuery) as err:

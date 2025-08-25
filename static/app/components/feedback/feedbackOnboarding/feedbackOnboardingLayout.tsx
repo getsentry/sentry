@@ -19,8 +19,7 @@ export function FeedbackOnboardingLayout({
   docsConfig,
   dsn,
   platformKey,
-  projectId,
-  projectSlug,
+  project,
   newOrg,
   projectKeyId,
   configType = 'onboarding',
@@ -45,8 +44,7 @@ export function FeedbackOnboardingLayout({
       dsn,
       organization,
       platformKey,
-      projectId,
-      projectSlug,
+      project,
       isLogsSelected: false,
       isFeedbackSelected: true,
       isPerformanceSelected: false,
@@ -78,8 +76,7 @@ export function FeedbackOnboardingLayout({
     newOrg,
     organization,
     platformKey,
-    projectId,
-    projectSlug,
+    project,
     registryData,
     selectedOptions,
     configType,
@@ -97,7 +94,7 @@ export function FeedbackOnboardingLayout({
     hideFeedbackConfigTogglePlatforms.includes(platformKey);
 
   return (
-    <AuthTokenGeneratorProvider projectSlug={projectSlug}>
+    <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         {introduction && <Introduction>{introduction}</Introduction>}
         <Steps>

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -11,7 +11,7 @@ class AuthLoginEndpointTest(APITestCase):
     endpoint = "sentry-api-0-auth-login"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         # Requests to set the test cookie
         self.client.get(reverse("sentry-api-0-auth-config"))
 
@@ -38,7 +38,7 @@ class AuthLoginEndpointTest(APITestCase):
         autospec=True,
         return_value=True,
     )
-    def test_login_ratelimit(self, is_limited):
+    def test_login_ratelimit(self, is_limited: MagicMock) -> None:
         response = self.get_error_response(
             username=self.user.username, password="admin", status_code=400
         )

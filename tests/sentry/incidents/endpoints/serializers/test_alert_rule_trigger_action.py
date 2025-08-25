@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -119,7 +119,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
         return_value=AlertTarget("123", "test"),
     )
-    def test_pagerduty_priority(self, mock_get):
+    def test_pagerduty_priority(self, mock_get: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         priority = "critical"
@@ -142,7 +142,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         "sentry.incidents.logic.get_alert_rule_trigger_action_opsgenie_team",
         return_value=AlertTarget("123", "test"),
     )
-    def test_opsgenie_priority(self, mock_get):
+    def test_opsgenie_priority(self, mock_get: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         priority = "critical"

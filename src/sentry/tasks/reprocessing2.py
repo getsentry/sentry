@@ -6,9 +6,9 @@ from django.conf import settings
 from django.db import router, transaction
 
 from sentry import eventstore, eventstream, nodestore
-from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.process_buffer import buffer_incr
@@ -17,7 +17,7 @@ from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
-from sentry.utils.query import celery_run_batch_query
+from sentry.utils.query import CeleryBulkQueryState, celery_run_batch_query
 
 
 @instrumented_task(
@@ -36,7 +36,7 @@ def reprocess_group(
     group_id: int,
     remaining_events: str = "delete",
     new_group_id: int | None = None,
-    query_state: str | None = None,
+    query_state: CeleryBulkQueryState | None = None,
     start_time: float | None = None,
     max_events: int | None = None,
     acting_user_id: int | None = None,

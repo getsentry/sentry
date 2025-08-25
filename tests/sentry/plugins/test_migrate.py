@@ -26,7 +26,7 @@ class MigratorTest(TestCase):
         yield
         plugins.unregister(ExamplePlugin)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.organization = self.create_organization()

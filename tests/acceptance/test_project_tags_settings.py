@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -23,7 +23,7 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
         self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/tags/"
 
     @patch("django.utils.timezone.now", return_value=current_time)
-    def test_tags_list(self, mock_timezone):
+    def test_tags_list(self, mock_timezone: MagicMock) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,

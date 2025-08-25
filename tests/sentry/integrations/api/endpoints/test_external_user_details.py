@@ -6,7 +6,7 @@ class ExternalUserDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-external-user-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.external_user = self.create_external_user(

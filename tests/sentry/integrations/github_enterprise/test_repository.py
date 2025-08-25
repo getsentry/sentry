@@ -11,7 +11,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class GitHubEnterpriseRepositoryTest(TestCase):
     _IP_ADDRESS = "35.232.149.196"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,

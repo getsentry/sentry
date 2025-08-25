@@ -19,7 +19,7 @@ class TestSentryAppAuthorizations(APITestCase):
     endpoint = "sentry-api-0-sentry-app-installation-authorizations"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(
             name="nulldb",
             organization=self.create_organization(),

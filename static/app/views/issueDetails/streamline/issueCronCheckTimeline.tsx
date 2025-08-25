@@ -12,7 +12,6 @@ import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -204,15 +203,17 @@ const ChartContainer = styled('div')<{envCount: number}>`
   position: relative;
   width: 100%;
   min-height: ${p => Math.max(p.envCount - 1, 0) * totalHeight + 104}px;
+  padding-left: ${p => p.theme.space.lg};
+  padding-right: ${p => p.theme.space.lg};
 `;
 
 const TimelineLegend = styled('div')`
   position: absolute;
-  width: 100%;
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
   user-select: none;
   display: flex;
-  gap: ${space(1)};
-  margin-top: ${space(1.5)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.lg};
 `;
 
 const TimelineLegendText = styled('div')`
@@ -223,7 +224,9 @@ const TimelineLegendText = styled('div')`
 const TimelineContainer = styled('div')`
   position: absolute;
   top: 36px;
-  width: 100%;
+  left: ${p => p.theme.space.lg};
+  right: ${p => p.theme.space.lg};
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
 `;
 
 const EnvironmentLabel = styled(Tooltip)`
@@ -244,4 +247,5 @@ const IssueGridLineOverlay = styled(GridLineOverlay)<{envCount: number}>`
   ${Gridline} {
     top: ${p => Math.max(p.envCount - 1, 0) * totalHeight + 68}px;
   }
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
 `;

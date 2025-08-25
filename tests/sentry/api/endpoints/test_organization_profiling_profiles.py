@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.http import HttpResponse
@@ -22,7 +22,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase, SpanTestCase):
         "organizations:profiling": True,
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
         self.ten_mins_ago = before_now(minutes=10)
@@ -926,7 +926,7 @@ class OrganizationProfilingChunksTest(APITestCase):
         "organizations:global-views": True,
     }
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
@@ -956,7 +956,9 @@ class OrganizationProfilingChunksTest(APITestCase):
     )
     @patch("sentry.profiles.profile_chunks.raw_snql_query")
     @freeze_time("2024-07-11 00:00:00")
-    def test_proxies_to_profiling_service(self, mock_raw_snql_query, mock_proxy_profiling_service):
+    def test_proxies_to_profiling_service(
+        self, mock_raw_snql_query: MagicMock, mock_proxy_profiling_service: MagicMock
+    ) -> None:
         profiler_id = uuid4().hex
 
         chunk_ids = [uuid4().hex for _ in range(3)]

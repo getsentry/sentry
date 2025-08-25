@@ -25,7 +25,7 @@ from sentry.utils.samples import load_data
 
 
 class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         with assume_test_silo_mode_of(User):
@@ -650,7 +650,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
 
 
 class DiscoverSavedQueryDatasetSplitDryRunTestCase(DiscoverSavedQueryDatasetSplitTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.dry_run = True
 

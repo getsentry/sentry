@@ -1,13 +1,13 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 
 
-@apply_feature_flag_on_cls("organizations:seer-explorer")
-@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@with_feature("organizations:seer-explorer")
+@with_feature("organizations:gen-ai-features")
 class OrganizationSeerExplorerChatEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"
@@ -24,7 +24,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         assert response.data == {"session": None}
 
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_state")
-    def test_get_with_run_id_calls_seer(self, mock_call_seer_state):
+    def test_get_with_run_id_calls_seer(self, mock_call_seer_state: MagicMock) -> None:
         mock_response = {
             "session": {
                 "run_id": 123,
@@ -110,7 +110,9 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         return_value=True,
     )
     @patch("sentry.seer.endpoints.organization_seer_explorer_chat._call_seer_explorer_chat")
-    def test_post_with_all_parameters(self, mock_call_seer_chat, mock_get_seer_org_acknowledgement):
+    def test_post_with_all_parameters(
+        self, mock_call_seer_chat: MagicMock, mock_get_seer_org_acknowledgement: MagicMock
+    ) -> None:
         mock_response = {"run_id": 789, "message": {}}
         mock_call_seer_chat.return_value = mock_response
 
@@ -149,7 +151,9 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
         "sentry.seer.endpoints.organization_seer_explorer_chat.get_seer_org_acknowledgement",
         return_value=False,
     )
-    def test_post_without_acknowledgement_returns_403(self, mock_get_seer_org_acknowledgement):
+    def test_post_without_acknowledgement_returns_403(
+        self, mock_get_seer_org_acknowledgement: MagicMock
+    ) -> None:
         data = {"query": "Test query"}
         response = self.client.post(self.url, data, format="json")
 
@@ -161,7 +165,7 @@ class OrganizationSeerExplorerChatEndpointTest(APITestCase):
 class OrganizationSeerExplorerChatEndpointFeatureFlagTest(APITestCase):
     """Test feature flag requirements separately without the decorator"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.url = f"/api/0/organizations/{self.organization.slug}/seer/explorer-chat/"

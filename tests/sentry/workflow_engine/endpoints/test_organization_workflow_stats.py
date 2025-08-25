@@ -14,7 +14,7 @@ pytestmark = [requires_snuba]
 class WorkflowStatsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-workflow-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.workflow = self.create_workflow(organization=self.organization)
@@ -28,6 +28,7 @@ class WorkflowStatsEndpointTest(APITestCase):
                         workflow=self.workflow,
                         group=self.group,
                         date_added=before_now(hours=i + 1),
+                        is_single_written=True,
                     )
                 )
 
@@ -37,6 +38,7 @@ class WorkflowStatsEndpointTest(APITestCase):
                     workflow=self.workflow_2,
                     group=self.group,
                     date_added=before_now(hours=i + 1),
+                    is_single_written=True,
                 )
             )
 

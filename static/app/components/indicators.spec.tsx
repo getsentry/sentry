@@ -17,17 +17,17 @@ jest.mock('framer-motion', () => ({
   AnimatePresence: jest.fn(({children}) => children),
 }));
 
-describe('Indicators', function () {
-  beforeEach(function () {
+describe('Indicators', () => {
+  beforeEach(() => {
     act(() => clearIndicators());
   });
 
-  it('renders nothing by default', function () {
+  it('renders nothing by default', () => {
     const {container} = render(<Indicators />);
     expect(container).toHaveTextContent('');
   });
 
-  it('has a loading indicator by default', function () {
+  it('has a loading indicator by default', () => {
     const {container} = render(<Indicators />);
     // when "type" is empty, we should treat it as loading state
 
@@ -36,7 +36,7 @@ describe('Indicators', function () {
     expect(container).toHaveTextContent('Loading');
   });
 
-  it('adds and removes a toast by calling IndicatorStore directly', function () {
+  it('adds and removes a toast by calling IndicatorStore directly', () => {
     const {container} = render(<Indicators />);
 
     // when "type" is empty, we should treat it as loading state
@@ -53,7 +53,7 @@ describe('Indicators', function () {
   });
 
   // This is a common pattern used throughout the code for API calls
-  it('adds and replaces toast by calling IndicatorStore directly', function () {
+  it('adds and replaces toast by calling IndicatorStore directly', () => {
     const {container} = render(<Indicators />);
 
     act(() => void IndicatorStore.add('Loading'));
@@ -64,7 +64,7 @@ describe('Indicators', function () {
     expect(container).toHaveTextContent('success');
   });
 
-  it('does not have loading indicator when "type" is empty (default)', function () {
+  it('does not have loading indicator when "type" is empty (default)', () => {
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Loading', '', {duration: null}));
@@ -72,7 +72,7 @@ describe('Indicators', function () {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
-  it('has a loading indicator when type is "loading"', function () {
+  it('has a loading indicator when type is "loading"', () => {
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Loading', 'loading', {duration: null}));
@@ -80,7 +80,7 @@ describe('Indicators', function () {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
-  it('adds and removes toast by calling action creators', function () {
+  it('adds and removes toast by calling action creators', () => {
     const {container} = render(<Indicators />);
 
     // action creators don't return anything
@@ -93,7 +93,7 @@ describe('Indicators', function () {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
-  it('adds and replaces toast by calling action creators', function () {
+  it('adds and replaces toast by calling action creators', () => {
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Loading', '', {duration: null}));
@@ -105,7 +105,7 @@ describe('Indicators', function () {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
-  it('adds and replaces toasts by calling action creators helpers', async function () {
+  it('adds and replaces toasts by calling action creators helpers', async () => {
     const {container} = render(<Indicators />);
 
     // Old indicator gets replaced when a new one is added
@@ -122,7 +122,7 @@ describe('Indicators', function () {
     });
   });
 
-  it('appends toasts', function () {
+  it('appends toasts', () => {
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Loading', '', {append: true, duration: null}));
@@ -145,7 +145,7 @@ describe('Indicators', function () {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
-  it('dismisses on click', async function () {
+  it('dismisses on click', async () => {
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Loading', '', {append: true, duration: null}));
@@ -156,7 +156,7 @@ describe('Indicators', function () {
     expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
   });
 
-  it('hides after 10s', function () {
+  it('hides after 10s', () => {
     jest.useFakeTimers();
     const {container} = render(<Indicators />);
 

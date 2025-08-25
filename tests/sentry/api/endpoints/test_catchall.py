@@ -7,7 +7,7 @@ from sentry.testutils.silo import all_silo_test
 
 @all_silo_test
 class CatchallTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def test_simple(self) -> None:

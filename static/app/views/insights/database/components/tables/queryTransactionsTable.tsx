@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -69,9 +69,9 @@ type ValidSort = Sort & {
 
 interface Props {
   data: Row[];
+  groupId: string;
   isLoading: boolean;
   sort: ValidSort;
-  span: Pick<SpanResponse, SpanFields.SPAN_GROUP | SpanFields.SPAN_OP>;
   error?: Error | null;
   meta?: EventsMetaType;
   pageLinks?: string;
@@ -84,7 +84,7 @@ export function QueryTransactionsTable({
   meta,
   pageLinks,
   sort,
-  span,
+  groupId,
 }: Props) {
   const theme = useTheme();
   const moduleURL = useModuleURL('db');
@@ -127,7 +127,7 @@ export function QueryTransactionsTable({
               column,
               row,
               meta,
-              span,
+              groupId,
               location,
               organization,
               theme
@@ -145,7 +145,7 @@ function renderBodyCell(
   column: Column,
   row: Row,
   meta: EventsMetaType | undefined,
-  span: Pick<SpanResponse, SpanFields.SPAN_GROUP | SpanFields.SPAN_OP>,
+  groupId: string,
   location: Location,
   organization: Organization,
   theme: Theme
@@ -156,7 +156,7 @@ function renderBodyCell(
         ? `${row['transaction.method']} ${row.transaction}`
         : row.transaction;
 
-    const pathname = `${moduleURL}/spans/span/${encodeURIComponent(span[SpanFields.SPAN_GROUP])}`;
+    const pathname = `${moduleURL}/spans/span/${encodeURIComponent(groupId)}`;
 
     const query: Record<string, string | undefined> = {
       ...location.query,
@@ -176,15 +176,12 @@ function renderBodyCell(
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
-  const rendered = renderer(
-    {...row, 'span.op': span['span.op']},
-    {
-      location,
-      organization,
-      unit: meta.units?.[column.key],
-      theme,
-    }
-  );
+  const rendered = renderer(row, {
+    location,
+    organization,
+    unit: meta.units?.[column.key],
+    theme,
+  });
 
   return rendered;
 }

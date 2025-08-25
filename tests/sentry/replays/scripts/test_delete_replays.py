@@ -70,7 +70,7 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
         replay_recordings = ReplayRecordingSegment.objects.filter(replay_id=replay_id)
         assert len(replay_recordings) == 5  # we create 5 segments for each replay in this test
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.other_project = self.create_project(name="some_project")

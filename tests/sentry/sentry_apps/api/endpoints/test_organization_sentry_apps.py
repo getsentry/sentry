@@ -14,7 +14,7 @@ def assert_response_json(response, data):
 
 
 class OrganizationSentryAppsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)

@@ -1,10 +1,10 @@
 from collections.abc import Sequence
 from datetime import datetime
 
-from sentry.eventstore.models import GroupEvent
 from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.types.group import PriorityLevel
 
@@ -21,9 +21,6 @@ class NewHighPriorityIssueCondition(EventCondition):
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         is_new = self.is_new(state)
-        if not event.project.flags.has_high_priority_alerts:
-            return is_new
-
         return is_new and event.group.priority == PriorityLevel.HIGH
 
     def get_activity(

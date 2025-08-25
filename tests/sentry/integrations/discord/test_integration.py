@@ -24,7 +24,7 @@ from sentry.testutils.silo import control_silo_test
 class DiscordSetupTestCase(IntegrationTestCase):
     provider = DiscordIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.application_id = "application-id"
         self.public_key = "public-key"
@@ -256,7 +256,7 @@ class DiscordSetupIntegrationTest(DiscordSetupTestCase):
 
 
 class DiscordIntegrationTest(DiscordSetupTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user_id = "user1234"
         self.guild_id = "12345"
@@ -423,7 +423,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
-    def test_post_install(self, mock_set_application_command):
+    def test_post_install(self, mock_set_application_command: mock.MagicMock) -> None:
         provider = self.provider()
 
         responses.add(
@@ -444,7 +444,9 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         assert mock_set_application_command.call_count == 3  # one for each command
 
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
-    def test_post_install_missing_credentials(self, mock_set_application_command):
+    def test_post_install_missing_credentials(
+        self, mock_set_application_command: mock.MagicMock
+    ) -> None:
         provider = self.provider()
         provider.application_id = None
         provider.post_install(

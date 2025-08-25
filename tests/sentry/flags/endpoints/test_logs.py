@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-logs"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.id,))
@@ -361,7 +361,7 @@ class OrganizationFlagLogIndexEndpointTestCase(APITestCase):
 class OrganizationFlagLogDetailsEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-flag-log"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.flag = FlagAuditLogModel(
             action=0,

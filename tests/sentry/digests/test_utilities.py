@@ -10,11 +10,11 @@ from sentry.digests.utils import (
     get_personalized_digests,
     sort_records,
 )
-from sentry.eventstore.models import Event
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -128,7 +128,7 @@ def assert_get_personalized_digests(
 
 
 class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user1 = self.create_user()
         self.user2 = self.create_user()

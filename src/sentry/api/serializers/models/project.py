@@ -27,7 +27,6 @@ from sentry.dynamic_sampling.utils import (
     has_dynamic_sampling,
     is_project_mode_sampling,
 )
-from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
@@ -45,6 +44,7 @@ from sentry.models.userreport import UserReport
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.search.events.types import SnubaParams
+from sentry.services.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.snuba import discover
 from sentry.tempest.utils import has_tempest_access
 from sentry.users.models.user import User
@@ -285,6 +285,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasInsightsLlmMonitoring: bool
     hasInsightsAgentMonitoring: bool
     hasInsightsMCP: bool
+    hasLogs: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -554,6 +555,7 @@ class ProjectSerializer(Serializer):
             "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
             "hasInsightsAgentMonitoring": bool(obj.flags.has_insights_agent_monitoring),
             "hasInsightsMCP": bool(obj.flags.has_insights_mcp),
+            "hasLogs": bool(obj.flags.has_logs),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -790,6 +792,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
             hasInsightsAgentMonitoring=bool(obj.flags.has_insights_agent_monitoring),
             hasInsightsMCP=bool(obj.flags.has_insights_mcp),
+            hasLogs=bool(obj.flags.has_logs),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
@@ -1124,6 +1127,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
                 options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
+            ),
+            f"filters:{FilterTypes.LOG_MESSAGES}": "\n".join(
+                options.get(f"sentry:{FilterTypes.LOG_MESSAGES}", [])
             ),
             "feedback:branding": options.get("feedback:branding", "1") == "1",
             "sentry:feedback_user_report_notifications": bool(

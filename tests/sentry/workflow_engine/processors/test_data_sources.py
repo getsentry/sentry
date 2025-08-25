@@ -18,7 +18,7 @@ class TestProcessDataSources(BaseWorkflowTest):
             **kwargs,
         )
 
-    def setUp(self):
+    def setUp(self) -> None:
         # check that test_base registers the data_source_type_registry
         assert isinstance(data_source_type_registry.get("test"), mock.Mock)
 

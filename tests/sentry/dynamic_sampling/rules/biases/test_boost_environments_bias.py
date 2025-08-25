@@ -4,7 +4,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_generate_bias_rules_v2(default_project):
+def test_generate_bias_rules_v2(default_project) -> None:
     rules = BoostEnvironmentsBias().generate_rules(project=default_project, base_sample_rate=0.1)
     assert rules == [
         {

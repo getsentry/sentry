@@ -5,7 +5,7 @@ class ProjectFilterDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-filters-details"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

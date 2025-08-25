@@ -24,7 +24,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 
 
 class DebugFilesTestCases(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
@@ -285,7 +285,7 @@ class DebugFilesTest(DebugFilesTestCases):
 
 
 class AssociateDebugFilesTest(DebugFilesTestCases):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.associate_url = reverse(
             "sentry-api-0-associate-dsym-files",
@@ -352,7 +352,7 @@ class AssociateDebugFilesTest(DebugFilesTestCases):
 
 
 class SourceMapsEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = reverse(
             "sentry-api-0-source-maps",
             kwargs={

@@ -5,7 +5,7 @@ from sentry.sentry_apps.api.parsers.schema import validate_ui_element_schema
 
 
 class TestSchemaValidation(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.schema = {
             "elements": [
                 {

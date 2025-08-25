@@ -10,9 +10,9 @@ import {
 import {joinTeamPromise, leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -25,11 +25,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -165,13 +165,14 @@ function AddMemberDropdown({
               })
       }
       menuHeaderTrailingItems={
-        <StyledCreateMemberLink
-          to=""
+        <Button
+          size="zero"
+          priority="link"
           onClick={() => openInviteMembersModal({source: 'teams'})}
           data-test-id="invite-member"
         >
           {t('Invite Member')}
-        </StyledCreateMemberLink>
+        </Button>
       }
       data-test-id="add-member-menu"
       disabled={isDropdownDisabled}
@@ -404,10 +405,6 @@ const StyledUserListElement = styled('div')`
 const StyledNameOrEmail = styled('div')`
   font-size: ${p => p.theme.fontSize.sm};
   ${p => p.theme.overflowEllipsis};
-`;
-
-const StyledCreateMemberLink = styled(Link)`
-  text-transform: initial;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`

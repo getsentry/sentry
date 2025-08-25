@@ -13,7 +13,7 @@ from sentry.testutils.silo import control_silo_test
 class ApiAuthorizationsTest(APITestCase):
     endpoint = "sentry-api-0-api-authorizations"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -48,7 +48,7 @@ class ApiAuthorizationsListTest(ApiAuthorizationsTest):
 class ApiAuthorizationsDeleteTest(ApiAuthorizationsTest):
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="test@example.com")
         self.login_as(user=self.user)

@@ -5,7 +5,7 @@ from sentry.sentry_apps.api.parsers.schema import validate_component
 
 
 class TestOpenInSchemaValidation(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.schema = {"type": "stacktrace-link", "uri": "/sentry/issue"}
 
     def test_valid_schema(self) -> None:

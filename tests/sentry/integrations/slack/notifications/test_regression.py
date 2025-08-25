@@ -79,11 +79,13 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_regression_performance_issue_block_with_culprit_blocks(self, occurrence):
+    def test_regression_performance_issue_block_with_culprit_blocks(
+        self, occurrence: mock.MagicMock
+    ) -> None:
         """
         Test that a Slack message is sent with the expected payload when a performance issue regresses
         and block kit is enabled.
@@ -105,11 +107,13 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_regression_generic_issue_block_with_culprit_blocks(self, occurrence):
+    def test_regression_generic_issue_block_with_culprit_blocks(
+        self, occurrence: mock.MagicMock
+    ) -> None:
         """
         Test that a Slack message is sent with the expected payload when a generic issue type regresses
         and block kit is enabled.

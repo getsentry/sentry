@@ -143,6 +143,7 @@ function DiscoverLanding() {
     error,
     data: savedQueries = [],
     getResponseHeader,
+    refetch: refreshSavedQueries,
   } = useDiscoverLandingQuery(renderPrebuilt);
 
   const savedQueriesPageLinks = getResponseHeader?.('Link');
@@ -254,6 +255,7 @@ function DiscoverLanding() {
                   location={location}
                   organization={organization}
                   router={router}
+                  refetchSavedQueries={refreshSavedQueries}
                 />
               )}
             </Layout.Main>

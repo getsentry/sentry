@@ -13,7 +13,7 @@ class DisabledMemberViewTest(TestCase):
     def path(self):
         return reverse("sentry-organization-disabled-member", args=[self.org.slug])
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         self.user = self.create_user()

@@ -14,6 +14,32 @@ if TYPE_CHECKING:
     from sentry.db.models.base import Model as SentryModel
 
 
+def is_model_attr_cached(model: Model, attr: str) -> bool:
+    """
+    This method will check to see if the given attribute is already annotated / cached
+    on the given model instance. The primary use case for this method is to determine
+    if django will issue a query to fetch a related attribute or not.
+
+    If the attribute has been prefetched or selected, then this method will return True,
+    otherwise it will return False.
+
+    model `Model`: The model instance to check, this can be any model that's based on `django.db.models.Model`
+    attr `str`: The attribute, as a string, to check if it's cached or prefetched on the django model
+    """
+    is_prefetched = (
+        hasattr(model, "_prefetched_objects_cache") and attr in model._prefetched_objects_cache
+    )
+    field = getattr(type(model), attr)
+
+    if hasattr(field, "is_cached"):
+        is_selected = field.is_cached(model)
+    else:
+        # For regular fields, check if not deferred
+        is_selected = attr not in model.get_deferred_fields()
+
+    return is_prefetched or is_selected
+
+
 def unique_db_instance(
     inst: SentryModel,
     base_value: str,
