@@ -8,16 +8,25 @@ import {
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {QUERY_DATE_RANGE_LIMIT} from 'sentry/views/insights/settings';
+import {
+  OLD_QUERY_DATE_RANGE_LIMIT,
+  QUERY_DATE_RANGE_LIMIT,
+} from 'sentry/views/insights/settings';
 
 const DISABLED_OPTIONS = ['90d'];
 
-export function InsightsDatePicker() {
+export function InsightsModuleDatePageFilter() {
   const organization = useOrganization();
 
   const hasDateRangeQueryLimit = organization.features.includes(
     'insights-query-date-range-limit'
   );
+  const shouldIncreaseDefaultDateRange = organization.features.includes(
+    'dashboards-plan-limits'
+  );
+  const defaultPickableDays = shouldIncreaseDefaultDateRange
+    ? QUERY_DATE_RANGE_LIMIT
+    : OLD_QUERY_DATE_RANGE_LIMIT;
 
   const dateFilterProps: DatePageFilterProps = {};
   if (hasDateRangeQueryLimit) {
@@ -28,12 +37,16 @@ export function InsightsDatePicker() {
         '24h': t('Last 24 hours'),
         '7d': t('Last 7 days'),
         '14d': t('Last 14 days'),
-        '30d': t('Last 30 days'),
+        ...(shouldIncreaseDefaultDateRange
+          ? {
+              '30d': t('Last 30 days'),
+            }
+          : {'30d': <DisabledDateOption value={t('Last 30 days')} />}),
         '90d': <DisabledDateOption value={t('Last 90 days')} />,
       };
     };
 
-    dateFilterProps.maxPickableDays = QUERY_DATE_RANGE_LIMIT;
+    dateFilterProps.maxPickableDays = defaultPickableDays;
     dateFilterProps.isOptionDisabled = ({value}) => {
       if (!DISABLED_OPTIONS.includes(value)) {
         return false;

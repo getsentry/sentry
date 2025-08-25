@@ -5,6 +5,7 @@ import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
@@ -25,7 +26,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {InsightsDatePicker} from 'sentry/views/insights/common/components/insightsDatePicker';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -258,7 +258,7 @@ function EAPOverviewPage() {
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
                   <EnvironmentPageFilter />
-                  <InsightsDatePicker />
+                  <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <InsightsSpanTagProvider>

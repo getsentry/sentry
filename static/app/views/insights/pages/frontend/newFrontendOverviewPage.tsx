@@ -20,7 +20,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {InsightsDatePicker} from 'sentry/views/insights/common/components/insightsDatePicker';
+import {InsightsModuleDatePageFilter} from 'sentry/views/insights/common/components/insightsModuleDatePageFilter';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {OverviewIssuesWidget} from 'sentry/views/insights/common/components/overviewIssuesWidget';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -169,7 +169,7 @@ export function NewFrontendOverviewPage() {
                 <PageFilterBar condensed>
                   <InsightsProjectSelector />
                   <EnvironmentPageFilter />
-                  <InsightsDatePicker />
+                  <InsightsModuleDatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <InsightsSpanTagProvider>

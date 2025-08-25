@@ -6,7 +6,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {SECOND} from 'sentry/utils/formatters';
 import useProjects from 'sentry/utils/useProjects';
-import {InsightsDatePicker} from 'sentry/views/insights/common/components/insightsDatePicker';
+import {InsightsModuleDatePageFilter} from 'sentry/views/insights/common/components/insightsModuleDatePageFilter';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import type {ModuleName} from 'sentry/views/insights/types';
@@ -78,7 +78,7 @@ export function ModulePageFilterBar({
         <PageFilterBar condensed>
           {!disableProjectFilter && <InsightsProjectSelector />}
           <EnvironmentPageFilter />
-          <InsightsDatePicker />
+          <InsightsModuleDatePageFilter />
         </PageFilterBar>
       </div>
       {hasDataWithSelectedProjects && extraFilters}
