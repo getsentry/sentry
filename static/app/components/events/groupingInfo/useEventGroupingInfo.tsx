@@ -1,8 +1,6 @@
 import {t} from 'sentry/locale';
 import {
-  convertVariantFromBackend,
   EventGroupVariantType,
-  isEventGroupVariantType,
   type Event,
   type EventGroupVariant,
 } from 'sentry/types/event';
@@ -68,16 +66,7 @@ export function useEventGroupingInfo({
 
   const groupInfo = hasPerformanceGrouping
     ? generatePerformanceGroupInfo({group, event})
-    : data
-      ? Object.fromEntries(
-          Object.entries(data).map(([key, variant]) => [
-            key,
-            isEventGroupVariantType(variant.type)
-              ? convertVariantFromBackend(variant)
-              : variant,
-          ])
-        )
-      : null;
+    : (data ?? null);
 
   return {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping};
 }
