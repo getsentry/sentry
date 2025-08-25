@@ -257,7 +257,7 @@ const logsOnboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Logs for Flutter are supported in SDK version [code:9.0.0] or higher. You can update your [pubspec:pubspec.yaml] to the matching version:',
+            'Logs for Dart are supported in SDK version [code:9.0.0] or higher. You can update your [pubspec:pubspec.yaml] to the matching version:',
             {
               code: <code />,
               pubspec: <code />,
@@ -304,7 +304,7 @@ const logsOnboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'dart',
-          code: `await SentryFlutter.init(
+          code: `await Sentry.init(
   (options) {
     options.dsn = '${params.dsn.public}';
     // Enable logs to be sent to Sentry
