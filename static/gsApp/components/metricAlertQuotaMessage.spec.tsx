@@ -1,49 +1,70 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import {useMetricDetectorLimit} from 'getsentry/hooks/useMetricDetectorLimit';
+import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 
 import {MetricAlertQuotaMessage} from './metricAlertQuotaMessage';
-
-jest.mock('getsentry/hooks/useMetricDetectorLimit', () => ({
-  useMetricDetectorLimit: jest.fn(),
-}));
 
 jest.mock('getsentry/actionCreators/modal', () => ({
   openUpsellModal: jest.fn(),
 }));
 
-const mockuseMetricDetectorLimit = useMetricDetectorLimit as unknown as jest.Mock;
-
 describe('MetricAlertQuotaMessage', () => {
+  const organization = OrganizationFixture({
+    features: ['workflow-engine-metric-detector-limit'],
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders nothing when hook returns null', () => {
-    mockuseMetricDetectorLimit.mockReturnValue(null);
-
-    const {container} = render(<MetricAlertQuotaMessage />, {
-      organization: OrganizationFixture(),
+  it('renders nothing when subscription has unlimited quota', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      planDetails: {
+        ...SubscriptionFixture({
+          organization,
+        }).planDetails,
+        metricDetectorLimit: -1,
+      },
     });
 
-    expect(container).toBeEmptyDOMElement();
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const {container} = render(<MetricAlertQuotaMessage />, {
+      organization,
+    });
+
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 
   it('renders approaching detectorLimit message with upgrade action', async () => {
-    mockuseMetricDetectorLimit.mockReturnValue({
-      hasReachedLimit: false,
-      detectorLimit: 11,
-      detectorCount: 10,
+    const subscription = SubscriptionFixture({
+      organization,
+      planDetails: {
+        ...SubscriptionFixture({
+          organization,
+        }).planDetails,
+        metricDetectorLimit: 10,
+      },
     });
 
-    const organization = OrganizationFixture({slug: 'acme'});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      headers: {'X-Hits': '9'},
+      body: [],
+    });
 
     render(<MetricAlertQuotaMessage />, {organization});
 
-    expect(await screen.findByText(/used 10 of 11 metric monitors/i)).toBeInTheDocument();
+    expect(await screen.findByText(/used 9 of 10 metric monitors/i)).toBeInTheDocument();
 
     const upgrade = screen.getByRole('button', {name: /upgrade your plan/i});
     await userEvent.click(upgrade);
@@ -55,18 +76,28 @@ describe('MetricAlertQuotaMessage', () => {
   });
 
   it('renders reached detectorLimit message with remove and upgrade actions when at detectorLimit', async () => {
-    mockuseMetricDetectorLimit.mockReturnValue({
-      hasReachedLimit: true,
-      detectorLimit: 20,
-      detectorCount: 20,
+    const subscription = SubscriptionFixture({
+      organization,
+      planDetails: {
+        ...SubscriptionFixture({
+          organization,
+        }).planDetails,
+        metricDetectorLimit: 10,
+      },
     });
 
-    const organization = OrganizationFixture({slug: 'acme'});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      headers: {'X-Hits': '10'},
+      body: [],
+    });
 
     render(<MetricAlertQuotaMessage />, {organization});
 
     expect(
-      screen.getByText(/reached your plan's limit on metric monitors/i)
+      await screen.findByText(/reached your plan's limit on metric monitors/i)
     ).toBeInTheDocument();
 
     // Remove link and upgrade button are present
