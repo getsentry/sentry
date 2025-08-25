@@ -2486,6 +2486,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationPluginDeprecationInfoEndpoint.as_view(),
         name="sentry-api-0-organization-plugin-deprecation-info",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/plugin-deprecation-info/$",
+        OrganizationPluginDeprecationInfoEndpoint.as_view(),
+        name="sentry-api-0-organization-plugin-deprecation-info",
+    ),
 ]
 
 PROJECT_URLS: list[URLPattern | URLResolver] = [
