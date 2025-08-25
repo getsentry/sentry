@@ -9,8 +9,6 @@ from sentry.api.helpers.releases import get_group_ids_resolved_in_release
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
 from sentry.models.group import Group
-from sentry.models.organization import Organization
-from sentry.organizations.services.organization import RpcOrganization
 
 
 @region_silo_endpoint
@@ -21,9 +19,7 @@ class OrganizationIssuesResolvedInReleaseEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationPermission,)
 
-    def get(
-        self, request: Request, organization: Organization | RpcOrganization, version: str
-    ) -> Response:
+    def get(self, request: Request, organization, version) -> Response:
         """
         List issues to be resolved in a particular release
         ``````````````````````````````````````````````````

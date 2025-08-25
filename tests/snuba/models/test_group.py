@@ -185,7 +185,7 @@ def _get_oldest(
 
 @freeze_time()
 class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.project = self.create_project()
         self.event_a = self.store_event(
@@ -333,7 +333,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
 
 @freeze_time()
 class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.project = self.create_project()
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
@@ -481,7 +481,7 @@ class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTe
 
 @freeze_time()
 class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.project = self.create_project()
 

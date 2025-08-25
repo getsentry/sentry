@@ -38,7 +38,7 @@ class DiscordRequestParserTest(TestCase):
             provider="discord",
         )
 
-    def get_parser(self, path: str, data: Mapping[str, Any] | None = None) -> DiscordRequestParser:
+    def get_parser(self, path: str, data: Mapping[str, Any] | None = None):
         if not data:
             data = {}
         self.request = self.factory.post(
@@ -60,7 +60,6 @@ class DiscordRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert response.status_code == status.HTTP_200_OK
-        assert isinstance(response, HttpResponse)
         data = json.loads(response.content)
         assert data == {"type": 1}
         assert len(responses.calls) == 0
@@ -79,7 +78,6 @@ class DiscordRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert isinstance(response, HttpResponse)
         assert not response.content
         assert_no_webhook_payloads()
         assert len(responses.calls) == 0
@@ -96,7 +94,6 @@ class DiscordRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert response.status_code == status.HTTP_200_OK
-        assert isinstance(response, HttpResponse)
         data = json.loads(response.content)
         assert data == {"type": 1}
         assert_no_webhook_payloads()
@@ -245,7 +242,6 @@ class DiscordRequestParserTest(TestCase):
             }
         )
         assert response.status_code == status.HTTP_200_OK
-        assert isinstance(response, HttpResponse)
         assert json.loads(response.content) == parser.async_response_data
 
 

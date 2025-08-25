@@ -42,7 +42,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
 
     def test_detects_n_plus_one_with_unparameterized_query(
         self,
-    ) -> None:
+    ):
         event = get_event("n-plus-one-in-django-index-view-unparameterized")
         assert self.find_problems(event) == [
             PerformanceProblem(
@@ -98,13 +98,13 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
 
     def test_does_not_detect_n_plus_one_with_source_redis_query_with_noredis_detector(
         self,
-    ) -> None:
+    ):
         event = get_event("n-plus-one-in-django-index-view-source-redis")
         assert self.find_problems(event) == []
 
     def test_does_not_detect_n_plus_one_with_repeating_redis_query_with_noredis_detector(
         self,
-    ) -> None:
+    ):
         event = get_event("n-plus-one-in-django-index-view-repeating-redis")
         assert self.find_problems(event) == []
 
@@ -161,7 +161,7 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
 
     def test_n_plus_one_db_detector_has_different_fingerprints_for_different_n_plus_one_events(
         self,
-    ) -> None:
+    ):
         index_n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         new_n_plus_one_event = get_event("n-plus-one-in-django-new-view")
 

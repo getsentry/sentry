@@ -27,13 +27,13 @@ class FeedbackData(TypedDict):
 
 @django_db_all
 class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.project = self.create_project()
         self.organization = self.project.organization
         self._create_standard_feedbacks()
 
-    def _create_standard_feedbacks(self) -> None:
+    def _create_standard_feedbacks(self):
         """Create a standard set of feedbacks for all tests to use."""
         feedback_data: list[FeedbackData] = [
             {
@@ -100,7 +100,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 override_occurrence_data={"type": FeedbackGroup.type_id},
             )
 
-    def test_get_ai_labels_from_tags_retrieves_labels_correctly(self) -> None:
+    def test_get_ai_labels_from_tags_retrieves_labels_correctly(self):
         # Create a query using the function to retrieve AI labels
         query = Query(
             match=Entity(Dataset.IssuePlatform.value),
@@ -138,7 +138,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         }
         assert all_labels == expected_labels
 
-    def test_query_top_ai_labels_by_feedback_count(self) -> None:
+    def test_query_top_ai_labels_by_feedback_count(self):
         result = query_top_ai_labels_by_feedback_count(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
@@ -196,7 +196,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert len(result_no_project) == 0
 
-    def test_query_recent_feedbacks_with_ai_labels(self) -> None:
+    def test_query_recent_feedbacks_with_ai_labels(self):
         result = query_recent_feedbacks_with_ai_labels(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
@@ -277,7 +277,7 @@ class TestFeedbackQuery(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert len(result_no_project) == 0
 
-    def test_query_label_group_counts(self) -> None:
+    def test_query_label_group_counts(self):
         label_groups = [
             ["User Interface", "Performance"],
             ["Authentication", "Security"],

@@ -4,7 +4,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class GroupTagKeyValuesDocs(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         key, value = "foo", "bar"
         event = self.create_event("a", tags={key: value})
 

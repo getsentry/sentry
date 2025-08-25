@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from google.protobuf.json_format import MessageToJson
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     Expression,
@@ -17,8 +18,8 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, ResponseMeta
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, Function
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -41,16 +42,12 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.constants import DOUBLE, MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.sampling import handle_downsample_meta
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import (
-    handle_downsample_meta,
-    set_debug_meta,
-    transform_binary_formula_to_expression,
-)
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key
-from sentry.utils import snuba_rpc
+from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -796,3 +793,65 @@ def has_top_level_trace_condition(
         return False
 
     return False
+
+
+def set_debug_meta(
+    events_meta: EventsMeta,
+    rpc_meta: ResponseMeta,
+    rpc_request: TraceItemTableRequest | TimeSeriesRequest,
+) -> None:
+    """Only done when debug is passed to the events endpoint"""
+    rpc_query = json.loads(MessageToJson(rpc_request))
+
+    events_meta["debug_info"] = {
+        "query.storage_meta.tier": rpc_meta.downsampled_storage_meta.tier,
+        "query": rpc_query,
+    }
+
+
+# TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
+BINARY_FORMULA_OPERATOR_MAP = {
+    Column.BinaryFormula.OP_ADD: Expression.BinaryFormula.OP_ADD,
+    Column.BinaryFormula.OP_SUBTRACT: Expression.BinaryFormula.OP_SUBTRACT,
+    Column.BinaryFormula.OP_MULTIPLY: Expression.BinaryFormula.OP_MULTIPLY,
+    Column.BinaryFormula.OP_DIVIDE: Expression.BinaryFormula.OP_DIVIDE,
+    Column.BinaryFormula.OP_UNSPECIFIED: Expression.BinaryFormula.OP_UNSPECIFIED,
+}
+
+
+def transform_binary_formula_to_expression(
+    column: Column.BinaryFormula,
+) -> Expression.BinaryFormula:
+    """TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point"""
+    return Expression.BinaryFormula(
+        left=transform_column_to_expression(column.left),
+        right=transform_column_to_expression(column.right),
+        op=BINARY_FORMULA_OPERATOR_MAP[column.op],
+        default_value_double=column.default_value_double,
+    )
+
+
+def transform_column_to_expression(column: Column) -> Expression:
+    """TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point"""
+    if column.formula.op != Column.BinaryFormula.OP_UNSPECIFIED:
+        return Expression(
+            formula=transform_binary_formula_to_expression(column.formula),
+            label=column.label,
+        )
+
+    if column.aggregation.aggregate != Function.FUNCTION_UNSPECIFIED:
+        return Expression(
+            aggregation=column.aggregation,
+            label=column.label,
+        )
+
+    if column.conditional_aggregation.aggregate != Function.FUNCTION_UNSPECIFIED:
+        return Expression(
+            conditional_aggregation=column.conditional_aggregation,
+            label=column.label,
+        )
+
+    return Expression(
+        label=column.label,
+        literal=column.literal,
+    )

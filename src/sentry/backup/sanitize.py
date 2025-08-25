@@ -43,11 +43,11 @@ MAX_IPV4 = (2**ipaddress.IPV4LENGTH) - 1
 MAX_IPV6 = (2**ipaddress.IPV6LENGTH) - 1
 
 
-def random_ipv4() -> str:
+def random_ipv4():
     return str(ipaddress.IPv4Address(randint(0, MAX_IPV4)))
 
 
-def random_ipv6() -> str:
+def random_ipv6():
     return str(ipaddress.IPv6Address(randint(0, MAX_IPV6)))
 
 

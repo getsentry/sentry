@@ -1,5 +1,3 @@
-from typing import Any
-
 from sentry.celery import SentryTask
 from sentry.db.models import region_silo_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
@@ -14,7 +12,7 @@ class FileBlob(AbstractFileBlob[FileBlobOwner]):
         db_table = "sentry_fileblob"
 
     @classmethod
-    def _storage_config(cls) -> dict[str, Any] | None:
+    def _storage_config(cls):
         return None  # Rely on get_storage defaults
 
     def _create_blob_owner(self, organization_id: int) -> FileBlobOwner:

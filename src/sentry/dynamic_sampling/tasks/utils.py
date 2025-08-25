@@ -1,13 +1,13 @@
 from collections.abc import Callable
 from functools import wraps
 from random import random
-from typing import Any, Concatenate, ParamSpec
+from typing import Concatenate, ParamSpec
 
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.utils import metrics
 
 
-def sample_function(function: Callable[..., Any], _sample_rate: float = 1.0, **kwargs: Any) -> None:
+def sample_function(function, _sample_rate: float = 1.0, **kwargs):
     """
     Calls the supplied function with a uniform probability of `_sample_rate`.
     """
@@ -25,8 +25,8 @@ DynamicTaskWithContextType = Callable[Concatenate[TaskContext, P], None]
 
 def dynamic_sampling_task_with_context(
     max_task_execution: int,
-) -> Callable[[DynamicTaskWithContextType[P]], Callable[P, None]]:
-    def wrapper(func: DynamicTaskWithContextType[P]) -> Callable[P, None]:
+) -> Callable[[DynamicTaskWithContextType], Callable[P, None]]:
+    def wrapper(func: DynamicTaskWithContextType) -> Callable[P, None]:
         @wraps(func)
         def _wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
             function_name = func.__name__
@@ -44,9 +44,9 @@ def dynamic_sampling_task_with_context(
     return wrapper
 
 
-def dynamic_sampling_task(func: Callable[..., Any]) -> Callable[..., Any]:
+def dynamic_sampling_task(func):
     @wraps(func)
-    def _wrapper(*args: Any, **kwargs: Any) -> Any:
+    def _wrapper(*args, **kwargs):
         function_name = func.__name__
         task_name = _compute_task_name(function_name)
 

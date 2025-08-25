@@ -6,7 +6,7 @@ class UpdateMetricDetectorConfigFieldsTest(TestMigrations):
     migrate_to = "0080_update_metric_detector_config_fields"
     app = "workflow_engine"
 
-    def setup_initial_state(self) -> None:
+    def setup_initial_state(self):
         self.detector = self.create_detector(
             type="metric_issue",
             config={

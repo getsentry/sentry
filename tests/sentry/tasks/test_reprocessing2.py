@@ -95,7 +95,7 @@ def register_event_preprocessor(register_plugin):
             def get_event_preprocessors(self, data):
                 return [f]
 
-            def is_enabled(self, project=None) -> bool:
+            def is_enabled(self, project=None):
                 return True
 
         register_plugin(globals(), ReprocessingTestPlugin)

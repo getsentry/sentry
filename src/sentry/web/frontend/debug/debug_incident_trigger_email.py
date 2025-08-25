@@ -74,9 +74,9 @@ class DebugIncidentTriggerEmailView(MailPreviewView):
         )
 
     @property
-    def html_template(self) -> str:
+    def html_template(self):
         return "sentry/emails/incidents/trigger.html"
 
     @property
-    def text_template(self) -> str:
+    def text_template(self):
         return "sentry/emails/incidents/trigger.txt"

@@ -21,7 +21,7 @@ class StatusDetailsResult(TypedDict):
 
 
 @extend_schema_serializer()
-class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
+class StatusDetailsValidator(serializers.Serializer):
     inNextRelease = serializers.BooleanField(
         help_text="If true, marks the issue as resolved in the next release."
     )

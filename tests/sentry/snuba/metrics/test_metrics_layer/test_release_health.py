@@ -3,7 +3,6 @@ Metrics Service Layer Tests for Release Health
 """
 
 import time
-from datetime import datetime
 
 import pytest
 from django.utils.datastructures import MultiValueDict
@@ -25,7 +24,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
-    def now(self) -> datetime:
+    def now(self):
         return BaseMetricsLayerTestCase.MOCK_DATETIME
 
     def test_valid_filter_include_meta(self) -> None:

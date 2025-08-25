@@ -30,7 +30,7 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
     }
 
     @property
-    def repository_field(self) -> str:
+    def repository_field(self):
         return "repo"
 
     @property

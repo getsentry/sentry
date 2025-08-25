@@ -19,7 +19,7 @@ jest.mock('sentry/utils/useReleaseStats');
 
 describe('DatabaseSpanSummaryPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
   const group = GroupFixture();
   const groupId = '1756baf8fd19c116';

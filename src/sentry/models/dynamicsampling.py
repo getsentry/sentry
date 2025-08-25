@@ -316,7 +316,7 @@ class CustomDynamicSamplingRule(Model):
         return rules[:MAX_CUSTOM_RULES_PER_PROJECT]
 
     @staticmethod
-    def deactivate_expired_rules() -> None:
+    def deactivate_expired_rules():
         """
         Deactivates all rules that have expired
         """

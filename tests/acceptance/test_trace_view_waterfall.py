@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from fixtures.page_objects.trace_view import TraceViewWaterfallPage
 from sentry.eventstream.snuba import SnubaEventStream
@@ -17,7 +17,7 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
         "organizations:trace-spans-format",
     ]
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.snuba_eventstream = SnubaEventStream()
         self.start = self.day_ago = before_now(days=1).replace(
@@ -39,7 +39,7 @@ class TraceViewWaterfallTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
-    def test_trace_view_waterfall_loads(self, mock_now: MagicMock) -> None:
+    def test_trace_view_waterfall_loads(self, mock_now):
         mock_now.return_value = self.start
 
         assert (

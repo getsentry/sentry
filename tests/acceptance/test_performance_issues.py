@@ -1,7 +1,6 @@
 import random
 import string
 from datetime import timedelta
-from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -22,7 +21,7 @@ from sentry.utils import json
 
 @no_silo_test
 class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
@@ -38,7 +37,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
 
-    def create_sample_event(self, fixture: str, start_timestamp: float) -> dict[str, Any]:
+    def create_sample_event(self, fixture, start_timestamp):
         event = json.loads(self.load_fixture(f"events/performance_problems/{fixture}.json"))
 
         for key in ["datetime", "location", "title"]:
@@ -56,7 +55,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
 
         return event
 
-    def randomize_span_description(self, span: dict[str, Any]) -> dict[str, Any]:
+    def randomize_span_description(self, span):
         return {
             **span,
             "description": "".join(random.choice(string.ascii_lowercase) for _ in range(10)),

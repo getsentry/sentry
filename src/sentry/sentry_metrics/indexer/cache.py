@@ -75,7 +75,7 @@ class StringIndexerCache:
 
         return f"indexer:{self.partition_key}:{namespace}:org:str:{use_case_id}:{hashed}"
 
-    def _make_cache_val(self, val: int, timestamp: int) -> str:
+    def _make_cache_val(self, val: int, timestamp: int):
         return f"{val}:{timestamp}"
 
     def _format_results(

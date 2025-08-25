@@ -55,7 +55,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, organization) -> Response:
         """
         Add a invite request to Organization
         ````````````````````````````````````

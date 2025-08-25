@@ -7,7 +7,7 @@ from sentry.seer.fetch_issues import more_parsing
 
 class TestPythonParserMore:
     @pytest.fixture
-    def parser(self) -> more_parsing.PythonParserMore:
+    def parser(self):
         return cast(more_parsing.PythonParserMore, more_parsing.patch_parsers_more["py"])
 
     def test_python_motivating_example(self, parser: more_parsing.PythonParserMore) -> None:

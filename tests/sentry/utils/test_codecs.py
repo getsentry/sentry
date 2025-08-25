@@ -1,8 +1,6 @@
-from typing import Any
-
 import pytest
 
-from sentry.utils.codecs import BytesCodec, Codec, JSONCodec, ZlibCodec, ZstdCodec
+from sentry.utils.codecs import BytesCodec, JSONCodec, ZlibCodec, ZstdCodec
 
 
 @pytest.mark.parametrize(
@@ -14,7 +12,7 @@ from sentry.utils.codecs import BytesCodec, Codec, JSONCodec, ZlibCodec, ZstdCod
         (ZstdCodec(), b"hello", b"(\xb5/\xfd \x05)\x00\x00hello"),
     ],
 )
-def test_codec(codec: Codec[Any, Any], encoded: str | bytes, decoded: str | bytes) -> None:
+def test_codec(codec, encoded, decoded) -> None:
     assert codec.encode(decoded) == encoded
     assert codec.decode(encoded) == decoded
 

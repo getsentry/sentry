@@ -12,7 +12,7 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class OAuthAuthorizeCodeTest(TestCase):
     @cached_property
-    def path(self) -> str:
+    def path(self):
         return "/oauth/authorize/"
 
     def setUp(self) -> None:
@@ -246,7 +246,7 @@ class OAuthAuthorizeCodeTest(TestCase):
 @control_silo_test
 class OAuthAuthorizeTokenTest(TestCase):
     @cached_property
-    def path(self) -> str:
+    def path(self):
         return "/oauth/authorize/"
 
     def setUp(self) -> None:
@@ -351,7 +351,7 @@ class OAuthAuthorizeTokenTest(TestCase):
 @control_silo_test
 class OAuthAuthorizeOrgScopedTest(TestCase):
     @cached_property
-    def path(self) -> str:
+    def path(self):
         return "/oauth/authorize/"
 
     def setUp(self) -> None:

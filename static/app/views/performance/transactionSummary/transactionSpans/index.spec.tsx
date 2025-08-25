@@ -200,7 +200,7 @@ describe('Performance > Transaction Spans', () => {
         additionalFeatures: [
           'performance-view',
           'performance-spans-new-ui',
-          'insights-initial-modules',
+          'insight-modules',
         ],
       });
 

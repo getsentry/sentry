@@ -672,7 +672,7 @@ class Project(Model):
                 self.update_option("sentry:token", security_token)
             return security_token
 
-    def get_lock_key(self) -> str:
+    def get_lock_key(self):
         return f"project_token:{self.id}"
 
     def copy_settings_from(self, project_id: int) -> bool:

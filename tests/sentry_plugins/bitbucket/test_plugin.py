@@ -7,7 +7,6 @@ from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.requests import drf_request_from_request
 from sentry_plugins.bitbucket.plugin import BitbucketPlugin
 
 
@@ -17,22 +16,22 @@ def test_conf_key() -> None:
 
 class BitbucketPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self) -> BitbucketPlugin:
+    def plugin(self):
         return BitbucketPlugin()
 
     @cached_property
-    def request(self) -> RequestFactory:
+    def request(self):
         return RequestFactory()
 
     def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
-        assert self.plugin.get_issue_label(group, "1") == "Bitbucket-1"
+        assert self.plugin.get_issue_label(group, 1) == "Bitbucket-1"
 
     def test_get_issue_url(self) -> None:
         self.plugin.set_option("repo", "maxbittker/newsdiffs", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
         assert (
-            self.plugin.get_issue_url(group, "1")
+            self.plugin.get_issue_url(group, 1)
             == "https://bitbucket.org/maxbittker/newsdiffs/issue/1/"
         )
 
@@ -52,7 +51,7 @@ class BitbucketPluginTest(PluginTestCase):
         self.plugin.set_option("repo", "maxbittker/newsdiffs", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = drf_request_from_request(self.request.get("/"))
+        request = self.request.get("/")
         request.user = AnonymousUser()
         form_data = {
             "title": "Hello",
@@ -98,7 +97,7 @@ class BitbucketPluginTest(PluginTestCase):
         self.plugin.set_option("repo", "maxbittker/newsdiffs", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = drf_request_from_request(self.request.get("/"))
+        request = self.request.get("/")
         request.user = AnonymousUser()
         form_data = {"comment": "Hello", "issue_id": "1"}
         with pytest.raises(PluginError):

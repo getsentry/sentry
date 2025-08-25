@@ -14,7 +14,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.rules import get_key_from_rule_data
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.models import Event
 from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
@@ -32,7 +32,7 @@ class DigestInfo(NamedTuple):
 
 def split_key(
     key: str,
-) -> tuple[Project, ActionTargetType, int | None, FallthroughChoiceType | None]:
+) -> tuple[Project, ActionTargetType, str | None, FallthroughChoiceType | None]:
     key_parts = key.split(":", 5)
     project_id = key_parts[2]
     # XXX: We transitioned to new style keys (len == 5) a while ago on
@@ -40,14 +40,14 @@ def split_key(
     # to keep this transition code around for a while, maybe indefinitely.
     if len(key_parts) == 6:
         target_type = ActionTargetType(key_parts[3])
-        target_identifier = int(key_parts[4]) if key_parts[4] else None
+        target_identifier = key_parts[4] if key_parts[4] else None
         try:
             fallthrough_choice = FallthroughChoiceType(key_parts[5])
         except ValueError:
             fallthrough_choice = None
     elif len(key_parts) == 5:
         target_type = ActionTargetType(key_parts[3])
-        target_identifier = int(key_parts[4]) if key_parts[4] else None
+        target_identifier = key_parts[4] if key_parts[4] else None
         fallthrough_choice = None
     else:
         target_type = ActionTargetType.ISSUE_OWNERS
@@ -59,7 +59,7 @@ def split_key(
 def unsplit_key(
     project: Project,
     target_type: ActionTargetType,
-    target_identifier: int | None,
+    target_identifier: str | None,
     fallthrough_choice: FallthroughChoiceType | None,
 ) -> str:
     target_str = target_identifier if target_identifier is not None else ""
@@ -68,7 +68,7 @@ def unsplit_key(
 
 
 def event_to_record(
-    event: Event | GroupEvent, rules: Sequence[Rule], notification_uuid: str | None = None
+    event: Event, rules: Sequence[Rule], notification_uuid: str | None = None
 ) -> Record:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 

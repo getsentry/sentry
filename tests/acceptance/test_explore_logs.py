@@ -20,7 +20,7 @@ FEATURE_FLAGS = [
 class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
     viewname = "sentry-api-0-organization-events"
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.start = self.day_ago = before_now(days=1).replace(
             hour=10, minute=0, second=0, microsecond=0

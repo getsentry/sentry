@@ -40,7 +40,7 @@ class BasicPreprocessorPlugin(Plugin2):
 
         return []
 
-    def is_enabled(self, project=None) -> bool:
+    def is_enabled(self, project=None):
         return True
 
 
@@ -246,7 +246,7 @@ def test_scrubbing_after_processing(
     mock_save_event,
     register_plugin,
     mock_event_processing_store,
-    setting_method: str,
+    setting_method,
     options_model,
 ):
     class TestPlugin(Plugin2):
@@ -258,7 +258,7 @@ def test_scrubbing_after_processing(
 
             return [more_extra]
 
-        def is_enabled(self, project=None) -> bool:
+        def is_enabled(self, project=None):
             return True
 
     register_plugin(globals(), TestPlugin)
