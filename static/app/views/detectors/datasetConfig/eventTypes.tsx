@@ -55,7 +55,7 @@ export function parseEventTypesFromQuery(
       return true;
     }
     const key = token.key;
-    return !(key.type === Token.KEY_SIMPLE && key.value === 'event.type');
+    return key.type !== Token.KEY_SIMPLE || key.value !== 'event.type';
   });
 
   const cleanedQuery = joinQuery(cleanedTokens, false, true).trim();
