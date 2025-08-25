@@ -102,12 +102,15 @@ export default function GroupingInfo({
       {hasPerformanceGrouping || isSuccess
         ? variants.map((variant, index) => (
             <Fragment key={variant.key}>
-              <GroupingVariant
-                event={event}
-                variant={variant}
-                showNonContributing={showNonContributing}
-              />
-              {index < variants.length - 1 && <VariantDivider />}
+              {(variant.hash !== null || showNonContributing) && (
+                <GroupingVariant
+                  event={event}
+                  variant={variant}
+                  showNonContributing={showNonContributing}
+                />
+              )}
+              {(variant.hash !== null || showNonContributing) &&
+                index < variants.length - 1 && <VariantDivider />}
             </Fragment>
           ))
         : null}
