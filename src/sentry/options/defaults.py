@@ -3480,3 +3480,13 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# option used to enable/disable tracking
+# rate of potential functions metrics to
+# be written into EAP
+register(
+    "profiling.track_functions_metrics_write_rate.eap.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

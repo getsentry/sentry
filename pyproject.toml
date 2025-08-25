@@ -103,7 +103,7 @@ dependencies = [
     # note: we cannot resolve urllib3[brotli] but brotli is installed
     #       and will be used
     "urllib3>=2.2.2",
-    "vroomrs>=0.1.17",
+    "vroomrs>=0.1.18",
     "xmlsec>=1.3.14",
     "zstandard>=0.18.0",
     # [begin] getsentry
