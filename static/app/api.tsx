@@ -420,7 +420,8 @@ export class Client {
   /**
    * Initiate a request to the backend API.
    *
-   * Consider using `requestPromise` for the async Promise version of this method.
+   * @deprecated Use `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation` instead.
+   * See https://develop.sentry.dev/frontend/network-requests/ for more.
    */
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
     const method = options.method || (options.data ? 'POST' : 'GET');
@@ -552,7 +553,7 @@ export class Client {
           // Try to get text out of the response no matter the status
           try {
             responseText = await response.text();
-          } catch (error) {
+          } catch (error: any) {
             twoHundredErrorReason = 'Failed awaiting response.text()';
             ok = false;
             if (error.name === 'AbortError') {
@@ -571,7 +572,7 @@ export class Client {
           if (status !== 204 && !isStatus3XX) {
             try {
               responseJSON = JSON.parse(responseText);
-            } catch (error) {
+            } catch (error: any) {
               twoHundredErrorReason = 'Failed trying to parse responseText';
               if (error.name === 'AbortError') {
                 ok = false;
@@ -665,6 +666,12 @@ export class Client {
     return request;
   }
 
+  /**
+   * Initiate a request to the backend API.
+   *
+   * @deprecated Use `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation` instead.
+   * See https://develop.sentry.dev/frontend/network-requests/ for more.
+   */
   requestPromise<IncludeAllArgsType extends boolean>(
     path: string,
     {

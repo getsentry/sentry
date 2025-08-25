@@ -11,9 +11,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
-  useLogsAggregate,
-  useLogsAggregateSortBys,
-  useLogsGroupBy,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
@@ -22,6 +19,11 @@ import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsAggregateSortBys,
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 
 export function LogsAggregateTable() {
   const {data, pageLinks, isLoading, error} = useLogsAggregatesQuery({
@@ -29,18 +31,16 @@ export function LogsAggregateTable() {
   });
 
   const setLogsPageParams = useSetLogsPageParams();
-  const groupBy = useLogsGroupBy();
-  const aggregate = useLogsAggregate();
-  const aggregateSortBys = useLogsAggregateSortBys();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
   const location = useLocation();
   const theme = useTheme();
   const organization = useOrganization();
 
   const fields: string[] = [];
-  if (groupBy) {
-    fields.push(groupBy);
-  }
-  fields.push(aggregate);
+  fields.push(...groupBys.filter(Boolean));
+  fields.push(...visualizes.map(visualize => visualize.yAxis));
 
   return (
     <TableContainer>
@@ -105,16 +105,19 @@ export function LogsAggregateTable() {
                 : (row[column.key] as string | number);
             const extra: RendererExtra = {
               attributes: row,
+              attributeTypes: data?.meta?.fields ?? {},
               highlightTerms: [],
               logColors: getLogColors(SeverityLevel.DEFAULT, theme),
               location,
               organization,
               theme,
+              unit: data?.meta?.units?.[column.key],
             };
             return (
               <LogFieldRenderer
                 key={column.key}
                 extra={extra}
+                meta={data?.meta}
                 item={{
                   fieldKey: column.key,
                   value,

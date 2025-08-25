@@ -36,7 +36,7 @@ import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
-import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 
 const YAXES = [YAxis.COLD_START, YAxis.WARM_START];
@@ -62,7 +62,7 @@ function DeviceClassBreakdownBarChart({
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const startType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
+    decodeScalar(location.query[SpanFields.APP_START_TYPE]) ?? COLD_START_TYPE;
   const yAxis =
     YAXIS_COLUMNS[startType === COLD_START_TYPE ? YAxis.COLD_START : YAxis.WARM_START];
   const query = new MutableSearch([...(additionalFilters ?? [])]);
@@ -214,7 +214,7 @@ function DeviceClassBreakdownBarChart({
             <ChartActionDropdown
               chartType={ChartType.LINE}
               yAxes={[appStartMetric]}
-              groupBy={groupBy as any as SpanFields[]} // TODO: this casting will not be needed when we remove `useInsightsEap`
+              groupBy={[...groupBy]}
               search={search}
               title={title}
               referrer={referrer}

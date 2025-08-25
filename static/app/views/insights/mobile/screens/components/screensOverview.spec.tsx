@@ -16,7 +16,7 @@ jest.mock('sentry/utils/useLocation');
 
 describe('ScreensOverview', () => {
   const organization = OrganizationFixture({
-    features: ['insights-addon-modules'],
+    features: ['insight-modules'],
   });
   const project = ProjectFixture();
 
@@ -113,7 +113,11 @@ describe('ScreensOverview', () => {
           dataset: 'spans',
         },
       },
-      match: [MockApiClient.matchQuery({dataset: 'spans'})],
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.insights.mobile-screens-screen-table-metrics',
+        }),
+      ],
     });
 
     const spanMetricsMock = MockApiClient.addMockResponse({
@@ -154,10 +158,14 @@ describe('ScreensOverview', () => {
           isMetricsExtractedData: false,
           tips: {},
           datasetReason: 'unchanged',
-          dataset: 'spansMetrics',
+          dataset: 'spans',
         },
       },
-      match: [MockApiClient.matchQuery({dataset: 'spansMetrics'})],
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.insights.mobile-screens-screen-table-span-metrics',
+        }),
+      ],
     });
 
     render(<ScreensOverview />, {organization});

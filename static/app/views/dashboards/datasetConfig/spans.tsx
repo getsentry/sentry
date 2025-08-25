@@ -19,9 +19,9 @@ import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {emptyStringValue, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
+  doDiscoverQuery,
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
-  doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -35,8 +35,8 @@ import {
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
-  type DatasetConfig,
   handleOrderByReset,
+  type DatasetConfig,
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {
   getTableSortOptions,
@@ -283,7 +283,7 @@ function getEventsRequest(
     per_page: limit,
     cursor,
     referrer,
-    dataset: DiscoverDatasets.SPANS_EAP,
+    dataset: DiscoverDatasets.SPANS,
     ...queryExtras,
   };
 
@@ -345,7 +345,7 @@ function getSeriesRequest(
     queryIndex,
     organization,
     pageFilters,
-    DiscoverDatasets.SPANS_EAP,
+    DiscoverDatasets.SPANS,
     referrer
   );
 

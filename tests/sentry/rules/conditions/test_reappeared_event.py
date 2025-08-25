@@ -8,9 +8,9 @@ pytestmark = [requires_snuba]
 class ReappearedEventConditionTest(RuleTestCase):
     rule_cls = ReappearedEventCondition
 
-    def test_applies_correctly(self):
+    def test_applies_correctly(self) -> None:
         rule = self.get_rule()
 
-        self.assertPasses(rule, self.event, has_reappeared=True)
+        self.assertPasses(rule, self.event, has_escalated=True)
 
-        self.assertDoesNotPass(rule, self.event, has_reappeared=False)
+        self.assertDoesNotPass(rule, self.event, has_escalated=False)

@@ -127,13 +127,6 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           id: 'audit-log',
         },
         {
-          path: `${organizationSettingsPathPrefix}/rate-limits/`,
-          title: t('Rate Limits'),
-          show: ({features}) => features?.has('legacy-rate-limits') ?? false,
-          description: t('Configure rate limits for all projects in the organization'),
-          id: 'rate-limits',
-        },
-        {
           path: `${organizationSettingsPathPrefix}/relay/`,
           title: t('Relay'),
           description: t('Manage relays connected to the organization'),
@@ -182,10 +175,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           description: t(
             "Manage settings for Seer's automated analysis across your organization"
           ),
-          show: ({organization}) =>
-            !!organization &&
-            organization.features.includes('trigger-autofix-on-issue-summary') &&
-            !organization.hideAiFeatures,
+          show: ({organization}) => !!organization && !organization.hideAiFeatures,
           id: 'seer',
         },
       ],

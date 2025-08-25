@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
@@ -18,6 +18,7 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
+import {getGoLogsOnboarding} from 'sentry/utils/gettingStartedDocs/go';
 
 type Params = DocsParams;
 
@@ -35,6 +36,12 @@ import (
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
 if err := sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",${
+    params.isLogsSelected
+      ? `
+  // Enable structured logs to Sentry
+  EnableLogs: true,`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
   // Set TracesSampleRate to 1.0 to capture 100%
@@ -112,7 +119,7 @@ app.GET("/foo", func(ctx echo.Context) error {
 
 app.Logger.Fatal(app.Start(":3000"))`;
 
-const getBeforeSendSnippet = (params: any) => `
+const getBeforeSendSnippet = (params: Params) => `
 sentry.Init(sentry.ClientOptions{
   Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
@@ -185,7 +192,7 @@ const onboarding: OnboardingConfig = {
               }
             )}
           </p>
-          <Alert type="info">
+          <Alert type="info" showIcon={false}>
             {tct(
               "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryecho]!",
               {code: <code />}
@@ -213,6 +220,22 @@ const onboarding: OnboardingConfig = {
     },
   ],
   verify: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/go/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {
@@ -235,6 +258,9 @@ const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  logsOnboarding: getGoLogsOnboarding({
+    docsPlatform: 'echo',
+  }),
 };
 
 export default docs;

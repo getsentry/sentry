@@ -9,7 +9,7 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {NULL_DOMAIN_DESCRIPTION} from 'sentry/views/insights/http/settings';
 
 interface Props {
-  domain?: string[];
+  domain?: string;
   projectId?: string;
 }
 

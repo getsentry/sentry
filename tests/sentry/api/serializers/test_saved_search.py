@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class SavedSearchSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         search = SavedSearch.objects.create(name="Something", query="some query")
         result = serialize(search)
 
@@ -17,7 +17,7 @@ class SavedSearchSerializerTest(TestCase):
         assert not result["isGlobal"]
         assert not result["isPinned"]
 
-    def test_global(self):
+    def test_global(self) -> None:
         search = SavedSearch(
             name="Unresolved Issues",
             query="is:unresolved",
@@ -35,7 +35,7 @@ class SavedSearchSerializerTest(TestCase):
         assert result["isGlobal"]
         assert not result["isPinned"]
 
-    def test_organization(self):
+    def test_organization(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             name="Something",
@@ -53,7 +53,7 @@ class SavedSearchSerializerTest(TestCase):
         assert not result["isGlobal"]
         assert not result["isPinned"]
 
-    def test_pinned(self):
+    def test_pinned(self) -> None:
         search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.user.id,

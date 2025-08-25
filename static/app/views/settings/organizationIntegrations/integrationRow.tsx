@@ -124,7 +124,6 @@ function IntegrationRow(props: Props) {
           <Alert.Container>
             <Alert
               type="warning"
-              showIcon
               trailingItems={
                 <ResolveNowButton
                   href={`${baseUrl}?tab=configurations&referrer=directory_resolve_now`}

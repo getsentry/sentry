@@ -1,5 +1,8 @@
 import {css} from '@emotion/react';
 
+/**
+ * @deprecated Use `Text` from `sentry/components/core/text` instead.
+ */
 const textStyles = () => css`
   /* stylelint-disable no-descending-specificity */
   h1,

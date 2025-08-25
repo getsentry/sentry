@@ -2,6 +2,7 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -21,6 +22,10 @@ export interface DetectorSeriesQueryOptions {
    * The aggregate to use for the series query. eg: `count()`
    */
   aggregate: string;
+  /**
+   * Comparison delta in seconds for % change alerts
+   */
+  comparisonDelta: number | undefined;
   dataset: DiscoverDatasets;
   environment: string;
   /**
@@ -33,6 +38,12 @@ export interface DetectorSeriesQueryOptions {
    * The filter query. eg: `span.op:http`
    */
   query: string;
+  end?: string;
+  start?: string;
+  /**
+   * Relative time period for the query. Example: '7d'.
+   */
+  statsPeriod?: string;
 }
 
 /**
@@ -50,6 +61,11 @@ export interface DetectorDatasetConfig<SeriesResponse> {
    */
   defaultField: QueryFieldValue;
   /**
+   * Transform the aggregate function from the API response to a more user friendly title.
+   * This is currently only used for the releases dataset.
+   */
+  fromApiAggregate: (aggregate: string) => string;
+  /**
    * Field options to display in the aggregate and field selectors
    */
   getAggregateOptions: (
@@ -58,6 +74,16 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  supportedDetectionTypes: Array<MetricDetectorConfig['detectionType']>;
+  /**
+   * Transform the user-friendly aggregate function to the API aggregate function.
+   * This is currently only used for the releases dataset.
+   */
+  toApiAggregate: (aggregate: string) => string;
+  /**
+   * Transform comparison series data for % change alerts
+   */
+  transformComparisonSeriesData: (data: SeriesResponse | undefined) => Series[];
   transformSeriesQueryData: (
     data: SeriesResponse | undefined,
     aggregate: string

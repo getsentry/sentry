@@ -10,7 +10,7 @@ from sentry.rules.filters.latest_adopted_release_filter import (
 )
 from sentry.search.utils import LatestReleaseOrders
 from sentry.workflow_engine.handlers.condition.latest_release_handler import (
-    get_latest_release_for_env,
+    get_latest_adopted_release_for_env,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -56,7 +56,7 @@ class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowEventDat
         except Environment.DoesNotExist:
             return False
 
-        latest_project_release = get_latest_release_for_env(environment, event)
+        latest_project_release = get_latest_adopted_release_for_env(environment, event)
         if not latest_project_release:
             return False
 

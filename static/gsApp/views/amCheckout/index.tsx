@@ -8,7 +8,7 @@ import moment from 'moment-timezone';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -35,14 +35,14 @@ import {
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
 import {
-  type BillingConfig,
   CheckoutType,
-  type EventBucket,
   OnDemandBudgetMode,
-  type OnDemandBudgets,
-  type Plan,
   PlanName,
   PlanTier,
+  type BillingConfig,
+  type EventBucket,
+  type OnDemandBudgets,
+  type Plan,
   type PromotionData,
   type Subscription,
 } from 'getsentry/types';
@@ -76,7 +76,7 @@ import type {
   SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {SelectableProduct} from 'getsentry/views/amCheckout/types';
-import {getBucket} from 'getsentry/views/amCheckout/utils';
+import {getBucket, hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
@@ -229,7 +229,7 @@ class AMCheckout extends Component<Props, State> {
       const formData = this.getInitialData(billingConfig);
 
       this.setState({billingConfig, formData});
-    } catch (error) {
+    } catch (error: any) {
       this.setState({error, loading: false});
       if (error.status !== 401 && error.status !== 403) {
         Sentry.captureException(error);
@@ -652,6 +652,7 @@ class AMCheckout extends Component<Props, State> {
       const isActive = currentStep === stepNumber;
       const isCompleted = !isActive && completedSteps.has(stepNumber);
       const prevStepCompleted = completedSteps.has(stepNumber - 1);
+      const isNewCheckout = hasCheckoutV3(organization); // TODO(checkout-v3): remove post-GA
 
       return (
         <CheckoutStep
@@ -662,6 +663,7 @@ class AMCheckout extends Component<Props, State> {
           isCompleted={isCompleted}
           prevStepCompleted={prevStepCompleted}
           referrer={this.referrer}
+          isNewCheckout={isNewCheckout}
         />
       );
     });
@@ -676,7 +678,7 @@ class AMCheckout extends Component<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert type="info" showIcon>
+        <Alert type="info">
           <PartnerAlertContent>
             <PartnerAlertTitle>
               {tct('Billing handled externally through [partnerName]', {
@@ -749,7 +751,7 @@ class AMCheckout extends Component<Props, State> {
         />
         {isOnSponsoredPartnerPlan && (
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               {t(
                 'Your promotional plan with %s ends on %s.',
                 subscription.partner?.partnership.displayName,
@@ -760,9 +762,7 @@ class AMCheckout extends Component<Props, State> {
         )}
         {promotionDisclaimerText && (
           <Alert.Container>
-            <Alert type="info" showIcon>
-              {promotionDisclaimerText}
-            </Alert>
+            <Alert type="info">{promotionDisclaimerText}</Alert>
           </Alert.Container>
         )}
         <SettingsPageHeader

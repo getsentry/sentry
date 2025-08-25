@@ -7,7 +7,7 @@ from sentry.testutils.cases import CliTestCase
 class InitTest(CliTestCase):
     command = init
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.runner.isolated_filesystem():
             rv = self.invoke("config")
             assert rv.exit_code == 0, rv.output
@@ -27,6 +27,6 @@ class InitTest(CliTestCase):
                 ctx = safe_load(fp)
             assert "system.secret-key" in ctx
 
-    def test_no_directory(self):
+    def test_no_directory(self) -> None:
         rv = self.invoke("sentry.conf.py")
         assert rv.exit_code != 0, rv.output

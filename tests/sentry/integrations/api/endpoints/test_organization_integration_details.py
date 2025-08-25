@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -21,7 +21,7 @@ from sentry.users.models.identity import Identity
 class OrganizationIntegrationDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user)
@@ -49,7 +49,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
 
 @control_silo_test
 class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
@@ -58,7 +58,7 @@ class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
 class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
     method = "post"
 
-    def test_update_config(self):
+    def test_update_config(self) -> None:
         config = {"setting": "new_value", "setting2": "baz"}
         self.get_success_response(self.organization.slug, self.integration.id, **config)
 
@@ -76,7 +76,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         ).exists()
 
     @patch.object(IntegrationInstallation, "update_organization_config")
-    def test_update_config_error(self, mock_update_config):
+    def test_update_config_error(self, mock_update_config: MagicMock) -> None:
         config = {"setting": "new_value", "setting2": "baz"}
 
         mock_update_config.side_effect = IntegrationError("hello")
@@ -96,7 +96,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
 class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTest):
     method = "delete"
 
-    def test_removal(self):
+    def test_removal(self) -> None:
         self.get_success_response(self.organization.slug, self.integration.id)
         assert Integration.objects.filter(id=self.integration.id).exists()
 
@@ -113,7 +113,7 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-details"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.integration = self.create_integration(
@@ -135,9 +135,19 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
 
     @responses.activate
     @with_feature("organizations:jira-paginated-projects")
-    def test_serialize_organizationintegration_with_create_issue_config_for_jira(self):
+    def test_serialize_organizationintegration_with_create_issue_config_for_jira(self) -> None:
         """Test the flow of choosing ticket creation on alert rule fire action
         then serializes the issue config correctly for Jira"""
+
+        # Mock the legacy projects response
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project",
+            json=[
+                {"id": "10000", "key": "PROJ1", "name": "Project 1"},
+                {"id": "10001", "key": "PROJ2", "name": "Project 2"},
+            ],
+        )
 
         # Mock the paginated projects response
         responses.add(

@@ -9,9 +9,9 @@ import {
   TabbedCodeSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {
+  StepType,
   type Configuration,
   type OnboardingStep,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -203,6 +203,7 @@ const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`
 const ToggleButton = styled(Button)`
   flex: 1;
   display: flex;
+  justify-content: flex-start;
   padding: 0;
   &,
   :hover {

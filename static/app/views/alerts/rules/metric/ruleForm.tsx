@@ -596,6 +596,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         },
         () => {
           this.reloadData();
+          fetchOrganizationTags(this.api, this.props.organization.slug, [
+            this.state.project.id,
+          ]);
         }
       );
     }
@@ -836,7 +839,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             onSubmitSuccess(data, model);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         IndicatorStore.remove(loadingIndicator);
         this.setState({loading: false});
         const errors = err?.responseJSON
@@ -1127,7 +1130,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         {method: 'POST', data: params}
       );
       this.setState({anomalies});
-    } catch (e) {
+    } catch (e: any) {
       let chartErrorMessage: string | undefined;
       if (e.responseJSON) {
         if (typeof e.responseJSON === 'object' && e.responseJSON.detail) {
@@ -1467,7 +1470,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                   {thresholdTypeForm(formDisabled)}
                   {showErrorMigrationWarning && (
                     <Alert.Container>
-                      <Alert type="warning" showIcon>
+                      <Alert type="warning">
                         {tct(
                           "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
                           {

@@ -6,7 +6,7 @@ from sentry.testutils.factories import get_fixture_path
 
 @override_settings(GEOIP_PATH_MMDB=get_fixture_path("test.mmdb"))
 class TestGeo(TestCase):
-    def test_geo_by_addr(self):
+    def test_geo_by_addr(self) -> None:
         import importlib
 
         import sentry.utils.geo

@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {
@@ -35,6 +34,13 @@ export function MetricDetectorPreviewChart() {
   const detectionType = useMetricDetectorFormField(
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
+  const conditionComparisonAgo = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.conditionComparisonAgo
+  );
+  const sensitivity = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.sensitivity);
+  const thresholdType = useMetricDetectorFormField(
+    METRIC_DETECTOR_FORM_FIELDS.thresholdType
+  );
 
   // Create condition group from form data using the helper function
   const conditions = useMemo(() => {
@@ -52,22 +58,18 @@ export function MetricDetectorPreviewChart() {
   }, [conditionType, conditionValue, initialPriorityLevel, highThreshold, detectionType]);
 
   return (
-    <ChartContainer>
-      <MetricDetectorChart
-        dataset={dataset}
-        aggregate={aggregateFunction}
-        interval={interval}
-        query={query}
-        environment={environment}
-        projectId={projectId}
-        conditions={conditions}
-        detectionType={detectionType}
-      />
-    </ChartContainer>
+    <MetricDetectorChart
+      dataset={dataset}
+      aggregate={aggregateFunction}
+      interval={interval}
+      query={query}
+      environment={environment}
+      projectId={projectId}
+      conditions={conditions}
+      detectionType={detectionType}
+      comparisonDelta={detectionType === 'percent' ? conditionComparisonAgo : undefined}
+      sensitivity={sensitivity}
+      thresholdType={thresholdType}
+    />
   );
 }
-
-const ChartContainer = styled('div')`
-  max-width: 1440px;
-  border-top: 1px solid ${p => p.theme.border};
-`;

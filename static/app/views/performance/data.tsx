@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';

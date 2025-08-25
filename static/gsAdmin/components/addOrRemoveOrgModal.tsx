@@ -29,7 +29,7 @@ function AddToOrgModal({Header, Body, userId, closeModal}: AddOrRemoveOrgModalPr
           closeModal();
           window.location.reload();
         });
-    } catch (err) {
+    } catch (err: any) {
       setError(err.responseJSON.detail);
     }
   };
@@ -54,7 +54,9 @@ function AddToOrgModal({Header, Body, userId, closeModal}: AddOrRemoveOrgModalPr
           </Fragment>
           {error && (
             <Alert.Container>
-              <Alert type="error">{error}</Alert>
+              <Alert type="error" showIcon={false}>
+                {error}
+              </Alert>
             </Alert.Container>
           )}
         </Form>
@@ -83,7 +85,7 @@ function RemoveFromOrgModal({
           closeModal();
           window.location.reload();
         });
-    } catch (err) {
+    } catch (err: any) {
       setError(err.responseJSON.detail);
     }
   };

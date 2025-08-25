@@ -1,9 +1,7 @@
-import {Fragment, type MouseEventHandler, useRef} from 'react';
+import {Fragment, type MouseEventHandler} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useHover} from '@react-aria/interactions';
-import {mergeProps} from '@react-aria/utils';
 
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
@@ -23,7 +21,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   NAV_PRIMARY_LINK_DATA_ATTRIBUTE,
-  NAV_SIDEBAR_PREVIEW_DELAY_MS,
   PRIMARY_SIDEBAR_WIDTH,
 } from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -38,7 +35,6 @@ interface SidebarItemLinkProps {
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
-  onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
 interface SidebarItemDropdownProps {
@@ -55,6 +51,7 @@ interface SidebarButtonProps {
   children: React.ReactNode;
   label: string;
   buttonProps?: Omit<ButtonProps, 'aria-label'>;
+  className?: string;
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
@@ -166,43 +163,6 @@ export function SidebarMenu({
   );
 }
 
-function useActivateNavGroupOnHover(group: PrimaryNavGroup) {
-  const {setActivePrimaryNavGroup, isCollapsed, collapsedNavIsOpen} = useNavContext();
-
-  // Slightly delay changing the active nav group to prevent accidentally triggering a new menu
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {hoverProps} = useHover({
-    onHoverStart: () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      if (isCollapsed && !collapsedNavIsOpen) {
-        setActivePrimaryNavGroup(group);
-        return;
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        setActivePrimaryNavGroup(group);
-      }, NAV_SIDEBAR_PREVIEW_DELAY_MS);
-    },
-    onHoverEnd: () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    },
-  });
-
-  return mergeProps(hoverProps, {
-    onClick: () => {
-      setActivePrimaryNavGroup(group);
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    },
-  });
-}
-
 function SidebarNavLink({
   children,
   to,
@@ -216,12 +176,6 @@ function SidebarNavLink({
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
-  const hoverProps = useActivateNavGroupOnHover(group);
-  const linkProps = mergeProps(hoverProps, {
-    onClick: () => {
-      recordPrimaryItemClick(analyticsKey, organization);
-    },
-  });
 
   return (
     <NavLink
@@ -230,10 +184,12 @@ function SidebarNavLink({
       aria-selected={activePrimaryNavGroup === group ? true : isActive}
       aria-current={isActive ? 'page' : undefined}
       isMobile={layout === NavLayout.MOBILE}
+      onClick={() => {
+        recordPrimaryItemClick(analyticsKey, organization);
+      }}
       {...{
         [NAV_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
       }}
-      {...linkProps}
     >
       {layout === NavLayout.MOBILE ? (
         <Fragment>
@@ -257,11 +213,12 @@ export function SidebarLink({
   activeTo = to,
   analyticsKey,
   group,
+  ...props
 }: SidebarItemLinkProps) {
   const label = PRIMARY_NAV_GROUP_CONFIG[group].label;
 
   return (
-    <SidebarItem label={label} showLabel>
+    <SidebarItem label={label} showLabel {...props}>
       <SidebarNavLink
         to={to}
         activeTo={activeTo}
@@ -275,6 +232,7 @@ export function SidebarLink({
 }
 
 export function SidebarButton({
+  className,
   analyticsKey,
   children,
   buttonProps = {},
@@ -287,7 +245,7 @@ export function SidebarButton({
   const showLabel = layout === NavLayout.MOBILE;
 
   return (
-    <SidebarItem label={label} showLabel={showLabel}>
+    <SidebarItem label={label} showLabel={showLabel} className={className}>
       <NavButton
         {...buttonProps}
         isMobile={layout === NavLayout.MOBILE}

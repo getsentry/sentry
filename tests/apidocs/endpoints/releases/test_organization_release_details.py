@@ -35,13 +35,13 @@ class OrganizationReleaseDetailsDocsTest(APIDocsTestCase):
             kwargs={"organization_id_or_slug": org.slug, "version": release.version},
         )
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
 
-    def test_put(self):
+    def test_put(self) -> None:
         data = {"projects": [self.project3.slug]}
         response = self.client.put(self.url, data)
         request = RequestFactory().put(self.url, data)

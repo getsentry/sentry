@@ -6,18 +6,13 @@ import {
   computeHighlightedBounds,
   createProgram,
   createShader,
-  ELLIPSIS,
   getCenterScaleMatrixFromConfigPosition,
   getContext,
   lowerBound,
   makeProjectionMatrix,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
-import {
-  findRangeBinarySearch,
-  Rect,
-  trimTextCenter,
-} from 'sentry/utils/profiling/speedscope';
+import {findRangeBinarySearch, Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {
@@ -405,33 +400,6 @@ describe('findRangeBinarySearch', () => {
   });
 });
 
-describe('trimTextCenter', () => {
-  it('trims nothing if low > length', () => {
-    expect(trimTextCenter('abc', 4)).toMatchObject({
-      end: 0,
-      length: 0,
-      start: 0,
-      text: 'abc',
-    });
-  });
-  it('trims center perfectly', () => {
-    expect(trimTextCenter('abcdef', 5.5)).toMatchObject({
-      end: 4,
-      length: 2,
-      start: 2,
-      text: `ab${ELLIPSIS}ef`,
-    });
-  });
-  it('favors prefix length', () => {
-    expect(trimTextCenter('abcdef', 5)).toMatchObject({
-      end: 5,
-      length: 3,
-      start: 2,
-      text: `ab${ELLIPSIS}f`,
-    });
-  });
-});
-
 describe('computeHighlightedBounds', () => {
   const testTable = [
     {
@@ -611,8 +579,8 @@ describe('computeConfigViewWithStrategy', () => {
     ).toBe(true);
   });
 
-  describe('getCenterScaleMatrixFromConfigPosition', function () {
-    it('returns a matrix that represents scaling on both x and y axes', function () {
+  describe('getCenterScaleMatrixFromConfigPosition', () => {
+    it('returns a matrix that represents scaling on both x and y axes', () => {
       const actual = getCenterScaleMatrixFromConfigPosition(
         vec2.fromValues(2, 2),
         vec2.fromValues(0, 0)
@@ -625,7 +593,7 @@ describe('computeConfigViewWithStrategy', () => {
       );
     });
 
-    it('returns a matrix that scales and translates back so the scaling appears to zoom into the point', function () {
+    it('returns a matrix that scales and translates back so the scaling appears to zoom into the point', () => {
       const actual = getCenterScaleMatrixFromConfigPosition(
         vec2.fromValues(2, 2),
         vec2.fromValues(5, 5)

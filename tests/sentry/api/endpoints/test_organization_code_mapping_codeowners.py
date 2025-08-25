@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -13,7 +13,7 @@ GITHUB_CODEOWNER = {
 
 
 class OrganizationCodeMappingCodeOwnersTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user)
@@ -37,7 +37,7 @@ class OrganizationCodeMappingCodeOwnersTest(APITestCase):
             args=[self.organization.slug, self.config.id],
         )
 
-    def test_invalid_code_mapping(self):
+    def test_invalid_code_mapping(self) -> None:
         self.url = reverse(
             "sentry-api-0-organization-code-mapping-codeowners",
             args=[self.organization.slug, "123"],
@@ -49,7 +49,7 @@ class OrganizationCodeMappingCodeOwnersTest(APITestCase):
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=None,
     )
-    def test_no_codeowner_file_found(self, mock_get_codeowner_file):
+    def test_no_codeowner_file_found(self, mock_get_codeowner_file: MagicMock) -> None:
         resp = self.client.get(self.url)
         assert resp.status_code == 404
 
@@ -57,7 +57,7 @@ class OrganizationCodeMappingCodeOwnersTest(APITestCase):
         "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=GITHUB_CODEOWNER,
     )
-    def test_codeowner_contents(self, mock_get_codeowner_file):
+    def test_codeowner_contents(self, mock_get_codeowner_file: MagicMock) -> None:
         resp = self.client.get(self.url)
         assert resp.status_code == 200
         assert resp.data == GITHUB_CODEOWNER

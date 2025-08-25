@@ -4,8 +4,8 @@ import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {
-  type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
+  type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   Section,
@@ -17,8 +17,10 @@ type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function SearchBarSection({query, index}: Props) {
   const {selection} = usePageFilters();
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
 
   const updateQuerySearch = useUpdateQueryAtIndex(index);
 
@@ -36,6 +38,8 @@ export function SearchBarSection({query, index}: Props) {
         searchSource="explore"
         numberTags={numberTags}
         stringTags={stringTags}
+        numberSecondaryAliases={numberSecondaryAliases}
+        stringSecondaryAliases={stringSecondaryAliases}
       />
     </Section>
   );

@@ -4,27 +4,21 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
-export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
+export function ToggleSidebar({size = 'md'}: {size?: 'md' | 'sm'}) {
   const organization = useOrganization();
   const {isSidebarOpen, dispatch} = useIssueDetails();
   const direction = isSidebarOpen ? 'right' : 'left';
   const theme = useTheme();
 
-  const props = theme.isChonk
-    ? ({size: 'xs'} as const)
-    : ({style: {height: size === 'lg' ? '30px' : '26px'}} as const);
+  const props = size === 'md' ? undefined : {style: {height: '26px'}};
 
   return (
-    <ToggleContainer
-      sidebarOpen={isSidebarOpen ?? true}
-      style={{paddingTop: size === 'lg' ? '4px' : '0px'}}
-    >
+    <ToggleContainer sidebarOpen={isSidebarOpen ?? true}>
       <ToggleButton
         expanded={isSidebarOpen}
         onClick={() => dispatch({type: 'UPDATE_SIDEBAR_STATE', isOpen: !isSidebarOpen})}
@@ -51,6 +45,7 @@ export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
 const ToggleContainer = styled('div')<{sidebarOpen: boolean}>`
   width: ${p => (p.theme.isChonk ? undefined : p.sidebarOpen ? '30px' : '50px')};
   position: relative;
+  margin-right: -${p => p.theme.space['2xl']};
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: none;
   }
@@ -64,8 +59,8 @@ const ToggleButton = withChonk(
     box-shadow: none;
     position: absolute;
     padding: 0;
-    left: ${space(0.5)};
-    width: calc(100% - ${space(0.5)} + 1px);
+    left: ${p => p.theme.space.xs};
+    width: calc(100% - ${p => p.theme.space.xs} + 1px);
     outline: 0;
     min-height: unset;
     color: ${p => p.theme.subText};
@@ -86,5 +81,5 @@ const ToggleButton = withChonk(
 
 const StyledIconChevron = styled(IconChevron)`
   position: absolute;
-  left: ${space(0.75)};
+  left: ${p => p.theme.space.sm};
 `;

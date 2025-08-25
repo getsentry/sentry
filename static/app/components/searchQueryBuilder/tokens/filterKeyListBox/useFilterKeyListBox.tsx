@@ -167,9 +167,11 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const {
     filterKeys,
     getFieldDefinition,
-    setDisplaySeerResults,
+    setAutoSubmitSeer,
+    setDisplayAskSeer,
     enableAISearch,
     gaveSeerConsent,
+    currentInputValue,
   } = useSearchQueryBuilder();
   const {sectionedItems} = useFilterKeyItems();
   const recentFilters = useRecentSearchFilters();
@@ -390,7 +392,14 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
           organization,
           action: 'opened',
         });
-        setDisplaySeerResults(true);
+        setDisplayAskSeer(true);
+
+        if (currentInputValue?.trim()) {
+          setAutoSubmitSeer(true);
+        } else {
+          setAutoSubmitSeer(false);
+        }
+
         return;
       }
 
@@ -403,7 +412,13 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
         return;
       }
     },
-    [organization, seerAcknowledgeMutate, setDisplaySeerResults]
+    [
+      currentInputValue,
+      organization,
+      seerAcknowledgeMutate,
+      setAutoSubmitSeer,
+      setDisplayAskSeer,
+    ]
   );
 
   return {

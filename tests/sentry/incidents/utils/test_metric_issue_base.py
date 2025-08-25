@@ -4,7 +4,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-    QuerySubscriptionUpdate,
+    ProcessedSubscriptionUpdate,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -14,12 +14,12 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors.data_packet import process_data_packets
+from sentry.workflow_engine.processors.data_packet import process_data_packet
 from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorPriorityLevel
 
 
 class BaseMetricIssueTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.detector_group_key = None
         self.detector = self.create_detector(
@@ -75,23 +75,23 @@ class BaseMetricIssueTest(TestCase):
 
     def create_subscription_packet(
         self, value: int, time_jump: int = 0
-    ) -> DataPacket[QuerySubscriptionUpdate]:
+    ) -> DataPacket[ProcessedSubscriptionUpdate]:
         # XXX: the timestamp here is just used as a dedupe value, so we can avoid using freeze_time
         # by providing a large timedelta
-        packet = QuerySubscriptionUpdate(
+        packet = ProcessedSubscriptionUpdate(
             entity="entity",
             subscription_id=str(self.query_subscription.id),
             values={"value": value},
             timestamp=datetime.now(UTC) + timedelta(minutes=time_jump),
         )
-        return DataPacket[QuerySubscriptionUpdate](
+        return DataPacket[ProcessedSubscriptionUpdate](
             source_id=str(self.query_subscription.id), packet=packet
         )
 
     def process_packet_and_return_result(
         self, data_packet: DataPacket
     ) -> IssueOccurrence | StatusChangeMessage | None:
-        results = process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+        results = process_data_packet(data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
         if not results:
             # alert did not trigger
             return None

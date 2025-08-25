@@ -19,7 +19,7 @@ class KillswitchesTest(CliTestCase):
             )
         },
     )
-    def test_basic(self):
+    def test_basic(self) -> None:
         assert self.invoke("list").output == (
             "\n"
             "store.load-shed-group-creation-projects\n"
@@ -116,7 +116,9 @@ class KillswitchesTest(CliTestCase):
     @mock.patch(
         "sentry.options.set",
     )
-    def test_relay_drop_transaction_metrics(self, mock_set, mock_schedule):
+    def test_relay_drop_transaction_metrics(
+        self, mock_set: mock.MagicMock, mock_schedule: mock.MagicMock
+    ) -> None:
 
         option = "relay.drop-transaction-metrics"
 
@@ -141,7 +143,9 @@ class KillswitchesTest(CliTestCase):
     @mock.patch(
         "sentry.options.set",
     )
-    def test_relay_drop_transaction_metrics_all(self, mock_set, mock_schedule):
+    def test_relay_drop_transaction_metrics_all(
+        self, mock_set: mock.MagicMock, mock_schedule: mock.MagicMock
+    ) -> None:
         self.organization
         option = "relay.drop-transaction-metrics"
 
@@ -156,7 +160,7 @@ class KillswitchesTest(CliTestCase):
             )
         ]
 
-        # All organisations should have been invalidated:
+        # All organizations should have been invalidated:
         assert mock_schedule.mock_calls == [
             mock.call(
                 trigger="invalidate-all",

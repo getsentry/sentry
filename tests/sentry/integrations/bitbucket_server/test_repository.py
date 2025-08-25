@@ -56,14 +56,14 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
     def provider(self):
         return BitbucketServerRepositoryProvider("bitbucket_server")
 
-    def test_get_client(self):
+    def test_get_client(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
         client = installation.get_client()
         assert client.base_url == self.integration.metadata["base_url"]
         assert client.verify_ssl == self.integration.metadata["verify_ssl"]
 
     @responses.activate
-    def test_compare_commits(self):
+    def test_compare_commits(self) -> None:
         repo = Repository.objects.create(
             provider="bitbucket_server",
             name="sentryuser/newsdiffs",
@@ -109,7 +109,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
         ]
 
     @responses.activate
-    def test_compare_commits_with_two_pages(self):
+    def test_compare_commits_with_two_pages(self) -> None:
         repo = Repository.objects.create(
             provider="bitbucket_server",
             name="sentryuser/newsdiffs",
@@ -184,7 +184,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
         ]
 
     @responses.activate
-    def test_build_repository_config(self):
+    def test_build_repository_config(self) -> None:
         project = "laurynsentry"
         repo = "helloworld"
         full_repo_name = f"{project}/{repo}"
@@ -238,7 +238,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             },
         }
 
-    def test_repository_external_slug(self):
+    def test_repository_external_slug(self) -> None:
         repo = Repository.objects.create(
             provider="bitbucket_server",
             name="sentryuser/newsdiffs",
@@ -250,7 +250,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
         result = self.provider.repository_external_slug(repo)
         assert result == repo.name
 
-    def test_get_repository_data_no_installation_id(self):
+    def test_get_repository_data_no_installation_id(self) -> None:
         with pytest.raises(IntegrationError) as e:
             self.provider.get_repository_data(self.organization, {})
         assert "requires an integration id" in str(e.value)

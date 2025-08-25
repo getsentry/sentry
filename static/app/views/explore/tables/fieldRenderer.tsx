@@ -2,10 +2,9 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -163,6 +162,10 @@ function BaseExploreFieldRenderer({
     });
 
     rendered = <Link to={target}>{rendered}</Link>;
+
+    if (organization.features.includes('discover-cell-actions-v2') && field === 'id') {
+      return rendered;
+    }
   }
 
   if (field === 'profile.id') {

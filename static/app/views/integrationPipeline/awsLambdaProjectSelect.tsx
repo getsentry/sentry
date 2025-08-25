@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 import * as qs from 'query-string';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
@@ -59,7 +59,7 @@ export default class AwsLambdaProjectSelect extends Component<Props> {
                 stacked
               />
               <Alert.Container>
-                <Alert type="info">
+                <Alert type="info" showIcon={false}>
                   {t('Currently only supports Node and Python Lambda functions')}
                 </Alert>
               </Alert.Container>

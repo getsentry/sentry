@@ -33,7 +33,7 @@ class PreventDefaultFieldsModelExistingUseTest(TestCase):
             [s for c in cls.__subclasses__() for s in self.all_subclasses(c)]
         )
 
-    def test(self):
+    def test(self) -> None:
         assert self.all_subclasses(DefaultFieldsModelExisting) == {
             BaseImportChunk,
             ControlImportChunk,

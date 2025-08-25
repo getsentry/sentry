@@ -2,11 +2,15 @@ import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {ExternalLink} from 'sentry/components/core/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {
+  MIN_REPLAY_NETWORK_BODIES_SDK,
+  MIN_REPLAY_NETWORK_BODIES_SDK_KNOWN_BUG,
+} from 'sentry/utils/replays/sdkVersions';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -59,24 +63,22 @@ export function Setup({
   showSnippet: Output;
   visibleTab: TabKey;
 }) {
-  const organization = useOrganization();
   const {isFetching, needsUpdate} = useProjectSdkNeedsUpdate({
-    // Only show update instructions if not >= 7.50.0, but our instructions
+    // Only show update instructions if <7.50.0, but our instructions
     // will show a different min version as there are known bugs in 7.50 ->
     // 7.53
-    minVersion: '7.50.0',
-    organization,
+    minVersion: MIN_REPLAY_NETWORK_BODIES_SDK_KNOWN_BUG.minVersion,
     projectId: [projectId],
   });
   const sdkNeedsUpdate = !isFetching && Boolean(needsUpdate);
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const isVideoReplay = replay?.isVideoReplay();
 
   const url = item.description || 'http://example.com';
 
   return isVideoReplay ? (
     visibleTab === 'request' || visibleTab === 'response' ? (
-      <StyledAlert type="info" showIcon>
+      <StyledAlert type="info">
         {tct(
           'Request and response headers or bodies are currently not available for mobile platforms. Track this [link:GitHub issue] to get progress on support for this feature.',
           {
@@ -89,7 +91,7 @@ export function Setup({
     ) : null
   ) : (
     <SetupInstructions
-      minVersion="7.53.1"
+      minVersion={MIN_REPLAY_NETWORK_BODIES_SDK.minVersion}
       sdkNeedsUpdate={sdkNeedsUpdate}
       showSnippet={showSnippet}
       url={url}
@@ -182,7 +184,7 @@ function SetupInstructions({
       </NetworkUrlWrapper>
       {showSnippet === Output.BODY_SKIPPED && (
         <Alert.Container>
-          <Alert type="warning">
+          <Alert type="warning" showIcon={false}>
             {tct('Enable [field] to capture both Request and Response bodies.', {
               field: <code>networkCaptureBodies: true</code>,
             })}

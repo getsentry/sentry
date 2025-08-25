@@ -13,12 +13,12 @@ class HomeTest(TestCase):
     def path(self):
         return reverse("sentry")
 
-    def test_redirects_to_login(self):
+    def test_redirects_to_login(self) -> None:
         resp = self.client.get(self.path)
 
         self.assertRedirects(resp, "/auth/login/")
 
-    def test_redirects_to_create_org(self):
+    def test_redirects_to_create_org(self) -> None:
         self.login_as(self.user)
 
         with self.feature("organizations:create"):
@@ -26,7 +26,7 @@ class HomeTest(TestCase):
 
         self.assertRedirects(resp, "/organizations/new/")
 
-    def test_shows_no_access(self):
+    def test_shows_no_access(self) -> None:
         self.login_as(self.user)
 
         with self.feature({"organizations:create": False}):
@@ -35,7 +35,7 @@ class HomeTest(TestCase):
         assert resp.status_code == 403
         self.assertTemplateUsed("sentry/no-organization-access.html")
 
-    def test_redirects_to_org_home(self):
+    def test_redirects_to_org_home(self) -> None:
         self.login_as(self.user)
         org = self.create_organization(owner=self.user)
 
@@ -44,7 +44,7 @@ class HomeTest(TestCase):
 
         self.assertRedirects(resp, f"/organizations/{org.slug}/issues/")
 
-    def test_customer_domain(self):
+    def test_customer_domain(self) -> None:
         org = self.create_organization(owner=self.user)
 
         self.login_as(self.user)
@@ -61,7 +61,7 @@ class HomeTest(TestCase):
             ]
             assert self.client.session["activeorg"] == org.slug
 
-    def test_customer_domain_org_pending_deletion(self):
+    def test_customer_domain_org_pending_deletion(self) -> None:
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
 
         self.login_as(self.user)
@@ -78,7 +78,7 @@ class HomeTest(TestCase):
             ]
             assert "activeorg" in self.client.session
 
-    def test_customer_domain_org_deletion_in_progress(self):
+    def test_customer_domain_org_deletion_in_progress(self) -> None:
         org = self.create_organization(
             owner=self.user, status=OrganizationStatus.DELETION_IN_PROGRESS
         )

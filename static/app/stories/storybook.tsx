@@ -1,5 +1,10 @@
 import type {ReactNode} from 'react';
-import {Children, Fragment} from 'react';
+import {Children, Fragment, useEffect} from 'react';
+import styled from '@emotion/styled';
+
+import {Heading} from 'sentry/components/core/text';
+import {makeStorybookDocumentTitle} from 'sentry/stories/view/storyExports';
+import {StoryHeading} from 'sentry/stories/view/storyHeading';
 
 import * as Storybook from './';
 
@@ -30,9 +35,13 @@ export function story(title: string, setup: SetupFunction): StoryRenderFunction 
   setup(storyFn, apiReferenceFn);
 
   return function RenderStory() {
+    useEffect(() => {
+      document.title = makeStorybookDocumentTitle(title);
+    }, []);
+
     return (
       <Fragment>
-        <Storybook.Title>{title}</Storybook.Title>
+        <Heading as="h1">{title}</Heading>
         {stories.map(({name, render}, i) => (
           <Story key={i} name={name} render={render} />
         ))}
@@ -50,8 +59,16 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
 
   return (
     <Storybook.Section>
-      <Storybook.Title>{props.name}</Storybook.Title>
+      <StoryHeadingContainer>
+        <StoryHeading as="h2" size="2xl">
+          {props.name}
+        </StoryHeading>
+      </StoryHeadingContainer>
       {isOneChild ? children : <Storybook.SideBySide>{children}</Storybook.SideBySide>}
     </Storybook.Section>
   );
 }
+
+const StoryHeadingContainer = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+`;

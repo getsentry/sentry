@@ -168,7 +168,6 @@ function MonitorDetails({params, location}: Props) {
               <Alert.Container>
                 <Alert
                   type="muted"
-                  showIcon
                   trailingItems={
                     <StatusToggleButton
                       monitor={monitor}

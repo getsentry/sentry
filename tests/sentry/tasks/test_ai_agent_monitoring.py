@@ -152,7 +152,7 @@ MOCK_MODELS_DEV_API_RESPONSE = {
 
 
 class FetchAIModelCostsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # Clear cache before each test
         cache.delete(AI_MODEL_COSTS_CACHE_KEY)
@@ -174,7 +174,7 @@ class FetchAIModelCostsTest(TestCase):
         )
 
     @responses.activate
-    def test_fetch_ai_model_costs_success_both_apis(self):
+    def test_fetch_ai_model_costs_success_both_apis(self) -> None:
         """Test successful fetching and caching from both APIs"""
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
@@ -231,7 +231,7 @@ class FetchAIModelCostsTest(TestCase):
         assert gemini_flash_model.get("inputCachedPerToken") == 0.01875
 
     @responses.activate
-    def test_fetch_ai_model_costs_success_openrouter_only(self):
+    def test_fetch_ai_model_costs_success_openrouter_only(self) -> None:
         """Test successful fetching when only OpenRouter succeeds"""
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         # Also mock models.dev to return empty response to avoid real network call
@@ -265,7 +265,7 @@ class FetchAIModelCostsTest(TestCase):
         assert gpt5_model.get("inputCachedPerToken") == 0.00000055
 
     @responses.activate
-    def test_fetch_ai_model_costs_missing_pricing(self):
+    def test_fetch_ai_model_costs_missing_pricing(self) -> None:
         """Test handling of models with missing pricing data"""
         mock_openrouter_response = {
             "data": [
@@ -345,7 +345,7 @@ class FetchAIModelCostsTest(TestCase):
         assert models_dev_model.get("inputCachedPerToken") == 0.0
 
     @responses.activate
-    def test_fetch_ai_model_costs_openrouter_invalid_response(self):
+    def test_fetch_ai_model_costs_openrouter_invalid_response(self) -> None:
         """Test handling of invalid OpenRouter API response format"""
         # Invalid response - missing 'data' field
         mock_response = {"invalid": "response"}
@@ -360,7 +360,7 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_models_dev_invalid_response(self):
+    def test_fetch_ai_model_costs_models_dev_invalid_response(self) -> None:
         """Test handling of invalid models.dev API response format"""
         # Valid OpenRouter response
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
@@ -381,7 +381,7 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_openrouter_http_error(self):
+    def test_fetch_ai_model_costs_openrouter_http_error(self) -> None:
         """Test handling of OpenRouter HTTP errors"""
         responses.add(
             responses.GET,
@@ -397,7 +397,7 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_models_dev_http_error(self):
+    def test_fetch_ai_model_costs_models_dev_http_error(self) -> None:
         """Test handling of models.dev HTTP errors"""
         # Valid OpenRouter response
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
@@ -417,7 +417,7 @@ class FetchAIModelCostsTest(TestCase):
         assert cached_data is None
 
     @responses.activate
-    def test_fetch_ai_model_costs_timeout(self):
+    def test_fetch_ai_model_costs_timeout(self) -> None:
         """Test handling of request timeout"""
         import requests
 
@@ -434,7 +434,7 @@ class FetchAIModelCostsTest(TestCase):
         cached_data = _get_ai_model_costs_from_cache()
         assert cached_data is None
 
-    def test_get_ai_model_costs_from_cache_empty(self):
+    def test_get_ai_model_costs_from_cache_empty(self) -> None:
         """Test retrieving from empty cache"""
         cached_data = _get_ai_model_costs_from_cache()
         assert cached_data is None
@@ -454,7 +454,7 @@ class FetchAIModelCostsTest(TestCase):
         }
     )
     @responses.activate
-    def test_fetch_ai_model_costs_custom_model_mapping(self):
+    def test_fetch_ai_model_costs_custom_model_mapping(self) -> None:
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
         self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
 

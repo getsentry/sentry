@@ -1,4 +1,4 @@
-import {Component, type ReactNode, useEffect} from 'react';
+import {Component, useEffect, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
@@ -35,8 +35,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
-  type DomainViewFilters,
   useDomainViewFilters,
+  type DomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
 import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
@@ -259,7 +259,7 @@ class _Table extends Component<Props, State> {
   ): React.ReactNode {
     const {eventView, organization, projects, location, withStaticFilters} = this.props;
 
-    if (!tableData || !tableData.meta) {
+    if (!tableData?.meta) {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta;
@@ -280,6 +280,8 @@ class _Table extends Component<Props, State> {
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
       Actions.EDIT_THRESHOLD,
+      Actions.OPEN_EXTERNAL_LINK,
+      Actions.OPEN_INTERNAL_LINK,
     ];
 
     const cellActions = withStaticFilters ? [] : allowActions;
@@ -617,7 +619,7 @@ class _Table extends Component<Props, State> {
                   orgSlug={organization.slug}
                   location={location}
                   setError={error => setError(error?.message)}
-                  referrer="api.performance.landing-table"
+                  referrer="api.insights.landing-table"
                   transactionName={transaction}
                   transactionThreshold={transactionThreshold}
                   queryExtras={getMEPQueryParams(value)}

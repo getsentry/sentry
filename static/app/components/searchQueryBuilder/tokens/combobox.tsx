@@ -1,11 +1,11 @@
 import {
-  type MouseEventHandler,
-  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
+  type MouseEventHandler,
+  type ReactNode,
 } from 'react';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
@@ -13,7 +13,7 @@ import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {type AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
-import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
+import {useComboBoxState, type ComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
 import Feature from 'sentry/components/acl/feature';
@@ -29,11 +29,9 @@ import {
 import {Input} from 'sentry/components/core/input';
 import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import {Overlay} from 'sentry/components/overlay';
-import {
-  ASK_SEER_CONSENT_ITEM_KEY,
-  ASK_SEER_ITEM_KEY,
-  AskSeer,
-} from 'sentry/components/searchQueryBuilder/askSeer';
+import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {
@@ -370,7 +368,7 @@ export function SearchQueryBuilderCombobox<
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
-  const {disabled, portalTarget, enableAISearch} = useSearchQueryBuilder();
+  const {disabled, portalTarget, enableAISearch, wrapperRef} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -425,6 +423,7 @@ export function SearchQueryBuilderCombobox<
       listBoxRef,
       inputRef,
       popoverRef,
+      shouldFocusWrap: true,
       onFocus: e => {
         if (openOnFocus) {
           state.open();
@@ -499,7 +498,7 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el)) {
+      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
         return false;
       }
 

@@ -25,6 +25,13 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
 
         return type
 
+    def validate_condition_group(self, value):
+        if value is not None:
+            raise serializers.ValidationError(
+                "Condition group is not supported for error detectors"
+            )
+        return value
+
     def validate_fingerprinting_rules(self, value):
         if not value:
             return value

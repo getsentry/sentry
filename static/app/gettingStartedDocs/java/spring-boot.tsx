@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
-import {Link} from 'sentry/components/core/link';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
@@ -81,7 +80,7 @@ sentry {
   includeSourceContext = true
 
   org = "${params.organization.slug}"
-  projectName = "${params.projectSlug}"
+  projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }`;
 
@@ -99,7 +98,7 @@ const getMavenInstallSnippet = (params: Params) => `
 
         <org>${params.organization.slug}</org>
 
-        <project>${params.projectSlug}</project>
+        <project>${params.project.slug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -133,6 +132,12 @@ sentry.dsn=${params.dsn.public}
 # Add data like request headers and IP for users,
 # see https://docs.sentry.io/platforms/java/guides/spring-boot/data-management/data-collected/ for more info
 sentry.send-default-pii=true${
+  params.isLogsSelected
+    ? `
+# Enable sending logs to Sentry
+sentry.logs.enabled=true`
+    : ''
+}${
   params.isPerformanceSelected
     ? `
 # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
@@ -147,6 +152,13 @@ sentry:
   # Add data like request headers and IP for users,
   # see https://docs.sentry.io/platforms/java/guides/spring-boot/data-management/data-collected/ for more info
   send-default-pii: true${
+    params.isLogsSelected
+      ? `
+  # Enable sending logs to Sentry
+  logs:
+    enabled: true`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.

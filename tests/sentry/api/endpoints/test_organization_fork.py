@@ -28,7 +28,7 @@ class OrganizationForkTest(APITestCase):
     endpoint = "sentry-api-0-organization-fork"
     method = "POST"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.superuser = self.create_user(is_superuser=True)
         self.staff_user = self.create_user(is_staff=True)

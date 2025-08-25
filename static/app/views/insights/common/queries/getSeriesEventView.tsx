@@ -40,7 +40,7 @@ export function getSeriesEventView(
       query: typeof search === 'string' ? search : (search?.formatString() ?? ''),
       fields,
       yAxis,
-      dataset: dataset || DiscoverDatasets.SPANS_METRICS,
+      dataset: dataset || DiscoverDatasets.SPANS,
       interval,
       topEvents: topEvents?.toString(),
       version: 2,

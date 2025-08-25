@@ -10,12 +10,12 @@ from sentry.testutils.helpers.datetime import freeze_time
 class SampleScheduleDataTest(APITestCase):
     endpoint = "sentry-api-0-organization-monitors-schedule-sample-data"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
     @freeze_time("2023-10-26T12:32:25Z")
-    def test_simple_crontab(self):
+    def test_simple_crontab(self) -> None:
 
         expected_ticks = [
             int(datetime(2023, 10, 26, 13, 00).timestamp()),
@@ -32,7 +32,7 @@ class SampleScheduleDataTest(APITestCase):
         assert response.data == expected_ticks
 
     @freeze_time("2023-10-26T12:32:25Z")
-    def test_crontab_with_timezone(self):
+    def test_crontab_with_timezone(self) -> None:
         tz = "US/Pacific"
         zone = zoneinfo.ZoneInfo(tz)
 
@@ -56,7 +56,7 @@ class SampleScheduleDataTest(APITestCase):
         assert response.data == expected_ticks
 
     @freeze_time("2023-10-26T12:32:25Z")
-    def test_simple_interval(self):
+    def test_simple_interval(self) -> None:
         expected_ticks = [
             int(datetime(2023, 10, 26, 12, 00).timestamp()),
             int(datetime(2023, 10, 26, 13, 00).timestamp()),
@@ -75,7 +75,7 @@ class SampleScheduleDataTest(APITestCase):
         )
         assert response.data == expected_ticks
 
-    def test_missing_params(self):
+    def test_missing_params(self) -> None:
         # No params
         self.get_error_response(
             self.organization.slug,
@@ -102,7 +102,7 @@ class SampleScheduleDataTest(APITestCase):
             status_code=400,
         )
 
-    def test_bad_params(self):
+    def test_bad_params(self) -> None:
         # Invalid crontab schedule
         self.get_error_response(
             self.organization.slug,

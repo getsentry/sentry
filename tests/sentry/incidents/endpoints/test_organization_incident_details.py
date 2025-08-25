@@ -12,7 +12,7 @@ class BaseIncidentDetailsTest(APITestCase):
 
     endpoint = "sentry-api-0-organization-incident-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
@@ -28,14 +28,14 @@ class BaseIncidentDetailsTest(APITestCase):
     def user(self):
         return self.create_user()
 
-    def test_no_perms(self):
+    def test_no_perms(self) -> None:
         incident = self.create_incident()
         self.login_as(self.create_user())
         with self.feature("organizations:incidents"):
             resp = self.get_response(incident.organization.slug, incident.id)
         assert resp.status_code == 403
 
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         incident = self.create_incident()
         resp = self.get_response(incident.organization.slug, incident.id)
         assert resp.status_code == 404
@@ -43,7 +43,7 @@ class BaseIncidentDetailsTest(APITestCase):
 
 class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest):
     @freeze_time()
-    def test_simple(self):
+    def test_simple(self) -> None:
         incident = self.create_incident()
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(incident.organization.slug, incident.identifier)
@@ -65,7 +65,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest):
         params.setdefault("status", IncidentStatus.CLOSED.value)
         return super().get_success_response(*args, **params)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         incident = self.create_incident()
         with self.feature("organizations:incidents"):
             self.get_success_response(
@@ -75,7 +75,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest):
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == IncidentStatus.CLOSED.value
 
-    def test_cannot_open(self):
+    def test_cannot_open(self) -> None:
         incident = self.create_incident()
         with self.feature("organizations:incidents"):
             resp = self.get_response(
@@ -84,7 +84,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest):
             assert resp.status_code == 400
             assert resp.data.startswith("Status cannot be changed")
 
-    def test_invalid_status(self):
+    def test_invalid_status(self) -> None:
         incident = self.create_incident()
         with self.feature("organizations:incidents"):
             resp = self.get_response(incident.organization.slug, incident.identifier, status=5000)

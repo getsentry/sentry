@@ -34,7 +34,7 @@ def reset_global_metrics_state():
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("force_disable_multiprocessing", [True, False])
-def test_basic(request, settings, force_disable_multiprocessing):
+def test_basic(request, settings, force_disable_multiprocessing) -> None:
     """
     Integration test to verify that the parallel indexer can spawn subprocesses
     properly. The main purpose is to verify that there are no

@@ -7,10 +7,10 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconRefresh, IconSeer} from 'sentry/icons';
@@ -103,14 +103,14 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
 
   return (
     <ConsentItemsContainer>
-      <Flex align="center" gap={space(1)}>
+      <Flex align="center" gap="md">
         <SayHelloHeader>{t('Say Hello to a Smarter Sentry')}</SayHelloHeader>
       </Flex>
-      <Flex align="center" justify="center" gap={space(1)}>
+      <Flex align="center" justify="center" gap="md">
         <img src={autofixSetupImg} alt="Seer looking at a root cause for a solution" />
       </Flex>
       <SingleCard>
-        <Flex align="center" gap={space(1)}>
+        <Flex align="center" gap="md">
           <MeetSeerHeader>MEET SEER</MeetSeerHeader>
           <IconSeer variant="waiting" color="subText" size="lg" />
         </Flex>
@@ -166,7 +166,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     {t('Try Seer for Free')}
                   </StartTrialButton>
                 ) : hasSeerButNeedsPayg ? (
-                  <Flex gap={space(2)} direction="column">
+                  <Flex gap="xl" direction="column">
                     <ErrorText>
                       {tct(
                         "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",
@@ -296,7 +296,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
         )}
       </SingleCard>
       {warnAboutGithubIntegration && (
-        <Alert type="warning">
+        <Alert type="warning" showIcon={false}>
           {t(
             'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
           )}

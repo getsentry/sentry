@@ -51,6 +51,7 @@ import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
   columns: AggregateField[];
@@ -88,11 +89,7 @@ export function AggregateColumnEditorModal({
   const canDeleteVisualize = tempColumns.filter(isVisualize).length > 1;
 
   return (
-    <DragNDropContext
-      columns={tempColumns}
-      setColumns={setTempColumns}
-      defaultColumn={() => ({groupBy: ''})}
-    >
+    <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
@@ -219,6 +216,7 @@ function ColumnEditorRow({
         <GroupBySelector
           groupBy={column.column}
           groupBys={groupBys}
+          numberTags={numberTags}
           onChange={onColumnChange}
           stringTags={stringTags}
         />
@@ -246,6 +244,7 @@ function ColumnEditorRow({
 interface GroupBySelectorProps {
   groupBy: GroupBy;
   groupBys: string[];
+  numberTags: TagCollection;
   onChange: (groupBy: GroupBy) => void;
   stringTags: TagCollection;
 }
@@ -253,12 +252,15 @@ interface GroupBySelectorProps {
 function GroupBySelector({
   groupBy,
   groupBys,
+  numberTags,
   onChange,
   stringTags,
 }: GroupBySelectorProps) {
   const options: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
-    tags: stringTags,
+    numberTags,
+    stringTags,
+    traceItemType: TraceItemDataset.SPANS,
   });
 
   const label = useMemo(() => {
@@ -330,6 +332,7 @@ function AggregateSelector({
     numberTags,
     stringTags,
     parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
   });
 
   const handleFunctionChange = useCallback(

@@ -4,7 +4,6 @@ import logging
 from typing import Any, TypedDict
 
 from django.db import router, transaction
-from django.http import Http404
 
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
@@ -178,7 +177,7 @@ def send_incident_alert_notification(
                 "organization_id": organization_id,
             },
         )
-        raise Http404
+        return False
 
     org_integration_id: int | None = None
     if org_integration:

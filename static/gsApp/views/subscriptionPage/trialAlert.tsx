@@ -56,7 +56,7 @@ function TrialAlert({organization, subscription}: Props) {
         </TrialInfo>
 
         {subscription.canSelfServe && (
-          <ButtonWrapper gap="none">
+          <ButtonWrapper gap="0">
             <Button
               size="sm"
               data-test-id="trial-details-button"

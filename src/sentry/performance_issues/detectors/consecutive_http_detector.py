@@ -6,7 +6,11 @@ from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.performance_issues.detectors.utils import get_max_span_duration, get_total_span_duration
+from sentry.performance_issues.detectors.utils import (
+    get_max_span_duration,
+    get_total_span_duration,
+    has_filtered_url,
+)
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.safe import get_path
 
@@ -96,8 +100,8 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
     def _store_performance_problem(self) -> None:
         fingerprint = self._fingerprint()
-        offender_span_ids = [span.get("span_id", None) for span in self.consecutive_http_spans]
-        desc: str = self.consecutive_http_spans[0].get("description", None)
+        offender_span_ids = [span["span_id"] for span in self.consecutive_http_spans]
+        desc: str = self.consecutive_http_spans[0].get("description", "")
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,
@@ -161,6 +165,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             return False
 
         if any([x in description for x in ["_next/static/", "_next/data/", "googleapis.com"]]):
+            return False
+
+        if has_filtered_url(self._event, span):
             return False
 
         return True

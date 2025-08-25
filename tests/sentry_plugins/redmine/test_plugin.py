@@ -18,7 +18,7 @@ class RedminePluginTest(PluginTestCase):
         return RedminePlugin()
 
     @responses.activate
-    def test_config_validation(self):
+    def test_config_validation(self) -> None:
         responses.add(responses.GET, "https://bugs.redmine.org")
 
         config = {
@@ -28,7 +28,7 @@ class RedminePluginTest(PluginTestCase):
 
         self.plugin.validate_config(self.project, config)
 
-    def test_no_secrets(self):
+    def test_no_secrets(self) -> None:
         self.login_as(self.user)
         self.plugin.set_option("key", "supersecret", self.project)
         url = reverse(

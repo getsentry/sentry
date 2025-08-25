@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from django.test.utils import override_settings
@@ -12,18 +12,19 @@ from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
+from sentry.monitors.utils import get_detector_for_monitor
 from sentry.quotas.base import SeatAssignmentResult
-from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils.outcomes import Outcome
+from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 class ListOrganizationMonitorsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -41,12 +42,12 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             for monitor_environment_resp in monitor.get("environments", [])
         ]
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         monitor = self._create_monitor()
         response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [monitor])
 
-    def test_sort_status(self):
+    def test_sort_status(self) -> None:
         last_checkin = datetime.now(UTC) - timedelta(minutes=1)
         last_checkin_older = datetime.now(UTC) - timedelta(minutes=5)
 
@@ -116,7 +117,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             ],
         )
 
-    def test_sort_name(self):
+    def test_sort_name(self) -> None:
         monitors = [
             self._create_monitor(name="Some Monitor"),
             self._create_monitor(name="A monitor"),
@@ -131,7 +132,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, sort="name", asc="0")
         self.check_valid_response(response, monitors)
 
-    def test_sort_muted(self):
+    def test_sort_muted(self) -> None:
         monitors = [
             self._create_monitor(name="Z monitor", is_muted=True),
             self._create_monitor(name="Y monitor", is_muted=True),
@@ -148,7 +149,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, sort="muted", asc="0")
         self.check_valid_response(response, monitors)
 
-    def test_sort_muted_envs(self):
+    def test_sort_muted_envs(self) -> None:
         muted_monitor_1 = self._create_monitor(name="Z monitor", is_muted=True)
         self._create_monitor_environment(muted_monitor_1, name="prod")
         muted_monitor_2 = self._create_monitor(name="Y monitor", is_muted=True)
@@ -213,7 +214,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         )
         self.check_valid_response(response, expected)
 
-    def test_environments_sorted(self):
+    def test_environments_sorted(self) -> None:
         last_checkin = datetime.now(UTC) - timedelta(minutes=1)
 
         monitor = self._create_monitor(
@@ -252,7 +253,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             response, response.data[0], [env_error, env_ok_newer, env_ok_older, env_muted]
         )
 
-    def test_filter_owners(self):
+    def test_filter_owners(self) -> None:
         user_1 = self.create_user()
         user_2 = self.create_user()
         team_1 = self.create_team()
@@ -297,7 +298,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         )
         self.check_valid_response(response, [])
 
-    def test_all_monitor_environments(self):
+    def test_all_monitor_environments(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(
             monitor, name="test", status=MonitorStatus.OK
@@ -310,7 +311,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         self.check_valid_environments_response(response, response.data[0], [monitor_environment])
         self.check_valid_environments_response(response, response.data[1], [])
 
-    def test_monitor_environment(self):
+    def test_monitor_environment(self) -> None:
         monitor = self._create_monitor()
         self._create_monitor_environment(monitor)
 
@@ -320,7 +321,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, environment="production")
         self.check_valid_response(response, [monitor])
 
-    def test_monitor_environment_include_new(self):
+    def test_monitor_environment_include_new(self) -> None:
         monitor = self._create_monitor()
         self._create_monitor_environment(
             monitor, status=MonitorStatus.OK, last_checkin=datetime.now(UTC) - timedelta(minutes=1)
@@ -333,14 +334,14 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         )
         self.check_valid_response(response, [monitor, monitor_visible])
 
-    def test_search_by_slug(self):
+    def test_search_by_slug(self) -> None:
         monitor = self._create_monitor(slug="test-slug")
         self._create_monitor(slug="other-monitor")
 
         response = self.get_success_response(self.organization.slug, query="test-slug")
         self.check_valid_response(response, [monitor])
 
-    def test_ignore_pending_deletion_environments(self):
+    def test_ignore_pending_deletion_environments(self) -> None:
         monitor = self._create_monitor()
         self._create_monitor_environment(
             monitor,
@@ -365,12 +366,12 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
     @patch("sentry.analytics.record")
-    def test_simple(self, mock_record):
+    def test_simple(self, mock_record: MagicMock) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -402,6 +403,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             data={"upsert": False, **monitor.get_audit_log_data()},
         )
 
+        assert get_detector_for_monitor(monitor) is not None
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
 
@@ -420,7 +422,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             from_upsert=False,
         )
 
-    def test_slug(self):
+    def test_slug(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -432,7 +434,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         assert response.data["slug"] == "my-monitor"
 
-    def test_invalid_numeric_slug(self):
+    def test_invalid_numeric_slug(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -443,7 +445,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
 
-    def test_generated_slug_not_entirely_numeric(self):
+    def test_generated_slug_not_entirely_numeric(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "1234",
@@ -456,7 +458,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert slug.startswith("1234-")
         assert not slug.isdecimal()
 
-    def test_crontab_whitespace(self):
+    def test_crontab_whitespace(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "1234",
@@ -469,7 +471,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert schedule == "* * * * *"
 
     @override_settings(MAX_MONITORS_PER_ORG=2)
-    def test_monitor_organization_limit(self):
+    def test_monitor_organization_limit(self) -> None:
         for i in range(settings.MAX_MONITORS_PER_ORG):
             data = {
                 "project": self.project.slug,
@@ -489,7 +491,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         }
         self.get_error_response(self.organization.slug, status_code=403, **data)
 
-    def test_simple_with_alert_rule(self):
+    def test_simple_with_alert_rule(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -510,7 +512,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert rule is not None
         assert rule.environment_id == self.environment.id
 
-    def test_checkin_margin_zero(self):
+    def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin
         #
         # XXX(epurkhiser): We currently transform 0 -> 1 for backwards
@@ -527,7 +529,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert Monitor.objects.get(slug=response.data["slug"]).config["checkin_margin"] == 1
 
     @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_assigns_seat(self, assign_monitor_seat):
+    def test_create_monitor_assigns_seat(self, assign_monitor_seat: MagicMock) -> None:
         assign_monitor_seat.return_value = Outcome.ACCEPTED
 
         data = {
@@ -544,7 +546,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert monitor.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.assign_monitor_seat")
-    def test_create_monitor_without_seat(self, assign_monitor_seat):
+    def test_create_monitor_without_seat(self, assign_monitor_seat: MagicMock) -> None:
         assign_monitor_seat.return_value = Outcome.RATE_LIMITED
 
         data = {
@@ -561,7 +563,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert response.data["status"] == "disabled"
         assert monitor.status == ObjectStatus.DISABLED
 
-    def test_invalid_schedule(self):
+    def test_invalid_schedule(self) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -577,11 +579,11 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-index"
     method = "put"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_valid_ids(self):
+    def test_valid_ids(self) -> None:
         monitor_one = self._create_monitor(slug="monitor_one")
         self._create_monitor(slug="monitor_two")
 
@@ -597,7 +599,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
             ]
         }
 
-    def test_bulk_mute_unmute(self):
+    def test_bulk_mute_unmute(self) -> None:
         monitor_one = self._create_monitor(slug="monitor_one")
         monitor_two = self._create_monitor(slug="monitor_two")
 
@@ -636,7 +638,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         assert not monitor_one.is_muted
         assert not monitor_two.is_muted
 
-    def test_bulk_disable_enable(self):
+    def test_bulk_disable_enable(self) -> None:
         monitor_one = self._create_monitor(slug="monitor_one")
         monitor_two = self._create_monitor(slug="monitor_two")
         data = {
@@ -665,7 +667,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         assert monitor_two.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.check_assign_monitor_seats")
-    def test_enable_no_quota(self, check_assign_monitor_seats):
+    def test_enable_no_quota(self, check_assign_monitor_seats: MagicMock) -> None:
         monitor_one = self._create_monitor(slug="monitor_one", status=ObjectStatus.DISABLED)
         monitor_two = self._create_monitor(slug="monitor_two", status=ObjectStatus.DISABLED)
         result = SeatAssignmentResult(
@@ -688,7 +690,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         assert monitor_one.status == ObjectStatus.DISABLED
         assert monitor_two.status == ObjectStatus.DISABLED
 
-    def test_disallow_when_no_open_membership(self):
+    def test_disallow_when_no_open_membership(self) -> None:
         monitor = self._create_monitor()
 
         # disable Open Membership

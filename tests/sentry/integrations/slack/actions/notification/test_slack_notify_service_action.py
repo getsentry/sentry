@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import orjson
@@ -84,7 +84,9 @@ class TestInit(RuleTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_after(self, mock_api_call, mock_post, mock_record):
+    def test_after(
+        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -119,7 +121,7 @@ class TestInit(RuleTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    def test_after_slo_halt(self, mock_post, mock_record):
+    def test_after_slo_halt(self, mock_post: MagicMock, mock_record: MagicMock) -> None:
         mock_post.side_effect = SlackApiError(
             message="account_inactive",
             response=SlackResponse(
@@ -161,7 +163,7 @@ class TestInit(RuleTestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.metrics")
-    def test_after_error(self, mock_metrics, mock_record):
+    def test_after_error(self, mock_metrics: MagicMock, mock_record: MagicMock) -> None:
         # tests error flow because we're actually trying to POST
 
         rule = self.get_rule(data=self.action_data)
@@ -189,7 +191,9 @@ class TestInit(RuleTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_after_with_threads(self, mock_api_call, mock_post, mock_record):
+    def test_after_with_threads(
+        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -225,7 +229,9 @@ class TestInit(RuleTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_after_reply_in_thread(self, mock_api_call, mock_post, mock_record):
+    def test_after_reply_in_thread(
+        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -288,7 +294,9 @@ class TestInit(RuleTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_after_noa(self, mock_api_call, mock_post, mock_record):
+    def test_after_noa(
+        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -333,7 +341,9 @@ class TestInit(RuleTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_after_noa_test_action(self, mock_api_call, mock_post, mock_record):
+    def test_after_noa_test_action(
+        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -378,7 +388,9 @@ class TestInit(RuleTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_after_noa_new_ui(self, mock_api_call, mock_post, mock_record):
+    def test_after_noa_new_ui(
+        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -423,7 +435,9 @@ class TestInit(RuleTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_after_with_threads_noa(self, mock_api_call, mock_post, mock_record):
+    def test_after_with_threads_noa(
+        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -468,7 +482,9 @@ class TestInit(RuleTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_after_reply_in_thread_noa(self, mock_api_call, mock_post, mock_record):
+    def test_after_reply_in_thread_noa(
+        self, mock_api_call: MagicMock, mock_post: MagicMock, mock_record: MagicMock
+    ) -> None:
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},

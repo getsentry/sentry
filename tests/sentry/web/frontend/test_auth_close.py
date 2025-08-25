@@ -13,25 +13,25 @@ class AuthClose(TestCase):
     def path(self):
         return reverse("sentry-auth-close")
 
-    def test_renders_auth_close_view(self):
+    def test_renders_auth_close_view(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/auth_close.html")
 
-    def test_renders_auth_close_view_again(self):
+    def test_renders_auth_close_view_again(self) -> None:
         resp = self.client.get(reverse("sentry-login") + "?next=" + urlquote("/auth/close/"))
         self.login_as(self.user)
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/auth_close.html")
 
-    def test_context_anonymous_user(self):
+    def test_context_anonymous_user(self) -> None:
         """page should redirect for unauthenticated user"""
         resp = self.client.get(self.path)
         assert resp.status_code == 302
 
-    def test_context_logged_in(self):
+    def test_context_logged_in(self) -> None:
         self.login_as(self.user)
 
         resp = self.client.get(self.path)

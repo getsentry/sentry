@@ -11,16 +11,12 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import type {
-  SpanMetricsQueryFilters,
-  SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
@@ -116,7 +112,6 @@ export default function SpanSummary(props: Props) {
         <BackendHeader {...domainViewHeaderProps} />
       )}
       {isInDomainView && view === 'mobile' && <MobileHeader {...domainViewHeaderProps} />}
-      {isInDomainView && view === 'ai' && <AiHeader {...domainViewHeaderProps} />}
       <Layout.Body>
         <Layout.Main fullWidth>
           <SpanSummaryContent
@@ -144,13 +139,13 @@ function SpanSummaryContent(props: ContentProps) {
   const {spanSlug: spanParam} = useParams();
   const [spanOp, groupId] = spanParam!.split(':');
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
     'span.op': spanOp,
     transaction: transactionName,
   };
 
-  const {data: spanHeaderData} = useSpanMetrics(
+  const {data: spanHeaderData} = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: ['span.description', 'sum(span.duration)', 'count()'],
@@ -160,7 +155,7 @@ function SpanSummaryContent(props: ContentProps) {
   );
 
   // Average span duration must be queried for separately, since it could get broken up into multiple groups if used in the first query
-  const {data: avgDurationData} = useSpanMetrics(
+  const {data: avgDurationData} = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: ['avg(span.duration)'],
@@ -186,7 +181,7 @@ function SpanSummaryContent(props: ContentProps) {
   );
 }
 
-function parseSpanHeaderData(data: Array<Partial<SpanMetricsResponse>>) {
+function parseSpanHeaderData(data: Array<Partial<SpanResponse>>) {
   if (!data || data.length === 0) {
     return undefined;
   }

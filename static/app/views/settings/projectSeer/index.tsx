@@ -4,6 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -105,7 +106,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   );
 
   const handleStoppingPointChange = useCallback(
-    (value: 'solution' | 'code_changes' | 'open_pr') => {
+    (value: 'root_cause' | 'solution' | 'code_changes' | 'open_pr') => {
       updateProjectSeerPreferences({
         repositories: preference?.repositories || [],
         automated_run_stopping_point: value,
@@ -124,8 +125,13 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
     type: 'choice',
     options: [
       {
+        value: 'root_cause',
+        label: <SeerSelectLabel>{t('Root Cause (default)')}</SeerSelectLabel>,
+        details: t('Seer will stop after identifying the root cause.'),
+      },
+      {
         value: 'solution',
-        label: <SeerSelectLabel>{t('Solution (default)')}</SeerSelectLabel>,
+        label: <SeerSelectLabel>{t('Solution')}</SeerSelectLabel>,
         details: t('Seer will stop after planning out a solution.'),
       },
       {
@@ -154,7 +160,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
           {t('Automation')}
           <Subheading>
             {tct(
-              "Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend. You can also [bulklink:configure automation for other projects].",
+              "Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
               {
                 link: (
                   <ExternalLink href={'https://docs.sentry.io/pricing/#seer-pricing'} />
@@ -181,7 +187,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
   return (
     <Fragment>
       <Form
-        key={preference?.automated_run_stopping_point ?? 'solution'}
+        key={preference?.automated_run_stopping_point ?? 'root_cause'}
         saveOnBlur
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
@@ -190,7 +196,7 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
           seerScannerAutomation: project.seerScannerAutomation ?? false,
           autofixAutomationTuning: project.autofixAutomationTuning ?? 'off',
           automated_run_stopping_point:
-            preference?.automated_run_stopping_point ?? 'solution',
+            preference?.automated_run_stopping_point ?? 'root_cause',
         }}
         onSubmitSuccess={handleSubmitSuccess}
         additionalFieldProps={{organization}}
@@ -266,10 +272,16 @@ function ProjectSeer({project}: ProjectSeerProps) {
           ),
         })}
       />
-      {organization.features.includes('trigger-autofix-on-issue-summary') && (
-        <ProjectSeerGeneralForm project={project} />
-      )}
+      <ProjectSeerGeneralForm project={project} />
       <AutofixRepositories project={project} />
+      <Center>
+        <LinkButton
+          to={`/settings/${organization.slug}/seer/onboarding/`}
+          priority="primary"
+        >
+          {t('Set up my other projects')}
+        </LinkButton>
+      </Center>
     </Fragment>
   );
 }
@@ -298,4 +310,10 @@ const Subheading = styled('div')`
   text-transform: none;
   margin-top: ${space(1)};
   line-height: 1.4;
+`;
+
+const Center = styled('div')`
+  display: flex;
+  justify-content: center;
+  margin-top: ${p => p.theme.space.lg};
 `;

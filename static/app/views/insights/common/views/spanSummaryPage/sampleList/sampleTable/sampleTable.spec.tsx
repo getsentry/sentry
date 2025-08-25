@@ -7,7 +7,7 @@ import {
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import type {PageFilters} from 'sentry/types/core';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 import SampleTable from './sampleTable';
 
@@ -29,7 +29,7 @@ jest.mock('sentry/utils/usePageFilters', () => {
   };
 });
 
-describe('SampleTable', function () {
+describe('SampleTable', () => {
   beforeEach(() => {
     initializeMockRequests();
   });
@@ -164,15 +164,15 @@ const initializeMockRequests = () => {
     body: {
       data: [
         {
-          [SpanMetricsField.SPAN_OP]: 'db',
-          [`avg(${SpanMetricsField.SPAN_SELF_TIME})`]: 0.52,
+          [SpanFields.SPAN_OP]: 'db',
+          [`avg(${SpanFields.SPAN_SELF_TIME})`]: 0.52,
         },
       ],
     },
     match: [
       (_, options) => {
         const match =
-          options.query?.referrer === 'api.starfish.span-summary-panel-samples-table-avg';
+          options.query?.referrer === 'api.insights.span-summary-panel-samples-table-avg';
         return match;
       },
     ],
@@ -193,7 +193,7 @@ const initializeMockRequests = () => {
       (_, options) => {
         const match =
           options.query?.referrer ===
-          'api.starfish.span-summary-panel-samples-table-transactions';
+          'api.insights.span-summary-panel-samples-table-transactions';
         return match;
       },
     ],
@@ -212,7 +212,7 @@ const initializeMockRequests = () => {
       (_, options) => {
         const {query} = options;
         return (
-          query?.referrer === 'api.starfish.sidebar-span-metrics' &&
+          query?.referrer === 'api.insights.sidebar-span-metrics' &&
           query?.yAxis === 'avg(span.self_time)'
         );
       },

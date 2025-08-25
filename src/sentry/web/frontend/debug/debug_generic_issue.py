@@ -31,13 +31,17 @@ class DebugGenericIssueEmailView(View):
             text_template="sentry/emails/generic.txt",
             context={
                 "rule": rule,
-                "rules": get_rules([rule], org, project),
+                "rules": get_rules([rule], org, project, group.type),
                 "group": group,
                 "event": event,
                 "timezone": zoneinfo.ZoneInfo("Europe/Vienna"),
                 # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
                 #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
-                "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+                "link": get_group_settings_link(
+                    group,
+                    None,
+                    get_rules([rule], org, project, group.type),
+                ),
                 "generic_issue_data": [(section_header, mark_safe(generic_issue_data_html), None)],
                 "tags": event.tags,
                 "project_label": project.slug,

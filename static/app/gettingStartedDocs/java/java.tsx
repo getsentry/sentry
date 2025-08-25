@@ -1,5 +1,4 @@
-import {Link} from 'sentry/components/core/link';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
@@ -89,7 +88,7 @@ sentry {
   includeSourceContext = true
 
   org = "${params.organization.slug}"
-  projectName = "${params.projectSlug}"
+  projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }`;
 
@@ -107,7 +106,7 @@ const getMavenInstallSnippet = (params: Params) => `
 
         <org>${params.organization.slug}</org>
 
-        <project>${params.projectSlug}</project>
+        <project>${params.project.slug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -156,6 +155,13 @@ Sentry.init(options -> {
   // Add data like request headers and IP for users,
   // see https://docs.sentry.io/platforms/java/data-management/data-collected/ for more info
   options.setSendDefaultPii(true);${
+    params.isLogsSelected
+      ? `
+
+  // Enable sending logs to Sentry
+  options.getLogs().setEnabled(true);`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
@@ -334,7 +340,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             },
             {
               type: 'code',
-              language: 'java',
+              language: 'properties',
               code: getSentryPropertiesSnippet(params),
             },
           ],

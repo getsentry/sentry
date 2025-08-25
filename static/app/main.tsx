@@ -8,13 +8,12 @@ import {OnboardingContextProvider} from 'sentry/components/onboarding/onboarding
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
 import {routes} from 'sentry/routes';
+import {SentryTrackingProvider} from 'sentry/tracking';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
-
-import {buildReactRouter6Routes} from './utils/reactRouter6Compat/router';
 
 function buildRouter() {
   const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
-  const router = sentryCreateBrowserRouter(buildReactRouter6Routes(routes()));
+  const router = sentryCreateBrowserRouter(routes());
   DANGEROUS_SET_REACT_ROUTER_6_HISTORY(router);
 
   return router;
@@ -27,7 +26,9 @@ function Main() {
     <AppQueryClientProvider>
       <ThemeAndStyleProvider>
         <OnboardingContextProvider>
-          <RouterProvider router={router} />
+          <SentryTrackingProvider>
+            <RouterProvider router={router} />
+          </SentryTrackingProvider>
         </OnboardingContextProvider>
         {USE_REACT_QUERY_DEVTOOL && (
           <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />

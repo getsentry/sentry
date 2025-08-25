@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useContext, useEffect} from 'react';
-import {css, type Theme, useTheme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
@@ -24,13 +24,13 @@ import {
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {
   IconChevron,
+  IconCompass,
   IconDashboard,
   IconGraph,
   IconIssues,
   IconMegaphone,
   IconProject,
   IconReleases,
-  IconSearch,
   IconSettings,
   IconSiren,
   IconStats,
@@ -52,16 +52,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {AIInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   AGENTS_LANDING_SUB_PATH,
-  getAgentsSidebarLabel,
+  getAISidebarLabel,
 } from 'sentry/views/insights/pages/agents/settings';
-import {
-  AI_LANDING_SUB_PATH,
-  AI_SIDEBAR_LABEL,
-} from 'sentry/views/insights/pages/ai/settings';
 import {
   BACKEND_LANDING_SUB_PATH,
   BACKEND_SIDEBAR_LABEL,
@@ -133,7 +127,7 @@ function Sidebar() {
   }, [collapsed]);
 
   // Close panel on any navigation
-  useEffect(() => void hidePanel(), [location?.pathname]);
+  useEffect(() => hidePanel(), [location?.pathname]);
 
   // Add classname to body
   useEffect(() => {
@@ -376,27 +370,16 @@ function Sidebar() {
           id="performance-domains-mobile"
           icon={<SubitemDot collapsed />}
         />
-        <AIInsightsFeature
-          organization={organization}
-          renderDisabled={() => (
-            <SidebarItem
-              {...sidebarItemProps}
-              label={AI_SIDEBAR_LABEL}
-              to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AI_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AI_LANDING_SUB_PATH]}/`}
-              id="performance-domains-ai"
-              icon={<SubitemDot collapsed />}
-            />
-          )}
-        >
-          <SidebarItem
-            {...sidebarItemProps}
-            label={getAgentsSidebarLabel(organization)}
-            to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/${MODULE_BASE_URLS[AGENTS_LANDING_SUB_PATH]}/`}
-            id="performance-domains-agents"
-            icon={<SubitemDot collapsed />}
-            isBeta
-          />
-        </AIInsightsFeature>
+
+        <SidebarItem
+          {...sidebarItemProps}
+          label={getAISidebarLabel(organization)}
+          to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`}
+          id="performance-domains-agents"
+          icon={<SubitemDot collapsed />}
+          isNew
+        />
+
         <SidebarItem
           {...sidebarItemProps}
           label={t('Crons')}
@@ -422,7 +405,7 @@ function Sidebar() {
   const explore = (
     <SidebarAccordion
       {...sidebarItemProps}
-      icon={<IconSearch />}
+      icon={<IconCompass />}
       label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
       id="explore"
       exact={!shouldAccordionFloat}

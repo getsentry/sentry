@@ -5,7 +5,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class ApiApplicationTest(TestCase):
-    def test_is_valid_redirect_uri(self):
+    def test_is_valid_redirect_uri(self) -> None:
         app = ApiApplication.objects.create(
             owner=self.user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
         )
@@ -26,14 +26,14 @@ class ApiApplicationTest(TestCase):
         assert not app.is_valid_redirect_uri("http://sub.example.com/path/../baz")
         assert not app.is_valid_redirect_uri("https://sub.example.com")
 
-    def test_get_default_redirect_uri(self):
+    def test_get_default_redirect_uri(self) -> None:
         app = ApiApplication.objects.create(
             owner=self.user, redirect_uris="http://example.com\nhttp://sub.example.com/path"
         )
 
         assert app.get_default_redirect_uri() == "http://example.com"
 
-    def test_get_allowed_origins_space_separated(self):
+    def test_get_allowed_origins_space_separated(self) -> None:
         app = ApiApplication.objects.create(
             name="origins_test",
             redirect_uris="http://example.com",
@@ -46,7 +46,7 @@ class ApiApplicationTest(TestCase):
             "http://example.io",
         ]
 
-    def test_get_allowed_origins_newline_separated(self):
+    def test_get_allowed_origins_newline_separated(self) -> None:
         app = ApiApplication.objects.create(
             name="origins_test",
             redirect_uris="http://example.com",
@@ -59,7 +59,7 @@ class ApiApplicationTest(TestCase):
             "http://example.io",
         ]
 
-    def test_get_allowed_origins_none(self):
+    def test_get_allowed_origins_none(self) -> None:
         app = ApiApplication.objects.create(
             name="origins_test",
             redirect_uris="http://example.com",
@@ -67,12 +67,12 @@ class ApiApplicationTest(TestCase):
 
         assert app.get_allowed_origins() == []
 
-    def test_get_allowed_origins_empty_string(self):
+    def test_get_allowed_origins_empty_string(self) -> None:
         app = ApiApplication.objects.create(name="origins_test", redirect_uris="")
 
         assert app.get_allowed_origins() == []
 
-    def test_get_redirect_uris_space_separated(self):
+    def test_get_redirect_uris_space_separated(self) -> None:
         app = ApiApplication.objects.create(
             name="origins_test",
             redirect_uris="http://example.com http://example2.com http://example.io",
@@ -84,7 +84,7 @@ class ApiApplicationTest(TestCase):
             "http://example.io",
         ]
 
-    def test_get_redirect_uris_newline_separated(self):
+    def test_get_redirect_uris_newline_separated(self) -> None:
         app = ApiApplication.objects.create(
             name="origins_test",
             redirect_uris="http://example.com\nhttp://example2.com\nhttp://example.io",
@@ -96,7 +96,7 @@ class ApiApplicationTest(TestCase):
             "http://example.io",
         ]
 
-    def test_default_string_serialization(self):
+    def test_default_string_serialization(self) -> None:
         app = ApiApplication.objects.create(
             name="origins_test",
             redirect_uris="http://example.com\nhttp://example2.com\nhttp://example.io",

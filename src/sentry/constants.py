@@ -34,7 +34,9 @@ def get_all_languages() -> list[str]:
 
 
 MODULE_ROOT = os.path.dirname(cast(str, __import__("sentry").__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(MODULE_ROOT))
 DATA_ROOT = os.path.join(MODULE_ROOT, "data")
+STATIC_ROOT = os.path.join(PROJECT_ROOT, "static")
 
 BAD_RELEASE_CHARS = "\r\n\f\x0c\t/\\"
 MAX_VERSION_LENGTH = 200
@@ -181,6 +183,12 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "remote",
         "resources",
         "rollback",
+        "s4s",
+        "s4s1",
+        "s4s2",
+        "s4s3",
+        "s4s4",
+        "s4s5",
         "sa1",
         "sales",
         "security",
@@ -359,6 +367,7 @@ KNOWN_DIF_FORMATS: dict[str, str] = {
     "application/x-debugid-map": "uuidmap",
     "application/x-il2cpp-json": "il2cpp",
     "application/x-portable-pdb": "portablepdb",
+    "application/x-dartsymbolmap+json": "dartsymbolmap",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"
@@ -730,9 +739,11 @@ SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
 DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT = AutofixAutomationTuningSettings.OFF
 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT = True
-INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = False
+ENABLE_SEER_ENHANCED_ALERTS_DEFAULT = True
+ENABLE_SEER_CODING_DEFAULT = True
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = True
+INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT = "disabled"
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

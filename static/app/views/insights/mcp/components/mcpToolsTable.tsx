@@ -12,8 +12,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import {HeadSortCell} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
+import {HeadSortCell} from 'sentry/views/insights/agents/components/headSortCell';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {MCPReferrer} from 'sentry/views/insights/mcp/utils/referrer';
 import {PlatformInsightsTable} from 'sentry/views/insights/pages/platform/shared/table';
@@ -100,6 +100,11 @@ export function McpToolsTable() {
             <ErrorRateCell
               errorRate={dataRow['failure_rate()']}
               total={dataRow['count()']}
+              issuesLink={getExploreUrl({
+                query: `${query} span.status:internal_error ${SpanFields.MCP_TOOL_NAME}:${dataRow[SpanFields.MCP_TOOL_NAME]}`,
+                organization,
+                referrer: MCPReferrer.MCP_TOOL_TABLE,
+              })}
             />
           );
         case 'count()':
@@ -111,7 +116,7 @@ export function McpToolsTable() {
           return <div />;
       }
     },
-    [tableDataRequest]
+    [tableDataRequest, organization, query]
   );
 
   return (
@@ -148,6 +153,7 @@ function McpToolCell({tool}: {tool: string}) {
     ],
     query: `span.op:mcp.server ${SpanFields.MCP_TOOL_NAME}:"${tool}"`,
     sort: `-count(span.duration)`,
+    field: ['span.description', 'mcp.tool.result.content', 'span.duration', 'timestamp'],
   });
   return <Link to={link}>{tool}</Link>;
 }

@@ -9,21 +9,19 @@ export type Column<T> = {
 
 interface UseDragAndDropColumnsProps<T> {
   columns: T[];
-  defaultColumn: () => T;
   setColumns: (columns: T[], op: 'insert' | 'update' | 'delete' | 'reorder') => void;
 }
 
 export function useDragNDropColumns<T>({
   columns,
-  defaultColumn,
   setColumns,
 }: UseDragAndDropColumnsProps<T>) {
   const editableColumns = useMemo(() => {
     return columns.map((column, i) => ({id: i + 1, column}));
   }, [columns]);
 
-  function insertColumn(column?: T) {
-    setColumns([...columns, column ?? defaultColumn()], 'insert');
+  function insertColumn(column: T) {
+    setColumns([...columns, column], 'insert');
   }
 
   function updateColumnAtIndex(i: number, column: T) {
@@ -35,9 +33,7 @@ export function useDragNDropColumns<T>({
 
   function deleteColumnAtIndex(i: number) {
     setColumns(
-      columns.length === 1
-        ? [defaultColumn()]
-        : columns.filter((_: T, j: number) => i !== j),
+      columns.filter((_: T, j: number) => i !== j),
       'delete'
     );
   }

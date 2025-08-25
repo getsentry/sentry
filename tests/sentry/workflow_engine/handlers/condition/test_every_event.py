@@ -6,7 +6,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 class TestEveryEventCondition(ConditionTestCase):
     payload = {"id": EveryEventCondition.id}
 
-    def test_dual_write(self):
+    def test_dual_write(self) -> None:
         # we will create the object but not write to the db
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)

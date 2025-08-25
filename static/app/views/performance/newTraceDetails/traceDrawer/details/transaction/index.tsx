@@ -2,12 +2,12 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -17,11 +17,8 @@ import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import type {
-  SpanMetricsQueryFilters,
-  SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -109,11 +106,11 @@ export function TransactionNodeDetails({
     project_slug: node.value.project_slug,
     organization,
   });
-  const {data: cacheMetrics} = useSpanMetrics(
+  const {data: cacheMetrics} = useSpans(
     {
       search: MutableSearch.fromQueryObject({
         transaction: node.value.transaction,
-      } satisfies SpanMetricsQueryFilters),
+      } satisfies SpanQueryFilters),
       fields: ['avg(cache.item_size)', 'cache_miss_rate()'],
     },
     Referrer.TRACE_DRAWER_TRANSACTION_CACHE_METRICS
@@ -141,7 +138,7 @@ export function TransactionNodeDetails({
       <TraceDrawerComponents.BodyContainer>
         {node.canFetch ? null : (
           <Alert.Container>
-            <StyledAlert type="info" showIcon>
+            <StyledAlert type="info">
               {tct(
                 'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
                 {
@@ -232,9 +229,7 @@ export function TransactionNodeDetails({
 }
 
 type TransactionSpecificSectionsProps = {
-  cacheMetrics: Array<
-    Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>
-  >;
+  cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
   event: EventTransaction;
   node: TraceTreeNode<TraceTree.Transaction>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;

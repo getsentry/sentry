@@ -43,13 +43,13 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
             response = self.get_success_response(self.organization.slug, project_id=self.project.id)
             return response.data
 
-    def test_missing_project_id(self):
+    def test_missing_project_id(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
         )
         assert response.data["detail"] == "Missing required parameter 'project_id'"
 
-    def test_endpoint_return_correct_counts(self):
+    def test_endpoint_return_correct_counts(self) -> None:
         response_data = self.do_success_request()
         assert response_data == {
             "totalOnDemandAlertSpecs": 2,  # alert3 and alert4
@@ -63,7 +63,7 @@ class OrganizationOnDemandRuleStatsEndpointTest(BaseAlertRuleSerializerTest, API
             "maxAllowed": 50,
         }
 
-    def test_on_demand_alerts_exceeding_limit(self):
+    def test_on_demand_alerts_exceeding_limit(self) -> None:
         for _ in range(50):
             self.create_alert_rule(
                 aggregate="count()",

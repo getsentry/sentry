@@ -90,9 +90,9 @@ function getLastInput() {
   return input!;
 }
 
-describe('token', function () {
-  describe('ArithmeticTokenFreeText', function () {
-    it('renders default place holder', async function () {
+describe('token', () => {
+  describe('ArithmeticTokenFreeText', () => {
+    it('renders default place holder', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -106,7 +106,7 @@ describe('token', function () {
       expect(input).toHaveValue('');
     });
 
-    it('allow selecting function using mouse', async function () {
+    it('allow selecting function using mouse', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -130,7 +130,7 @@ describe('token', function () {
       });
     });
 
-    it('allow selecting function using keyboard', async function () {
+    it('allow selecting function using keyboard', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -156,7 +156,7 @@ describe('token', function () {
       });
     });
 
-    it('allows selecting function with no arguments using mouse', async function () {
+    it('allows selecting function with no arguments using mouse', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -177,7 +177,7 @@ describe('token', function () {
       await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
-    it('allows selecting function with no arguments using keyboard', async function () {
+    it('allows selecting function with no arguments using keyboard', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -198,7 +198,7 @@ describe('token', function () {
       await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
-    it('allows selecting parenthesis using mouse', async function () {
+    it('allows selecting parenthesis using mouse', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -220,7 +220,7 @@ describe('token', function () {
       await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
-    it('allows selecting parenthesis using keyboard', async function () {
+    it('allows selecting parenthesis using keyboard', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -241,7 +241,7 @@ describe('token', function () {
       await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
-    it('autocompletes function token when they reach the open parenthesis', async function () {
+    it('autocompletes function token when they reach the open parenthesis', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -263,7 +263,7 @@ describe('token', function () {
       });
     });
 
-    it('autocompletes function token when they reach the open parenthesis even if there is more text', async function () {
+    it('autocompletes function token when they reach the open parenthesis even if there is more text', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -287,7 +287,7 @@ describe('token', function () {
       });
     });
 
-    it('autocompletes function token with no arguments when they reach the open parenthesis', async function () {
+    it('autocompletes function token with no arguments when they reach the open parenthesis', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -308,7 +308,7 @@ describe('token', function () {
       ).toBeInTheDocument();
     });
 
-    it('autocompletes addition', async function () {
+    it('autocompletes addition', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -326,7 +326,7 @@ describe('token', function () {
       await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
-    it('autocompletes subtract', async function () {
+    it('autocompletes subtract', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -344,7 +344,7 @@ describe('token', function () {
       await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
-    it('autocompletes multiply', async function () {
+    it('autocompletes multiply', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -362,7 +362,7 @@ describe('token', function () {
       await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
-    it('autocompletes divide', async function () {
+    it('autocompletes divide', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -380,7 +380,7 @@ describe('token', function () {
       await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
-    it('autocompletes open parenthesis', async function () {
+    it('autocompletes open parenthesis', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -399,7 +399,7 @@ describe('token', function () {
       await waitFor(() => expect(getLastInput()).toHaveFocus());
     });
 
-    it('autocompletes close parenthesis', async function () {
+    it('autocompletes close parenthesis', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {
@@ -419,8 +419,8 @@ describe('token', function () {
     });
   });
 
-  describe('ArithmeticTokenFunction', function () {
-    it('allow changing attribute on click', async function () {
+  describe('ArithmeticTokenFunction', () => {
+    it('allow changing attribute on click', async () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
@@ -458,7 +458,7 @@ describe('token', function () {
       });
     });
 
-    it('allows changing attribute using combo box', async function () {
+    it('allows changing attribute using combo box', async () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
@@ -494,7 +494,7 @@ describe('token', function () {
       ).toBeInTheDocument();
     });
 
-    it('allows changing attribute using enter key', async function () {
+    it('allows changing attribute using enter key', async () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
@@ -531,7 +531,7 @@ describe('token', function () {
       ).toBeInTheDocument();
     });
 
-    it('maps key to suggested key on enter', async function () {
+    it('maps key to suggested key on enter', async () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
@@ -563,7 +563,7 @@ describe('token', function () {
       ).toBeInTheDocument();
     });
 
-    it('doesnt change argument on enter if input is empty', async function () {
+    it('doesnt change argument on enter if input is empty', async () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
@@ -596,7 +596,7 @@ describe('token', function () {
       ).toBeInTheDocument();
     });
 
-    it('can delete function tokens with the delete button', async function () {
+    it('can delete function tokens with the delete button', async () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
@@ -618,7 +618,7 @@ describe('token', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('filters only compatible number attributes for some functions', async function () {
+    it('filters only compatible number attributes for some functions', async () => {
       render(<Tokens expression="avg(span.duration)" />);
       const input = screen.getByRole('combobox', {
         name: 'Select an attribute',
@@ -632,7 +632,7 @@ describe('token', function () {
       expect(screen.getByRole('option')).toHaveTextContent('span.self_time');
     });
 
-    it('filters only compatible string attributes for some functions', async function () {
+    it('filters only compatible string attributes for some functions', async () => {
       render(<Tokens expression="count_unique(span.op)" />);
       const input = screen.getByRole('combobox', {
         name: 'Select an attribute',
@@ -646,7 +646,7 @@ describe('token', function () {
       expect(screen.getByRole('option')).toHaveTextContent('span.description');
     });
 
-    it('skips input when function has no arguments', async function () {
+    it('skips input when function has no arguments', async () => {
       render(<Tokens expression="epm()" />);
       await waitFor(() => {
         expect(
@@ -658,10 +658,10 @@ describe('token', function () {
     });
   });
 
-  describe('ArithmeticTokenLiteral', function () {
+  describe('ArithmeticTokenLiteral', () => {
     it.each(['1', '1.', '1.0', '+1', '+1.', '+1.0', '-1', '-1.', '-1.0'])(
       'renders literal %s',
-      async function (expression) {
+      async expression => {
         const dispatch = jest.fn();
         render(<Tokens expression={expression} dispatch={dispatch} />);
 
@@ -674,7 +674,7 @@ describe('token', function () {
       }
     );
 
-    it('completes literal with space', async function () {
+    it('completes literal with space', async () => {
       const dispatch = jest.fn();
       render(<Tokens expression="1" dispatch={dispatch} />);
 
@@ -696,7 +696,7 @@ describe('token', function () {
       expect(await screen.findByRole('row', {name: '10'})).toBeInTheDocument();
     });
 
-    it('completes literal with enter', async function () {
+    it('completes literal with enter', async () => {
       const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const dispatch = jest.fn();
       render(<Tokens expression="1" dispatch={dispatch} />);
@@ -722,7 +722,7 @@ describe('token', function () {
       errorSpy.mockRestore();
     });
 
-    it('completes literal with escape', async function () {
+    it('completes literal with escape', async () => {
       const dispatch = jest.fn();
       render(<Tokens expression="1" dispatch={dispatch} />);
 
@@ -748,7 +748,7 @@ describe('token', function () {
       ['/', 'icon-divide'],
       ['(', 'icon-parenthesis'],
       [')', 'icon-parenthesis'],
-    ])('completes literal with token %s', async function (token, dataTestId) {
+    ])('completes literal with token %s', async (token, dataTestId) => {
       const dispatch = jest.fn();
       render(<Tokens expression="1" dispatch={dispatch} />);
 
@@ -773,8 +773,8 @@ describe('token', function () {
     });
   });
 
-  describe('ArithmeticTokenOperator', function () {
-    it('renders addition operator', async function () {
+  describe('ArithmeticTokenOperator', () => {
+    it('renders addition operator', async () => {
       const dispatch = jest.fn();
       render(<Tokens expression="+" dispatch={dispatch} />);
 
@@ -798,7 +798,7 @@ describe('token', function () {
       });
     });
 
-    it('renders subtract operator', async function () {
+    it('renders subtract operator', async () => {
       const dispatch = jest.fn();
       render(<Tokens expression="-" dispatch={dispatch} />);
 
@@ -822,7 +822,7 @@ describe('token', function () {
       });
     });
 
-    it('renders multiply operator', async function () {
+    it('renders multiply operator', async () => {
       const dispatch = jest.fn();
       render(<Tokens expression="*" dispatch={dispatch} />);
 
@@ -846,7 +846,7 @@ describe('token', function () {
       });
     });
 
-    it('renders divide operator', async function () {
+    it('renders divide operator', async () => {
       const dispatch = jest.fn();
       render(<Tokens expression="/" dispatch={dispatch} />);
 
@@ -871,8 +871,8 @@ describe('token', function () {
     });
   });
 
-  describe('ArithmeticTokenParenthesis', function () {
-    it('renders left parenthesis', async function () {
+  describe('ArithmeticTokenParenthesis', () => {
+    it('renders left parenthesis', async () => {
       const dispatch = jest.fn();
       render(<Tokens expression="(" dispatch={dispatch} />);
 
@@ -897,7 +897,7 @@ describe('token', function () {
       });
     });
 
-    it('renders right parenthesis', async function () {
+    it('renders right parenthesis', async () => {
       const dispatch = jest.fn();
       render(<Tokens expression=")" dispatch={dispatch} />);
 

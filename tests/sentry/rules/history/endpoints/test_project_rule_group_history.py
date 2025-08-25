@@ -13,7 +13,7 @@ pytestmark = [requires_snuba]
 
 
 class RuleGroupHistorySerializerTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         current_date = datetime.now()
         group_history = RuleGroupHistory(self.group, 50, current_date)
         result = serialize([group_history], self.user, RuleGroupHistorySerializer())
@@ -31,7 +31,7 @@ class RuleGroupHistorySerializerTest(TestCase):
 class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-group-history-index"
 
-    def test(self):
+    def test(self) -> None:
         history = []
         rule = Rule.objects.create(project=self.project)
         for i in range(3):
@@ -96,7 +96,7 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             RuleGroupHistorySerializer(),
         )
 
-    def test_invalid_dates(self):
+    def test_invalid_dates(self) -> None:
         rule = Rule.objects.create(project=self.project)
 
         self.login_as(self.user)

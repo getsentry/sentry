@@ -1,5 +1,5 @@
-import {type HTMLAttributes, useEffect, useLayoutEffect, useRef} from 'react';
-import {type Interpolation, type Theme, useTheme} from '@emotion/react';
+import {useEffect, useLayoutEffect, useRef, type HTMLAttributes} from 'react';
+import {useTheme, type Interpolation, type Theme} from '@emotion/react';
 import {Replayer} from '@sentry-internal/rrweb';
 
 import {
@@ -39,7 +39,10 @@ function useReplayerInstance() {
       return () => {};
     }
 
-    const webFrames = replay.getRRWebFrames();
+    const webFrames = replay?.getRRWebFrames();
+    if (!webFrames) {
+      return () => {};
+    }
 
     const replayer = new Replayer(webFrames, {
       root,

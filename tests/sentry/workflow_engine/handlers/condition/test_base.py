@@ -16,7 +16,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class ConditionTestCase(BaseWorkflowTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group, self.event, self.group_event = self.create_group_event()
 
     def translate_to_data_condition(
@@ -48,7 +48,7 @@ class ConditionTestCase(BaseWorkflowTest):
 
 
 class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.start = before_now(minutes=5)

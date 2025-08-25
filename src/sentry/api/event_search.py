@@ -331,9 +331,9 @@ def remove_optional_nodes[T](children: list[T]) -> list[T]:
     ]
 
 
-def process_list[
-    T
-](first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]) -> list[T]:
+def process_list[T](
+    first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]
+) -> list[T]:
     # Empty values become blank nodes
     if any(isinstance(item[4], Node) for item in remaining):
         raise InvalidSearchQuery("Lists should not have empty values")
@@ -583,32 +583,16 @@ class AggregateKey(NamedTuple):
     name: str
 
 
-# https://github.com/python/mypy/issues/18520
-# without this mypy thinks that AggregateFilter and SearchFilter are
-# structurally equivalent and will refuse to narrow them
-if TYPE_CHECKING:
+class AggregateFilter(NamedTuple):
+    key: AggregateKey
+    operator: str
+    value: SearchValue
 
-    class AggregateFilter(NamedTuple):
-        key: AggregateKey
-        operator: str
-        value: SearchValue
-        DO_NOT_USE_ME_I_AM_FOR_MYPY: bool = True
+    def to_query_string(self) -> str:
+        return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
 
-        def to_query_string(self) -> str:
-            return ""
-
-else:  # real implementation here!
-
-    class AggregateFilter(NamedTuple):
-        key: AggregateKey
-        operator: str
-        value: SearchValue
-
-        def to_query_string(self) -> str:
-            return f"{self.key.name}:{self.operator}{self.value.to_query_string()}"
-
-        def __str__(self) -> str:
-            return f"{self.key.name}{self.operator}{self.value.raw_value}"
+    def __str__(self) -> str:
+        return f"{self.key.name}{self.operator}{self.value.raw_value}"
 
 
 @dataclass  # pycqa/pycodestyle#1277
@@ -661,12 +645,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[
-        TBool: (
-            Literal[True],
-            Literal[False],
-        )
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[Any],
         *,
@@ -676,12 +658,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[
-        TBool: (
-            Literal[True],
-            Literal[False],
-        )
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[TBool],
         **overrides: Any,

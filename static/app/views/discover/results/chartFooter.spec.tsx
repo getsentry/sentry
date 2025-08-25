@@ -6,7 +6,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import ChartFooter from 'sentry/views/discover/results/chartFooter';
 
-describe('Discover > ChartFooter', function () {
+describe('Discover > ChartFooter', () => {
   const yAxisValue = ['count()', 'failure_count()'];
   const yAxisOptions = [
     {label: 'count()', value: 'count()'},
@@ -21,9 +21,9 @@ describe('Discover > ChartFooter', function () {
     projects: [parseInt(project.id, 10)],
   });
 
-  afterEach(function () {});
+  afterEach(() => {});
 
-  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', async function () {
+  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', async () => {
     const chartFooter = (
       <ChartFooter
         total={100}
@@ -51,7 +51,7 @@ describe('Discover > ChartFooter', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders display limits with default limit when top 5 mode is selected', async function () {
+  it('renders display limits with default limit when top 5 mode is selected', async () => {
     const limit = '5';
 
     const chartFooter = (
@@ -77,7 +77,7 @@ describe('Discover > ChartFooter', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders multi value y-axis dropdown selector on a non-Top display', async function () {
+  it('renders multi value y-axis dropdown selector on a non-Top display', async () => {
     let yAxis = ['count()'];
 
     const chartFooter = (

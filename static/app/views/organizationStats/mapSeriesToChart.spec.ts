@@ -94,8 +94,8 @@ const mockSeries: UsageSeries = {
   ],
 };
 
-describe('mapSeriesToChart func', function () {
-  it("should return correct chart tooltip's reasons", function () {
+describe('mapSeriesToChart func', () => {
+  it("should return correct chart tooltip's reasons", () => {
     const mappedSeries = mapSeriesToChart({
       orgStats: mockSeries,
       chartDateInterval: '1h',
@@ -153,7 +153,7 @@ describe('mapSeriesToChart func', function () {
     ]);
   });
 
-  it('should correctly sum up the rate limited count', function () {
+  it('should correctly sum up the rate limited count', () => {
     const mappedSeries = mapSeriesToChart({
       orgStats: {
         start: '2021-01-01T00:00:00Z',
@@ -220,7 +220,39 @@ describe('mapSeriesToChart func', function () {
     expect(mappedSeries.cardStats.rateLimited).toBe('11');
   });
 
-  it('should correctly sum up the profile chunks', function () {
+  it('should correctly format client discard data', () => {
+    const mappedSeries = mapSeriesToChart({
+      orgStats: {
+        start: '2021-01-01T00:00:00Z',
+        end: '2021-01-07T00:00:00Z',
+        intervals: ['2021-01-01T00:00:00Z', '2021-01-02T00:00:00Z'],
+        groups: [
+          {
+            by: {
+              outcome: 'client_discard',
+              reason: 'queue_overflow',
+              category: 'error',
+            },
+            totals: {
+              'sum(quantity)': 1500,
+            },
+            series: {
+              'sum(quantity)': [750, 750],
+            },
+          },
+        ],
+      },
+      chartDateInterval: '1h',
+      chartDateUtc: true,
+      dataCategory: DataCategory.ERRORS,
+      endpointQuery: {},
+    });
+
+    // should format client discard data correctly
+    expect(mappedSeries.cardStats.clientDiscard).toBe('1.5K');
+  });
+
+  it('should correctly sum up the profile chunks', () => {
     const mappedSeries = mapSeriesToChart({
       orgStats: {
         start: '2021-01-01T00:00:00Z',
@@ -287,7 +319,7 @@ describe('mapSeriesToChart func', function () {
     ]);
   });
 
-  it('should correctly sum up the profiles', function () {
+  it('should correctly sum up the profiles', () => {
     const groups = [
       {
         by: {

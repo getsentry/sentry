@@ -15,6 +15,7 @@ export default function AutomationTitleCell({automation}: Props) {
       name={automation.name}
       link={makeAutomationDetailsPathname(organization.slug, automation.id)}
       systemCreated={!automation.createdBy}
+      disabled={!automation.enabled}
     />
   );
 }

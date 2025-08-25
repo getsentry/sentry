@@ -100,11 +100,12 @@ def add_org_key(default_organization, relay):
 
 
 @pytest.fixture
-def no_internal_networks(monkeypatch):
+def no_internal_networks():
     """
     Disable is_internal_ip functionality (make all requests appear to be from external networks)
     """
-    monkeypatch.setattr("sentry.auth.system.INTERNAL_NETWORKS", ())
+    with patch("sentry.auth.system.INTERNAL_NETWORKS", ()):
+        yield
 
 
 @django_db_all
@@ -149,10 +150,13 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "eventRetention") == quotas.backend.get_event_retention(
         default_project.organization
     )
+    assert safe.get_path(
+        cfg, "config", "downsampledEventRetention"
+    ) == quotas.backend.get_downsampled_event_retention(default_project.organization)
 
 
 @django_db_all
-def test_relays_dyamic_sampling(call_endpoint, default_project):
+def test_relays_dyamic_sampling(call_endpoint, default_project) -> None:
     """
     Tests that dynamic sampling configuration set in project details are retrieved in relay configs
     """
@@ -199,16 +203,18 @@ def test_external_relays_do_not_get_project_configuration(
 
 
 @django_db_all
-def test_untrusted_external_relays_should_not_receive_configs(call_endpoint, no_internal_networks):
+def test_untrusted_external_relays_should_not_receive_configs(
+    call_endpoint, no_internal_networks
+) -> None:
     result, status_code = call_endpoint()
     assert status_code == 403
 
 
 @pytest.fixture
-def projectconfig_cache_set(monkeypatch):
+def projectconfig_cache_set():
     calls: list[dict[str, Any]] = []
-    monkeypatch.setattr("sentry.relay.projectconfig_cache.backend.set_many", calls.append)
-    return calls
+    with patch("sentry.relay.projectconfig_cache.backend.set_many", calls.append):
+        yield calls
 
 
 @django_db_all
@@ -237,7 +243,7 @@ def test_relay_projectconfig_cache_full_config(
 
 
 @django_db_all
-def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_runner):
+def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_runner) -> None:
     wrong_id = max(p.id for p in Project.objects.all()) + 1
 
     with task_runner():
@@ -269,7 +275,7 @@ def test_relay_disabled_project(
 
 
 @django_db_all
-def test_health_check_filters(call_endpoint, add_org_key, relay, default_project):
+def test_health_check_filters(call_endpoint, add_org_key, relay, default_project) -> None:
     """
     Test health check filter (aka ignoreTransactions)
     """

@@ -18,6 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
+  fetchMutation,
   setApiQueryData,
   useApiQuery,
   useMutation,
@@ -65,6 +66,7 @@ import SelectableContainer from 'admin/components/selectableContainer';
 import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
 import SponsorshipAction from 'admin/components/sponsorshipAction';
 import SuspendAccountAction from 'admin/components/suspendAccountAction';
+import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePlatformsModal';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
@@ -158,6 +160,20 @@ export default function CustomerDetails() {
       } else {
         addErrorMessage(DEFAULT_ERROR_MESSAGE);
       }
+    },
+  });
+
+  const onGenerateSpikeProjectionsMutation = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: `/_admin/${orgId}/queue-spike-projection/`,
+        method: 'POST',
+      }),
+    onSuccess: () => {
+      addSuccessMessage('Queued spike projection generation task.');
+    },
+    onError: (error: RequestError) => {
+      addErrorMessage(error.message);
     },
   });
 
@@ -692,6 +708,13 @@ export default function CustomerDetails() {
               }),
           },
           {
+            key: 'generateSpikeProjections',
+            name: 'Generate Spike Projections',
+            help: 'Generate spike projections for all eligible SKUs for all projects for the next 7 days.',
+            disabled: !isBillingAdmin,
+            onAction: () => onGenerateSpikeProjectionsMutation.mutate(),
+          },
+          {
             key: 'changeGoogleDomain',
             name: 'Change Google Domain',
             help: 'Swap or add a Google Domain.',
@@ -802,6 +825,15 @@ export default function CustomerDetails() {
                 onSuccess: reloadData,
                 subscription,
               }),
+          },
+          {
+            key: 'toggleConsolePlatforms',
+            name: 'Toggle Console Platforms',
+            help: 'Enable or disable a console platform for this organization.',
+            skipConfirmModal: true,
+            onAction: () => {
+              openToggleConsolePlatformsModal({organization, onSuccess: reloadData});
+            },
           },
         ]}
         sections={[

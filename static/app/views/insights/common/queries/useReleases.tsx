@@ -56,7 +56,7 @@ export function useReleases(
         query: `transaction.op:[ui.load,navigation] ${escapeFilterValue(
           `release:[${releases.map(r => `"${r.version}"`).join()}]`
         )}`,
-        dataset: DiscoverDatasets.SPANS_EAP_RPC,
+        dataset: DiscoverDatasets.SPANS,
         version: 2,
         projects: selection.projects,
       };
@@ -66,7 +66,7 @@ export function useReleases(
         {
           query: {
             ...eventView.getEventsAPIPayload(location),
-            referrer: 'api.starfish.mobile-release-selector',
+            referrer: 'api.insights.mobile-release-selector',
           },
         },
       ] as ApiQueryKey;

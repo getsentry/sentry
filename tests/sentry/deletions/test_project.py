@@ -1,4 +1,3 @@
-from sentry import eventstore
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
@@ -29,6 +28,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.sentry_apps.models.servicehook import ServiceHook
+from sentry.services import eventstore
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -53,7 +53,7 @@ pytestmark = [requires_snuba]
 
 
 class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="test")
         rule = self.create_project_rule(project=project)
         RuleActivity.objects.create(
@@ -192,7 +192,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
         assert RuleSnooze.objects.filter(id=rule_snooze.id).exists()
 
-    def test_delete_error_events(self):
+    def test_delete_error_events(self) -> None:
         keeper = self.create_project(name="keeper")
         project = self.create_project(name="test")
         event = self.store_event(
@@ -221,7 +221,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         )
         assert len(events) == 0
 
-    def test_delete_with_uptime_monitors(self):
+    def test_delete_with_uptime_monitors(self) -> None:
         project = self.create_project(name="test")
 
         # Create uptime subscription
@@ -251,7 +251,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
 
 
 class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
-    def setUp(self):
+    def setUp(self) -> None:
         self.workflow_engine_project = self.create_project(name="workflow_engine_test")
         self.snuba_query = self.create_snuba_query()
         self.subscription = QuerySubscription.objects.create(
@@ -284,7 +284,7 @@ class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
             data_source=self.data_source, detector=self.detector
         )
 
-    def test_delete_detector_data_source(self):
+    def test_delete_detector_data_source(self) -> None:
         self.ScheduledDeletion.schedule(instance=self.workflow_engine_project, days=0)
 
         with self.tasks():
@@ -296,7 +296,7 @@ class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
         assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
         assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
 
-    def test_delete_detector_data_conditions(self):
+    def test_delete_detector_data_conditions(self) -> None:
         self.ScheduledDeletion.schedule(instance=self.workflow_engine_project, days=0)
 
         with self.tasks():
@@ -307,7 +307,7 @@ class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
         ).exists()
         assert not DataCondition.objects.filter(id=self.detector_trigger.id).exists()
 
-    def test_not_delete_workflow(self):
+    def test_not_delete_workflow(self) -> None:
         self.ScheduledDeletion.schedule(instance=self.workflow_engine_project, days=0)
 
         with self.tasks():

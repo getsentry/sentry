@@ -6,13 +6,14 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
+import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -90,6 +91,22 @@ export function useConfigureSdk({
 
       if (createProject.isPending) {
         // prevent multiple submissions at the same time
+        return;
+      }
+
+      if (
+        isDisabledGamingPlatform({
+          platform: {
+            ...selectedPlatform,
+            id: selectedPlatform.key,
+          },
+          enabledConsolePlatforms: organization.enabledConsolePlatforms,
+        })
+      ) {
+        openConsoleModal({
+          organization,
+          selectedPlatform,
+        });
         return;
       }
 

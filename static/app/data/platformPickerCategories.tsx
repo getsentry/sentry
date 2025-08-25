@@ -6,34 +6,35 @@ const popularPlatformCategories: Set<PlatformKey> = new Set([
   'javascript-nextjs',
   'javascript-react',
   'react-native',
+  'node',
   'php-laravel',
+  'python-fastapi',
   'flutter',
   'python-django',
-  'node',
-  'javascript',
-  'node-express',
-  'python-fastapi',
-  'php',
   'python',
-  'dotnet-maui',
-  'node-nestjs',
-  'javascript-vue',
-  'android',
-  'apple-ios',
+  'node-express',
+  'javascript',
+  'php',
   'ruby-rails',
+  'apple-ios',
+  'node-nestjs',
   'python-flask',
+  'javascript-vue',
   'dotnet-aspnetcore',
-  'javascript-angular',
-  'php-symfony',
-  'javascript-remix',
-  'java-spring-boot',
-  'javascript-sveltekit',
-  'unity',
   'javascript-nuxt',
-  'javascript-astro',
+  'dotnet-maui',
+  'javascript-angular',
+  'android',
+  'java-spring-boot',
+  'php-symfony',
+  'node-cloudflare-workers',
+  'electron',
+  'unity',
+  'javascript-remix',
 ]);
 
 const browser: Set<PlatformKey> = new Set([
+  'dart',
   'flutter',
   'javascript',
   'javascript-angular',
@@ -58,6 +59,7 @@ const browser: Set<PlatformKey> = new Set([
 
 const server: Set<PlatformKey> = new Set([
   'bun',
+  'dart',
   'deno',
   'dotnet',
   'dotnet-aspnet',
@@ -122,6 +124,7 @@ const mobile: Set<PlatformKey> = new Set([
   'cordova',
   'dotnet-maui',
   'dotnet-xamarin',
+  'dart',
   'flutter',
   'ionic',
   'react-native',
@@ -136,6 +139,7 @@ const desktop: Set<PlatformKey> = new Set([
   'dotnet-winforms',
   'dotnet-wpf',
   'electron',
+  'dart',
   'flutter',
   'godot',
   'java',
@@ -160,7 +164,15 @@ const serverless: Set<PlatformKey> = new Set([
   'python-serverless',
 ]);
 
-const gaming: Set<PlatformKey> = new Set(['unity', 'unreal', 'godot', 'native']);
+const gaming: Set<PlatformKey> = new Set([
+  'godot',
+  'native',
+  'nintendo-switch',
+  'playstation',
+  'unity',
+  'unreal',
+  'xbox',
+]);
 
 export const createablePlatforms: Set<PlatformKey> = new Set([
   ...popularPlatformCategories,
@@ -169,7 +181,6 @@ export const createablePlatforms: Set<PlatformKey> = new Set([
   ...mobile,
   ...desktop,
   ...serverless,
-  ...gaming,
 ]);
 
 /**

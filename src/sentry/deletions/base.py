@@ -15,6 +15,8 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.query import bulk_delete_objects
 
+logger = logging.getLogger(__name__)
+
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
 
@@ -213,7 +215,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
         query_limit = self.query_limit
         remaining = self.chunk_size
 
-        while remaining > 0:
+        while remaining >= 0:
             queryset = getattr(self.model, self.manager_name).filter(**self.query)
             if self.order_by:
                 queryset = queryset.order_by(self.order_by)

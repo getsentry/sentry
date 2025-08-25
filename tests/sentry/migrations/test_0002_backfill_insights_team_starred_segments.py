@@ -34,7 +34,7 @@ class BackfillUserStarredSegmentsTest(TestMigrations):
             transaction=self.transaction_name,
         )
 
-    def test_migrates_single_entry(self):
+    def test_migrates_single_entry(self) -> None:
         self.team_key_transaction.refresh_from_db()
 
         starred_segment_results = InsightsStarredSegment.objects.filter(

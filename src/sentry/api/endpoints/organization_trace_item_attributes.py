@@ -25,6 +25,8 @@ from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.auth.staff import is_active_staff
+from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -100,7 +102,7 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
     feature_flags = [
         "organizations:ourlogs-enabled",
         "organizations:visibility-explore-view",
@@ -237,6 +239,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             else AttributeKey.Type.TYPE_STRING
         )
 
+        include_internal = is_active_superuser(request) or is_active_staff(request)
+
         def data_fn(offset: int, limit: int):
             rpc_request = TraceItemAttributeNamesRequest(
                 meta=meta,
@@ -253,7 +257,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             if use_sentry_conventions:
                 attribute_keys = {}
                 for attribute in rpc_response.attributes:
-                    if attribute.name and can_expose_attribute(attribute.name, trace_item_type):
+                    if attribute.name and can_expose_attribute(
+                        attribute.name, trace_item_type, include_internal=include_internal
+                    ):
                         attr_key = as_attribute_key(
                             attribute.name, serialized["attribute_type"], trace_item_type
                         )
@@ -280,7 +286,10 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                             attribute.name, serialized["attribute_type"], trace_item_type
                         )
                         for attribute in rpc_response.attributes
-                        if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
+                        if attribute.name
+                        and can_expose_attribute(
+                            attribute.name, trace_item_type, include_internal=include_internal
+                        )
                     ],
                 )
             )
@@ -379,6 +388,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
                 SEMVER_ALIAS: self.semver_autocomplete_function,
                 SEMVER_BUILD_ALIAS: self.semver_build_autocomplete_function,
                 SEMVER_PACKAGE_ALIAS: self.semver_package_autocomplete_function,
+                "timestamp": self.skip_autocomplete,
             }
         )
 
@@ -434,7 +444,7 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
 
         order_by = map(_flip_field_sort, Release.SEMVER_COLS + ["package"])
         versions = versions.filter_to_semver()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
-        versions = versions.annotate_prerelease_column()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        versions = versions.annotate_prerelease_column()
         versions = versions.order_by(*order_by)
 
         seen = set()
@@ -541,6 +551,9 @@ class TraceItemAttributeValuesAutocompletionExecutor(BaseSpanFieldValuesAutocomp
             )
             for package in packages
         ]
+
+    def skip_autocomplete(self) -> list[TagValue]:
+        return []
 
     def boolean_autocomplete_function(self) -> list[TagValue]:
         return [

@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -64,7 +63,7 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
   if (isError) {
     return (
       <Alert.Container>
-        <Alert type="error">
+        <Alert type="error" showIcon={false}>
           {t('There was an error loading unsubscribe data. Your link may have expired.')}
         </Alert>
       </Alert.Container>

@@ -4,7 +4,7 @@ from sentry.replays.usecases.events import archive_event, viewed_event
 from sentry.utils import json
 
 
-def test_archive_event():
+def test_archive_event() -> None:
     """Test archive event generator."""
     event = archive_event(1, "2")
 
@@ -26,7 +26,7 @@ def test_archive_event():
     assert isinstance(parsed_event["payload"]["timestamp"], float)
 
 
-def test_viewed_event():
+def test_viewed_event() -> None:
     """Test "replay_viewed" event generator."""
     ts = time.time()
     event = viewed_event(1, "2", 3, ts)

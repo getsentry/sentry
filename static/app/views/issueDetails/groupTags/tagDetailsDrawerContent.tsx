@@ -178,7 +178,15 @@ function TagDetailsRow({
     },
   };
   const percentage = Math.round(percent(tagValue.count ?? 0, tag.totalValues ?? 0));
-  const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+  // Ensure no item shows 100% when there are multiple tag values
+  const hasMultipleItems = (tag.uniqueValues ?? 0) > 1;
+  const cappedPercentage = hasMultipleItems && percentage >= 100 ? 99 : percentage;
+  const displayPercentage =
+    cappedPercentage < 1
+      ? '<1%'
+      : hasMultipleItems && percentage >= 100
+        ? '>99%'
+        : `${cappedPercentage.toFixed(0)}%`;
 
   return (
     <Row>

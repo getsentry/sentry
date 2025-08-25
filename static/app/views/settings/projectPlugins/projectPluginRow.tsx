@@ -3,16 +3,14 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Switch} from 'sentry/components/core/switch';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Plugin} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -65,12 +63,7 @@ class ProjectPluginRow extends PureComponent<Props> {
                 <PluginDescription>
                   <PluginName>
                     {`${name} `}
-                    {getDynamicText({
-                      value: (
-                        <Version>{version ? `v${version}` : <em>{t('n/a')}</em>}</Version>
-                      ),
-                      fixed: <Version>v10</Version>,
-                    })}
+                    <Version>{version ? `v${version}` : <em>{t('n/a')}</em>}</Version>
                   </PluginName>
                   <div>
                     {author && (

@@ -8,7 +8,7 @@ from sentry.testutils.cases import TestCase
 class SiloLimitCoverageTest(TestCase):
     """Check that all subclasses have expected SiloLimit decorators."""
 
-    def test_all_models_have_silo_limit_decorator(self):
+    def test_all_models_have_silo_limit_decorator(self) -> None:
         undecorated_model_classes = []
 
         for model_class in django.apps.apps.get_models():
@@ -22,7 +22,7 @@ class SiloLimitCoverageTest(TestCase):
             f"{', '.join(m.__name__ for m in undecorated_model_classes)}"
         )
 
-    def test_all_endpoints_have_silo_mode_decorator(self):
+    def test_all_endpoints_have_silo_mode_decorator(self) -> None:
         undecorated_endpoint_classes = []
 
         url_mappings = django.urls.get_resolver().reverse_dict.items()

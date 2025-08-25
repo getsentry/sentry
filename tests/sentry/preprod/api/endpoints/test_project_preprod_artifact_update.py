@@ -9,7 +9,7 @@ from sentry.testutils.cases import TestCase
 
 
 class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
         self.preprod_artifact = PreprodArtifact.objects.create(
@@ -36,7 +36,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         return self.client.put(url, **kwargs)
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_success(self):
+    def test_update_preprod_artifact_success(self) -> None:
         data = {
             "date_built": "2024-01-01T00:00:00Z",
             "artifact_type": 1,
@@ -65,7 +65,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert self.preprod_artifact.build_number == 123
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_partial_update(self):
+    def test_update_preprod_artifact_partial_update(self) -> None:
         data = {"artifact_type": 2, "error_message": "Build failed"}
         response = self._make_request(data)
 
@@ -80,7 +80,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_sets_failed_state_on_error(self):
+    def test_update_preprod_artifact_sets_failed_state_on_error(self) -> None:
         # Test that setting error_code sets state to FAILED
         data = {"error_code": 1}
         response = self._make_request(data)
@@ -113,19 +113,19 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_not_found(self):
+    def test_update_preprod_artifact_not_found(self) -> None:
         response = self._make_request({"artifact_type": 1}, artifact_id=999999)
         assert response.status_code == 404
         assert "not found" in response.json()["error"]
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_invalid_json(self):
+    def test_update_preprod_artifact_invalid_json(self) -> None:
         response = self._make_request(b"invalid json")
         assert response.status_code == 400
         assert "Invalid json body" in response.json()["error"]
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_invalid_schema(self):
+    def test_update_preprod_artifact_invalid_schema(self) -> None:
         response = self._make_request({"artifact_type": 99})  # Invalid value
         assert response.status_code == 400
         assert (
@@ -134,16 +134,16 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         )
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_extra_properties(self):
+    def test_update_preprod_artifact_extra_properties(self) -> None:
         response = self._make_request({"artifact_type": 1, "extra_field": "not allowed"})
         assert response.status_code == 200
 
-    def test_update_preprod_artifact_unauthorized(self):
+    def test_update_preprod_artifact_unauthorized(self) -> None:
         response = self._make_request({"artifact_type": 1}, authenticated=False)
         assert response.status_code == 403
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_empty_update(self):
+    def test_update_preprod_artifact_empty_update(self) -> None:
         response = self._make_request({})
         assert response.status_code == 200
         resp_data = response.json()
@@ -151,7 +151,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert resp_data["updated_fields"] == []
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_with_apple_app_info(self):
+    def test_update_preprod_artifact_with_apple_app_info(self) -> None:
         apple_info = {
             "is_simulator": True,
             "codesigning_type": "development",
@@ -178,7 +178,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert stored_apple_info == apple_info
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
-    def test_update_preprod_artifact_with_partial_apple_app_info(self):
+    def test_update_preprod_artifact_with_partial_apple_app_info(self) -> None:
         apple_info = {
             "is_simulator": False,
             "codesigning_type": "distribution",
@@ -200,3 +200,35 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert stored_apple_info == apple_info
         assert "profile_name" not in stored_apple_info
         assert "is_code_signature_valid" not in stored_apple_info
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_preserves_existing_extras(self) -> None:
+        """Test that updating with apple_app_info preserves existing extras data like release_notes"""
+        # First, create an artifact with existing extras (release notes)
+        self.preprod_artifact.extras = {"release_notes": "Important bug fixes in this release"}
+        self.preprod_artifact.save()
+
+        # Update with apple app info
+        apple_info = {
+            "is_simulator": False,
+            "codesigning_type": "distribution",
+            "profile_name": "Production Profile",
+        }
+        data = {
+            "apple_app_info": apple_info,
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        resp_data = response.json()
+        assert resp_data["success"] is True
+        assert "extras" in resp_data["updated_fields"]
+
+        self.preprod_artifact.refresh_from_db()
+        stored_extras = self.preprod_artifact.extras or {}
+
+        # Should contain both the original release notes and the new apple app info
+        assert stored_extras["release_notes"] == "Important bug fixes in this release"
+        assert stored_extras["is_simulator"] is False
+        assert stored_extras["codesigning_type"] == "distribution"
+        assert stored_extras["profile_name"] == "Production Profile"

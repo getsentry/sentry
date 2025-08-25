@@ -23,7 +23,7 @@ describe('StartDurationWidget', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(usePageFilters).mockReturnValue(
       PageFilterStateFixture({
         selection: {
@@ -67,7 +67,7 @@ describe('StartDurationWidget', () => {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
@@ -121,7 +121,7 @@ describe('StartDurationWidget', () => {
             isMetricsExtractedData: false,
             tips: {},
             datasetReason: 'unchanged',
-            dataset: 'spansMetrics',
+            dataset: 'spans',
           },
         },
         'com.example.vu.android@2.10.3+42': {
@@ -146,7 +146,7 @@ describe('StartDurationWidget', () => {
             isMetricsExtractedData: false,
             tips: {},
             datasetReason: 'unchanged',
-            dataset: 'spansMetrics',
+            dataset: 'spans',
           },
         },
       } as MultiSeriesEventsStats;

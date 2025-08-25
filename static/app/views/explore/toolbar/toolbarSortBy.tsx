@@ -7,9 +7,14 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
+  ToolbarHeader,
+  ToolbarLabel,
+  ToolbarRow,
+  ToolbarSection,
+} from 'sentry/views/explore/components/toolbar/styles';
+import {
   useExploreFields,
   useExploreGroupBys,
-  useExploreMode,
   useExploreSortBys,
   useExploreVisualizes,
   useSetExploreSortBys,
@@ -17,11 +22,10 @@ import {
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSortByFields} from 'sentry/views/explore/hooks/useSortByFields';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
-
-import {ToolbarHeader, ToolbarLabel, ToolbarRow, ToolbarSection} from './styles';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
 
 export function ToolbarSortBy() {
-  const mode = useExploreMode();
+  const mode = useQueryParamsMode();
   const fields = useExploreFields();
   const groupBys = useExploreGroupBys();
   const visualizes = useExploreVisualizes();

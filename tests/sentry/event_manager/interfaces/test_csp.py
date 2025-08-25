@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
+from sentry.services import eventstore
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def make_csp_snapshot(insta_snapshot):
     return inner
 
 
-def test_basic(make_csp_snapshot):
+def test_basic(make_csp_snapshot) -> None:
     make_csp_snapshot(
         dict(
             document_uri="http://example.com",
@@ -41,7 +41,7 @@ def test_basic(make_csp_snapshot):
     )
 
 
-def test_coerce_blocked_uri_if_missing(make_csp_snapshot):
+def test_coerce_blocked_uri_if_missing(make_csp_snapshot) -> None:
     make_csp_snapshot(dict(document_uri="http://example.com", effective_directive="script-src"))
 
 
@@ -96,5 +96,5 @@ def test_coerce_blocked_uri_if_missing(make_csp_snapshot):
         ),
     ],
 )
-def test_get_message(make_csp_snapshot, input):
+def test_get_message(make_csp_snapshot, input) -> None:
     make_csp_snapshot(input)
