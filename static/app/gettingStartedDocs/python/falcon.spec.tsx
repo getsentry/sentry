@@ -89,9 +89,9 @@ describe('falcon onboarding docs', () => {
       selectedProducts: [ProductSolution.LOGS],
     });
 
-    expect(
-      screen.getByText(textWithMarkupMatcher(/enable_logs=True,/))
-    ).toBeInTheDocument();
+    const logMatches = screen.getAllByText(textWithMarkupMatcher(/enable_logs=True,/));
+    expect(logMatches.length).toBeGreaterThan(0);
+    logMatches.forEach(match => expect(match).toBeInTheDocument());
   });
 
   it('renders without logs', () => {

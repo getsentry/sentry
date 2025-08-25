@@ -158,8 +158,8 @@ logger.error('Something went wrong')`,
 };
 
 const logsOnboarding = getPythonLogsOnboarding({
-  basePackage: 'sentry-sdk[chalice]',
-} as any);
+  packageName: 'sentry-sdk[chalice]',
+});
 
 const docs: Docs = {
   onboarding,

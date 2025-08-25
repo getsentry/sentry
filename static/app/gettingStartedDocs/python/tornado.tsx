@@ -206,7 +206,9 @@ logger.error('Something went wrong')`,
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[tornado]',
+});
 
 const docs: Docs = {
   onboarding,

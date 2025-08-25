@@ -163,7 +163,9 @@ app = Starlette(routes=[
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[starlette]',
+});
 
 const docs: Docs = {
   onboarding,

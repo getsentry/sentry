@@ -162,31 +162,26 @@ const onboarding: OnboardingConfig = {
       description: t(
         'Deploy your function and invoke it to generate an error, then check Sentry for the captured event.'
       ),
-      configurations: [],
-    },
-    ...(params.isLogsSelected
-      ? [
-          {
-            type: StepType.VERIFY,
-            configurations: [
-              {
-                description: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
-                language: 'python',
-                code: `import sentry_sdk
+      configurations: params.isLogsSelected
+        ? [
+            {
+              description: t(
+                'You can send logs to Sentry using the Sentry logging APIs:'
+              ),
+              language: 'python',
+              code: `import sentry_sdk
 
 # Send logs directly to Sentry
 sentry_sdk.logger.info('This is an info log message')
 sentry_sdk.logger.warning('This is a warning message')
 sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                description: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-                language: 'python',
-                code: `import logging
+            },
+            {
+              description: t(
+                "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+              ),
+              language: 'python',
+              code: `import logging
 
 # Your existing logging setup
 logger = logging.getLogger(__name__)
@@ -195,14 +190,13 @@ logger = logging.getLogger(__name__)
 logger.info('This will be sent to Sentry')
 logger.warning('User login failed')
 logger.error('Something went wrong')`,
-              },
-            ],
-          },
-        ]
-      : []),
+            },
+          ]
+        : [],
+    },
   ],
   nextSteps: (params: Params) => {
-    const steps = [] as any[];
+    const steps = [];
     if (params.isLogsSelected) {
       steps.push({
         id: 'logs',

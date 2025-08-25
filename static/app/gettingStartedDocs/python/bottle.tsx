@@ -182,7 +182,7 @@ logger.error('Something went wrong')`,
     },
   ],
   nextSteps: (params: Params) => {
-    const steps = [] as any[];
+    const steps = [];
     if (params.isLogsSelected) {
       steps.push({
         id: 'logs',
@@ -197,7 +197,9 @@ logger.error('Something went wrong')`,
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[bottle]',
+});
 
 const docs: Docs = {
   onboarding,

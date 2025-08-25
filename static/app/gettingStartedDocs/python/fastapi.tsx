@@ -207,7 +207,9 @@ logger.error('Something went wrong')`,
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[fastapi]',
+});
 
 const docs: Docs = {
   onboarding,

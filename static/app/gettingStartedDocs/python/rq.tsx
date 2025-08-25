@@ -238,7 +238,9 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[rq]',
+});
 
 const docs: Docs = {
   onboarding,

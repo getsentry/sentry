@@ -35,11 +35,14 @@ sentry_sdk.init(
     # Enable sending logs to Sentry
     enable_logs=True,`
         : ''
-    }
+    }${
+      params.isPerformanceSelected
+        ? `
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for tracing.
-    # We recommend adjusting this value in production,
-    traces_sample_rate=1.0,
+    traces_sample_rate=1.0,`
+        : ''
+    }
 )`;
 
 const onboarding: OnboardingConfig = {
@@ -80,7 +83,7 @@ const onboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: (params: Params) => [
+  verify: () => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -88,42 +91,6 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [],
     },
-    ...(params.isLogsSelected
-      ? [
-          {
-            type: StepType.VERIFY,
-            configurations: [
-              {
-                description: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
-                language: 'python',
-                code: `import sentry_sdk
-
-# Send logs directly to Sentry
-sentry_sdk.logger.info('This is an info log message')
-sentry_sdk.logger.warning('This is a warning message')
-sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                description: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-                language: 'python',
-                code: `import logging
-
-# Your existing logging setup
-logger = logging.getLogger(__name__)
-
-# These logs will be automatically sent to Sentry
-logger.info('This will be sent to Sentry')
-logger.warning('User login failed')
-logger.error('Something went wrong')`,
-              },
-            ],
-          },
-        ]
-      : []),
   ],
 };
 

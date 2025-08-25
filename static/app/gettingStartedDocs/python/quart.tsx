@@ -162,7 +162,7 @@ logger.error('Something went wrong')`,
         <span>
           <p>
             {tct(
-              'When you point your browser to [link:http://localhost:5000/] a transaction in the Performance section of Sentry will be created.',
+              'When you point your browser to [link:http://localhost:5000/] a trace will be created.',
               {
                 link: <ExternalLink href="http://localhost:5000/" />,
               }
@@ -170,7 +170,7 @@ logger.error('Something went wrong')`,
           </p>
           <p>
             {t(
-              'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'
+              'Additionally, an error event will be sent to Sentry and will be connected to the trace.'
             )}
           </p>
           <p>{t('It takes a couple of moments for the data to appear in Sentry.')}</p>
@@ -194,7 +194,9 @@ logger.error('Something went wrong')`,
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[quart]',
+});
 
 const docs: Docs = {
   onboarding,

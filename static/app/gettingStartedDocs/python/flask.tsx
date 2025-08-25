@@ -277,7 +277,9 @@ sentry_sdk.init(
   nextSteps: () => [],
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[flask]',
+});
 
 const docs: Docs = {
   onboarding,

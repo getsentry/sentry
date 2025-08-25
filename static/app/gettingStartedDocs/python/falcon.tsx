@@ -197,7 +197,9 @@ logger.error('Something went wrong')`,
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[falcon]',
+});
 
 const docs: Docs = {
   onboarding,

@@ -49,7 +49,7 @@ describe('celery onboarding docs', () => {
 
     // Does render transaction profiling config
     expect(
-      screen.getByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+      screen.getAllByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))[0]
     ).toBeInTheDocument();
   });
 
@@ -85,9 +85,9 @@ describe('celery onboarding docs', () => {
       selectedProducts: [ProductSolution.LOGS],
     });
 
-    expect(
-      screen.getByText(textWithMarkupMatcher(/enable_logs=True,/))
-    ).toBeInTheDocument();
+    const logMatches = screen.getAllByText(textWithMarkupMatcher(/enable_logs=True,/));
+    expect(logMatches.length).toBeGreaterThan(0);
+    logMatches.forEach(match => expect(match).toBeInTheDocument());
   });
 
   it('renders without logs', () => {

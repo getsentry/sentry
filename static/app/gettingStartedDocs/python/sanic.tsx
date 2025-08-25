@@ -125,7 +125,9 @@ async def hello_world(request):
   },
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[sanic]',
+});
 
 const docs: Docs = {
   onboarding,

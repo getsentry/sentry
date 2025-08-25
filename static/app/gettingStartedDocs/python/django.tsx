@@ -270,7 +270,9 @@ sentry_sdk.init(
   nextSteps: () => [],
 };
 
-const logsOnboarding = getPythonLogsOnboarding();
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[django]',
+});
 
 const docs: Docs = {
   onboarding,

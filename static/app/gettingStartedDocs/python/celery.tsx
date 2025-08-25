@@ -5,6 +5,7 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {
   StepType,
+  type Configuration,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
@@ -175,45 +176,43 @@ def init_sentry(**_kwargs):
       ),
     },
   ],
-  verify: (params: Params) => [
-    {
-      type: StepType.VERIFY,
-      description: (
-        <Fragment>
-          <p>
-            {tct(
-              "To verify if your SDK is initialized on worker start, you can pass [code:debug=True] to [code:sentry_sdk.init()] to see extra output when the SDK is initialized. If the output appears during worker startup and not only after a task has started, then it's working properly.",
-              {
-                code: <code />,
-              }
-            )}
-          </p>
-        </Fragment>
-      ),
-    },
-    ...(params.isLogsSelected
-      ? [
-          {
-            type: StepType.VERIFY,
-            configurations: [
-              {
-                description: t(
-                  'You can send logs to Sentry using the Sentry logging APIs:'
-                ),
-                language: 'python',
-                code: `import sentry_sdk
+  verify: (params: Params) => {
+    const configurations: Configuration[] = [
+      {
+        language: 'python',
+        code: `from celery import Celery
+
+app = Celery("myapp")
+
+@app.task
+def hello():
+  1/0  # raises an error
+  return "world"
+
+# Enqueue the task (ensure a worker is running)
+hello.delay()
+`,
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      configurations.push(
+        {
+          description: t('You can send logs to Sentry using the Sentry logging APIs:'),
+          language: 'python',
+          code: `import sentry_sdk
 
 # Send logs directly to Sentry
 sentry_sdk.logger.info('This is an info log message')
 sentry_sdk.logger.warning('This is a warning message')
 sentry_sdk.logger.error('This is an error message')`,
-              },
-              {
-                description: t(
-                  "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
-                ),
-                language: 'python',
-                code: `import logging
+        },
+        {
+          description: t(
+            "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+          ),
+          language: 'python',
+          code: `import logging
 
 # Your existing logging setup
 logger = logging.getLogger(__name__)
@@ -222,17 +221,25 @@ logger = logging.getLogger(__name__)
 logger.info('This will be sent to Sentry')
 logger.warning('User login failed')
 logger.error('Something went wrong')`,
-              },
-            ],
-          },
-        ]
-      : []),
-  ],
+        }
+      );
+    }
+
+    return [
+      {
+        type: StepType.VERIFY,
+        description: t(
+          'You can easily verify your Sentry installation by creating a task that triggers an error:'
+        ),
+        configurations,
+      },
+    ];
+  },
 };
 
 const logsOnboarding = getPythonLogsOnboarding({
-  basePackage: 'sentry-sdk[celery]',
-} as any);
+  packageName: 'sentry-sdk[celery]',
+});
 
 const docs: Docs = {
   onboarding,
