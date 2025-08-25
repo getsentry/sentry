@@ -1,4 +1,5 @@
 import React, {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -57,6 +58,8 @@ import {
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+
+const {fmt} = Sentry.logger;
 
 interface LogFieldRendererProps extends AttributesFieldRendererProps<RendererExtra> {}
 
@@ -445,7 +448,7 @@ function AnnotatedAttributeWrapper(props: {
           const remarkType = remark.type;
           const remarkRuleId = remark.ruleId;
           logInfoOnceHasRemarks(
-            `AnnotatedAttributeWrapper: ${props.fieldKey} has remarks, rendering tooltip`,
+            fmt`AnnotatedAttributeWrapper: ${props.fieldKey} has remarks, rendering tooltip`,
             {
               organizationId: props.extra.organization.id,
               projectId: props.extra.projectSlug,
