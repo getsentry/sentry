@@ -9,12 +9,13 @@ from sentry.dynamic_sampling.tasks.custom_rule_notifications import (
     get_num_samples,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils.samples import load_data
 
 
 class CustomRuleNotificationsTest(TestCase, SnubaTestCase):
-    def create_transaction(self):
+    def create_transaction(self) -> Event:
         data = load_data("transaction")
         return self.store_event(data, project_id=self.project.id)
 

@@ -226,7 +226,7 @@ class ProjectsListTest(APITestCase):
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    def get_installed_unpublished_sentry_app_access_token(self):
+    def get_installed_unpublished_sentry_app_access_token(self) -> ApiToken:
         self.project = self.create_project(organization=self.organization, teams=[self.team])
         sentry_app = self.create_sentry_app(
             scopes=("project:read",),

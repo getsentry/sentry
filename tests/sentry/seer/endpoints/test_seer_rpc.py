@@ -64,7 +64,7 @@ class TestSeerRpcMethods(APITestCase):
         self.organization = self.create_organization(owner=self.user)
 
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture):
         self._caplog = caplog
 
     def test_get_organization_seer_consent_by_org_name_no_integrations(self) -> None:
