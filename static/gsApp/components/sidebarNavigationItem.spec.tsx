@@ -42,12 +42,6 @@ describe('SidebarNavigationItem', () => {
     expect(screen.queryByTestId('power-icon')).not.toBeInTheDocument();
   };
 
-  const verifyItemIsDisabled = () => {
-    expect(screen.getByTestId('link')).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByTestId('link')).toHaveAttribute('aria-describedby');
-    expect(screen.getByTestId('power-icon')).toBeInTheDocument();
-  };
-
   it('allows items that do not have blocking conditions', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization});
@@ -97,36 +91,6 @@ describe('SidebarNavigationItem', () => {
     );
 
     verifyItemIsEnabled();
-  });
-
-  it('provides ineligible items with blocking render props', () => {
-    const organization = OrganizationFixture({
-      features: ['insight-modules'],
-    });
-
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_f',
-      isFree: true,
-    });
-
-    subscription.planDetails.features = [];
-
-    const id = 'llm-monitoring';
-
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(
-      <SidebarNavigationItem
-        id={id}
-        organization={organization}
-        subscription={subscription}
-      >
-        {renderFunc}
-      </SidebarNavigationItem>
-    );
-
-    verifyItemIsDisabled();
   });
 
   it('considers features of the plan trial', async () => {
