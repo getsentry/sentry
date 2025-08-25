@@ -106,11 +106,13 @@ import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidg
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import {
   decodeColumnOrder,
@@ -1108,6 +1110,14 @@ function ViewerTableV2({
     );
   }
 
+  let cellActions: Actions[] = [];
+  if (organization.features.includes('discover-cell-actions-v2')) {
+    cellActions =
+      tableWidget.widgetType === WidgetType.SPANS
+        ? [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE]
+        : ALLOWED_CELL_ACTIONS;
+  }
+
   return (
     <Fragment>
       <TableWidgetVisualization
@@ -1156,7 +1166,7 @@ function ViewerTableV2({
             eventView,
           } satisfies RenderFunctionBaggage;
         }}
-        allowedCellActions={[]}
+        allowedCellActions={cellActions}
       />
       {!(
         tableWidget.queries[0]!.orderby.match(/^-?release$/) &&
