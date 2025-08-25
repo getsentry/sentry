@@ -35,6 +35,7 @@ export default function PlayStationSettings({organization, project}: Props) {
   const {
     data: tempestCredentials,
     isLoading,
+    isPending: isRemoving,
     invalidateCredentialsCache,
   } = useFetchTempestCredentials(organization, project);
 
@@ -115,7 +116,7 @@ export default function PlayStationSettings({organization, project}: Props) {
             <CredentialRow
               key={credential.id}
               credential={credential}
-              isRemoving={removingCredential?.id === credential.id}
+              isRemoving={isRemoving && removingCredential?.id === credential.id}
               removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
             />
           ))}
