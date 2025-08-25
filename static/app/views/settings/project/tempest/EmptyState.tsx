@@ -26,8 +26,7 @@ interface EmptyStateProps {
   hasWriteAccess: boolean;
   isEmpty: boolean;
   isLoading: boolean;
-  isRemoving: boolean;
-  onRemoveCredential: (data: {id: number}) => void;
+  onRemoveCredentialSuccess: () => void;
   project: Project;
   tempestCredentials?: TempestCredentials[];
 }
@@ -37,9 +36,8 @@ export default function EmptyState({
   isLoading,
   isEmpty,
   tempestCredentials,
-  isRemoving,
   hasWriteAccess,
-  onRemoveCredential,
+  onRemoveCredentialSuccess,
 }: EmptyStateProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -104,8 +102,9 @@ export default function EmptyState({
                     <CredentialRow
                       key={credential.id}
                       credential={credential}
-                      isRemoving={isRemoving}
-                      removeCredential={hasWriteAccess ? onRemoveCredential : undefined}
+                      hasWriteAccess={hasWriteAccess}
+                      onRemoveCredentialSuccess={onRemoveCredentialSuccess}
+                      project={project}
                     />
                   ))}
                 </StyledPanelTable>
