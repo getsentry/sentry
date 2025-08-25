@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 class LabelRequest(TypedDict):
     """Corresponds to GenerateFeedbackLabelsRequest in Seer."""
 
+    organization_id: int
     feedback_message: str
 
 
