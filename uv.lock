@@ -2189,7 +2189,7 @@ requires-dist = [
     { name = "ua-parser", specifier = ">=0.10.0" },
     { name = "unidiff", specifier = ">=0.7.4" },
     { name = "urllib3", specifier = ">=2.2.2" },
-    { name = "vroomrs", specifier = ">=0.1.17" },
+    { name = "vroomrs", specifier = ">=0.1.18" },
     { name = "xmlsec", specifier = ">=1.3.14" },
     { name = "zstandard", specifier = ">=0.18.0" },
 ]
@@ -2897,13 +2897,13 @@ wheels = [
 
 [[package]]
 name = "vroomrs"
-version = "0.1.17"
+version = "0.1.18"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.17-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:759095e97c4891d2a68fe5ea2fae7db29145393431d43a9ac42df9b046be46fe" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.17-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:ff100a88d323f3d57316e385de214b6b3336d8807eb9efe60b5997332bcef59e" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.17-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3809f8d5542050ec56fddcb273df7eff54ebba4e53c9ae43187b72bd61bc0acf" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.17-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:34f14ee672aae3b67fbdda8b234b807e94886825cffbe4b6bb382a8c0847eb36" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.18-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:6bb1f58238e04ba1abf17eb8979451f5bd2c9e12a7b23e4401a507bcede209d1" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.18-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:429cf51edb8b691db031345057e948cc7bb52bedef9b076bd591736ebae286d7" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.18-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8a155c00d5d75361cbee951a56429a7ca89cea8bfc99448435e110e893c62253" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/vroomrs-0.1.18-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ef4ab9ae3da52f233d4893788dfb20debc80f1724feb30e071a472d5bae9315d" },
 ]
 
 [[package]]
