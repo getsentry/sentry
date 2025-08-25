@@ -61,6 +61,8 @@ export default function TempestSettings({organization, project}: Props) {
     };
     // Reset guided step when switching tabs to avoid cross-tab bleed
     delete newQuery.guidedStep;
+    // setupInstructions is only available on the retail tab
+    delete newQuery.setupInstructions;
     navigate({
       pathname: location.pathname,
       query: newQuery,
