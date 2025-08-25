@@ -688,9 +688,12 @@ export const getNodeLogsOnboarding = <
               sdkPackage: <code>{sdkPackage}</code>,
             }
           ),
-          configurations: getInstallConfig(params, {
+        },
+        {
+          type: 'code',
+          tabs: getInstallConfig(params, {
             basePackage: sdkPackage,
-          }),
+          })[0]!.code,
         },
         {
           type: 'text',
