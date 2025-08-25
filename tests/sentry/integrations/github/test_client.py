@@ -693,89 +693,96 @@ class GitHubCommitContextClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_create_status(self, get_jwt) -> None:
+    def test_create_check_run(self, get_jwt) -> None:
         repo_name = "getsentry/sentry"
-        sha = "abc123"
-        status_data = {
-            "state": "success",
-            "description": "Build passed",
-            "context": "sentry/ci",
-            "target_url": "https://example.com/build/123",
+        check_data = {
+            "name": "sentry/ci",
+            "head_sha": "abc123",
+            "status": "completed",
+            "conclusion": "success",
+            "details_url": "https://example.com/build/123",
         }
 
         responses.add(
             method=responses.POST,
-            url=f"https://api.github.com/repos/{repo_name}/statuses/{sha}",
+            url=f"https://api.github.com/repos/{repo_name}/check-runs",
             json={
                 "id": 1,
-                "state": "success",
-                "description": "Build passed",
-                "context": "sentry/ci",
-                "target_url": "https://example.com/build/123",
+                "name": "sentry/ci",
+                "head_sha": "abc123",
+                "status": "completed",
+                "conclusion": "success",
+                "details_url": "https://example.com/build/123",
             },
             status=201,
         )
 
-        result = self.github_client.create_status(repo_name, sha, status_data)
+        result = self.github_client.create_check_run(repo_name, check_data)
 
         assert result["id"] == 1
-        assert result["state"] == "success"
-        assert result["description"] == "Build passed"
-        assert result["context"] == "sentry/ci"
-        assert result["target_url"] == "https://example.com/build/123"
+        assert result["name"] == "sentry/ci"
+        assert result["head_sha"] == "abc123"
+        assert result["status"] == "completed"
+        assert result["conclusion"] == "success"
+        assert result["details_url"] == "https://example.com/build/123"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_status(self, get_jwt) -> None:
+    def test_get_check_runs(self, get_jwt) -> None:
         repo_name = "getsentry/sentry"
         sha = "abc123"
 
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{repo_name}/commits/{sha}/statuses",
-            json=[
-                {
-                    "id": 1,
-                    "state": "success",
-                    "description": "Build passed",
-                    "context": "sentry/ci",
-                    "target_url": "https://example.com/build/123",
-                },
-                {
-                    "id": 2,
-                    "state": "pending",
-                    "description": "Tests running",
-                    "context": "sentry/tests",
-                    "target_url": "https://example.com/tests/456",
-                },
-            ],
+            url=f"https://api.github.com/repos/{repo_name}/commits/{sha}/check-runs",
+            json={
+                "total_count": 2,
+                "check_runs": [
+                    {
+                        "id": 1,
+                        "name": "sentry/ci",
+                        "head_sha": "abc123",
+                        "status": "completed",
+                        "conclusion": "success",
+                        "details_url": "https://example.com/build/123",
+                    },
+                    {
+                        "id": 2,
+                        "name": "sentry/tests",
+                        "head_sha": "abc123",
+                        "status": "in_progress",
+                        "conclusion": None,
+                        "details_url": "https://example.com/tests/456",
+                    },
+                ],
+            },
             status=200,
         )
 
-        result = self.github_client.get_status(repo_name, sha)
+        result = self.github_client.get_check_runs(repo_name, sha)
 
-        assert len(result) == 2
-        assert result[0]["id"] == 1
-        assert result[0]["state"] == "success"
-        assert result[1]["id"] == 2
-        assert result[1]["state"] == "pending"
+        assert result["total_count"] == 2
+        assert len(result["check_runs"]) == 2
+        assert result["check_runs"][0]["id"] == 1
+        assert result["check_runs"][0]["conclusion"] == "success"
+        assert result["check_runs"][1]["id"] == 2
+        assert result["check_runs"][1]["status"] == "in_progress"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_create_status_error(self, get_jwt) -> None:
+    def test_create_check_run_error(self, get_jwt) -> None:
         repo_name = "getsentry/sentry"
-        sha = "abc123"
-        status_data = {"state": "success"}
+        check_data = {"name": "sentry/ci", "head_sha": "abc123"}
 
         responses.add(
             method=responses.POST,
-            url=f"https://api.github.com/repos/{repo_name}/statuses/{sha}",
+            url=f"https://api.github.com/repos/{repo_name}/check-runs",
             json={"message": "Validation Failed"},
             status=422,
         )
 
         with pytest.raises(ApiError):
-            self.github_client.create_status(repo_name, sha, status_data)
+            self.github_client.create_check_run(repo_name, check_data)
 
 
 class GitHubClientFileBlameBase(TestCase):
