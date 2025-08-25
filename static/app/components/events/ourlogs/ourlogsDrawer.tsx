@@ -37,9 +37,17 @@ interface LogIssueDrawerProps {
   event: Event;
   group: Group;
   project: Project;
+  embeddedOptions?: {
+    openWithExpandedIds?: string[];
+  };
 }
 
-export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
+export function OurlogsDrawer({
+  event,
+  project,
+  group,
+  embeddedOptions,
+}: LogIssueDrawerProps) {
   const setLogsSearch = useSetLogsSearch();
   const logsSearch = useLogsSearch();
   const hasInfiniteFeature = useOrganization().features.includes(
@@ -90,7 +98,11 @@ export function OurlogsDrawer({event, project, group}: LogIssueDrawerProps) {
         <EventDrawerBody ref={containerRef}>
           <LogsTableContainer>
             {hasInfiniteFeature ? (
-              <LogsInfiniteTable embedded scrollContainer={containerRef} />
+              <LogsInfiniteTable
+                embedded
+                scrollContainer={containerRef}
+                embeddedOptions={embeddedOptions}
+              />
             ) : (
               <LogsTable allowPagination embedded />
             )}

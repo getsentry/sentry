@@ -452,8 +452,8 @@ export const FloatingBackToTopContainer = styled('div')<{
 
 export const HoveringRowLoadingRendererContainer = styled('div')<{
   headerHeight: number;
+  height: number;
   position: 'top' | 'bottom';
-  rowHeight: number;
 }>`
   position: absolute;
   left: 0;
@@ -469,6 +469,6 @@ export const HoveringRowLoadingRendererContainer = styled('div')<{
   );
   align-items: center;
   justify-content: center;
-  height: ${p => p.rowHeight * 3}px;
+  height: ${p => p.height}px;
   ${p => (p.position === 'top' ? 'top: 0px;' : 'bottom: 0px;')}
 `;
