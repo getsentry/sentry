@@ -333,10 +333,9 @@ def get_suspect_commit_text(group: Group) -> str | None:
         else:  # for unsupported providers
             suspect_commit_text += f"{commit_id[:6]} by {author_display}"
 
-        if pull_request.date_added:
-            pr_date = time_since(pull_request.date_added)
-        else:
-            pr_date = pull_request.date_added
+        pr_date = pull_request.date_added
+        if pr_date:
+            pr_date = time_since(pr_date)
         pr_id = pull_request.key
         pr_title = pull_request.title
         pr_link = pull_request.get_external_url()

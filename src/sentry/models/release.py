@@ -386,11 +386,11 @@ class Release(Model):
         )
 
     @classmethod
-    def get_cache_key(cls, organization_id, version) -> str:
+    def get_cache_key(cls, organization_id, version):
         return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
 
     @classmethod
-    def get_lock_key(cls, organization_id, release_id) -> str:
+    def get_lock_key(cls, organization_id, release_id):
         return f"releasecommits:{organization_id}:{release_id}"
 
     @classmethod

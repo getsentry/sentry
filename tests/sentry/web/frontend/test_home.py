@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class HomeTest(TestCase):
     @cached_property
-    def path(self) -> str:
+    def path(self):
         return reverse("sentry")
 
     def test_redirects_to_login(self) -> None:

@@ -35,7 +35,7 @@ class SlackRequestTest(TestCase):
         )
 
     @cached_property
-    def slack_request(self) -> SlackRequest:
+    def slack_request(self):
         return SlackRequest(self.request)
 
     @patch("slack_sdk.signature.SignatureVerifier.is_valid")
@@ -132,7 +132,7 @@ class SlackEventRequestTest(TestCase):
         )
 
     @cached_property
-    def slack_request(self) -> SlackEventRequest:
+    def slack_request(self):
         return SlackEventRequest(self.request)
 
     def test_ignores_event_validation_on_challenge_request(self) -> None:
@@ -218,7 +218,7 @@ class SlackActionRequestTest(TestCase):
         )
 
     @cached_property
-    def slack_request(self) -> SlackActionRequest:
+    def slack_request(self):
         return SlackActionRequest(self.request)
 
     def test_type(self) -> None:

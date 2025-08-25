@@ -33,7 +33,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         super().tearDown()
         self._run_tasks.__exit__(None, None, None)
 

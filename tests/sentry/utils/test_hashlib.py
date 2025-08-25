@@ -22,7 +22,7 @@ HASHLIB_VALUES_TESTS = (
 
 
 @pytest.mark.parametrize("seed,value,hash", HASHLIB_VALUES_TESTS)
-def test_hash_values(seed: str, value: object, hash: str) -> None:
+def test_hash_values(seed, value, hash) -> None:
     assert hash_values([value], seed=seed) == hash
 
 
@@ -44,5 +44,5 @@ class HashlibTest(TestCase):
         ("s:transactions/user@none", 1739810785),
     ),
 )
-def test_fnv1a_32_with_mris(value: str, expected_value: int) -> None:
+def test_fnv1a_32_with_mris(value, expected_value) -> None:
     assert fnv1a_32(value.encode("utf-8")) == expected_value

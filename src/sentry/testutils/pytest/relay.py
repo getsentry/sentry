@@ -24,7 +24,7 @@ RELAY_TEST_IMAGE = environ.get(
 )
 
 
-def _relay_server_container_name() -> str:
+def _relay_server_container_name():
     return "sentry_test_relay_server"
 
 

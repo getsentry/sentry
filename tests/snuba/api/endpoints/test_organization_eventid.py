@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         min_ago = before_now(minutes=1).isoformat()
         self.org = self.create_organization(owner=self.user)

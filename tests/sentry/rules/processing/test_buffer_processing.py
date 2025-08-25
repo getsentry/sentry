@@ -37,7 +37,7 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         self.mock_redis_buffer.__exit__(None, None, None)
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):

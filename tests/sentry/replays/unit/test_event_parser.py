@@ -780,7 +780,7 @@ def test_which() -> None:
         },
     ],
 )
-def test_parse_highlighted_events_fault_tolerance(event: dict[str, Any]) -> None:
+def test_parse_highlighted_events_fault_tolerance(event) -> None:
     # If the test raises an exception we fail. All of these events are invalid.
     builder = HighlightedEventsBuilder()
     builder.add(which(event), event, sampled=True)

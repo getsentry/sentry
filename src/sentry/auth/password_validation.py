@@ -1,6 +1,5 @@
 import logging
 from hashlib import sha1
-from typing import Any
 
 import requests
 from django.conf import settings
@@ -10,17 +9,16 @@ from django.utils.html import format_html
 from django.utils.translation import ngettext
 
 from sentry import options
-from sentry.users.models.user import User
 from sentry.utils.imports import import_string
 
 logger = logging.getLogger(__name__)
 
 
-def get_default_password_validators() -> list[Any]:
+def get_default_password_validators():
     return get_password_validators(settings.AUTH_PASSWORD_VALIDATORS)
 
 
-def get_password_validators(validator_config: list[dict[str, Any]]) -> list[Any]:
+def get_password_validators(validator_config):
     validators = []
     for validator in validator_config:
         try:
@@ -33,9 +31,7 @@ def get_password_validators(validator_config: list[dict[str, Any]]) -> list[Any]
     return validators
 
 
-def validate_password(
-    password: str, user: User | None = None, password_validators: list[Any] | None = None
-) -> None:
+def validate_password(password, user=None, password_validators=None) -> None:
     """
     Validate whether the password meets all validator requirements.
 
@@ -54,7 +50,7 @@ def validate_password(
         raise ValidationError(errors)
 
 
-def password_validators_help_texts(password_validators: list[Any] | None = None) -> list[str]:
+def password_validators_help_texts(password_validators=None):
     """
     Return a list of all help texts of all configured validators.
     """
@@ -66,7 +62,7 @@ def password_validators_help_texts(password_validators: list[Any] | None = None)
     return help_texts
 
 
-def _password_validators_help_text_html(password_validators: list[Any] | None = None) -> str:
+def _password_validators_help_text_html(password_validators=None) -> str:
     """
     Return an HTML string with all help texts of all configured validators
     in an <ul>.
@@ -87,7 +83,7 @@ class MaximumLengthValidator:
     def __init__(self, max_length: int = 256) -> None:
         self.max_length = max_length
 
-    def validate(self, password: str, user: User | None = None) -> None:
+    def validate(self, password: str, user=None) -> None:
         if len(password) > self.max_length:
             raise ValidationError(
                 ngettext(
@@ -116,7 +112,7 @@ class PwnedPasswordsValidator:
         self.threshold = threshold
         self.timeout = timeout
 
-    def validate(self, password: str, user: User | None = None) -> None:
+    def validate(self, password, user=None) -> None:
         digest = sha1(password.encode("utf-8")).hexdigest().upper()
         prefix = digest[:5]
         suffix = digest[5:]

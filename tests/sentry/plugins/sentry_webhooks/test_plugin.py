@@ -16,7 +16,7 @@ pytestmark = [requires_snuba]
 
 class WebHooksPluginTest(TestCase):
     @cached_property
-    def plugin(self) -> WebHooksPlugin:
+    def plugin(self):
         return WebHooksPlugin()
 
     def setUp(self) -> None:

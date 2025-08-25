@@ -10,7 +10,7 @@ from .manager import FeatureManager
 # XXX: See `features/__init__.py` for documentation on how to use feature flags
 
 
-def register_temporary_features(manager: FeatureManager) -> None:
+def register_temporary_features(manager: FeatureManager):
     """
     These flags are temporary. These flags exist as a way for us to gate newly
     developed features.

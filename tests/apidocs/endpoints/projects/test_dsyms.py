@@ -9,7 +9,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ProjectDsymsDocs(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={

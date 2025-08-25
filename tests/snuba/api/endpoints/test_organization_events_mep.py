@@ -55,7 +55,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         "d:transactions/measurements.custom_type@somethingcustom",
     ]
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
         self.features = {
@@ -4070,7 +4070,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
 ):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
 

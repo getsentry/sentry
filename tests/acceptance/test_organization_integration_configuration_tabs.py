@@ -6,7 +6,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(self.user)
         self.provider = "github"
@@ -31,7 +31,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             url="https://github.com/getsentry/sentry",
         )
 
-    def load_page(self, slug: str, configuration_tab: bool = False) -> None:
+    def load_page(self, slug, configuration_tab=False):
         url = f"/settings/{self.organization.slug}/integrations/{slug}/"
         if configuration_tab:
             url += "?tab=configurations"

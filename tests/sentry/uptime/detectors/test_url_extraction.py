@@ -3,7 +3,7 @@ from sentry.uptime.detectors.url_extraction import extract_base_url
 
 
 class ExtractBaseUrlTest(UptimeTestCase):
-    def run_test(self, url: str, expected_url: str | None) -> None:
+    def run_test(self, url: str, expected_url: str | None):
         assert extract_base_url(url) == expected_url
 
     def test(self) -> None:

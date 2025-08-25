@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import orjson
 from django.db import router, transaction
@@ -73,23 +73,6 @@ metadata = IntegrationMetadata(
 )
 
 
-class PagerDutyOrganizationConfig(TypedDict):
-    name: str
-    type: str
-    label: str
-    help: str
-    addButtonText: str
-    columnLabels: dict[str, str]
-    columnKeys: list[str]
-    confirmDeleteMessage: str
-
-
-class PagerDutyServiceConfig(TypedDict):
-    service: str
-    integration_key: str
-    id: int
-
-
 class PagerDutyIntegration(IntegrationInstallation):
     def get_keyring_client(self, keyid: int | str) -> PagerDutyClient:
         org_integration = self.org_integration
@@ -106,11 +89,11 @@ class PagerDutyIntegration(IntegrationInstallation):
             integration_id=org_integration.integration_id, integration_key=integration_key
         )
 
-    def get_client(self) -> None:
+    def get_client(self):
         raise NotImplementedError("Use get_keyring_client instead.")
 
-    def get_organization_config(self) -> list[PagerDutyOrganizationConfig]:
-        return [
+    def get_organization_config(self):
+        fields = [
             {
                 "name": "service_table",
                 "type": "table",
@@ -123,7 +106,9 @@ class PagerDutyIntegration(IntegrationInstallation):
             }
         ]
 
-    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        return fields
+
+    def update_organization_config(self, data):
         if "service_table" in data:
             service_rows = data["service_table"]
             # validate fields
@@ -164,15 +149,15 @@ class PagerDutyIntegration(IntegrationInstallation):
                     key = row["integration_key"]
                     add_service(oi, integration_key=key, service_name=service_name)
 
-    def get_config_data(self) -> Mapping[str, list[PagerDutyServiceConfig]]:
+    def get_config_data(self):
         service_list = []
         for s in self.services:
             service_list.append(
-                PagerDutyServiceConfig(
-                    service=s["service_name"],
-                    integration_key=s["integration_key"],
-                    id=s["id"],
-                )
+                {
+                    "service": s["service_name"],
+                    "integration_key": s["integration_key"],
+                    "id": s["id"],
+                }
             )
         return {"service_table": service_list}
 
@@ -235,7 +220,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
 
 
 class PagerDutyInstallationRedirect:
-    def get_app_url(self, account_name: str | None = None) -> str:
+    def get_app_url(self, account_name=None):
         if not account_name:
             account_name = "app"
 

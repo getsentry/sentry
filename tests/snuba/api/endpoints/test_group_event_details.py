@@ -4,7 +4,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
 

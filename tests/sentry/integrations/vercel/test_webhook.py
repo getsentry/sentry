@@ -93,7 +93,7 @@ class VercelReleasesTest(APITestCase):
             provider="vercel",
         )
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         responses.reset()
 
     @responses.activate

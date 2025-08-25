@@ -68,7 +68,7 @@ class VstsWebhookWorkItemTest(APITestCase):
 
         self.user_to_assign = self.create_user("sentryuseremail@email.com")
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         responses.reset()
 
     def create_linked_group(self, external_issue, project, status):

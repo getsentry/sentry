@@ -8,7 +8,7 @@ from sentry.models.releasecommit import ReleaseCommit
 
 
 class CommitFileChangeDocsTest(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         project = self.create_project(name="foo")
         release = self.create_release(project=project, version="1")
         release.add_project(project)

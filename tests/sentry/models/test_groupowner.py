@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class GroupOwnerTest(TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
 
         self.timestamp = before_now(minutes=10)
@@ -37,14 +37,14 @@ class GroupOwnerTest(TestCase):
             "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
         }
 
-    def _make_scm_lookup_kwargs(self) -> None:
+    def _make_scm_lookup_kwargs(self):
         """
         scm_based lookup_kwargs include an additional filter: context__contains,
         release_based group owners don't have this field in context.
         """
         self.lookup_kwargs.update(self.scm_extra_lookup)
 
-    def test_update_or_create_and_preserve_context_create_then_update_scm(self) -> None:
+    def test_update_or_create_and_preserve_context_create_then_update_scm(self):
         assert GroupOwner.objects.filter(**self.lookup_kwargs).exists() is False
 
         self._make_scm_lookup_kwargs()
@@ -83,7 +83,7 @@ class GroupOwnerTest(TestCase):
         assert obj.date_added == now
         assert obj.context == self.scm_context_defaults
 
-    def test_update_or_create_and_preserve_context_update_scm(self) -> None:
+    def test_update_or_create_and_preserve_context_update_scm(self):
         original_obj = GroupOwner.objects.create(
             context={
                 "commitId": self.c.id,
@@ -114,7 +114,7 @@ class GroupOwnerTest(TestCase):
             "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
         }
 
-    def test_update_or_create_and_preserve_context_create_then_update_rb(self) -> None:
+    def test_update_or_create_and_preserve_context_create_then_update_rb(self):
         assert GroupOwner.objects.filter(**self.lookup_kwargs).exists() is False
 
         obj, created = GroupOwner.objects.update_or_create_and_preserve_context(

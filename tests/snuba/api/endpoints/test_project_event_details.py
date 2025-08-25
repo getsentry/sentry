@@ -7,7 +7,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.setup_data()
@@ -238,7 +238,7 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
 
 
 class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         project = self.create_project()
@@ -362,7 +362,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
 
 
 class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.event_id = "c" * 32
@@ -434,7 +434,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
 
 
 class ProjectEventDetailsTransactionTestScrubbed(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         data = load_data("transaction")

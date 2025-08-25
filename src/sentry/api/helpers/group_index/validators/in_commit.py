@@ -13,7 +13,7 @@ class InCommitResult(TypedDict):
 
 
 @extend_schema_serializer()
-class InCommitValidator(serializers.Serializer[InCommitResult]):
+class InCommitValidator(serializers.Serializer):
     commit = serializers.CharField(required=True, help_text="The SHA of the resolving commit.")
     repository = serializers.CharField(
         required=True, help_text="The name of the repository (as it appears in Sentry)."
