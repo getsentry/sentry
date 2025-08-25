@@ -1,4 +1,7 @@
 import useOrganization from 'sentry/utils/useOrganization';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks/index';
+
+import useSubscription from 'getsentry/hooks/useSubscription';
 
 type MetricDetectorLimitResponse = {
   detectorCount: number;
@@ -8,25 +11,41 @@ type MetricDetectorLimitResponse = {
   isLoading: boolean;
 };
 
-// TODO: Replace with actual hook
+const UNLIMITED_QUOTA = -1;
+const ERROR_COUNT = -1;
+
 export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
   const organization = useOrganization();
+  const subscription = useSubscription();
+  const hasFlag = organization.features.includes('workflow-engine-metric-detector-limit');
 
-  if (!organization.features.includes('workflow-engine-metric-detector-limit')) {
+  const {isLoading, isError, getResponseHeader} = useDetectorsQuery(
+    {
+      query: 'type:metric',
+      limit: 0,
+    },
+    {enabled: hasFlag}
+  );
+
+  const hits = getResponseHeader?.('X-Hits');
+  const detectorCount = hits ? parseInt(hits, 10) : ERROR_COUNT;
+  const detectorLimit = subscription?.planDetails?.metricDetectorLimit ?? UNLIMITED_QUOTA;
+
+  if (!hasFlag || detectorLimit === UNLIMITED_QUOTA) {
     return {
       hasReachedLimit: false,
-      detectorLimit: -1,
-      detectorCount: -1,
+      detectorLimit: UNLIMITED_QUOTA,
+      detectorCount,
       isLoading: false,
       isError: false,
     };
   }
 
   return {
-    hasReachedLimit: true,
-    detectorCount: 20,
-    detectorLimit: 20,
-    isError: false,
-    isLoading: false,
+    detectorCount,
+    detectorLimit,
+    hasReachedLimit: detectorCount >= detectorLimit,
+    isLoading,
+    isError: isError || detectorCount === ERROR_COUNT,
   };
 }
