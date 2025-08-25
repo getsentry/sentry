@@ -794,7 +794,7 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
 
 
 @instrumented_task(
-    name="sentry.workflow_engine.processors.process_delayed_workflows",
+    name="sentry.workflow_engine.tasks.delayed_workflows",
     queue="delayed_rules",
     default_retry_delay=5,
     max_retries=5,
