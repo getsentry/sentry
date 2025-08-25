@@ -6,7 +6,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './cloudflare-pages';
 
-describe('express onboarding docs', function () {
+describe('express onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
@@ -80,5 +80,29 @@ describe('express onboarding docs', function () {
     });
 
     expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
+  });
+
+  it('displays logging code in verify section when logs are selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Sentry\.logger\.info\('User triggered test error'/)
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not display logging code in verify section when logs are not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(
+      screen.queryByText(
+        textWithMarkupMatcher(/Sentry\.logger\.info\('User triggered test error'/)
+      )
+    ).not.toBeInTheDocument();
   });
 });

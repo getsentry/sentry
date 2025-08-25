@@ -152,7 +152,7 @@ index 0000000..8a9b485
         ),
     ],
 )
-def test_diff_line_counts(diff_text, expected):
+def test_diff_line_counts(diff_text: str, expected: FileModifications) -> None:
     patch = f"""diff --git a/test.py b/test.py
 index 0000001..0000002 100644
 --- a/test.py

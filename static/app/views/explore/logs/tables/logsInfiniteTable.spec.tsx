@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -24,6 +25,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -75,7 +77,7 @@ jest.mock('@tanstack/react-virtual', () => {
   };
 });
 
-describe('LogsInfiniteTable', function () {
+describe('LogsInfiniteTable', () => {
   const organization = OrganizationFixture({
     features: ['ourlogs', 'ourlogs-enabled', 'ourlogs-infinite-scroll'],
   });
@@ -132,7 +134,7 @@ describe('LogsInfiniteTable', function () {
 
   const frozenColumnFields = [OurLogKnownFieldKey.TIMESTAMP, OurLogKnownFieldKey.MESSAGE];
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
 
@@ -195,21 +197,22 @@ describe('LogsInfiniteTable', function () {
     });
   });
 
-  const renderWithProviders = (children: React.ReactNode, isTableFrozen = false) => {
+  const renderWithProviders = (children: React.ReactNode) => {
     return render(
       <OrganizationContext.Provider value={organization}>
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          isTableFrozen={isTableFrozen}
-        >
-          <LogsPageDataProvider>{children}</LogsPageDataProvider>
-        </LogsPageParamsProvider>
+        <LogsQueryParamsProvider source="location">
+          <LogsPageParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          >
+            <LogsPageDataProvider>{children}</LogsPageDataProvider>
+          </LogsPageParamsProvider>
+        </LogsQueryParamsProvider>
       </OrganizationContext.Provider>
     );
   };
 
   it('should render the table component', async () => {
-    renderWithProviders(<LogsInfiniteTable showHeader />);
+    renderWithProviders(<LogsInfiniteTable />);
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -217,7 +220,7 @@ describe('LogsInfiniteTable', function () {
   });
 
   it('should render with loading state initially', async () => {
-    renderWithProviders(<LogsInfiniteTable showHeader />);
+    renderWithProviders(<LogsInfiniteTable />);
 
     const loadingIndicator = await screen.findByTestId('loading-indicator');
     expect(loadingIndicator).toBeInTheDocument();
@@ -241,7 +244,7 @@ describe('LogsInfiniteTable', function () {
         })
       );
     }
-    renderWithProviders(<LogsInfiniteTable showHeader />);
+    renderWithProviders(<LogsInfiniteTable />);
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -252,7 +255,9 @@ describe('LogsInfiniteTable', function () {
     for (const row of allTreeRows) {
       for (const field of visibleColumnFields) {
         await userEvent.hover(row, {delay: null});
-        jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+        act(() => {
+          jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+        });
         const cell = await within(row).findByTestId(`log-table-cell-${field}`);
         const actionsButton = within(cell).queryByRole('button', {
           name: 'Actions',
@@ -271,7 +276,7 @@ describe('LogsInfiniteTable', function () {
   });
 
   it('should not be interactable on embedded views', async () => {
-    renderWithProviders(<LogsInfiniteTable showHeader />, true);
+    renderWithProviders(<LogsInfiniteTable embedded />);
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -304,7 +309,7 @@ describe('LogsInfiniteTable', function () {
       },
     });
 
-    renderWithProviders(<LogsInfiniteTable showHeader />);
+    renderWithProviders(<LogsInfiniteTable />);
 
     await waitFor(() => {
       expect(emptyApiMock).toHaveBeenCalled();
@@ -319,7 +324,7 @@ describe('LogsInfiniteTable', function () {
       statusCode: 500,
     });
 
-    renderWithProviders(<LogsInfiniteTable showHeader />);
+    renderWithProviders(<LogsInfiniteTable />);
 
     await waitFor(() => {
       expect(mockResponse).toHaveBeenCalled();

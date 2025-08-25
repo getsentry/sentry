@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.services import eventstore
 
 
 @pytest.fixture
@@ -19,29 +19,29 @@ def make_message_snapshot(insta_snapshot):
     return inner
 
 
-def test_basic(make_message_snapshot):
+def test_basic(make_message_snapshot) -> None:
     make_message_snapshot(
         dict(message="Hello there %s!", params=("world",), formatted="Hello there world!")
     )
 
 
-def test_format_kwargs(make_message_snapshot):
+def test_format_kwargs(make_message_snapshot) -> None:
     make_message_snapshot(dict(message="Hello there %(name)s!", params={"name": "world"}))
 
 
-def test_format_braces(make_message_snapshot):
+def test_format_braces(make_message_snapshot) -> None:
     make_message_snapshot(dict(message="Hello there {}!", params=("world",)))
 
 
 @pytest.mark.parametrize("input", [42, True, 4.2])
-def test_stringify_primitives(make_message_snapshot, input):
+def test_stringify_primitives(make_message_snapshot, input) -> None:
     make_message_snapshot(input)
 
 
-def test_retains_formatted(make_message_snapshot):
+def test_retains_formatted(make_message_snapshot) -> None:
     # we had a regression which was throwing this data away
     make_message_snapshot({"message": "foo bar", "formatted": "foo bar baz"})
 
 
-def test_discards_dupe_message(make_message_snapshot):
+def test_discards_dupe_message(make_message_snapshot) -> None:
     make_message_snapshot({"message": "foo bar", "formatted": "foo bar"})

@@ -45,19 +45,3 @@ def auto_reconnect_connection(func):
             return func(self, *args, **kwargs)
 
     return inner
-
-
-def more_better_error_messages(func):
-    """
-    Wraps functions where the first param is a SQL statement and enforces
-    any exceptions thrown will also contain the statement in the message.
-    """
-
-    @wraps(func)
-    def inner(self, sql, *args, **kwargs):
-        try:
-            return func(self, sql, *args, **kwargs)
-        except Exception as e:
-            raise type(e)(f"{e!r}\nSQL: {sql}").with_traceback(e.__traceback__)
-
-    return inner

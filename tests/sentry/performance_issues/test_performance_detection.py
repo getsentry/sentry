@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, Mock, call, patch
 import pytest
 
 from sentry import projectoptions
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceNPlusOneGroupType,
@@ -20,6 +19,7 @@ from sentry.performance_issues.performance_detection import (
     get_detection_settings,
 )
 from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
@@ -697,5 +697,5 @@ class EventPerformanceProblemTest(TestCase):
         ),
     ],
 )
-def test_total_span_time(spans, duration):
+def test_total_span_time(spans, duration) -> None:
     assert total_span_time(spans) == pytest.approx(duration, 0.01)

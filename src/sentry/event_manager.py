@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import orjson
+import psycopg2.errors
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
@@ -44,7 +45,6 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
-from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
@@ -91,11 +91,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import (
-    GroupOpenPeriod,
-    create_open_period,
-    has_initial_open_period,
-)
+from sentry.models.groupopenperiod import GroupOpenPeriod, create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -117,6 +113,7 @@ from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
@@ -150,7 +147,7 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import BaseEvent, Event
+    from sentry.services.eventstore.models import BaseEvent, Event
 
 logger = logging.getLogger("sentry.events")
 
@@ -1625,19 +1622,13 @@ def _get_error_weighted_times_seen(event: BaseEvent) -> int:
 def _is_stuck_counter_error(err: Exception, project: Project, short_id: int) -> bool:
     """Decide if this is `UniqueViolation` error on the `Group` table's project and short id values."""
 
-    error_message = err.args[0]
-
-    if not error_message.startswith("UniqueViolation"):
-        return False
-
-    for substring in [
-        f"Key (project_id, short_id)=({project.id}, {short_id}) already exists.",
-        'duplicate key value violates unique constraint "sentry_groupedmessage_project_id_short_id',
-    ]:
-        if substring in error_message:
-            return True
-
-    return False
+    return isinstance(err.__cause__, psycopg2.errors.UniqueViolation) and any(
+        s in err.args[0]
+        for s in (
+            f"Key (project_id, short_id)=({project.id}, {short_id}) already exists.",
+            'duplicate key value violates unique constraint "sentry_groupedmessage_project_id_short_id',
+        )
+    )
 
 
 def _handle_stuck_project_counter(project: Project, current_short_id: int) -> int:
@@ -1827,8 +1818,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        if has_initial_open_period(group):
-            create_open_period(group, activity.datetime)
+        create_open_period(group, activity.datetime)
 
     return is_regression
 

@@ -13,7 +13,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -42,7 +42,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             is_global=True,
         )
 
-    def test_click_saved_search(self):
+    def test_click_saved_search(self) -> None:
         self.page.visit_issue_list(self.org.slug)
         self.browser.click_when_visible('button[aria-label="Custom Search"]')
 
@@ -50,7 +50,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.click('button[aria-label="Errors Only"]')
         self.page.wait_until_loaded()
 
-    def test_create_saved_search(self):
+    def test_create_saved_search(self) -> None:
         self.page.visit_issue_list(self.org.slug)
         self.browser.click_when_visible('button[aria-label="Custom Search"]')
 
@@ -83,7 +83,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             by=By.CSS_SELECTOR, value='button[aria-label="My Saved Search"]'
         )
 
-    def test_edit_saved_search(self):
+    def test_edit_saved_search(self) -> None:
         # Start with a user saved search
         self.create_saved_search(
             organization=self.org,
@@ -122,7 +122,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             by=By.CSS_SELECTOR, value='button[aria-label="New Saved Search Name"]'
         )
 
-    def test_delete_saved_search(self):
+    def test_delete_saved_search(self) -> None:
         # Start with a user saved search
         self.create_saved_search(
             organization=self.org,

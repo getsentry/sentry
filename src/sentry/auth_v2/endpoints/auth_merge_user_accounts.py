@@ -7,13 +7,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.auth_v2.endpoints.base import AuthV2Endpoint
 from sentry.users.api.serializers.user import UserSerializerWithOrgMemberships
 from sentry.users.models.user import User
 from sentry.users.models.user_merge_verification_code import UserMergeVerificationCode
 
 
-class AuthMergeUserAccountsValidator(serializers.Serializer):
+class AuthMergeUserAccountsValidator(CamelSnakeSerializer):
     verification_code = serializers.CharField(required=True)
     ids_to_merge = serializers.ListField(child=serializers.IntegerField(), required=True)
     ids_to_delete = serializers.ListField(child=serializers.IntegerField(), required=True)
@@ -104,4 +105,4 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
             user.merge_to(primary_user)
             user.delete()
 
-        return Response("Successfully merged user accounts.")
+        return Response(serialize([primary_user], request.user, UserSerializerWithOrgMemberships()))

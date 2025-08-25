@@ -11,7 +11,6 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
@@ -37,6 +36,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
@@ -314,6 +314,11 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_group(project, *args, **kwargs)
+
+    def create_group_activity(self, group=None, *args, **kwargs):
+        if group is None:
+            group = self.group
+        return Factories.create_group_activity(group, *args, **kwargs)
 
     def create_n_groups_with_hashes(
         self, number_of_groups: int, project: Project, group_type: int | None = None

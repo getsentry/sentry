@@ -340,7 +340,7 @@ class CustomRulesEndpoint(APITestCase):
         ("query", "", True),
     ],
 )
-def test_custom_rule_serializer(what, value, valid):
+def test_custom_rule_serializer(what, value, valid) -> None:
     """
     Test that the serializer works as expected
     """
@@ -436,7 +436,7 @@ class TestCustomRuleSerializerWithProjects(TestCase):
         ),
     ],
 )
-def test_get_condition(query, condition):
+def test_get_condition(query, condition) -> None:
     """
     Test that the get_condition function works as expected
     """
@@ -455,7 +455,7 @@ def test_get_condition(query, condition):
         "http.status_code:GET AND (transaction.duration:>10 AND event.type:error)",
     ],
 )
-def test_get_condition_not_supported(query):
+def test_get_condition_not_supported(query) -> None:
     with pytest.raises(UnsupportedSearchQuery) as excinfo:
         get_rule_condition(query)
 
@@ -466,7 +466,7 @@ def test_get_condition_not_supported(query):
     "query",
     ["", "event.type:error", "environment:production"],
 )
-def test_get_condition_non_transaction_rule(query):
+def test_get_condition_non_transaction_rule(query) -> None:
     """
     Test that the get_condition function raises UnsupportedSearchQuery when event.type is not transaction
     """

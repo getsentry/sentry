@@ -10,7 +10,7 @@ from sentry.utils.outcomes import Outcome
 
 
 class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc)
         self.login_as(user=self.user)
@@ -80,7 +80,7 @@ class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_get(self):
+    def test_get(self) -> None:
         """
         Test that the organization stats endpoint returns valid schema.
         This test verifies that the endpoint correctly handles basic queries with interval, field and groupBy parameters.
@@ -91,7 +91,7 @@ class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
 
         self.validate_schema(request, response)
 
-    def test_continuous_profiling_categories(self):
+    def test_continuous_profiling_categories(self) -> None:
         for category in [
             "profile_duration",
             "profile_duration_ui",

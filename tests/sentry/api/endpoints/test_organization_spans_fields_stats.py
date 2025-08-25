@@ -96,7 +96,7 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         )
         assert response.status_code == 400, response.data
 
-    def test_max_attributes(self, max_attributes=3):
+    def test_max_attributes(self, max_attributes=3) -> None:
         tags = [{f"test_tag_{i}": f"value_{i}"} for i in range(max_attributes)]
 
         for tag in tags:
@@ -109,7 +109,7 @@ class OrganizationSpansFieldsStatsEndpointTest(BaseSpansTestCase, APITestCase):
         distributions = response.data["results"][0]["attributeDistributions"]["attributes"]
         assert len(distributions) == max_attributes - 1
 
-    def test_max_buckets(self, max_buckets=3):
+    def test_max_buckets(self, max_buckets=3) -> None:
         tags = [{"test_tag": f"value_{i}"} for i in range(max_buckets)]
 
         for tag in tags:

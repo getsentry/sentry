@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -126,7 +127,7 @@ class SetRefsTest(TestCase):
 
 class HookHandleTest(TestCase):
     @pytest.fixture(autouse=True)
-    def patch_is_valid_signature(self):
+    def patch_is_valid_signature(self) -> Generator[None]:
         with patch.object(HerokuReleaseHook, "is_valid_signature"):
             yield
 
@@ -193,7 +194,7 @@ class HookHandleTest(TestCase):
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 1
 
-    def test_email_mismatch(self):
+    def test_email_mismatch(self) -> None:
         user = self.create_user()
         organization = self.create_organization(owner=user)
         project = self.create_project(organization=organization)
@@ -212,7 +213,7 @@ class HookHandleTest(TestCase):
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
 
-    def test_bad_version(self):
+    def test_bad_version(self) -> None:
         project = self.create_project()
         user = self.create_user()
         hook = HerokuReleaseHook(project)

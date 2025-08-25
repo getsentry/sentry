@@ -21,6 +21,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.exceptions import NotRegistered
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.pipeline import IdentityPipeline
+from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import (
@@ -137,7 +138,7 @@ class OAuth2Provider(Provider):
         ]
 
     def get_refresh_token_params(
-        self, refresh_token: str, identity: Identity, **kwargs: Any
+        self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
     ) -> dict[str, str | None]:
         raise NotImplementedError
 
@@ -197,7 +198,7 @@ class OAuth2Provider(Provider):
             payload = {}
 
         identity.data.update(self.get_oauth_data(payload))
-        identity.update(data=identity.data)
+        identity_service.update_data(identity_id=identity.id, data=identity.data)
 
 
 def record_event(event: IntegrationPipelineViewType, provider: str):

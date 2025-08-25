@@ -1,4 +1,4 @@
-""" Write transactions into redis sets """
+"""Write transactions into redis sets"""
 
 import logging
 from collections.abc import Iterator, Mapping

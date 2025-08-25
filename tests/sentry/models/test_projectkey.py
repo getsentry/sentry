@@ -177,7 +177,7 @@ class ProjectKeyTest(TestCase):
 
 @mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")
 @django_db_all
-def test_key_deleted_projconfig_invalidated(inv_proj_config, default_project):
+def test_key_deleted_projconfig_invalidated(inv_proj_config, default_project) -> None:
     assert inv_proj_config.call_count == 0
 
     key = ProjectKey.objects.get(project=default_project)
@@ -189,7 +189,7 @@ def test_key_deleted_projconfig_invalidated(inv_proj_config, default_project):
 
 @mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")
 @django_db_all
-def test_key_saved_projconfig_invalidated(inv_proj_config, default_project):
+def test_key_saved_projconfig_invalidated(inv_proj_config, default_project) -> None:
     assert inv_proj_config.call_count == 0
 
     key = ProjectKey.objects.get(project=default_project)

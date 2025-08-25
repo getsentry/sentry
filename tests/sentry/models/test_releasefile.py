@@ -51,7 +51,7 @@ from sentry.utils import json
         pytest.param("app://[native_code]", ["app://[native_code]", "~"], id="invalid hostname"),
     ),
 )
-def test_normalize(s, expected):
+def test_normalize(s: str, expected: list[str]) -> None:
     assert ReleaseFile.normalize(s) == expected
 
 

@@ -81,7 +81,7 @@ function Title({title, project}: {title: string; project?: AvatarProject}) {
 function Actions({children}: RequiredChildren) {
   return (
     <HeaderActions>
-      <Flex>{children}</Flex>
+      <Flex gap="sm">{children}</Flex>
     </HeaderActions>
   );
 }

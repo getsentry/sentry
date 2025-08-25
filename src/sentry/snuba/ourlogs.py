@@ -5,8 +5,8 @@ import sentry_sdk
 
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.sampling import handle_downsample_meta
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import handle_downsample_meta
 from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import zerofill
@@ -55,7 +55,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
                 offset=offset,
                 limit=limit,
                 referrer=referrer,
-                sampling_mode=None,
+                sampling_mode=sampling_mode,
                 resolver=search_resolver
                 or cls.get_resolver(
                     params=params,
@@ -87,7 +87,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
             y_axes=y_axes,
             groupby=[],
             referrer=referrer,
-            sampling_mode=None,
+            sampling_mode=sampling_mode,
         )
 
         """Run the query"""

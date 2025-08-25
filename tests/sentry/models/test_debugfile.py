@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import time
 import zipfile
 from io import BytesIO
@@ -122,6 +123,29 @@ class DebugFileTest(TestCase):
         dif = self.create_dif_file(debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface")
         ret = ProjectDebugFile.objects.find_missing([dif.checksum, "a" * 40], self.project)
         assert ret == ["a" * 40]
+
+    def test_file_extension_dartsymbolmap(self) -> None:
+        """Test that dartsymbolmap files return .json file extension."""
+        # Create a file with dartsymbolmap content type
+        file = File.objects.create(
+            name="dartsymbolmap",
+            type="project.dif",
+            headers={"Content-Type": "application/x-dartsymbolmap+json"},
+        )
+
+        # Create a ProjectDebugFile
+        dif = ProjectDebugFile.objects.create(
+            file=file,
+            checksum="test-checksum",
+            object_name="dartsymbolmap",
+            cpu_name="any",
+            project_id=self.project.id,
+            debug_id="b8e43a-f242-3d73-a453-aeb6a777ef75",
+            data={"features": ["mapping"]},
+        )
+
+        # Verify that file_extension returns .json
+        assert dif.file_extension == ".json"
 
 
 class CreateDebugFileTest(APITestCase):
@@ -331,7 +355,7 @@ class DebugFilesClearTest(APITestCase):
         ),
     ),
 )
-def test_proguard_files_detected(path, name, uuid):
+def test_proguard_files_detected(path: str, name: str | None, uuid: str) -> None:
     # ProGuard files are detected by the path/name, not the file contents.
     # So, the ProGuard check should not depend on the file existing.
     detected = detect_dif_from_path(path, name)
@@ -361,10 +385,94 @@ def test_proguard_files_detected(path, name, uuid):
         ),
     ),
 )
-def test_proguard_file_not_detected(path, name):
+def test_proguard_file_not_detected(path: str, name: str | None) -> None:
     with pytest.raises(FileNotFoundError):
         # If the file is not detected as a ProGuard file, detect_dif_from_path
         # attempts to open the file, which probably doesn't exist.
         # Note that if the path or name does exist as a file on the filesystem,
         # this test will fail.
         detect_dif_from_path(path, name)
+
+
+def test_dartsymbolmap_file_detected() -> None:
+    """Test that dartsymbolmap files are properly detected and validated."""
+    # Create a temporary dartsymbolmap file (array format)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as f:
+        f.write('["ExceptionClass", "xyz", "DatabaseError", "abc"]')
+        f.flush()
+
+        detected = detect_dif_from_path(
+            f.name, name="dartsymbolmap.json", debug_id="b8e43a-f242-3d73-a453-aeb6a777ef75"
+        )
+
+        assert len(detected) == 1
+        dif_meta = detected[0]
+
+        assert dif_meta.file_format == "dartsymbolmap"
+        assert dif_meta.arch == "any"
+        assert dif_meta.debug_id == "b8e43a-f242-3d73-a453-aeb6a777ef75"
+        assert dif_meta.name == "dartsymbolmap.json"
+        assert dif_meta.data == {"features": ["mapping"]}
+
+
+def test_dartsymbolmap_file_odd_array_fails() -> None:
+    """Test that dartsymbolmap with odd number of elements fails."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as f:
+        f.write('["one", "two", "three"]')  # Odd number of elements
+        f.flush()
+
+        from sentry.models.debugfile import BadDif
+
+        with pytest.raises(
+            BadDif, match="dartsymbolmap array must have an even number of elements"
+        ):
+            detect_dif_from_path(
+                f.name, name="dartsymbolmap.json", debug_id="b8e43a-f242-3d73-a453-aeb6a777ef75"
+            )
+
+
+def test_dartsymbolmap_file_dict_format() -> None:
+    """Test that dict format JSON files are detected as Il2Cpp, not dartsymbolmap."""
+    # Note: Files starting with '{' are detected as Il2Cpp files, not dartsymbolmap
+    # This is because determine_dif_kind() checks for '{' before '[' and assigns Il2Cpp
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as f:
+        f.write('{"xyz": "ExceptionClass", "abc": "DatabaseError"}')
+        f.flush()
+
+        # This will be detected as Il2Cpp, not dartsymbolmap
+        detected = detect_dif_from_path(
+            f.name, name="dartsymbolmap.json", debug_id="b8e43a-f242-3d73-a453-aeb6a777ef75"
+        )
+
+        assert len(detected) == 1
+        dif_meta = detected[0]
+
+        # Should be detected as il2cpp, not dartsymbolmap
+        assert dif_meta.file_format == "il2cpp"
+        assert dif_meta.debug_id == "b8e43a-f242-3d73-a453-aeb6a777ef75"
+
+
+def test_dartsymbolmap_file_invalid_json() -> None:
+    """Test that invalid JSON fails for dartsymbolmap."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as f:
+        f.write("[invalid json")
+        f.flush()
+
+        from sentry.models.debugfile import BadDif
+
+        with pytest.raises(BadDif, match="Invalid dartsymbolmap:"):
+            detect_dif_from_path(
+                f.name, name="dartsymbolmap.json", debug_id="b8e43a-f242-3d73-a453-aeb6a777ef75"
+            )
+
+
+def test_dartsymbolmap_file_missing_debug_id() -> None:
+    """Test that dartsymbolmap without debug_id fails."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as f:
+        f.write('["one", "two"]')
+        f.flush()
+
+        from sentry.models.debugfile import BadDif
+
+        with pytest.raises(BadDif, match="Missing debug_id for dartsymbolmap"):
+            detect_dif_from_path(f.name, name="dartsymbolmap.json", debug_id=None)

@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
+from sentry.services import eventstore
 
 
 @pytest.fixture
@@ -45,5 +45,5 @@ interface_json = {
 }
 
 
-def test_basic(make_expectct_snapshot):
+def test_basic(make_expectct_snapshot) -> None:
     make_expectct_snapshot(interface_json)

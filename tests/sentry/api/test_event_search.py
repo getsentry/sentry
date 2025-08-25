@@ -267,7 +267,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     def test_paren_expression(self) -> None:
         assert parse_search_query("(x:1 OR y:1) AND z:1") == [
             ParenExpression(
-                children=[  # type: ignore[arg-type]  # python/mypy#19483
+                children=[
                     SearchFilter(
                         key=SearchKey(name="x"), operator="=", value=SearchValue(raw_value="1")
                     ),
@@ -946,7 +946,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         (r"\*\*\*aaa\*\*\*", r"***aaa***"),
     ],
 )
-def test_search_value(raw, result):
+def test_search_value(raw, result) -> None:
     search_value = SearchValue(raw)
     assert search_value.value == result
 
@@ -965,7 +965,7 @@ def test_search_value(raw, result):
         "transaction.duration:<1.0",
     ],
 )
-def test_search_filter_to_query_string(query):
+def test_search_filter_to_query_string(query) -> None:
     """
     Does a round trip (from query string to tokens and back to query string)
     """
@@ -987,7 +987,7 @@ def test_search_filter_to_query_string(query):
         (datetime.datetime(2023, 10, 15, 11, 12, 13), "2023-10-15T11:12:13"),
     ],
 )
-def test_search_value_to_query_string(value, expected_query_string):
+def test_search_value_to_query_string(value, expected_query_string) -> None:
     """
     Test turning a QueryValue back to a string usable in a query string
     """
@@ -1019,7 +1019,7 @@ def test_search_value_to_query_string(value, expected_query_string):
         pytest.param("Case*", "prefix", "case", id="prefix is lower cased"),
     ],
 )
-def test_search_value_classify_and_format_wildcard(value, expected_kind, expected_value):
+def test_search_value_classify_and_format_wildcard(value, expected_kind, expected_value) -> None:
     """
     Test classifying the wildcard type into one of prefix/suffix/infix/other
     and formatting the value according to the classification results.
@@ -1040,7 +1040,7 @@ def test_search_value_classify_and_format_wildcard(value, expected_kind, expecte
         pytest.param("c*o_m%p\\*lex", "c%o\\_m\\%p*lex", id="complex"),
     ],
 )
-def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse):
+def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse) -> None:
     assert translate_wildcard_as_clickhouse_pattern(pattern) == clickhouse
 
 
@@ -1052,7 +1052,7 @@ def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse):
         pytest.param("\\_"),
     ],
 )
-def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern):
+def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern) -> None:
     with pytest.raises(InvalidSearchQuery):
         assert translate_wildcard_as_clickhouse_pattern(pattern)
 
@@ -1074,7 +1074,7 @@ def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern):
         pytest.param("flags[foo:bar,number]:0", "flags[foo:bar,number]", "0"),
     ],
 )
-def test_handles_special_character_in_tags_and_flags(query, key, value):
+def test_handles_special_character_in_tags_and_flags(query, key, value) -> None:
     parsed = parse_search_query(query)
     assert parsed == [SearchFilter(SearchKey(key), "=", SearchValue(value))]
 
@@ -1096,6 +1096,6 @@ def test_handles_special_character_in_tags_and_flags(query, key, value):
         pytest.param("has:flags[foo:bar,number]", "flags[foo:bar,number]"),
     ],
 )
-def test_handles_has_tags_and_flags(query, key):
+def test_handles_has_tags_and_flags(query, key) -> None:
     parsed = parse_search_query(query)
     assert parsed == [SearchFilter(SearchKey(key), "!=", SearchValue(""))]

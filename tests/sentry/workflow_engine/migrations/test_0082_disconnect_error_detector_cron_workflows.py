@@ -9,7 +9,7 @@ class DisconnectCronWorkflowsTest(TestMigrations):
     migrate_to = "0082_disconnect_error_detector_cron_workflows"
     app = "workflow_engine"
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.rule = self.create_project_rule()
         self.cron_rule = self.create_project_rule()
 
@@ -17,6 +17,6 @@ class DisconnectCronWorkflowsTest(TestMigrations):
         self.cron_workflow = IssueAlertMigrator(self.cron_rule).run()
         self.cron_rule.update(source=RuleSource.CRON_MONITOR)
 
-    def test_migration(self):
+    def test_migration(self) -> None:
         assert DetectorWorkflow.objects.filter(workflow=self.regular_workflow).exists()
         assert not DetectorWorkflow.objects.filter(workflow=self.cron_workflow).exists()

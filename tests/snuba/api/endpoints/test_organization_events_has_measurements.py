@@ -7,12 +7,12 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def do_request(self, query, features=None):
         if features is None:
@@ -29,17 +29,17 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
         with self.feature(features):
             return self.client.get(url, query, format="json")
 
-    def test_without_feature(self):
+    def test_without_feature(self) -> None:
         response = self.do_request({}, features={"organizations:discover-basic": False})
         assert response.status_code == 404, response.content
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.do_request({})
 
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": False}
 
-    def test_more_than_one_project(self):
+    def test_more_than_one_project(self) -> None:
         project = self.create_project()
 
         response = self.do_request(
@@ -55,7 +55,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
             "non_field_errors": [ErrorDetail("Only 1 project allowed.", code="invalid")],
         }
 
-    def test_no_transaction(self):
+    def test_no_transaction(self) -> None:
         response = self.do_request(
             {
                 "project": [self.project.id],
@@ -68,7 +68,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
             "transaction": [ErrorDetail("This field may not be null.", code="null")],
         }
 
-    def test_no_type(self):
+    def test_no_type(self) -> None:
         response = self.do_request(
             {
                 "project": [self.project.id],
@@ -81,7 +81,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
             "type": [ErrorDetail("This field may not be null.", code="null")],
         }
 
-    def test_unknown_type(self):
+    def test_unknown_type(self) -> None:
         response = self.do_request(
             {
                 "project": [self.project.id],
@@ -95,7 +95,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
             "type": [ErrorDetail('"foo" is not a valid choice.', code="invalid_choice")],
         }
 
-    def test_no_events(self):
+    def test_no_events(self) -> None:
         response = self.do_request(
             {
                 "project": [self.project.id],
@@ -107,7 +107,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": False}
 
-    def test_has_event_but_no_web_measurements(self):
+    def test_has_event_but_no_web_measurements(self) -> None:
         # make sure the transaction doesn't have measurements
         self.transaction_data["measurements"] = {}
         self.store_event(self.transaction_data, self.project.id)
@@ -123,7 +123,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": False}
 
-    def test_has_event_and_no_recent_web_measurements(self):
+    def test_has_event_and_no_recent_web_measurements(self) -> None:
         # make sure the event is older than 7 days
         transaction_data = load_data("transaction", timestamp=before_now(days=8))
         # make sure the transaction has some web measurements
@@ -141,7 +141,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": False}
 
-    def test_has_event_and_web_measurements(self):
+    def test_has_event_and_web_measurements(self) -> None:
         # make sure the transaction has some web measurements
         self.transaction_data["measurements"] = {"lcp": {"value": 100}}
         self.store_event(self.transaction_data, self.project.id)
@@ -157,7 +157,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": True}
 
-    def test_has_event_and_no_recent_mobile_measurements(self):
+    def test_has_event_and_no_recent_mobile_measurements(self) -> None:
         # make sure the event is older than 7 days
         transaction_data = load_data("transaction", timestamp=before_now(days=8))
         # make sure the transaction has some web measurements
@@ -175,7 +175,7 @@ class OrganizationEventsHasMeasurementsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {"measurements": False}
 
-    def test_has_event_and_mobile_measurements(self):
+    def test_has_event_and_mobile_measurements(self) -> None:
         # make sure the transaction has some mobile measurements
         self.transaction_data["measurements"] = {"app_start_cold": {"value": 100}}
         self.store_event(self.transaction_data, self.project.id)

@@ -83,7 +83,7 @@ class OrganizationPageWebVitalsSummaryEndpointTest(APITestCase, SnubaTestCase):
 
         self.url = self._get_url()
 
-    def _get_url(self):
+    def _get_url(self) -> str:
         return f"/api/0/organizations/{self.org.slug}/page-web-vitals-summary/"
 
     @patch("sentry.seer.endpoints.organization_page_web_vitals_summary.get_page_web_vitals_summary")
@@ -115,7 +115,7 @@ class OrganizationPageWebVitalsSummaryEndpointTest(APITestCase, SnubaTestCase):
             user=ANY,
         )
 
-    def test_endpoint_without_trace_slug(self):
+    def test_endpoint_without_trace_slug(self) -> None:
         response = self.client.post(self.url, format="json")
         assert response.status_code == 400
         assert response.data == {

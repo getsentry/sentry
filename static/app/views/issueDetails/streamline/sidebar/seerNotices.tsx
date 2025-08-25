@@ -14,7 +14,10 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import {
+  GuidedSteps,
+  useGuidedStepsContext,
+} from 'sentry/components/guidedSteps/guidedSteps';
 import {IconChevron, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,6 +36,24 @@ interface SeerNoticesProps {
   hasGithubIntegration?: boolean;
 }
 
+function CustomSkipButton({...props}: Partial<React.ComponentProps<typeof Button>>) {
+  const {currentStep, setCurrentStep, totalSteps} = useGuidedStepsContext();
+
+  if (currentStep >= totalSteps) {
+    return null;
+  }
+
+  const handleSkip = () => {
+    setCurrentStep(currentStep + 1);
+  };
+
+  return (
+    <Button size="sm" onClick={handleSkip} {...props}>
+      {t('Skip')}
+    </Button>
+  );
+}
+
 function CustomStepButtons({
   showBack,
   showNext,
@@ -49,7 +70,7 @@ function CustomStepButtons({
   return (
     <GuidedSteps.ButtonWrapper>
       {showBack && <GuidedSteps.BackButton />}
-      {showNext && <GuidedSteps.NextButton />}
+      {showNext && <CustomSkipButton />}
       {showSkip && (
         <Button onClick={onSkip} size="sm">
           {t('Skip for Now')}
@@ -75,9 +96,6 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     projectSlug: project.slug,
   });
 
-  const isAutomationAllowed = organization.features.includes(
-    'trigger-autofix-on-issue-summary'
-  );
   const hasStackedNav = usePrefersStackedNav();
   const hasIssueViews = useHasIssueViews();
   const isStarredViewAllowed = hasStackedNav && hasIssueViews;
@@ -97,11 +115,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     (detailedProject?.data?.autofixAutomationTuning === 'off' ||
       detailedProject?.data?.autofixAutomationTuning === undefined ||
       detailedProject?.data?.seerScannerAutomation === false ||
-      detailedProject?.data?.seerScannerAutomation === undefined) &&
-    isAutomationAllowed;
+      detailedProject?.data?.seerScannerAutomation === undefined);
   const needsFixabilityView =
     !views.some(view => view.query.includes(FieldKey.ISSUE_SEER_ACTIONABILITY)) &&
-    isAutomationAllowed &&
     isStarredViewAllowed;
 
   // Warning conditions
@@ -272,49 +288,44 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               </GuidedSteps.Step>
 
               {/* Step 3: Unleash Automation */}
-              {isAutomationAllowed && (
-                <GuidedSteps.Step
-                  key="unleash-automation"
-                  stepKey="unleash-automation"
-                  title={t('Unleash Automation')}
-                  isCompleted={!needsAutomation}
+              <GuidedSteps.Step
+                key="unleash-automation"
+                stepKey="unleash-automation"
+                title={t('Unleash Automation')}
+                isCompleted={!needsAutomation}
+              >
+                <StepContentRow>
+                  <StepTextCol>
+                    <CardDescription>
+                      <span>
+                        {t(
+                          'Let Seer automatically deep dive into incoming issues, so you wake up to solutions, not headaches.'
+                        )}
+                      </span>
+                    </CardDescription>
+                  </StepTextCol>
+                  <StepImageCol>
+                    <CardIllustration src={waitingForEventImg} alt="Waiting for Event" />
+                  </StepImageCol>
+                </StepContentRow>
+                <CustomStepButtons
+                  showBack={firstIncompleteIdx !== 2}
+                  showNext={lastIncompleteIdx !== 2}
+                  showSkip={lastIncompleteIdx === 2}
+                  onSkip={() => setStepsCollapsed(true)}
                 >
-                  <StepContentRow>
-                    <StepTextCol>
-                      <CardDescription>
-                        <span>
-                          {t(
-                            'Let Seer automatically deep dive into incoming issues, so you wake up to solutions, not headaches.'
-                          )}
-                        </span>
-                      </CardDescription>
-                    </StepTextCol>
-                    <StepImageCol>
-                      <CardIllustration
-                        src={waitingForEventImg}
-                        alt="Waiting for Event"
-                      />
-                    </StepImageCol>
-                  </StepContentRow>
-                  <CustomStepButtons
-                    showBack={firstIncompleteIdx !== 2}
-                    showNext={lastIncompleteIdx !== 2}
-                    showSkip={lastIncompleteIdx === 2}
-                    onSkip={() => setStepsCollapsed(true)}
+                  <LinkButton
+                    to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+                    size="sm"
+                    priority="primary"
                   >
-                    <LinkButton
-                      to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                      size="sm"
-                      priority="primary"
-                    >
-                      {t('Enable Automation')}
-                    </LinkButton>
-                  </CustomStepButtons>
-                </GuidedSteps.Step>
-              )}
+                    {t('Enable Automation')}
+                  </LinkButton>
+                </CustomStepButtons>
+              </GuidedSteps.Step>
 
               {/* Step 4: Fixability View */}
-              {isAutomationAllowed && isStarredViewAllowed && (
+              {isStarredViewAllowed && (
                 <GuidedSteps.Step
                   key="fixability-view"
                   stepKey="fixability-view"

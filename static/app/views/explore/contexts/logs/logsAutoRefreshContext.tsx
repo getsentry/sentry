@@ -11,7 +11,7 @@ import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuer
 export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
 const LOGS_REFRESH_INTERVAL_DEFAULT = 5000;
-const MAX_AUTO_REFRESH_PAUSED_TIME_MS = 60 * 1000; // 60 seconds
+const MAX_AUTO_REFRESH_PAUSED_TIME_MS = 60 * 1000; // 10 seconds
 
 export const ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS = 10 * 60 * 1000; // 10 minutes
 export const CONSECUTIVE_PAGES_WITH_MORE_DATA = 5;
@@ -102,20 +102,20 @@ export function useLogsAutoRefreshEnabled() {
   return isTableFrozen ? false : autoRefresh === 'enabled';
 }
 
-export function useAutorefreshEnabledOrWithinPauseWindow() {
+export function useLogsAutoRefreshContinued() {
   const {autoRefresh, pausedAt} = useLogsAutoRefresh();
-  return (
-    autoRefresh === 'enabled' ||
-    (autoRefresh === 'paused' && withinPauseWindow(autoRefresh, pausedAt))
-  );
+  return autoRefresh === 'enabled' && pausedAtAllowedToContinue(pausedAt);
 }
 
 function withinPauseWindow(autoRefresh: AutoRefreshState, pausedAt: number | undefined) {
   return (
     (autoRefresh === 'paused' || autoRefresh === 'enabled') &&
-    pausedAt &&
-    Date.now() - pausedAt < MAX_AUTO_REFRESH_PAUSED_TIME_MS
+    pausedAtAllowedToContinue(pausedAt)
   );
+}
+
+function pausedAtAllowedToContinue(pausedAt: number | undefined) {
+  return pausedAt && Date.now() - pausedAt < MAX_AUTO_REFRESH_PAUSED_TIME_MS;
 }
 
 export function useSetLogsAutoRefresh() {
@@ -139,6 +139,7 @@ export function useSetLogsAutoRefresh() {
       if (autoRefresh === 'paused') {
         setPausedAt(newPausedAt);
       } else if (autoRefresh !== 'enabled') {
+        // Any error state, or disabled state, should reset the pause state.
         setPausedAt(undefined);
       }
 

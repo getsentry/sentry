@@ -7,7 +7,7 @@ import {
 
 import InstanceLevelOAuth from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
 
-describe('create instance level OAuth client', function () {
+describe('create instance level OAuth client', () => {
   let mockPostRequest: jest.Mock;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -30,7 +30,7 @@ describe('create instance level OAuth client', function () {
     });
   });
 
-  it('loads the create client modal', async function () {
+  it('loads the create client modal', async () => {
     render(<InstanceLevelOAuth />);
     await userEvent.click(screen.getByText('New Instance Level OAuth Client'));
     renderGlobalModal();
@@ -51,7 +51,7 @@ describe('create instance level OAuth client', function () {
     expect(screen.getByRole('button', {name: 'Create Client'})).toBeInTheDocument();
   });
 
-  it('sends the correct data to the API', async function () {
+  it('sends the correct data to the API', async () => {
     render(<InstanceLevelOAuth />);
     await userEvent.click(screen.getByText('New Instance Level OAuth Client'));
     renderGlobalModal();

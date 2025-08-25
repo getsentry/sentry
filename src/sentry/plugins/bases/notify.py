@@ -27,7 +27,7 @@ class NotificationPlugin(Plugin):
     )
     project_conf_form: type[forms.Form] = NotificationConfigurationForm
 
-    def get_plugin_type(self):
+    def get_plugin_type(self) -> str:
         return "notification"
 
     def notify(self, notification: Notification, raise_exception: bool = False) -> None:
@@ -79,8 +79,11 @@ class NotificationPlugin(Plugin):
         project = event.group.project
         extra["project_id"] = project.id
         notification = Notification(event=event, rules=rules)
-        self.notify(notification)
-        self.logger.info("notification.dispatched", extra=extra)
+        try:
+            self.notify(notification)
+        # Because plugins are deprecated, we want to ignore any errors that occur
+        except Exception:
+            pass
 
     def notify_users(self, group, event, triggering_rules) -> None:
         raise NotImplementedError

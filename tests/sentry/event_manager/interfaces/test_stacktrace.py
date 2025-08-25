@@ -2,9 +2,9 @@ from unittest import mock
 
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.interfaces.stacktrace import get_context, is_url
+from sentry.services import eventstore
 
 
 def test_is_url() -> None:
@@ -44,7 +44,7 @@ def make_stacktrace_snapshot(insta_snapshot):
     return inner
 
 
-def test_basic(make_stacktrace_snapshot):
+def test_basic(make_stacktrace_snapshot) -> None:
     make_stacktrace_snapshot(
         dict(
             frames=[
@@ -56,37 +56,37 @@ def test_basic(make_stacktrace_snapshot):
 
 
 @pytest.mark.parametrize("input", [{"frames": [{}]}, {"frames": [{"abs_path": None}]}])
-def test_null_values_in_frames(make_stacktrace_snapshot, input):
+def test_null_values_in_frames(make_stacktrace_snapshot, input) -> None:
     make_stacktrace_snapshot(input)
 
 
-def test_filename(make_stacktrace_snapshot):
+def test_filename(make_stacktrace_snapshot) -> None:
     make_stacktrace_snapshot(dict(frames=[{"filename": "foo.py"}]))
 
 
-def test_filename2(make_stacktrace_snapshot):
+def test_filename2(make_stacktrace_snapshot) -> None:
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "foo.py"}]))
 
 
-def test_allows_abs_path_without_filename(make_stacktrace_snapshot):
+def test_allows_abs_path_without_filename(make_stacktrace_snapshot) -> None:
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "abs_path": "foo/bar/baz.py"}]))
 
 
-def test_coerces_url_filenames(make_stacktrace_snapshot):
+def test_coerces_url_filenames(make_stacktrace_snapshot) -> None:
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "http://foo.com/foo.js"}]))
 
 
-def test_does_not_overwrite_filename(make_stacktrace_snapshot):
+def test_does_not_overwrite_filename(make_stacktrace_snapshot) -> None:
     make_stacktrace_snapshot(
         dict(frames=[{"lineno": 1, "filename": "foo.js", "abs_path": "http://foo.com/foo.js"}])
     )
 
 
-def test_ignores_results_with_empty_path(make_stacktrace_snapshot):
+def test_ignores_results_with_empty_path(make_stacktrace_snapshot) -> None:
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "http://foo.com"}]))
 
 
-def test_serialize_returns_frames(make_stacktrace_snapshot):
+def test_serialize_returns_frames(make_stacktrace_snapshot) -> None:
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "foo.py"}]))
 
 

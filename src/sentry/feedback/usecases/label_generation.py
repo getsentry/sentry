@@ -17,14 +17,16 @@ class LabelRequest(TypedDict):
     feedback_message: str
 
 
-AI_LABEL_TAG_PREFIX = "ai_categorization.label"
+AI_LABEL_TAG_PREFIX = "ai_categorization"
 # If Seer generates more labels, we truncate it to this many labels
 MAX_AI_LABELS = 15
+# Max length of the serialized list of labels, which matches the max length of a tag value, from https://docs.sentry.io/platforms/javascript/enriching-events/tags/
+MAX_AI_LABELS_JSON_LENGTH = 200
 
 SEER_GENERATE_LABELS_URL = f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/labels"
 
 
-@metrics.wraps("feedback.generate_labels", sample_rate=1.0)
+@metrics.wraps("feedback.generate_labels")
 def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     """
     Generate labels for a feedback message.
@@ -36,8 +38,8 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     - KeyError / ValueError if the response JSON doesn't have the expected structure
     """
     request = LabelRequest(
-        organization_id=organization_id,
         feedback_message=feedback_message,
+        organization_id=organization_id,
     )
 
     serialized_request = json.dumps(request)
@@ -49,7 +51,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(serialized_request.encode()),
         },
-        timeout=10,
+        timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
     )
 
     if response.status_code != 200:

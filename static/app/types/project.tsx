@@ -39,6 +39,7 @@ export type Project = {
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;
   hasInsightsVitals: boolean;
+  hasLogs: boolean;
   hasMinifiedStackTrace: boolean;
   hasMonitors: boolean;
   hasNewFeedbacks: boolean;
@@ -244,7 +245,6 @@ export type PlatformKey =
   | 'native-minidump'
   | 'native-qt'
   | 'nintendo-switch'
-  | 'nintendo-switch-2'
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'

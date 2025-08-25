@@ -7,8 +7,8 @@ import {
   TourAction,
   TourContextProvider,
   TourElement,
-  type TourElementProps,
   TourGuide,
+  type TourElementProps,
 } from 'sentry/components/tours/components';
 import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
 import type {TourContextType} from 'sentry/components/tours/tourContext';

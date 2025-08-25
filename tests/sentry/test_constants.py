@@ -1,3 +1,4 @@
+from contextlib import AbstractContextManager
 from unittest import mock
 
 from sentry.constants import (
@@ -7,7 +8,7 @@ from sentry.constants import (
 )
 
 
-def mock_integration_ids():
+def mock_integration_ids() -> AbstractContextManager[object]:
     return mock.patch.dict(
         INTEGRATION_ID_TO_PLATFORM_DATA,
         {

@@ -47,7 +47,7 @@ def skip_filters():
 
 @pytest.fixture
 def skip_eventstore():
-    with mock.patch("sentry.eventstore.backend.get_event_by_id", return_value=None):
+    with mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=None):
         yield
 
 
@@ -58,7 +58,7 @@ def skip_eventstore():
 
 @django_db_all
 @pytest.mark.parametrize("field", ["comments", "event_id"])
-def test_validator_should_filter_missing_required_field(field, mock_report_dict):
+def test_validator_should_filter_missing_required_field(field, mock_report_dict) -> None:
     del mock_report_dict[field]
 
     should_filter, tag, reason = validate_user_report(mock_report_dict, 1)
@@ -68,7 +68,7 @@ def test_validator_should_filter_missing_required_field(field, mock_report_dict)
 
 
 @django_db_all
-def test_validator_should_filter_unreal_unattended_message_with_option(set_sentry_option):
+def test_validator_should_filter_unreal_unattended_message_with_option(set_sentry_option) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", True):
         should_filter, tag, reason = validate_user_report(
             {
@@ -85,7 +85,9 @@ def test_validator_should_filter_unreal_unattended_message_with_option(set_sentr
 
 
 @django_db_all
-def test_validator_should_not_filter_unreal_unattended_message_without_option(set_sentry_option):
+def test_validator_should_not_filter_unreal_unattended_message_without_option(
+    set_sentry_option,
+) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", False):
         should_filter, tag, reason = validate_user_report(
             {
@@ -102,7 +104,7 @@ def test_validator_should_not_filter_unreal_unattended_message_without_option(se
 
 
 @django_db_all
-def test_validator_should_filter_empty_message_with_option(set_sentry_option):
+def test_validator_should_filter_empty_message_with_option(set_sentry_option) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", True):
         should_filter, tag, reason = validate_user_report(
             {
@@ -119,7 +121,7 @@ def test_validator_should_filter_empty_message_with_option(set_sentry_option):
 
 
 @django_db_all
-def test_validator_should_not_filter_empty_message_without_option(set_sentry_option):
+def test_validator_should_not_filter_empty_message_without_option(set_sentry_option) -> None:
     with set_sentry_option("feedback.filter_garbage_messages", False):
         should_filter, tag, reason = validate_user_report(
             {
@@ -219,7 +221,7 @@ def test_save_user_report_basic(
 
 
 @django_db_all
-def test_save_user_report_filters_denylist(default_project, skip_filters, mock_report_dict):
+def test_save_user_report_filters_denylist(default_project, skip_filters, mock_report_dict) -> None:
     with mock.patch(
         "sentry.feedback.usecases.ingest.userreport.is_in_feedback_denylist", return_value=True
     ):
@@ -245,7 +247,9 @@ def test_save_user_report_filters_missing_required_field(
 
 
 @django_db_all
-def test_save_user_report_missing_name_and_email(default_project, skip_denylist, skip_eventstore):
+def test_save_user_report_missing_name_and_email(
+    default_project, skip_denylist, skip_eventstore
+) -> None:
     report: UserReportDict = {
         "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
         "comments": "hello",
@@ -284,7 +288,7 @@ def test_save_user_report_shims_if_event_found(
 ):
     event = _mock_event(default_project.id, "prod")
     with (
-        mock.patch("sentry.eventstore.backend.get_event_by_id", return_value=event),
+        mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=event),
         mock.patch(
             "sentry.feedback.usecases.ingest.userreport.shim_to_feedback"
         ) as mock_shim_to_feedback,
@@ -304,7 +308,7 @@ def test_save_user_report_does_not_shim_if_event_found_but_source_is_new_feedbac
 ):
     event = _mock_event(default_project.id, "prod")
     with (
-        mock.patch("sentry.eventstore.backend.get_event_by_id", return_value=event),
+        mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=event),
         mock.patch(
             "sentry.feedback.usecases.ingest.userreport.shim_to_feedback"
         ) as mock_shim_to_feedback,

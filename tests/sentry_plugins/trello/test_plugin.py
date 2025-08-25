@@ -5,6 +5,7 @@ import orjson
 import responses
 
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.requests import drf_request_from_request
 from sentry_plugins.trello.plugin import TrelloPlugin
 
 
@@ -14,12 +15,12 @@ def test_conf_key() -> None:
 
 class TrelloPluginTestBase(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> TrelloPlugin:
         return TrelloPlugin()
 
 
 class TrelloPluginTest(TrelloPluginTestBase):
-    def test_get_issue_label(self):
+    def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
         # test new and old format
         assert self.plugin.get_issue_label(group, "rPPDb") == "Trello-rPPDb"
@@ -28,7 +29,7 @@ class TrelloPluginTest(TrelloPluginTestBase):
             == "Trello-5dafd"
         )
 
-    def test_get_issue_url(self):
+    def test_get_issue_url(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
         assert self.plugin.get_issue_url(group, "rPPDb") == "https://trello.com/c/rPPDb"
         assert (
@@ -36,7 +37,7 @@ class TrelloPluginTest(TrelloPluginTestBase):
             == "https://trello.com/c/rPPDb/75-title"
         )
 
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("token", "7c8951d1", self.project)
         assert self.plugin.is_configured(self.project) is False
@@ -45,7 +46,7 @@ class TrelloPluginTest(TrelloPluginTestBase):
 
 
 class TrelloPluginApiTests(TrelloPluginTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.group = self.create_group(message="Hello world", culprit="foo.bar")
         self.plugin.set_option("token", "7c8951d1", self.project)
         self.plugin.set_option("key", "39g", self.project)
@@ -53,7 +54,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
 
         self.login_as(self.user)
 
-    def test_get_config_no_org(self):
+    def test_get_config_no_org(self) -> None:
         self.plugin.unset_option("organization", self.project)
         out = self.plugin.get_config(self.project)
         assert out == [
@@ -76,7 +77,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         ]
 
     @responses.activate
-    def test_get_config_include_additional(self):
+    def test_get_config_include_additional(self) -> None:
         self.plugin.unset_option("organization", self.project)
 
         responses.add(
@@ -113,7 +114,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         ]
 
     @responses.activate
-    def test_create_issue(self):
+    def test_create_issue(self) -> None:
         responses.add(responses.POST, "https://api.trello.com/1/cards", json={"shortLink": "rds43"})
 
         form_data = {
@@ -122,7 +123,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
             "board": "ads23f",
             "list": "23tds",
         }
-        request = self.make_request(user=self.user, method="POST")
+        request = drf_request_from_request(self.make_request(user=self.user, method="POST"))
 
         assert self.plugin.create_issue(request, self.group, form_data) == "rds43"
         responses_request = responses.calls[0].request
@@ -131,7 +132,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         assert payload == {"name": "Hello", "desc": "Fix this.", "idList": "23tds"}
 
     @responses.activate
-    def test_link_issue(self):
+    def test_link_issue(self) -> None:
         responses.add(
             responses.GET,
             "https://api.trello.com/1/cards/SstgnBIQ",
@@ -142,7 +143,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         )
 
         form_data = {"comment": "please fix this", "issue_id": "SstgnBIQ"}
-        request = self.make_request(user=self.user, method="POST")
+        request = drf_request_from_request(self.make_request(user=self.user, method="POST"))
 
         assert self.plugin.link_issue(request, self.group, form_data) == {
             "title": "MyTitle",
@@ -162,15 +163,17 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         )
 
     @responses.activate
-    def test_view_options(self):
+    def test_view_options(self) -> None:
         responses.add(
             responses.GET,
             "https://api.trello.com/1/boards/f34/lists",
             json=[{"id": "8f3", "name": "list 1"}, {"id": "j8f", "name": "list 2"}],
         )
 
-        request = self.make_request(
-            user=self.user, method="GET", GET={"option_field": "list", "board": "f34"}
+        request = drf_request_from_request(
+            self.make_request(
+                user=self.user, method="GET", GET={"option_field": "list", "board": "f34"}
+            )
         )
 
         response = self.plugin.view_options(request, self.group)
@@ -183,7 +186,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         )
 
     @responses.activate
-    def test_view_autocomplete(self):
+    def test_view_autocomplete(self) -> None:
         responses.add(
             responses.GET,
             "https://api.trello.com/1/search",
@@ -195,12 +198,13 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
             },
         )
 
-        request = self.make_request(
-            user=self.user,
-            method="GET",
-            GET={"autocomplete_field": "issue_id", "autocomplete_query": "Key"},
+        request = drf_request_from_request(
+            self.make_request(
+                user=self.user,
+                method="GET",
+                GET={"autocomplete_field": "issue_id", "autocomplete_query": "Key"},
+            )
         )
-
         response = self.plugin.view_autocomplete(request, self.group)
         assert response.data == {
             "issue_id": [
@@ -226,7 +230,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         }
 
     @responses.activate
-    def test_view_autocomplete_no_org(self):
+    def test_view_autocomplete_no_org(self) -> None:
         self.plugin.unset_option("organization", self.project)
 
         responses.add(
@@ -240,12 +244,13 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
             },
         )
 
-        request = self.make_request(
-            user=self.user,
-            method="GET",
-            GET={"autocomplete_field": "issue_id", "autocomplete_query": "Key"},
+        request = drf_request_from_request(
+            self.make_request(
+                user=self.user,
+                method="GET",
+                GET={"autocomplete_field": "issue_id", "autocomplete_query": "Key"},
+            )
         )
-
         response = self.plugin.view_autocomplete(request, self.group)
         assert response.data == {
             "issue_id": [

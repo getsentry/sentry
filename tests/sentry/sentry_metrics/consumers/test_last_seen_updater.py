@@ -114,7 +114,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
             last_seen=self.fresh_last_seen,
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.table.objects.filter(id=self.fresh_id).delete()
         self.table.objects.filter(id=self.stale_id).delete()
 
@@ -168,15 +168,15 @@ class TestFilterMethod:
             BrokerValue(payload=payload, partition=Mock(), offset=0, timestamp=timezone.now())
         )
 
-    def test_message_filter_no_header(self, message_filter):
+    def test_message_filter_no_header(self, message_filter) -> None:
         message = self.empty_message_with_headers([])
         assert not message_filter.should_drop(message)
 
-    def test_message_filter_header_contains_d(self, message_filter):
+    def test_message_filter_header_contains_d(self, message_filter) -> None:
         message = self.empty_message_with_headers([("mapping_sources", b"hcd")])
         assert not message_filter.should_drop(message)
 
-    def test_message_filter_header_contains_no_d(self, message_filter):
+    def test_message_filter_header_contains_no_d(self, message_filter) -> None:
         message = self.empty_message_with_headers([("mapping_sources", b"fhc")])
         assert message_filter.should_drop(message)
 

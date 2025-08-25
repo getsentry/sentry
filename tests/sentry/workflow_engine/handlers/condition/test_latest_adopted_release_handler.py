@@ -258,21 +258,22 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch(
-        "sentry.workflow_engine.handlers.condition.latest_release_handler.get_latest_release_for_env",
+        "sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.get_latest_adopted_release_for_env",
         return_value=None,
     )
     def test_latest_release_for_env_does_not_exist(
-        self, mock_get_latest_release_for_env: MagicMock
+        self, mock_get_latest_adopted_release_for_env: MagicMock
     ) -> None:
         self.assert_does_not_pass(self.dc, self.event_data)
+        mock_get_latest_adopted_release_for_env.assert_called()
 
     @patch(
         "sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.get_first_last_release_for_event",
         return_value=None,
     )
     def test_first_last_release_for_event_does_not_exist(
-        self, mock_get_first_last_release_for_event
-    ):
+        self, mock_get_first_last_release_for_event: MagicMock
+    ) -> None:
         self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch(
@@ -281,3 +282,32 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
     )
     def test_environment_does_not_exist(self, mock_get_env: MagicMock) -> None:
         self.assert_does_not_pass(self.dc, self.event_data)
+
+    def test_ignores_unadopted_releases(self) -> None:
+        # Create unadopted release (newer) - should be ignored when finding newest adopted release
+        self.create_release(
+            project=self.project,
+            version="test@3.0",
+            date_added=self.now + timedelta(hours=1),
+            environments=[self.prod_env],
+            adopted=None,
+        )
+
+        # Condition: Is newest adopted release older than group's release?
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison={
+                "release_age_type": "newest",
+                "age_comparison": "older",
+                "environment": self.prod_env.name,
+            },
+            condition_result=True,
+        )
+
+        # Group has middle_release
+        group, group_event = self.create_new_group_event("test")
+        self.create_group_release(group=group, release=self.middle_release)
+
+        # Should NOT pass: newest adopted (middle_release) is NOT older than group's (middle_release)
+        # Would fail if test@3.0 (unadopted) was considered as newest, since 3.0 > 1.5
+        self.assert_does_not_pass(dc, WorkflowEventData(event=group_event, group=group))

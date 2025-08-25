@@ -6,6 +6,7 @@ import responses
 from sentry.interfaces.base import Interface
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.victorops.plugin import VictorOpsPlugin
 
@@ -16,10 +17,10 @@ SUCCESS = """{
 
 
 class UnicodeTestInterface(Interface):
-    def to_string(self, event) -> str:
+    def to_string(self, event: Event) -> str:
         return self.body
 
-    def get_title(self):
+    def get_title(self) -> str:
         return self.title
 
 
@@ -29,16 +30,16 @@ def test_conf_key() -> None:
 
 class VictorOpsPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> VictorOpsPlugin:
         return VictorOpsPlugin()
 
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("api_key", "abcdef", self.project)
         assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(
             "POST",
             "https://alert.victorops.com/integrations/generic/20131114/alert/secret-api-key/everyone",
@@ -89,7 +90,7 @@ class VictorOpsPluginTest(PluginTestCase):
             "project_id": group.project.id,
         } == payload
 
-    def test_build_description_unicode(self):
+    def test_build_description_unicode(self) -> None:
         event = self.store_event(
             data={"message": "abcd\xde\xb4", "culprit": "foo.bar", "level": "error"},
             project_id=self.project.id,

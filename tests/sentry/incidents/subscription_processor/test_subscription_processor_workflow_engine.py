@@ -1,3 +1,8 @@
+"""
+Dual processing tests for the workflow engine/legacy system. This file will be cleaned up
+after we fully migrate away from metric alerts.
+"""
+
 from datetime import timedelta
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
@@ -345,7 +350,7 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_seer_call_dual_processing__warning(self, mock_seer_request: MagicMock):
+    def test_seer_call_dual_processing__warning(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         trigger = self.trigger
         warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
@@ -374,7 +379,7 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_seer_call_dual_processing__critical(self, mock_seer_request: MagicMock):
+    def test_seer_call_dual_processing__critical(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         trigger = self.trigger
         warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)
@@ -420,7 +425,7 @@ class ProcessUpdateAnomalyDetectionWorkflowEngineTest(ProcessUpdateAnomalyDetect
     @with_feature("organizations:incidents")
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    def test_seer_call_dual_processing__resolution(self, mock_seer_request: MagicMock):
+    def test_seer_call_dual_processing__resolution(self, mock_seer_request: MagicMock) -> None:
         rule = self.dynamic_rule
         trigger = self.trigger
         warning_trigger = create_alert_rule_trigger(rule, WARNING_TRIGGER_LABEL, 0)

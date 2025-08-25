@@ -248,7 +248,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
         ),
     ],
 )
-def test_parse_conditions(query_string, expected):
+def test_parse_conditions(query_string, expected) -> None:
     org_id = ORG_ID
     use_case_id = UseCaseID.SESSIONS
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
@@ -297,7 +297,7 @@ def test_round_range() -> None:
         ("2022-10-01 09:20:00", "2h", {"timeframe": "91d"}, ("08:00:00 07-02", "10:00:00 10-01")),
     ],
 )
-def test_get_date_range(now, interval, parameters, expected):
+def test_get_date_range(now, interval, parameters, expected) -> None:
     def _to_datetimestring(d):
         return d.strftime("%H:%M:%S %m-%d")
 
@@ -483,7 +483,7 @@ def test_build_snuba_query(mock_now: mock.MagicMock, mock_now2: mock.MagicMock) 
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
-def test_build_snuba_query_mri(mock_now, mock_now2):
+def test_build_snuba_query_mri(mock_now, mock_now2) -> None:
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
@@ -566,7 +566,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
-def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
+def test_build_snuba_query_derived_metrics(mock_now, mock_now2) -> None:
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
@@ -1477,7 +1477,9 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
         ),
     ],
 )
-def test_only_can_filter_operations_can_be_added_to_where(select, where, usecase, error_string):
+def test_only_can_filter_operations_can_be_added_to_where(
+    select, where, usecase, error_string
+) -> None:
     query_definition = DeprecatingMetricsQuery(
         org_id=1,
         project_ids=[1],
@@ -1960,7 +1962,7 @@ class ResolveTagsTestCase(TestCase):
         ("max_timestamp", "maxIf"),
     ],
 )
-def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
+def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str) -> None:
     """
     Tests code generation for timestamp operators
     """
@@ -2011,7 +2013,7 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
         [False, True],
     ],
 )
-def test_having_clause(include_totals, include_series):
+def test_having_clause(include_totals, include_series) -> None:
     """
     Tests that the having clause ends up in the snql queries in the expected form
     """

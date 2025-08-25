@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import IntegrationExternalMappingForm from './integrationExternalMappingForm';
 
-describe('IntegrationExternalMappingForm', function () {
+describe('IntegrationExternalMappingForm', () => {
   const dataEndpoint = '/test/dataEndpoint/';
   const baseProps = {
     integration: GitHubIntegrationFixture(),
@@ -55,13 +55,13 @@ describe('IntegrationExternalMappingForm', function () {
   });
 
   // No mapping provided (e.g. Create a new mapping)
-  it('renders with no mapping provided as a form', async function () {
+  it('renders with no mapping provided as a form', async () => {
     render(<IntegrationExternalMappingForm type="user" {...baseProps} />);
     expect(await screen.findByPlaceholderText('@username')).toBeInTheDocument();
     expect(screen.getByText('Select Sentry User')).toBeInTheDocument();
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
-  it('renders with no mapping as an inline field', async function () {
+  it('renders with no mapping as an inline field', async () => {
     render(<IntegrationExternalMappingForm isInline type="user" {...baseProps} />);
     expect(await screen.findByText('Select Sentry User')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('@username')).not.toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('IntegrationExternalMappingForm', function () {
   });
 
   // Full mapping provided (e.g. Update an existing mapping)
-  it('renders with a full mapping provided as a form', async function () {
+  it('renders with a full mapping provided as a form', async () => {
     render(
       <IntegrationExternalMappingForm
         type="user"
@@ -85,7 +85,7 @@ describe('IntegrationExternalMappingForm', function () {
     ).toBeInTheDocument();
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
-  it('renders with a full mapping provided as an inline field', async function () {
+  it('renders with a full mapping provided as an inline field', async () => {
     render(
       <IntegrationExternalMappingForm
         isInline
@@ -104,7 +104,7 @@ describe('IntegrationExternalMappingForm', function () {
   });
 
   // Suggested mapping provided (e.g. Create new mapping from suggested external name)
-  it('renders with a suggested mapping provided as a form', async function () {
+  it('renders with a suggested mapping provided as a form', async () => {
     render(
       <IntegrationExternalMappingForm
         type="team"
@@ -118,7 +118,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(screen.getByText('Select Sentry Team')).toBeInTheDocument();
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
-  it('renders with a suggested mapping provided as an inline field', async function () {
+  it('renders with a suggested mapping provided as an inline field', async () => {
     render(
       <IntegrationExternalMappingForm
         isInline
@@ -134,7 +134,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(screen.queryByTestId('form-submit')).not.toBeInTheDocument();
   });
 
-  it('updates the model when submitting', async function () {
+  it('updates the model when submitting', async () => {
     render(
       <IntegrationExternalMappingForm
         type="user"
@@ -162,7 +162,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(putResponse).not.toHaveBeenCalled();
   });
 
-  it('submits on blur when used as an inline field', async function () {
+  it('submits on blur when used as an inline field', async () => {
     render(
       <IntegrationExternalMappingForm
         isInline
@@ -190,7 +190,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(postResponse).not.toHaveBeenCalled();
   });
 
-  it('allows defaultOptions to be provided', async function () {
+  it('allows defaultOptions to be provided', async () => {
     render(
       <IntegrationExternalMappingForm
         type="user"

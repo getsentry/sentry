@@ -13,6 +13,7 @@ from sentry.models.counter import (
     refill_cached_short_ids,
 )
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -21,7 +22,7 @@ from sentry.utils.redis import redis_clusters
 
 
 @django_db_all
-def test_increment(default_project):
+def test_increment(default_project) -> None:
     assert Counter.increment(default_project) == 1
     assert Counter.increment(default_project) == 2
 
@@ -54,7 +55,7 @@ def create_existing_group(project, message):
 
 
 @django_db_all
-def test_group_creation_simple(default_project):
+def test_group_creation_simple(default_project) -> None:
     group = create_existing_group(default_project, "Dogs are great!")
 
     # See `create_existing_group` for more assertions
@@ -67,7 +68,9 @@ def test_group_creation_simple(default_project):
     [1, 2, 3],
     ids=[" discrepancy = 1 ", " discrepancy = 2 ", " discrepancy = 3 "],
 )
-def test_group_creation_with_stuck_project_counter(default_project, discrepancy):
+def test_group_creation_with_stuck_project_counter(
+    default_project: Project, discrepancy: int
+) -> None:
     project = default_project
 
     # Create enough groups that a discripancy larger than 1 will still land us on an existing group
@@ -184,7 +187,7 @@ def redis_mock():
 
 
 @django_db_all
-def test_increment_project_counter_in_cache(default_project, redis_mock):
+def test_increment_project_counter_in_cache(default_project, redis_mock) -> None:
     # Enable the feature flag
     # Patch the pipeline context manager
     pipeline_mock = MagicMock()
@@ -208,7 +211,7 @@ def test_increment_project_counter_in_cache(default_project, redis_mock):
 
 
 @django_db_all
-def test_refill_cached_short_ids(default_project, redis_mock):
+def test_refill_cached_short_ids(default_project, redis_mock) -> None:
     # Mock the lock
     lock_mock = MagicMock()
     lock_mock.locked.return_value = False
@@ -234,7 +237,7 @@ def test_refill_cached_short_ids(default_project, redis_mock):
 
 
 @django_db_all
-def test_refill_cached_short_ids_lock_contention(default_project, redis_mock):
+def test_refill_cached_short_ids_lock_contention(default_project, redis_mock) -> None:
     # Mock the lock as already locked
     block_size = calculate_cached_id_block_size(1)
     lock = locks.get(
@@ -247,7 +250,7 @@ def test_refill_cached_short_ids_lock_contention(default_project, redis_mock):
 
 
 @django_db_all
-def test_low_water_mark_trigger(default_project, redis_mock):
+def test_low_water_mark_trigger(default_project, redis_mock) -> None:
     pipeline_mock = MagicMock()
     pipeline_mock.__enter__.return_value = pipeline_mock
     pipeline_mock.__exit__.return_value = None
@@ -268,7 +271,7 @@ def test_low_water_mark_trigger(default_project, redis_mock):
 
 
 @django_db_all
-def test_fallback_to_database(default_project, redis_mock):
+def test_fallback_to_database(default_project, redis_mock) -> None:
     # Enable the feature flag
     # Patch the pipeline context manager
     pipeline_mock = MagicMock()
@@ -286,7 +289,7 @@ def test_fallback_to_database(default_project, redis_mock):
 
 
 @django_db_all
-def test_preallocation_end_to_end(default_project):
+def test_preallocation_end_to_end(default_project) -> None:
     # The first increment should trigger a refill
     with TaskRunner():
         current_value = Counter.increment(default_project)
@@ -311,7 +314,7 @@ def test_preallocation_end_to_end(default_project):
 
 
 @django_db_all
-def test_preallocation_early_return(default_project):
+def test_preallocation_early_return(default_project) -> None:
     block_size = calculate_cached_id_block_size(1)
     with TaskRunner():
         current_value = Counter.increment(default_project)

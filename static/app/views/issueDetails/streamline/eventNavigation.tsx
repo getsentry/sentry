@@ -328,6 +328,7 @@ const LargeInThisIssueText = styled('div')`
   font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.subText};
+  line-height: 1;
 `;
 
 const EventNavigationWrapper = styled('div')`

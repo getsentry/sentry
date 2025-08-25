@@ -7,7 +7,7 @@ from sentry.uptime.endpoints.utils import authorize_and_map_project_uptime_subsc
 
 
 class AuthorizeAndMapProjectUptimeSubscriptionIdsTest(TestCase):
-    def test_successful_authorization_and_mapping(self):
+    def test_successful_authorization_and_mapping(self) -> None:
         """Test successful authorization and mapping of subscription IDs."""
         subscription_id = uuid.uuid4().hex
         subscription = self.create_uptime_subscription(
@@ -34,7 +34,7 @@ class AuthorizeAndMapProjectUptimeSubscriptionIdsTest(TestCase):
         # Verify subscription IDs list
         assert subscription_ids == [expected_hex_id]
 
-    def test_invalid_subscription_id_raises_error(self):
+    def test_invalid_subscription_id_raises_error(self) -> None:
         """Test that invalid subscription IDs raise ValueError."""
         invalid_id = "999999"
 
@@ -45,7 +45,7 @@ class AuthorizeAndMapProjectUptimeSubscriptionIdsTest(TestCase):
                 sub_id_formatter=str,
             )
 
-    def test_cross_project_access_denied(self):
+    def test_cross_project_access_denied(self) -> None:
         """Test that cross-project subscription access is denied."""
         other_project = self.create_project(organization=self.organization)
         subscription_id = uuid.uuid4().hex
@@ -64,7 +64,7 @@ class AuthorizeAndMapProjectUptimeSubscriptionIdsTest(TestCase):
                 sub_id_formatter=str,
             )
 
-    def test_multiple_subscriptions(self):
+    def test_multiple_subscriptions(self) -> None:
         """Test authorization with multiple subscription IDs."""
         subscription_id1 = uuid.uuid4().hex
         subscription_id2 = uuid.uuid4().hex

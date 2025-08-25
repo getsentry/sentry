@@ -219,7 +219,7 @@ function PageLayout(props: Props) {
         location={location}
         orgSlug={organization.slug}
         queryExtras={{project: filterProjects ? filterProjects : undefined}}
-        referrer="api.performance.transaction-summary"
+        referrer="api.insights.transaction-summary"
       >
         {({isLoading, tableData, error: discoverQueryError}) => {
           if (discoverQueryError) {

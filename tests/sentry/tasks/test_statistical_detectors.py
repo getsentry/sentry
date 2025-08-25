@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 from django.db.models import F
 
-from sentry.api.endpoints.project_performance_issue_settings import InternalProjectOptions
+from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
@@ -282,7 +282,7 @@ def test_detect_function_trends_options_with_str(
 
 @mock.patch("sentry.snuba.functions.query")
 @django_db_all
-def test_detect_function_trends_query_timerange(functions_query, timestamp, project):
+def test_detect_function_trends_query_timerange(functions_query, timestamp, project) -> None:
     options = {
         "statistical_detectors.enable": True,
     }
@@ -502,7 +502,7 @@ def test_detect_transaction_trends_ratelimit(
         pytest.param(3, 4, id="three per project"),
     ],
 )
-def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expected_idx):
+def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expected_idx) -> None:
     payloads = {
         (project_id, group): DetectorPayload(
             project_id=project_id,

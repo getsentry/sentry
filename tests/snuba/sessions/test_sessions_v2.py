@@ -36,7 +36,7 @@ def result_sorted(result):
 
 
 @freeze_time("2018-12-11 03:21:00")
-def test_round_range():
+def test_round_range() -> None:
     start, end, interval = get_constrained_date_range({"statsPeriod": "2d"})
     assert start == datetime(2018, 12, 9, 3, tzinfo=timezone.utc)
     assert end == datetime(2018, 12, 11, 4, 00, tzinfo=timezone.utc)
@@ -46,12 +46,12 @@ def test_round_range():
     assert end == datetime(2018, 12, 12, 0, 0, tzinfo=timezone.utc)
 
 
-def test_invalid_interval():
+def test_invalid_interval() -> None:
     with pytest.raises(InvalidParams):
         start, end, interval = get_constrained_date_range({"interval": "0d"})
 
 
-def test_round_exact():
+def test_round_exact() -> None:
     start, end, interval = get_constrained_date_range(
         {"start": "2021-01-12T04:06:16", "end": "2021-01-17T08:26:13", "interval": "1d"},
     )
@@ -59,7 +59,7 @@ def test_round_exact():
     assert end == datetime(2021, 1, 18, tzinfo=timezone.utc)
 
 
-def test_inclusive_end():
+def test_inclusive_end() -> None:
     start, end, interval = get_constrained_date_range(
         {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
     )
@@ -68,7 +68,7 @@ def test_inclusive_end():
 
 
 @freeze_time("2021-03-05T11:00:00.000Z")
-def test_future_request():
+def test_future_request() -> None:
     start, end, interval = get_constrained_date_range(
         {"start": "2021-03-05T12:00:00", "end": "2021-03-05T13:00:00", "interval": "1h"},
     )
@@ -77,7 +77,7 @@ def test_future_request():
 
 
 @freeze_time("2021-03-05T11:14:17.105Z")
-def test_interval_restrictions():
+def test_interval_restrictions() -> None:
     # making sure intervals are cleanly divisible
     with pytest.raises(InvalidParams, match="The interval has to be less than one day."):
         _make_query("statsPeriod=4d&interval=2d&field=sum(session)")
@@ -110,7 +110,7 @@ def test_interval_restrictions():
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
-def test_timestamps():
+def test_timestamps() -> None:
     query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)")
 
     expected_timestamps = ["2020-12-17T00:00:00Z", "2020-12-17T12:00:00Z", "2020-12-18T00:00:00Z"]
@@ -119,7 +119,7 @@ def test_timestamps():
 
 
 @freeze_time("2021-03-08T09:34:00.000Z")
-def test_hourly_rounded_start():
+def test_hourly_rounded_start() -> None:
     query = _make_query("statsPeriod=30m&interval=1m&field=sum(session)")
 
     actual_timestamps = get_timestamps(query)
@@ -139,7 +139,7 @@ def test_hourly_rounded_start():
     assert len(actual_timestamps) == 45
 
 
-def test_rounded_end():
+def test_rounded_end() -> None:
     query = _make_query(
         "field=sum(session)&interval=1h&start=2021-02-24T00:00:00Z&end=2021-02-25T00:00:00Z"
     )
@@ -176,20 +176,20 @@ def test_rounded_end():
     assert actual_timestamps == expected_timestamps
 
 
-def test_simple_query():
+def test_simple_query() -> None:
     query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)")
 
     assert query.query_columns == ["sessions"]
 
 
-def test_groupby_query():
+def test_groupby_query() -> None:
     query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)&groupBy=release")
 
     assert sorted(query.query_columns) == ["release", "sessions"]
     assert query.query_groupby == ["release"]
 
 
-def test_virtual_groupby_query():
+def test_virtual_groupby_query() -> None:
     query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)&groupBy=session.status")
 
     assert sorted(query.query_columns) == [
@@ -197,6 +197,7 @@ def test_virtual_groupby_query():
         "sessions_abnormal",
         "sessions_crashed",
         "sessions_errored",
+        "sessions_unhandled",
     ]
     assert query.query_groupby == []
 
@@ -209,6 +210,7 @@ def test_virtual_groupby_query():
         "users_abnormal",
         "users_crashed",
         "users_errored",
+        "users_unhandled",
     ]
     assert query.query_groupby == []
 
@@ -226,7 +228,7 @@ def _get_query_maker_params(project):
 
 
 @django_db_all
-def test_filter_proj_slug_in_query(default_project):
+def test_filter_proj_slug_in_query(default_project) -> None:
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
     query_def = _make_query(
@@ -238,7 +240,7 @@ def test_filter_proj_slug_in_query(default_project):
 
 
 @django_db_all
-def test_filter_proj_slug_in_top_filter(default_project):
+def test_filter_proj_slug_in_top_filter(default_project) -> None:
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
     query_def = _make_query(
@@ -250,7 +252,7 @@ def test_filter_proj_slug_in_top_filter(default_project):
 
 
 @django_db_all
-def test_filter_proj_slug_in_top_filter_and_query(default_project):
+def test_filter_proj_slug_in_top_filter_and_query(default_project) -> None:
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
     query_def = _make_query(
@@ -263,7 +265,7 @@ def test_filter_proj_slug_in_top_filter_and_query(default_project):
 
 
 @django_db_all
-def test_proj_neither_in_top_filter_nor_query(default_project):
+def test_proj_neither_in_top_filter_nor_query(default_project) -> None:
     params = _get_query_maker_params(default_project)
     query_def = _make_query(
         "field=sum(session)&interval=2h&statsPeriod=2h",
@@ -274,7 +276,7 @@ def test_proj_neither_in_top_filter_nor_query(default_project):
 
 
 @django_db_all
-def test_filter_env_in_query(default_project):
+def test_filter_env_in_query(default_project) -> None:
     env = "prod"
     params = _get_query_maker_params(default_project)
     query_def = _make_query(
@@ -285,7 +287,7 @@ def test_filter_env_in_query(default_project):
 
 
 @django_db_all
-def test_filter_env_in_top_filter(default_project):
+def test_filter_env_in_top_filter(default_project) -> None:
     env = "prod"
     params = _get_query_maker_params(default_project)
     params["environment"] = "prod"
@@ -297,7 +299,7 @@ def test_filter_env_in_top_filter(default_project):
 
 
 @django_db_all
-def test_filter_env_in_top_filter_and_query(default_project):
+def test_filter_env_in_top_filter_and_query(default_project) -> None:
     env = "prod"
     params = _get_query_maker_params(default_project)
     params["environment"] = "prod"
@@ -309,7 +311,7 @@ def test_filter_env_in_top_filter_and_query(default_project):
 
 
 @django_db_all
-def test_env_neither_in_top_filter_nor_query(default_project):
+def test_env_neither_in_top_filter_nor_query(default_project) -> None:
     params = _get_query_maker_params(default_project)
     query_def = _make_query(
         "field=sum(session)&interval=2h&statsPeriod=2h",
@@ -319,7 +321,7 @@ def test_env_neither_in_top_filter_nor_query(default_project):
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
-def test_massage_empty():
+def test_massage_empty() -> None:
     query = _make_query("statsPeriod=1d&interval=1d&field=sum(session)")
 
     expected_result = {
@@ -336,7 +338,7 @@ def test_massage_empty():
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
-def test_massage_unbalanced_results():
+def test_massage_unbalanced_results() -> None:
     query = _make_query("statsPeriod=1d&interval=1d&field=sum(session)&groupBy=release")
 
     result_totals = [
@@ -390,7 +392,7 @@ def test_massage_unbalanced_results():
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
-def test_massage_simple_timeseries():
+def test_massage_simple_timeseries() -> None:
     """A timeseries is filled up when it only receives partial data"""
 
     query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)")
@@ -423,7 +425,7 @@ def test_massage_simple_timeseries():
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
-def test_massage_unordered_timeseries():
+def test_massage_unordered_timeseries() -> None:
     query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)")
     result_totals = [{"sessions": 10}]
     # snuba returns the datetimes as strings for now
@@ -456,7 +458,7 @@ def test_massage_unordered_timeseries():
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
-def test_massage_no_timeseries():
+def test_massage_no_timeseries() -> None:
     query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)&groupby=projects")
     result_totals = [{"sessions": 4}]
     # snuba returns the datetimes as strings for now
@@ -481,7 +483,7 @@ def test_massage_no_timeseries():
     assert actual_result == expected_result
 
 
-def test_massage_exact_timeseries():
+def test_massage_exact_timeseries() -> None:
     query = _make_query(
         "start=2020-12-17T15:12:34Z&end=2020-12-18T11:14:17Z&interval=6h&field=sum(session)"
     )
@@ -512,7 +514,7 @@ def test_massage_exact_timeseries():
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
-def test_massage_groupby_timeseries():
+def test_massage_groupby_timeseries() -> None:
     query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)&groupBy=release")
 
     result_totals = [
@@ -569,67 +571,77 @@ def test_massage_groupby_timeseries():
 
 
 @freeze_time("2020-12-18T13:25:15.769Z")
-def test_massage_virtual_groupby_timeseries():
+def test_massage_virtual_groupby_timeseries() -> None:
     query = _make_query(
         "statsPeriod=1d&interval=6h&field=sum(session)&field=count_unique(user)&groupBy=session.status"
     )
     result_totals = [
         {
-            "users": 1,
-            "users_crashed": 1,
-            "sessions": 31,
-            "sessions_errored": 15,
-            "users_errored": 1,
             "sessions_abnormal": 6,
             "sessions_crashed": 8,
+            "sessions_errored": 15,
+            "sessions_unhandled": 0,
+            "sessions": 31,
             "users_abnormal": 0,
+            "users_crashed": 1,
+            "users_errored": 1,
+            "users_unhandled": 4,
+            "users": 5,
         }
     ]
     # snuba returns the datetimes as strings for now
     result_timeseries = [
         {
-            "sessions_errored": 1,
-            "users": 1,
-            "users_crashed": 1,
-            "sessions_abnormal": 0,
-            "sessions": 3,
-            "users_errored": 1,
-            "users_abnormal": 0,
-            "sessions_crashed": 1,
             "bucketed_started": "2020-12-18T12:00:00+00:00",
-        },
-        {
-            "sessions_errored": 0,
-            "users": 1,
-            "users_crashed": 0,
             "sessions_abnormal": 0,
+            "sessions_crashed": 1,
+            "sessions_errored": 1,
+            "sessions_unhandled": 0,
             "sessions": 3,
-            "users_errored": 0,
             "users_abnormal": 0,
-            "sessions_crashed": 0,
+            "users_crashed": 1,
+            "users_errored": 1,
+            "users_unhandled": 0,
+            "users": 1,
+        },
+        {
             "bucketed_started": "2020-12-18T06:00:00+00:00",
+            "sessions_abnormal": 0,
+            "sessions_crashed": 0,
+            "sessions_errored": 0,
+            "sessions_unhandled": 0,
+            "sessions": 3,
+            "users_abnormal": 0,
+            "users_crashed": 0,
+            "users_errored": 0,
+            "users_unhandled": 1,
+            "users": 2,
         },
         {
-            "sessions_errored": 10,
-            "users": 1,
-            "users_crashed": 0,
-            "sessions_abnormal": 2,
-            "sessions": 15,
-            "users_errored": 0,
-            "users_abnormal": 0,
-            "sessions_crashed": 4,
             "bucketed_started": "2020-12-18T00:00:00+00:00",
+            "sessions_abnormal": 2,
+            "sessions_crashed": 4,
+            "sessions_errored": 10,
+            "sessions_unhandled": 0,
+            "sessions": 15,
+            "users_abnormal": 0,
+            "users_crashed": 0,
+            "users_errored": 0,
+            "users_unhandled": 3,
+            "users": 4,
         },
         {
-            "sessions_errored": 4,
-            "users": 1,
-            "users_crashed": 0,
-            "sessions_abnormal": 4,
-            "sessions": 10,
-            "users_errored": 0,
-            "users_abnormal": 0,
-            "sessions_crashed": 3,
             "bucketed_started": "2020-12-17T18:00:00+00:00",
+            "sessions_abnormal": 4,
+            "sessions_crashed": 3,
+            "sessions_errored": 4,
+            "sessions_unhandled": 0,
+            "sessions": 10,
+            "users_abnormal": 0,
+            "users_crashed": 0,
+            "users_errored": 0,
+            "users_unhandled": 0,
+            "users": 1,
         },
     ]
 
@@ -669,6 +681,11 @@ def test_massage_virtual_groupby_timeseries():
                 # so the `0` here is expected, as that's an example of the `count_unique` behavior.
                 "totals": {"count_unique(user)": 0, "sum(session)": 16},
             },
+            {
+                "by": {"session.status": "unhandled"},
+                "series": {"count_unique(user)": [0, 0, 3, 1, 0], "sum(session)": [0, 0, 0, 0, 0]},
+                "totals": {"count_unique(user)": 4, "sum(session)": 0},
+            },
         ],
     }
 
@@ -678,33 +695,37 @@ def test_massage_virtual_groupby_timeseries():
 
 
 @freeze_time("2020-12-18T13:25:15.769Z")
-def test_clamping_in_massage_sessions_results_with_groupby_timeseries():
+def test_clamping_in_massage_sessions_results_with_groupby_timeseries() -> None:
     query = _make_query(
         "statsPeriod=12h&interval=6h&field=sum(session)&field=count_unique(user)&groupBy=session.status"
     )
     # snuba returns the datetimes as strings for now
     result_timeseries = [
         {
-            "sessions": 7,
-            "sessions_errored": 3,
-            "sessions_crashed": 2,
-            "sessions_abnormal": 2,
-            "users": 7,
-            "users_errored": 3,
-            "users_crashed": 2,
-            "users_abnormal": 2,
             "bucketed_started": "2020-12-18T12:00:00+00:00",
+            "sessions_abnormal": 2,
+            "sessions_crashed": 2,
+            "sessions_errored": 3,
+            "sessions_unhandled": 0,
+            "sessions": 7,
+            "users_abnormal": 2,
+            "users_crashed": 2,
+            "users_errored": 3,
+            "users_unhandled": 0,
+            "users": 7,
         },
         {
-            "sessions": 5,
-            "sessions_errored": 10,
-            "sessions_crashed": 0,
-            "sessions_abnormal": 0,
-            "users": 5,
-            "users_errored": 10,
-            "users_crashed": 0,
-            "users_abnormal": 0,
             "bucketed_started": "2020-12-18T06:00:00+00:00",
+            "sessions_abnormal": 0,
+            "sessions_crashed": 0,
+            "sessions_errored": 10,
+            "sessions_unhandled": 0,
+            "sessions": 5,
+            "users_abnormal": 0,
+            "users_crashed": 0,
+            "users_errored": 10,
+            "users_unhandled": 0,
+            "users": 5,
         },
     ]
     expected_result = {
@@ -737,6 +758,11 @@ def test_clamping_in_massage_sessions_results_with_groupby_timeseries():
                 "series": {"count_unique(user)": [0, 0, 4], "sum(session)": [0, 0, 4]},
                 "totals": {"count_unique(user)": 0, "sum(session)": 0},
             },
+            {
+                "by": {"session.status": "unhandled"},
+                "series": {"count_unique(user)": [0, 0, 0], "sum(session)": [0, 0, 0]},
+                "totals": {"count_unique(user)": 0, "sum(session)": 0},
+            },
         ],
     }
 
@@ -746,7 +772,7 @@ def test_clamping_in_massage_sessions_results_with_groupby_timeseries():
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
-def test_nan_duration():
+def test_nan_duration() -> None:
     query = _make_query(
         "statsPeriod=1d&interval=6h&field=avg(session.duration)&field=p50(session.duration)"
     )

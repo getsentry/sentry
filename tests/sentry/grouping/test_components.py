@@ -1,7 +1,6 @@
 from collections import Counter
 from typing import Any
 
-from sentry.eventstore.models import Event
 from sentry.grouping.component import (
     BaseGroupingComponent,
     ChainedExceptionGroupingComponent,
@@ -10,12 +9,13 @@ from sentry.grouping.component import (
     StacktraceGroupingComponent,
     ThreadsGroupingComponent,
 )
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 
 
-def find_given_child_component[
-    T
-](parent_component: BaseGroupingComponent[Any], child_component_type: type[T]) -> T:
+def find_given_child_component[T](
+    parent_component: BaseGroupingComponent[Any], child_component_type: type[T]
+) -> T:
     """
     Finds the first instance of the given type of child component in the parent component's `values`
     list. Works best in cases where only one instance of the given type is expected.

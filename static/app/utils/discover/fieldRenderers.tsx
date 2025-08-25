@@ -57,6 +57,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
@@ -88,6 +89,7 @@ import {
   VersionContainer,
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
+
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
@@ -104,6 +106,11 @@ export type RenderFunctionBaggage = {
   disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
+  /**
+   * The trace item meta data for the trace item, which includes information needed to render annotated tooltip (eg. scrubbing reasons)
+   */
+  traceItemMeta?: TraceItemDetailsMeta;
+
   unit?: string;
 };
 
@@ -190,6 +197,7 @@ export const SIZE_UNITS = {
 };
 
 export const ABYTE_UNITS = [
+  'byte',
   'kilobyte',
   'megabyte',
   'gigabyte',
@@ -327,7 +335,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   string: {
     isSortable: true,
-    renderFunc: (field, data, baggage) => {
+    renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
         ? data[field].slice(-1)
@@ -335,11 +343,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ? data[field]
           : emptyValue;
 
-      // In the future, external linking will be done through CellAction component instead of the default renderer
-      if (
-        !baggage?.organization.features.includes('discover-cell-actions-v2') &&
-        isUrl(value)
-      ) {
+      if (isUrl(value)) {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
             <Container>
@@ -505,7 +509,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   'span.description': {
     sortField: 'span.description',
-    renderFunc: (data, {organization}) => {
+    renderFunc: data => {
       const value = data[SpanFields.SPAN_DESCRIPTION];
       const op: string = data[SpanFields.SPAN_OP];
       const projectId =
@@ -533,8 +537,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           maxWidth={400}
         >
           <Container>
-            {!organization.features.includes('discover-cell-actions-v2') &&
-            isUrl(value) ? (
+            {isUrl(value) ? (
               <ExternalLink href={value}>{value}</ExternalLink>
             ) : (
               nullableValue(value)

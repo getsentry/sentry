@@ -37,7 +37,7 @@ def setup():
         (Outcome.CARDINALITY_LIMITED, False),
     ],
 )
-def test_outcome_is_billing(outcome: Outcome, is_billing: bool):
+def test_outcome_is_billing(outcome: Outcome, is_billing: bool) -> None:
     """
     Tests the complete behavior of ``is_billing``, used for routing outcomes to
     different Kafka topics. This is more of a sanity check to prevent
@@ -53,7 +53,7 @@ def test_outcome_is_billing(outcome: Outcome, is_billing: bool):
         ("RATE_LIMITED", Outcome.RATE_LIMITED),
     ],
 )
-def test_parse_outcome(name, outcome):
+def test_parse_outcome(name: str, outcome: Outcome) -> None:
     """
     Asserts *case insensitive* parsing of outcomes from their canonical names,
     as used in the API and queries.
@@ -69,7 +69,7 @@ def test_outcome_parse_invalid_name() -> None:
         Outcome.parse("nonexistent_outcome")
 
 
-def test_track_outcome_default(setup):
+def test_track_outcome_default(setup) -> None:
     """
     Asserts an outcomes serialization roundtrip with defaults.
     """
@@ -106,7 +106,7 @@ def test_track_outcome_default(setup):
     assert outcomes.billing_publisher is None
 
 
-def test_track_outcome_billing(setup):
+def test_track_outcome_billing(setup) -> None:
     """
     Checks that outcomes are routed to the DEDICATED topic within the same cluster
     in default configuration.
@@ -129,7 +129,7 @@ def test_track_outcome_billing(setup):
     assert outcomes.billing_publisher is None
 
 
-def test_track_outcome_billing_topic(setup):
+def test_track_outcome_billing_topic(setup) -> None:
     """
     Checks that outcomes are routed to the DEDICATED billing topic within the
     same cluster in default configuration.
@@ -151,7 +151,7 @@ def test_track_outcome_billing_topic(setup):
     assert outcomes.billing_publisher is None
 
 
-def test_track_outcome_billing_cluster(settings, setup):
+def test_track_outcome_billing_cluster(settings, setup) -> None:
     """
     Checks that outcomes are routed to the dedicated cluster and topic.
     """
@@ -182,7 +182,7 @@ def test_outcome_api_name() -> None:
         assert outcome.api_name() == outcome.name.lower()
 
 
-def test_track_outcome_with_quantity(setup):
+def test_track_outcome_with_quantity(setup) -> None:
     """
     Tests that `track_outcome` handles different `quantity` values correctly.
     """
@@ -202,7 +202,7 @@ def test_track_outcome_with_quantity(setup):
     assert data["quantity"] == 5
 
 
-def test_track_outcome_with_event_id(setup):
+def test_track_outcome_with_event_id(setup) -> None:
     """
     Tests that `track_outcome` includes `event_id` in the payload.
     """
@@ -231,7 +231,7 @@ def test_track_outcome_with_event_id(setup):
         DataCategory.DEFAULT,
     ],
 )
-def test_track_outcome_with_category(setup, category):
+def test_track_outcome_with_category(setup, category: DataCategory) -> None:
     """
     Tests that `track_outcome` correctly includes different `category` values in the payload.
     """
@@ -283,7 +283,7 @@ def test_track_outcome_with_invalid_inputs() -> None:
         )
 
 
-def test_track_outcome_with_provided_timestamp(setup):
+def test_track_outcome_with_provided_timestamp(setup) -> None:
     """
     Tests that `track_outcome` uses the provided `timestamp` instead of the current time.
     """
@@ -302,7 +302,7 @@ def test_track_outcome_with_provided_timestamp(setup):
     assert data["timestamp"] == "2021-01-01T12:00:00.000000Z"
 
 
-def test_track_outcome_late(setup):
+def test_track_outcome_late(setup) -> None:
     """
     Tests that we emit metrics when an outcome is later than 1 day.
     """
@@ -342,7 +342,7 @@ def test_track_outcome_late(setup):
         )
 
 
-def test_track_outcome_with_none_key_id(setup):
+def test_track_outcome_with_none_key_id(setup) -> None:
     """
     Tests that `track_outcome` handles `key_id=None` correctly in the payload.
     """
@@ -358,7 +358,7 @@ def test_track_outcome_with_none_key_id(setup):
     assert data["key_id"] is None
 
 
-def test_track_outcome_with_none_reason(setup):
+def test_track_outcome_with_none_reason(setup) -> None:
     """
     Tests that `track_outcome` handles `reason=None` correctly in the payload.
     """
@@ -375,7 +375,7 @@ def test_track_outcome_with_none_reason(setup):
     assert data["reason"] is None
 
 
-def test_track_outcome_with_none_category(setup):
+def test_track_outcome_with_none_category(setup) -> None:
     """
     Tests that `track_outcome` handles `category=None` correctly in the payload.
     """
@@ -393,7 +393,7 @@ def test_track_outcome_with_none_category(setup):
 
 
 @pytest.mark.parametrize("quantity", [0, -1, -100])
-def test_track_outcome_with_non_positive_quantity(setup, quantity):
+def test_track_outcome_with_non_positive_quantity(setup, quantity: int) -> None:
     """
     Tests that `track_outcome` handles non-positive `quantity` values.
     """
@@ -410,7 +410,7 @@ def test_track_outcome_with_non_positive_quantity(setup, quantity):
     assert data["quantity"] == quantity
 
 
-def test_metrics_incr_called_with_correct_tags(setup):
+def test_metrics_incr_called_with_correct_tags(setup) -> None:
     """
     Tests that `metrics.incr` is called with the correct arguments.
     """
@@ -436,7 +436,7 @@ def test_metrics_incr_called_with_correct_tags(setup):
         )
 
 
-def test_track_outcome_publisher_initialization(setup):
+def test_track_outcome_publisher_initialization(setup) -> None:
     """
     Tests that the publisher is correctly initialized when clusters are the same.
     """
@@ -457,7 +457,7 @@ def test_track_outcome_publisher_initialization(setup):
     assert outcomes.outcomes_publisher is not None
 
 
-def test_track_outcome_publisher_initialization_different_cluster(settings, setup):
+def test_track_outcome_publisher_initialization_different_cluster(settings, setup) -> None:
     """
     Tests that the publisher is correctly initialized when clusters are different.
     """

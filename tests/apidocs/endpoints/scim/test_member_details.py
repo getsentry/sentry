@@ -6,7 +6,7 @@ from sentry.testutils.cases import SCIMTestCase
 
 
 class SCIMMemberDetailsDocs(APIDocsTestCase, SCIMTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.member = self.create_member(user=self.create_user(), organization=self.organization)
 
@@ -15,17 +15,17 @@ class SCIMMemberDetailsDocs(APIDocsTestCase, SCIMTestCase):
             kwargs={"organization_id_or_slug": self.organization.slug, "member_id": self.member.id},
         )
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
         self.validate_schema(request, response)
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         response = self.client.delete(self.url)
         request = RequestFactory().delete(self.url)
         self.validate_schema(request, response)
 
-    def test_get_invalid(self):
+    def test_get_invalid(self) -> None:
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
             kwargs={"organization_id_or_slug": self.organization.slug, "member_id": 321},

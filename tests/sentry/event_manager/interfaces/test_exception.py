@@ -1,8 +1,8 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
 from sentry.interfaces.exception import Exception
+from sentry.services import eventstore
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 
 
@@ -32,7 +32,7 @@ def make_exception_snapshot(insta_snapshot):
     return inner
 
 
-def test_basic(make_exception_snapshot):
+def test_basic(make_exception_snapshot) -> None:
     make_exception_snapshot(
         dict(
             values=[
@@ -57,21 +57,21 @@ def test_basic(make_exception_snapshot):
     )
 
 
-def test_args_as_keyword_args(make_exception_snapshot):
+def test_args_as_keyword_args(make_exception_snapshot) -> None:
     make_exception_snapshot(
         dict(values=[{"type": "ValueError", "value": "hello world", "module": "foo.bar"}])
     )
 
 
-def test_args_as_old_style(make_exception_snapshot):
+def test_args_as_old_style(make_exception_snapshot) -> None:
     make_exception_snapshot({"type": "ValueError", "value": "hello world", "module": "foo.bar"})
 
 
-def test_non_string_value_with_no_type(make_exception_snapshot):
+def test_non_string_value_with_no_type(make_exception_snapshot) -> None:
     make_exception_snapshot({"value": {"foo": "bar"}})
 
 
-def test_context_with_mixed_frames(make_exception_snapshot):
+def test_context_with_mixed_frames(make_exception_snapshot) -> None:
     make_exception_snapshot(
         dict(
             values=[
@@ -96,7 +96,7 @@ def test_context_with_mixed_frames(make_exception_snapshot):
     )
 
 
-def test_context_with_symbols(make_exception_snapshot):
+def test_context_with_symbols(make_exception_snapshot) -> None:
     make_exception_snapshot(
         dict(
             values=[
@@ -121,7 +121,7 @@ def test_context_with_symbols(make_exception_snapshot):
     )
 
 
-def test_context_with_only_system_frames(make_exception_snapshot):
+def test_context_with_only_system_frames(make_exception_snapshot) -> None:
     make_exception_snapshot(
         dict(
             values=[
@@ -146,7 +146,7 @@ def test_context_with_only_system_frames(make_exception_snapshot):
     )
 
 
-def test_context_with_only_app_frames(make_exception_snapshot):
+def test_context_with_only_app_frames(make_exception_snapshot) -> None:
     values = [
         {
             "type": "ValueError",
@@ -166,7 +166,7 @@ def test_context_with_only_app_frames(make_exception_snapshot):
     make_exception_snapshot(exc)
 
 
-def test_context_with_raw_stacks(make_exception_snapshot):
+def test_context_with_raw_stacks(make_exception_snapshot) -> None:
     make_exception_snapshot(
         dict(
             values=[
@@ -200,7 +200,7 @@ def test_context_with_raw_stacks(make_exception_snapshot):
     )
 
 
-def test_context_with_mechanism(make_exception_snapshot):
+def test_context_with_mechanism(make_exception_snapshot) -> None:
     make_exception_snapshot(
         dict(
             values=[
@@ -222,7 +222,7 @@ def test_context_with_mechanism(make_exception_snapshot):
     )
 
 
-def test_context_with_two_exceptions_having_mechanism(make_exception_snapshot):
+def test_context_with_two_exceptions_having_mechanism(make_exception_snapshot) -> None:
     make_exception_snapshot(
         dict(
             values=[

@@ -2,7 +2,7 @@ import type {Layout} from 'react-grid-layout';
 
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
-import {type DatasetSource, SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 

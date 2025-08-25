@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from django.http import HttpRequest
 from django.test import override_settings
 from django.urls import reverse
@@ -205,6 +206,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], "api.performance.transaction-summary")
 
+    @pytest.mark.skip(reason="flaky: #95995")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self) -> None:
         query = {

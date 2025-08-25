@@ -35,7 +35,7 @@ from sentry.search.eap.spans.utils import (
     transform_vital_score_to_ratio,
 )
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.eap.utils import literal_validator
+from sentry.search.eap.validator import literal_validator
 from sentry.search.events.constants import (
     MISERY_ALPHA,
     MISERY_BETA,
@@ -60,15 +60,22 @@ def get_total_span_count(settings: ResolverSettings) -> Column:
     )
 
 
+def none_if_zero_processor(value: float) -> float | None:
+    if value == 0:
+        return None
+    return value
+
+
 def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
     dividend = cast(AttributeKey, args[0])
     divisor = cast(AttributeKey, args[1])
     key = cast(AttributeKey, args[2])
-    value = cast(str, args[3])
+    operator = cast(str, args[3])
+    value = cast(str, args[4])
 
-    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, value])
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, operator, value])
 
     return Column.BinaryFormula(
         left=Column(
@@ -167,9 +174,10 @@ def avg_compare(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
 def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     key = cast(AttributeKey, args[0])
-    value = cast(str, args[1])
+    operator = cast(str, args[1])
+    value = cast(str, args[2])
 
-    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, value])
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, operator, value])
 
     return Column.BinaryFormula(
         left=Column(
@@ -334,7 +342,9 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     )
 
 
-def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
+def total_opportunity_score(
+    _: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
 
@@ -1066,6 +1076,10 @@ SPAN_FORMULA_DEFINITIONS = {
         infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         formula_resolver=failure_rate_if,
@@ -1109,6 +1123,7 @@ SPAN_FORMULA_DEFINITIONS = {
             ),
         ],
         formula_resolver=performance_score,
+        processor=none_if_zero_processor,
         is_aggregate=True,
     ),
     "avg_compare": FormulaDefinition(
@@ -1154,6 +1169,10 @@ SPAN_FORMULA_DEFINITIONS = {
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(
+                argument_types={"string"},
+                validator=literal_validator(["equals", "notEquals"]),
+            ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
         formula_resolver=division_if,

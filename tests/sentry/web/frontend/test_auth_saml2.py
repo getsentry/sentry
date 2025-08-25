@@ -74,7 +74,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         super().setUp()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # restore url-prefix config
         settings.SENTRY_OPTIONS.update({"system.url-prefix": self.url_prefix})
 
@@ -298,7 +298,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         updated = type(self.user).objects.get(pk=self.user.id)
         assert updated.session_nonce != self.user.session_nonce
 
-    def test_verify_email(self, follow=False, **kwargs):
+    def test_verify_email(self, follow=False, **kwargs) -> None:
         assert AuthIdentity.objects.filter(user_id=self.user.id).count() == 0
 
         response = self.accept_auth()

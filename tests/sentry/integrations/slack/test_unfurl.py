@@ -185,7 +185,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
         ),
     ],
 )
-def test_match_link(url, expected):
+def test_match_link(url, expected) -> None:
     assert match_link(url) == expected
 
 
@@ -202,7 +202,7 @@ class UnfurlTest(TestCase):
         self.frozen_time = freeze_time(datetime.now() - timedelta(days=1))
         self.frozen_time.start()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.frozen_time.stop()
 
     def test_unfurl_issues(self) -> None:

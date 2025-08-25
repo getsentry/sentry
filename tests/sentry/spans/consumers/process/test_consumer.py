@@ -14,7 +14,7 @@ from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
 @override_options({**DEFAULT_OPTIONS, "spans.drop-in-buffer": []})
 @pytest.mark.parametrize("kafka_slice_id", [None, 2])
-def test_basic(kafka_slice_id):
+def test_basic(kafka_slice_id: int | None) -> None:
     # Flush very aggressively to make test pass instantly
     with mock.patch("time.sleep"):
         topic = Topic("test")
@@ -76,9 +76,6 @@ def test_basic(kafka_slice_id):
             assert orjson.loads(msg.value) == {
                 "spans": [
                     {
-                        "data": {
-                            "__sentry_internal_span_buffer_outcome": "different",
-                        },
                         "is_segment": True,
                         "project_id": 12,
                         "segment_id": "aaaaaaaaaaaaaaaa",
@@ -93,7 +90,7 @@ def test_basic(kafka_slice_id):
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.drop-in-buffer": []})
-def test_flusher_processes_limit():
+def test_flusher_processes_limit() -> None:
     """Test that flusher respects the max_processes limit"""
     # Flush very aggressively to make test pass instantly
     with mock.patch("time.sleep"):

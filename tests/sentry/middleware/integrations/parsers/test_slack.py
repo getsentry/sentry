@@ -13,11 +13,12 @@ from rest_framework import status
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.slack.message_builder.routing import encode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.utils.auth import _encode_data
 from sentry.integrations.slack.views import SALT
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
 from sentry.utils import json
@@ -183,13 +184,12 @@ class SlackRequestParserTest(TestCase):
         assert "body" in result
         assert result["body"] == request.body.decode("utf8")
 
-    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
     def test_targeting_all_orgs(self) -> None:
         # Install the integration on two organizations
         other_organization = self.create_organization()
         self.integration.add_organization(other_organization)
 
-        # Without passing an organization, we expect to filter to both.
+        # Case 1: Without passing an organization, we expect to filter to both.
         for cmd in ["link team", "unlink team"]:
             data = urlencode(
                 {
@@ -209,7 +209,6 @@ class SlackRequestParserTest(TestCase):
             assert self.organization.id in organization_ids
             assert other_organization.id in organization_ids
 
-    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
     def test_targeting_specific_org(self) -> None:
         # Install the integration on two organizations
         other_organization = self.create_organization()
@@ -234,7 +233,6 @@ class SlackRequestParserTest(TestCase):
             assert len(organizations) == 1
             assert organizations[0].id == other_organization.id
 
-    @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
     def test_targeting_irrelevant_org(self) -> None:
         # Install the integration on two organizations
         other_organization = self.create_organization()
@@ -242,7 +240,7 @@ class SlackRequestParserTest(TestCase):
         # And add another, maybe the user belongs to it, maybe not
         irrelevant_organization = self.create_organization()
 
-        # If the organization slug is irrelevant, ignore it and return all orgs
+        # Case 3: If the organization slug is irrelevant, ignore it and return all orgs
         for cmd in ["link team", "unlink team"]:
             data = urlencode(
                 {
@@ -260,3 +258,89 @@ class SlackRequestParserTest(TestCase):
             organization_ids = {org.id for org in organizations}
             assert len(organization_ids) == 2
             assert irrelevant_organization.id not in organization_ids
+
+    def test_targeting_issue_actions(self) -> None:
+        # Install the integration on two organizations
+        other_organization = self.create_organization()
+        self.integration.add_organization(other_organization)
+
+        # Case 1:With the default actions (non-encoded), we shouldn't filter the organization
+        data = urlencode(
+            {
+                "payload": json.dumps(
+                    {
+                        "actions": [{"action_id": SlackAction.RESOLVE_DIALOG}],
+                        "team_id": self.integration.external_id,
+                    }
+                ),
+            }
+        ).encode("utf-8")
+        request = self.factory.post(
+            reverse("sentry-integration-slack-action"),
+            data=data,
+            content_type="application/x-www-form-urlencoded",
+        )
+        parser = SlackRequestParser(request, self.get_response)
+        organizations = parser.get_organizations_from_integration(self.integration)
+        organization_ids = {org.id for org in organizations}
+        assert len(organization_ids) == 2
+        assert self.organization.id in organization_ids
+        assert other_organization.id in organization_ids
+
+        # Case 2: With the encoded action, we should filter to a single organization
+        project = self.create_project(organization=other_organization)
+        encoded_action = encode_action_id(
+            action=SlackAction.RESOLVE_DIALOG,
+            organization_id=other_organization.id,
+            project_id=project.id,
+        )
+        data = urlencode(
+            {
+                "payload": json.dumps(
+                    {
+                        "actions": [{"action_id": encoded_action}],
+                        "team_id": self.integration.external_id,
+                    }
+                ),
+            }
+        ).encode("utf-8")
+        request = self.factory.post(
+            reverse("sentry-integration-slack-action"),
+            data=data,
+            content_type="application/x-www-form-urlencoded",
+        )
+        parser = SlackRequestParser(request, self.get_response)
+        organizations = parser.get_organizations_from_integration(self.integration)
+        organization_ids = {org.id for org in organizations}
+        assert len(organization_ids) == 1
+        assert other_organization.id in organization_ids
+
+        # Case 3: If we see an irrelevant organization, we should ignore it
+        irrelevant_organization = self.create_organization()
+        project = self.create_project(organization=irrelevant_organization)
+        encoded_action = encode_action_id(
+            action=SlackAction.RESOLVE_DIALOG,
+            organization_id=irrelevant_organization.id,
+            project_id=project.id,
+        )
+        data = urlencode(
+            {
+                "payload": json.dumps(
+                    {
+                        "actions": [{"action_id": encoded_action}],
+                        "team_id": self.integration.external_id,
+                    }
+                ),
+            }
+        ).encode("utf-8")
+        request = self.factory.post(
+            reverse("sentry-integration-slack-action"),
+            data=data,
+            content_type="application/x-www-form-urlencoded",
+        )
+        parser = SlackRequestParser(request, self.get_response)
+        organizations = parser.get_organizations_from_integration(self.integration)
+        organization_ids = {org.id for org in organizations}
+        assert len(organization_ids) == 2
+        assert self.organization.id in organization_ids
+        assert other_organization.id in organization_ids

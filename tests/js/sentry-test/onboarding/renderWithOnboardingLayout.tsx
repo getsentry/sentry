@@ -66,7 +66,7 @@ export function renderWithOnboardingLayout<
   render(
     <OnboardingLayout
       docsConfig={docsConfig}
-      projectSlug={project.slug}
+      project={project}
       dsn={{
         public: 'test-dsn',
         secret: 'test-secret',
@@ -80,7 +80,6 @@ export function renderWithOnboardingLayout<
         otlp_traces: 'test-otlp_traces',
       }}
       platformKey="java-spring-boot"
-      projectId="test-project-id"
       activeProductSelection={selectedProducts}
       projectKeyId={projectKey}
     />,

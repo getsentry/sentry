@@ -16,6 +16,7 @@ from sentry.tasks.relay import (
     schedule_build_project_config,
     schedule_invalidate_project_config,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -135,11 +136,10 @@ def test_debounce(
 ):
     tasks = []
 
-    def apply_async(args, kwargs):
-        assert not args
+    def capture(task=None, args=None, kwargs=None):
         tasks.append(kwargs)
 
-    with mock.patch("sentry.tasks.relay.build_project_config.apply_async", apply_async):
+    with mock.patch("sentry.taskworker.task.Task._signal_send", side_effect=capture):
         schedule_build_project_config(public_key=default_projectkey.public_key)
         schedule_build_project_config(public_key=default_projectkey.public_key)
 
@@ -497,6 +497,7 @@ class TestInvalidationTask:
         assert schedule_inner.call_count == 2
 
 
+@override_options({"taskworker.enabled": True})
 @django_db_all(transaction=True)
 def test_invalidate_hierarchy(
     default_project,

@@ -121,7 +121,7 @@ def test_with_no_org_in_routing_header(setup_slicing) -> None:
 
 
 @pytest.mark.parametrize("org_id", [100])
-def test_with_misconfiguration(metrics_message):
+def test_with_misconfiguration(metrics_message: int) -> None:
     """
     Configuring topic override only does not kick in routing logic. So the
     messages should be routed to the logical topic.

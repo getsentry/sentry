@@ -2,10 +2,15 @@ import React from 'react';
 import {PlatformIcon} from 'platformicons';
 
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {
+  isEAPSpanNode,
+  isEAPTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {getNodeDescriptionPrefix} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  getNodeDescriptionPrefix,
+  TraceTree,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {
   makeTraceNodeBarColor,
@@ -30,6 +35,7 @@ export function TraceSpanRow(
     : props.node.value.span_id;
 
   const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  const childrenCount = getChildrenCount(props.node);
 
   return (
     <div
@@ -69,39 +75,37 @@ export function TraceSpanRow(
                   props.node.canFetch ? props.onZoomIn(e) : props.onExpand(e)
                 }
               >
-                {props.node.children.length > 0
-                  ? TRACE_COUNT_FORMATTER.format(props.node.children.length)
-                  : null}
+                {childrenCount > 0 ? TRACE_COUNT_FORMATTER.format(childrenCount) : null}
               </TraceChildrenButton>
             ) : null}
           </div>
           <PlatformIcon
             platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
           />
-          {shouldUseOTelFriendlyUI && isEAPSpanNode(props.node) ? (
-            <React.Fragment>
-              <span className="TraceName" title={props.node.value.name}>
-                {props.node.value.name
-                  ? ellipsize(props.node.value.name, 100)
-                  : (spanId ?? 'unknown')}
-              </span>
-            </React.Fragment>
-          ) : (
-            <React.Fragment>
-              {props.node.value.op && props.node.value.op !== 'default' && (
-                <React.Fragment>
-                  <span className="TraceOperation">{props.node.value.op}</span>
-                  <strong className="TraceEmDash"> — </strong>
-                </React.Fragment>
-              )}
+          <React.Fragment>
+            {props.node.value.op && props.node.value.op !== 'default' && (
+              <React.Fragment>
+                <span className="TraceOperation">{props.node.value.op}</span>
+                <strong className="TraceEmDash"> — </strong>
+              </React.Fragment>
+            )}
+            {shouldUseOTelFriendlyUI &&
+            isEAPSpanNode(props.node) &&
+            props.node.value.name ? (
+              <React.Fragment>
+                <span className="TraceName" title={props.node.value.name}>
+                  {ellipsize(props.node.value.name, 100)}
+                </span>
+              </React.Fragment>
+            ) : (
               <span className="TraceDescription" title={props.node.value.description}>
                 {getNodeDescriptionPrefix(props.node)}
                 {props.node.value.description
                   ? ellipsize(props.node.value.description, 100)
                   : (spanId ?? 'unknown')}
               </span>
-            </React.Fragment>
-          )}
+            )}
+          </React.Fragment>
         </div>
       </div>
       <div
@@ -129,4 +133,14 @@ export function TraceSpanRow(
       </div>
     </div>
   );
+}
+
+function getChildrenCount(
+  node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
+) {
+  if (isEAPTransactionNode(node) && !node.expanded) {
+    return node.children.length - TraceTree.DirectVisibleChildren(node).length;
+  }
+
+  return node.children.length;
 }

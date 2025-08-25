@@ -1,3 +1,6 @@
+from datetime import UTC, datetime
+from typing import Any
+
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError
 
@@ -11,7 +14,7 @@ from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors.workflow import process_workflows
-from sentry.workflow_engine.tasks.utils import build_workflow_event_data_from_event, retry_timeouts
+from sentry.workflow_engine.tasks.utils import build_workflow_event_data_from_event
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -65,10 +68,10 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
         group=group,
     )
 
-    process_workflows(event_data, detector)
+    process_workflows(event_data, event_start_time=activity.datetime, detector=detector)
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
-        tags={"activity_type": activity.type},
+        tags={"activity_type": activity.type, "detector_type": detector.type},
         sample_rate=1.0,
     )
 
@@ -91,8 +94,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
         ),
     ),
 )
-@retry_timeouts
-@retry
+@retry(timeouts=True)
 def process_workflows_event(
     project_id: int,
     event_id: str,
@@ -101,7 +103,8 @@ def process_workflows_event(
     group_state: GroupState,
     has_reappeared: bool,
     has_escalated: bool,
-    **kwargs,
+    start_timestamp_seconds: float | None = None,
+    **kwargs: dict[str, Any],
 ) -> None:
 
     try:
@@ -118,6 +121,11 @@ def process_workflows_event(
         # We want to quietly retry these.
         retry_task(e)
 
-    process_workflows(event_data)
+    event_start_time = (
+        datetime.fromtimestamp(start_timestamp_seconds, tz=UTC)
+        if start_timestamp_seconds
+        else datetime.now(tz=UTC)
+    )
+    process_workflows(event_data, event_start_time=event_start_time)
 
     metrics.incr("workflow_engine.tasks.process_workflow_task_executed", sample_rate=1.0)

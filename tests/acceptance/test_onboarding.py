@@ -10,7 +10,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 @no_silo_test
 class OrganizationOnboardingTest(AcceptanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
@@ -20,13 +20,13 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def start_onboarding(self):
+    def start_onboarding(self) -> None:
         self.browser.get("/onboarding/%s/" % self.org.slug)
         self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
         self.browser.click('[aria-label="Start"]')
         self.browser.wait_until('[data-test-id="onboarding-step-select-platform"]')
 
-    def test_onboarding_happy_path(self):
+    def test_onboarding_happy_path(self) -> None:
         self.start_onboarding()
         self.browser.click('[data-test-id="platform-javascript-react"]')
         self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
@@ -37,7 +37,7 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
             self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
 
-    def test_project_deletion_on_going_back(self):
+    def test_project_deletion_on_going_back(self) -> None:
         self.start_onboarding()
         self.browser.click('[data-test-id="platform-javascript-nextjs"]')
         self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
@@ -58,7 +58,7 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
             self.org, active_project_ids=[], deleted_project_ids=[project1.id, project2.id]
         )
 
-    def test_framework_modal_open_by_selecting_vanilla_platform(self):
+    def test_framework_modal_open_by_selecting_vanilla_platform(self) -> None:
         self.start_onboarding()
         self.browser.click('[data-test-id="platform-javascript"]')
         self.browser.wait_until(xpath='//h6[text()="Do you use a framework?"]')
@@ -74,7 +74,7 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
             self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
 
-    def test_create_delete_create_same_platform(self):
+    def test_create_delete_create_same_platform(self) -> None:
         "This test ensures that the regression fixed in PR https://github.com/getsentry/sentry/pull/87869 no longer occurs."
         self.start_onboarding()
         self.browser.click('[data-test-id="platform-javascript-nextjs"]')

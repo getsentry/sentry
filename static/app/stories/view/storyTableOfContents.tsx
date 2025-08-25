@@ -1,7 +1,9 @@
 import {useLayoutEffect, useMemo, useState} from 'react';
+import {useLocation} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import TextOverflow from 'sentry/components/textOverflow';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Text} from 'sentry/components/core/text';
 import {space} from 'sentry/styles/space';
 
 type Entry = {
@@ -35,12 +37,22 @@ function getContentEntries(main: HTMLElement): Entry[] {
 
 function useStoryIndex(): Entry[] {
   const [entries, setEntries] = useState<Entry[]>([]);
+  const location = useLocation();
+
+  const hash = useMemo(() => location.hash.slice(1), [location.hash]);
 
   useLayoutEffect(() => {
     const observer = new MutationObserver(_mutations => {
       const main = document.querySelector('main');
       if (main) {
-        setEntries(getContentEntries(main));
+        const newEntries = getContentEntries(main);
+        if (hash) {
+          const entry = newEntries.find(e => e.ref.id === hash);
+          if (entry) {
+            entry.ref.scrollIntoView();
+          }
+        }
+        setEntries(newEntries);
       }
     });
 
@@ -50,13 +62,8 @@ function useStoryIndex(): Entry[] {
       observer.observe(document.body, {childList: true, subtree: true});
     }
 
-    // Fire this immediately to ensure entries are set on pageload
-    window.requestAnimationFrame(() => {
-      setEntries(getContentEntries(document.querySelector('main')!));
-    });
-
     return () => observer.disconnect();
-  }, []);
+  }, [hash]);
 
   return entries;
 }
@@ -84,13 +91,9 @@ function useActiveSection(entries: Entry[]): [string, (id: string) => void] {
       }
     );
 
-    entries.forEach(entry => {
-      observer.observe(entry.ref);
-    });
+    entries.forEach(entry => observer.observe(entry.ref));
 
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, [entries]);
 
   return [activeId, setActiveId];
@@ -158,23 +161,26 @@ export function StoryTableOfContents() {
   const [activeId, setActiveId] = useActiveSection(entries);
 
   if (nestedEntries.length === 0) return null;
+
   return (
     <StoryIndexContainer>
       <StoryIndexTitle>On this page</StoryIndexTitle>
-      <StoryIndexListContainer>
-        <StoryIndexList>
-          {nestedEntries.map(entry => (
-            <StoryContentsList
-              key={entry.entry.ref.id}
-              entry={entry}
-              activeId={activeId}
-              setActiveId={setActiveId}
-            />
-          ))}
-        </StoryIndexList>
-      </StoryIndexListContainer>
+      <StoryIndexList>
+        {nestedEntries.map(entry => (
+          <StoryContentsList
+            key={entry.entry.ref.id}
+            entry={entry}
+            activeId={activeId}
+            setActiveId={setActiveId}
+          />
+        ))}
+      </StoryIndexList>
     </StoryIndexContainer>
   );
+}
+
+export function StoryTableOfContentsPlaceholder() {
+  return <StoryIndexContainer aria-hidden="true" />;
 }
 
 function StoryContentsList({
@@ -188,8 +194,6 @@ function StoryContentsList({
   setActiveId: (id: string) => void;
   isChild?: boolean;
 }) {
-  const isActive = entry.entry.ref.id === activeId;
-
   // Check if any children are active
   const hasActiveChild = entry.children.some(
     child =>
@@ -200,14 +204,25 @@ function StoryContentsList({
   const LinkComponent = isChild ? StyledChildLink : StyledLink;
 
   return (
-    <li>
+    <Flex as="li" direction="column" aria-role="listitem">
       <LinkComponent
         href={`#${entry.entry.ref.id}`}
-        isActive={isActive}
+        isActive={entry.entry.ref.id === activeId}
         hasActiveChild={hasActiveChild}
         onClick={() => setActiveId(entry.entry.ref.id)}
       >
-        <TextOverflow>{entry.entry.title}</TextOverflow>
+        <Text
+          ellipsis
+          variant={
+            hasActiveChild
+              ? 'primary'
+              : entry.entry.ref.id === activeId
+                ? 'accent'
+                : 'muted'
+          }
+        >
+          {entry.entry.title}
+        </Text>
       </LinkComponent>
       {entry.children.length > 0 && (
         <StoryIndexList>
@@ -222,7 +237,7 @@ function StoryContentsList({
           ))}
         </StoryIndexList>
       )}
-    </li>
+    </Flex>
   );
 }
 
@@ -233,13 +248,12 @@ const StoryIndexContainer = styled('div')`
   margin-inline: 0 ${space(2)};
   height: fit-content;
   padding: ${space(2)};
+  min-width: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: block;
   }
 `;
-
-const StoryIndexListContainer = styled('div')``;
 
 const StoryIndexTitle = styled('div')`
   line-height: 1.25;
@@ -254,10 +268,10 @@ const StoryIndexTitle = styled('div')`
 const StoryIndexList = styled('ul')`
   list-style: none;
   padding-left: ${space(1)};
+  padding-right: ${space(1)};
   border-left: 1px solid ${p => p.theme.tokens.border.muted};
   margin: 0;
   margin-left: -${space(2)};
-  min-width: 200px;
   display: flex;
   flex-direction: column;
 
@@ -270,10 +284,7 @@ const StoryIndexList = styled('ul')`
 
 const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
   display: block;
-  color: ${p => p.theme.tokens.content.muted};
   text-decoration: none;
-  line-height: 1;
-  font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1)};
   transition: color 80ms ease-out;
   border-radius: ${p => p.theme.borderRadius};
@@ -287,7 +298,6 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
   ${p =>
     p.isActive &&
     `
-      color: ${p.theme.tokens.content.accent};
       &::before {
         content: '';
         display: block;
@@ -299,11 +309,6 @@ const StyledLink = styled('a')<{hasActiveChild: boolean; isActive: boolean}>`
         transform: translateX(-2px);
         background: ${p.theme.tokens.graphics.accent};
       }
-    `}
-  ${p =>
-    p.hasActiveChild &&
-    `
-      color: ${p.theme.tokens.content.primary};
     `}
 `;
 

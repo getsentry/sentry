@@ -117,7 +117,7 @@ def get_issues_related_to_exception_type(
     date_threshold = datetime.now(tz=UTC) - timedelta(days=num_days_ago)
 
     # Fetch issues where the exception type is the given exception type
-    # Using a bit ofraw SQL since data is GzippedDictField which can't be filtered with Django ORM
+    # Using a bit ofraw SQL since data is LegacyTextJSONField which can't be filtered with Django ORM
     query_set = (
         Group.objects.annotate(metadata_type=RawSQL("(data::json -> 'metadata' ->> 'type')", []))
         .filter(
@@ -127,4 +127,13 @@ def get_issues_related_to_exception_type(
         )
         .order_by("last_seen")[:max_num_issues]
     )
-    return {"issues": [issue.id for issue in query_set]}
+    return {
+        "issues": [issue.id for issue in query_set],
+        "issues_with_message": [
+            {
+                "id": issue.id,
+                "message": issue.data.get("title") if issue.data else "",
+            }
+            for issue in query_set
+        ],
+    }

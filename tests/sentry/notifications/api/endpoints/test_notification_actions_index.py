@@ -296,7 +296,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         body={"ok": True, "channel": "CABC123", "scheduled_message_id": "Q1298393284"},
     )
     @mock_slack_response("chat_deleteScheduledMessage", body={"ok": True})
-    def test_post_with_slack_validation(self, mock_delete, mock_schedule):
+    def test_post_with_slack_validation(self, mock_delete, mock_schedule) -> None:
         class MockActionRegistration(ActionRegistration):
             def fire(self, data: Any) -> None:
                 raise NotImplementedError

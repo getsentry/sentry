@@ -11,7 +11,7 @@ export function StorySidebar() {
   const {foundations, typography, layout, core, shared} = useStoryBookFilesByCategory();
 
   return (
-    <SidebarContainer>
+    <SidebarContainer key="sidebar" ref={scrollIntoView}>
       <ul>
         <li>
           <h3>Foundations</h3>
@@ -36,6 +36,12 @@ export function StorySidebar() {
       </ul>
     </SidebarContainer>
   );
+}
+
+function scrollIntoView(node: HTMLElement | null) {
+  node
+    ?.querySelector('[aria-current="page"]')
+    ?.scrollIntoView({behavior: 'instant', block: 'nearest'});
 }
 
 export function useStoryBookFilesByCategory(): Record<

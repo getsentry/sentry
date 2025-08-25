@@ -6,6 +6,7 @@ from typing import Any
 
 import orjson
 from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 
 import sentry.options as options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
@@ -51,7 +52,7 @@ class GithubRequestParser(BaseRequestParser):
         except Exception:
             metrics.incr("codecov.forward-webhooks.forward-error", sample_rate=0.01)
 
-    def get_response(self):
+    def get_response(self) -> HttpResponseBase:
         if self.view_class != self.webhook_endpoint:
             return self.get_response_from_control_silo()
 

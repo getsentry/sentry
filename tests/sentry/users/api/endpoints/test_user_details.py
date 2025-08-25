@@ -1,3 +1,5 @@
+from collections.abc import Generator
+
 from django.test import override_settings
 from pytest import fixture
 
@@ -122,7 +124,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "prefersNextjsInsightsOverview": True,
                 "prefersStackedNavigation": True,
                 "prefersChonkUI": True,
-                "prefersAgentsInsightsModule": True,
             },
         )
 
@@ -150,7 +151,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="prefers_nextjs_insights_overview")
 
         assert not UserOption.objects.get_value(user=self.user, key="extra")
-        assert UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
 
     def test_saving_changes_value(self) -> None:
         """
@@ -238,31 +238,6 @@ class UserDetailsUpdateTest(UserDetailsTest):
             "me",
         )
         assert resp.data["options"]["prefersNextjsInsightsOverview"] is True
-
-    def test_saving_agents_insights_module_option(self) -> None:
-        self.get_success_response(
-            "me",
-            options={"prefersAgentsInsightsModule": True},
-        )
-        assert (
-            UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
-            is True
-        )
-
-        self.get_success_response(
-            "me",
-            options={"prefersAgentsInsightsModule": False},
-        )
-        assert (
-            UserOption.objects.get_value(user=self.user, key="prefers_agents_insights_module")
-            is False
-        )
-
-    def test_default_agents_insights_module_option_is_true(self) -> None:
-        resp = self.get_success_response(
-            "me",
-        )
-        assert resp.data["options"]["prefersAgentsInsightsModule"] is True
 
 
 @control_silo_test
@@ -391,7 +366,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
 
     @fixture(autouse=True)
-    def _activate_staff_mode(self):
+    def _activate_staff_mode(self) -> Generator[None]:
         with override_options({"staff.ga-rollout": True}):
             yield
 
