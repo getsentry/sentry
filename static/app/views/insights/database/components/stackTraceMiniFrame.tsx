@@ -77,7 +77,7 @@ export function MissingFrame({system}: MissingFrameProps) {
   );
 }
 
-export const FrameContainer = styled('div')`
+const FrameContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   align-items: center;

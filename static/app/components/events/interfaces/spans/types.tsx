@@ -1,8 +1,5 @@
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
-import type {SpanBarProps} from './spanBar';
-import type {SpanDescendantGroupBarProps} from './spanDescendantGroupBar';
-import type {SpanSiblingGroupBarProps} from './spanSiblingGroupBar';
 import type SpanTreeModel from './spanTreeModel';
 
 export type GapSpanType = {
@@ -194,12 +191,6 @@ export type ParsedTraceType = {
   total?: number;
 };
 
-export enum TickAlignment {
-  LEFT = 0,
-  RIGHT = 1,
-  CENTER = 2,
-}
-
 type AttributeValue = string | number | boolean | string[] | number[] | boolean[];
 
 type SpanLink = {
@@ -265,67 +256,3 @@ export type DescendantGroup = {
   group: SpanTreeModel[];
   occurrence?: number;
 };
-
-export enum GroupType {
-  DESCENDANTS = 0,
-  SIBLINGS = 1,
-}
-
-export enum SpanTreeNodeType {
-  SPAN = 0,
-  DESCENDANT_GROUP = 1,
-  SIBLING_GROUP = 2,
-  MESSAGE = 3,
-}
-
-type SpanBarNode = {
-  props: Omit<
-    SpanBarProps,
-    | 'measure'
-    | 'didAnchoredSpanMount'
-    | 'markAnchoredSpanIsMounted'
-    | 'addExpandedSpan'
-    | 'removeExpandedSpan'
-    | 'isSpanExpanded'
-    | 'cellMeasurerCache'
-    | 'listRef'
-  >;
-  type: SpanTreeNodeType.SPAN;
-};
-
-type SpanSiblingNode = {
-  props: Omit<
-    SpanSiblingGroupBarProps,
-    | 'measure'
-    | 'didAnchoredSpanMount'
-    | 'markAnchoredSpanIsMounted'
-    | 'addExpandedSpan'
-    | 'removeExpandedSpan'
-    | 'isSpanExpanded'
-  >;
-  type: SpanTreeNodeType.SIBLING_GROUP;
-};
-
-type SpanDescendantNode = {
-  props: Omit<
-    SpanDescendantGroupBarProps,
-    | 'measure'
-    | 'didAnchoredSpanMount'
-    | 'markAnchoredSpanIsMounted'
-    | 'addExpandedSpan'
-    | 'removeExpandedSpan'
-    | 'isSpanExpanded'
-  >;
-  type: SpanTreeNodeType.DESCENDANT_GROUP;
-};
-
-type SpanMessageNode = {
-  element: React.JSX.Element;
-  type: SpanTreeNodeType.MESSAGE;
-};
-
-export type SpanTreeNode =
-  | SpanBarNode
-  | SpanSiblingNode
-  | SpanDescendantNode
-  | SpanMessageNode;

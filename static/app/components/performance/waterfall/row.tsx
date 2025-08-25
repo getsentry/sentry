@@ -1,12 +1,6 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
-import {getBackgroundColor} from 'sentry/components/performance/waterfall/utils';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
-import toPercent from 'sentry/utils/number/toPercent';
-import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
 interface RowProps extends React.HTMLAttributes<HTMLDivElement> {
   cursor?: 'pointer' | 'default';
@@ -29,72 +23,4 @@ export const Row = styled('div')<RowProps>`
       border-bottom: none !important;
     }
   }
-`;
-
-type RowCellProps = {
-  showDetail?: boolean;
-  showStriping?: boolean;
-};
-
-export const RowCellContainer = styled('div')<RowCellProps>`
-  display: flex;
-  position: relative;
-  height: ${ROW_HEIGHT}px;
-
-  /* for virtual scrollbar */
-  overflow: hidden;
-
-  user-select: none;
-
-  &:hover > div[data-type='span-row-cell'] {
-    background-color: ${p =>
-      p.showDetail ? p.theme.textColor : p.theme.backgroundSecondary};
-  }
-`;
-
-export const RowCell = styled('div')<RowCellProps>`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  background-color: ${p => getBackgroundColor(p)};
-  transition: background-color 125ms ease-in-out;
-  color: ${p => (p.showDetail ? p.theme.background : 'inherit')};
-  display: flex;
-  align-items: center;
-`;
-
-export function RowReplayTimeIndicators() {
-  const replay = useReplayReader();
-  const {currentTime} = useReplayContext();
-  const [currentHoverTime] = useCurrentHoverTime();
-  const durationMs = replay?.getDurationMs();
-
-  if (!replay || !durationMs) {
-    return null;
-  }
-
-  return (
-    <Fragment>
-      <RowIndicatorBar style={{left: toPercent(currentTime / durationMs)}} />
-      {currentHoverTime === undefined ? null : (
-        <RowHoverIndicatorBar style={{left: toPercent(currentHoverTime / durationMs)}} />
-      )}
-    </Fragment>
-  );
-}
-
-const RowIndicatorBar = styled('div')`
-  background: ${p => p.theme.purple300};
-  content: '';
-  display: block;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  width: 1px;
-  z-index: 1;
-`;
-
-const RowHoverIndicatorBar = styled(RowIndicatorBar)`
-  background: ${p => p.theme.purple200};
 `;
