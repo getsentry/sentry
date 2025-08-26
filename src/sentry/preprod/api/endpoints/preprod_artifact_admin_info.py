@@ -69,7 +69,7 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
                 organization_id=preprod_artifact.project.organization_id,
                 project_id=preprod_artifact.project.id,
                 user_id=request.user.id,
-                artifact_id=preprod_artifact_id_int,
+                artifact_id=preprod_artifact_id,
             )
         )
 
@@ -235,7 +235,7 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
         logger.info(
             "preprod_artifact.admin_get_info",
             extra={
-                "artifact_id": preprod_artifact_id_int,
+                "artifact_id": preprod_artifact_id,
                 "user_id": request.user.id,
                 "organization_id": preprod_artifact.project.organization_id,
                 "project_id": preprod_artifact.project.id,
