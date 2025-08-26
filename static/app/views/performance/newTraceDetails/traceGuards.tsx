@@ -1,6 +1,6 @@
 import type {Measurement} from 'sentry/types/event';
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 
+import type {TraceSplitResults} from './traceApi/types';
 import {MissingInstrumentationNode} from './traceModels/missingInstrumentationNode';
 import {ParentAutogroupNode} from './traceModels/parentAutogroupNode';
 import {SiblingAutogroupNode} from './traceModels/siblingAutogroupNode';

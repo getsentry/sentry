@@ -15,8 +15,8 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import type {TraceFullDetailed} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 

@@ -493,7 +493,7 @@ type DropdownItemProps = {
   width?: 'small' | 'large';
 };
 
-export function DropdownItem({
+function DropdownItem({
   children,
   onSelect,
   allowDefaultEvent,

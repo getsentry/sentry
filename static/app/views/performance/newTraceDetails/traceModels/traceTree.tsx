@@ -11,7 +11,7 @@ import type {
   TraceFullDetailed,
   TracePerformanceIssue as TracePerformanceIssueType,
   TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
+} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
@@ -720,7 +720,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     // Reparent transactions under children spans
     for (const transaction of transactions) {
-      const parent = spanIdToNode.get(transaction.value.parent_span_id);
+      const parent = spanIdToNode.get(transaction.value.parent_span_id ?? '');
       // If the parent span does not exist in the span tree, the transaction will remain under the current node
       if (!parent) {
         if (transaction.parent?.children.indexOf(transaction) === -1) {
@@ -1920,8 +1920,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       fetchTransactionSpans(
         options.api,
         options.organization,
-        node.metadata.project_slug,
-        node.metadata.event_id
+        node.metadata.project_slug ?? '',
+        node.metadata.event_id ?? ''
       );
 
     node.fetchStatus = 'loading';
