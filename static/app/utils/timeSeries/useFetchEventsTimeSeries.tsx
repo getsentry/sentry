@@ -37,6 +37,7 @@ export function useFetchEventsTimeSeries(
       staleTime: Infinity,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
+      refetchOnWindowFocus: false,
       enabled,
     }
   );
