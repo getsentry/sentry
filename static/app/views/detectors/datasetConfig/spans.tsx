@@ -8,14 +8,21 @@ import {
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 
 import type {DetectorDatasetConfig} from './base';
+import {parseEventTypesFromQuery} from './eventTypes';
 
 type SpansSeriesResponse = EventsStats;
 
+const DEFAULT_EVENT_TYPES = ['trace_item_span'];
+
 export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
+  SearchBar: TraceSearchBar,
+  defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: SpansConfig.defaultField,
   getAggregateOptions: SpansConfig.getTableFieldOptions,
-  SearchBar: TraceSearchBar,
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
+  separateEventTypesFromQuery: query =>
+    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
+  toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
   },
