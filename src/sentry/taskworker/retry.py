@@ -59,9 +59,12 @@ def retry_task(exc: Exception | None = None, raise_on_no_retries: bool = True) -
         assert False, "unreachable"
     else:
         current = taskworker_current_task()
-        if current and not current.retries_remaining and raise_on_no_retries:
+        if current and not current.retries_remaining:
             metrics.incr("taskworker.retry.no_retries_remaining")
-            raise NoRetriesRemainingError()
+            if raise_on_no_retries:
+                raise NoRetriesRemainingError()
+            else:
+                return
         raise RetryError()
 
 
