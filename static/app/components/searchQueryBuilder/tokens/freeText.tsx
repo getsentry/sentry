@@ -265,14 +265,13 @@ function SearchQueryBuilderInputInternal({
     placeholder,
     searchSource,
     recentSearches,
-    setCurrentInputValue,
+    currentInputValueRef,
   } = useSearchQueryBuilder();
 
   const resetInputValue = useCallback(() => {
     setInputValue(trimmedTokenValue);
-    setCurrentInputValue(trimmedTokenValue);
     updateSelectionIndex();
-  }, [trimmedTokenValue, updateSelectionIndex, setCurrentInputValue]);
+  }, [trimmedTokenValue, updateSelectionIndex]);
 
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
     useFilterKeyListBox({
@@ -291,6 +290,11 @@ function SearchQueryBuilderInputInternal({
   if (trimmedTokenValue !== prevValue) {
     setPrevValue(trimmedTokenValue);
     setInputValue(trimmedTokenValue);
+  }
+
+  // This is a hack to get the current input for ask seer.
+  if (inputValue !== currentInputValueRef.current) {
+    currentInputValueRef.current = inputValue;
   }
 
   const onKeyDown = useCallback(
@@ -619,7 +623,6 @@ function SearchQueryBuilderInputInternal({
           }
 
           setInputValue(e.target.value);
-          setCurrentInputValue(e.target.value);
           setSelectionIndex(e.target.selectionStart ?? 0);
         }}
         onKeyDown={onKeyDown}
