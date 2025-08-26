@@ -16,7 +16,6 @@ import {
   DurationUnit,
   fieldAlignment,
   parseFunction,
-  type ColumnValueType,
   type Sort,
 } from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -217,7 +216,6 @@ export function getLogRowItem(
 
   return {
     fieldKey: field,
-    metaFieldType: meta?.fields?.[field] as ColumnValueType,
     unit: isLogAttributeUnit(meta?.units?.[field] ?? null)
       ? (meta?.units?.[field] as LogAttributeUnits)
       : null,
@@ -613,3 +611,19 @@ export function viewLogsSamplesTarget({
     sortBys: [sortBy],
   });
 }
+
+export const logOnceFactory = (logSeverity: 'info' | 'warn') => {
+  let fired = false;
+  return (...args: Parameters<(typeof Sentry.logger)[typeof logSeverity]>) => {
+    if (!fired) {
+      fired = true;
+      if (logSeverity === 'info') {
+        return Sentry.logger.info(args[0], args[1]);
+      }
+      return Sentry.logger.warn(args[0], args[1]);
+    }
+    return () => {
+      // Do nothing
+    };
+  };
+};

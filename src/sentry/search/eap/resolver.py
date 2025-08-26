@@ -56,9 +56,9 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
+from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
@@ -480,6 +480,20 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
+        if value is None:
+            exists_filter = TraceItemFilter(
+                exists_filter=ExistsFilter(
+                    key=resolved_column.proto_definition,
+                )
+            )
+            if term.operator == "=":
+                not_exists_filter = TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
+                return not_exists_filter, context_definition
+            elif term.operator == "!=":
+                return exists_filter, context_definition
+            else:
+                raise InvalidSearchQuery(f"Unsupported operator for None {term.operator}")
+
         if value == "" and context_definition is None:
             exists_filter = TraceItemFilter(
                 exists_filter=ExistsFilter(
@@ -872,6 +886,11 @@ class SearchResolver:
 
             if column.startswith("sentry_tags"):
                 field = f"sentry.{field}"
+
+            if self.definitions.alias_to_column is not None:
+                mapped_column = self.definitions.alias_to_column(field)
+                if mapped_column is not None:
+                    field = mapped_column
 
             search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedAttribute(

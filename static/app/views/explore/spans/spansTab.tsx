@@ -31,12 +31,10 @@ import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   type AggregationKey,
 } from 'sentry/utils/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -104,24 +102,19 @@ export function SpansTabOnboarding({
 }
 
 function useControlSectionExpanded() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const controlSectionExpanded = decodeScalar(location.query.toolbar);
-  const setControlSectionExpanded = useCallback(
-    (expanded: boolean) => {
-      const newControlSectionExpanded = expanded ? undefined : 'collapsed';
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          toolbar: newControlSectionExpanded,
-        },
-      });
-    },
-    [location, navigate]
+  const [controlSectionExpanded, _setControlSectionExpanded] = useLocalStorageState(
+    'explore-spans-toolbar',
+    'expanded'
   );
 
-  return [controlSectionExpanded !== 'collapsed', setControlSectionExpanded] as const;
+  const setControlSectionExpanded = useCallback(
+    (expanded: boolean) => {
+      _setControlSectionExpanded(expanded ? 'expanded' : '');
+    },
+    [_setControlSectionExpanded]
+  );
+
+  return [controlSectionExpanded === 'expanded', setControlSectionExpanded] as const;
 }
 
 interface SpanTabProps {
@@ -358,7 +351,7 @@ function SpanTabControlSection({
         position="right"
         margin={-8}
       >
-        <ExploreToolbar width={300} extras={toolbarExtras} />
+        {controlSectionExpanded && <ExploreToolbar width={300} extras={toolbarExtras} />}
       </TourElement>
     </ControlSection>
   );
@@ -376,19 +369,14 @@ function SpanTabContentSection({
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
   const {selection} = usePageFilters();
-  const mode = useQueryParamsMode();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
-  const [samplesTab, setSamplesTab] = useTab();
+  const [tab, setTab] = useTab();
 
   const query = useExploreQuery();
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
-    mode === Mode.AGGREGATE
-      ? 'aggregate'
-      : samplesTab === Tab.TRACE
-        ? 'traces'
-        : 'samples';
+    tab === Mode.AGGREGATE ? 'aggregate' : tab === Tab.TRACE ? 'traces' : 'samples';
 
   const limit = 50;
 
@@ -512,8 +500,13 @@ function SpanTabContentSection({
           spansTableResult={spansTableResult}
           tracesTableResult={tracesTableResult}
           confidences={confidences}
-          samplesTab={samplesTab}
-          setSamplesTab={setSamplesTab}
+          tab={tab}
+          setTab={(newTab: Mode | Tab) => {
+            if (newTab === Mode.AGGREGATE) {
+              setControlSectionExpanded(true);
+            }
+            setTab(newTab);
+          }}
         />
       </TourElement>
     </ContentSection>

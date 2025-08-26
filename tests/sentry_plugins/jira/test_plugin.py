@@ -10,6 +10,7 @@ from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.testutils.cases import TestCase
+from sentry.testutils.requests import drf_request_from_request
 from sentry_plugins.jira.plugin import JiraPlugin
 
 create_meta_response = {
@@ -213,11 +214,11 @@ user_search_response: list[dict[str, Any]] = [
 
 class JiraPluginTest(TestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> JiraPlugin:
         return JiraPlugin()
 
     @cached_property
-    def request(self):
+    def request(self) -> RequestFactory:
         return RequestFactory()
 
     def test_conf_key(self) -> None:
@@ -255,7 +256,7 @@ class JiraPluginTest(TestCase):
         self.plugin.set_option("instance_url", "https://getsentry.atlassian.net", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = self.request.get("/")
+        request = drf_request_from_request(self.request.get("/"))
         request.user = AnonymousUser()
         form_data = {
             "title": "Hello",
@@ -275,7 +276,7 @@ class JiraPluginTest(TestCase):
         self.plugin.set_option("instance_url", "https://getsentry.atlassian.net", self.project)
         group = self.create_group(message="Hello world", culprit="foo.bar")
 
-        request = self.request.get("/")
+        request = drf_request_from_request(self.request.get("/"))
         request.user = AnonymousUser()
         form_data = {"issue_id": "SEN-19"}
         assert (
@@ -318,7 +319,7 @@ class JiraPluginTest(TestCase):
             }
         ) == {"id": "robot", "text": "robot (robot)"}
 
-    def _setup_autocomplete_jira(self):
+    def _setup_autocomplete_jira(self) -> None:
         self.plugin.set_option("instance_url", "https://getsentry.atlassian.net", self.project)
         self.plugin.set_option("default_project", "SEN", self.project)
         self.login_as(user=self.user)

@@ -7,9 +7,9 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -66,7 +66,6 @@ describe('ProjectTeams', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
   it('can remove a team from project', async () => {
@@ -248,8 +247,8 @@ describe('ProjectTeams', () => {
     expect(mock).not.toHaveBeenCalled();
 
     // Add a team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]!);
-    await userEvent.click(screen.getByText('#team-slug-2'));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Team'}));
+    await userEvent.click(await screen.findByText('#team-slug-2'));
 
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
@@ -287,14 +286,13 @@ describe('ProjectTeams', () => {
     // Add new team
     await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]!);
 
-    // XXX(epurkhiser): Create Team should really be a button
-    await userEvent.click(screen.getByRole('link', {name: 'Create Team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create Team'}));
 
     renderGlobalModal();
-    await screen.findByRole('dialog');
+    const modal = await screen.findByRole('dialog');
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Team Name'}), 'new-team');
-    await userEvent.click(screen.getByRole('button', {name: 'Create Team'}));
+    await userEvent.click(within(modal).getByRole('button', {name: 'Create Team'}));
 
     await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));
 

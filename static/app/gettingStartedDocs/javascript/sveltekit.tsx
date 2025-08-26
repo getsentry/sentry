@@ -24,7 +24,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptFullStackOnboarding,
+  getJavascriptLogsFullStackOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -245,6 +248,10 @@ const docs: Docs = {
   featureFlagOnboarding,
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'sveltekit',
+    sdkPackage: '@sentry/sveltekit',
+  }),
 };
 
 export default docs;

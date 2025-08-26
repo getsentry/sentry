@@ -24,6 +24,7 @@ export type LogsAnalyticsEventParameters = {
   'logs.explorer.metadata': {
     columns: string[];
     columns_count: number;
+    dataScanned: string;
     dataset: string;
     has_exceeded_performance_usage_limit: boolean | null;
     page_source: LogsAnalyticsPageSource;

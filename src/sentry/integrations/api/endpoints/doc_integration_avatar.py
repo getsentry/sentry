@@ -20,5 +20,5 @@ class DocIntegrationAvatarEndpoint(AvatarMixin[DocIntegrationAvatar], DocIntegra
     model = DocIntegrationAvatar
     serializer_cls = DocIntegrationAvatarSerializer
 
-    def get_avatar_filename(self, obj):
+    def get_avatar_filename(self, obj) -> str:
         return f"{obj.slug}.png"

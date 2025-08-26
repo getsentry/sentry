@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import IdBadge from 'sentry/components/idBadge';
+import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Organization} from 'sentry/types/organization';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -14,7 +15,6 @@ import {useParams} from 'sentry/utils/useParams';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
-import MenuItem from './menuItem';
 import type {SettingsBreadcrumbProps} from './types';
 import {CrumbLink} from '.';
 
@@ -24,7 +24,7 @@ function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const organization = useOrganization();
   const params = useParams();
 
-  const handleSelect = (item: {value: Organization}) => {
+  const handleSelect = (slug: string) => {
     // If we are currently in a project context, and we're attempting to switch organizations,
     // then we need to default to index route (e.g. `route`)
     //
@@ -45,12 +45,12 @@ function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
     if (destinationRoute === undefined) {
       return;
     }
-    const itemOrg = item.value;
     const path = recreateRoute(destinationRoute, {
       routes,
-      params: {...params, orgId: itemOrg.slug},
+      params: {...params, orgId: slug},
     });
-    const resolvedUrl = resolveRoute(path, organization, itemOrg);
+    const newOrg = organizations.find(org => org.slug === slug)!;
+    const resolvedUrl = resolveRoute(path, organization, newOrg);
     // If we have a shift in domains, we can't use history
     if (resolvedUrl.startsWith('http')) {
       testableWindowLocation.assign(resolvedUrl);
@@ -75,19 +75,18 @@ function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
           </BadgeWrapper>
         </CrumbLink>
       }
-      onSelect={handleSelect}
+      onCrumbSelect={handleSelect}
       hasMenu={hasMenu}
       route={route}
-      items={sortBy(organizations, ['name']).map((org, index) => ({
-        index,
-        value: org,
-        searchKey: org.name,
-        label: (
-          <MenuItem>
-            <IdBadge organization={org} />
-          </MenuItem>
-        ),
-      }))}
+      value={organization.slug}
+      searchPlaceholder={t('Search Organizations')}
+      options={sortBy(organizations, ['name'])
+        .filter(org => org.status.id === 'active')
+        .map(org => ({
+          value: org.slug,
+          leadingItems: <OrganizationAvatar organization={org} size={20} />,
+          label: org.name,
+        }))}
       {...props}
     />
   );
