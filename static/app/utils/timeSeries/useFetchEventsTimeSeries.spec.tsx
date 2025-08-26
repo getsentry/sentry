@@ -45,4 +45,27 @@ describe('useFetchEventsTimeSeries', () => {
       })
     );
   });
+
+  it('can be disabled', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result} = renderHook(
+      () =>
+        useFetchEventsTimeSeries({
+          enabled: false,
+        }),
+      {
+        wrapper: Wrapper,
+      }
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(true));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(request).toHaveBeenCalledTimes(0);
+  });
 });
