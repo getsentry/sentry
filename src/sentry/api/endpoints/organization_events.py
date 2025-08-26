@@ -47,7 +47,7 @@ from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
-METRICS_ENHANCED_REFERRERS = {Referrer.API_PERFORMANCE_LANDING_TABLE.value}
+METRICS_ENHANCED_REFERRERS = {Referrer.API_INSIGHTS_LANDING_TABLE.value}
 SAVED_QUERY_DATASET_MAP = {
     DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("transactions"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
