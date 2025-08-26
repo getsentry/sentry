@@ -720,7 +720,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     // Reparent transactions under children spans
     for (const transaction of transactions) {
-      const parent = spanIdToNode.get(transaction.value.parent_span_id ?? '');
+      const parent = spanIdToNode.get(transaction.value.parent_span_id!);
       // If the parent span does not exist in the span tree, the transaction will remain under the current node
       if (!parent) {
         if (transaction.parent?.children.indexOf(transaction) === -1) {
