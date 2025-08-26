@@ -305,8 +305,8 @@ def test_as_log_message_resource_fetch_invalid_url(too_long: bool) -> None:
             "payload": {
                 "op": "resource.fetch",
                 "description": url,
-                "endTimestamp": 4.0,
-                "startTimestamp": 6.0,
+                "endTimestamp": 6.0,
+                "startTimestamp": 4.0,
                 "data": {
                     "method": "GET",
                     "statusCode": 404,
