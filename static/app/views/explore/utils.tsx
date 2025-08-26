@@ -256,27 +256,27 @@ export function combineConfidenceForSeries(
   return 'high';
 }
 
-export function viewSamplesTarget({
-  location,
-  query,
+export function generateTargetQuery({
   fields,
   groupBys,
-  visualizes,
-  sorts,
-  row,
+  location,
   projects,
+  search,
+  row,
+  sorts,
+  yAxes,
 }: {
   fields: string[];
   groupBys: string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
   projects: Project[];
-  query: string;
   row: Record<string, any>;
+  search: MutableSearch;
   sorts: Sort[];
-  visualizes: Visualize[];
+  yAxes: string[];
 }) {
-  const search = new MutableSearch(query);
+  search = search.copy();
 
   // first update the resulting query to filter for the target group
   for (const groupBy of groupBys) {
@@ -300,8 +300,8 @@ export function viewSamplesTarget({
   const seenFields = new Set(newFields);
 
   // add all the arguments of the visualizations as columns
-  for (const visualize of visualizes) {
-    const parsedFunction = parseFunction(visualize.yAxis);
+  for (const yAxis of yAxes) {
+    const parsedFunction = parseFunction(yAxis);
     if (!parsedFunction?.arguments[0]) {
       continue;
     }
@@ -347,11 +347,55 @@ export function viewSamplesTarget({
     break;
   }
 
+  return {
+    fields: newFields,
+    search,
+    sortBys: [sortBy],
+  };
+}
+
+export function viewSamplesTarget({
+  location,
+  query,
+  fields,
+  groupBys,
+  visualizes,
+  sorts,
+  row,
+  projects,
+}: {
+  fields: string[];
+  groupBys: string[];
+  location: Location;
+  // needed to generate targets when `project` is in the group by
+  projects: Project[];
+  query: string;
+  row: Record<string, any>;
+  sorts: Sort[];
+  visualizes: Visualize[];
+}) {
+  const search = new MutableSearch(query);
+
+  const {
+    fields: newFields,
+    search: newSearch,
+    sortBys: newSortBys,
+  } = generateTargetQuery({
+    fields,
+    groupBys,
+    location,
+    projects,
+    search,
+    row,
+    sorts,
+    yAxes: visualizes.map(visualize => visualize.yAxis),
+  });
+
   return newExploreTarget(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
-    query: search.formatString(),
-    sampleSortBys: [sortBy],
+    query: newSearch.formatString(),
+    sampleSortBys: newSortBys,
   });
 }
 
