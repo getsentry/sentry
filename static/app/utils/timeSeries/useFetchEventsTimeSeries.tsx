@@ -6,7 +6,15 @@ export function useFetchEventsTimeSeries() {
   const organization = useOrganization();
 
   return useApiQuery<TimeSeries[]>(
-    [`/organizations/${organization.slug}/events-timeseries/`],
+    [
+      `/organizations/${organization.slug}/events-timeseries/`,
+      {
+        query: {
+          partial: 1,
+          excludeOther: 0,
+        },
+      },
+    ],
     {
       staleTime: DEFAULT_STALE_TIME,
     }

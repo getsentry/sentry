@@ -38,6 +38,10 @@ describe('useFetchEventsTimeSeries', () => {
       '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         method: 'GET',
+        query: {
+          excludeOther: 0,
+          partial: 1,
+        },
       })
     );
   });
