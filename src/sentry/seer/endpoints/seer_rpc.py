@@ -4,7 +4,7 @@ import hmac
 import logging
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any
+from typing import Any, TypedDict
 
 import sentry_sdk
 from cryptography.fernet import Fernet
@@ -85,6 +85,22 @@ from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import table_rpc
 
 logger = logging.getLogger(__name__)
+
+
+class ColumnDict(TypedDict):
+    name: str
+    type: str
+
+
+class SortDict(TypedDict):
+    name: str
+    type: str
+    descending: bool
+
+
+class SpansResponse(TypedDict):
+    data: list[dict[str, Any]]
+    meta: dict[str, Any]
 
 
 def compare_signature(url: str, body: bytes, signature: str) -> bool:
@@ -563,8 +579,8 @@ def get_attributes_and_values(
 
 # TODO: Review and clean this up
 def _parse_spans_response(
-    response, columns: list[dict[str, str]], resolver: SearchResolver
-) -> list[dict]:
+    response, columns: list[ColumnDict], resolver: SearchResolver
+) -> list[dict[str, Any]]:
     """
     Parse protobuf response from TraceItemTable into a readable format.
 
@@ -640,11 +656,11 @@ def get_spans(
     org_id: int,
     project_ids: list[int],
     query: str = "",
-    sort: list[dict[str, str | bool]] = None,
+    sort: list[SortDict] | None = None,
     stats_period: str = "7d",
-    columns: list[dict[str, str]],
+    columns: list[ColumnDict],
     limit: int = 10,
-) -> dict:
+) -> dict[str, Any]:
     """
     Get spans using the TraceItemTable endpoint.
 
