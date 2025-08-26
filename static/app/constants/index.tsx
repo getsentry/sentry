@@ -564,7 +564,7 @@ export const DATA_CATEGORY_INFO = {
     isBilledCategory: true,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
-      showExternalStats: false,
+      showExternalStats: false, // TODO(prevent): add external stats when ready
     },
   },
   [DataCategoryExact.PREVENT_REVIEW]: {
@@ -578,7 +578,7 @@ export const DATA_CATEGORY_INFO = {
     isBilledCategory: true,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
-      showExternalStats: false,
+      showExternalStats: false, // TODO(prevent): add external stats when ready
     },
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
