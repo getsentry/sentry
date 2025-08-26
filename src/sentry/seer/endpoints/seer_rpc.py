@@ -650,7 +650,7 @@ def get_spans(
             snuba_params = SnubaParams(
                 start=start,
                 end=end,
-                project_ids=project_ids,
+                projects=project_ids,
                 organization=organization,
             )
 

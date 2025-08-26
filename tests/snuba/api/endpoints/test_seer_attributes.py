@@ -6,6 +6,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_attribute_names,
     get_attribute_values_with_substring,
     get_attributes_and_values,
+    get_spans,
 )
 from sentry.testutils.cases import BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -312,3 +313,66 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
                 mock_executor.assert_called_once_with(max_workers=10)
                 assert mock_executor_instance.submit.call_count == 15
+
+    def test_get_spans_basic(self) -> None:
+        """Test basic get_spans functionality"""
+        columns = [
+            {"name": "transaction", "type": "TYPE_STRING"},
+            {"name": "span.duration", "type": "TYPE_DOUBLE"},
+        ]
+
+        with patch("sentry.seer.endpoints.seer_rpc.table_rpc") as mock_table_rpc:
+            mock_response = [
+                {
+                    "transaction": "foo",
+                    "span.duration": 100.0,
+                },
+            ]
+            mock_table_rpc.return_value = [mock_response]
+
+            result = get_spans(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                columns=columns,
+                limit=50,
+            )
+
+            assert result == {
+                "data": mock_response,
+                "meta": {
+                    "columns": columns,
+                    "total_rows": 1,
+                },
+            }
+
+            # Verify the RPC was called
+            mock_table_rpc.assert_called_once()
+            rpc_request = mock_table_rpc.call_args[0][0][0]
+            assert rpc_request.meta.organization_id == self.organization.id
+            assert rpc_request.limit == 50
+
+    def test_get_spans_with_query(self) -> None:
+        """Test get_spans with query string filtering"""
+        columns = [{"name": "transaction", "type": "TYPE_STRING"}]
+
+        with patch("sentry.seer.endpoints.seer_rpc.table_rpc") as mock_table_rpc:
+            with patch("sentry.seer.endpoints.seer_rpc.SearchResolver") as mock_resolver_class:
+                mock_resolver = Mock()
+                mock_resolver_class.return_value = mock_resolver
+                mock_filter = Mock()
+                mock_resolver.resolve_query.return_value = (mock_filter, None, None)
+
+                mock_response = [{"transaction": "foo"}]
+                mock_table_rpc.return_value = [mock_response]
+
+                get_spans(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    query="transaction:foo",
+                    columns=columns,
+                )
+
+                # Verify query was parsed and filter applied
+                mock_resolver.resolve_query.assert_called_once_with("transaction:foo")
+                rpc_request = mock_table_rpc.call_args[0][0][0]
+                assert rpc_request.filter == mock_filter
