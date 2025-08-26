@@ -1,6 +1,10 @@
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {
+  getRetryDelay,
+  shouldRetryHandler,
+} from 'sentry/views/insights/common/utils/retryHandlers';
 
 interface UseFetchEventsTimeSeriesOptions {
   enabled?: boolean;
@@ -31,6 +35,8 @@ export function useFetchEventsTimeSeries(
     ],
     {
       staleTime: DEFAULT_STALE_TIME,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
       enabled,
     }
   );
