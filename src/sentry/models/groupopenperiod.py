@@ -14,9 +14,13 @@ from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.incidents.logic import update_incident_status
+from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.types.activity import ActivityType
+from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -290,6 +294,24 @@ def update_group_open_period(
         logger.warning("No open period found for group", extra={"group_id": group.id})
         return
 
+    if features.has(
+        "organizations:workflow-engine-single-process-metric-issues", group.project.organization
+    ):
+        # get the incident for the open period
+        try:
+            incident_id = IncidentGroupOpenPeriod.objects.get(
+                group_open_period=open_period
+            ).incident_id
+            incident = Incident.objects.get(id=incident_id)
+
+        except IncidentGroupOpenPeriod.DoesNotExist:
+            logger.warning(
+                "No IncidentGroupOpenPeriod relationship found",
+                extra={
+                    "open_period_id": open_period.id,
+                },
+            )
+
     if new_status == GroupStatus.RESOLVED:
         if resolution_activity is None or resolution_time is None:
             logger.warning(
@@ -302,8 +324,62 @@ def update_group_open_period(
             resolution_activity=resolution_activity,
             resolution_time=resolution_time,
         )
+
+        update_incident_status(
+            incident,
+            IncidentStatus.CLOSED,
+            status_method=IncidentStatusMethod.RULE_TRIGGERED,
+            date_closed=resolution_time,  # XXX: again, legacy has a method to account for off by ones. but keeping it simple for spike
+        )
+
     elif new_status == GroupStatus.UNRESOLVED:
         open_period.reopen_open_period()
+
+        update_incident_status(
+            incident,
+            IncidentStatus.OPEN,  # shrug.
+        )
+
+
+def update_incident_activity_based_on_group_activity(
+    group: Group,
+    priority: DetectorPriorityLevel,
+) -> None:
+    open_period = get_latest_open_period(group)
+    if open_period is None:
+        # group isn't for a metric issue
+        logger.warning("No open period found for group", extra={"group_id": group.id})
+        return
+
+    if features.has(
+        "organizations:workflow-engine-single-process-metric-issues", group.project.organization
+    ):
+        # get the incident for the open period
+        try:
+            incident_id = IncidentGroupOpenPeriod.objects.get(
+                group_open_period=open_period
+            ).incident_id
+            incident = Incident.objects.get(id=incident_id)
+
+        except IncidentGroupOpenPeriod.DoesNotExist:
+            logger.warning(
+                "No IncidentGroupOpenPeriod relationship found",
+                extra={
+                    "open_period_id": open_period.id,
+                },
+            )
+
+        severity = (
+            IncidentStatus.CRITICAL
+            if priority == DetectorPriorityLevel.HIGH
+            else IncidentStatus.WARNING
+        )  # might need dict instead idk
+
+        update_incident_status(
+            incident,
+            severity,
+            status_method=IncidentStatusMethod.RULE_TRIGGERED,
+        )
 
 
 def has_any_open_period(group: Group) -> bool:
