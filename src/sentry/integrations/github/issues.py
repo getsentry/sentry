@@ -222,13 +222,11 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             raise IntegrationFormError({"repo": "Repository is required"})
 
         # Create clean issue data with required fields
-        if not data.get("title") or not data.get("description"):
-            raise IntegrationFormError(
-                {
-                    "title": "Title is required",
-                    "description": "Description is required",
-                }
-            )
+        if not data.get("title"):
+            raise IntegrationFormError({"title": "Title is required"})
+
+        if not data.get("description"):
+            raise IntegrationFormError({"description": "Description is required"})
 
         issue_data = {
             "title": data["title"],
