@@ -8,8 +8,8 @@ import {
   transformEventsStatsToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 import {
+  BASE_DYNAMIC_INTERVALS,
   BASE_INTERVALS,
-  DYNAMIC_INTERVALS,
   getStandardTimePeriodsForInterval,
   MetricDetectorInterval,
   MetricDetectorTimePeriod,
@@ -44,7 +44,7 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
       });
     },
     getIntervals: ({detectionType}) => {
-      return detectionType === 'dynamic' ? DYNAMIC_INTERVALS : BASE_INTERVALS;
+      return detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
     },
     getTimePeriods: interval => getStandardTimePeriodsForInterval(interval),
     separateEventTypesFromQuery: query =>

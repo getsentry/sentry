@@ -7,8 +7,8 @@ import {
   transformEventsStatsToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 import {
+  BASE_DYNAMIC_INTERVALS,
   BASE_INTERVALS,
-  DYNAMIC_INTERVALS,
   getEapTimePeriodsForInterval,
   MetricDetectorInterval,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
@@ -27,9 +27,10 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
   getAggregateOptions: LogsConfig.getTableFieldOptions,
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
   getIntervals: ({detectionType}) => {
-    const intervals = detectionType === 'dynamic' ? DYNAMIC_INTERVALS : BASE_INTERVALS;
+    const intervals =
+      detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
     // EAP does not support minute intervals
-    return intervals.filter(interval => interval !== MetricDetectorInterval.ONE_MINUTE);
+    return intervals.filter(interval => interval > MetricDetectorInterval.ONE_MINUTE);
   },
   getTimePeriods: interval => getEapTimePeriodsForInterval(interval),
   separateEventTypesFromQuery: query =>

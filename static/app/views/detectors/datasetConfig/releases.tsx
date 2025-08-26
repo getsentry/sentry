@@ -11,8 +11,8 @@ import {
   transformMetricsResponseToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/releasesSeries';
 import {
+  BASE_DYNAMIC_INTERVALS,
   BASE_INTERVALS,
-  DYNAMIC_INTERVALS,
   getStandardTimePeriodsForInterval,
   MetricDetectorInterval,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
@@ -104,7 +104,7 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
   SearchBar: ReleaseSearchBar,
   getSeriesQueryOptions: getReleasesSeriesQueryOptions,
   getIntervals: ({detectionType}) => {
-    let intervals = detectionType === 'dynamic' ? DYNAMIC_INTERVALS : BASE_INTERVALS;
+    let intervals = detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
     // Crash-free (releases) does not support sub-hour intervals
     intervals = intervals.filter(interval => interval >= MetricDetectorInterval.ONE_HOUR);
     return intervals;

@@ -30,7 +30,7 @@ export const BASE_INTERVALS: readonly MetricDetectorInterval[] = [
   MetricDetectorInterval.ONE_DAY,
 ];
 
-export const DYNAMIC_INTERVALS: readonly MetricDetectorInterval[] = [
+export const BASE_DYNAMIC_INTERVALS: readonly MetricDetectorInterval[] = [
   MetricDetectorInterval.FIFTEEN_MINUTES,
   MetricDetectorInterval.THIRTY_MINUTES,
   MetricDetectorInterval.ONE_HOUR,

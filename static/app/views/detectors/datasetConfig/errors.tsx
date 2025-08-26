@@ -10,8 +10,8 @@ import {
   transformEventsStatsToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 import {
+  BASE_DYNAMIC_INTERVALS,
   BASE_INTERVALS,
-  DYNAMIC_INTERVALS,
   getStandardTimePeriodsForInterval,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
@@ -79,7 +79,7 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
       dataset: DiscoverDatasets.ERRORS,
     }),
   getIntervals: ({detectionType}) => {
-    return detectionType === 'dynamic' ? DYNAMIC_INTERVALS : BASE_INTERVALS;
+    return detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
   },
   getTimePeriods: interval => getStandardTimePeriodsForInterval(interval),
   transformSeriesQueryData: (data, aggregate) => {
