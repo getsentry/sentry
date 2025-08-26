@@ -38,8 +38,8 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     - KeyError / ValueError if the response JSON doesn't have the expected structure
     """
     request = LabelRequest(
-        organization_id=organization_id,
         feedback_message=feedback_message,
+        organization_id=organization_id,
     )
 
     serialized_request = json.dumps(request)

@@ -104,7 +104,7 @@ function SpansContent(props: Props) {
 
   const hasNewSpansUIFlag =
     organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-modules');
+    organization.features.includes('insight-modules');
 
   // TODO: Remove this flag when the feature is GA'd and replace the old content entirely
   if (hasNewSpansUIFlag) {
@@ -148,7 +148,7 @@ function SpansContent(props: Props) {
         eventView={totalsView}
         orgSlug={organization.slug}
         location={location}
-        referrer="api.performance.transaction-spans"
+        referrer="api.insights.transaction-spans"
         cursor="0:0:1"
         noPagination
       >

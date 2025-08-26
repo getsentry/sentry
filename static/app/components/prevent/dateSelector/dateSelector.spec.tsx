@@ -3,8 +3,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
 import {DateSelector} from 'sentry/components/prevent/dateSelector/dateSelector';
 
-describe('DateSelector', function () {
-  it('renders when given relative period', async function () {
+describe('DateSelector', () => {
+  it('renders when given relative period', async () => {
     render(
       <PreventQueryParamsProvider>
         <DateSelector />
@@ -25,7 +25,7 @@ describe('DateSelector', function () {
     expect(await screen.findByRole('button', {name: '7D'})).toBeInTheDocument();
   });
 
-  it('renders when given an invalid relative period', async function () {
+  it('renders when given an invalid relative period', async () => {
     render(
       <PreventQueryParamsProvider>
         <DateSelector />

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
 import type {PageFilters} from 'sentry/types/core';
@@ -11,14 +12,16 @@ import {
 } from 'sentry/utils/discover/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeBoolean, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   applyDashboardFilters,
   eventViewFromWidget,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
+import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {
   LOGS_AGGREGATE_FN_KEY,
   LOGS_AGGREGATE_PARAM_KEY,
@@ -27,8 +30,57 @@ import {
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getLogsUrl} from 'sentry/views/explore/logs/utils';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreMultiQueryUrl, getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+function getTraceItemDatasetFromWidgetType(widgetType?: WidgetType): TraceItemDataset {
+  switch (widgetType) {
+    case WidgetType.LOGS:
+      return TraceItemDataset.LOGS;
+    case WidgetType.SPANS:
+      return TraceItemDataset.SPANS;
+    default:
+      return TraceItemDataset.SPANS; // Default to spans for backwards compatibility
+  }
+}
+
+function getWidgetExploreUrlWithDataset(traceItemDataset: TraceItemDataset) {
+  return (
+    widget: Widget,
+    dashboardFilters: DashboardFilters | undefined,
+    selection: PageFilters,
+    organization: Organization,
+    preferMode?: Mode
+  ) => {
+    return _getWidgetExploreUrl(
+      widget,
+      dashboardFilters,
+      selection,
+      organization,
+      preferMode,
+      undefined,
+      traceItemDataset
+    );
+  };
+}
+
+const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
+  TraceItemDataset,
+  | ((
+      widget: Widget,
+      dashboardFilters: DashboardFilters | undefined,
+      selection: PageFilters,
+      organization: Organization,
+      preferMode?: Mode
+    ) => string)
+  | undefined
+> = {
+  [TraceItemDataset.LOGS]: getWidgetExploreUrlWithDataset(TraceItemDataset.LOGS),
+  [TraceItemDataset.SPANS]: getWidgetExploreUrlWithDataset(TraceItemDataset.SPANS),
+  [TraceItemDataset.UPTIME_RESULTS]: undefined,
+};
 
 export function getWidgetLogURL(
   widget: Widget,
@@ -103,13 +155,29 @@ export function getWidgetExploreUrl(
   organization: Organization,
   preferMode?: Mode
 ) {
+  const traceItemDataset = getTraceItemDatasetFromWidgetType(widget.widgetType);
+
   if (widget.queries.length > 1) {
+    if (traceItemDataset === TraceItemDataset.LOGS) {
+      Sentry.captureException(
+        new Error(
+          `getWidgetExploreUrl: multiple queries for logs is unsupported, widget_id: ${widget.id}, organization_id: ${organization.id}, dashboard_id: ${widget.dashboardId}`
+        )
+      );
+    }
     return _getWidgetExploreUrlForMultipleQueries(
       widget,
       dashboardFilters,
       selection,
-      organization
+      organization,
+      traceItemDataset
     );
+  }
+
+  const urlFunction = WIDGET_TRACE_ITEM_TO_URL_FUNCTION[traceItemDataset];
+
+  if (urlFunction) {
+    return urlFunction(widget, dashboardFilters, selection, organization, preferMode);
   }
 
   return _getWidgetExploreUrl(
@@ -117,7 +185,9 @@ export function getWidgetExploreUrl(
     dashboardFilters,
     selection,
     organization,
-    preferMode
+    preferMode,
+    undefined,
+    traceItemDataset
   );
 }
 
@@ -162,7 +232,9 @@ function _getWidgetExploreUrl(
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
-  preferMode?: Mode
+  preferMode?: Mode,
+  overrideQuery?: MutableSearch,
+  traceItemDataset?: TraceItemDataset
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const locationQueryParams = eventView.generateQueryStringObject();
@@ -215,7 +287,9 @@ function _getWidgetExploreUrl(
 
   let groupBy: string[] =
     defined(query.fields) && widget.displayType === DisplayType.TABLE
-      ? query.fields.filter(field => !isAggregateFieldOrEquation(field))
+      ? query.fields.filter(
+          field => !isAggregateFieldOrEquation(field) && field !== 'timestamp'
+        )
       : [...query.columns];
   if (groupBy && groupBy.length === 0) {
     // Force the groupBy to be an array with a single empty string
@@ -226,7 +300,7 @@ function _getWidgetExploreUrl(
   }
 
   const yAxisFields: string[] = locationQueryParams.yAxes.flatMap(getAggregateArguments);
-  const fields = [...groupBy, ...yAxisFields].filter(Boolean);
+  const fields = [...new Set([...groupBy, ...yAxisFields])].filter(Boolean);
 
   const sortDirection = widget.queries[0]?.orderby?.startsWith('-') ? '-' : '';
   const sortColumn = trimStart(widget.queries[0]?.orderby ?? '', '-');
@@ -273,7 +347,7 @@ function _getWidgetExploreUrl(
     groupBy: visualize.length > 0 ? groupBy : [],
     field: fields,
     query: applyDashboardFilters(
-      decodeScalar(locationQueryParams.query),
+      overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
       dashboardFilters
     ),
     sort: sort || undefined,
@@ -281,6 +355,19 @@ function _getWidgetExploreUrl(
       decodeScalar(locationQueryParams.interval) ??
       getWidgetInterval(widget, selection.datetime),
   };
+
+  if (traceItemDataset === TraceItemDataset.LOGS) {
+    return getLogsUrl({
+      organization: queryParams.organization,
+      selection: queryParams.selection,
+      query: queryParams.query,
+      field: queryParams.field,
+      groupBy: queryParams.groupBy,
+      aggregateFields: queryParams.visualize,
+      interval: queryParams.interval,
+      mode: queryParams.mode,
+    });
+  }
 
   return getExploreUrl(queryParams);
 }
@@ -294,7 +381,8 @@ function _getWidgetExploreUrlForMultipleQueries(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
-  organization: Organization
+  organization: Organization,
+  _traceItemDataset: TraceItemDataset
 ): string {
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const locationQueryParams = eventView.generateQueryStringObject();
@@ -324,4 +412,41 @@ function _getWidgetExploreUrlForMultipleQueries(
     })),
     interval: getWidgetInterval(widget, currentSelection.datetime),
   });
+}
+
+export function getWidgetTableRowExploreUrlFunction(
+  selection: PageFilters,
+  widget: Widget,
+  organization: Organization,
+  dashboardFilters?: DashboardFilters
+) {
+  return (dataRow: TabularRow) => {
+    let fields: string[] = [];
+    if (widget.queries[0]?.fields) {
+      fields = widget.queries[0].fields.filter(
+        (field: string) => !isAggregateFieldOrEquation(field)
+      );
+    }
+
+    const query = new MutableSearch('');
+    fields.map(field => {
+      const value = dataRow[field];
+      if (!defined(value)) {
+        return query.addFilterValue('!has', field);
+      }
+      if (Array.isArray(value)) {
+        return query.addFilterValues(field, value);
+      }
+      return query.addFilterValue(field, String(value));
+    });
+
+    return _getWidgetExploreUrl(
+      widget,
+      dashboardFilters,
+      selection,
+      organization,
+      Mode.SAMPLES,
+      query
+    );
+  };
 }

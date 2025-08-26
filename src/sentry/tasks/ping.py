@@ -10,6 +10,6 @@ from sentry.taskworker.namespaces import selfhosted_tasks
 @instrumented_task(
     name="sentry.tasks.send_ping", taskworker_config=TaskworkerConfig(namespace=selfhosted_tasks)
 )
-def send_ping():
+def send_ping() -> None:
     options.set("sentry:last_worker_ping", time())
     options.set("sentry:last_worker_version", sentry.VERSION)

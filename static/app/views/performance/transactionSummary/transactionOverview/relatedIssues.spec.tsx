@@ -6,7 +6,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import RelatedIssues from 'sentry/views/performance/transactionSummary/transactionOverview/relatedIssues';
 
-describe('RelatedIssues', function () {
+describe('RelatedIssues', () => {
   const organization = OrganizationFixture();
   const issues = GroupsFixture();
   const transaction = 'test-transaction';
@@ -38,11 +38,11 @@ describe('RelatedIssues', function () {
     });
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('renders the issues list and "Open in Issues" link', async function () {
+  it('renders the issues list and "Open in Issues" link', async () => {
     render(
       <RelatedIssues
         organization={organization}
@@ -67,7 +67,7 @@ describe('RelatedIssues', function () {
     expect(screen.getByText(/ReferenceError/)).toBeInTheDocument();
   });
 
-  it('shows empty state when no issues are found', async function () {
+  it('shows empty state when no issues are found', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3Atest-transaction&sort=trends&statsPeriod=14d',
       method: 'GET',

@@ -8,6 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {
   ReplaySummaryStatus,
+  ReplaySummaryTemp,
   type SummaryResponse,
 } from 'sentry/views/replays/detail/ai/utils';
 
@@ -113,6 +114,7 @@ export function useFetchReplaySummary(
           },
           data: {
             num_segments: segmentCount,
+            temperature: ReplaySummaryTemp.MED,
           },
         }
       ),

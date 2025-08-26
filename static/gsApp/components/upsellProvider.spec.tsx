@@ -27,7 +27,7 @@ const createRenderer = () => {
   ));
 };
 
-describe('UpsellProvider', function () {
+describe('UpsellProvider', () => {
   let org!: Organization;
   let sub!: Subscription;
 
@@ -63,11 +63,11 @@ describe('UpsellProvider', function () {
     return org;
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('with billing scope starts a trial if available', async function () {
+  it('with billing scope starts a trial if available', async () => {
     populateOrg({access: ['org:billing']});
     const renderer = createRenderer();
 
@@ -102,7 +102,7 @@ describe('UpsellProvider', function () {
     expect(handleTrialStarted).toHaveBeenCalled();
   });
 
-  it('with billing scope redirect to sub page', async function () {
+  it('with billing scope redirect to sub page', async () => {
     populateOrg({access: ['org:billing']}, {canTrial: false});
     const renderer = createRenderer();
 
@@ -128,7 +128,7 @@ describe('UpsellProvider', function () {
     );
   });
 
-  it('no billing scope opens modal', async function () {
+  it('no billing scope opens modal', async () => {
     populateOrg();
     const renderer = createRenderer();
 
@@ -142,7 +142,7 @@ describe('UpsellProvider', function () {
     expect(openUpsellModal).toHaveBeenCalled();
   });
 
-  it('request trial with triggerMemberRequests', async function () {
+  it('request trial with triggerMemberRequests', async () => {
     populateOrg();
     const renderer = createRenderer();
 
@@ -165,7 +165,7 @@ describe('UpsellProvider', function () {
     expect(requestTrialMock).toHaveBeenCalled();
   });
 
-  it('request plan upgrade with triggerMemberRequests', async function () {
+  it('request plan upgrade with triggerMemberRequests', async () => {
     populateOrg(undefined, {canTrial: false});
     const renderer = createRenderer();
 
@@ -188,7 +188,7 @@ describe('UpsellProvider', function () {
     expect(requestTrialMock).toHaveBeenCalled();
   });
 
-  it('opens modal with showConfirmation', async function () {
+  it('opens modal with showConfirmation', async () => {
     populateOrg(
       {
         access: ['org:billing'],
@@ -235,7 +235,7 @@ describe('UpsellProvider', function () {
     expect(startTrialMock).toHaveBeenCalled();
   });
 
-  it('render nothing if non-self serve for non-billing with triggering member requests', function () {
+  it('render nothing if non-self serve for non-billing with triggering member requests', () => {
     populateOrg(undefined, {canSelfServe: false});
     const renderer = createRenderer();
 

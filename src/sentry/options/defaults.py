@@ -949,6 +949,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate to route issue summary requests to the summarization URL
+register(
+    "issues.summary.summarization-url-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "issues.priority.projects-allowlist",
     type=Sequence,
@@ -3364,7 +3372,7 @@ register(
 # Taskbroker flags
 register(
     "taskworker.enabled",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3454,14 +3462,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Use "first-seen" group instead of "most-seen" group when merging
-register(
-    "issues.merging.first-seen",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enables saving the suspectCommitStrategy on GroupOwner
 register(
     "issues.suspect-commit-strategy",
@@ -3472,3 +3472,21 @@ register(
 
 # Whether the new objectstore implementation is being used for attachments
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Whether to use 60s granularity for the dynamic sampling query
+register(
+    "dynamic-sampling.query-granularity-60s",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option used to enable/disable tracking
+# rate of potential functions metrics to
+# be written into EAP
+register(
+    "profiling.track_functions_metrics_write_rate.eap.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

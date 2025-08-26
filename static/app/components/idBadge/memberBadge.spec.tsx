@@ -5,13 +5,13 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import MemberBadge from 'sentry/components/idBadge/memberBadge';
 
-describe('MemberBadge', function () {
+describe('MemberBadge', () => {
   let member!: ReturnType<typeof MemberFixture>;
   beforeEach(() => {
     member = MemberFixture();
   });
 
-  it('renders with link when member and orgId are supplied', function () {
+  it('renders with link when member and orgId are supplied', () => {
     render(<MemberBadge member={member} />);
 
     expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
@@ -19,14 +19,14 @@ describe('MemberBadge', function () {
     expect(screen.getByText('foo@example.com')).toBeInTheDocument();
   });
 
-  it('does not use a link when disableLink', function () {
+  it('does not use a link when disableLink', () => {
     render(<MemberBadge member={member} disableLink />);
 
     expect(screen.queryByRole('link', {name: 'Foo Bar'})).not.toBeInTheDocument();
     expect(screen.getByText('Foo Bar')).toBeInTheDocument();
   });
 
-  it('can display alternate display names/emails', function () {
+  it('can display alternate display names/emails', () => {
     render(
       <MemberBadge
         member={member}
@@ -40,7 +40,7 @@ describe('MemberBadge', function () {
     expect(screen.getByText('Other Display Email')).toBeInTheDocument();
   });
 
-  it('can coalesce using username', function () {
+  it('can coalesce using username', () => {
     member.user = UserFixture({
       name: undefined,
       email: undefined,
@@ -52,7 +52,7 @@ describe('MemberBadge', function () {
     expect(screen.getByText('the-batman')).toBeInTheDocument();
   });
 
-  it('can coalesce using ipaddress', function () {
+  it('can coalesce using ipaddress', () => {
     member.user = UserFixture({
       name: undefined,
       email: undefined,
@@ -64,13 +64,13 @@ describe('MemberBadge', function () {
     expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
   });
 
-  it('can hide email address', function () {
+  it('can hide email address', () => {
     render(<MemberBadge member={member} hideEmail />);
 
     expect(screen.queryByText('foo@example.com')).not.toBeInTheDocument();
   });
 
-  it('renders when a member without a user to passed to member', function () {
+  it('renders when a member without a user to passed to member', () => {
     render(<MemberBadge member={{...member, user: null}} />);
 
     expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();

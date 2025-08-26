@@ -13,7 +13,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")

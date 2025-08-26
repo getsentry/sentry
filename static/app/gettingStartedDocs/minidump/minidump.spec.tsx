@@ -12,8 +12,8 @@ function renderMockRequests() {
   });
 }
 
-describe('getting started with minidump', function () {
-  it('renders gradle docs correctly', function () {
+describe('getting started with minidump', () => {
+  it('renders gradle docs correctly', () => {
     renderMockRequests();
 
     renderWithOnboardingLayout(docs);

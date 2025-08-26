@@ -1,13 +1,13 @@
 import {renderOnDomReady} from 'sentry/bootstrap/renderOnDomReady';
 
-describe('renderOnDomReady', function () {
-  it('immediately runs callback if `document.readyState` is not loading', function () {
+describe('renderOnDomReady', () => {
+  it('immediately runs callback if `document.readyState` is not loading', () => {
     const cb = jest.fn();
     renderOnDomReady(cb);
     expect(cb).toHaveBeenCalledTimes(1);
   });
 
-  it('runs callbacks after `DOMContentLoaded` is fired', function () {
+  it('runs callbacks after `DOMContentLoaded` is fired', () => {
     const cb = jest.fn();
     const cb2 = jest.fn();
     Object.defineProperty(document, 'readyState', {
