@@ -221,6 +221,7 @@ def translate_equations(equations):
         return None
 
     translated_equations = []
+    dropped_equations = []
 
     for equation in equations:
         if arithmetic.is_equation(equation):
@@ -234,16 +235,17 @@ def translate_equations(equations):
         new_functions, dropped_functions = drop_unsupported_columns(functions)
 
         if len(dropped_fields) > 0 or len(dropped_functions) > 0:
+            dropped_equations.append(arithmetic_equation)
             continue
 
-        translated_equations.append(equation)
+        translated_equations.append(arithmetic_equation)
 
-    return translated_equations
+    return translated_equations, dropped_equations
 
 
 def translate_orderbys(orderbys):
-    if not orderbys:
-        return None
+    if orderbys is None:
+        return None, None
 
     translated_orderbys = []
     dropped_orderbys = []
@@ -259,12 +261,17 @@ def translate_orderbys(orderbys):
         # if orderby is an equation
         if arithmetic.is_equation(orderby_without_neg):
             orderby_equation = arithmetic.strip_equation(orderby_without_neg)
-            translated_orderby, dropped_orderby, dropped_fields = translate_equations(
-                [orderby_equation]
-            )
+            # stripped_translated_orderby, dropped_orderby, dropped_fields = translate_equations(
+            #     [orderby_equation]
+            # )
+            stripped_translated_orderby, dropped_orderby = translate_equations([orderby_equation])
+            translated_orderby = []
+            for stripped_equation in stripped_translated_orderby:
+                translated_orderby.append(f"equation|{stripped_equation}")
+
         # if orderby is a field/function
         else:
-            translated_orderby, dropped_orderby = translate_columns([orderby])
+            translated_orderby, dropped_orderby = translate_columns([orderby_without_neg])
 
         # add translated orderby to the list and record dropped orderbys
         if len(dropped_orderby) == 0:
