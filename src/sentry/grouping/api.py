@@ -18,7 +18,7 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.enhancer import (
     DEFAULT_ENHANCEMENTS_BASE,
-    Enhancements,
+    EnhancementsConfig,
     get_enhancements_version,
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -120,7 +120,7 @@ class GroupingConfigLoader:
                     if enhancements_string
                     else derived_enhancements
                 )
-            base64_enhancements = Enhancements.from_rules_text(
+            base64_enhancements = EnhancementsConfig.from_rules_text(
                 enhancements_string,
                 bases=[enhancements_base] if enhancements_base else [],
                 version=enhancements_version,
@@ -186,7 +186,7 @@ def _get_default_base64_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_ENHANCEMENTS_BASE
     if config_id is not None and config_id in GROUPING_CONFIG_CLASSES.keys():
         base = GROUPING_CONFIG_CLASSES[config_id].enhancements_base
-    return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string
+    return EnhancementsConfig.from_rules_text("", bases=[base] if base else []).base64_string
 
 
 def _get_default_fingerprinting_bases_for_project(
