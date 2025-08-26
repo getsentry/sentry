@@ -13,6 +13,7 @@ from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.test import override_settings
 
+import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.consumers import get_stream_processor
 from sentry.eventstream.types import EventStreamEventType
 from sentry.testutils.cases import TestCase
@@ -50,6 +51,7 @@ def kafka_message_payload() -> Any:
     ]
 
 
+@thread_leaks.allowlist(reason="post process forwarder", issue=97038)
 class PostProcessForwarderTest(TestCase):
     def _get_producer(self, cluster_name: str) -> Producer:
         conf = settings.KAFKA_CLUSTERS[cluster_name]["common"]
