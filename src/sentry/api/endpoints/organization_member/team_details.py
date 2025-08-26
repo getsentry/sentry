@@ -406,9 +406,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             new_role_id = result["teamRole"]
             try:
                 new_role = team_roles.get(new_role_id)
-                can_set_new_role = can_set_team_role(request, team, new_role)
             except KeyError:
                 return Response(status=400)
+            can_set_new_role = can_set_team_role(request, team, new_role)
 
             try:
                 old_role = team_roles.get(omt.role) if omt.role else None
