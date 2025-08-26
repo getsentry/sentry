@@ -261,8 +261,8 @@ export function convertEventsStatsToTimeSeriesData(
       valueType: seriesData.meta?.fields?.[seriesName]!,
       valueUnit: seriesData.meta?.units?.[seriesName] as DataUnit,
       interval,
+      dataScanned: seriesData.meta?.dataScanned,
     },
-    dataScanned: seriesData.meta?.dataScanned,
   };
 
   if (defined(order)) {

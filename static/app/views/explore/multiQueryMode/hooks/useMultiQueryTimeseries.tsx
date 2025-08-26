@@ -41,7 +41,7 @@ export function useMultiQueryTimeseries({
       });
       const canGetMoreData = Object.values(results.data).some(result => {
         return Object.values(result).some(series => {
-          return series.dataScanned === 'partial';
+          return series.meta.dataScanned === 'partial';
         });
       });
 

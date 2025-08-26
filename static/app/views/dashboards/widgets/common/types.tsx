@@ -27,6 +27,7 @@ export type TimeSeriesMeta = {
   interval: number;
   valueType: TimeSeriesValueType;
   valueUnit: TimeSeriesValueUnit;
+  dataScanned?: 'partial' | 'full';
   isOther?: boolean;
   /**
    * For a top N request, the order is the position of this `TimeSeries` within the respective yAxis.
@@ -58,7 +59,6 @@ export type TimeSeries = {
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
   yAxis: string;
-  dataScanned?: 'full' | 'partial';
   groupBy?: TimeSeriesGroupBy[];
 };
 

@@ -53,9 +53,9 @@ export function determineSeriesSampleCountAndIsSampled(
 
     if (!dataScanned) {
       // Take one entry of dataScanned, they should all be the same
-      if (data[i]?.dataScanned === 'partial') {
+      if (data[i]?.meta.dataScanned === 'partial') {
         dataScanned = 'partial';
-      } else if (data[i]?.dataScanned === 'full') {
+      } else if (data[i]?.meta.dataScanned === 'full') {
         dataScanned = 'full';
       }
     }
