@@ -5,8 +5,7 @@ from typing import Any
 
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.types import SlackBlock
-from sentry.notifications.notifications.activity.base import GroupActivityNotification
-from sentry.notifications.notifications.rules import AlertRuleNotification
+from sentry.notifications.notifications.base import ProjectNotification
 from sentry.types.actor import Actor
 
 from .base import SlackNotificationsMessageBuilder
@@ -15,18 +14,18 @@ from .base import SlackNotificationsMessageBuilder
 class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
     def __init__(
         self,
-        notification: GroupActivityNotification | AlertRuleNotification,
+        notification: ProjectNotification,
         context: Mapping[str, Any],
         recipient: Actor,
     ) -> None:
         super().__init__(notification, context, recipient)
-        self.notification: GroupActivityNotification | AlertRuleNotification = notification
-        self.group = notification.group
+        self.notification: ProjectNotification = notification
 
     def build(self) -> SlackBlock:
-        assert self.group is not None, "Group is required to build an issue notification"
+        group = getattr(self.notification, "group", None)
+        assert group is not None, "Group is required to build an issue notification"
         return SlackIssuesMessageBuilder(
-            group=self.group,
+            group=group,
             event=getattr(self.notification, "event", None),
             tags=self.context.get("tags", None),
             rules=getattr(self.notification, "rules", None),
