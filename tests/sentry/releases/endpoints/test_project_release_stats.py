@@ -34,3 +34,20 @@ class ProjectReleaseStatsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
+
+    def test_simple_no_release(self) -> None:
+        """Minimal test to ensure code coverage of the endpoint"""
+        self.login_as(user=self.user)
+
+        project = self.create_project(name="foo")
+
+        url = reverse(
+            "sentry-api-0-project-release-stats",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "version": "1",
+            },
+        )
+        response = self.client.get(url, format="json")
+        assert response.status_code == 404, response.content
