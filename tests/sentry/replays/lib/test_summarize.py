@@ -268,8 +268,8 @@ def test_as_log_message_resource_fetch(status_code: int, method: str) -> None:
             "payload": {
                 "op": "resource.fetch",
                 "description": "https://www.z.com/path?q=true",
-                "endTimestamp": 4.0,
-                "startTimestamp": 6.0,
+                "endTimestamp": 6.0,
+                "startTimestamp": 4.0,
                 "data": {
                     "method": method,
                     "statusCode": status_code,
