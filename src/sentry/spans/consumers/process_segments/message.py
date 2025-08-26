@@ -109,7 +109,8 @@ def _create_models(segment: Span, project: Project) -> None:
     try:
         release = Release.get_or_create(project=project, version=release_name, date_added=date)
     except ValidationError:
-        logger.exception(
+        # Avoid catching a stacktrace here, the codepath is very hot
+        logger.warning(
             "Failed creating Release due to ValidationError",
             extra={"project": project, "version": release_name},
         )
