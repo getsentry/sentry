@@ -10,7 +10,7 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import eventstore, features, options, quotas
+from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory, ObjectStatus
@@ -162,20 +162,8 @@ def _call_seer(
     )
 
     # Route to summarization URL based on rollout rate
-    rollout_rate = options.get("issues.summary.summarization-url-rollout-rate")
     url = settings.SEER_AUTOFIX_URL
     use_summarization_url = in_random_rollout("issues.summary.summarization-url-rollout-rate")
-
-    logger.info(
-        "Issue summary rollout decision",
-        extra={
-            "rollout_rate": rollout_rate,
-            "use_summarization_url": use_summarization_url,
-            "autofix_url": settings.SEER_AUTOFIX_URL,
-            "summarization_url": settings.SEER_SUMMARIZATION_URL,
-        },
-    )
-
     if use_summarization_url:
         url = settings.SEER_SUMMARIZATION_URL
 
@@ -209,7 +197,7 @@ def _call_seer(
     return SummarizeIssueResponse.validate(response.json())
 
 
-fixability_connection_pool = connection_from_url(
+fixability_connection_pool_cpu = connection_from_url(
     settings.SEER_SEVERITY_URL,
     timeout=settings.SEER_FIXABILITY_TIMEOUT,
 )
@@ -219,7 +207,7 @@ fixability_connection_pool_gpu = connection_from_url(
 )
 
 
-def _generate_fixability_score(group: Group) -> SummarizeIssueResponse | None:
+def _generate_fixability_score(group: Group) -> SummarizeIssueResponse:
     payload = {
         "group_id": group.id,
         "organization_slug": group.organization.slug,
@@ -231,9 +219,9 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse | None:
     if use_gpu:
         connection_pool = fixability_connection_pool_gpu
     else:
-        connection_pool = fixability_connection_pool
+        connection_pool = fixability_connection_pool_cpu
 
-    # TODO(kddubey): rm this handling once we verify that the GPU deployment works
+    # TODO(kddubey): rm this handling once we verify that the GPU deployment works in every region
     try:
         response = make_signed_seer_api_request(
             connection_pool,
@@ -241,19 +229,24 @@ def _generate_fixability_score(group: Group) -> SummarizeIssueResponse | None:
             body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
             timeout=settings.SEER_FIXABILITY_TIMEOUT,
         )
+        if response.status >= 400:
+            raise Exception(f"Seer API error: {response.status}")
     except Exception:
         if not use_gpu:
             raise
         else:
-            logger.warning("GPU fixability connection failed", exc_info=True)
-            return None
-
-    if response.status >= 400:
-        if not use_gpu:
-            raise Exception(f"Seer API error: {response.status}")
-        else:
-            logger.warning("GPU fixability endpoint failed", extra={"status": response.status})
-            return None
+            logger.warning("GPU fixability connection failed. Falling back to CPU", exc_info=True)
+            response = make_signed_seer_api_request(
+                fixability_connection_pool_cpu,
+                "/v1/automation/summarize/fixability",
+                body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
+                timeout=settings.SEER_FIXABILITY_TIMEOUT,
+            )
+            if response.status >= 400:
+                raise Exception(f"Seer API error: {response.status}")
+    else:
+        if use_gpu:
+            logger.info("GPU fixability request successful", extra={"group_id": group.id})
 
     response_data = orjson.loads(response.data)
     return SummarizeIssueResponse.validate(response_data)
@@ -350,9 +343,6 @@ def _run_automation(
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
         issue_summary = _generate_fixability_score(group)
-
-    if not issue_summary:
-        return
 
     if not issue_summary.scores:
         raise ValueError("Issue summary scores is None or empty.")

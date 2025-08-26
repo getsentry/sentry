@@ -14,20 +14,27 @@ import {
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
 import type {DetectorDatasetConfig} from './base';
+import {parseEventTypesFromQuery} from './eventTypes';
 
 type LogsSeriesRepsonse = EventsStats;
 
+const DEFAULT_EVENT_TYPES = ['trace_item_log'];
+
 export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
+  SearchBar: TraceSearchBar,
+  defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: LogsConfig.defaultField,
   getAggregateOptions: LogsConfig.getTableFieldOptions,
-  SearchBar: TraceSearchBar,
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
-  getAvailableIntervals: ({detectionType}) => {
+  getIntervals: ({detectionType}) => {
     const intervals = detectionType === 'dynamic' ? DYNAMIC_INTERVALS : BASE_INTERVALS;
     // EAP does not support minute intervals
     return intervals.filter(interval => interval !== MetricDetectorInterval.ONE_MINUTE);
   },
-  getAvailableTimePeriods: interval => getEapTimePeriodsForInterval(interval),
+  getTimePeriods: interval => getEapTimePeriodsForInterval(interval),
+  separateEventTypesFromQuery: query =>
+    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
+  toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
   },

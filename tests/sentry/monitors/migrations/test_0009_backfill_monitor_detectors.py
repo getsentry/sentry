@@ -2,6 +2,8 @@ from typing import Any
 
 from django.conf import settings
 
+from sentry.constants import ObjectStatus
+from sentry.models.project import Project
 from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
 from sentry.testutils.cases import TestMigrations
 from sentry.utils import redis
@@ -21,11 +23,19 @@ class BackfillMonitorDetectorsTest(TestMigrations):
     def setup_initial_state(self) -> None:
         self.no_detector = self.create_monitor()
         self.has_detector = self.create_monitor()
+        self.invalid_project = self.create_monitor(project=Project(id=40000000000))
+        self.invalid_team = self.create_monitor(owner_team_id=4560090495334, owner_user_id=None)
+        self.invalid_status = self.create_monitor(status=ObjectStatus.PENDING_DELETION)
         ensure_cron_detector(self.has_detector)
         assert get_detector_for_monitor(self.no_detector) is None
+        assert get_detector_for_monitor(self.invalid_project) is None
+        assert get_detector_for_monitor(self.invalid_status) is None
         self.existing_detector = get_detector_for_monitor(self.has_detector)
 
     def test(self) -> None:
+        assert get_detector_for_monitor(self.invalid_project) is None
+        assert get_detector_for_monitor(self.invalid_team) is None
+        assert get_detector_for_monitor(self.invalid_status) is None
         new_detector = get_detector_for_monitor(self.no_detector)
         assert new_detector is not None
         assert self.existing_detector is not None

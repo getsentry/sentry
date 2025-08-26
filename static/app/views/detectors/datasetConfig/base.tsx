@@ -2,7 +2,10 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  MetricDetectorConfig,
+  SnubaQuery,
+} from 'sentry/types/workflowEngine/detectors';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -61,6 +64,10 @@ export interface DetectorDatasetConfig<SeriesResponse> {
    */
   SearchBar: (props: DetectorSearchBarProps) => React.JSX.Element;
   /**
+   * Default event types for this dataset
+   */
+  defaultEventTypes: string[];
+  /**
    * Default field to use when the dataset is first selected
    */
   defaultField: QueryFieldValue;
@@ -77,13 +84,23 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     tags?: TagCollection,
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
-  getAvailableIntervals: (options: {
+  /**
+   * An array of intervals available for the current dataset.
+   */
+  getIntervals: (options: {
     detectionType: MetricDetectorConfig['detectionType'];
   }) => readonly MetricDetectorInterval[];
-  getAvailableTimePeriods: (
+  getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  /**
+   * Based on the interval, returns an array of time periods.
+   */
+  getTimePeriods: (
     interval: MetricDetectorInterval
   ) => readonly MetricDetectorTimePeriod[];
-  getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  /**
+   * Extracts event types from the query string
+   */
+  separateEventTypesFromQuery: (query: string) => {eventTypes: string[]; query: string};
   supportedDetectionTypes: Array<MetricDetectorConfig['detectionType']>;
   /**
    * Transform the user-friendly aggregate function to the API aggregate function.
@@ -91,9 +108,16 @@ export interface DetectorDatasetConfig<SeriesResponse> {
    */
   toApiAggregate: (aggregate: string) => string;
   /**
+   * Adds additional event types to the query string
+   */
+  toSnubaQueryString: (snubaQuery: SnubaQuery | undefined) => string;
+  /**
    * Transform comparison series data for % change alerts
    */
   transformComparisonSeriesData: (data: SeriesResponse | undefined) => Series[];
+  /**
+   * Transform the result from `getSeriesQueryOptions` to a chart series
+   */
   transformSeriesQueryData: (
     data: SeriesResponse | undefined,
     aggregate: string

@@ -17,7 +17,7 @@ export function useIntervalChoices({dataset, detectionType}: UseIntervalChoicesP
     }
 
     const datasetConfig = getDatasetConfig(dataset);
-    const intervals = datasetConfig.getAvailableIntervals({detectionType});
+    const intervals = datasetConfig.getIntervals({detectionType});
     return intervals.map(minutes => {
       const seconds = minutes * 60;
       return [seconds, getDuration(seconds)];

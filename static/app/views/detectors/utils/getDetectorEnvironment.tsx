@@ -11,7 +11,7 @@ export function getDetectorEnvironment(detector: Detector): string | null {
       );
     case 'uptime_domain_failure':
       return detector.config.environment ?? null;
-    case 'uptime_subscription':
+    case 'monitor_check_in_failure':
       return detector.config.environment ?? null;
     case 'error':
       return null;
