@@ -110,6 +110,7 @@ const CodeContent = styled('div')`
   line-height: 2em;
   color: ${p => p.theme.textColor};
   flex: 1;
+  white-space: pre;
 `;
 
 const YamlKey = styled('span')`
@@ -127,6 +128,13 @@ const YamlNumber = styled('span')`
 const YamlString = styled('span')`
   color: ${p => p.theme.blue300};
 `;
+
+function Indent({level}: {level: number}) {
+  return <span>{' '.repeat(level * 2)}</span>;
+}
+function IndentList({level}: {level: number}) {
+  return <span>{' '.repeat(level * 2)}- </span>;
+}
 
 export default function CommitYamlPage() {
   return (
@@ -159,7 +167,7 @@ export default function CommitYamlPage() {
           <CodeLine>
             <LineNumber>2</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>enabled</YamlKey>: <YamlValue>false</YamlValue>
             </CodeContent>
           </CodeLine>
@@ -172,21 +180,21 @@ export default function CommitYamlPage() {
           <CodeLine>
             <LineNumber>4</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>notify</YamlKey>:
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>5</LineNumber>
             <CodeContent>
-              {'    '}
+              <Indent level={2} />
               <YamlKey>wait_for_ci</YamlKey>: <YamlValue>true</YamlValue>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>6</LineNumber>
             <CodeContent>
-              {'   '}
+              <Indent level={2} />
               <YamlKey>require_ci_to_pass</YamlKey>: <YamlValue>true</YamlValue>
             </CodeContent>
           </CodeLine>
@@ -199,21 +207,21 @@ export default function CommitYamlPage() {
           <CodeLine>
             <LineNumber>8</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>after_n_builds</YamlKey>: <YamlNumber>9</YamlNumber>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>9</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>behavior</YamlKey>: <YamlValue>default</YamlValue>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>10</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>layout</YamlKey>:{' '}
               <YamlValue>diff, flags, files, components, footer</YamlValue>
             </CodeContent>
@@ -221,35 +229,35 @@ export default function CommitYamlPage() {
           <CodeLine>
             <LineNumber>11</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>require_base</YamlKey>: <YamlValue>false</YamlValue>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>12</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>require_changes</YamlKey>:
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>13</LineNumber>
             <CodeContent>
-              {'  - '}
+              <IndentList level={1} />
               <YamlNumber>0</YamlNumber>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>14</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>require_head</YamlKey>: <YamlValue>true</YamlValue>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>15</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>show_carryforward_flags</YamlKey>: <YamlValue>false</YamlValue>
             </CodeContent>
           </CodeLine>
@@ -262,14 +270,14 @@ export default function CommitYamlPage() {
           <CodeLine>
             <LineNumber>17</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>default_rules</YamlKey>:
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>18</LineNumber>
             <CodeContent>
-              {'    '}
+              <Indent level={2} />
               <YamlKey>statuses</YamlKey>:
             </CodeContent>
           </CodeLine>
@@ -310,63 +318,63 @@ export default function CommitYamlPage() {
           <CodeLine>
             <LineNumber>24</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>precision</YamlKey>: <YamlNumber>2</YamlNumber>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>25</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>range</YamlKey>:
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>26</LineNumber>
             <CodeContent>
-              {'  - '}
-              <YamlNumber>60.0</YamlNumber>
+              <Indent level={2} />
+              <YamlNumber>- 60.0</YamlNumber>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>27</LineNumber>
             <CodeContent>
-              {'  - '}
-              <YamlNumber>85.0</YamlNumber>
+              <Indent level={2} />
+              <YamlNumber>- 85.0</YamlNumber>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>28</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>round</YamlKey>: <YamlValue>down</YamlValue>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>29</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>status</YamlKey>:
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>30</LineNumber>
             <CodeContent>
-              {'    '}
+              <Indent level={2} />
               <YamlKey>changes</YamlKey>: <YamlValue>false</YamlValue>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>31</LineNumber>
             <CodeContent>
-              {'    '}
+              <Indent level={2} />
               <YamlKey>default_rules</YamlKey>:
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>32</LineNumber>
             <CodeContent>
-              {'      '}
+              <Indent level={3} />
               <YamlKey>flag_coverage_not_uploaded_behavior</YamlKey>:{' '}
               <YamlValue>include</YamlValue>
             </CodeContent>
@@ -374,14 +382,14 @@ export default function CommitYamlPage() {
           <CodeLine>
             <LineNumber>33</LineNumber>
             <CodeContent>
-              {'    '}
+              <Indent level={2} />
               <YamlKey>patch</YamlKey>: <YamlValue>true</YamlValue>
             </CodeContent>
           </CodeLine>
           <CodeLine>
             <LineNumber>34</LineNumber>
             <CodeContent>
-              {'    '}
+              <Indent level={2} />
               <YamlKey>project</YamlKey>: <YamlValue>true</YamlValue>
             </CodeContent>
           </CodeLine>
@@ -394,7 +402,7 @@ export default function CommitYamlPage() {
           <CodeLine>
             <LineNumber>36</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>annotations</YamlKey>: <YamlValue>false</YamlValue>
             </CodeContent>
           </CodeLine>
@@ -413,7 +421,7 @@ export default function CommitYamlPage() {
           <CodeLine>
             <LineNumber>39</LineNumber>
             <CodeContent>
-              {'  '}
+              <Indent level={1} />
               <YamlKey>flake_detection</YamlKey>: <YamlValue>true</YamlValue>
             </CodeContent>
           </CodeLine>
@@ -422,3 +430,8 @@ export default function CommitYamlPage() {
     </LayoutGap>
   );
 }
+
+// YAML lines mapping:
+// 2 spaces = <Indent level={1} />
+// 4 spaces = <Indent level={2} />
+// 6 spaces = <Indent level={3} />

@@ -1077,38 +1077,40 @@ function renderTableHeader(
     <Fragment>
       {name}
       {key === 'uploads' && (
-        <QuestionTooltip
-          size="xs"
-          title={
-            <TooltipContent>
-              <TooltipSection>
-                <TooltipTitle>Uploads count</TooltipTitle>
-                <TooltipDescription>
-                  This shows the total number of reports Codecov has received.
-                </TooltipDescription>
-              </TooltipSection>
-              <TooltipSection>
-                <TooltipTitle>{t('Processed')}</TooltipTitle>
-                <TooltipDescription>
-                  {t('The number of uploads that were successfully processed.')}
-                </TooltipDescription>
-              </TooltipSection>
-              <TooltipSection>
-                <TooltipTitle>{t('Pending')}</TooltipTitle>
-                <TooltipDescription>
-                  {t("Uploads that Sentry has received but hasn't processed yet.")}
-                </TooltipDescription>
-              </TooltipSection>
-              <TooltipSection>
-                <TooltipTitle>{t('Failed')}</TooltipTitle>
-                <TooltipDescription>
-                  {t('Uploads that encountered errors during processing.')}
-                </TooltipDescription>
-              </TooltipSection>
-            </TooltipContent>
-          }
-          position="top"
-        />
+        <span style={{paddingLeft: '4px', paddingRight: '4px'}}>
+          <QuestionTooltip
+            size="xs"
+            title={
+              <TooltipContent>
+                <TooltipSection>
+                  <TooltipTitle>Uploads count</TooltipTitle>
+                  <TooltipDescription>
+                    This shows the total number of reports Codecov has received.
+                  </TooltipDescription>
+                </TooltipSection>
+                <TooltipSection>
+                  <TooltipTitle>{t('Processed')}</TooltipTitle>
+                  <TooltipDescription>
+                    {t('The number of uploads that were successfully processed.')}
+                  </TooltipDescription>
+                </TooltipSection>
+                <TooltipSection>
+                  <TooltipTitle>{t('Pending')}</TooltipTitle>
+                  <TooltipDescription>
+                    {t("Uploads that Sentry has received but hasn't processed yet.")}
+                  </TooltipDescription>
+                </TooltipSection>
+                <TooltipSection>
+                  <TooltipTitle>{t('Failed')}</TooltipTitle>
+                  <TooltipDescription>
+                    {t('Uploads that encountered errors during processing.')}
+                  </TooltipDescription>
+                </TooltipSection>
+              </TooltipContent>
+            }
+            position="top"
+          />
+        </span>
       )}
     </Fragment>
   );
