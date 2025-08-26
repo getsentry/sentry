@@ -3,8 +3,6 @@ from uuid import uuid4
 import pytest
 from sentry_relay.auth import PublicKey, SecretKey
 
-from sentry.models.relay import Relay
-
 
 @pytest.fixture
 def key_pair() -> tuple[SecretKey, PublicKey]:
@@ -29,5 +27,7 @@ def relay_id() -> str:
 
 
 @pytest.fixture
-def relay(relay_id: str | int, public_key: PublicKey) -> Relay:
+def relay(relay_id: str | int, public_key: PublicKey):
+    from sentry.models.relay import Relay
+
     return Relay.objects.create(relay_id=relay_id, public_key=str(public_key), is_internal=True)
