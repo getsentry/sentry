@@ -266,7 +266,7 @@ class ProjectSerializerTest(TestCase):
     @mock.patch.object(settings, "SENTRY_MODE", SentryMode.SELF_HOSTED)
     def test_has_logs_self_hosted_mode(self) -> None:
         current_flags = self.project.flags
-        current_flags &= not Project.flags.has_logs
+        current_flags.has_logs = False
         self.project.update(flags=current_flags)
 
         result = serialize(self.project, self.user)
