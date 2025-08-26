@@ -41,6 +41,7 @@ import {
   getWidgetExploreUrl,
   getWidgetLogURL,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
@@ -371,6 +372,13 @@ export function getMenuOptions(
         organization,
         Mode.SAMPLES
       ),
+      onAction: () => {
+        trackAnalytics('dashboards_views.open_in_explore', {
+          organization,
+          widget_type: WidgetType.SPANS,
+          referrer: getReferrer(widget.displayType),
+        });
+      },
     });
   }
 
@@ -379,6 +387,13 @@ export function getMenuOptions(
       key: 'open-in-explore',
       label: t('Open in Explore'),
       to: getWidgetLogURL(widget, dashboardFilters, selection, organization),
+      onAction: () => {
+        trackAnalytics('dashboards_views.open_in_explore', {
+          organization,
+          widget_type: WidgetType.LOGS,
+          referrer: getReferrer(widget.displayType),
+        });
+      },
     });
   }
 
