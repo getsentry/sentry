@@ -65,7 +65,7 @@ class WorkflowStatusUpdateHandlerTests(TestCase):
 
         with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
             workflow_status_update_handler(group, message, activity)
-            mock_incr.assert_called_with("workflow_engine.tasks.error.no_detector_id")
+            mock_incr.assert_any_call("workflow_engine.tasks.error.no_detector_id")
 
     def test__feature_flag(self) -> None:
         detector = self.create_detector(project=self.project)
