@@ -63,7 +63,7 @@ class TraceItemAttributeKey(TypedDict):
     key: str
     name: str
     secondaryAliases: NotRequired[list[str]]
-    aliasType: NotRequired[str]
+    attributeSource: NotRequired[str]
 
 
 class TraceItemAttributesNamesPaginator:
@@ -161,7 +161,7 @@ def resolve_attribute_values_referrer(item_type: str) -> Referrer:
 def as_attribute_key(
     name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
 ) -> TraceItemAttributeKey:
-    key, alias_type = translate_internal_to_public_alias(name, type, item_type)
+    key, attribute_source = translate_internal_to_public_alias(name, type, item_type)
     secondary_aliases = get_secondary_aliases(name, item_type)
 
     if key is not None:
@@ -176,7 +176,7 @@ def as_attribute_key(
         "key": key,
         # name is what will be used to display the tag nicely in the UI
         "name": name,
-        "aliasType": alias_type.value,
+        "attributeSource": attribute_source.value,
     }
 
     if secondary_aliases:

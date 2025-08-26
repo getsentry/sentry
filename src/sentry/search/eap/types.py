@@ -45,9 +45,9 @@ class SupportedTraceItemType(str, Enum):
     UPTIME_RESULTS = "uptime_results"
 
 
-class AliasType(str, Enum):
-    INTERNAL = "internal"
-    CUSTOM = "custom"
+class AttributeSource(str, Enum):
+    SENTRY = "sentry"
+    USER = "user"
 
 
 class TraceItemAttribute(TypedDict):
