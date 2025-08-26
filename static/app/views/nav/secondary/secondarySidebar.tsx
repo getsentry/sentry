@@ -64,12 +64,12 @@ export function SecondarySidebar() {
           [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
         }}
       >
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="popLayout" initial={false}>
           <MotionDiv
             key={activeNavGroup}
-            initial={{x: -4, opacity: 0}}
+            initial={{x: -6, opacity: 0}}
             animate={{x: 0, opacity: 1}}
-            exit={{x: 4, opacity: 0}}
+            exit={{x: 6, opacity: 0}}
             transition={{duration: 0.06}}
           >
             <SecondarySidebarInner>
