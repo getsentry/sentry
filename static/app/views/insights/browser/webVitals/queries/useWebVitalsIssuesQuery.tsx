@@ -12,7 +12,7 @@ export function getIssueQueryFilter({
   issueTypes: Array<keyof typeof ISSUE_TYPE_TO_ISSUE_TITLE>;
   transaction?: string;
 }) {
-  return `is:unresolved issue.type:[${issueTypes?.join(',')}] ${defined(transaction) ? `transaction:${transaction}` : ''}`;
+  return `is:unresolved issue.type:[${issueTypes?.join(',')}]${defined(transaction) ? ` transaction:${transaction}` : ''}`;
 }
 
 export function useWebVitalsIssuesQuery({
