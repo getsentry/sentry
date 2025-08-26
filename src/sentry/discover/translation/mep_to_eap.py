@@ -242,7 +242,7 @@ def translate_equations(equations):
 
     translated_equations = []
     dropped_equations = []
-    prev_dropped_fields = []
+    dropped_fields = []
 
     for equation in equations:
 
@@ -265,16 +265,16 @@ def translate_equations(equations):
         parsed = translation_visitor.visit(tree)
         _flatten(parsed)
 
-        if len(translation_visitor.dropped_fields) > len(prev_dropped_fields):
+        if len(translation_visitor.dropped_fields) > 0:
             dropped_equations.append("".join(flattened_equation))
-            prev_dropped_fields = translation_visitor.dropped_fields
+            dropped_fields.extend(translation_visitor.dropped_fields)
             continue
 
         translated_equation = "".join(flattened_equation)
 
         translated_equations.append(translated_equation)
 
-    return translated_equations, dropped_equations
+    return translated_equations, dropped_equations, dropped_fields
 
 
 def translate_mep_to_eap(query_parts: QueryParts):
@@ -288,7 +288,7 @@ def translate_mep_to_eap(query_parts: QueryParts):
     """
     new_query = translate_query(query_parts["query"])
     new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
-    new_equations, dropped_equations = translate_equations(query_parts["equations"])
+    new_equations, dropped_equations, dropped_fields = translate_equations(query_parts["equations"])
 
     eap_query = QueryParts(
         query=new_query,

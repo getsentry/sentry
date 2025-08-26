@@ -166,6 +166,14 @@ def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str
             ["count(span.duration) + 5", "count_web_vitals(user,300) * 3"],
             ["count(span.duration) + 5"],
         ),
+        pytest.param(
+            ["count(span.duration) + total.count", "count_miserable(user,300)"],
+            [],
+        ),
+        pytest.param(
+            ["transaction.duration * 2"],
+            ["span.duration * 2"],
+        ),
     ],
 )
 def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]) -> None:
