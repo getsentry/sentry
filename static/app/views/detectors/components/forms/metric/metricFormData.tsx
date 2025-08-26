@@ -256,11 +256,10 @@ export const getBackendDataset = (dataset: DetectorDataset): Dataset => {
     case DetectorDataset.ERRORS:
       return Dataset.ERRORS;
     case DetectorDataset.TRANSACTIONS:
-      return Dataset.EVENTS_ANALYTICS_PLATFORM;
-    case DetectorDataset.SPANS:
-      return Dataset.EVENTS_ANALYTICS_PLATFORM;
+      return Dataset.GENERIC_METRICS;
     case DetectorDataset.RELEASES:
       return Dataset.METRICS;
+    case DetectorDataset.SPANS:
     case DetectorDataset.LOGS:
       return Dataset.EVENTS_ANALYTICS_PLATFORM;
     default:

@@ -307,6 +307,11 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
 // List of platforms that have logging onboarding checklist content
 export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'android',
+  'apple',
+  'apple-ios',
+  'apple-macos',
+  'dart',
+  'flutter',
   'go',
   'go-echo',
   'go-fasthttp',
@@ -316,6 +321,11 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'go-iris',
   'go-martini',
   'go-negroni',
+  'java',
+  'java-log4j2',
+  'java-logback',
+  'java-spring',
+  'java-spring-boot',
   'javascript',
   'javascript-angular',
   'javascript-astro',
