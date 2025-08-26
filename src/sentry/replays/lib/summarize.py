@@ -148,7 +148,6 @@ def fetch_trace_connected_errors(
             error_data = result["data"]
 
             for event in error_data:
-                # print(event)
                 event_id = event.get("id") or event.get("event_id")
 
                 # Skip if we've already seen this event

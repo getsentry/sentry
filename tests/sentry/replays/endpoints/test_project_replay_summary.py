@@ -10,14 +10,12 @@ from django.urls import reverse
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
-from sentry.issues.grouptype import FeedbackGroup
 from sentry.replays.endpoints.project_replay_summary import SEER_POLL_STATE_URL, SEER_START_TASK_URL
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
-from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.cases import SnubaTestCase, TransactionTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
-from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 def mock_seer_response(method: str, **kwargs) -> None:
@@ -33,7 +31,7 @@ def mock_seer_response(method: str, **kwargs) -> None:
 @requires_snuba
 class ProjectReplaySummaryTestCase(
     TransactionTestCase,
-    SearchIssueTestMixin,
+    SnubaTestCase,
 ):
     endpoint = "sentry-api-0-project-replay-summary"
 
@@ -389,21 +387,9 @@ class ProjectReplaySummaryTestCase(
             },
         }
 
-        feedback_event, occurrence, group_info = self.store_search_issue(
-            project_id=project_2.id,
-            user_id=1,
-            fingerprints=["test"],
-            tags=[],
-            event_data=feedback_data,
-            override_occurrence_data={"type": FeedbackGroup.type_id},
-            insert_time=now,
+        create_feedback_issue(
+            feedback_data, project_2, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
-
-        # print(feedback_event, "\n\n", occurrence, "\n\n", group_info)
-
-        # create_feedback_issue(
-        #     feedback_data, project_2, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-        # )
 
         # Store the replay with all trace IDs
         self.store_replay(trace_ids=[trace_id_1, trace_id_2])
@@ -484,8 +470,8 @@ class ProjectReplaySummaryTestCase(
             "timestamp": now.timestamp() + 2,
             "contexts": {
                 "feedback": {
-                    "contact_email": "test@example.com",
-                    "name": "Test User",
+                    "contact_email": "test2@example.com",
+                    "name": "Test User 2",
                     "message": "Broken website",
                     "replay_id": self.replay_id,
                     "url": "https://example.com",
@@ -501,7 +487,6 @@ class ProjectReplaySummaryTestCase(
         create_feedback_issue(
             feedback_data, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
-
         create_feedback_issue(
             feedback_data_2, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
