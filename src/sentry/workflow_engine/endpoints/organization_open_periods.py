@@ -71,6 +71,8 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
 
         if not detector_id_param and not group_id_param:
             raise ValidationError({"detail": "Must provide either detector_id or group_id"})
+        if detector_id_param and group_id_param:
+            raise ValidationError({"detail": "Must provide only one of detector_id or group_id"})
 
         target_group: Group | None = (
             self.get_group_from_detector_id(detector_id_param, organization)
