@@ -12,10 +12,9 @@ interface UseFetchEventsTimeSeriesOptions<Field> {
   enabled?: boolean;
 }
 
-// TODO: This hook's interface is mostly compatible with `useDiscoverSeries` for easier interoperability. Once we eliminate `useDiscoverSeries`, we can make changes here as appropriate
 export function useFetchEventsTimeSeries<T extends string>(
-  {yAxis, enabled}: UseFetchEventsTimeSeriesOptions<T>,
   dataset: DiscoverDatasets,
+  {yAxis, enabled}: UseFetchEventsTimeSeriesOptions<T>,
   referrer: string
 ) {
   const organization = useOrganization();

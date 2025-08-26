@@ -31,10 +31,10 @@ describe('useFetchEventsTimeSeries', () => {
     const {result} = renderHook(
       () =>
         useFetchEventsTimeSeries(
+          DiscoverDatasets.SPANS,
           {
             yAxis: 'epm()',
           },
-          DiscoverDatasets.SPANS,
           REFERRER
         ),
       {
@@ -70,10 +70,10 @@ describe('useFetchEventsTimeSeries', () => {
     const {result} = renderHook(
       () =>
         useFetchEventsTimeSeries(
+          DiscoverDatasets.SPANS,
           {
             yAxis: ['count(span.duration)', 'p50(span.duration)'],
           },
-          DiscoverDatasets.SPANS,
           REFERRER
         ),
       {
@@ -93,7 +93,7 @@ describe('useFetchEventsTimeSeries', () => {
           partial: 1,
           referrer: 'test-query',
           dataset: 'spans',
-          yAxis: ['count(span.duration)', 'p50(span.duration)'],
+          yAxis: 'epm()',
         },
       })
     );
@@ -109,11 +109,11 @@ describe('useFetchEventsTimeSeries', () => {
     const {result} = renderHook(
       () =>
         useFetchEventsTimeSeries(
+          DiscoverDatasets.SPANS,
           {
             yAxis: ['epm()'],
             enabled: false,
           },
-          DiscoverDatasets.SPANS,
           REFERRER
         ),
       {
@@ -132,11 +132,11 @@ describe('useFetchEventsTimeSeries', () => {
       renderHook(
         () =>
           useFetchEventsTimeSeries(
+            DiscoverDatasets.SPANS,
             {
               yAxis: ['epm()'],
               enabled: false,
             },
-            DiscoverDatasets.SPANS,
             ''
           ),
         {
