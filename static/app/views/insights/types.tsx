@@ -510,6 +510,7 @@ export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
 
 export enum ErrorField {
   ISSUE = 'issue',
+  ID = 'id',
   ISSUE_ID = 'issue.id',
   TITLE = 'title',
 }
@@ -520,7 +521,7 @@ enum ErrorFunction {
   LAST_SEEN = 'last_seen',
 }
 
-type ErrorStringFields = ErrorField.TITLE | ErrorField.ID;
+type ErrorStringFields = ErrorField.TITLE | ErrorField.ID | ErrorField.ISSUE_ID;
 type ErrorNumberFields = ErrorField.ISSUE;
 
 type NoArgErrorFunction =
