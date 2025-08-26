@@ -43,6 +43,14 @@ class PreprodArtifactApiListBuildsEvent(analytics.Event):
     user_id: int | None = None
 
 
+@analytics.eventclass("preprod_artifact.api.admin_rerun_analysis")
+class PreprodArtifactApiRerunAnalysisEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+    artifact_id: str
+
+
 @analytics.eventclass("preprod_artifact.api.admin_get_info")
 class PreprodArtifactApiAdminGetInfoEvent(analytics.Event):
     organization_id: int
@@ -69,4 +77,5 @@ analytics.register(PreprodArtifactApiSizeAnalysisDownloadEvent)
 analytics.register(PreprodArtifactApiGetBuildDetailsEvent)
 analytics.register(PreprodArtifactApiListBuildsEvent)
 analytics.register(PreprodArtifactApiInstallDetailsEvent)
+analytics.register(PreprodArtifactApiRerunAnalysisEvent)
 analytics.register(PreprodArtifactApiAdminGetInfoEvent)
