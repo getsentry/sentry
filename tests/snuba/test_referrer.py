@@ -33,9 +33,9 @@ class ReferrerTest(TestCase):
     @patch("sentry.snuba.referrer.logger.warning")
     def test_referrer_validate_common_suffixes(self, warn_log: MagicMock) -> None:
         assert warn_log.call_count == 0
-        assert validate_referrer("api.performance.http.domain-summary-transactions-list")
-        assert validate_referrer("api.performance.http.domain-summary-transactions-list.primary")
-        assert validate_referrer("api.performance.http.domain-summary-transactions-list.secondary")
+        assert validate_referrer("api.insights.http.domain-summary-transactions-list")
+        assert validate_referrer("api.insights.http.domain-summary-transactions-list.primary")
+        assert validate_referrer("api.insights.http.domain-summary-transactions-list.secondary")
         assert warn_log.call_count == 0
 
     @patch("sentry.snuba.referrer.logger.warning")
