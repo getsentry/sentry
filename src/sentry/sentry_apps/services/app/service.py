@@ -20,7 +20,7 @@ from sentry.sentry_apps.services.app import (
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
-from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
+from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext, SentryAppUpdateArgs
 from sentry.silo.base import SiloMode
 from sentry.users.services.user import RpcUser
 
@@ -190,6 +190,16 @@ class AppService(RpcService):
     def get_published_sentry_apps_for_organization(
         self, *, organization_id: int
     ) -> list[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_sentry_apps_for_organization(self, *, organization_id: int) -> list[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def update_sentry_app(self, *, id: int, attrs: SentryAppUpdateArgs) -> RpcSentryApp | None:
         pass
 
     @rpc_method
