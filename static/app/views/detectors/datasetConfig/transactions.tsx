@@ -40,7 +40,7 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
       return getDiscoverSeriesQueryOptions({
         ...options,
         statsPeriod: timePeriod,
-        dataset: DiscoverDatasets.METRICS_ENHANCED,
+        dataset: DiscoverDatasets.DISCOVER,
       });
     },
     getIntervals: ({detectionType}) => {

@@ -1,3 +1,8 @@
+import {t} from 'sentry/locale';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {HOUR, MINUTE} from 'sentry/utils/formatters';
+
 export enum MetricDetectorTimePeriod {
   SIX_HOURS = '6h',
   ONE_DAY = '1d',
@@ -136,4 +141,36 @@ export function getEapTimePeriodsForInterval(
   interval: MetricDetectorInterval
 ): MetricDetectorTimePeriod[] {
   return EAP_TIME_PERIODS_MAP[interval] ?? [];
+}
+
+/**
+ * Return a human-readable label for a time window (interval), mirroring TIME_WINDOW_MAP.
+ */
+export function getTimeWindowLabel(interval: MetricDetectorInterval): string {
+  const minutes = interval as number;
+  if (minutes < 60) {
+    // seconds input, force minimum unit to minutes
+    return getDuration(minutes * 60, 0, false, false, false, MINUTE);
+  }
+
+  // seconds input, force minimum unit to hours
+  return getDuration(minutes * 60, 0, false, false, false, HOUR);
+}
+
+/**
+ * Return a human-readable label for a time period, mirroring TIME_PERIOD_MAP.
+ * Uses hours for 1d (Last 24 hours) and days for multi-day periods.
+ */
+export function getTimePeriodLabel(period: MetricDetectorTimePeriod): string {
+  const hours = parsePeriodToHours(period as unknown as string);
+  if (hours <= 0) {
+    return period as unknown as string;
+  }
+  if (hours <= 24) {
+    return t('Last %s hours', hours);
+  }
+  if (hours % 24 === 0) {
+    return t('Last %s days', hours / 24);
+  }
+  return t('Last %s hours', hours);
 }
