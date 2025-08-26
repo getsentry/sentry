@@ -10,7 +10,7 @@ import orjson
 import sentry_sdk
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.abstract import Producer
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message
 from django.conf import settings
@@ -21,7 +21,11 @@ from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
 from sentry.utils.arroyo import run_with_initialized_sentry
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.kafka_config import (
+    build_kafka_producer_configuration,
+    get_kafka_producer_cluster_options,
+    get_topic_definition,
+)
 
 MAX_PROCESS_RESTARTS = 10
 
@@ -80,10 +84,10 @@ class MultiProducer:
                 self.topics.append(topic)
         else:
             # Single producer (backward compatibility)
-            cluster_name = get_topic_definition(self.topic)["cluster"]
-            producer_config = get_kafka_producer_cluster_options(cluster_name)
+            topic_def = get_topic_definition(self.topic)
+            producer_config = get_kafka_producer_cluster_options(topic_def["cluster"])
             producer = self.producer_factory(producer_config)
-            topic = ArroyoTopic(get_topic_definition(self.topic)["real_topic_name"])
+            topic = ArroyoTopic(topic_def["real_topic_name"])
 
             self.producers.append(producer)
             self.topics.append(topic)
