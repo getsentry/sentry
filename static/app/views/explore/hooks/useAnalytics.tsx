@@ -440,6 +440,7 @@ export function useLogAnalytics({
   } = usePerformanceSubscriptionDetails();
 
   const dataset = DiscoverDatasets.OURLOGS;
+  const dataScanned = logsTableResult.meta?.dataScanned ?? '';
   const search = useLogsSearch();
   const query = search.formatString();
   const fields = useLogsFields();
@@ -480,6 +481,7 @@ export function useLogAnalytics({
     trackAnalytics('logs.explorer.metadata', {
       organization,
       dataset,
+      dataScanned,
       columns,
       columns_count: columns.length,
       query_status,
@@ -509,6 +511,7 @@ export function useLogAnalytics({
   }, [
     organization,
     dataset,
+    dataScanned,
     fields,
     query,
     hasExceededPerformanceUsageLimit,

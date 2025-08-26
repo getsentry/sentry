@@ -597,6 +597,7 @@ export function useInfiniteLogsQuery({
       data?.pages.reduce(
         (acc, [pageData]) => {
           return {
+            ...pageData.meta,
             fields: {...acc.fields, ...pageData.meta?.fields},
             units: {...acc.units, ...pageData.meta?.units},
           };
