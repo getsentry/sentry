@@ -238,7 +238,8 @@ def get_fingerprinting_config_for_project(
     Merges the project's custom fingerprinting rules (if any) with the default built-in rules.
     """
 
-    from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 
     bases = _get_default_fingerprinting_bases_for_project(project, config_id=config_id)
     raw_rules = project.get_option("sentry:fingerprinting_rules")

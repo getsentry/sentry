@@ -10,6 +10,7 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
+from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.grouping.utils import (
     DEFAULT_FINGERPRINT_VARIABLE,
     bool_from_string,
@@ -72,10 +73,6 @@ _        = space*
 
 """
 )
-
-
-class InvalidFingerprintingConfig(Exception):
-    pass
 
 
 class _MessageInfo(TypedDict):
