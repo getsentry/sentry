@@ -193,7 +193,10 @@ class GithubRequestParserTest(TestCase):
             region_names=[region.name],
             destination_types={DestinationType.SENTRY_REGION: 1},
         )
-        with pytest.raises(Exception, match="WebhookPayload not found for some destination_types"):
+        with pytest.raises(
+            Exception,
+            match="Missing 1 WebhookPayloads for codecov",
+        ):
             assert_webhook_payloads_for_mailbox(
                 request=request,
                 mailbox_name="github:codecov:1",
