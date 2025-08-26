@@ -147,7 +147,7 @@ export default function StreamlinedGroupHeader({
             )}
           </Flex>
           <ButtonBar gap="xs">
-            <RecentlyViewedIssuesButton currentIssueId={group.id} />
+            <RecentlyViewedIssuesButton currentIssueId={group.shortId} />
             {!hasOnlyOneUIOption && !isQueryInjection && (
               <LinkButton
                 size="xs"

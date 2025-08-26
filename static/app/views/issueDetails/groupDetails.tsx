@@ -102,6 +102,7 @@ interface GroupDetailsContentProps {
 
 export interface RecentlyViewedIssue {
   id: string;
+  orgSlug: string;
   title: string;
   url: string;
 }
@@ -575,18 +576,20 @@ const MAX_RECENTLY_VIEWED_ISSUES = 9;
 
 function useTrackRecentlyViewedIssue(group: Group) {
   const location = useLocation();
+  const organization = useOrganization();
   useEffect(() => {
     if (group?.id) {
       const recentlyViewedIssues = localStorage.getItem('recentlyViewedIssues');
       const newIssue = {
-        id: group.id,
+        id: group.shortId,
         title: group.title,
         url: `${location.pathname}${location.search}`,
+        orgSlug: organization.slug,
       };
       if (recentlyViewedIssues) {
         let recentlyViewedIssuesArray: RecentlyViewedIssue[] =
           JSON.parse(recentlyViewedIssues) ?? [];
-        if (!recentlyViewedIssuesArray.some(issue => issue.id === group.id)) {
+        if (!recentlyViewedIssuesArray.some(issue => issue.id === group.shortId)) {
           recentlyViewedIssuesArray =
             recentlyViewedIssuesArray.length >= MAX_RECENTLY_VIEWED_ISSUES
               ? recentlyViewedIssuesArray.slice(1)
@@ -602,7 +605,7 @@ function useTrackRecentlyViewedIssue(group: Group) {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group.id]);
+  }, [group.shortId]);
 }
 
 const trackTabChanged = ({
