@@ -15,6 +15,7 @@ import Version from 'sentry/components/version';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {AvatarProject} from 'sentry/types/project';
 import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types/release';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -22,12 +23,12 @@ import useFinalizeRelease from 'sentry/views/releases/components/useFinalizeRele
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 type Props = {
-  projectSlug: string;
+  project: AvatarProject;
   release: ReleaseWithHealth;
   releaseMeta: ReleaseMeta;
 };
 
-function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
+function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
   const organization = useOrganization();
   const orgSlug = organization.slug;
 
@@ -117,7 +118,26 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
             }
           />
           <KeyValueTableRow
-            keyName={t('Semver')}
+            keyName={
+              <Flex gap="sm" align="center">
+                {t('Semver')}
+                <Tooltip
+                  skipWrapper
+                  isHoverable
+                  title={tct(
+                    'Semver packages format their versions as [code:package@version] or [code:package@version+build]. [docs:Read more].',
+                    {
+                      code: <code />,
+                      docs: (
+                        <ExternalLink href="https://docs.sentry.io/cli/releases/#creating-releases" />
+                      ),
+                    }
+                  )}
+                >
+                  <IconInfo />
+                </Tooltip>
+              </Flex>
+            }
             value={isVersionInfoSemver(versionInfo.version) ? t('Yes') : t('No')}
           />
           <KeyValueTableRow
@@ -142,10 +162,10 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
               <Link
                 to={
                   isArtifactBundle
-                    ? `/settings/${orgSlug}/projects/${projectSlug}/source-maps/?query=${encodeURIComponent(
+                    ? `/settings/${orgSlug}/projects/${project.slug}/source-maps/?query=${encodeURIComponent(
                         version
                       )}`
-                    : `/settings/${orgSlug}/projects/${projectSlug}/source-maps/${encodeURIComponent(
+                    : `/settings/${orgSlug}/projects/${project.slug}/source-maps/${encodeURIComponent(
                         version
                       )}/`
                 }
