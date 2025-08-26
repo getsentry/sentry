@@ -14,6 +14,7 @@ from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
 from sentry.models.activity import Activity
@@ -311,6 +312,7 @@ def update_group_open_period(
                     "open_period_id": open_period.id,
                 },
             )
+            incident = None
 
     if new_status == GroupStatus.RESOLVED:
         if resolution_activity is None or resolution_time is None:
@@ -324,21 +326,21 @@ def update_group_open_period(
             resolution_activity=resolution_activity,
             resolution_time=resolution_time,
         )
-
-        update_incident_status(
-            incident,
-            IncidentStatus.CLOSED,
-            status_method=IncidentStatusMethod.RULE_TRIGGERED,
-            date_closed=resolution_time,  # XXX: again, legacy has a method to account for off by ones. but keeping it simple for spike
-        )
+        if group.type == MetricIssue.type_id and incident is not None:
+            update_incident_status(
+                incident,
+                IncidentStatus.CLOSED,
+                status_method=IncidentStatusMethod.RULE_TRIGGERED,
+                date_closed=resolution_time,  # XXX: again, legacy has a method to account for off by ones. but keeping it simple for spike
+            )
 
     elif new_status == GroupStatus.UNRESOLVED:
         open_period.reopen_open_period()
-
-        update_incident_status(
-            incident,
-            IncidentStatus.OPEN,  # shrug.
-        )
+        if group.type == MetricIssue.type_id and incident is not None:
+            update_incident_status(
+                incident,
+                IncidentStatus.OPEN,  # shrug.
+            )
 
 
 def update_incident_activity_based_on_group_activity(
@@ -368,6 +370,7 @@ def update_incident_activity_based_on_group_activity(
                     "open_period_id": open_period.id,
                 },
             )
+            return
 
         severity = (
             IncidentStatus.CRITICAL
