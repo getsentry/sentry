@@ -3,49 +3,78 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
-from sentry.models.groupopenperiod import get_open_periods_for_group
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 
-class GroupOpenPeriodsTest(APITestCase):
+class OrganizationOpenPeriodsTest(APITestCase):
+    @property
+    def endpoint(self) -> str:
+        return "sentry-api-0-organization-open-periods"
+
     def setUp(self) -> None:
         super().setUp()
-
         self.login_as(user=self.user)
+
+        self.detector = self.create_detector()
         self.group = self.create_group()
-        # test a new group has an open period
+        # Metric issue is the only type (currently) that has open periods
         self.group.type = MetricIssue.type_id
         self.group.save()
 
-        self.alert_rule = self.create_alert_rule(
+        # Link detector to group
+        DetectorGroup.objects.create(detector=self.detector, group=self.group)
+
+    def get_url_args(self):
+        return [self.organization.slug]
+
+    @with_feature("organizations:issue-open-periods")
+    def test_no_group_link(self) -> None:
+        # Create a new detector with no linked group
+        detector = self.create_detector()
+        resp = self.get_success_response(
+            self.organization.slug, qs_params={"detector_id": detector.id}
+        )
+        assert resp.data == []
+
+    @with_feature("organizations:issue-open-periods")
+    def test_open_period_linked_to_group(self) -> None:
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"detector_id": self.detector.id}
+        )
+        assert len(response.data) == 1
+        open_period = response.data[0]
+        assert open_period["start"] == self.group.first_seen
+        assert open_period["end"] is None
+        assert open_period["duration"] is None
+        assert open_period["isOpen"] is True
+
+    @with_feature("organizations:issue-open-periods")
+    def test_open_periods_group_id(self) -> None:
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"group_id": self.group.id}
+        )
+        assert len(response.data) == 1
+
+    def test_validation_error_when_missing_params(self) -> None:
+        self.get_error_response(*self.get_url_args(), status_code=400)
+
+    @with_feature("organizations:issue-open-periods")
+    def test_open_periods_new_group_with_last_checked(self) -> None:
+        alert_rule = self.create_alert_rule(
             organization=self.organization,
             projects=[self.project],
             name="Test Alert Rule",
         )
-        self.last_checked = timezone.now() - timedelta(
-            seconds=self.alert_rule.snuba_query.time_window
+        last_checked = timezone.now() - timedelta(seconds=alert_rule.snuba_query.time_window)
+
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"group_id": self.group.id}
         )
-
-        self.url = f"/api/0/issues/{self.group.id}/open-periods/"
-
-    def test_open_periods_flag_off(self) -> None:
-        self.url = f"/api/0/issues/{self.group.id}/open-periods/"
-        # open periods are not supported for non-metric issue groups
-        self.group.type = ProfileFileIOGroupType.type_id
-        self.group.save()
-
-        response = self.client.get(self.url, format="json")
-        assert response.status_code == 200, response.content
-        assert response.data == []
-
-    @with_feature("organizations:issue-open-periods")
-    def test_open_periods_new_group(self) -> None:
-        response = self.client.get(self.url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         open_period = response.data[0]
@@ -53,7 +82,7 @@ class GroupOpenPeriodsTest(APITestCase):
         assert open_period["end"] is None
         assert open_period["duration"] is None
         assert open_period["isOpen"] is True
-        assert open_period["lastChecked"] >= self.last_checked
+        assert open_period["lastChecked"] >= last_checked
 
     @with_feature("organizations:issue-open-periods")
     def test_open_periods_resolved_group(self) -> None:
@@ -67,7 +96,9 @@ class GroupOpenPeriodsTest(APITestCase):
             datetime=resolved_time,
         )
 
-        response = self.client.get(self.url, format="json")
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"group_id": self.group.id}
+        )
         assert response.status_code == 200, response.content
         assert response.data == [
             {
@@ -91,7 +122,6 @@ class GroupOpenPeriodsTest(APITestCase):
             datetime=resolved_time,
         )
 
-        # test that another open period is created
         unresolved_time = timezone.now()
         self.group.status = GroupStatus.UNRESOLVED
         self.group.save()
@@ -111,7 +141,10 @@ class GroupOpenPeriodsTest(APITestCase):
             type=ActivityType.SET_RESOLVED.value,
             datetime=second_resolved_time,
         )
-        response = self.client.get(self.url, format="json")
+
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"group_id": self.group.id}
+        )
         assert response.status_code == 200, response.content
         assert response.data == [
             {
@@ -142,7 +175,6 @@ class GroupOpenPeriodsTest(APITestCase):
             datetime=resolved_time,
         )
 
-        # test that another open period is created
         unresolved_time = timezone.now()
         self.group.status = GroupStatus.UNRESOLVED
         self.group.save()
@@ -162,9 +194,13 @@ class GroupOpenPeriodsTest(APITestCase):
             type=ActivityType.SET_RESOLVED.value,
             datetime=second_resolved_time,
         )
-        open_periods = get_open_periods_for_group(self.group, limit=1)
-        assert len(open_periods) == 1
-        assert open_periods[0].to_dict() == {
+
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"group_id": self.group.id, "per_page": 1}
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0] == {
             "start": unresolved_time,
             "end": second_resolved_time,
             "duration": second_resolved_time - unresolved_time,
