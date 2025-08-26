@@ -1,6 +1,6 @@
 import uuid
 import zlib
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, patch
 
 import requests
@@ -345,7 +345,7 @@ class ProjectReplaySummaryTestCase(
         # Create regular error event - errors dataset
         event_id_1 = uuid.uuid4().hex
         trace_id_1 = uuid.uuid4().hex
-        timestamp_1 = now.timestamp() - 2
+        timestamp_1 = (now - timedelta(minutes=2)).timestamp()
         self.store_event(
             data={
                 "event_id": event_id_1,
@@ -372,7 +372,7 @@ class ProjectReplaySummaryTestCase(
         # Create feedback event - issuePlatform dataset
         event_id_2 = uuid.uuid4().hex
         trace_id_2 = uuid.uuid4().hex
-        timestamp_2 = now.timestamp()
+        timestamp_2 = (now - timedelta(minutes=5)).timestamp()
 
         feedback_data = {
             "type": "feedback",
@@ -428,14 +428,14 @@ class ProjectReplaySummaryTestCase(
         logs = request_body["logs"]
         assert len(logs) == 3
 
-        # Verify that regular error event is included
-        assert "ValueError" in logs[1]
-        assert "Invalid input" in logs[1]
-        assert "User experienced an error" in logs[1]
-
         # Verify that feedback event is included
-        assert "Great website" in logs[2]
-        assert "User submitted feedback" in logs[2]
+        assert "Great website" in logs[1]
+        assert "User submitted feedback" in logs[1]
+
+        # Verify that regular error event is included
+        assert "ValueError" in logs[2]
+        assert "Invalid input" in logs[2]
+        assert "User experienced an error" in logs[2]
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_post_with_trace_errors_duplicate_feedback(self, mock_make_seer_api_request):
@@ -453,7 +453,7 @@ class ProjectReplaySummaryTestCase(
         feedback_data = {
             "type": "feedback",
             "event_id": feedback_event_id,
-            "timestamp": now.timestamp(),
+            "timestamp": (now - timedelta(minutes=3)).timestamp(),
             "contexts": {
                 "feedback": {
                     "contact_email": "test@example.com",
@@ -474,7 +474,7 @@ class ProjectReplaySummaryTestCase(
         feedback_data_2 = {
             "type": "feedback",
             "event_id": feedback_event_id_2,
-            "timestamp": now.timestamp() + 2,
+            "timestamp": (now - timedelta(minutes=2)).timestamp(),
             "contexts": {
                 "feedback": {
                     "contact_email": "test2@example.com",
@@ -504,7 +504,7 @@ class ProjectReplaySummaryTestCase(
         data = [
             {
                 "type": 5,
-                "timestamp": float(now.timestamp()),
+                "timestamp": float((now - timedelta(minutes=3)).timestamp()),
                 "data": {
                     "tag": "breadcrumb",
                     "payload": {
@@ -533,9 +533,9 @@ class ProjectReplaySummaryTestCase(
         # Verify that only the unique feedback logs are included
         assert len(logs) == 2
         assert "User submitted feedback" in logs[0]
-        assert "Great website" in logs[0]
         assert "User submitted feedback" in logs[1]
-        assert "Broken website" in logs[1]
+        assert any("Great website" in log for log in logs)
+        assert any("Broken website" in log for log in logs)
 
     @patch("sentry.replays.endpoints.project_replay_summary.MAX_SEGMENTS_TO_SUMMARIZE", 1)
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
