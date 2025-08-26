@@ -4,7 +4,7 @@ from typing import cast
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
-from sentry.grouping.fingerprinting import FingerprintRuleJSON
+from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
 from sentry.grouping.variants import CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
