@@ -37,7 +37,7 @@ describe('logsTableRow', () => {
   let releaseMock: jest.Mock;
   let rowDetailsMock: jest.Mock;
   const organization = OrganizationFixture({
-    features: ['ourlogs-enabled', 'ourlogs-infinite-scroll'],
+    features: ['ourlogs-enabled'],
   });
   const project = ProjectFixture();
   const projects = [project];

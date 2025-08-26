@@ -1,7 +1,6 @@
 import {useCallback, useLayoutEffect, useState} from 'react';
 import type {Location} from 'history';
 
-import type {CursorHandler} from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -363,21 +362,6 @@ export function useLogsLimitToTraceId() {
 export function useLogsIsTableFrozen() {
   const {isTableFrozen} = useLogsPageParams();
   return isTableFrozen;
-}
-
-export function useSetLogsCursor() {
-  const setPageParams = useSetLogsPageParams();
-  const {setCursorForFrozenPages, isTableFrozen} = useLogsPageParams();
-  return useCallback<CursorHandler>(
-    cursor => {
-      if (isTableFrozen) {
-        setCursorForFrozenPages(cursor ?? '');
-      } else {
-        setPageParams({cursor});
-      }
-    },
-    [isTableFrozen, setCursorForFrozenPages, setPageParams]
-  );
 }
 
 export function usePersistedLogsPageParams() {

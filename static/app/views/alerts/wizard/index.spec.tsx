@@ -221,7 +221,6 @@ describe('AlertWizard', () => {
           'incidents',
           'performance-view',
           'visibility-explore-view',
-          'ourlogs-alerts',
           'ourlogs-enabled',
         ],
         access: ['org:write', 'alerts:write'],
