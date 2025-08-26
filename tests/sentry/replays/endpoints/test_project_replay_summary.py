@@ -259,7 +259,7 @@ class ProjectReplaySummaryTestCase(
         assert any("Failed to connect to database" in log for log in logs)
 
     @patch("sentry.replays.endpoints.project_replay_summary.requests")
-    def test_post_with_feedback_sdk_event(self, mock_requests) -> None:
+    def test_post_with_feedback_breadcrumb(self, mock_requests) -> None:
         """Test handling of breadcrumbs with user feedback"""
         mock_requests.post.return_value = Mock(
             status_code=200, json=lambda: {"feedback": "Feedback was submitted"}
