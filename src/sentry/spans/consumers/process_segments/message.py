@@ -127,11 +127,12 @@ def _create_models(segment: Span, project: Project) -> None:
         project=project, release=release, environment=environment, datetime=date
     )
 
-    # Record the release for dynamic sampling
-    record_latest_release(project, release, environment)
+    with metrics.timer("spans.consumers.process_segments.create_models.record_release"):
+        # Record the release for dynamic sampling
+        record_latest_release(project, release, environment)
 
-    # Record onboarding signals
-    record_release_received(project, release.version)
+        # Record onboarding signals
+        record_release_received(project, release.version)
 
 
 @metrics.wraps("spans.consumers.process_segments.detect_performance_problems")
