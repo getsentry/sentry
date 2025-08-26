@@ -18,13 +18,14 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   getLogRowTimestampMillis,
   getLogTimestampBucketIndex,
-  isLogsEnabled,
 } from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {isLogsEnabled} from './isLogsEnabled';
 
 type BufferEntry = {
   bucketIndex: number;
