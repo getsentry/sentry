@@ -34,17 +34,6 @@ import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amChecko
 import * as utils from 'getsentry/views/amCheckout/utils';
 
 const PRICE_PLACEHOLDER_WIDTH = '70px';
-const DISCOUNT_INVOICE_ITEM_TYPES = [
-  InvoiceItemType.RECURRING_DISCOUNT,
-  InvoiceItemType.DISCOUNT,
-  InvoiceItemType.CREDIT_APPLIED,
-  InvoiceItemType.SUBSCRIPTION_CREDIT,
-];
-
-const ADDITIONAL_FEES_INVOICE_ITEM_TYPES = [
-  InvoiceItemType.CANCELLATION_FEE,
-  InvoiceItemType.SALES_TAX,
-];
 
 type CartProps = {
   activePlan: Plan;
@@ -213,7 +202,7 @@ function SubtotalSummary({
     <SummarySection>
       {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.SHARED &&
         !!formData.onDemandMaxSpend && (
-          <Item>
+          <Item data-test-id="summary-item-spend-cap">
             <ItemFlex>
               <div>
                 {tct('[budgetTerm] spend cap', {
@@ -235,7 +224,7 @@ function SubtotalSummary({
           .filter(([_, budget]) => budget > 0)
           .map(([category, budget]) => {
             return (
-              <Item key={category}>
+              <Item key={category} data-test-id={`summary-item-spend-cap-${category}`}>
                 <ItemFlex>
                   <div>
                     {tct('[categoryName] [budgetTerm] spend cap', {
@@ -257,7 +246,7 @@ function SubtotalSummary({
               </Item>
             );
           })}
-      <Item>
+      <Item data-test-id="summary-item-plan-total">
         <ItemFlex>
           <strong>{t('Plan Total')}</strong>
           {previewDataLoading ? (
@@ -290,6 +279,7 @@ function TotalSummary({
   onSubmit,
   buttonDisabled,
   isSubmitting,
+  effectiveDate,
   renewalDate,
   activePlan,
   formData,
@@ -297,6 +287,7 @@ function TotalSummary({
   activePlan: Plan;
   billedTotal: number;
   buttonDisabled: boolean;
+  effectiveDate: moment.Moment | null;
   formData: CheckoutFormData;
   isSubmitting: boolean;
   onSubmit: () => void;
@@ -321,32 +312,29 @@ function TotalSummary({
       {!previewDataLoading && (
         <Fragment>
           {previewData?.invoiceItems
-            .filter(
-              item =>
-                ADDITIONAL_FEES_INVOICE_ITEM_TYPES.includes(item.type) ||
-                (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0) // they might have an outstanding balance
-            )
+            .filter(item => item.type === InvoiceItemType.SALES_TAX)
             .map(item => {
+              const formattedPrice = utils.displayPrice({cents: item.amount});
               return (
-                <Item key={item.type}>
+                <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
                   <ItemFlex>
                     <div>{item.description}</div>
-                    <div>{utils.displayPrice({cents: item.amount})}</div>
+                    <div>{formattedPrice}</div>
                   </ItemFlex>
                 </Item>
               );
             })}
         </Fragment>
       )}
-      {!previewDataLoading && !!previewData?.creditApplied && (
-        <Item>
+      {!previewDataLoading && !effectiveDate && !!previewData?.creditApplied && (
+        <Item data-test-id="summary-item-credit_applied">
           <ItemFlex>
             <div>{t('Credit applied')}</div>
             <Credit>{utils.displayPrice({cents: -previewData.creditApplied})}</Credit>
           </ItemFlex>
         </Item>
       )}
-      <Item>
+      <Item data-test-id="summary-item-due-today">
         <ItemFlex>
           <DueToday>{t('Due today')}</DueToday>
           {previewDataLoading ? (
@@ -380,6 +368,10 @@ function TotalSummary({
         {isSubmitting ? t('Checking out...') : t('Confirm and pay')}
       </StyledButton>
       <Subtext>
+        {!!effectiveDate &&
+          tct('Your changes will apply on [effectiveDate]. ', {
+            effectiveDate: moment(effectiveDate).format('MMM D, YYYY'),
+          })}
         {longInterval === 'yearly'
           ? tct(
               'Plan renews [longInterval] on [renewalDate]. Any additional usage will continue to be billed monthly.',
@@ -420,6 +412,7 @@ function Cart({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [stripe, setStripe] = useState<stripe.Stripe>();
+  const [effectiveDate, setEffectiveDate] = useState<moment.Moment | null>(null); // this is only set when the effective date is in the future
   const [renewalDate, setRenewalDate] = useState<moment.Moment | null>(null);
   const [originalBilledTotal, setOriginalBilledTotal] = useState(0);
   const [billedTotal, setBilledTotal] = useState(0);
@@ -439,38 +432,31 @@ function Cart({
         if (data) {
           // effectiveAt is the day before the changes are effective
           // for immediate changes, effectiveAt is the current day
-          const {effectiveAt, invoiceItems, billedAmount} = data;
+          const {effectiveAt, invoiceItems, billedAmount, proratedAmount} = data;
           const effectiveImmediately = effectiveAt
             ? new Date(effectiveAt).getTime() <= Date.now() + 3600
             : false;
           const planItem = invoiceItems.find(
             item => item.type === InvoiceItemType.SUBSCRIPTION
           );
+
           setRenewalDate(
             moment(planItem?.period_end ?? subscription.contractPeriodEnd).add(1, 'day')
           );
           if (effectiveImmediately) {
-            // include all items after tax
-            setOriginalBilledTotal(
-              invoiceItems
-                .filter(
-                  item =>
-                    ![
-                      ...DISCOUNT_INVOICE_ITEM_TYPES,
-                      InvoiceItemType.BALANCE_CHANGE, // can add or subtract from the total
-                    ].includes(item.type)
-                )
-                .reduce((acc, item) => acc + item.amount, 0)
-            );
+            setOriginalBilledTotal(proratedAmount);
             setBilledTotal(billedAmount);
+            setEffectiveDate(null);
           } else {
             setOriginalBilledTotal(0);
             setBilledTotal(0);
+            setEffectiveDate(moment(effectiveAt).add(1, 'day'));
           }
         } else {
           setRenewalDate(null);
           setOriginalBilledTotal(0);
           setBilledTotal(0);
+          setEffectiveDate(null);
         }
       },
       (error: Error) => {
@@ -479,6 +465,7 @@ function Cart({
         setRenewalDate(null);
         setOriginalBilledTotal(0);
         setBilledTotal(0);
+        setEffectiveDate(null);
       }
     );
   }, [api, formData, organization, subscription.contractPeriodEnd]);
@@ -532,7 +519,7 @@ function Cart({
   };
 
   return (
-    <CartContainer>
+    <CartContainer data-test-id="cart">
       {errorMessage && <Alert type="error">{errorMessage}</Alert>}
       <PlanSummary activePlan={activePlan} formData={formData} />
       <SubtotalSummary
@@ -551,6 +538,7 @@ function Cart({
         previewData={previewData}
         previewDataLoading={previewDataLoading}
         renewalDate={renewalDate}
+        effectiveDate={effectiveDate}
         onSubmit={() => handleConfirmAndPay()}
       />
     </CartContainer>
