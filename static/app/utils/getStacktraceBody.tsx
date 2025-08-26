@@ -1,4 +1,5 @@
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
+import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import type {Event} from 'sentry/types/event';
 
 export default function getStacktraceBody(
@@ -37,15 +38,25 @@ export default function getStacktraceBody(
   // TODO(ts): This should be verified when EntryData has the correct type
   return exc.data.values
     .filter((value: any) => !!value.stacktrace)
-    .map((value: any) =>
-      rawStacktraceContent(
+    .map((value: any) => {
+      const result = rawStacktraceContent(
         value.stacktrace,
         event.platform,
         value,
         hasSimilarityEmbeddingsFeature,
         includeLocation,
         includeJSContext
-      )
-    )
+      );
+
+      if (isStacktraceNewestFirst()) {
+        const lines = result.split('\n');
+        const exceptionLine = lines[0];
+        const frameLines = lines.slice(1);
+        frameLines.reverse();
+        return [exceptionLine, ...frameLines].join('\n');
+      }
+
+      return result;
+    })
     .reduce((acc: any, value: any) => acc.concat(value), []);
 }
