@@ -55,6 +55,13 @@ export default function TokensPage() {
       const goPrevPage = navigation === 'prev' && response.hasPreviousPage;
       const goNextPage = navigation === 'next' && response.hasNextPage;
 
+      if (
+        (navigation === 'next' && !response.hasNextPage) ||
+        (navigation === 'prev' && !response.hasPreviousPage)
+      ) {
+        return;
+      }
+
       navigate({
         pathname: path,
         query: {

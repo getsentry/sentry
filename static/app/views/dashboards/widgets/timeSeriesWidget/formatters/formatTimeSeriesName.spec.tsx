@@ -104,6 +104,41 @@ describe('formatSeriesName', () => {
         [{key: 'release', value: 'frontend@31804d9a5f0b5e4f53055467cd258e1c'}],
         '31804d9a5f0b',
       ],
+      [
+        'p95(span.duration)',
+        [{key: 'error.type', value: ['Exception', 'TypeError']}],
+        '["Exception","TypeError"]',
+      ],
+      [
+        'p95(span.duration)',
+        [{key: 'error.type', value: ['Exception', null, 'TypeError']}],
+        '["Exception",null,"TypeError"]',
+      ],
+      ['p95(span.duration)', [{key: 'error.type', value: [null]}], '[null]'],
+      ['p95(span.duration)', [{key: 'error.type', value: []}], '[]'],
+      [
+        'p95(span.duration)',
+        [
+          {key: 'error.type', value: ['Exception', null]},
+          {key: 'env', value: 'prod'},
+        ],
+        '["Exception",null],prod',
+      ],
+      [
+        'p95(span.duration)',
+        [
+          {key: 'release', value: 'v0.0.2'},
+          {key: 'error.type', value: ['Exception', 'TypeError']},
+        ],
+        'v0.0.2,["Exception","TypeError"]',
+      ],
+      ['p95(span.duration)', [{key: 'counts', value: [1, 2, 3]}], '[1,2,3]'],
+      ['p95(span.duration)', [{key: 'counts', value: [1, null, 3]}], '[1,null,3]'],
+      [
+        'p95(span.duration)',
+        [{key: 'mixed', value: [null, null, null]}],
+        '[null,null,null]',
+      ],
     ])('Formats %s with groupBy %s as %s', (name, groupBy, result) => {
       const timeSeries = TimeSeriesFixture({
         yAxis: name,

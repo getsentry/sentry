@@ -51,7 +51,7 @@ class GitLabApiClientPath:
     user = "/user"
 
     @staticmethod
-    def build_api_url(base_url, path):
+    def build_api_url(base_url, path) -> str:
         return f"{base_url.rstrip('/')}{API_VERSION}{path}"
 
     @classmethod

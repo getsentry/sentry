@@ -43,7 +43,7 @@ pytestmark = [requires_kafka]
 
 @freeze_time()
 class HandleSnubaQueryUpdateTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.topic = Topic.METRICS_SUBSCRIPTIONS_RESULTS
         self.orig_registry = deepcopy(subscriber_registry)
@@ -59,7 +59,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         create_topics(self.cluster, [self.real_topic])
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)

@@ -25,7 +25,7 @@ def send_task(
     consumer: ProcessingStrategy[KafkaPayload],
     ts: datetime,
     task: MonitorsClockTasks,
-):
+) -> None:
     value = BrokerValue(
         KafkaPayload(b"fake-key", MONITORS_CLOCK_TASKS_CODEC.encode(task), []),
         partition,

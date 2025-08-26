@@ -15,7 +15,7 @@ any_confidence = AnyConfidence()
 class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.start = self.day_ago = before_now(days=1).replace(
@@ -81,6 +81,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             confidence=[any_confidence if val else None for val in event_counts],
         )
         assert timeseries["meta"] == {
+            "dataScanned": "full",
             "valueType": "integer",
             "interval": 3_600_000,
         }

@@ -262,7 +262,7 @@ class DashboardWidgetQueryOnDemand(Model):
 class DashboardWidgetSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    widget = FlexibleForeignKey("sentry.DashboardWidget")
+    widget = FlexibleForeignKey("sentry.DashboardWidget", db_constraint=False)
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
 
