@@ -379,8 +379,11 @@ const logsOnboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: t(
-            'To enable logging, you need to enable the feature in your Spring configuration file. You may also set [code:minimumLevel] to configure which log messages are sent to Sentry.'
+          text: tct(
+            'To enable logging, you need to enable the feature in your Spring configuration file. You may also set [code:minimumLevel] to configure which log messages are sent to Sentry.',
+            {
+              code: <code />,
+            }
           ),
         },
         {
