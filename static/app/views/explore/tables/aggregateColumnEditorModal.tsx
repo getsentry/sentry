@@ -216,6 +216,7 @@ function ColumnEditorRow({
         <GroupBySelector
           groupBy={column.column}
           groupBys={groupBys}
+          numberTags={numberTags}
           onChange={onColumnChange}
           stringTags={stringTags}
         />
@@ -243,6 +244,7 @@ function ColumnEditorRow({
 interface GroupBySelectorProps {
   groupBy: GroupBy;
   groupBys: string[];
+  numberTags: TagCollection;
   onChange: (groupBy: GroupBy) => void;
   stringTags: TagCollection;
 }
@@ -250,12 +252,14 @@ interface GroupBySelectorProps {
 function GroupBySelector({
   groupBy,
   groupBys,
+  numberTags,
   onChange,
   stringTags,
 }: GroupBySelectorProps) {
   const options: Array<SelectOption<string>> = useGroupByFields({
     groupBys,
-    tags: stringTags,
+    numberTags,
+    stringTags,
     traceItemType: TraceItemDataset.SPANS,
   });
 

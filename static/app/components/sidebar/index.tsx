@@ -24,13 +24,13 @@ import {
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {
   IconChevron,
+  IconCompass,
   IconDashboard,
   IconGraph,
   IconIssues,
   IconMegaphone,
   IconProject,
   IconReleases,
-  IconSearch,
   IconSettings,
   IconSiren,
   IconStats,
@@ -405,7 +405,7 @@ function Sidebar() {
   const explore = (
     <SidebarAccordion
       {...sidebarItemProps}
-      icon={<IconSearch />}
+      icon={<IconCompass />}
       label={<GuideAnchor target="explore">{t('Explore')}</GuideAnchor>}
       id="explore"
       exact={!shouldAccordionFloat}

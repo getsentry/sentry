@@ -67,7 +67,7 @@ class RatelimitMiddlewareTest(TestCase):
             )
 
     def test_concurrent(self) -> None:
-        def do_request():
+        def do_request() -> RateLimitMeta:
             uid = uuid.uuid4().hex
             meta = above_rate_limit_check(
                 "foo", RateLimit(limit=10, window=1, concurrent_limit=3), uid, self.group

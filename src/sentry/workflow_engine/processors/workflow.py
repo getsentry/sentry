@@ -16,10 +16,6 @@ from sentry.utils import json
 from sentry.workflow_engine import buffer
 from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
-from sentry.workflow_engine.processors.action import (
-    filter_recently_fired_workflow_actions,
-    fire_actions,
-)
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
     WorkflowEventContextData,
@@ -400,6 +396,10 @@ def process_workflows(
     Finally, each of the triggered workflows will have their actions evaluated and executed.
     """
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+    from sentry.workflow_engine.processors.action import (
+        filter_recently_fired_workflow_actions,
+        fire_actions,
+    )
 
     try:
         if detector is None and isinstance(event_data.event, GroupEvent):
@@ -470,6 +470,7 @@ def process_workflows(
         is_delayed=False,
         start_timestamp=event_start_time,
     )
+
     fire_actions(actions, detector, event_data)
 
     return triggered_workflows

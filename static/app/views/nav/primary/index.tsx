@@ -4,11 +4,11 @@ import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
+  IconCompass,
   IconDashboard,
   IconGraph,
   IconIssues,
   IconPrevent,
-  IconSearch,
   IconSettings,
 } from 'sentry/icons';
 import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
@@ -97,7 +97,7 @@ export function PrimaryNavigationItems() {
             group={PrimaryNavGroup.EXPLORE}
             {...makeNavItemProps(PrimaryNavGroup.EXPLORE)}
           >
-            <IconSearch />
+            <IconCompass />
           </SidebarLink>
         </NavTourElement>
 

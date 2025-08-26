@@ -26,7 +26,7 @@ from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
 
 class AssemblePreprodArtifactTest(BaseAssembleTest):
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Clean up assembly status and force garbage collection to close unclosed files"""
         import gc
 

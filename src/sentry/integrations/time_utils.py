@@ -1,6 +1,6 @@
 import time
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from django.utils import timezone
 from django.utils.timesince import timesince
@@ -24,7 +24,7 @@ def get_approx_start_time(group: Group):
     return regression_time
 
 
-def time_since(value: datetime):
+def time_since(value: datetime) -> str | date:
     """
     Display the relative time
     """
