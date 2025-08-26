@@ -27,7 +27,7 @@ describe('useFetchEventsTimeSeries', () => {
       body: {},
     });
 
-    const {result} = renderHook(() => useFetchEventsTimeSeries(), {
+    const {result} = renderHook(() => useFetchEventsTimeSeries({}, REFERRER), {
       wrapper: Wrapper,
     });
 
@@ -41,6 +41,7 @@ describe('useFetchEventsTimeSeries', () => {
         query: {
           excludeOther: 0,
           partial: 1,
+          referrer: 'test-query',
         },
       })
     );
@@ -55,9 +56,12 @@ describe('useFetchEventsTimeSeries', () => {
 
     const {result} = renderHook(
       () =>
-        useFetchEventsTimeSeries({
-          enabled: false,
-        }),
+        useFetchEventsTimeSeries(
+          {
+            enabled: false,
+          },
+          REFERRER
+        ),
       {
         wrapper: Wrapper,
       }
@@ -68,4 +72,23 @@ describe('useFetchEventsTimeSeries', () => {
 
     expect(request).toHaveBeenCalledTimes(0);
   });
+
+  it('requires a referrer', () => {
+    expect(() => {
+      renderHook(
+        () =>
+          useFetchEventsTimeSeries(
+            {
+              enabled: false,
+            },
+            ''
+          ),
+        {
+          wrapper: Wrapper,
+        }
+      );
+    }).toThrow();
+  });
 });
+
+const REFERRER = 'test-query';

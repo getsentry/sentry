@@ -6,10 +6,17 @@ interface UseFetchEventsTimeSeriesOptions {
   enabled?: boolean;
 }
 
-export function useFetchEventsTimeSeries({
-  enabled,
-}: UseFetchEventsTimeSeriesOptions = {}) {
+export function useFetchEventsTimeSeries(
+  {enabled}: UseFetchEventsTimeSeriesOptions = {},
+  referrer: string
+) {
   const organization = useOrganization();
+
+  if (!referrer) {
+    throw new Error(
+      '`useFetchEventsTimeSeries` cannot accept an empty referrer string, please specify a referrer!'
+    );
+  }
 
   return useApiQuery<TimeSeries[]>(
     [
@@ -18,6 +25,7 @@ export function useFetchEventsTimeSeries({
         query: {
           partial: 1,
           excludeOther: 0,
+          referrer,
         },
       },
     ],
