@@ -125,7 +125,7 @@ function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
                   skipWrapper
                   isHoverable
                   title={tct(
-                    'Semver packages format their versions as [code:package@version] or [code:package@version+build]. [cliDocs:Read more].',
+                    'Semver packages format their versions as [code:package@version] or [code:package@version+build]. [docs:Read more].',
                     {
                       code: <code />,
                       docs: (
