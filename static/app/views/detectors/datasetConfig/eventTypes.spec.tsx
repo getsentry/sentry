@@ -50,4 +50,15 @@ describe('eventTypes.parseEventTypesFromQuery', () => {
     );
     expect(query).toBe('message:"oops"');
   });
+
+  it('normalizes ordering', () => {
+    const input = 'event.type:[default, error] is:unresolved';
+    const {eventTypes, query} = parseEventTypesFromQuery(
+      input,
+      DetectorErrorsConfig.defaultEventTypes
+    );
+
+    expect(eventTypes).toEqual(['default', 'error']);
+    expect(query).toBe('is:unresolved');
+  });
 });

@@ -87,11 +87,12 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
       return '';
     }
 
-    const defaultsSorted = DEFAULT_EVENT_TYPES.toSorted();
     const current = snubaQuery.eventTypes;
+    const defaultsNormalized = DEFAULT_EVENT_TYPES.toSorted();
+    const currentNormalized = current.toSorted();
     const sameAsDefaults =
-      current.length === defaultsSorted.length &&
-      current.toSorted().every((v, i) => v === defaultsSorted[i]);
+      currentNormalized.length === defaultsNormalized.length &&
+      currentNormalized.every((v, i) => v === defaultsNormalized[i]);
 
     let eventTypeFilter = '';
     if (!sameAsDefaults) {

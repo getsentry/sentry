@@ -5,6 +5,8 @@ import {
   Token,
 } from 'sentry/components/searchSyntax/parser';
 
+// TODO: It is possible this creates a invalid query if they've used event.type inside parenthesis
+// eg - (something AND event.type:error)
 export function parseEventTypesFromQuery(
   query: string,
   defaultEventTypes: string[]
@@ -44,7 +46,9 @@ export function parseEventTypesFromQuery(
 
   const filtered = extracted.filter(v => defaultEventTypes.includes(v));
   const eventTypes =
-    filtered.length > 0 ? Array.from(new Set(filtered)) : defaultEventTypes;
+    filtered.length > 0
+      ? Array.from(new Set(filtered)).toSorted()
+      : Array.from(new Set(defaultEventTypes)).toSorted();
 
   // Remove event.type filters and all explicit space tokens; let joinQuery handle spacing
   const cleanedTokens = parsed.filter(token => {
