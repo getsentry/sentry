@@ -561,12 +561,86 @@ def get_attributes_and_values(
     return {"attributes_and_values": attributes_and_values}
 
 
+# TODO: Review and clean this up
+def _parse_spans_response(
+    response, columns: list[dict[str, str]], resolver: SearchResolver
+) -> list[dict]:
+    """
+    Parse protobuf response from TraceItemTable into a readable format.
+
+    The protobuf response has a structure like:
+    column_values {
+      attribute_name: "sentry.transaction"  # This is the internal name
+      results { val_str: "foo" }
+      results { val_str: "bar" }
+    }
+
+    This function converts it to:
+    [
+        {"transaction": "foo"},  # Using the user-facing column name
+        {"transaction": "bar"}
+    ]
+    """
+    if not hasattr(response, "column_values") or not response.column_values:
+        return []
+
+    column_data = {}
+    num_rows = 0
+
+    for column_values in response.column_values:
+        internal_column_name = column_values.attribute_name
+        values: list[str | float | None] = []
+
+        for result in column_values.results:
+            if hasattr(result, "is_null") and result.is_null:
+                values.append(None)
+            elif result.HasField("val_str"):
+                values.append(result.val_str)
+            elif result.HasField("val_double"):
+                values.append(result.val_double)
+            else:
+                values.append(None)
+        column_data[internal_column_name] = values
+        num_rows = max(num_rows, len(values))
+
+    internal_to_user_name: dict[str, str] = {}
+    for column in columns:
+        user_column_name = column["name"]
+        try:
+            resolved_column, _ = resolver.resolve_attribute(user_column_name)
+            internal_to_user_name[resolved_column.internal_name] = user_column_name
+        except Exception:
+            internal_to_user_name[user_column_name] = user_column_name
+
+    spans = []
+    for row_idx in range(num_rows):
+        span = {}
+        for column in columns:
+            user_column_name = column["name"]
+            internal_column_name = None
+            for internal_name, user_name in internal_to_user_name.items():
+                if user_name == user_column_name:
+                    internal_column_name = internal_name
+                    break
+            if (
+                internal_column_name
+                and internal_column_name in column_data
+                and row_idx < len(column_data[internal_column_name])
+            ):
+                span[user_column_name] = column_data[internal_column_name][row_idx]
+            else:
+                span[user_column_name] = None
+        spans.append(span)
+
+    return spans
+
+
 def get_spans(
     *,
     org_id: int,
     project_ids: list[int],
     query: str = "",
-    sort: str = "sentry.span_id",
+    sort: str = "",
     stats_period: str = "7d",
     columns: list[dict[str, str]],
     limit: int = 100,
@@ -578,7 +652,7 @@ def get_spans(
         org_id: Organization ID
         project_ids: List of project IDs to query
         query: Search query string (optional) - will be converted to a TraceItemFilter
-        sort: Field to sort by (default: sentry.span_id)
+        sort: Field to sort by (default: first column provided)
         stats_period: Time period to query (default: 7d)
         columns: List of columns with their type
         limit: Maximum number of results to return
@@ -586,11 +660,6 @@ def get_spans(
     Returns:
         Dictionary containing the spans data
     """
-    from sentry.models.organization import Organization
-    from sentry.search.eap.resolver import SearchResolver
-    from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-    from sentry.search.eap.types import SearchResolverConfig
-    from sentry.search.events.types import SnubaParams
 
     period = parse_stats_period(stats_period)
     if period is None:
@@ -604,15 +673,26 @@ def get_spans(
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
 
+    resolver = SearchResolver(
+        params=SnubaParams(
+            start=start,
+            end=end,
+        ),
+        config=SearchResolverConfig(),
+        definitions=SPAN_DEFINITIONS,
+    )
+
     request_columns = []
     for column in columns:
         column_name = column["name"]
         column_type = column["type"]
 
+        resolved_column, _ = resolver.resolve_attribute(column_name)
+
         request_columns.append(
             Column(
                 key=AttributeKey(
-                    name=column_name,
+                    name=resolved_column.internal_name,
                     type=(
                         AttributeKey.Type.TYPE_STRING
                         if column_type == "TYPE_STRING"
@@ -622,6 +702,7 @@ def get_spans(
             )
         )
 
+    # TODO: Clean this up. Could easily be made into a single conditional
     order_by_list = []
     if sort:
         # TODO: Review how asc vs descending is handled in the RPC.
@@ -640,17 +721,38 @@ def get_spans(
                 descending=descending,
             )
         )
+    else:
+        column_name = columns[0]["name"]
+        resolved_column, _ = resolver.resolve_attribute(column_name)
+        order_by_list.append(
+            TraceItemTableRequest.OrderBy(
+                column=Column(
+                    key=AttributeKey(
+                        name=resolved_column.internal_name,
+                        type=(
+                            AttributeKey.Type.TYPE_STRING
+                            if columns[0]["type"] == "TYPE_STRING"
+                            else AttributeKey.Type.TYPE_DOUBLE
+                        ),
+                    )
+                ),
+                descending=True,
+            )
+        )
 
     # Parse the query string into a TraceItemFilter
     query_filter = None
     if query and query.strip():
         try:
             # Create a minimal SnubaParams for the resolver
+            from sentry.models.project import Project
+
             organization = Organization.objects.get(id=org_id)
+            projects = list(Project.objects.filter(id__in=project_ids))
             snuba_params = SnubaParams(
                 start=start,
                 end=end,
-                projects=project_ids,
+                projects=projects,
                 organization=organization,
             )
 
@@ -682,7 +784,7 @@ def get_spans(
         meta=meta,
         columns=request_columns,
         order_by=order_by_list,
-        filter=query_filter,  # Add the parsed query filter here
+        filter=query_filter,
         limit=min(limit, 100),  # Force the upper limit to 100 to avoid abuse
     )
 
@@ -691,13 +793,15 @@ def get_spans(
     if not responses:
         return {"data": [], "meta": {}}
 
+    # Parse the protobuf response into a readable format
     response = responses[0]
+    parsed_data = _parse_spans_response(response, columns, resolver)
 
     return {
-        "data": response,
+        "data": parsed_data,
         "meta": {
             "columns": columns,
-            "total_rows": len(response),
+            "total_rows": len(parsed_data),
         },
     }
 
