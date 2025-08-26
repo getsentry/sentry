@@ -7,6 +7,7 @@ import type {
   UseLogsQueryResult,
 } from 'sentry/views/explore/logs/useLogsQuery';
 import {useInfiniteLogsQuery, useLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
+import {isLogsEnabled} from 'sentry/views/explore/logs/utils';
 
 interface LogsPageData {
   infiniteLogsQueryResult: UseInfiniteLogsQueryResult;
@@ -21,8 +22,8 @@ export const useLogsPageData = _useLogsPageData;
 
 export function LogsPageDataProvider({children}: {children: React.ReactNode}) {
   const organization = useOrganization();
-  const feature = organization.features.includes('ourlogs-enabled');
-  const infiniteScroll = organization.features.includes('ourlogs-infinite-scroll');
+  const feature = isLogsEnabled(organization);
+  const infiniteScroll = isLogsEnabled(organization);
   const logsQueryResult = useLogsQuery({disabled: infiniteScroll || !feature});
   const infiniteLogsQueryResult = useInfiniteLogsQuery({
     disabled: !infiniteScroll || !feature,
@@ -37,9 +38,6 @@ export function LogsPageDataProvider({children}: {children: React.ReactNode}) {
 }
 
 export function useLogsPageDataQueryResult() {
-  const hasInfiniteFeature = useOrganization().features.includes(
-    'ourlogs-infinite-scroll'
-  );
   const pageData = useLogsPageData();
-  return hasInfiniteFeature ? pageData.infiniteLogsQueryResult : pageData.logsQueryResult;
+  return pageData.infiniteLogsQueryResult;
 }

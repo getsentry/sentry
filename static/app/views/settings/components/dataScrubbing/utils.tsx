@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
+import {isLogsEnabled} from 'sentry/views/explore/logs/utils';
 
 import {
   AllowedDataScrubbingDatasets,
@@ -245,10 +246,7 @@ export function getRuleDescription(rule: Rule) {
  */
 export function areScrubbingDatasetsEnabled(organization: Organization) {
   // Currently only logs supports scrubbing datasets.
-  return (
-    organization.features.includes('ourlogs-enabled') &&
-    organization.features.includes('ourlogs-visualize-sidebar')
-  );
+  return isLogsEnabled(organization);
 }
 
 function getSourceLabel(rule: Rule) {
