@@ -1,5 +1,7 @@
 from django.urls import re_path
 
+from sentry.integrations.jira.views.sentry_issue_details import JiraSentryIssueDetailsControlView
+
 from .endpoints import JiraDescriptorEndpoint, JiraSearchEndpoint
 from .views import (
     JiraExtensionConfigurationView,
@@ -52,5 +54,10 @@ urlpatterns = [
         r"^issue/(?P<issue_key>[^/]+)/$",
         JiraSentryIssueDetailsView.as_view(),
         name="sentry-extensions-jira-issue-hook",
+    ),
+    re_path(
+        r"^issue-details/(?P<issue_key>[^/]+)/$",
+        JiraSentryIssueDetailsControlView.as_view(),
+        name="sentry-extensions-jira-issue-hook-control",
     ),
 ]
