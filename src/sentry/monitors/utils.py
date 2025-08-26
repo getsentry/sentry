@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from sentry import audit_log
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
@@ -416,10 +417,11 @@ def ensure_cron_detector(monitor: Monitor):
 
 def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
     try:
-        return Detector.objects.get(
-            datasource__type=DATA_SOURCE_CRON_MONITOR,
-            datasource__source_id=str(monitor.id),
-            datasource__organization_id=monitor.organization_id,
-        )
+        with in_test_hide_transaction_boundary():
+            return Detector.objects.get(
+                datasource__type=DATA_SOURCE_CRON_MONITOR,
+                datasource__source_id=str(monitor.id),
+                datasource__organization_id=monitor.organization_id,
+            )
     except Detector.DoesNotExist:
         return None
