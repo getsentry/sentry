@@ -63,6 +63,7 @@ class SeriesMeta(TypedDict):
     order: NotRequired[int]
     isOther: NotRequired[str]
     valueUnit: NotRequired[str]
+    dataScanned: NotRequired[Literal["partial", "full"]]
     valueType: str
     interval: float
 
@@ -345,6 +346,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             series_meta["isOther"] = result.data["is_other"]
         if "order" in result.data:
             series_meta["order"] = result.data["order"]
+        if "full_scan" in result.data["meta"]:
+            series_meta["dataScanned"] = "full" if result.data["meta"]["full_scan"] else "partial"
 
         timeseries = TimeSeries(
             values=[],
