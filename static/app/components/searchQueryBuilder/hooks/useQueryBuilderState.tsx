@@ -87,10 +87,38 @@ export type UpdateFreeTextAction = {
   focusOverride?: FocusOverride;
 };
 
-export type ReplaceTokensWithTextAction = {
+export type ReplaceTokensWithTextOnPasteAction = {
   text: string;
   tokens: ParseResultToken[];
-  type: 'REPLACE_TOKENS_WITH_TEXT';
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE';
+  focusOverride?: FocusOverride;
+};
+
+export type ReplaceTokensWithTextOnDeleteAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE';
+  focusOverride?: FocusOverride;
+};
+
+export type ReplaceTokensWithTextOnCutAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_CUT';
+  focusOverride?: FocusOverride;
+};
+
+export type ReplaceTokensWithTextOnKeyDownAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN';
+  focusOverride?: FocusOverride;
+};
+
+export type ReplaceTokensWithTextOnSelectAction = {
+  text: string;
+  tokens: ParseResultToken[];
+  type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT';
   focusOverride?: FocusOverride;
 };
 
@@ -135,7 +163,11 @@ export type QueryBuilderActions =
   | DeleteTokenAction
   | DeleteTokensAction
   | UpdateFreeTextAction
-  | ReplaceTokensWithTextAction
+  | ReplaceTokensWithTextOnPasteAction
+  | ReplaceTokensWithTextOnDeleteAction
+  | ReplaceTokensWithTextOnCutAction
+  | ReplaceTokensWithTextOnKeyDownAction
+  | ReplaceTokensWithTextOnSelectAction
   | UpdateFilterKeyAction
   | UpdateFilterOpAction
   | UpdateTokenValueAction
@@ -562,7 +594,7 @@ const ALPHANUMERIC_REGEX = /[a-zA-Z0-9]/;
  * description:[*test*,"*some text*"]`
  */
 export function replaceFreeTextTokens(
-  action: UpdateFreeTextAction | ReplaceTokensWithTextAction,
+  action: UpdateFreeTextAction | ReplaceTokensWithTextOnPasteAction,
   getFieldDefinition: FieldDefinitionGetter,
   replaceRawSearchKeys: string[],
   currentQuery: string
@@ -750,12 +782,18 @@ export function useQueryBuilderState({
                 : false,
           };
         }
-        case 'REPLACE_TOKENS_WITH_TEXT': {
-          const {
-            query,
-            focusOverride,
-            committedQuery: currentCommittedQuery,
-          } = replaceTokensWithText(state, {
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_CUT':
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE':
+          return replaceTokensWithText(state, {
+            tokens: action.tokens,
+            text: action.text,
+            focusOverride: action.focusOverride,
+            getFieldDefinition,
+          });
+        case 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE': {
+          const {query, focusOverride, committedQuery} = replaceTokensWithText(state, {
             tokens: action.tokens,
             text: action.text,
             focusOverride: action.focusOverride,
@@ -768,19 +806,18 @@ export function useQueryBuilderState({
             replaceRawSearchKeys.length > 0 &&
             hasRawSearchReplacement
           ) {
-            const newQuery = replaceFreeTextTokens(
+            replacedQuery = replaceFreeTextTokens(
               action,
               getFieldDefinition,
               replaceRawSearchKeys,
               query
             );
-            replacedQuery = newQuery;
           }
 
           return {
             ...state,
             focusOverride,
-            committedQuery: replacedQuery ?? currentCommittedQuery,
+            committedQuery: replacedQuery ?? committedQuery,
             query: replacedQuery ?? query,
             replacedRawSearchKey: replacedQuery ? true : state.replacedRawSearchKey,
           };
