@@ -31,14 +31,19 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
 
     def _delete_artifact_files(
         self, preprod_artifact: PreprodArtifact, artifact_id: int
-    ) -> tuple[list[str], int, int, list[str]]:
-        """Delete all files associated with an artifact
+    ) -> tuple[list[str], int, int]:
+        """Delete all files and records associated with an artifact
 
         Returns:
-            tuple: (files_deleted, installable_count, size_metrics_count, files_failed_to_delete)
+            tuple: (files_deleted, installable_count, size_metrics_count)
+                - files_deleted: List of successfully deleted items (files, records)
+                - installable_count: Number of installable artifacts processed
+                - size_metrics_count: Number of size metrics processed
+
+        Raises:
+            Exception: If any deletion operation fails, causing transaction rollback
         """
         files_deleted = []
-        files_failed_to_delete = []
 
         # Delete the main artifact file
         if preprod_artifact.file_id:
@@ -55,7 +60,6 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                     },
                 )
             except Exception as e:
-                files_failed_to_delete.append(f"main_file:{preprod_artifact.file_id}")
                 logger.warning(
                     "preprod_artifact.admin_batch_delete.file_delete_failed",
                     extra={
@@ -65,6 +69,7 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                         "error": str(e),
                     },
                 )
+                raise
 
         # Delete the installable app file (IPA/APK)
         if preprod_artifact.installable_app_file_id:
@@ -81,9 +86,6 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                     },
                 )
             except Exception as e:
-                files_failed_to_delete.append(
-                    f"installable_file:{preprod_artifact.installable_app_file_id}"
-                )
                 logger.warning(
                     "preprod_artifact.admin_batch_delete.file_delete_failed",
                     extra={
@@ -93,6 +95,7 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                         "error": str(e),
                     },
                 )
+                raise
 
         # Delete size analysis metrics and their associated files
         size_metrics = list(
@@ -116,9 +119,6 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                         },
                     )
                 except Exception as e:
-                    files_failed_to_delete.append(
-                        f"size_analysis_file:{size_metric.analysis_file_id}"
-                    )
                     logger.warning(
                         "preprod_artifact.admin_batch_delete.file_delete_failed",
                         extra={
@@ -129,16 +129,28 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                             "error": str(e),
                         },
                     )
+                    raise
 
             # Delete the size metric record itself
-            size_metric.delete()
-            logger.info(
-                "preprod_artifact.admin_batch_delete.size_metric_deleted",
-                extra={
-                    "artifact_id": artifact_id,
-                    "size_metric_id": size_metric.id,
-                },
-            )
+            try:
+                size_metric.delete()
+                logger.info(
+                    "preprod_artifact.admin_batch_delete.size_metric_deleted",
+                    extra={
+                        "artifact_id": artifact_id,
+                        "size_metric_id": size_metric.id,
+                    },
+                )
+            except Exception as e:
+                logger.warning(
+                    "preprod_artifact.admin_batch_delete.size_metric_delete_failed",
+                    extra={
+                        "artifact_id": artifact_id,
+                        "size_metric_id": size_metric.id,
+                        "error": str(e),
+                    },
+                )
+                raise
 
         # Delete installable artifacts (download links)
         installable_artifacts = InstallablePreprodArtifact.objects.filter(
@@ -146,17 +158,29 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
         )
         installable_count = installable_artifacts.count()
         for installable in installable_artifacts:
-            installable.delete()
-            logger.info(
-                "preprod_artifact.admin_batch_delete.installable_deleted",
-                extra={
-                    "artifact_id": artifact_id,
-                    "installable_id": installable.id,
-                    "url_path": installable.url_path,
-                },
-            )
+            try:
+                installable.delete()
+                logger.info(
+                    "preprod_artifact.admin_batch_delete.installable_deleted",
+                    extra={
+                        "artifact_id": artifact_id,
+                        "installable_id": installable.id,
+                        "url_path": installable.url_path,
+                    },
+                )
+            except Exception as e:
+                logger.warning(
+                    "preprod_artifact.admin_batch_delete.installable_delete_failed",
+                    extra={
+                        "artifact_id": artifact_id,
+                        "installable_id": installable.id,
+                        "url_path": installable.url_path,
+                        "error": str(e),
+                    },
+                )
+                raise
 
-        return files_deleted, installable_count, size_metrics_count, files_failed_to_delete
+        return files_deleted, installable_count, size_metrics_count
 
     def delete(self, request: Request) -> Response:
         """
@@ -220,7 +244,6 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
         # Track deletion results
         deletion_results = []
         total_files_deleted = []
-        total_files_failed_to_delete = []
         total_size_metrics_deleted = 0
         total_installable_artifacts_deleted = 0
 
@@ -233,19 +256,14 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                 project_id = preprod_artifact.project.id
 
                 with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
-                    files_deleted, installable_count, size_metrics_count, files_failed = (
+                    files_deleted, installable_count, size_metrics_count = (
                         self._delete_artifact_files(preprod_artifact, artifact_id)
                     )
-
-                    # If any files failed to delete, rollback the transaction
-                    if files_failed:
-                        raise Exception(f"Failed to delete files: {files_failed}")
 
                     # Delete the artifact record (related objects already explicitly deleted above)
                     preprod_artifact.delete()
 
                 total_files_deleted.extend(files_deleted)
-                total_files_failed_to_delete.extend(files_failed)
                 total_size_metrics_deleted += size_metrics_count
                 total_installable_artifacts_deleted += installable_count
 
@@ -254,7 +272,6 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                         "artifact_id": str(artifact_id),
                         "success": True,
                         "files_deleted": files_deleted,
-                        "files_failed_to_delete": files_failed,
                         "size_metrics_deleted": size_metrics_count,
                         "installable_artifacts_deleted": installable_count,
                     }
@@ -268,7 +285,6 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                         "organization_id": organization_id,
                         "project_id": project_id,
                         "files_deleted": files_deleted,
-                        "files_failed_to_delete": files_failed,
                         "size_metrics_deleted": size_metrics_count,
                         "installable_artifacts_deleted": installable_count,
                     },
@@ -304,7 +320,6 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                 "successful_count": len(successful_deletions),
                 "failed_count": len(failed_deletions),
                 "total_files_deleted": len(total_files_deleted),
-                "total_files_failed_to_delete": len(total_files_failed_to_delete),
                 "total_size_metrics_deleted": total_size_metrics_deleted,
                 "total_installable_artifacts_deleted": total_installable_artifacts_deleted,
             },
@@ -320,7 +335,6 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                     "successful_deletions": len(successful_deletions),
                     "failed_deletions": len(failed_deletions),
                     "total_files_deleted": len(total_files_deleted),
-                    "total_files_failed_to_delete": len(total_files_failed_to_delete),
                     "total_size_metrics_deleted": total_size_metrics_deleted,
                     "total_installable_artifacts_deleted": total_installable_artifacts_deleted,
                 },
