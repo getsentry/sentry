@@ -924,7 +924,7 @@ def test_create_feedback_issue_title(
         event["contexts"]["feedback"]["message"] = long_message
 
         mock_get_feedback_title.return_value = (
-            "User Feedback: This is a very long feedback message that describes multiple..."
+            "This is a very long feedback message that describes multiple..."
         )
 
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
@@ -955,7 +955,7 @@ def test_create_feedback_issue_title_from_seer(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_get_feedback_title.return_value = "User Feedback: Login Button Issue"
+        mock_get_feedback_title.return_value = "Login Button Issue"
 
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
