@@ -366,7 +366,7 @@ function SearchQueryBuilderInputInternal({
         .trim();
 
       dispatch({
-        type: 'REPLACE_TOKENS_WITH_TEXT',
+        type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
         tokens: [token],
         text: clipboardText,
       });
