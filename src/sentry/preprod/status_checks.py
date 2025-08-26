@@ -21,7 +21,7 @@ def update_preprod_size_analysis_status_on_upload(preprod_artifact: PreprodArtif
     text = f"⏳ Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing..."
     return _create_preprod_status_check(
         preprod_artifact=preprod_artifact,
-        status=GitHubCheckStatus.PENDING,
+        status=GitHubCheckStatus.IN_PROGRESS,
         title=SIZE_ANALYZER_TITLE,
         text=text,
         summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing...",
@@ -35,7 +35,8 @@ def update_preprod_size_analysis_status_on_completion(
     text = f"✅ Build {preprod_artifact.id} processed successfully."
     return _create_preprod_status_check(
         preprod_artifact=preprod_artifact,
-        status=GitHubCheckStatus.SUCCESS,
+        status=GitHubCheckStatus.COMPLETED,
+        conclusion=GitHubCheckConclusion.SUCCESS,
         title=SIZE_ANALYZER_TITLE,
         text=text,
         summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} processed successfully.",
@@ -50,7 +51,8 @@ def update_preprod_size_analysis_status_on_failure(
     text = f"❌ Build {preprod_artifact.id} failed. Error: {error_message}"
     return _create_preprod_status_check(
         preprod_artifact=preprod_artifact,
-        status=GitHubCheckStatus.FAILURE,
+        status=GitHubCheckStatus.COMPLETED,
+        conclusion=GitHubCheckConclusion.FAILURE,
         title=SIZE_ANALYZER_TITLE,
         text=text,
         summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} failed.",
@@ -159,30 +161,50 @@ def _get_status_check_client(
 ) -> StatusCheckClient | None:
     """Get the appropriate status check client for the project's integration."""
     try:
-        if commit_comparison.provider == IntegrationProviderSlug.GITHUB:
-            from sentry.integrations.github.client import GitHubBaseClient
+        from sentry.models.repository import Repository
 
-            integration = Integration.objects.get(
-                provider=IntegrationProviderSlug.GITHUB, organizations__in=[project.organization_id]
-            )
-            return GitHubBaseClient(integration=integration)
-        elif commit_comparison.provider == IntegrationProviderSlug.GITLAB:
-            from sentry.integrations.gitlab.client import GitLabApiClient
+        # Repository provider format is "integrations:provider"
+        repo_provider = f"integrations:{commit_comparison.provider}"
 
-            integration = Integration.objects.get(
-                provider=IntegrationProviderSlug.GITLAB, organizations__in=[project.organization_id]
-            )
-            return GitLabApiClient(integration=integration)
-        else:
+        repository = Repository.objects.get(
+            organization_id=project.organization_id,
+            name=commit_comparison.head_repo_name,
+            provider=repo_provider,
+        )
+
+        if not repository.integration_id:
             logger.info(
-                "Status checks not currently supported for provider",
-                extra={"provider": commit_comparison.provider, "project_id": project.id},
+                "Repository found but no integration_id set",
+                extra={
+                    "provider": commit_comparison.provider,
+                    "project_id": project.id,
+                    "repo_name": commit_comparison.head_repo_name,
+                },
             )
             return None
+
+        integration = Integration.objects.get(id=repository.integration_id)
+        client = _create_client_for_provider(commit_comparison.provider, integration, project.organization_id)
+        return client
+
+    except Repository.DoesNotExist:
+        logger.info(
+            "No repository found for provider and repo name",
+            extra={
+                "provider": commit_comparison.provider,
+                "project_id": project.id,
+                "repo_name": commit_comparison.head_repo_name,
+            },
+        )
+        return None
     except Integration.DoesNotExist:
         logger.info(
-            "No integration found for provider",
-            extra={"provider": commit_comparison.provider, "project_id": project.id},
+            "Integration not found for repository",
+            extra={
+                "provider": commit_comparison.provider,
+                "project_id": project.id,
+                "repo_name": commit_comparison.head_repo_name,
+            },
         )
         return None
     except Exception as e:
@@ -191,8 +213,25 @@ def _get_status_check_client(
             extra={
                 "provider": commit_comparison.provider,
                 "project_id": project.id,
+                "repo_name": commit_comparison.head_repo_name,
                 "error": str(e),
             },
+        )
+        return None
+
+
+def _create_client_for_provider(
+    provider: str, integration: Integration, organization_id: int
+) -> StatusCheckClient | None:
+    """Create the appropriate client for the given provider and integration."""
+    if provider == IntegrationProviderSlug.GITHUB:
+        # Use the proper integration installation pattern
+        installation = integration.get_installation(organization_id=organization_id)
+        return installation.get_client()
+    else:
+        logger.info(
+            "Status checks not currently supported for provider",
+            extra={"provider": provider},
         )
         return None
 
@@ -245,9 +284,12 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 "summary": summary,
                 "text": text,
             },
-            "conclusion": conclusion.value if conclusion else None,
             "status": status.value,
         }
+
+        # Only include conclusion when status is completed
+        if status == GitHubCheckStatus.COMPLETED and conclusion:
+            check_data["conclusion"] = conclusion.value
 
         if target_url:
             check_data["details_url"] = target_url
