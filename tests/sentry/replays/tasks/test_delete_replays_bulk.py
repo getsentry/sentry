@@ -9,7 +9,7 @@ from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.delete import (
-    SEER_DELETE_SUMMARIES_URL,
+    SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
     MatchedRows,
     fetch_rows_matching_pattern,
 )
@@ -241,11 +241,14 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert len(result["rows"]) == 1
         assert result["rows"][0]["replay_id"] == str(uuid.UUID(replay_id))
 
-    @patch("requests.post")
+    @patch("sentry.replays.usecases.delete.make_signed_seer_api_request")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
     def test_run_bulk_replay_delete_job_has_seer_data_true(
-        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock, mock_post: MagicMock
+        self,
+        mock_delete_matched_rows: MagicMock,
+        mock_fetch_rows: MagicMock,
+        mock_make_seer_api_request: MagicMock,
     ) -> None:
         def row_generator() -> Generator[MatchedRows]:
             yield {
@@ -275,7 +278,10 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             }
 
         mock_fetch_rows.side_effect = row_generator()
-        mock_post.return_value = Mock(status_code=204)
+
+        mock_response = Mock()
+        mock_response.status = 204
+        mock_make_seer_api_request.return_value = mock_response
 
         with TaskRunner():
             run_bulk_replay_delete_job.delay(self.job.id, offset=0, limit=2, has_seer_data=True)
@@ -285,27 +291,17 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert self.job.status == "completed"
         assert self.job.offset == 3
 
-        assert mock_post.call_count == 2
-        assert mock_post.call_args_list[0].args == (SEER_DELETE_SUMMARIES_URL,)
-        assert mock_post.call_args_list[0].kwargs["data"] == json.dumps(
-            {
-                "replay_ids": ["a", "b"],
-            }
-        )
-        assert (
-            mock_post.call_args_list[0].kwargs["headers"]["content-type"]
-            == "application/json;charset=utf-8"
-        )
-        assert mock_post.call_args_list[1].args == (SEER_DELETE_SUMMARIES_URL,)
-        assert mock_post.call_args_list[1].kwargs["data"] == json.dumps(
-            {
-                "replay_ids": ["c"],
-            }
-        )
-        assert (
-            mock_post.call_args_list[1].kwargs["headers"]["content-type"]
-            == "application/json;charset=utf-8"
-        )
+        assert mock_make_seer_api_request.call_count == 2
+
+        first_call = mock_make_seer_api_request.call_args_list[0]
+        assert first_call[1]["path"] == SEER_DELETE_SUMMARIES_ENDPOINT_PATH
+        request_body = json.loads(first_call[1]["body"].decode())
+        assert request_body == {"replay_ids": ["a", "b"]}
+
+        second_call = mock_make_seer_api_request.call_args_list[1]
+        assert second_call[1]["path"] == SEER_DELETE_SUMMARIES_ENDPOINT_PATH
+        request_body = json.loads(second_call[1]["body"].decode())
+        assert request_body == {"replay_ids": ["c"]}
 
     @patch("requests.post")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
