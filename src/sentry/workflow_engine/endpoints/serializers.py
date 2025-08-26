@@ -44,6 +44,7 @@ class ActionSerializerResponse(TypedDict):
     integrationId: str | None
     data: dict
     config: dict
+    status: str
 
 
 @register(Action)
@@ -55,6 +56,7 @@ class ActionSerializer(Serializer):
             "integrationId": str(obj.integration_id) if obj.integration_id else None,
             "data": obj.data,
             "config": convert_dict_key_case(obj.config, snake_to_camel_case),
+            "status": obj.get_status_display(),
         }
 
 
