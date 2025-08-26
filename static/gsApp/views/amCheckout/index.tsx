@@ -712,6 +712,7 @@ class AMCheckout extends Component<Props, State> {
       promotionData,
       checkoutTier,
       isNewCheckout,
+      api,
     } = this.props;
     const {loading, error, formData, billingConfig} = this.state;
 
@@ -792,7 +793,13 @@ class AMCheckout extends Component<Props, State> {
           <SidePanel>
             <OverviewContainer>
               {isNewCheckout ? (
-                <Cart {...overviewProps} />
+                <Cart
+                  {...overviewProps}
+                  api={api}
+                  // TODO(checkout v3): we'll also need to fetch billing details but
+                  // this will be done in a later PR
+                  hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
+                />
               ) : checkoutTier === PlanTier.AM3 ? (
                 <CheckoutOverviewV2 {...overviewProps} />
               ) : (

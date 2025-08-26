@@ -602,7 +602,7 @@ export type InvoiceItem = BaseInvoiceItem & {
 
 // TODO(data categories): BIL-969
 export enum InvoiceItemType {
-  UNKOWN = '',
+  UNKNOWN = '',
   SUBSCRIPTION = 'subscription',
   ONDEMAND = 'ondemand',
   RESERVED_EVENTS = 'reserved',
