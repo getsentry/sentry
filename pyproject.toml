@@ -473,7 +473,6 @@ module = [
     "sentry.issues.endpoints.group_hashes",
     "sentry.issues.endpoints.group_notes",
     "sentry.issues.endpoints.group_notes_details",
-    "sentry.issues.endpoints.group_open_periods",
     "sentry.issues.endpoints.group_similar_issues",
     "sentry.issues.endpoints.group_similar_issues_embeddings",
     "sentry.issues.endpoints.group_tombstone",
