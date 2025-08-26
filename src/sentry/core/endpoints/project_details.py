@@ -39,7 +39,8 @@ from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
