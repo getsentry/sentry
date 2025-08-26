@@ -63,7 +63,7 @@ class TraceItemAttributeKey(TypedDict):
     key: str
     name: str
     secondaryAliases: NotRequired[list[str]]
-    attributeSource: NotRequired[str]
+    attributeSource: dict[str, str | bool]
 
 
 class TraceItemAttributesNamesPaginator:
@@ -171,12 +171,20 @@ def as_attribute_key(
     else:
         key = name
 
+    serialized_source: dict[str, str | bool] = {
+        "source_type": attribute_source["source_type"].value
+    }
+    if attribute_source.get("is_transformed_alias"):
+        serialized_source["is_transformed_alias"] = True
+
     attribute_key: TraceItemAttributeKey = {
         # key is what will be used to query the API
         "key": key,
         # name is what will be used to display the tag nicely in the UI
         "name": name,
-        "attributeSource": attribute_source.value,
+        # source of the attribute, used to determine whether to show the sentry icon etc. and helps delineate between sentry and user attributes when the names are identical
+        # eg. sentry.environment and environment set by the user both have the same alias (name).
+        "attributeSource": serialized_source,
     }
 
     if secondary_aliases:

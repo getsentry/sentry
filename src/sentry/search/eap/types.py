@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Reliability
 
@@ -45,9 +45,14 @@ class SupportedTraceItemType(str, Enum):
     UPTIME_RESULTS = "uptime_results"
 
 
-class AttributeSource(str, Enum):
+class AttributeSourceType(str, Enum):
     SENTRY = "sentry"
     USER = "user"
+
+
+class AttributeSource(TypedDict):
+    source_type: AttributeSourceType
+    is_transformed_alias: NotRequired[bool]
 
 
 class TraceItemAttribute(TypedDict):
