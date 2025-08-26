@@ -1,10 +1,13 @@
 import {useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
+import {Container, Flex, Grid} from 'sentry/components/core/layout';
+import {Heading, Text} from 'sentry/components/core/text';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
@@ -218,11 +221,11 @@ function LaunchpadAdminPage() {
   return (
     <div>
       <PageHeader title="Launchpad Admin Page" />
-      <Container>
-        <p>
+      <Flex direction="column" gap="lg">
+        <Text as="p">
           This is a launchpad admin page for managing preprod artifacts. Provide the
           preprod artifact ID to perform the desired action.
-        </p>
+        </Text>
 
         <CompactSelect
           triggerProps={{prefix: 'Region'}}
@@ -240,177 +243,161 @@ function LaunchpadAdminPage() {
           }}
         />
 
-        <FormsContainer>
-          <FormSection onSubmit={handleRerunSubmit}>
-            <h3>Rerun Analysis</h3>
-            <p>Rerun analysis for a specific preprod artifact.</p>
-            <label htmlFor="rerunArtifactId">Preprod Artifact ID:</label>
-            <StyledInput
-              type="text"
-              name="rerunArtifactId"
-              value={rerunArtifactId}
-              onChange={e => setRerunArtifactId(e.target.value)}
-              placeholder="Enter preprod artifact ID"
-            />
-            <Button
-              priority="primary"
-              type="submit"
-              disabled={!rerunArtifactId.trim() || !region}
-            >
-              Rerun Analysis
-            </Button>
-          </FormSection>
+        <Grid
+          columns="1fr 1fr"
+          gap="xl"
+          css={css`
+            @media (max-width: 768px) {
+              grid-template-columns: 1fr;
+            }
+          `}
+        >
+          <form onSubmit={handleRerunSubmit}>
+            <Container background="secondary" border="primary" radius="md" padding="lg">
+              <Flex direction="column" gap="md">
+                <Heading as="h3">Rerun Analysis</Heading>
+                <Text as="p" variant="muted">
+                  Rerun analysis for a specific preprod artifact.
+                </Text>
+                <label htmlFor="rerunArtifactId">
+                  <Text bold>Preprod Artifact ID:</Text>
+                </label>
+                <StyledInput
+                  type="text"
+                  name="rerunArtifactId"
+                  value={rerunArtifactId}
+                  onChange={e => setRerunArtifactId(e.target.value)}
+                  placeholder="Enter preprod artifact ID"
+                />
+                <Button
+                  priority="primary"
+                  type="submit"
+                  disabled={!rerunArtifactId.trim() || !region}
+                  css={css`
+                    width: fit-content;
+                  `}
+                >
+                  Rerun Analysis
+                </Button>
+              </Flex>
+            </Container>
+          </form>
 
-          <FormSection onSubmit={handleDeleteSubmit}>
-            <h3>Delete Artifact Data</h3>
-            <p>Delete all associated data for a specific preprod artifact.</p>
-            <label htmlFor="deleteArtifactId">Preprod Artifact ID:</label>
-            <StyledInput
-              type="text"
-              name="deleteArtifactId"
-              value={deleteArtifactId}
-              onChange={e => setDeleteArtifactId(e.target.value)}
-              placeholder="Enter preprod artifact ID"
-            />
-            <Button
-              priority="danger"
-              type="submit"
-              disabled={!deleteArtifactId.trim() || !region}
-            >
-              Delete Data
-            </Button>
-          </FormSection>
+          <form onSubmit={handleDeleteSubmit}>
+            <Container background="secondary" border="primary" radius="md" padding="lg">
+              <Flex direction="column" gap="md">
+                <Heading as="h3">Delete Artifact Data</Heading>
+                <Text as="p" variant="muted">
+                  Delete all associated data for a specific preprod artifact.
+                </Text>
+                <label htmlFor="deleteArtifactId">
+                  <Text bold>Preprod Artifact ID:</Text>
+                </label>
+                <StyledInput
+                  type="text"
+                  name="deleteArtifactId"
+                  value={deleteArtifactId}
+                  onChange={e => setDeleteArtifactId(e.target.value)}
+                  placeholder="Enter preprod artifact ID"
+                />
+                <Button
+                  priority="danger"
+                  type="submit"
+                  disabled={!deleteArtifactId.trim() || !region}
+                  css={css`
+                    width: fit-content;
+                  `}
+                >
+                  Delete Data
+                </Button>
+              </Flex>
+            </Container>
+          </form>
 
-          <FormSection onSubmit={handleFetchInfoSubmit}>
-            <h3>Fetch Artifact Info</h3>
-            <p>Retrieve all data and details for a specific preprod artifact.</p>
-            <label htmlFor="fetchInfoArtifactId">Preprod Artifact ID:</label>
-            <StyledInput
-              type="text"
-              name="fetchInfoArtifactId"
-              value={fetchInfoArtifactId}
-              onChange={e => setFetchInfoArtifactId(e.target.value)}
-              placeholder="Enter preprod artifact ID"
-            />
-            <Button
-              priority="default"
-              type="submit"
-              disabled={!fetchInfoArtifactId.trim() || !region}
-            >
-              Fetch Info
-            </Button>
-          </FormSection>
+          <form onSubmit={handleFetchInfoSubmit}>
+            <Container background="secondary" border="primary" radius="md" padding="lg">
+              <Flex direction="column" gap="md">
+                <Heading as="h3">Fetch Artifact Info</Heading>
+                <Text as="p" variant="muted">
+                  Retrieve all data and details for a specific preprod artifact.
+                </Text>
+                <label htmlFor="fetchInfoArtifactId">
+                  <Text bold>Preprod Artifact ID:</Text>
+                </label>
+                <StyledInput
+                  type="text"
+                  name="fetchInfoArtifactId"
+                  value={fetchInfoArtifactId}
+                  onChange={e => setFetchInfoArtifactId(e.target.value)}
+                  placeholder="Enter preprod artifact ID"
+                />
+                <Button
+                  priority="default"
+                  type="submit"
+                  disabled={!fetchInfoArtifactId.trim() || !region}
+                  css={css`
+                    width: fit-content;
+                  `}
+                >
+                  Fetch Info
+                </Button>
+              </Flex>
+            </Container>
+          </form>
 
-          <FormSection onSubmit={handleBatchDeleteSubmit}>
-            <h3>Batch Delete Artifacts</h3>
-            <p>Delete multiple artifacts at once using comma-separated IDs.</p>
-            <label htmlFor="batchDeleteArtifactIds">
-              Preprod Artifact IDs (comma-separated):
-            </label>
-            <StyledInput
-              type="text"
-              name="batchDeleteArtifactIds"
-              value={batchDeleteArtifactIds}
-              onChange={e => setBatchDeleteArtifactIds(e.target.value)}
-              placeholder="e.g., 123, 456, 789"
-            />
-            <Button
-              priority="danger"
-              type="submit"
-              disabled={!batchDeleteArtifactIds.trim() || !region}
-            >
-              Batch Delete
-            </Button>
-          </FormSection>
-        </FormsContainer>
+          <form onSubmit={handleBatchDeleteSubmit}>
+            <Container background="secondary" border="primary" radius="md" padding="lg">
+              <Flex direction="column" gap="md">
+                <Heading as="h3">Batch Delete Artifacts</Heading>
+                <Text as="p" variant="muted">
+                  Delete multiple artifacts at once using comma-separated IDs.
+                </Text>
+                <label htmlFor="batchDeleteArtifactIds">
+                  <Text bold>Preprod Artifact IDs (comma-separated):</Text>
+                </label>
+                <StyledInput
+                  type="text"
+                  name="batchDeleteArtifactIds"
+                  value={batchDeleteArtifactIds}
+                  onChange={e => setBatchDeleteArtifactIds(e.target.value)}
+                  placeholder="e.g., 123, 456, 789"
+                />
+                <Button
+                  priority="danger"
+                  type="submit"
+                  disabled={!batchDeleteArtifactIds.trim() || !region}
+                  css={css`
+                    width: fit-content;
+                  `}
+                >
+                  Batch Delete
+                </Button>
+              </Flex>
+            </Container>
+          </form>
+        </Grid>
 
         {fetchedArtifactInfo && (
-          <InfoDisplayContainer>
-            <h3>Fetched Artifact Information</h3>
-            <InfoDisplay>
-              <pre>{JSON.stringify(fetchedArtifactInfo, null, 2)}</pre>
-            </InfoDisplay>
-            <Button priority="default" onClick={() => setFetchedArtifactInfo(null)}>
-              Clear Info
-            </Button>
-          </InfoDisplayContainer>
+          <Container background="secondary" border="primary" radius="md" padding="lg">
+            <Flex direction="column" gap="md">
+              <Heading as="h3">Fetched Artifact Information</Heading>
+              <InfoDisplay>
+                <pre>{JSON.stringify(fetchedArtifactInfo, null, 2)}</pre>
+              </InfoDisplay>
+              <Button priority="default" onClick={() => setFetchedArtifactInfo(null)}>
+                Clear Info
+              </Button>
+            </Flex>
+          </Container>
         )}
-      </Container>
+      </Flex>
     </div>
   );
 }
 
-const Container = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.lg};
-
-  > * {
-    margin: 0;
-  }
-`;
-
-const FormsContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormSection = styled('form')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.lg};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.backgroundSecondary};
-
-  h3 {
-    margin: 0;
-    color: ${p => p.theme.headingColor};
-  }
-
-  p {
-    margin: 0;
-    color: ${p => p.theme.subText};
-  }
-
-  label {
-    font-weight: 600;
-    color: ${p => p.theme.textColor};
-  }
-
-  button {
-    width: fit-content;
-  }
-`;
-
 const StyledInput = styled(Input)`
   width: 100%;
   max-width: 300px;
-`;
-
-const InfoDisplayContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.lg};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.backgroundSecondary};
-
-  h3 {
-    margin: 0;
-    color: ${p => p.theme.headingColor};
-  }
-
-  button {
-    width: fit-content;
-  }
 `;
 
 const InfoDisplay = styled('div')`
