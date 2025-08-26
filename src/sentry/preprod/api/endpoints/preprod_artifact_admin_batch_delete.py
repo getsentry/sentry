@@ -174,6 +174,13 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
         if not isinstance(preprod_artifact_ids, list):
             return Response({"error": "preprod_artifact_ids must be an array"}, status=400)
 
+        try:
+            preprod_artifact_ids = [int(id_val) for id_val in preprod_artifact_ids]
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "preprod_artifact_ids must contain valid integers"}, status=400
+            )
+
         # Limit batch size for safety
         if len(preprod_artifact_ids) > 100:
             return Response({"error": "Cannot delete more than 100 artifacts at once"}, status=400)
