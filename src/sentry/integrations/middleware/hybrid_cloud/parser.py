@@ -32,6 +32,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
 from sentry.utils import metrics
+from sentry.utils.options import sample_modulo
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -359,27 +360,27 @@ class BaseRequestParser(ABC):
         self,
         external_id: str | None = None,
     ):
-        if not settings.CODECOV_API_BASE_URL:
-            metrics.incr("codecov.forward-webhooks.no-base-url", sample_rate=0.01)
-            return
-
         rollout_rate = options.get("codecov.forward-webhooks.rollout")
 
         # we don't want to emit metrics unless we've started to roll this out
         if not rollout_rate:
             return
 
+        if not settings.CODECOV_API_BASE_URL:
+            metrics.incr("codecov.forward-webhooks.no-base-url")
+            return
+
         if not external_id:
-            metrics.incr("codecov.forward-webhooks.missing-external", sample_rate=0.01)
+            metrics.incr("codecov.forward-webhooks.missing-external")
             return
 
         try:
             installation_id = int(external_id)
         except ValueError:
-            metrics.incr("codecov.forward-webhooks.installation-id-not-integer", sample_rate=0.01)
+            metrics.incr("codecov.forward-webhooks.installation-id-not-integer")
             return
 
-        if ((installation_id % 100000) / 100000) < rollout_rate:
+        if sample_modulo("codecov.forward-webhooks.rollout", installation_id, granularity=100000):
             shard_identifier = f"codecov:{external_id}"
 
             # create webhookpayloads for each service

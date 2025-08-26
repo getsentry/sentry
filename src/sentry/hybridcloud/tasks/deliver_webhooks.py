@@ -575,11 +575,32 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
             )
             return
 
+        # hard coding this because the endpoint path is different from the original request
+        endpoint = "/webhooks/sentry"
+
         try:
-            # hard coding this because the endpoint path is different from the original request
-            endpoint = "/webhooks/sentry"
             client = CodecovApiClient()
+        except ConfigurationError as err:
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.send_request_to_codecov.configuration_error",
+            )
+            logger.warning(
+                "deliver_webhooks.send_request_to_codecov.configuration_error",
+                extra={"error": str(err), **logging_context},
+            )
+
+        try:
             headers = orjson.loads(payload.request_headers)
+        except orjson.JSONDecodeError as err:
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.send_request_to_codecov.json_decode_error",
+            )
+            logger.warning(
+                "deliver_webhooks.send_request_to_codecov.json_decode_error",
+                extra={"error": str(err), **logging_context},
+            )
+
+        try:
             response = client.post(
                 endpoint=endpoint,
                 data=payload.request_body,
@@ -598,22 +619,6 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
                         **logging_context,
                     },
                 )
-        except ConfigurationError as err:
-            metrics.incr(
-                "hybridcloud.deliver_webhooks.send_request_to_codecov.configuration_error",
-            )
-            logger.warning(
-                "deliver_webhooks.send_request_to_codecov.configuration_error",
-                extra={"error": str(err), **logging_context},
-            )
-        except orjson.JSONDecodeError as err:
-            metrics.incr(
-                "hybridcloud.deliver_webhooks.send_request_to_codecov.json_decode_error",
-            )
-            logger.warning(
-                "deliver_webhooks.send_request_to_codecov.json_decode_error",
-                extra={"error": str(err), **logging_context},
-            )
         except requests.exceptions.RequestException as err:
             metrics.incr(
                 "hybridcloud.deliver_webhooks.send_request_to_codecov.failure",
