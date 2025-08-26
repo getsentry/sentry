@@ -380,7 +380,7 @@ export const ToolbarContainer = styled('div')<{sidebarOpen: boolean}>`
   border-right: 1px solid ${p => p.theme.border};
   border-top: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-bottom: none;
     ${p =>
       p.sidebarOpen
