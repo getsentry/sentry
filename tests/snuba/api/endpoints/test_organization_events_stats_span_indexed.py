@@ -500,7 +500,6 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
         assert response.data["foo"]["meta"]["dataset"] == "spans"
 
     def test_top_events_multi_y_axis(self) -> None:
-        # Each of these denotes how many events to create in each minute
         self.store_spans(
             [
                 self.create_span(
@@ -542,7 +541,6 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
                 assert result[1][0]["count"] == expected, key
 
     def test_top_events_with_project(self) -> None:
-        # Each of these denotes how many events to create in each minute
         projects = [self.create_project(), self.create_project()]
         self.store_spans(
             [
@@ -591,7 +589,6 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
         assert response.data["Other"]["meta"]["dataset"] == "spans"
 
     def test_top_events_with_project_and_project_id(self) -> None:
-        # Each of these denotes how many events to create in each minute
         projects = [self.create_project(), self.create_project()]
         self.store_spans(
             [
@@ -642,7 +639,6 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
         assert response.data["Other"]["meta"]["dataset"] == "spans"
 
     def test_top_events_with_no_data(self) -> None:
-        # Each of these denotes how many events to create in each minute
         response = self._do_request(
             data={
                 "start": self.day_ago,
