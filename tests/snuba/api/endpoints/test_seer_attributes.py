@@ -372,6 +372,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 is_eap=True,
             )
 
+        # Simple "is" filter (single filter)
         result = get_spans(
             org_id=self.organization.id,
             project_ids=[self.project.id],
@@ -392,6 +393,32 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         transactions = {span["transaction"] for span in result["data"]}
         assert transactions == {"foo"}
+
+        for span in result["data"]:
+            assert "transaction" in span
+            assert "span.duration" in span
+
+        # More complex query (multiple filters)
+        result = get_spans(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            columns=[
+                {"name": "transaction", "type": "TYPE_STRING"},
+                {"name": "span.duration", "type": "TYPE_DOUBLE"},
+            ],
+            query="transaction:foo or span.duration:>100",
+            limit=10,
+        )
+
+        assert "data" in result
+        assert "meta" in result
+        assert result["meta"]["columns"] == [
+            {"name": "transaction", "type": "TYPE_STRING"},
+            {"name": "span.duration", "type": "TYPE_DOUBLE"},
+        ]
+
+        transactions = {span["transaction"] for span in result["data"]}
+        assert transactions == {"foo", "baz"}
 
         for span in result["data"]:
             assert "transaction" in span
