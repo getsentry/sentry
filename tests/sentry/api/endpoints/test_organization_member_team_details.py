@@ -1112,3 +1112,17 @@ class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
         assert resp.status_code == 400
         assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE
+
+    @with_feature("organizations:team-roles")
+    def test_team_contributor_cannot_downgrade_team_admin(self) -> None:
+        self.login_as(self.member)
+
+        resp = self.get_response(
+            self.org.slug,
+            self.team_admin.id,
+            self.team.slug,
+            teamRole="contributor",
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == ERR_INSUFFICIENT_ROLE

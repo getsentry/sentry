@@ -417,6 +417,9 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
                     transaction_name=transaction_name,
                     execution_tree=execution_tree,
                     project_id=project_id,
+                    start_ts=start_ts,
+                    end_ts=end_ts,
+                    is_continuous=is_continuous,
                 )
             )
         else:
