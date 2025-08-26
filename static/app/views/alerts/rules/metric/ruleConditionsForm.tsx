@@ -575,7 +575,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <Alert.Container>
             <Alert type="warning">
               {tctCode(
-                'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter.'
+                'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+                {
+                  FAQLink: (
+                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                  ),
+                }
               )}
             </Alert>
           </Alert.Container>
