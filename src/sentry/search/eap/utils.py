@@ -108,7 +108,9 @@ def translate_internal_to_public_alias(
         if definitions.column_to_alias is not None:
             column = definitions.column_to_alias(internal_alias)
             if column is not None:
-                return column
+                if type == "string":
+                    return column
+                return f"tags[{column},{type}]"
 
     return None
 
