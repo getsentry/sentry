@@ -56,11 +56,19 @@ class FingerprintingRules:
 
     @classmethod
     def _from_config_structure(
-        cls, data: dict[str, Any], bases: Sequence[str] | None = None
+        cls,
+        data: dict[str, Any],
+        bases: Sequence[str] | None = None,
+        mark_as_built_in: bool = False,
     ) -> Self:
         version = data.get("version", VERSION)
         if version != VERSION:
             raise ValueError("Unknown version")
+
+        if mark_as_built_in:
+            for rule_config in data["rules"]:
+                rule_config["is_builtin"] = True
+
         return cls(
             rules=[FingerprintRule._from_config_structure(x) for x in data["rules"]],
             version=version,
@@ -83,7 +91,9 @@ class FingerprintingRules:
             raise ValueError("invalid fingerprinting config: %s" % e)
 
     @classmethod
-    def from_config_string(cls, s: Any, bases: Sequence[str] | None = None) -> FingerprintingRules:
+    def from_config_string(
+        cls, s: Any, bases: Sequence[str] | None = None, mark_as_built_in: bool = False
+    ) -> FingerprintingRules:
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
@@ -95,6 +105,10 @@ class FingerprintingRules:
             )
 
         rules = FingerprintingVisitor().visit(tree)
+
+        if mark_as_built_in:
+            for rule in rules:
+                rule.is_builtin = True
 
         return cls(rules=rules, bases=bases)
 
