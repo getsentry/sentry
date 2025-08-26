@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Generator, Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, Self, TypedDict, TypeVar
+from typing import Any, NamedTuple, NotRequired, Self, TypedDict, TypeVar
 
 from django.conf import settings
 from parsimonious.exceptions import ParseError
@@ -326,12 +326,6 @@ class FingerprintingRules:
         return FingerprintingVisitor(bases=bases).visit(tree)
 
 
-if TYPE_CHECKING:
-    NodeVisitorBase = NodeVisitor[FingerprintingRules]
-else:
-    NodeVisitorBase = NodeVisitor
-
-
 class BuiltInFingerprintingRules(FingerprintingRules):
     """
     A FingerprintingRules object that marks all of its rules as built-in
@@ -561,7 +555,7 @@ class FingerprintRule:
         ).rstrip()
 
 
-class FingerprintingVisitor(NodeVisitorBase):
+class FingerprintingVisitor(NodeVisitor[list[FingerprintRule]]):
     visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidFingerprintingConfig,)
 
@@ -577,11 +571,8 @@ class FingerprintingVisitor(NodeVisitorBase):
 
     def visit_fingerprinting_rules(
         self, _: object, children: list[str | FingerprintRule | None]
-    ) -> FingerprintingRules:
-        return FingerprintingRules(
-            rules=[child for child in children if not isinstance(child, str) and child is not None],
-            bases=self.bases,
-        )
+    ) -> list[FingerprintRule]:
+        return [child for child in children if not isinstance(child, str) and child is not None]
 
     def visit_line(
         self, _: object, children: tuple[object, list[FingerprintRule | str | None], object]
