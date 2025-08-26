@@ -72,7 +72,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             {"name": "severity_number", "type": "int", "value": "0"},
             {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
             {
-                "name": "tags[sentry.timestamp_nanos,number]",
+                "name": "observed_timestamp",
                 "type": "int",
                 "value": str(timestamp_nanos),
             },
@@ -128,7 +128,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 {"name": "severity_number", "type": "int", "value": "0"},
                 {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
                 {
-                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "name": "observed_timestamp",
                     "type": "int",
                     "value": str(timestamp_nanos),
                 },
@@ -323,7 +323,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 {"name": "severity_number", "type": "int", "value": "0"},
                 {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
                 {
-                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "name": "observed_timestamp",
                     "type": "int",
                     "value": str(timestamp_nanos),
                 },
@@ -372,7 +372,7 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
                 {"name": "project_id", "type": "int", "value": str(self.project.id)},
                 {"name": "severity_number", "type": "int", "value": "0"},
                 {
-                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "name": "observed_timestamp",
                     "type": "int",
                     "value": str(timestamp_nanos),
                 },

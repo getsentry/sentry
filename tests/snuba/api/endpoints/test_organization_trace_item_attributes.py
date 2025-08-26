@@ -230,9 +230,11 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
             "tags[message.parameter.1,number]",
             "tags[message.parameter.2,number]",
             "severity_number",
-            "tags[sentry.timestamp_nanos,number]",
+            "observed_timestamp",
             "timestamp_precise",
         }
+        sources = {item["attributeSource"] for item in response.data}
+        assert sources == {"sentry"}
 
     def test_attribute_collision(self) -> None:
         logs = [
