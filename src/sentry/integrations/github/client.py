@@ -26,6 +26,7 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.integrations.source_code_management.status_check import StatusCheckClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, IntegrationProviderSlug
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
@@ -267,7 +268,9 @@ class GithubProxyClient(IntegrationProxyClient):
         return super().is_error_fatal(error)
 
 
-class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient):
+class GitHubBaseClient(
+    GithubProxyClient, RepositoryClient, CommitContextClient, RepoTreesClient, StatusCheckClient
+):
     allow_redirects = True
 
     base_url = "https://api.github.com"
@@ -660,6 +663,24 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
                 "organization_integration_id": self.org_integration_id,
             },
         )
+
+    def create_check_run(self, repo: str, data: dict[str, Any]) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#create-a-check-run
+
+        The repo must be in the format of "owner/repo".
+        """
+        endpoint = f"/repos/{repo}/check-runs"
+        return self.post(endpoint, data=data)
+
+    def get_check_runs(self, repo: str, sha: str) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference
+
+        The repo must be in the format of "owner/repo". SHA can be any reference.
+        """
+        endpoint = f"/repos/{repo}/commits/{sha}/check-runs"
+        return self.get(endpoint)
 
 
 class _IntegrationIdParams(TypedDict, total=False):

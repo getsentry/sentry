@@ -46,6 +46,8 @@ class GitLabApiClientPath:
     project_hooks = "/projects/{project}/hooks"
     project_hook = "/projects/{project}/hooks/{hook_id}"
     projects = "/projects"
+    statuses = "/projects/{project}/statuses/{sha}"
+    commit_statuses = "/projects/{project}/repository/commits/{sha}/statuses"
     user = "/user"
 
     @staticmethod

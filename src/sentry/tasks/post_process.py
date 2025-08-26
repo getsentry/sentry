@@ -1068,6 +1068,10 @@ def process_rules(job: PostProcessJob) -> None:
         # we are only processing through the workflow engine
         return
 
+    metrics.incr(
+        "post_process.rules_processor_events", tags={"group_type": job["event"].group.type}
+    )
+
     from sentry.rules.processing.processor import RuleProcessor
 
     group_event = job["event"]

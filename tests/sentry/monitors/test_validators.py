@@ -8,10 +8,16 @@ from django.test.utils import override_settings
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorLimitsExceeded, ScheduleType
-from sentry.monitors.validators import MonitorValidator
+from sentry.monitors.validators import (
+    MonitorDataSourceValidator,
+    MonitorIncidentDetectorValidator,
+    MonitorValidator,
+)
 from sentry.testutils.cases import MonitorTestCase
+from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.workflow_engine.models import DataConditionGroup
 
 
 class MonitorValidatorCreateTest(MonitorTestCase):
@@ -639,3 +645,296 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         assert updated_monitor.config["timezone"] == "UTC"
         assert updated_monitor.config["failure_issue_threshold"] == 3
         assert updated_monitor.config["recovery_threshold"] == 1
+
+
+class BaseMonitorValidatorTestCase(MonitorTestCase):
+    """Base class for monitor validator tests with common setup."""
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user()
+        self.request = RequestFactory().get("/")
+        self.request.user = self.user
+        access = MagicMock()
+        access.has_any_project_scope.return_value = True
+        self.request.access = access
+        self.context = {
+            "request": self.request,
+            "organization": self.organization,
+            "project": self.project,
+            "access": access,
+        }
+
+    def _get_base_config(self, schedule_type="crontab", **overrides):
+        """Get base monitor config with optional overrides."""
+        config = {
+            "schedule": "0 * * * *",
+            "scheduleType": schedule_type,
+            "checkinMargin": 5,
+            "maxRuntime": 30,
+            "timezone": "UTC",
+        }
+        if schedule_type == "interval":
+            config["schedule"] = [1, "hour"]
+        config.update(overrides)
+        return config
+
+
+class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
+    def setUp(self):
+        super().setUp()
+        self.valid_data = self._get_valid_data()
+
+    def _get_valid_data(self, **overrides):
+        data = {
+            "name": "Test Monitor",
+            "slug": "test-monitor",
+            "config": self._get_base_config(),
+        }
+        data.update(overrides)
+        return data
+
+    def _create_validator(self, data=None, instance=None, partial=False):
+        return MonitorDataSourceValidator(
+            data=data or self.valid_data,
+            instance=instance,
+            partial=partial,
+            context=self.context,
+        )
+
+    def _assert_valid_monitor_data(
+        self, validator, expected_name, expected_slug, expected_schedule, expected_type
+    ):
+        """Helper to assert common monitor validation results."""
+        assert validator.is_valid(), validator.errors
+        validated_data = validator.validated_data
+        assert validated_data["name"] == expected_name
+        assert validated_data["slug"] == expected_slug
+        assert validated_data["config"]["schedule"] == expected_schedule
+        assert validated_data["config"]["schedule_type"] == expected_type
+
+    def test_valid_crontab_config(self):
+        validator = self._create_validator()
+        self._assert_valid_monitor_data(
+            validator, "Test Monitor", "test-monitor", "0 * * * *", ScheduleType.CRONTAB
+        )
+
+    def test_valid_interval_config(self):
+        data = self._get_valid_data(
+            name="Interval Monitor",
+            slug="interval-monitor",
+            config=self._get_base_config("interval", checkinMargin=10, maxRuntime=60),
+        )
+        validator = self._create_validator(data)
+        self._assert_valid_monitor_data(
+            validator, "Interval Monitor", "interval-monitor", [1, "hour"], ScheduleType.INTERVAL
+        )
+
+    def test_only_slug_provided(self):
+        data = {
+            "slug": "my-monitor-slug",
+            "config": self.valid_data["config"],
+        }
+        validator = self._create_validator(data)
+        assert validator.is_valid(), validator.errors
+        validated_data = validator.validated_data
+        assert validated_data["name"] == "my-monitor-slug"
+        assert validated_data["slug"] == "my-monitor-slug"
+
+    def test_only_name_provided(self):
+        data = {
+            "name": "My Monitor Name",
+            "config": self.valid_data["config"],
+        }
+        validator = self._create_validator(data)
+        assert validator.is_valid(), validator.errors
+        validated_data = validator.validated_data
+        assert validated_data["name"] == "My Monitor Name"
+        assert validated_data["slug"] == "my-monitor-name"
+
+    def test_missing_name_and_slug(self):
+        data = {"config": self.valid_data["config"]}
+        validator = self._create_validator(data)
+        assert not validator.is_valid()
+        assert "Either name or slug must be provided" in str(validator.errors)
+
+    def test_invalid_crontab_schedule(self):
+        data = self._get_valid_data()
+        data["config"]["schedule"] = "invalid cron"
+        validator = self._create_validator(data)
+        assert not validator.is_valid()
+        assert "schedule" in validator.errors["config"]
+
+    def test_invalid_interval_schedule(self):
+        data = self._get_valid_data(config=self._get_base_config("interval", schedule=[0, "hour"]))
+        validator = self._create_validator(data)
+        assert not validator.is_valid()
+        assert "schedule" in validator.errors["config"]
+
+    def test_nonstandard_crontab_schedules(self):
+        data = self._get_valid_data()
+        data["config"]["schedule"] = "@hourly"
+        validator = self._create_validator(data)
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["config"]["schedule"] == "0 * * * *"
+
+    def _assert_monitor_attributes(self, monitor, name, slug, schedule, status=ObjectStatus.ACTIVE):
+        """Helper to assert monitor attributes after creation."""
+        assert isinstance(monitor, Monitor)
+        assert monitor.name == name
+        assert monitor.slug == slug
+        assert monitor.organization_id == self.organization.id
+        assert monitor.project_id == self.project.id
+        assert monitor.config["schedule"] == schedule
+        assert monitor.status == status
+        assert monitor.is_muted is False
+        assert monitor.owner_user_id is None
+        assert monitor.owner_team_id is None
+
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_create_source_creates_monitor(self, mock_assign_seat):
+        mock_assign_seat.return_value = Outcome.ACCEPTED
+        validator = self._create_validator()
+        assert validator.is_valid(), validator.errors
+        monitor = validator.validated_create_source(validator.validated_data)
+        self._assert_monitor_attributes(monitor, "Test Monitor", "test-monitor", "0 * * * *")
+
+    def test_validate_with_owner(self):
+        team = self.create_team(organization=self.organization)
+        data = self._get_valid_data(owner=f"team:{team.id}")
+        validator = self._create_validator(data)
+        assert validator.is_valid(), validator.errors
+        validated_data = validator.validated_data
+        assert isinstance(validated_data["owner"], Actor)
+        assert validated_data["owner"].is_team
+        assert validated_data["owner"].id == team.id
+
+    def test_validate_with_status(self):
+        data = self._get_valid_data(status="disabled")
+        validator = self._create_validator(data)
+        assert validator.is_valid(), validator.errors
+        validated_data = validator.validated_data
+        assert validated_data["status"] == ObjectStatus.DISABLED
+
+    def test_validate_with_is_muted(self):
+        data = self._get_valid_data(isMuted=True)
+        validator = self._create_validator(data)
+        assert validator.is_valid(), validator.errors
+        validated_data = validator.validated_data
+        assert validated_data["is_muted"] is True
+
+    def test_slug_uniqueness_validation(self):
+        Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="Existing Monitor",
+            slug="test-monitor",
+            config={
+                "schedule": "0 * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+            },
+        )
+        validator = self._create_validator()
+        assert not validator.is_valid()
+        assert "slug" in validator.errors
+        assert 'The slug "test-monitor" is already in use.' in str(validator.errors["slug"])
+
+    @patch("sentry.quotas.backend.assign_monitor_seat")
+    def test_quota_rejection_disables_monitor(self, mock_assign_seat):
+        mock_assign_seat.return_value = Outcome.RATE_LIMITED
+        validator = self._create_validator()
+        assert validator.is_valid(), validator.errors
+        monitor = validator.validated_create_source(validator.validated_data)
+        assert monitor.status == ObjectStatus.DISABLED
+
+    def test_update_monitor(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            name="Original Monitor",
+            slug="original-monitor",
+            config={
+                "schedule": "0 * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "checkin_margin": 5,
+                "max_runtime": 30,
+            },
+        )
+        update_data = {
+            "name": "Updated Monitor",
+            "config": {
+                "schedule": "0 * * * *",
+                "schedule_type": "crontab",
+                "checkin_margin": 10,
+                "max_runtime": 30,
+            },
+        }
+        validator = self._create_validator(update_data, instance=monitor, partial=True)
+        assert validator.is_valid(), validator.errors
+        updated_monitor = validator.update(monitor, validator.validated_data)
+        updated_monitor.refresh_from_db()
+        assert updated_monitor.name == "Updated Monitor"
+        assert updated_monitor.slug == "original-monitor"
+        assert updated_monitor.config["checkin_margin"] == 10
+        assert updated_monitor.config["max_runtime"] == 30
+        assert updated_monitor.config["schedule"] == "0 * * * *"
+        assert updated_monitor.config["schedule_type"] == ScheduleType.CRONTAB
+
+
+class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
+    def setUp(self):
+        super().setUp()
+        self.valid_data = self._get_valid_detector_data()
+
+    def _get_valid_detector_data(self, **overrides):
+        data = {
+            "type": "monitor_check_in_failure",
+            "name": "Test Monitor Detector",
+            "dataSource": {
+                "name": "Test Monitor",
+                "slug": "test-monitor",
+                "config": self._get_base_config(),
+            },
+        }
+        data.update(overrides)
+        return data
+
+    def _create_validator(self, data=None, instance=None, partial=False):
+        return MonitorIncidentDetectorValidator(
+            data=data or self.valid_data,
+            instance=instance,
+            partial=partial,
+            context=self.context,
+        )
+
+    def test_valid_detector_with_monitor(self):
+        validator = self._create_validator()
+        assert validator.is_valid(), validator.errors
+        validated_data = validator.validated_data
+        assert validated_data["name"] == "Test Monitor Detector"
+        assert "data_source" in validated_data
+        assert validated_data["data_source"]["name"] == "Test Monitor"
+        assert validated_data["data_source"]["slug"] == "test-monitor"
+
+    def test_detector_requires_data_source(self):
+        data = {
+            "type": "monitor_check_in_failure",
+            "name": "Test Monitor Detector",
+        }
+        validator = self._create_validator(data)
+        assert not validator.is_valid()
+        assert "dataSource" in validator.errors
+
+    def test_create_detector_validates_data_source(self):
+        condition_group = DataConditionGroup.objects.create(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        context = {**self.context, "condition_group": condition_group}
+        validator = MonitorIncidentDetectorValidator(
+            data=self.valid_data,
+            context=context,
+        )
+        assert validator.is_valid(), validator.errors
+        assert "_creator" in validator.validated_data["data_source"]
+        assert validator.validated_data["data_source"]["data_source_type"] == "cron_monitor"

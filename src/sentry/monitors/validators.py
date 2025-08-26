@@ -21,11 +21,13 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.project import Project
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import (
     MONITOR_CONFIG,
     CheckInStatus,
+    CronMonitorDataSourceHandler,
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
@@ -43,16 +45,23 @@ from sentry.monitors.utils import (
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.utils.outcomes import Outcome
+from sentry.workflow_engine.endpoints.validators.base import (
+    BaseDataSourceValidator,
+    BaseDetectorTypeValidator,
+)
+from sentry.workflow_engine.models import DataSource, Detector
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
     "disabled": ObjectStatus.DISABLED,
 }
+MONITOR_STATUSES_REVERSE = {val: key for key, val in MONITOR_STATUSES.items()}
 
 SCHEDULE_TYPES = {
     "crontab": ScheduleType.CRONTAB,
     "interval": ScheduleType.INTERVAL,
 }
+SCHEDULE_TYPES_REVERSE = {val: key for key, val in SCHEDULE_TYPES.items()}
 
 IntervalNames = Literal["year", "month", "week", "day", "hour", "minute"]
 
@@ -537,3 +546,136 @@ class MonitorBulkEditValidator(MonitorValidator):
         ).count() != len(value):
             raise ValidationError("Not all ids are valid for this organization.")
         return value
+
+
+class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
+    """
+    Data source validator for cron monitors.
+
+    This handles creating/updating the Monitor when a detector is created/updated.
+    """
+
+    name = serializers.CharField(
+        max_length=128, required=False, help_text="Name of the monitor. Used for notifications."
+    )
+    slug = serializers.SlugField(
+        max_length=50,
+        required=False,
+        help_text="Uniquely identifies your monitor within your organization.",
+    )
+    status = serializers.CharField(required=False)
+    owner = serializers.CharField(required=False, allow_null=True)
+    is_muted = serializers.BooleanField(required=False)
+    config = serializers.JSONField(required=True)
+
+    class Meta:
+        model = Monitor
+        fields = ["name", "slug", "status", "owner", "is_muted", "config"]
+
+    def validate_status(self, value):
+        if isinstance(value, str) and value.isdigit():
+            return MONITOR_STATUSES_REVERSE[int(value)]
+        return value
+
+    def validate_config(self, value):
+        if value and "schedule_type" in value:
+            schedule_type = value["schedule_type"]
+            if isinstance(schedule_type, int):
+                value["schedule_type"] = SCHEDULE_TYPES_REVERSE[int(schedule_type)]
+        return value
+
+    @property
+    def data_source_type_handler(self) -> type[CronMonitorDataSourceHandler]:
+        return CronMonitorDataSourceHandler
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if not attrs.get("name") and not attrs.get("slug"):
+            raise serializers.ValidationError("Either name or slug must be provided")
+
+        if not attrs.get("name") and attrs.get("slug"):
+            attrs["name"] = attrs["slug"]
+
+        if attrs.get("name") and not attrs.get("slug") and not self.instance:
+            attrs["slug"] = slugify_monitor_slug(attrs["name"])
+
+        monitor_data = attrs.copy()
+
+        if "is_muted" in monitor_data:
+            monitor_data["isMuted"] = monitor_data.pop("is_muted")
+
+        monitor_data["project"] = self.context["project"].slug
+
+        monitor_instance = None
+        if self.instance:
+            monitor_instance = self.instance
+
+        monitor_validator = MonitorValidator(
+            data=monitor_data,
+            context=self.context,
+            instance=monitor_instance,
+            partial=self.partial,
+        )
+
+        if not monitor_validator.is_valid():
+            raise serializers.ValidationError(monitor_validator.errors)
+
+        attrs["_monitor_validator"] = monitor_validator
+
+        validated = monitor_validator.validated_data
+        if "name" in validated:
+            attrs["name"] = validated["name"]
+        if "slug" in validated:
+            attrs["slug"] = validated["slug"]
+        if "config" in validated:
+            attrs["config"] = validated["config"]
+        if "status" in validated:
+            attrs["status"] = validated["status"]
+        if "owner" in validated:
+            attrs["owner"] = validated["owner"]
+        if "is_muted" in validated:
+            attrs["is_muted"] = validated["is_muted"]
+
+        return super().validate(attrs)
+
+    def create_source(self, validated_data: dict[str, Any]) -> Monitor:
+        """Create the Monitor using MonitorValidator."""
+        monitor_validator = validated_data.pop("_monitor_validator")
+        with in_test_hide_transaction_boundary():
+            return monitor_validator.create(monitor_validator.validated_data)
+
+    def update(self, instance: Monitor, validated_data: dict[str, Any]) -> Monitor:
+        monitor_validator = validated_data.pop("_monitor_validator")
+        with in_test_hide_transaction_boundary():
+            return monitor_validator.update(instance, monitor_validator.validated_data)
+
+
+class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
+    """
+    Validator for monitor incident detection configuration.
+
+    This is a lightweight validator that delegates Monitor creation/update to the
+    data_source field (MonitorDataSourceValidator).
+    """
+
+    data_source = MonitorDataSourceValidator(required=True)
+
+    def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        super().update(instance, validated_data)
+
+        if "data_source" in validated_data:
+            data_source_data = validated_data.pop("data_source")
+            data_source = DataSource.objects.get(detectors=instance)
+            monitor = Monitor.objects.get(id=data_source.source_id)
+
+            monitor_validator = MonitorDataSourceValidator(
+                instance=monitor,
+                data=data_source_data,
+                context=self.context,
+                partial=True,
+            )
+
+            if monitor_validator.is_valid(raise_exception=True):
+                with in_test_hide_transaction_boundary():
+                    monitor_validator.save()
+
+        return instance
