@@ -81,8 +81,8 @@ def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
     result = get_summary_logs(_faker(), error_events=error_events, project_id=1)
     assert result == [
         "User experienced an error: 'BadError: something else bad' at 1.0",
-        "Logged: hello at 1.5",
-        "Logged: world at 2.0",
+        "Logged: 'hello' at 1.5",
+        "Logged: 'world' at 2.0",
         "User experienced an error: 'ZeroDivisionError: division by zero' at 3.0",
         "User submitted feedback: 'Great website!' at 4.0",
     ]

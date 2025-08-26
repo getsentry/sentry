@@ -158,7 +158,7 @@ class ProjectReplaySummaryTestCase(
         assert seer_request.method == "POST"
         assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
         assert json.loads(seer_request.body) == {
-            "logs": ["Logged: hello at 0.0", "Logged: world at 0.0"],
+            "logs": ["Logged: 'hello' at 0.0", "Logged: 'world' at 0.0"],
             "num_segments": 2,
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
@@ -361,7 +361,7 @@ class ProjectReplaySummaryTestCase(
         assert seer_request.method == "POST"
         assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
         assert json.loads(seer_request.body) == {
-            "logs": ["Logged: hello at 0.0"],  # only 1 log from the first segment.
+            "logs": ["Logged: 'hello' at 0.0"],  # only 1 log from the first segment.
             "num_segments": 1,  # capped to 1.
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
@@ -400,7 +400,7 @@ class ProjectReplaySummaryTestCase(
         assert seer_request.method == "POST"
         assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
         assert json.loads(seer_request.body) == {
-            "logs": ["Logged: hello at 0.0"],
+            "logs": ["Logged: 'hello' at 0.0"],
             "num_segments": 1,
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
