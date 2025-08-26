@@ -6,6 +6,7 @@ import sentry_sdk
 from django.test.utils import override_settings
 from sentry_sdk import Scope
 
+import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.receivers import create_default_projects
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
@@ -18,7 +19,7 @@ from sentry.testutils.skips import requires_kafka
 from sentry.users.models.userrole import manage_default_super_admin_role
 from sentry.utils.sdk import bind_organization_context, get_project_key
 
-pytestmark = [requires_kafka]
+pytestmark = [requires_kafka, thread_leaks.allowlist(reason="relay integration tests", issue=97040)]
 
 
 @pytest.fixture
