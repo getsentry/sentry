@@ -168,6 +168,26 @@ class TranslationVisitor(NodeVisitor):
         return children or node.text
 
 
+class ArithmeticTranslationVisitor(NodeVisitor):
+    def __init__(self):
+        self.dropped_fields = []
+        super().__init__()
+
+    def visit_field_value(self, node, children):
+        if node.text in COLUMNS_TO_DROP:
+            self.dropped_fields.append(node.text)
+            return node.text
+        return column_switcheroo(node.text)[0]
+
+    def visit_function_value(self, node, children):
+        new_functions, dropped_functions = translate_columns([node.text])
+        self.dropped_fields.extend(dropped_functions)
+        return new_functions[0]
+
+    def generic_visit(self, node, children):
+        return children or node.text
+
+
 def translate_query(query: str):
     flattened_query = []
 
@@ -218,29 +238,47 @@ def translate_columns(columns):
 
 def translate_equations(equations):
     if equations is None:
-        return None
+        return None, None, None
 
     translated_equations = []
     dropped_equations = []
+    dropped_fields = []
 
     for equation in equations:
+
+        flattened_equation = []
+
+        # strip equation prefix
         if arithmetic.is_equation(equation):
             arithmetic_equation = arithmetic.strip_equation(equation)
         else:
             arithmetic_equation = equation
 
-        # TODO: add column and function swaps to equation fields and functions
-        operation, fields, functions = arithmetic.parse_arithmetic(arithmetic_equation)
-        new_fields, dropped_fields = drop_unsupported_columns(fields)
-        new_functions, dropped_functions = drop_unsupported_columns(functions)
+        # function to flatten the parsed + updated equation
+        def _flatten(seq):
+            for item in seq:
+                if isinstance(item, list):
+                    _flatten(item)
+                else:
+                    flattened_equation.append(item)
 
-        if len(dropped_fields) > 0 or len(dropped_functions) > 0:
+        tree = arithmetic.arithmetic_grammar.parse(arithmetic_equation)
+        translation_visitor = ArithmeticTranslationVisitor()
+        parsed = translation_visitor.visit(tree)
+        _flatten(parsed)
+
+        # record dropped fields and equations and skip these translations
+        if len(translation_visitor.dropped_fields) > 0:
             dropped_equations.append(arithmetic_equation)
+            dropped_fields.extend(translation_visitor.dropped_fields)
             continue
 
-        translated_equations.append(arithmetic_equation)
+        # translated equations are not returned with the equation prefix
+        translated_equation = "".join(flattened_equation)
 
-    return translated_equations, dropped_equations
+        translated_equations.append(translated_equation)
+
+    return translated_equations, dropped_equations, dropped_fields
 
 
 def translate_orderbys(orderbys):
@@ -261,10 +299,9 @@ def translate_orderbys(orderbys):
         # if orderby is an equation
         if arithmetic.is_equation(orderby_without_neg):
             orderby_equation = arithmetic.strip_equation(orderby_without_neg)
-            # stripped_translated_orderby, dropped_orderby, dropped_fields = translate_equations(
-            #     [orderby_equation]
-            # )
-            stripped_translated_orderby, dropped_orderby = translate_equations([orderby_equation])
+            stripped_translated_orderby, dropped_orderby, dropped_fields = translate_equations(
+                [orderby_equation]
+            )
             translated_orderby = []
             for stripped_equation in stripped_translated_orderby:
                 translated_orderby.append(f"equation|{stripped_equation}")
@@ -296,7 +333,7 @@ def translate_mep_to_eap(query_parts: QueryParts):
     """
     new_query = translate_query(query_parts["query"])
     new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
-    new_equations = translate_equations(query_parts["equations"])
+    new_equations, dropped_equations, dropped_fields = translate_equations(query_parts["equations"])
     new_orderbys, dropped_orderbys = translate_orderbys(query_parts["orderby"])
 
     eap_query = QueryParts(
