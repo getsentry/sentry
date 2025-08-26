@@ -136,8 +136,6 @@ class TestGetAutofixPrompt(TestCase):
 
         assert result is None
 
-    # Signing is handled inside the request helper now; parameters are validated above.
-
 
 class TestGetCodingAgentPrompt(TestCase):
     @patch("sentry.seer.autofix.utils.get_autofix_prompt")

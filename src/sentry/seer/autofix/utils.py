@@ -96,7 +96,6 @@ class AutofixState(BaseModel):
         extra = "allow"
 
 
-# Reuse a persistent HTTP connection pool for Autofix requests
 autofix_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
 )
