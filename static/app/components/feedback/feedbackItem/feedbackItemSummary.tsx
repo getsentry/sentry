@@ -10,11 +10,9 @@ interface Props {
 export default function FeedbackItemSummary({className, feedbackIssue}: Props) {
   const summary = feedbackIssue.metadata.summary;
 
-  if (!summary) {
-    return null;
-  }
-
-  return <SummaryContainer className={className}>{summary}</SummaryContainer>;
+  return summary ? (
+    <SummaryContainer className={className}>{summary}</SummaryContainer>
+  ) : null;
 }
 
 const SummaryContainer = styled('h3')`
