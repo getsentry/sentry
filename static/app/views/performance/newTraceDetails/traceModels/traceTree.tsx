@@ -1920,8 +1920,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       fetchTransactionSpans(
         options.api,
         options.organization,
-        node.metadata.project_slug ?? '',
-        node.metadata.event_id ?? ''
+        node.metadata.project_slug!,
+        node.metadata.event_id!
       );
 
     node.fetchStatus = 'loading';
