@@ -89,9 +89,6 @@ class AlertRuleNotification(ProjectNotification):
         fallthrough_choice: FallthroughChoiceType | None = None,
         notification_uuid: str | None = None,
     ) -> None:
-        assert isinstance(
-            notification.event, GroupEvent
-        ), "Event must be a GroupEvent to get assoc. Group"
         event = notification.event
         group = event.group
         project = group.project
