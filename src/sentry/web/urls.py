@@ -475,6 +475,12 @@ urlpatterns += [
         react_page_view,
         name="sentry-admin-overview",
     ),
+    # Admin UI (for local dev)
+    re_path(
+        r"^_admin/",
+        react_page_view,
+        name="sentry-admin-ui",
+    ),
     # Story book
     re_path(
         r"^stories/",
