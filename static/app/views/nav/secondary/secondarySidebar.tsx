@@ -59,7 +59,6 @@ export function SecondarySidebar() {
     >
       <ResizeWrapper
         ref={resizableContainerRef}
-        onMouseDown={handleStartResize}
         {...{
           [NAV_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
         }}
