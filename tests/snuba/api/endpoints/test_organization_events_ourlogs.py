@@ -444,6 +444,14 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                 },
                 timestamp=self.nine_mins_ago - timedelta(minutes=1),
             ),
+            self.create_ourlog(
+                {"body": "Item {0} of {1}"},
+                attributes={
+                    "sentry.message.parameter.0": 5,
+                    "sentry.message.parameter.1": 10,
+                },
+                timestamp=self.nine_mins_ago - timedelta(minutes=1),
+            ),
         ]
 
         self.store_ourlogs(logs)
@@ -489,6 +497,27 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["message"] == "Item {0} was purchased by {1}"
         assert data[0]["message.parameter.0"] == "laptop"
         assert data[0]["message.parameter.1"] == "charlie"
+
+        response = self.do_request(
+            {
+                "field": [
+                    "timestamp",
+                    "message",
+                    "tags[message.parameter.0,number]",
+                    "tags[message.parameter.1,number]",
+                ],
+                "query": "tags[message.parameter.0,number]:>0",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["message"] == "Item {0} of {1}"
+        assert data[0]["tags[message.parameter.0,number]"] == 5
+        assert data[0]["tags[message.parameter.1,number]"] == 10
 
         response = self.do_request(
             {
