@@ -2592,7 +2592,7 @@ function getRelatedPerformanceIssuesFromTransaction(
 }
 
 export function getNodeDescriptionPrefix(
-  node: TraceTreeNode<TraceTree.EAPSpan> | TraceTreeNode<TraceTree.Span>
+  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.Span>
 ) {
   // Check if span has http.request.prefetch attribute and add prefix if it does
   const isPrefetch =
@@ -2601,13 +2601,13 @@ export function getNodeDescriptionPrefix(
 }
 
 function areSpanDescriptionsMatching<
-  T extends TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>,
+  T extends TraceTreeNode<TraceTree.Span | TraceTree.EAPSpan>,
 >(nodeA: T, nodeB: T): boolean {
   return nodeA.value.description === nodeB.value.description;
 }
 
 function areSpanNamesMatching<
-  T extends TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>,
+  T extends TraceTreeNode<TraceTree.Span | TraceTree.EAPSpan>,
 >(nodeA: T, nodeB: T): boolean {
   return (
     isEAPSpanNode(nodeA) && isEAPSpanNode(nodeB) && nodeA.value.name === nodeB.value.name

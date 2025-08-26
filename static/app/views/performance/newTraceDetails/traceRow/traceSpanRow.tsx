@@ -28,7 +28,7 @@ import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI
 const NO_PROFILES: any = [];
 
 export function TraceSpanRow(
-  props: TraceRowProps<TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>>
+  props: TraceRowProps<TraceTreeNode<TraceTree.Span | TraceTree.EAPSpan>>
 ) {
   const spanId = isEAPSpanNode(props.node)
     ? props.node.value.event_id
@@ -135,9 +135,7 @@ export function TraceSpanRow(
   );
 }
 
-function getChildrenCount(
-  node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
-) {
+function getChildrenCount(node: TraceTreeNode<TraceTree.Span | TraceTree.EAPSpan>) {
   if (isEAPTransactionNode(node) && !node.expanded) {
     return node.children.length - TraceTree.DirectVisibleChildren(node).length;
   }
