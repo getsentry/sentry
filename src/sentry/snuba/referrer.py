@@ -379,6 +379,9 @@ class Referrer(StrEnum):
     API_INSIGHTS_MCP_TRAFFIC_WIDGET = "api.insights.mcp.traffic-widget"
     API_INSIGHTS_MCP_TRANSPORT_WIDGET = "api.insights.mcp.transport-widget"
 
+    # Misc
+    API_INSIGHTS_ORG_EVENT_AVERAGE_SPAN = "api.insights.org-event-average-span"
+
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
@@ -430,9 +433,6 @@ class Referrer(StrEnum):
     )
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_SUSPECTS = (
         "api.organization-events-spans-performance-suspects"
-    )
-    API_PERFORMANCE_EVENTS_FACETS_STATS = (
-        "api.organization-events-facets-stats-performance.top-tags"
     )
     API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
     API_ORGANIZATION_EVENTS = "api.organization-events"
