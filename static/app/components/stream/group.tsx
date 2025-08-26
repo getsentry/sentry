@@ -652,25 +652,18 @@ function StreamGroup({
       useTintRow={useTintRow ?? true}
     >
       <InteractionStateLayer />
-      {/* isUnhandled will be either undefined or boolean, but here we check if it exists at all, telling us that group stats data has loaded */}
-      {'isUnhandled' in group ? (
-        <Fragment>
-          {canSelect && (
-            <GroupCheckbox
-              group={group}
-              displayReprocessingLayout={displayReprocessingLayout}
-            />
-          )}
-          <GroupSummary canSelect={canSelect}>
-            <EventOrGroupHeader data={group} query={query} source={referrer} />
-            <EventOrGroupExtraDetails data={group} showLifetime={false} />
-          </GroupSummary>
-        </Fragment>
-      ) : (
-        <GroupSummary canSelect={false}>
-          <Placeholder height="58px" />
+      <Fragment>
+        {canSelect && (
+          <GroupCheckbox
+            group={group}
+            displayReprocessingLayout={displayReprocessingLayout}
+          />
+        )}
+        <GroupSummary canSelect={canSelect}>
+          <EventOrGroupHeader data={group} query={query} source={referrer} />
+          <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupSummary>
-      )}
+      </Fragment>
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
 
       {withColumns.includes('lastSeen') && (
@@ -726,29 +719,23 @@ function StreamGroup({
               ) : null}
             </NarrowEventsOrUsersCountsWrapper>
           )}
-          {withColumns.includes('priority') ? (
+          {withColumns.includes('priority') && (
             <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
               {group.priority ? (
                 <GroupPriority group={group} onChange={onPriorityChange} />
-              ) : (
-                <Placeholder height="24px" />
-              )}
+              ) : null}
             </PriorityWrapper>
-          ) : null}
-          {withColumns.includes('assignee') ? (
+          )}
+          {withColumns.includes('assignee') && (
             <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
-              {assigneeLoading ? (
-                <Placeholder height="24px" />
-              ) : (
-                <AssigneeSelector
-                  group={group}
-                  assigneeLoading={false}
-                  handleAssigneeChange={handleAssigneeChange}
-                  memberList={memberList}
-                />
-              )}
+              <AssigneeSelector
+                group={group}
+                assigneeLoading={assigneeLoading}
+                handleAssigneeChange={handleAssigneeChange}
+                memberList={memberList}
+              />
             </AssigneeWrapper>
-          ) : null}
+          )}
         </Fragment>
       )}
     </Wrapper>
