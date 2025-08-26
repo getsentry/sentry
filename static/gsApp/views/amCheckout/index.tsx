@@ -90,11 +90,11 @@ type Props = {
   checkoutTier: PlanTier;
   isError: boolean;
   isLoading: boolean;
-  isNewCheckout: boolean;
   onToggleLegacy: (tier: string) => void;
   organization: Organization;
   queryClient: QueryClient;
   subscription: Subscription;
+  isNewCheckout?: boolean;
   promotionData?: PromotionData;
   refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
 } & RouteComponentProps<Record<PropertyKey, unknown>, unknown>;
