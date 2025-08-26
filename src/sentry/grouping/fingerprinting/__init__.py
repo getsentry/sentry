@@ -156,7 +156,7 @@ def _load_configs() -> dict[str, list[FingerprintRule]]:
             with open(config_file_path) as config_file:
                 str_conf = config_file.read().rstrip()
                 configs[config_name].extend(
-                    BuiltInFingerprintingRules.from_config_string(str_conf).rules
+                    FingerprintingRules.from_config_string(str_conf, mark_as_built_in=True).rules
                 )
         except InvalidFingerprintingConfig:
             logger.exception(
