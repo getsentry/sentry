@@ -241,6 +241,43 @@ def translate_equations(equations):
     return translated_equations
 
 
+def translate_orderbys(orderbys):
+    if not orderbys:
+        return None
+
+    translated_orderbys = []
+    dropped_orderbys = []
+
+    for orderby in orderbys:
+        is_negated = False
+        if orderby.startswith("-"):
+            is_negated = True
+            orderby_without_neg = orderby[1:]
+        else:
+            orderby_without_neg = orderby
+
+        # if orderby is an equation
+        if arithmetic.is_equation(orderby_without_neg):
+            orderby_equation = arithmetic.strip_equation(orderby_without_neg)
+            translated_orderby, dropped_orderby, dropped_fields = translate_equations(
+                [orderby_equation]
+            )
+        # if orderby is a field/function
+        else:
+            translated_orderby, dropped_orderby = translate_columns([orderby])
+
+        # add translated orderby to the list and record dropped orderbys
+        if len(dropped_orderby) == 0:
+            translated_orderbys.append(
+                translated_orderby[0] if not is_negated else f"-{translated_orderby[0]}"
+            )
+        else:
+            dropped_orderbys.extend(dropped_orderby)
+            continue
+
+    return translated_orderbys, dropped_orderbys
+
+
 def translate_mep_to_eap(query_parts: QueryParts):
     """
     This is a utility used to translate transactions/metrics/mep
@@ -253,12 +290,13 @@ def translate_mep_to_eap(query_parts: QueryParts):
     new_query = translate_query(query_parts["query"])
     new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
     new_equations = translate_equations(query_parts["equations"])
+    new_orderbys, dropped_orderbys = translate_orderbys(query_parts["orderby"])
 
     eap_query = QueryParts(
         query=new_query,
         selected_columns=new_columns,
         equations=new_equations,
-        orderby=query_parts["orderby"],
+        orderby=new_orderbys,
     )
 
     return eap_query
