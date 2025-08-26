@@ -414,9 +414,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                 "tags[sentry.timestamp_precise,number]": pytest.approx(
                     source.attributes["sentry.timestamp_precise"].int_value
                 ),
-                "observed_timestamp": source.attributes[
-                    "sentry.observed_timestamp_nanos"
-                ].string_value,
+                "observed_timestamp": None,
                 "message": source.attributes["sentry.body"].string_value,
             }
         assert meta["dataset"] == self.dataset
