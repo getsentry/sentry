@@ -1,6 +1,6 @@
 import type {Measurement} from 'sentry/types/event';
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 
+import type {TraceSplitResults} from './traceApi/types';
 import {MissingInstrumentationNode} from './traceModels/missingInstrumentationNode';
 import {ParentAutogroupNode} from './traceModels/parentAutogroupNode';
 import {SiblingAutogroupNode} from './traceModels/siblingAutogroupNode';
@@ -283,4 +283,10 @@ export function isStandaloneSpanMeasurementNode(
 export function isRootEvent(value: TraceTree.NodeValue): boolean {
   // Root events has no parent_span_id
   return !!value && 'parent_span_id' in value && value.parent_span_id === null;
+}
+
+export function isTraceSplitResult(
+  result: TraceTree.Trace
+): result is TraceSplitResults<TraceTree.Transaction> {
+  return 'transactions' in result;
 }

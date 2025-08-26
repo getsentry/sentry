@@ -13,7 +13,7 @@ import type {
 } from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
-import type {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceError} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 
 import type SpanTreeModel from './spanTreeModel';
 import type {
