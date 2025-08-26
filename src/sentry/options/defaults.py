@@ -3490,3 +3490,11 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Whether to use 60s granularity for the dynamic sampling query
+register(
+    "dynamic-sampling.query-granularity-60s.active-orgs",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
