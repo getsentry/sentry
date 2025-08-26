@@ -6,9 +6,9 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {type MenuItemProps} from 'sentry/components/dropdownMenu';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {useOrganization} from 'sentry/contexts/organization';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetFrame} from 'sentry/views/dashboards/widgetCard/widgetFrame';
 import type {
   TabularColumn,
