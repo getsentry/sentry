@@ -273,11 +273,13 @@ function SubtotalSummary({
         {previewDataLoading ? (
           <Placeholder height="14px" width="200px" />
         ) : (
-          <RenewalDate>
-            {tct('Renews [date]', {
-              date: moment(renewalDate).format('MMM D, YYYY'),
-            })}
-          </RenewalDate>
+          renewalDate && (
+            <RenewalDate>
+              {tct('Renews [date]', {
+                date: renewalDate.format('MMM D, YYYY'),
+              })}
+            </RenewalDate>
+          )
         )}
       </Item>
     </SummarySection>
@@ -297,6 +299,7 @@ function TotalSummary({
   activePlan,
   formData,
 }: TotalSummaryProps) {
+  const isDueToday = effectiveDate === null;
   const longInterval =
     activePlan.billingInterval === 'annual' ? 'yearly' : activePlan.billingInterval;
 
@@ -312,7 +315,7 @@ function TotalSummary({
     <SummarySection>
       {!previewDataLoading && (
         <Fragment>
-          {!effectiveDate &&
+          {isDueToday &&
             previewData?.invoiceItems
               .filter(item => item.type === InvoiceItemType.SALES_TAX)
               .map(item => {
@@ -328,7 +331,7 @@ function TotalSummary({
               })}
         </Fragment>
       )}
-      {!previewDataLoading && !effectiveDate && !!previewData?.creditApplied && (
+      {!previewDataLoading && isDueToday && !!previewData?.creditApplied && (
         <Item data-test-id="summary-item-credit_applied">
           <ItemFlex>
             <div>{t('Credit applied')}</div>
@@ -434,10 +437,8 @@ function Cart({
         if (data) {
           // effectiveAt is the day before the changes are effective
           // for immediate changes, effectiveAt is the current day
-          const {effectiveAt, invoiceItems, billedAmount, proratedAmount} = data;
-          const effectiveImmediately = effectiveAt
-            ? new Date(effectiveAt).getTime() <= Date.now() + 3600
-            : false;
+          const {effectiveAt, atPeriodEnd, invoiceItems, billedAmount, proratedAmount} =
+            data;
           const planItem = invoiceItems.find(
             item => item.type === InvoiceItemType.SUBSCRIPTION
           );
@@ -445,14 +446,14 @@ function Cart({
           setRenewalDate(
             moment(planItem?.period_end ?? subscription.contractPeriodEnd).add(1, 'day')
           );
-          if (effectiveImmediately) {
-            setOriginalBilledTotal(proratedAmount);
-            setBilledTotal(billedAmount);
-            setEffectiveDate(null);
-          } else {
+          if (atPeriodEnd) {
             setOriginalBilledTotal(0);
             setBilledTotal(0);
             setEffectiveDate(moment(effectiveAt).add(1, 'day'));
+          } else {
+            setOriginalBilledTotal(proratedAmount);
+            setBilledTotal(billedAmount);
+            setEffectiveDate(null);
           }
         } else {
           setRenewalDate(null);

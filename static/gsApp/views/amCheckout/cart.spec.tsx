@@ -243,6 +243,7 @@ describe('Cart', () => {
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
       body: {
+        atPeriodEnd: true,
         effectiveAt: moment(MOCK_TODAY).add(1, 'year').format('YYYY-MM-DD'),
         billedAmount: 89_00,
         invoiceItems: [
