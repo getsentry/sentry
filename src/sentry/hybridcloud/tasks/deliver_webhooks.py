@@ -588,6 +588,7 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
                 "deliver_webhooks.send_request_to_codecov.configuration_error",
                 extra={"error": str(err), **logging_context},
             )
+            return
 
         try:
             headers = orjson.loads(payload.request_headers)
@@ -599,6 +600,7 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
                 "deliver_webhooks.send_request_to_codecov.json_decode_error",
                 extra={"error": str(err), **logging_context},
             )
+            return
 
         try:
             response = client.post(
@@ -619,6 +621,7 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
                         **logging_context,
                     },
                 )
+                return
         except requests.exceptions.RequestException as err:
             metrics.incr(
                 "hybridcloud.deliver_webhooks.send_request_to_codecov.failure",
@@ -627,3 +630,4 @@ def perform_codecov_request(payload: WebhookPayload) -> None:
                 "deliver_webhooks.send_request_to_codecov.failure",
                 extra={"error": str(err), **logging_context},
             )
+            return
