@@ -862,11 +862,6 @@ class SearchResolver:
                     search_type=column_definition.search_type,
                 )
         else:
-            if self.definitions.alias_to_column is not None:
-                mapped_column = self.definitions.alias_to_column(column)
-                if mapped_column is not None:
-                    column = mapped_column
-
             if len(column) > qb_constants.MAX_TAG_KEY_LENGTH:
                 raise InvalidSearchQuery(
                     f"{column} is too long, can be a maximum of 200 characters"
@@ -891,6 +886,11 @@ class SearchResolver:
 
             if column.startswith("sentry_tags"):
                 field = f"sentry.{field}"
+
+            if self.definitions.alias_to_column is not None:
+                mapped_column = self.definitions.alias_to_column(field)
+                if mapped_column is not None:
+                    field = mapped_column
 
             search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedAttribute(

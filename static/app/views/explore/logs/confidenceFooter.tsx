@@ -122,19 +122,10 @@ function LowAccuracyFullTooltip({
     <Tooltip
       title={
         <div>
-          {t(
-            'You may not have enough logs for a high accuracy extrapolation of your query.'
-          )}
+          {t('Some logs are not shown due to the large volume of logs.')}
           <br />
           <br />
-          {t(
-            "You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval."
-          )}
-          <br />
-          <br />
-          {t(
-            'You can also increase your sampling rates to get more samples and accurate trends.'
-          )}
+          {t('Try reducing the date range or number of projects.')}
         </div>
       }
       disabled={noSampling}

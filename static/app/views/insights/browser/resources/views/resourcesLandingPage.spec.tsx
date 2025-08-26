@@ -32,7 +32,7 @@ const requestMocks: Record<string, jest.Mock> = {};
 
 describe('ResourcesLandingPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
 
   beforeEach(() => {
