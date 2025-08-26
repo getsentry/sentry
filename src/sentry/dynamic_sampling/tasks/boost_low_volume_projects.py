@@ -119,7 +119,14 @@ def boost_low_volume_projects(context: TaskContext) -> None:
     )
 
     # NB: This always uses the *transactions* root count just to get the list of orgs.
-    for orgs in TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)):
+    if options.get("dynamic-sampling.query-granularity-60s.active-orgs", None):
+        granularity = Granularity(60)
+    else:
+        granularity = Granularity(3600)
+
+    for orgs in TimedIterator(
+        context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity)
+    ):
         for measure, orgs in partition_by_measure(orgs).items():
             for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
                 context, org_ids=orgs, measure=measure
