@@ -1,7 +1,6 @@
 import type {Theme} from '@emotion/react';
 
 import type {EventTag, Measurement} from 'sentry/types/event';
-import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 /**
@@ -88,15 +87,6 @@ export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLit
   orphan_errors: TraceError[];
   transactions: U[];
 };
-
-type TraceProps = {
-  traceId: string;
-  end?: string;
-  start?: string;
-  statsPeriod?: string | null;
-};
-
-export type TraceRequestProps = DiscoverQueryProps & TraceProps;
 
 export type TraceMeta = {
   errors: number;
