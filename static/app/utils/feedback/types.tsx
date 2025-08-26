@@ -7,7 +7,7 @@ type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 type FeedbackIssueMetadata = {
   contact_email: null | string;
   message: string;
-  name: string;
+  name: null | string;
   title: string;
   value: string;
   sdk?: {
