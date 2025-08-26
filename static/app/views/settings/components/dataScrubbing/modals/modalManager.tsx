@@ -210,10 +210,25 @@ class ModalManager extends Component<Props, State> {
           },
         }));
         break;
+      case ErrorType.ATTRIBUTE_INVALID:
+        this.setState(prevState => ({
+          errors: {
+            ...prevState.errors,
+            source: error.message,
+          },
+        }));
+        break;
       default:
         addErrorMessage(error.message);
     }
   }
+
+  handleAttributeError = (message: string) => {
+    this.convertRequestError({
+      type: ErrorType.ATTRIBUTE_INVALID,
+      message,
+    });
+  };
 
   handleChange = <R extends Rule, K extends KeysOfUnion<R>>(field: K, value: R[K]) => {
     const values = {
@@ -317,6 +332,7 @@ class ModalManager extends Component<Props, State> {
             onChangeDataset={this.handleChangeDataset}
             onValidate={this.handleValidate}
             onUpdateEventId={this.handleUpdateEventId}
+            onAttributeError={this.handleAttributeError}
             eventId={eventId}
             errors={errors}
             values={values}

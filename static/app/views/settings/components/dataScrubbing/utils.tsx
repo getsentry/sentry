@@ -520,7 +520,9 @@ export class TraceItemFieldSelector {
  * Validates that a TraceItemFieldSelector can be properly converted to a field and back
  * to ensure the regex transform inversions are working correctly.
  */
-function validateTraceItemFieldSelector(traceItemFieldSelector: TraceItemFieldSelector): {
+export function validateTraceItemFieldSelector(
+  traceItemFieldSelector: TraceItemFieldSelector
+): {
   isValid: boolean;
   error?: string;
 } {
@@ -566,69 +568,4 @@ function validateTraceItemFieldSelector(traceItemFieldSelector: TraceItemFieldSe
       ),
     };
   }
-}
-
-/**
- * Validates a rule by creating a temporary rule object and testing it
- * This simulates the server-side validation that would happen on submit
- */
-function validateRule(values: {
-  method: string;
-  source: string;
-  type: string;
-  pattern?: string;
-  placeholder?: string;
-}): {isValid: boolean; error?: string} {
-  try {
-    const tempRule = {...values, id: 0} as Rule;
-
-    const traceItemFieldSelector = TraceItemFieldSelector.fromRule(tempRule);
-    if (traceItemFieldSelector) {
-      const selectorValidation = validateTraceItemFieldSelector(traceItemFieldSelector);
-      if (!selectorValidation.isValid) {
-        return selectorValidation;
-      }
-    }
-
-    return {isValid: true};
-  } catch (error) {
-    return {
-      isValid: false,
-      error: t(
-        'Validation error: %s',
-        error instanceof Error ? error.message : String(error)
-      ),
-    };
-  }
-}
-
-/**
- * Creates a curried validation function for attribute fields that validates
- * both the TraceItemFieldSelector transformation and the rule as a whole
- */
-export function createAttributeFieldValidator(ruleValues: {
-  method: string;
-  type: string;
-  pattern?: string;
-  placeholder?: string;
-}) {
-  return (source: string): {isValid: boolean; error?: string} => {
-    const fullRuleValues = {
-      ...ruleValues,
-      source,
-    };
-
-    // First validate the TraceItemFieldSelector transformation
-    const tempRule = {...fullRuleValues, id: 0} as Rule;
-    const traceItemFieldSelector = TraceItemFieldSelector.fromRule(tempRule);
-
-    if (traceItemFieldSelector) {
-      const selectorValidation = validateTraceItemFieldSelector(traceItemFieldSelector);
-      if (!selectorValidation.isValid) {
-        return selectorValidation;
-      }
-    }
-
-    return validateRule(fullRuleValues);
-  };
 }
