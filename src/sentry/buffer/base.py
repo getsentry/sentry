@@ -178,7 +178,7 @@ class Buffer(Service):
             # HACK(dcramer): this is gross, but we don't have a good hook to compute this property today
             # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
             if model is Group:
-                # XXX: create_or_update doesn't fire `post_save` signals, and so this update never
+                # XXX: update_or_create doesn't fire `post_save` signals, and so this update never
                 # ends up in the cache. This causes issues when handling issue alerts, and likely
                 # elsewhere. Use `update` here since we're already special casing, and we know that
                 # the group will already exist.
@@ -192,7 +192,7 @@ class Buffer(Service):
                     group.update(using=None, **update_kwargs)
                 created = False
             elif model:
-                _, created = model.objects.create_or_update(values=update_kwargs, **filters)
+                _, created = model.objects.update_or_create(defaults=update_kwargs, **filters)
 
         buffer_incr_complete.send_robust(
             model=model,
