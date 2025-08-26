@@ -3,7 +3,8 @@ from rest_framework import serializers
 
 from sentry import audit_log
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
