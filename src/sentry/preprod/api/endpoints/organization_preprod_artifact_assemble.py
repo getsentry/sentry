@@ -17,7 +17,6 @@ from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.tasks.assemble import ChunkFileState
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -89,15 +88,6 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (ProjectReleasePermission,)
-
-    enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.ORGANIZATION: RateLimit(
-                limit=100, window=60
-            ),  # 100 requests per minute per org
-        }
-    }
 
     def post(self, request: Request, project: Project) -> Response:
         """
