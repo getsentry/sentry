@@ -6,6 +6,10 @@ from abc import ABC, abstractmethod
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.github.commit_status import GitHubCheckConclusion, GitHubCheckStatus
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+)
 from sentry.integrations.source_code_management.status_check import StatusCheckClient
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitcomparison import CommitComparison
@@ -128,11 +132,16 @@ def _create_preprod_status_check_impl(
         )
         return False
 
-    client = _get_status_check_client(preprod_artifact.project, commit_comparison)
-    if not client:
+    client, repository = _get_status_check_client(preprod_artifact.project, commit_comparison)
+    if not client or not repository:
         return False
 
-    provider = _get_status_check_provider(client, commit_comparison.provider)
+    provider = _get_status_check_provider(
+        client,
+        commit_comparison.provider,
+        preprod_artifact.project.organization_id,
+        repository.integration_id,
+    )
     if not provider:
         return False
 
@@ -162,7 +171,7 @@ def _create_preprod_status_check_impl(
 
 def _get_status_check_client(
     project: Project, commit_comparison: CommitComparison
-) -> StatusCheckClient | None:
+) -> tuple[StatusCheckClient, Repository] | tuple[None, None]:
     """Get status check client for the project's integration.
 
     Returns None for expected failure cases (missing repo, integration, etc).
@@ -183,7 +192,7 @@ def _get_status_check_client(
                 "provider": commit_comparison.provider,
             },
         )
-        return None
+        return None, None
 
     if not repository.integration_id:
         logger.info(
@@ -193,7 +202,7 @@ def _get_status_check_client(
                 "project_id": project.id,
             },
         )
-        return None
+        return None, None
 
     try:
         integration: Integration = Integration.objects.get(id=repository.integration_id)
@@ -206,7 +215,7 @@ def _get_status_check_client(
                 "project_id": project.id,
             },
         )
-        return None
+        return None, None
 
     installation: IntegrationInstallation = integration.get_installation(
         organization_id=project.organization_id
@@ -222,17 +231,17 @@ def _get_status_check_client(
                 "project_id": project.id,
             },
         )
-        return None
+        return None, None
 
-    return client
+    return client, repository
 
 
 def _get_status_check_provider(
-    client: StatusCheckClient, provider: str
+    client: StatusCheckClient, provider: str, organization_id: int, integration_id: int
 ) -> _StatusCheckProvider | None:
     """Get the appropriate status check provider for the given provider type."""
     if provider == IntegrationProviderSlug.GITHUB:
-        return _GitHubStatusCheckProvider(client)
+        return _GitHubStatusCheckProvider(client, provider, organization_id, integration_id)
     else:
         logger.info(
             "preprod.status_checks.create.not_supported_provider",
@@ -244,11 +253,28 @@ def _get_status_check_provider(
 class _StatusCheckProvider(ABC):
     """
     The APIs for creating status checks are slightly different for each provider.
-    This abstract class provides a common interface for creating status checks.
+    This provides a common interface for creating status checks.
     """
 
-    def __init__(self, client: StatusCheckClient):
+    def __init__(
+        self,
+        client: StatusCheckClient,
+        provider_key: str,
+        organization_id: int,
+        integration_id: int,
+    ):
         self.client = client
+        self.provider_key = provider_key
+        self.organization_id = organization_id
+        self.integration_id = integration_id
+
+    def _create_scm_interaction_event(self):
+        return SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.CREATE_STATUS_CHECK,
+            provider_key=self.provider_key,
+            organization_id=self.organization_id,
+            integration_id=self.integration_id,
+        )
 
     @abstractmethod
     def create_status_check(
@@ -280,27 +306,27 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         target_url: str | None = None,
         conclusion: GitHubCheckConclusion | None = None,
     ) -> str | None:
+        with self._create_scm_interaction_event().capture() as _:
+            check_data = {
+                "name": title,
+                "head_sha": sha,
+                "external_id": external_id,
+                "output": {
+                    "title": title,
+                    "summary": summary,
+                    "text": text,
+                },
+                "status": status.value,
+            }
 
-        check_data = {
-            "name": title,
-            "head_sha": sha,
-            "external_id": external_id,
-            "output": {
-                "title": title,
-                "summary": summary,
-                "text": text,
-            },
-            "status": status.value,
-        }
+            # Only include conclusion when status is completed
+            if status == GitHubCheckStatus.COMPLETED and conclusion:
+                check_data["conclusion"] = conclusion.value
 
-        # Only include conclusion when status is completed
-        if status == GitHubCheckStatus.COMPLETED and conclusion:
-            check_data["conclusion"] = conclusion.value
+            if target_url:
+                check_data["details_url"] = target_url
 
-        if target_url:
-            check_data["details_url"] = target_url
-
-        response = self.client.create_check_run(repo=repo, data=check_data)
-        response_json = json.loads(response)
-        check_id = response_json.get("id")
-        return str(check_id)
+            response = self.client.create_check_run(repo=repo, data=check_data)
+            response_json = json.loads(response)
+            check_id = response_json.get("id")
+            return str(check_id)
