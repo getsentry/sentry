@@ -6,6 +6,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import FeedbackItemSummary from 'sentry/components/feedback/feedbackItem/feedbackItemSummary';
 import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackTimestampsTooltip from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
 import {ScreenshotSection} from 'sentry/components/feedback/feedbackItem/screenshotSection';
@@ -29,6 +30,7 @@ export default function MessageSection({eventData, feedbackItem}: Props) {
 
   return (
     <Fragment>
+      <FeedbackItemSummary feedbackIssue={feedbackItem} />
       <Flex wrap="wrap" flex="1 1 auto" gap="md" justify="between">
         <FeedbackItemUsername feedbackIssue={feedbackItem} />
         <Flex gap="md">
