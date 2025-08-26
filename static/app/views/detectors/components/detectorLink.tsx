@@ -166,7 +166,7 @@ function Details({detector}: {detector: Detector}) {
     case 'uptime_domain_failure':
       return <UptimeDetectorDetails detector={detector} />;
     // TODO: Implement details for Cron detectors
-    case 'uptime_subscription':
+    case 'monitor_check_in_failure':
     case 'error':
       return null;
     default:

@@ -52,7 +52,7 @@ export function cronFormDataToEndpointPayload(
   data: CronDetectorFormData
 ): CronDetectorUpdatePayload {
   return {
-    type: 'uptime_subscription',
+    type: 'monitor_check_in_failure',
     name: data.name,
     owner: data.owner,
     projectId: data.projectId,

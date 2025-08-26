@@ -40,7 +40,7 @@ export function NewDetectorForm({detectorType}: {detectorType: DetectorType}) {
       return <NewUptimeDetectorForm />;
     case 'error':
       return <NewErrorDetectorForm />;
-    case 'uptime_subscription':
+    case 'monitor_check_in_failure':
       return <NewCronDetectorForm />;
     default:
       unreachable(detectorType);
@@ -57,7 +57,7 @@ export function EditExistingDetectorForm({detector}: {detector: Detector}) {
       return <EditExistingUptimeDetectorForm detector={detector} />;
     case 'error':
       return <EditExistingErrorDetectorForm detector={detector} />;
-    case 'uptime_subscription':
+    case 'monitor_check_in_failure':
       return <EditExistingCronDetectorForm detector={detector} />;
     default:
       unreachable(detectorType);

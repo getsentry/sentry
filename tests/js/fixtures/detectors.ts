@@ -123,7 +123,7 @@ export function CronDetectorFixture(params: Partial<CronDetector> = {}): CronDet
     ...BASE_DETECTOR,
     name: 'Cron Detector',
     id: '3',
-    type: 'uptime_subscription',
+    type: 'monitor_check_in_failure',
     config: {
       environment: 'production',
     },
