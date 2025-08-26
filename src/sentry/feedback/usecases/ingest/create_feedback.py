@@ -18,7 +18,7 @@ from sentry.feedback.usecases.label_generation import (
     generate_labels,
 )
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
-from sentry.feedback.usecases.title_generation import get_feedback_title
+from sentry.feedback.usecases.title_generation import format_feedback_title, get_feedback_title
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
@@ -310,7 +310,10 @@ def create_feedback_issue(
     use_ai_title = should_query_seer and features.has(
         "organizations:user-feedback-ai-titles", project.organization
     )
-    title = get_feedback_title(feedback_message, project.organization_id, use_ai_title)
+    title_without_prefix = get_feedback_title(
+        feedback_message, project.organization_id, use_ai_title
+    )
+    title = format_feedback_title(title_without_prefix)
 
     occurrence = IssueOccurrence(
         id=uuid4().hex,
@@ -336,6 +339,12 @@ def create_feedback_issue(
             "received": datetime.now().isoformat(),
             "tags": event.get("tags", {}),
         }
+    )
+
+    # Set feedback summary to the title without the "User Feedback: " prefix
+    event_fixed["metadata"] = event_fixed.get("metadata", {})
+    event_fixed["metadata"]["summary"] = format_feedback_title(
+        title_without_prefix, include_prefix=False
     )
 
     # Generating labels using Seer, which will later be used to categorize feedbacks

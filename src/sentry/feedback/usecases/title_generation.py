@@ -25,7 +25,7 @@ class GenerateFeedbackTitleRequest(TypedDict):
     feedback_message: str
 
 
-def format_feedback_title(title: str, max_words: int = 10) -> str:
+def format_feedback_title(title: str, max_words: int = 10, include_prefix: bool = True) -> str:
     """
     Clean and format a title for user feedback issues.
     Format: "User Feedback: [first few words of title]"
@@ -33,6 +33,7 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
     Args:
         title: The title to format
         max_words: Maximum number of words to include from the title
+        include_prefix: Whether to include the "User Feedback: " prefix
 
     Returns:
         A formatted title string
@@ -49,7 +50,7 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
         if len(summary) < len(stripped_message):
             summary += "..."
 
-    title = f"User Feedback: {summary}"
+    title = f"User Feedback: {summary}" if include_prefix else summary
 
     # Truncate if necessary (keeping some buffer for external system limits)
     if len(title) > 200:  # Conservative limit
@@ -116,5 +117,4 @@ def get_feedback_title(feedback_message: str, organization_id: int, use_seer: bo
         )
     else:
         raw_title = feedback_message
-
-    return format_feedback_title(raw_title)
+    return raw_title
