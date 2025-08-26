@@ -2,11 +2,11 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DETECTOR_TYPE_LABELS} from 'sentry/views/detectors/constants';
 import {
   makeMonitorBasePathname,
   makeMonitorDetailsPathname,
 } from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export function NewDetectorBreadcrumbs({detectorType}: {detectorType: DetectorType}) {
   const organization = useOrganization();
@@ -15,7 +15,7 @@ export function NewDetectorBreadcrumbs({detectorType}: {detectorType: DetectorTy
       crumbs={[
         {label: t('Monitors'), to: makeMonitorBasePathname(organization.slug)},
         {
-          label: t('New %s Monitor', DETECTOR_TYPE_LABELS[detectorType]),
+          label: t('New %s Monitor', getDetectorTypeLabel(detectorType)),
         },
       ]}
     />
