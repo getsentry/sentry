@@ -15,9 +15,16 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 
 type Params = DocsParams;
 
-const getInstallSnippet = (params: Params, defaultVersion = '0.39.0') => `
+const getInstallSnippet = (params: Params, defaultVersion = '0.39.0') => {
+  const version = getPackageVersion(params, 'sentry.rust', defaultVersion);
+  return params.isLogsSelected
+    ? `
 [dependencies]
-sentry = "${getPackageVersion(params, 'sentry.rust', defaultVersion)}"`;
+sentry = { version = "${version}", features = ["logs"] }`
+    : `
+[dependencies]
+sentry = "${version}"`;
+};
 
 const getConfigureSnippet = (params: Params) => `
 let _guard = sentry::init(("${params.dsn.public}", sentry::ClientOptions {
