@@ -46,7 +46,7 @@ class GithubRequestParser(BaseRequestParser):
             return None
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
-    def try_forward_to_codecov(self, event: Mapping[str, Any]):
+    def try_forward_to_codecov(self, event: Mapping[str, Any]) -> None:
         try:
             self.forward_to_codecov(external_id=self._get_external_id(event=event))
         except Exception:
