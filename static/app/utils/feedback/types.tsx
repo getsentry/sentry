@@ -10,7 +10,6 @@ type FeedbackIssueMetadata = {
   name: string;
   title: string;
   value: string;
-  associated_event_id?: string;
   sdk?: {
     name: string;
     name_normalized: string;
@@ -24,7 +23,7 @@ export type FeedbackIssue = Overwrite<
   {
     issueCategory: 'feedback';
     issueType: 'feedback';
-    metadata: FeedbackIssueMetadata;
+    metadata: FeedbackIssueMetadata & {initial_priority?: number};
     owners: null | unknown;
     project?: Project;
   }
@@ -37,7 +36,7 @@ export type FeedbackIssueListItem = Overwrite<
   {
     issueCategory: 'feedback';
     issueType: 'feedback';
-    metadata: FeedbackIssueMetadata;
+    metadata: FeedbackIssueMetadata & {associated_event_id?: string};
     owners: null | unknown;
     project?: Project;
   }
