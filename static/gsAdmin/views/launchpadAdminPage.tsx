@@ -31,7 +31,9 @@ function LaunchpadAdminPage() {
         data: {
           preprod_artifact_id: rerunArtifactId,
         },
-        options: {},
+        options: {
+          host: region?.url,
+        },
       });
     },
     onSuccess: () => {
@@ -53,7 +55,9 @@ function LaunchpadAdminPage() {
         data: {
           preprod_artifact_ids: [deleteArtifactId],
         },
-        options: {},
+        options: {
+          host: region?.url,
+        },
       });
     },
     onSuccess: () => {
@@ -72,9 +76,14 @@ function LaunchpadAdminPage() {
       addErrorMessage('Artifact ID is required');
       return;
     }
+    if (!region) {
+      addErrorMessage('Please select a region first');
+      return;
+    }
 
     api.request(`/internal/preprod-artifact/${fetchInfoArtifactId}/info/`, {
       method: 'GET',
+      host: region?.url,
       success: (data: any) => {
         addSuccessMessage(
           `Artifact info fetched successfully for: ${fetchInfoArtifactId}`
@@ -99,7 +108,9 @@ function LaunchpadAdminPage() {
             .map(id => id.trim())
             .filter(id => id),
         },
-        options: {},
+        options: {
+          host: region?.url,
+        },
       });
     },
     onSuccess: () => {
@@ -116,11 +127,19 @@ function LaunchpadAdminPage() {
 
   const handleRerunSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!region) {
+      addErrorMessage('Please select a region first');
+      return;
+    }
     rerunAnalysis();
   };
 
   const handleDeleteSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!region) {
+      addErrorMessage('Please select a region first');
+      return;
+    }
 
     openAdminConfirmModal({
       header: <h4>Delete Artifact Data</h4>,
@@ -156,6 +175,10 @@ function LaunchpadAdminPage() {
 
   const handleBatchDeleteSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!region) {
+      addErrorMessage('Please select a region first');
+      return;
+    }
 
     const artifactIds = batchDeleteArtifactIds
       .split(',')
@@ -229,7 +252,11 @@ function LaunchpadAdminPage() {
               onChange={e => setRerunArtifactId(e.target.value)}
               placeholder="Enter preprod artifact ID"
             />
-            <Button priority="primary" type="submit" disabled={!rerunArtifactId.trim()}>
+            <Button
+              priority="primary"
+              type="submit"
+              disabled={!rerunArtifactId.trim() || !region}
+            >
               Rerun Analysis
             </Button>
           </FormSection>
@@ -245,7 +272,11 @@ function LaunchpadAdminPage() {
               onChange={e => setDeleteArtifactId(e.target.value)}
               placeholder="Enter preprod artifact ID"
             />
-            <Button priority="danger" type="submit" disabled={!deleteArtifactId.trim()}>
+            <Button
+              priority="danger"
+              type="submit"
+              disabled={!deleteArtifactId.trim() || !region}
+            >
               Delete Data
             </Button>
           </FormSection>
@@ -264,7 +295,7 @@ function LaunchpadAdminPage() {
             <Button
               priority="default"
               type="submit"
-              disabled={!fetchInfoArtifactId.trim()}
+              disabled={!fetchInfoArtifactId.trim() || !region}
             >
               Fetch Info
             </Button>
@@ -286,7 +317,7 @@ function LaunchpadAdminPage() {
             <Button
               priority="danger"
               type="submit"
-              disabled={!batchDeleteArtifactIds.trim()}
+              disabled={!batchDeleteArtifactIds.trim() || !region}
             >
               Batch Delete
             </Button>
