@@ -41,7 +41,7 @@ class OrganizationPluginDeprecationInfoEndpoint(OrganizationEndpoint):
 
         url_prefix = generate_organization_url(organization.slug)
         affected_rules_urls = self.get_plugin_rules_urls(
-            plugin_projects, f"{url_prefix}/organizations/{organization.slug}/", plugin
+            plugin_projects, f"{url_prefix}/organizations/{organization.slug}", plugin
         )
         affected_issue_urls = self.get_plugin_groups_urls(plugin_projects, plugin, url_prefix)
 
