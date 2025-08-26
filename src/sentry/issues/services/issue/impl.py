@@ -4,13 +4,56 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
-from sentry.issues.services.issue.model import RpcGroupShareMetadata
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.services.issue.model import RpcExternalIssueGroupMetadata, RpcGroupShareMetadata
 from sentry.issues.services.issue.service import IssueService
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 
 
 class DatabaseBackedIssueService(IssueService):
+    def get_external_issue_groups(
+        self, *, region_name: str, external_issue_key: str, integration_id: int
+    ) -> list[RpcExternalIssueGroupMetadata] | None:
+        from sentry.integrations.jira.views.sentry_issue_details import build_context
+        from sentry.integrations.services.integration import integration_service
+
+        try:
+            external_issue = ExternalIssue.objects.get(
+                integration_id=integration_id, key=external_issue_key
+            )
+        except (
+            ExternalIssue.DoesNotExist,
+            # Multiple ExternalIssues are returned if organizations share one integration.
+            # Since we cannot identify the organization from the request alone, for now, we just
+            # avoid crashing on the MultipleObjectsReturned error.
+            ExternalIssue.MultipleObjectsReturned,
+        ):
+            return None
+
+        if (
+            integration := integration_service.get_integration(integration_id=integration_id)
+        ) is None:
+            return None
+
+        if (
+            integration_service.get_organization_integration(
+                organization_id=external_issue.organization_id,
+                integration_id=integration_id,
+            )
+            is None
+        ):
+            return None
+
+        organization = Organization.objects.get(id=external_issue.organization_id)
+
+        groups = Group.objects.get_groups_by_external_issue(
+            integration=integration,
+            organizations=[organization],
+            external_issue_key=external_issue_key,
+        )
+        return [RpcExternalIssueGroupMetadata(**build_context(group)) for group in groups]
+
     def get_shared_for_org(self, *, slug: str, share_id: str) -> RpcGroupShareMetadata | None:
         try:
             organization = Organization.objects.get(slug=slug)
