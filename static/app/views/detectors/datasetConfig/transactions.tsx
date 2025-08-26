@@ -11,6 +11,8 @@ import {
   BASE_INTERVALS,
   DYNAMIC_INTERVALS,
   getStandardTimePeriodsForInterval,
+  MetricDetectorInterval,
+  MetricDetectorTimePeriod,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
 import type {DetectorDatasetConfig} from './base';
@@ -26,11 +28,21 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     defaultEventTypes: DEFAULT_EVENT_TYPES,
     defaultField: TransactionsConfig.defaultField,
     getAggregateOptions: TransactionsConfig.getTableFieldOptions,
-    getSeriesQueryOptions: options =>
-      getDiscoverSeriesQueryOptions({
+    getSeriesQueryOptions: options => {
+      // Force statsPeriod to be 9998m to avoid the 10k results limit.
+      // This is specific to the transactions dataset, since it has 1m intervals and does not support 10k+ results.
+      const timePeriod =
+        options.interval === MetricDetectorInterval.ONE_MINUTE &&
+        options.statsPeriod === MetricDetectorTimePeriod.SEVEN_DAYS
+          ? '9998m'
+          : options.statsPeriod;
+
+      return getDiscoverSeriesQueryOptions({
         ...options,
-        dataset: DiscoverDatasets.TRANSACTIONS,
-      }),
+        statsPeriod: timePeriod,
+        dataset: DiscoverDatasets.METRICS_ENHANCED,
+      });
+    },
     getIntervals: ({detectionType}) => {
       return detectionType === 'dynamic' ? DYNAMIC_INTERVALS : BASE_INTERVALS;
     },
