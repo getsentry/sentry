@@ -10,16 +10,16 @@ import {
 } from 'sentry/components/onboarding/productSelection';
 import ConfigStore from 'sentry/stores/configStore';
 
-describe('Onboarding Product Selection', function () {
+describe('Onboarding Product Selection', () => {
   const organization = OrganizationFixture({
     features: ['session-replay', 'performance-view', 'profiling-view'],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     ConfigStore.init();
   });
 
-  it('renders default state', async function () {
+  it('renders default state', async () => {
     const {router} = initializeOrg({
       router: {
         location: {
@@ -87,7 +87,7 @@ describe('Onboarding Product Selection', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders disabled product', async function () {
+  it('renders disabled product', async () => {
     const {router} = initializeOrg({
       router: {
         location: {
@@ -132,7 +132,7 @@ describe('Onboarding Product Selection', function () {
     await waitFor(() => expect(router.push).not.toHaveBeenCalled());
   });
 
-  it('does not render Session Replay if not available for the platform', function () {
+  it('does not render Session Replay if not available for the platform', () => {
     platformProductAvailability['javascript-react'] = [
       ProductSolution.PERFORMANCE_MONITORING,
     ];
@@ -158,7 +158,7 @@ describe('Onboarding Product Selection', function () {
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('does render Profiling if available for the platform', function () {
+  it('does render Profiling if available for the platform', () => {
     const {router} = initializeOrg({
       router: {
         location: {
@@ -178,7 +178,7 @@ describe('Onboarding Product Selection', function () {
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('renders with non-errors features disabled for errors only self-hosted', function () {
+  it('renders with non-errors features disabled for errors only self-hosted', () => {
     platformProductAvailability['javascript-react'] = [
       ProductSolution.PERFORMANCE_MONITORING,
       ProductSolution.SESSION_REPLAY,
@@ -205,7 +205,7 @@ describe('Onboarding Product Selection', function () {
     expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeDisabled();
   });
 
-  it('does not select any products by default', function () {
+  it('does not select any products by default', () => {
     const {router} = initializeOrg({
       router: {
         location: {
@@ -223,7 +223,7 @@ describe('Onboarding Product Selection', function () {
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('triggers onChange callback', async function () {
+  it('triggers onChange callback', async () => {
     const {router} = initializeOrg({
       router: {
         location: {
@@ -254,7 +254,7 @@ describe('Onboarding Product Selection', function () {
     });
   });
 
-  it('does not overwrite URL products if others are present', function () {
+  it('does not overwrite URL products if others are present', () => {
     const {router} = initializeOrg({
       router: {
         location: {

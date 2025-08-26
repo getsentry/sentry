@@ -22,9 +22,12 @@ from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils.cache import cache_key_for_event
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors import process_data_source, process_detectors
-from sentry.workflow_engine.processors.delayed_workflow import process_delayed_workflows
-from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
+from sentry.workflow_engine.processors.data_source import process_data_source
+from sentry.workflow_engine.processors.detector import process_detectors
+from sentry.workflow_engine.tasks.delayed_workflows import (
+    DelayedWorkflow,
+    process_delayed_workflows,
+)
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -198,7 +201,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             mock_process_workflow.assert_not_called()
 
 
-@mock.patch("sentry.workflow_engine.processors.workflow.trigger_action.apply_async")
+@mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
 @mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
     def setUp(self) -> None:
@@ -278,8 +281,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         from sentry.types.group import GroupSubStatus
 
         project = self.create_project(fire_project_created=True)
-        project.flags.has_high_priority_alerts = True
-        project.save()
         detector = Detector.objects.get(project=project)
         workflow = DetectorWorkflow.objects.get(detector=detector).workflow
         workflow.update(config={"frequency": 0})
@@ -374,9 +375,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         assert not mock_trigger.called  # Should not trigger for events without the environment
 
     def test_slow_condition_workflow_with_conditions(self, mock_trigger: MagicMock) -> None:
-        self.project.flags.has_high_priority_alerts = True
-        self.project.save()
-
         # slow condition + trigger, and filter condition
         self.workflow_triggers.update(logic_type="all")
         self.create_data_condition(

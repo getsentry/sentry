@@ -157,7 +157,7 @@ def _do_symbolicate_event(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
 
-    def on_symbolicator_request():
+    def on_symbolicator_request() -> None:
         duration = time() - symbolication_start_time
         if duration > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
             raise SymbolicationTimeout
@@ -185,7 +185,7 @@ def _do_symbolicate_event(
     ):
         try:
             symbolicated_data = symbolication_function(symbolicator, data)
-            span.set_attribute("symbolicated_data", bool(symbolicated_data))
+            span.set_data("symbolicated_data", bool(symbolicated_data))
 
             if symbolicated_data:
                 data = symbolicated_data

@@ -163,7 +163,7 @@ class VstsIssueBase(TestCase):
 )
 @region_silo_test(include_monolith_run=True)
 class VstsIssueSyncTest(VstsIssueBase):
-    def tearDown(self):
+    def tearDown(self) -> None:
         responses.reset()
 
     @responses.activate
@@ -570,7 +570,7 @@ class VstsIssueFormTest(VstsIssueBase):
         )
         self.group = event.group
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         responses.reset()
 
     def update_issue_defaults(self, defaults):

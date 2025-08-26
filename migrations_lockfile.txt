@@ -17,7 +17,7 @@ hybridcloud: 0023_correct_webhook_payload_constraint
 
 insights: 0002_backfill_team_starred
 
-monitors: 0008_fix_processing_error_keys
+monitors: 0009_backfill_monitor_detectors
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
@@ -27,7 +27,7 @@ preprod: 0014_commitcomparisons_fk
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0966_groupopenperiod_data_pending_inc_detector_id_index
+sentry: 0967_large_tables_legacy_json_field
 
 social_auth: 0003_social_auth_json_field
 

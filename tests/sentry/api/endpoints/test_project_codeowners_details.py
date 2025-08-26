@@ -65,10 +65,10 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
 
     @patch("django.utils.timezone.now")
     def test_basic_update(self, mock_timezone_now: MagicMock) -> None:
-        self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)
-        self.create_external_team(external_name="@getsentry/docs", integration=self.integration)
         date = datetime(2023, 10, 3, tzinfo=timezone.utc)
         mock_timezone_now.return_value = date
+        self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)
+        self.create_external_team(external_name="@getsentry/docs", integration=self.integration)
         raw = "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\n\n"
         data = {
             "raw": raw,
@@ -146,7 +146,8 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
     @patch("sentry.analytics.record")
     def test_codeowners_max_raw_length(self, mock_record: MagicMock) -> None:
         with mock.patch(
-            "sentry.api.endpoints.codeowners.MAX_RAW_LENGTH", len(self.data["raw"]) + 1
+            "sentry.issues.endpoints.serializers.MAX_RAW_LENGTH",
+            len(self.data["raw"]) + 1,
         ):
             data = {
                 "raw": f"#                cool stuff     comment\n*.js {self.user.email}\n# good comment"

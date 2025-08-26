@@ -378,8 +378,8 @@ class Project(Model):
             sentry_sdk.start_span(op="project.next_short_id") as span,
             metrics.timer("project.next_short_id"),
         ):
-            span.set_attribute("project_id", self.id)
-            span.set_attribute("project_slug", self.slug)
+            span.set_data("project_id", self.id)
+            span.set_data("project_slug", self.slug)
             return Counter.increment(self, delta)
 
     def _save_project(self, *args, **kwargs):
@@ -672,7 +672,7 @@ class Project(Model):
                 self.update_option("sentry:token", security_token)
             return security_token
 
-    def get_lock_key(self):
+    def get_lock_key(self) -> str:
         return f"project_token:{self.id}"
 
     def copy_settings_from(self, project_id: int) -> bool:

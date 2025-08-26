@@ -141,7 +141,13 @@ class EventStorage(Service):
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
     minimal_columns = {
-        Dataset.Events: [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP],
+        Dataset.Events: [
+            Columns.EVENT_ID,
+            Columns.GROUP_ID,
+            Columns.PROJECT_ID,
+            Columns.TIMESTAMP,
+            Columns.TIMESTAMP_MS,
+        ],
         Dataset.Transactions: [
             Columns.EVENT_ID,
             Columns.GROUP_IDS,
@@ -191,6 +197,7 @@ class EventStorage(Service):
         conditions: Sequence[Condition],
         orderby: Sequence[str],
         limit: int = 100,
+        inner_limit: int | None = None,
         offset: int = 0,
         referrer: str = "eventstore.get_events_snql",
         dataset: Dataset = Dataset.Events,

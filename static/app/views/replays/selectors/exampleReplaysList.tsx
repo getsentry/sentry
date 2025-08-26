@@ -3,15 +3,22 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Link} from 'sentry/components/core/link/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableColumns';
+import ReplayBadge from 'sentry/components/replays/replayBadge';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import useOrganization from 'sentry/utils/useOrganization';
-import {StatusContainer} from 'sentry/views/profiling/landing/styles';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useRoutes} from 'sentry/utils/useRoutes';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 export default function ExampleReplaysList({
   location,
@@ -24,7 +31,9 @@ export default function ExampleReplaysList({
   projectId: number;
   selectorQuery: string;
 }) {
+  const routes = useRoutes();
   const organization = useOrganization();
+
   const {project, environment, start, statsPeriod, utc, end} = location.query;
   const emptyLocation: Location = useMemo(() => {
     return {
@@ -71,6 +80,9 @@ export default function ExampleReplaysList({
     perPage: 3,
   });
 
+  const referrer = getRouteStringFromRoutes(routes);
+  const linkEventView = EventView.fromLocation(location);
+
   return (
     <Fragment>
       {fetchError || (!isFetching && !replays?.length) ? (
@@ -78,21 +90,21 @@ export default function ExampleReplaysList({
           {t('No replays found')}
         </EmptyStateWarning>
       ) : isFetching ? (
-        <StatusContainer>
-          <LoadingIndicator />
-        </StatusContainer>
+        <Flex align="center" justify="center" flex={1} padding="md">
+          <LoadingIndicatorNoMargin />
+        </Flex>
       ) : (
         <AnalyticsArea name="example-replays-list">
           {replays?.map(replay => {
             return (
-              <Wrapper key={replay.id}>
-                <ReplaySessionColumn.Component
-                  columnIndex={0}
+              <ListItem key={replay.id}>
+                <ReplayListItem
                   replay={replay}
-                  rowIndex={0}
-                  showDropdownFilters={false}
+                  referrer={referrer}
+                  linkEventView={linkEventView}
                 />
-              </Wrapper>
+                <InteractionStateLayer />
+              </ListItem>
             );
           })}
         </AnalyticsArea>
@@ -101,6 +113,56 @@ export default function ExampleReplaysList({
   );
 }
 
-const Wrapper = styled('div')`
-  padding: ${space(0.75)} ${space(1.5)} ${space(1.5)} ${space(1.5)};
+function ReplayListItem({
+  replay,
+  referrer,
+  linkEventView,
+}: {
+  linkEventView: EventView;
+  referrer: string;
+  replay: ReplayListRecord;
+}) {
+  const organization = useOrganization();
+  const project = useProjectFromId({project_id: replay.project_id ?? undefined});
+
+  return (
+    <Link
+      to={{
+        pathname: makeReplaysPathname({
+          path: `/${replay.id}/`,
+          organization,
+        }),
+        query: {
+          referrer,
+          ...linkEventView.generateQueryStringObject(),
+          f_b_type: 'rageOrDead',
+        },
+      }}
+      onClick={() =>
+        trackAnalytics('replay.list-navigate-to-details', {
+          project_id: project?.id,
+          platform: project?.platform,
+          organization,
+          referrer,
+          referrer_table: 'selector-widget',
+        })
+      }
+    >
+      <Flex padding="md xl">
+        <ReplayBadge replay={replay} />
+      </Flex>
+    </Link>
+  );
+}
+
+const ListItem = styled('li')`
+  position: relative;
+
+  &:hover [data-underline-on-hover='true'] {
+    text-decoration: underline;
+  }
+`;
+
+const LoadingIndicatorNoMargin = styled(LoadingIndicator)`
+  margin: 0;
 `;

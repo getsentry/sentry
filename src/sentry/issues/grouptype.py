@@ -126,7 +126,7 @@ class GroupTypeRegistry:
             span.set_tag("has_batch_features", batch_features is not None)
             span.set_tag("released", released)
             span.set_tag("enabled", enabled)
-            span.set_attribute("feature_to_grouptype", feature_to_grouptype)
+            span.set_data("feature_to_grouptype", feature_to_grouptype)
             return released + enabled
 
     def get_all_group_type_ids(self) -> set[int]:
@@ -532,7 +532,7 @@ class QueryInjectionVulnerabilityGroupType(PerformanceGroupTypeDefaults, GroupTy
     category_v2 = GroupCategory.DB_QUERY.value
     enable_auto_resolve = False
     enable_escalation_detection = False
-    noise_config = NoiseConfig(ignore_limit=5)
+    noise_config = NoiseConfig(ignore_limit=10000)
     default_priority = PriorityLevel.MEDIUM
 
 

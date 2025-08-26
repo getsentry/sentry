@@ -12,8 +12,8 @@ function renderMockRequests() {
   });
 }
 
-describe('getting started with unreal', function () {
-  it('renders docs correctly', function () {
+describe('getting started with unreal', () => {
+  it('renders docs correctly', () => {
     renderMockRequests();
 
     renderWithOnboardingLayout(docs);

@@ -187,7 +187,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         self.feature_context = Feature("organizations:preprod-artifact-assemble")
         self.feature_context.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.feature_context.__exit__(None, None, None)
         super().tearDown()
 
@@ -362,7 +362,9 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = f"/organizations/{self.organization.slug}/preprod/internal/{artifact_id}"
+        expected_url = (
+            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
+        )
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
@@ -370,6 +372,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -380,14 +391,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
                 "build_configuration": None,
-                "head_sha": None,
-                "base_sha": None,
-                "provider": None,
-                "head_repo_name": None,
-                "base_repo_name": None,
-                "head_ref": None,
-                "base_ref": None,
-                "pr_number": None,
             }
         )
 
@@ -429,7 +432,9 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = f"/organizations/{self.organization.slug}/preprod/internal/{artifact_id}"
+        expected_url = (
+            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
+        )
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
@@ -437,6 +442,15 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration="release",
+            release_notes=None,
+            head_sha="e" * 40,
+            base_sha="f" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/xyz",
+            base_ref="main",
+            pr_number=123,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -447,14 +461,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
                 "build_configuration": "release",
-                "head_sha": "e" * 40,
-                "base_sha": "f" * 40,
-                "provider": "github",
-                "head_repo_name": "owner/repo",
-                "base_repo_name": "owner/repo",
-                "head_ref": "feature/xyz",
-                "base_ref": "main",
-                "pr_number": 123,
             }
         )
 
@@ -722,4 +728,13 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
         )

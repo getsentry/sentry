@@ -408,7 +408,7 @@ class OrganizationEndpoint(Endpoint):
 
         with sentry_sdk.start_span(op="fetch_organization_projects") as span:
             projects = list(qs)
-            span.set_attribute("Project Count", len(projects))
+            span.set_data("Project Count", len(projects))
 
         filter_by_membership = not bool(ids) and not bool(slugs)
         filtered_projects = self._filter_projects_by_permissions(
@@ -434,7 +434,7 @@ class OrganizationEndpoint(Endpoint):
         include_all_accessible: bool = False,
     ) -> list[Project]:
         with sentry_sdk.start_span(op="apply_project_permissions") as span:
-            span.set_attribute("Project Count", len(projects))
+            span.set_data("Project Count", len(projects))
             if force_global_perms:
                 span.set_tag("mode", "force_global_perms")
                 return projects

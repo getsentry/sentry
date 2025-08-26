@@ -15,7 +15,7 @@ class BaseOrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITest
         "organizations:performance-view",
     )
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
         self.two_mins_ago = before_now(minutes=2).replace(microsecond=0)
@@ -38,7 +38,7 @@ class BaseOrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITest
 class OrganizationEventsFacetsPerformanceEndpointTest(
     BaseOrganizationEventsFacetsPerformanceEndpointTest
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self._transaction_count = 0
