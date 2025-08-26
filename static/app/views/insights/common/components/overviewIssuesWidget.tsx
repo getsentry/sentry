@@ -6,6 +6,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {type MenuItemProps} from 'sentry/components/dropdownMenu';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
+import {useOrganization} from 'sentry/contexts/organization';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {WidgetFrame} from 'sentry/views/dashboards/widgetCard/widgetFrame';
@@ -34,6 +35,7 @@ const ALIASES: Record<string, string> = {
 const WIDGET_LIMIT = 4;
 
 export function OverviewIssuesWidget() {
+  const organization = useOrganization();
   const {data, meta, isLoading} = useErrors(
     {
       fields: [ErrorField.ISSUE_ID, ErrorField.TITLE, 'last_seen()', 'epm()'],
@@ -63,7 +65,7 @@ export function OverviewIssuesWidget() {
     {
       key: 'open-in-issues',
       label: 'Open in Issues',
-      to: '/organizations/sentry/issues/',
+      to: normalizeUrl(`/organizations/${organization.slug}/issues/`),
     },
   ];
 
