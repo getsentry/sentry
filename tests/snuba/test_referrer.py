@@ -41,12 +41,8 @@ class ReferrerTest(TestCase):
     @patch("sentry.snuba.referrer.logger.warning")
     def test_referrer_validate_uncommon_suffixes(self, warn_log: MagicMock) -> None:
         assert warn_log.call_count == 0
-        assert not validate_referrer(
-            "api.performance.http.domain-summary-transactions-list.special"
-        )
-        assert not validate_referrer(
-            "api.performance.http.domain-summary-transactions-list.airyrpm"
-        )
+        assert not validate_referrer("api.insights.http.domain-summary-transactions-list.special")
+        assert not validate_referrer("api.insights.http.domain-summary-transactions-list.airyrpm")
         assert warn_log.call_count == 2
 
     @patch("sentry.snuba.referrer.logger.warning")

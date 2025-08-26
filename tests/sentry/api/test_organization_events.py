@@ -148,7 +148,7 @@ class OrganizationEventsEndpointTest(APITestCase):
 
         query = {
             "field": ["user"],
-            "referrer": "api.performance.invalid",
+            "referrer": "api.insights.invalid",
             "project": [self.project.id],
         }
         self.do_request(query)
