@@ -3436,7 +3436,7 @@ class OurLogTestCase(BaseTestCase):
 
         timestamp_proto.FromDatetime(timestamp)
 
-        if "sentry.observed_timestamp_precise" not in extra_data:
+        if "sentry.observed_timestamp_nanos" not in extra_data:
             attributes_proto["sentry.observed_timestamp_nanos"] = AnyValue(
                 int_value=int(timestamp.timestamp() * 1e9)
             )
