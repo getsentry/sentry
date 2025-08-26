@@ -643,7 +643,7 @@ def get_spans(
     sort: str = "",
     stats_period: str = "7d",
     columns: list[dict[str, str]],
-    limit: int = 100,
+    limit: int = 10,
 ) -> dict:
     """
     Get spans using the TraceItemTable endpoint.
@@ -702,73 +702,41 @@ def get_spans(
             )
         )
 
-    # TODO: Clean this up. Could easily be made into a single conditional
-    order_by_list = []
+    # Determine sort field and direction
     if sort:
-        # TODO: Review how asc vs descending is handled in the RPC.
         # Handle descending sort (starts with -)
         descending = sort.startswith("-")
         sort_field = sort.lstrip("-")
-
-        order_by_list.append(
-            TraceItemTableRequest.OrderBy(
-                column=Column(
-                    key=AttributeKey(
-                        name=sort_field,
-                        type=AttributeKey.Type.TYPE_STRING,
-                    )
-                ),
-                descending=descending,
-            )
-        )
+        # For explicit sorts, use the field as-is (no resolution needed)
+        sort_column_name = sort_field
+        sort_column_type = AttributeKey.Type.TYPE_STRING
     else:
+        # Default to first column, descending
+        descending = True
         column_name = columns[0]["name"]
         resolved_column, _ = resolver.resolve_attribute(column_name)
-        order_by_list.append(
-            TraceItemTableRequest.OrderBy(
-                column=Column(
-                    key=AttributeKey(
-                        name=resolved_column.internal_name,
-                        type=(
-                            AttributeKey.Type.TYPE_STRING
-                            if columns[0]["type"] == "TYPE_STRING"
-                            else AttributeKey.Type.TYPE_DOUBLE
-                        ),
-                    )
-                ),
-                descending=True,
-            )
+        sort_column_name = resolved_column.internal_name
+        sort_column_type = (
+            AttributeKey.Type.TYPE_STRING
+            if columns[0]["type"] == "TYPE_STRING"
+            else AttributeKey.Type.TYPE_DOUBLE
         )
 
-    # Parse the query string into a TraceItemFilter
+    order_by_list = [
+        TraceItemTableRequest.OrderBy(
+            column=Column(
+                key=AttributeKey(
+                    name=sort_column_name,
+                    type=sort_column_type,
+                )
+            ),
+            descending=descending,
+        )
+    ]
+
     query_filter = None
     if query and query.strip():
-        try:
-            # Create a minimal SnubaParams for the resolver
-            from sentry.models.project import Project
-
-            organization = Organization.objects.get(id=org_id)
-            projects = list(Project.objects.filter(id__in=project_ids))
-            snuba_params = SnubaParams(
-                start=start,
-                end=end,
-                projects=projects,
-                organization=organization,
-            )
-
-            resolver = SearchResolver(
-                params=snuba_params,
-                config=SearchResolverConfig(),
-                definitions=SPAN_DEFINITIONS,
-            )
-
-            # Resolve the query string to a TraceItemFilter
-            query_filter, _, _ = resolver.resolve_query(query.strip())
-        except Exception:
-            # If query parsing fails, log it but don't fail the entire request
-            # Just proceed without the filter
-            logger.warning("Failed to parse query string: %s", query, exc_info=True)
-            query_filter = None
+        query_filter, _, _ = resolver.resolve_query(query.strip())
 
     meta = RequestMeta(
         organization_id=org_id,
@@ -784,7 +752,7 @@ def get_spans(
         meta=meta,
         columns=request_columns,
         order_by=order_by_list,
-        filter=query_filter,
+        filter=query_filter,  # TODO: should this default to an empty string if its none?
         limit=min(limit, 100),  # Force the upper limit to 100 to avoid abuse
     )
 
@@ -793,7 +761,6 @@ def get_spans(
     if not responses:
         return {"data": [], "meta": {}}
 
-    # Parse the protobuf response into a readable format
     response = responses[0]
     parsed_data = _parse_spans_response(response, columns, resolver)
 
