@@ -7,6 +7,10 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {
+  MetricDetectorInterval,
+  MetricDetectorTimePeriod,
+} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 
 export interface DetectorSearchBarProps {
@@ -73,6 +77,12 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     tags?: TagCollection,
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
+  getAvailableIntervals: (options: {
+    detectionType: MetricDetectorConfig['detectionType'];
+  }) => readonly MetricDetectorInterval[];
+  getAvailableTimePeriods: (
+    interval: MetricDetectorInterval
+  ) => readonly MetricDetectorTimePeriod[];
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
   supportedDetectionTypes: Array<MetricDetectorConfig['detectionType']>;
   /**

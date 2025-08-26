@@ -7,6 +7,11 @@ import {
   transformEventsStatsComparisonSeries,
   transformEventsStatsToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
+import {
+  BASE_INTERVALS,
+  DYNAMIC_INTERVALS,
+  getStandardTimePeriodsForInterval,
+} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
 import type {DetectorDatasetConfig} from './base';
 
@@ -22,6 +27,10 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
         ...options,
         dataset: DiscoverDatasets.TRANSACTIONS,
       }),
+    getAvailableIntervals: ({detectionType}) => {
+      return detectionType === 'dynamic' ? DYNAMIC_INTERVALS : BASE_INTERVALS;
+    },
+    getAvailableTimePeriods: interval => getStandardTimePeriodsForInterval(interval),
     transformSeriesQueryData: (data, aggregate) => {
       return [transformEventsStatsToSeries(data, aggregate)];
     },
