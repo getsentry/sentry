@@ -85,6 +85,12 @@ export type UpdateFreeTextAction = {
   tokens: ParseResultToken[];
   type: 'UPDATE_FREE_TEXT';
   focusOverride?: FocusOverride;
+  /**
+   * If `false`, the raw search key will not be replaced.
+   * If `true`, the raw search key will be replaced with the new value.
+   * If not provided, and there is a `replaceRawSearchKeys`, the raw search key will be replaced.
+   */
+  replaceRawSearchKey?: boolean;
 };
 
 export type ReplaceTokensWithTextOnPasteAction = {
@@ -758,6 +764,7 @@ export function useQueryBuilderState({
           if (
             replaceRawSearchKeys &&
             replaceRawSearchKeys.length > 0 &&
+            (action?.replaceRawSearchKey ?? true) &&
             hasRawSearchReplacement
           ) {
             const newQuery = replaceFreeTextTokens(
