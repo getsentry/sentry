@@ -157,6 +157,27 @@ function getNativeFrame(frame: Frame, includeLocation: boolean): string {
   return result;
 }
 
+function getDefaultFrame(frame: Frame, includeLocation: boolean): string {
+  let result = '';
+  if (defined(frame.filename)) {
+    result += '  File "' + frame.filename + '"';
+  } else if (defined(frame.module)) {
+    result += '  Module "' + frame.module + '"';
+  } else {
+    result += '  ?';
+  }
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
+    result += ', line ' + frame.lineNo;
+  }
+  if (defined(frame.colNo) && frame.colNo >= 0 && includeLocation) {
+    result += ', col ' + frame.colNo;
+  }
+  if (defined(frame.function)) {
+    result += ', in ' + frame.function;
+  }
+  return result;
+}
+
 export function getJavaPreamble(exception: ExceptionValue): string {
   let result = `${exception.type}: ${exception.value}`;
   if (exception.module) {
@@ -176,7 +197,6 @@ function getPreamble(exception: ExceptionValue, platform: string | undefined): s
 
 function getFrame(
   frame: Frame,
-  _frameIdx: number, // TODO
   frameIdxFromEnd: number,
   platform: string | undefined,
   includeLocation: boolean
@@ -204,7 +224,7 @@ function getFrame(
     case 'native':
       return getNativeFrame(frame, includeLocation);
     default:
-      return getPythonFrame(frame, includeLocation);
+      return getDefaultFrame(frame, includeLocation);
   }
 }
 
@@ -225,13 +245,7 @@ export default function displayRawContent(
     : rawFrames;
 
   const frames = framesToUse.map((frame, frameIdx) =>
-    getFrame(
-      frame,
-      frameIdx,
-      framesToUse.length - frameIdx - 1,
-      platform,
-      includeLocation
-    )
+    getFrame(frame, framesToUse.length - frameIdx - 1, platform, includeLocation)
   );
 
   if (platform !== 'python') {
