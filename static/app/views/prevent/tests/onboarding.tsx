@@ -12,7 +12,6 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
-import type {UploadPermission} from 'sentry/views/prevent/tests/onboardingSteps/chooseUploadPermissionStep';
 import {
   ChooseUploadPermissionStep,
   UploadPermission,
