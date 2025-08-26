@@ -34,12 +34,10 @@ export function useFetchEventsTimeSeries(
       },
     ],
     {
-      staleTime: DEFAULT_STALE_TIME,
+      staleTime: Infinity,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       enabled,
     }
   );
 }
-
-const DEFAULT_STALE_TIME = 60_000;
