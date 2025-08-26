@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from abc import ABC, abstractmethod
 
 from sentry.integrations.base import IntegrationInstallation
@@ -21,58 +22,15 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
 SIZE_ANALYZER_TITLE = "Sentry Size Analysis"  # TODO(preprod): translate
 
 
-def trigger_update_preprod_size_analysis_status_on_upload_task(
-    preprod_artifact: PreprodArtifact,
-) -> None:
-    """Create IN_PROGRESS status when artifact upload is complete."""
-    _create_preprod_status_check.delay(
-        preprod_artifact=preprod_artifact,
-        status=GitHubCheckStatus.IN_PROGRESS,
-        title=SIZE_ANALYZER_TITLE,
-        text=f"⏳ Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing...",
-        summary=f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` is processing...",
-    )
-
-
-def trigger_update_preprod_size_analysis_status_on_completion_task(
-    preprod_artifact: PreprodArtifact,
-) -> None:
-    """Update status to SUCCESS when artifact processing is complete."""
-    _create_preprod_status_check.delay(
-        preprod_artifact=preprod_artifact,
-        status=GitHubCheckStatus.COMPLETED,
-        conclusion=GitHubCheckConclusion.SUCCESS,
-        title=SIZE_ANALYZER_TITLE,
-        text=f"✅ Build {preprod_artifact.id} processed successfully.",
-        summary=f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` processed successfully.",
-        target_url=None,  # TODO(preprod): add link to frontend
-    )
-
-
-def trigger_update_preprod_size_analysis_status_on_failure_task(
-    preprod_artifact: PreprodArtifact, error_message: str | None = None
-) -> None:
-    """Update status to FAILURE when artifact processing fails."""
-    _create_preprod_status_check.delay(
-        preprod_artifact=preprod_artifact,
-        status=GitHubCheckStatus.COMPLETED,
-        conclusion=GitHubCheckConclusion.FAILURE,
-        title=SIZE_ANALYZER_TITLE,
-        text=f"❌ Build {preprod_artifact.id} failed. Error: {error_message}",
-        summary=f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` failed.",
-    )
-
-
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_status_check",
-    queue="assemble",
+    queue="integrations",
     silo_mode=SiloMode.REGION,
     retry=Retry(times=3),
     taskworker_config=TaskworkerConfig(
@@ -80,77 +38,74 @@ def trigger_update_preprod_size_analysis_status_on_failure_task(
         processing_deadline_duration=30,
     ),
 )
-def _create_preprod_status_check(
-    preprod_artifact: PreprodArtifact,
-    status: GitHubCheckStatus,
-    title: str,
-    text: str,
-    summary: str,
-    conclusion: GitHubCheckConclusion | None = None,
-    target_url: str | None = None,
-) -> None:
+def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
+    try:
+        preprod_artifact = PreprodArtifact.objects.get(id=preprod_artifact_id)
+    except PreprodArtifact.DoesNotExist:
+        logger.exception(
+            "preprod.status_checks.create.artifact_not_found",
+            extra={"artifact_id": preprod_artifact_id},
+        )
+        return
+
     logger.info(
         "preprod.status_checks.create.start",
-        extra={
-            "artifact_id": preprod_artifact.id,
-            "status": status.value,
-            "conclusion": conclusion.value if conclusion else None,
-        },
+        extra={"artifact_id": preprod_artifact.id},
     )
 
-    try:
-        if not _create_preprod_status_check_impl(
-            preprod_artifact, status, title, text, summary, conclusion, target_url
-        ):
-            logger.error(
-                "preprod.status_checks.create.error",
-                extra={
-                    "artifact_id": preprod_artifact.id,
-                    "status": status.value,
-                    "conclusion": conclusion.value if conclusion else None,
-                },
-            )
-    except Exception:
-        logger.exception(
-            "preprod.status_checks.create.exception",
-            extra={
-                "artifact_id": preprod_artifact.id,
-                "status": status.value,
-                "conclusion": conclusion.value if conclusion else None,
-            },
+    title = SIZE_ANALYZER_TITLE
+
+    # TODO(preprod): add real formatting
+    if (
+        preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADING
+        or preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
+    ):
+        status = GitHubCheckStatus.IN_PROGRESS
+        text = f"⏳ Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing... {uuid.uuid4()}"
+        summary = f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` is processing... {uuid.uuid4()}"
+        conclusion = None
+        target_url = None
+    elif preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED:
+        status = GitHubCheckStatus.COMPLETED
+        text = f"❌ Build {preprod_artifact.id} failed. Error: {preprod_artifact.error_message}"
+        summary = f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` failed."
+        conclusion = GitHubCheckConclusion.FAILURE
+        target_url = None
+    elif preprod_artifact.state == PreprodArtifact.ArtifactState.COMPLETED:
+        status = GitHubCheckStatus.COMPLETED
+        text = f"✅ Build {preprod_artifact.id} processed successfully."
+        summary = (
+            f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` processed successfully."
         )
+        conclusion = GitHubCheckConclusion.SUCCESS
+        target_url = None
+    else:
+        raise ValueError(f"Invalid artifact state: {preprod_artifact.state}")
 
-
-def _create_preprod_status_check_impl(
-    preprod_artifact: PreprodArtifact,
-    status: GitHubCheckStatus,
-    title: str,
-    text: str,
-    summary: str,
-    conclusion: GitHubCheckConclusion | None = None,
-    target_url: str | None = None,
-) -> bool:
     if not preprod_artifact.commit_comparison:
         logger.info(
             "preprod.status_checks.create.no_commit_comparison",
             extra={"artifact_id": preprod_artifact.id},
         )
-        return False
+        return
 
     commit_comparison: CommitComparison = preprod_artifact.commit_comparison
     if not commit_comparison.head_sha or not commit_comparison.head_repo_name:
-        logger.info(
+        # if the user provided git information, we should have a head_sha and head_repo_name
+        logger.error(
             "preprod.status_checks.create.missing_git_info",
             extra={
                 "artifact_id": preprod_artifact.id,
                 "commit_comparison_id": commit_comparison.id,
             },
         )
-        return False
+        return
 
     client, repository = _get_status_check_client(preprod_artifact.project, commit_comparison)
     if not client or not repository:
-        return False
+        # logging handled in _get_status_check_client. for now we can be lax about users potentially
+        # not having their repos integrated into Sentry
+        return
 
     provider = _get_status_check_provider(
         client,
@@ -159,7 +114,11 @@ def _create_preprod_status_check_impl(
         repository.integration_id,
     )
     if not provider:
-        return False
+        logger.info(
+            "preprod.status_checks.create.not_supported_provider",
+            extra={"provider": commit_comparison.provider},
+        )
+        return
 
     check_id = provider.create_status_check(
         repo=commit_comparison.head_repo_name,
@@ -172,6 +131,12 @@ def _create_preprod_status_check_impl(
         target_url=target_url,
         conclusion=conclusion,
     )
+    if check_id is None:
+        logger.error(
+            "preprod.status_checks.create.failed",
+            extra={"artifact_id": preprod_artifact.id},
+        )
+        return
 
     logger.info(
         "preprod.status_checks.create.success",
@@ -182,7 +147,6 @@ def _create_preprod_status_check_impl(
             "check_id": check_id,
         },
     )
-    return True
 
 
 def _get_status_check_client(
@@ -255,14 +219,9 @@ def _get_status_check_client(
 def _get_status_check_provider(
     client: StatusCheckClient, provider: str, organization_id: int, integration_id: int
 ) -> _StatusCheckProvider | None:
-    """Get the appropriate status check provider for the given provider type."""
     if provider == IntegrationProviderSlug.GITHUB:
         return _GitHubStatusCheckProvider(client, provider, organization_id, integration_id)
     else:
-        logger.info(
-            "preprod.status_checks.create.not_supported_provider",
-            extra={"provider": provider},
-        )
         return None
 
 
@@ -343,6 +302,5 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 check_data["details_url"] = target_url
 
             response = self.client.create_check_run(repo=repo, data=check_data)
-            response_json = json.loads(response)
-            check_id = response_json.get("id")
+            check_id = response.get("id")
             return str(check_id)

@@ -19,7 +19,6 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.preprod.producer import produce_preprod_artifact_to_kafka
-from sentry.preprod.status_checks import update_preprod_size_analysis_status_on_upload
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
     AssembleResult,
@@ -105,7 +104,6 @@ def assemble_preprod_artifact(
         # TODO(preprod): add gating for size analysis
         try:
             preprod_artifact = PreprodArtifact.objects.get(id=artifact_id)
-            update_preprod_size_analysis_status_on_upload(preprod_artifact)
         except Exception as e:
             logger.warning(
                 "Failed to create status check for preprod artifact upload",
