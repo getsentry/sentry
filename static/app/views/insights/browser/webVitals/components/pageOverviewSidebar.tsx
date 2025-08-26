@@ -129,6 +129,7 @@ export function PageOverviewSidebar({
   const {data: issues, isLoading: isLoadingIssues} = useWebVitalsIssuesQuery({
     issueTypes: [IssueType.WEB_VITALS],
     transaction,
+    enabled: hasSeerWebVitalsSuggestions,
   });
 
   return (

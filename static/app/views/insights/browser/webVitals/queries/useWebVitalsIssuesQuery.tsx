@@ -18,8 +18,10 @@ export function getIssueQueryFilter({
 export function useWebVitalsIssuesQuery({
   issueTypes,
   transaction,
+  enabled = true,
 }: {
   issueTypes: Array<keyof typeof ISSUE_TYPE_TO_ISSUE_TITLE>;
+  enabled?: boolean;
   transaction?: string;
 }) {
   const organization = useOrganization();
@@ -39,7 +41,7 @@ export function useWebVitalsIssuesQuery({
     ],
     {
       staleTime: 0,
-      enabled: Boolean(issueTypes?.length),
+      enabled: Boolean(issueTypes?.length) && enabled,
     }
   );
 }
