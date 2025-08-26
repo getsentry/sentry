@@ -50,13 +50,11 @@ def format_feedback_title(title: str, max_words: int = 10, include_prefix: bool 
         if len(summary) < len(stripped_message):
             summary += "..."
 
-    title = f"User Feedback: {summary}" if include_prefix else summary
-
     # Truncate if necessary (keeping some buffer for external system limits)
-    if len(title) > 200:  # Conservative limit
-        title = title[:197] + "..."
+    if len(title) > 185:  # Conservative limit
+        title = title[:182] + "..."
 
-    return title
+    return f"User Feedback: {summary}" if include_prefix else summary
 
 
 @metrics.wraps("feedback.ai_title_generation")
