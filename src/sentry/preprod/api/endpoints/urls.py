@@ -2,6 +2,7 @@ from django.urls import re_path
 
 from .organization_preprod_artifact_assemble import ProjectPreprodArtifactAssembleEndpoint
 from .preprod_artifact_admin_info import PreprodArtifactAdminInfoEndpoint
+from .preprod_artifact_admin_rerun_analysis import PreprodArtifactAdminRerunAnalysisEndpoint
 from .project_installable_preprod_artifact_download import (
     ProjectInstallablePreprodArtifactDownloadEndpoint,
 )
@@ -55,6 +56,11 @@ preprod_urlpatterns = [
 ]
 
 preprod_internal_urlpatterns = [
+    re_path(
+        r"^preprod-artifact/rerun-analysis/$",
+        PreprodArtifactAdminRerunAnalysisEndpoint.as_view(),
+        name="sentry-admin-preprod-artifact-rerun-analysis",
+    ),
     re_path(
         r"^preprod-artifact/(?P<preprod_artifact_id>[^/]+)/info/$",
         PreprodArtifactAdminInfoEndpoint.as_view(),
