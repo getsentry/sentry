@@ -662,7 +662,20 @@ export function replaceFreeTextTokens(
     filteredTokens.add(`${primarySearchKey}:${values}`);
   }
 
-  return Array.from(filteredTokens).join(' ');
+  const newQuery = Array.from(filteredTokens).join(' ');
+
+  const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition) ?? [];
+  const cursorPosition = (tokens[0]?.location.start.offset ?? 0) + action.text.length; // TODO: Ensure this is sorted
+  const focusedToken = newParsedQuery?.findLast(
+    (token: any) =>
+      token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
+  );
+
+  const focusOverride = focusedToken
+    ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
+    : null;
+
+  return {newQuery, focusOverride};
 }
 
 export function useQueryBuilderState({
@@ -760,6 +773,8 @@ export function useQueryBuilderState({
             committedQuery: currentCommittedQuery,
           } = updateFreeText(state, action);
 
+          let newFocusOverride = focusOverride;
+
           let replacedQuery: string | undefined;
           if (
             replaceRawSearchKeys &&
@@ -767,17 +782,18 @@ export function useQueryBuilderState({
             (action?.replaceRawSearchKey ?? true) &&
             hasRawSearchReplacement
           ) {
-            const newQuery = replaceFreeTextTokens(
+            const replacedValues = replaceFreeTextTokens(
               action,
               getFieldDefinition,
               replaceRawSearchKeys,
               query
             );
-            replacedQuery = newQuery;
+            replacedQuery = replacedValues?.newQuery;
+            newFocusOverride = replacedValues?.focusOverride ?? focusOverride;
           }
 
           return {
-            focusOverride,
+            focusOverride: newFocusOverride,
             committedQuery: action.shouldCommitQuery
               ? (replacedQuery ?? query)
               : currentCommittedQuery,
@@ -807,23 +823,27 @@ export function useQueryBuilderState({
             getFieldDefinition,
           });
 
+          let newFocusOverride = focusOverride;
+
           let replacedQuery: string | undefined;
           if (
             replaceRawSearchKeys &&
             replaceRawSearchKeys.length > 0 &&
             hasRawSearchReplacement
           ) {
-            replacedQuery = replaceFreeTextTokens(
+            const replacedValues = replaceFreeTextTokens(
               action,
               getFieldDefinition,
               replaceRawSearchKeys,
               query
             );
+            replacedQuery = replacedValues?.newQuery;
+            newFocusOverride = replacedValues?.focusOverride ?? focusOverride;
           }
 
           return {
             ...state,
-            focusOverride,
+            focusOverride: newFocusOverride,
             committedQuery: replacedQuery ?? committedQuery,
             query: replacedQuery ?? query,
             replacedRawSearchKey: replacedQuery ? true : state.replacedRawSearchKey,
