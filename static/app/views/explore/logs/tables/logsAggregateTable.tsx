@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,6 +9,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEd
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -29,6 +31,7 @@ import {SeverityLevel, viewLogsSamplesTarget} from 'sentry/views/explore/logs/ut
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
+  useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 
@@ -41,6 +44,7 @@ export function LogsAggregateTable() {
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const topEventsLimit = useQueryParamsTopEventsLimit();
   const search = useLogsSearch();
   const fields = useLogsFields();
   const sorts = useLogsSortBys();
@@ -52,6 +56,10 @@ export function LogsAggregateTable() {
   const allFields: string[] = [];
   allFields.push(...groupBys.filter(Boolean));
   allFields.push(...visualizes.map(visualize => visualize.yAxis));
+
+  const numberOfRowsNeedingColor = Math.min(data?.data?.length ?? 0, topEventsLimit ?? 0);
+
+  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
 
   return (
     <TableContainer>
@@ -138,7 +146,8 @@ export function LogsAggregateTable() {
           },
           prependColumnWidths: ['40px'],
           renderPrependColumns: (isHeader, dataRow, rowIndex) => {
-            if (isHeader) {
+            // rowIndex is only defined when `isHeader=false`
+            if (isHeader || !defined(rowIndex)) {
               return [<span key="header-icon" />];
             }
 
@@ -154,15 +163,16 @@ export function LogsAggregateTable() {
             });
 
             return [
-              <Tooltip
-                key={`sample-${rowIndex}`}
-                title={t('View Samples')}
-                containerDisplayMode="flex"
-              >
-                <StyledLink to={target}>
-                  <IconStack />
-                </StyledLink>
-              </Tooltip>,
+              <Fragment key={`sample-${rowIndex}`}>
+                {topEventsLimit && rowIndex < topEventsLimit && (
+                  <TopResultsIndicator color={palette[rowIndex]!} />
+                )}
+                <Tooltip title={t('View Samples')} containerDisplayMode="flex">
+                  <StyledLink to={target}>
+                    <IconStack />
+                  </StyledLink>
+                </Tooltip>
+              </Fragment>,
             ];
           },
         }}
@@ -178,6 +188,16 @@ export function LogsAggregateTable() {
 const TableContainer = styled('div')`
   display: flex;
   flex-direction: column;
+`;
+
+const TopResultsIndicator = styled('div')<{color: string}>`
+  position: absolute;
+  left: -1px;
+  width: 9px;
+  height: 16px;
+  border-radius: 0 3px 3px 0;
+
+  background-color: ${p => p.color};
 `;
 
 const StyledLink = styled(Link)`
