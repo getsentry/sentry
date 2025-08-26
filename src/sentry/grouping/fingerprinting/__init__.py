@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Generator, Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, Self, TypedDict, TypeVar
+from typing import Any, NamedTuple, NotRequired, Self, TypedDict, TypeVar
 
 from django.conf import settings
 from parsimonious.exceptions import ParseError
@@ -312,8 +312,8 @@ class FingerprintingRules:
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid fingerprinting config: %s" % e)
 
-    @staticmethod
-    def from_config_string(s: Any, bases: Sequence[str] | None = None) -> Any:
+    @classmethod
+    def from_config_string(cls, s: Any, bases: Sequence[str] | None = None) -> FingerprintingRules:
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
@@ -323,13 +323,10 @@ class FingerprintingRules:
             raise InvalidFingerprintingConfig(
                 f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
-        return FingerprintingVisitor(bases=bases).visit(tree)
 
+        rules = FingerprintingVisitor().visit(tree)
 
-if TYPE_CHECKING:
-    NodeVisitorBase = NodeVisitor[FingerprintingRules]
-else:
-    NodeVisitorBase = NodeVisitor
+        return cls(rules=rules, bases=bases)
 
 
 class BuiltInFingerprintingRules(FingerprintingRules):
@@ -337,8 +334,8 @@ class BuiltInFingerprintingRules(FingerprintingRules):
     A FingerprintingRules object that marks all of its rules as built-in
     """
 
-    @staticmethod
-    def from_config_string(s: str, bases: Sequence[str] | None = None) -> FingerprintingRules:
+    @classmethod
+    def from_config_string(cls, s: str, bases: Sequence[str] | None = None) -> FingerprintingRules:
         fingerprinting_rules = FingerprintingRules.from_config_string(s, bases=bases)
         for r in fingerprinting_rules.rules:
             r.is_builtin = True
@@ -561,12 +558,9 @@ class FingerprintRule:
         ).rstrip()
 
 
-class FingerprintingVisitor(NodeVisitorBase):
+class FingerprintingVisitor(NodeVisitor[list[FingerprintRule]]):
     visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidFingerprintingConfig,)
-
-    def __init__(self, bases: Sequence[str] | None) -> None:
-        self.bases = bases
 
     # a note on the typing of `children`
     # these are actually lists of sub-lists of the various types
@@ -577,11 +571,8 @@ class FingerprintingVisitor(NodeVisitorBase):
 
     def visit_fingerprinting_rules(
         self, _: object, children: list[str | FingerprintRule | None]
-    ) -> FingerprintingRules:
-        return FingerprintingRules(
-            rules=[child for child in children if not isinstance(child, str) and child is not None],
-            bases=self.bases,
-        )
+    ) -> list[FingerprintRule]:
+        return [child for child in children if not isinstance(child, str) and child is not None]
 
     def visit_line(
         self, _: object, children: tuple[object, list[FingerprintRule | str | None], object]
