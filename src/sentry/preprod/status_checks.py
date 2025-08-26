@@ -16,54 +16,70 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact
+from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
-SIZE_ANALYZER_TITLE = "Sentry Size Analysis"
+SIZE_ANALYZER_TITLE = "Sentry Size Analysis"  # TODO(preprod): translate
 
 
-def update_preprod_size_analysis_status_on_upload(preprod_artifact: PreprodArtifact) -> None:
+def trigger_update_preprod_size_analysis_status_on_upload_task(
+    preprod_artifact: PreprodArtifact,
+) -> None:
     """Create IN_PROGRESS status when artifact upload is complete."""
-    text = f"⏳ Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing..."
-    return _create_preprod_status_check(
+    _create_preprod_status_check.delay(
         preprod_artifact=preprod_artifact,
         status=GitHubCheckStatus.IN_PROGRESS,
         title=SIZE_ANALYZER_TITLE,
-        text=text,
+        text=f"⏳ Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing...",
         summary=f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` is processing...",
     )
 
 
-def update_preprod_size_analysis_status_on_completion(preprod_artifact: PreprodArtifact) -> None:
+def trigger_update_preprod_size_analysis_status_on_completion_task(
+    preprod_artifact: PreprodArtifact,
+) -> None:
     """Update status to SUCCESS when artifact processing is complete."""
-    text = f"✅ Build {preprod_artifact.id} processed successfully."
-    return _create_preprod_status_check(
+    _create_preprod_status_check.delay(
         preprod_artifact=preprod_artifact,
         status=GitHubCheckStatus.COMPLETED,
         conclusion=GitHubCheckConclusion.SUCCESS,
         title=SIZE_ANALYZER_TITLE,
-        text=text,
+        text=f"✅ Build {preprod_artifact.id} processed successfully.",
         summary=f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` processed successfully.",
         target_url=None,  # TODO(preprod): add link to frontend
     )
 
 
-def update_preprod_size_analysis_status_on_failure(
+def trigger_update_preprod_size_analysis_status_on_failure_task(
     preprod_artifact: PreprodArtifact, error_message: str | None = None
 ) -> None:
     """Update status to FAILURE when artifact processing fails."""
-    text = f"❌ Build {preprod_artifact.id} failed. Error: {error_message}"
-    return _create_preprod_status_check(
+    _create_preprod_status_check.delay(
         preprod_artifact=preprod_artifact,
         status=GitHubCheckStatus.COMPLETED,
         conclusion=GitHubCheckConclusion.FAILURE,
         title=SIZE_ANALYZER_TITLE,
-        text=text,
+        text=f"❌ Build {preprod_artifact.id} failed. Error: {error_message}",
         summary=f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` failed.",
     )
 
 
+@instrumented_task(
+    name="sentry.preprod.tasks.create_preprod_status_check",
+    queue="assemble",
+    silo_mode=SiloMode.REGION,
+    retry=Retry(times=3),
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+        processing_deadline_duration=30,
+    ),
+)
 def _create_preprod_status_check(
     preprod_artifact: PreprodArtifact,
     status: GitHubCheckStatus,
