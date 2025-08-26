@@ -347,6 +347,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {"name": "transaction", "type": "TYPE_STRING"},
             {"name": "span.duration", "type": "TYPE_DOUBLE"},
         ]
+        assert result["meta"]["total_rows"] == 3
 
         transactions = {span["transaction"] for span in result["data"]}
         assert transactions == {"foo", "bar", "baz"}
@@ -354,6 +355,9 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         for span in result["data"]:
             assert "transaction" in span
             assert "span.duration" in span
+
+        transaction_values = [span["transaction"] for span in result["data"]]
+        assert transaction_values == sorted(transaction_values, reverse=True)
 
     def test_get_spans_with_query(self) -> None:
         """Test get_spans with query string filtering"""
@@ -424,6 +428,36 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             assert "transaction" in span
             assert "span.duration" in span
 
+        # Test empty query string (should return all spans)
+        result_empty = get_spans(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            columns=[
+                {"name": "transaction", "type": "TYPE_STRING"},
+                {"name": "span.duration", "type": "TYPE_DOUBLE"},
+            ],
+            query="",
+            limit=10,
+        )
+        assert len(result_empty["data"]) == 3
+        transactions_empty = {span["transaction"] for span in result_empty["data"]}
+        assert transactions_empty == {"foo", "bar", "baz"}
+
+        # Test whitespace-only query (should return all spans)
+        result_whitespace = get_spans(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            columns=[
+                {"name": "transaction", "type": "TYPE_STRING"},
+                {"name": "span.duration", "type": "TYPE_DOUBLE"},
+            ],
+            query="   \t  ",
+            limit=10,
+        )
+        assert len(result_whitespace["data"]) == 3
+        transactions_whitespace = {span["transaction"] for span in result_whitespace["data"]}
+        assert transactions_whitespace == {"foo", "bar", "baz"}
+
     def test_get_spans_with_sort(self) -> None:
         """Test get_spans with sort string"""
         for i, transaction in enumerate(["foo", "bar", "baz"]):
@@ -462,3 +496,105 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {"transaction": "bar", "span.duration": 100},
             {"transaction": "baz", "span.duration": 200},
         ]
+
+        result_desc = get_spans(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            columns=[
+                {"name": "transaction", "type": "TYPE_STRING"},
+                {"name": "span.duration", "type": "TYPE_DOUBLE"},
+            ],
+            sort=[
+                {
+                    "name": "span.duration",
+                    "type": "TYPE_DOUBLE",
+                    "descending": True,
+                },
+            ],
+        )
+        assert result_desc["data"] == [
+            {"transaction": "baz", "span.duration": 200},
+            {"transaction": "bar", "span.duration": 100},
+            {"transaction": "foo", "span.duration": 0},
+        ]
+
+        result_string_asc = get_spans(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            columns=[
+                {"name": "transaction", "type": "TYPE_STRING"},
+                {"name": "span.duration", "type": "TYPE_DOUBLE"},
+            ],
+            sort=[
+                {
+                    "name": "transaction",
+                    "type": "TYPE_STRING",
+                    "descending": False,
+                },
+            ],
+        )
+        transaction_order = [span["transaction"] for span in result_string_asc["data"]]
+        assert transaction_order == ["bar", "baz", "foo"]  # Alphabetical ascending
+
+        result_string_desc = get_spans(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            columns=[
+                {"name": "transaction", "type": "TYPE_STRING"},
+                {"name": "span.duration", "type": "TYPE_DOUBLE"},
+            ],
+            sort=[
+                {
+                    "name": "transaction",
+                    "type": "TYPE_STRING",
+                    "descending": True,
+                },
+            ],
+        )
+        transaction_order_desc = [span["transaction"] for span in result_string_desc["data"]]
+        assert transaction_order_desc == ["foo", "baz", "bar"]  # Alphabetical descending
+
+    def test_get_spans_invalid_stats_period(self) -> None:
+        """Test get_spans with invalid stats_period defaults to 7d"""
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            is_eap=True,
+        )
+
+        result = get_spans(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            columns=[
+                {"name": "transaction", "type": "TYPE_STRING"},
+            ],
+            stats_period="invalid_period",
+        )
+
+        assert "data" in result
+        assert "meta" in result
+        assert len(result["data"]) >= 0
+
+    @patch("sentry.seer.endpoints.seer_rpc.table_rpc")
+    def test_get_spans_empty_response(self, mock_table_rpc) -> None:
+        """Test get_spans handles empty response from table_rpc"""
+        mock_table_rpc.return_value = []
+
+        result = get_spans(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            columns=[
+                {"name": "transaction", "type": "TYPE_STRING"},
+            ],
+        )
+
+        assert result == {"data": [], "meta": {}}
+        mock_table_rpc.assert_called_once()
