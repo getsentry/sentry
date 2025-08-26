@@ -381,12 +381,15 @@ def _parse_url(s: str, trunc_length: int) -> str:
     """
     try:
         parsed_url = urlparse(s)
-        path = parsed_url.path.lstrip("/")
-        url = f"{parsed_url.netloc}/{path}"
-        if parsed_url.query:
-            url += f"?{parsed_url.query}"
-        return url
+        if parsed_url.path and parsed_url.netloc:
+            path = parsed_url.path.lstrip("/")
+            url = f"{parsed_url.netloc}/{path}"
+            if parsed_url.query:
+                url += f"?{parsed_url.query}"
+            return url
     except ValueError:
-        if len(s) > trunc_length:
-            return s[:trunc_length] + " [truncated]"
-        return s
+        pass
+
+    if len(s) > trunc_length:
+        return s[:trunc_length] + " [truncated]"
+    return s
