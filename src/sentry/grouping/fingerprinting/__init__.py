@@ -113,28 +113,6 @@ class FingerprintingRules:
         return cls(rules=rules, bases=bases)
 
 
-class BuiltInFingerprintingRules(FingerprintingRules):
-    """
-    A FingerprintingRules object that marks all of its rules as built-in
-    """
-
-    @classmethod
-    def from_config_string(cls, s: str, bases: Sequence[str] | None = None) -> FingerprintingRules:
-        fingerprinting_rules = FingerprintingRules.from_config_string(s, bases=bases)
-        for r in fingerprinting_rules.rules:
-            r.is_builtin = True
-        return fingerprinting_rules
-
-    @classmethod
-    def _from_config_structure(
-        cls, data: dict[str, object], bases: Sequence[str] | None = None
-    ) -> Self:
-        fingerprinting_rules = super()._from_config_structure(data, bases=bases)
-        for r in fingerprinting_rules.rules:
-            r.is_builtin = True
-        return fingerprinting_rules
-
-
 def _load_configs() -> dict[str, list[FingerprintRule]]:
     if not CONFIGS_DIR.exists():
         logger.error(
