@@ -29,6 +29,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {
   IconArrow,
   IconChevron,
@@ -43,7 +44,6 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import CoverageTrendPage from 'sentry/views/codecov/coverage/coverageTrend';
 import {makeCodecovPathname} from 'sentry/views/codecov/pathnames';
 import {COVERAGE_BASE_URL} from 'sentry/views/codecov/settings';
@@ -1060,50 +1060,74 @@ function MultiSelectDropdown({
   );
 }
 
-function renderTableHeader(column: GridColumnOrder) {
+function renderTableHeader(
+  column: GridColumnOrder,
+  sort: {field: string; order: 'asc' | 'desc'} | null,
+  onSortChange: (field: string, order: 'asc' | 'desc') => void,
+  location: any
+) {
   const {key, name} = column;
   const alignment = key === 'coverage' || key === 'uploads' ? 'right' : 'left';
 
+  const sortKey = String(key);
+  const currentDirection = sort?.field === sortKey ? sort.order : undefined;
+  const nextDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+
+  const titleWithTooltip = (
+    <Fragment>
+      {name}
+      {key === 'uploads' && (
+        <QuestionTooltip
+          size="xs"
+          title={
+            <TooltipContent>
+              <TooltipSection>
+                <TooltipTitle>Uploads count</TooltipTitle>
+                <TooltipDescription>
+                  This shows the total number of reports Codecov has received.
+                </TooltipDescription>
+              </TooltipSection>
+              <TooltipSection>
+                <TooltipTitle>{t('Processed')}</TooltipTitle>
+                <TooltipDescription>
+                  {t('The number of uploads that were successfully processed.')}
+                </TooltipDescription>
+              </TooltipSection>
+              <TooltipSection>
+                <TooltipTitle>{t('Pending')}</TooltipTitle>
+                <TooltipDescription>
+                  {t("Uploads that Sentry has received but hasn't processed yet.")}
+                </TooltipDescription>
+              </TooltipSection>
+              <TooltipSection>
+                <TooltipTitle>{t('Failed')}</TooltipTitle>
+                <TooltipDescription>
+                  {t('Uploads that encountered errors during processing.')}
+                </TooltipDescription>
+              </TooltipSection>
+            </TooltipContent>
+          }
+          position="top"
+        />
+      )}
+    </Fragment>
+  );
+
   return (
-    <HeaderCell alignment={alignment}>
-      <HeaderText>
-        {name}
-        {key === 'uploads' && (
-          <QuestionTooltip
-            size="xs"
-            title={
-              <TooltipContent>
-                <TooltipSection>
-                  <TooltipTitle>Uploads count</TooltipTitle>
-                  <TooltipDescription>
-                    This shows the total number of reports Codecov has received.
-                  </TooltipDescription>
-                </TooltipSection>
-                <TooltipSection>
-                  <TooltipTitle>{t('Processed')}</TooltipTitle>
-                  <TooltipDescription>
-                    {t('The number of uploads that were successfully processed.')}
-                  </TooltipDescription>
-                </TooltipSection>
-                <TooltipSection>
-                  <TooltipTitle>{t('Pending')}</TooltipTitle>
-                  <TooltipDescription>
-                    {t("Uploads that Sentry has received but hasn't processed yet.")}
-                  </TooltipDescription>
-                </TooltipSection>
-                <TooltipSection>
-                  <TooltipTitle>{t('Failed')}</TooltipTitle>
-                  <TooltipDescription>
-                    {t('Uploads that encountered errors during processing.')}
-                  </TooltipDescription>
-                </TooltipSection>
-              </TooltipContent>
-            }
-            position="top"
-          />
-        )}
-      </HeaderText>
-    </HeaderCell>
+    <SortLink
+      align={alignment}
+      title={titleWithTooltip}
+      direction={currentDirection}
+      canSort
+      generateSortLink={() => ({
+        ...location,
+        query: {
+          ...location.query,
+          sort: `${nextDirection === 'desc' ? '-' : ''}${sortKey}`,
+        },
+      })}
+      onClick={() => onSortChange(sortKey, nextDirection)}
+    />
   );
 }
 
@@ -1196,47 +1220,73 @@ function renderPullsTableHeader(
   column: GridColumnOrder,
   pullRequestCounts: any,
   pullRequestStatus: string,
-  setPullRequestStatus: (status: string) => void
+  setPullRequestStatus: (status: string) => void,
+  sort: {field: string; order: 'asc' | 'desc'} | null,
+  onSortChange: (field: string, order: 'asc' | 'desc') => void,
+  location: any
 ) {
   const {key, name} = column;
   const alignment = key === 'coverage' ? 'right' : 'left';
 
+  const sortKey = String(key);
+  const currentDirection = sort?.field === sortKey ? sort.order : undefined;
+  const nextDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+
   if (key === 'pullRequest') {
     return (
-      <HeaderCell alignment={alignment}>
-        <HeaderWithControl>
-          <HeaderText>{name}</HeaderText>
-          <SegmentedControlContainer>
-            <SegmentedControlButton
-              isActive={pullRequestStatus === 'open'}
-              onClick={() => setPullRequestStatus('open')}
-            >
+      <PullRequestHeaderContainer>
+        <PullRequestTitleRow>
+          <SortLink
+            align={alignment}
+            title={name}
+            direction={currentDirection}
+            canSort
+            generateSortLink={() => ({
+              ...location,
+              query: {
+                ...location.query,
+                sort: `${nextDirection === 'desc' ? '-' : ''}${sortKey}`,
+              },
+            })}
+            onClick={() => onSortChange(sortKey, nextDirection)}
+          />
+        </PullRequestTitleRow>
+        <PullRequestControlRow>
+          <SegmentedControl
+            size="xs"
+            value={pullRequestStatus}
+            onChange={(value: string) => setPullRequestStatus(value)}
+          >
+            <SegmentedControl.Item key="open">
               {pullRequestCounts.open} Open
-            </SegmentedControlButton>
-            <SegmentedControlDivider />
-            <SegmentedControlButton
-              isActive={pullRequestStatus === 'merged'}
-              onClick={() => setPullRequestStatus('merged')}
-            >
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="merged">
               {pullRequestCounts.merged} Merged
-            </SegmentedControlButton>
-            <SegmentedControlDivider />
-            <SegmentedControlButton
-              isActive={pullRequestStatus === 'closed'}
-              onClick={() => setPullRequestStatus('closed')}
-            >
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="closed">
               {pullRequestCounts.closed} Closed
-            </SegmentedControlButton>
-          </SegmentedControlContainer>
-        </HeaderWithControl>
-      </HeaderCell>
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        </PullRequestControlRow>
+      </PullRequestHeaderContainer>
     );
   }
 
   return (
-    <HeaderCell alignment={alignment}>
-      <HeaderText>{name}</HeaderText>
-    </HeaderCell>
+    <SortLink
+      align={alignment}
+      title={name}
+      direction={currentDirection}
+      canSort
+      generateSortLink={() => ({
+        ...location,
+        query: {
+          ...location.query,
+          sort: `${nextDirection === 'desc' ? '-' : ''}${sortKey}`,
+        },
+      })}
+      onClick={() => onSortChange(sortKey, nextDirection)}
+    />
   );
 }
 
@@ -1887,6 +1937,14 @@ export default function CommitsListPage() {
   ]);
   const [pullRequestStatus, setPullRequestStatus] = useState('open');
   const [selectedCommitId, setSelectedCommitId] = useState(commitsData[0]?.id || '1');
+  const [commitsSort, setCommitsSort] = useState<{
+    field: string;
+    order: 'asc' | 'desc';
+  } | null>(null);
+  const [pullsSort, setPullsSort] = useState<{
+    field: string;
+    order: 'asc' | 'desc';
+  } | null>(null);
   const [isCommitDropdownOpen, setIsCommitDropdownOpen] = useState(false);
   const [fileTree, setFileTree] = useState<FileTreeNode[]>(fileTreeData);
   const [selectedFileNode, setSelectedFileNode] = useState<FileTreeNode | null>(null);
@@ -1903,6 +1961,65 @@ export default function CommitsListPage() {
 
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Sort handlers
+  const handleCommitsSortChange = useCallback((field: string, order: 'asc' | 'desc') => {
+    setCommitsSort({field, order});
+  }, []);
+
+  const handlePullsSortChange = useCallback((field: string, order: 'asc' | 'desc') => {
+    setPullsSort({field, order});
+  }, []);
+
+  // Sort data functions
+  const sortData = useCallback(
+    (data: any[], sort: {field: string; order: 'asc' | 'desc'} | null) => {
+      if (!sort) return data;
+
+      return [...data].sort((a, b) => {
+        let aValue = a[sort.field];
+        let bValue = b[sort.field];
+
+        // Handle different data types
+        if (sort.field === 'commit' || sort.field === 'pullRequest') {
+          // Sort by message/title for commit/pull request columns
+          aValue = sort.field === 'commit' ? a.message : a.title;
+          bValue = sort.field === 'commit' ? b.message : b.title;
+        } else if (sort.field === 'coverage') {
+          // Convert coverage percentage to number for sorting
+          aValue = parseFloat(aValue) || 0;
+          bValue = parseFloat(bValue) || 0;
+        } else if (sort.field === 'uploads') {
+          // Sort by total upload count
+          aValue = a.uploads?.processed + a.uploads?.pending + a.uploads?.failed || 0;
+          bValue = b.uploads?.processed + b.uploads?.pending + b.uploads?.failed || 0;
+        }
+
+        // Handle string comparisons
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return sort.order === 'asc'
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue);
+        }
+
+        // Handle numeric comparisons
+        if (sort.order === 'asc') {
+          return aValue - bValue;
+        }
+        return bValue - aValue;
+      });
+    },
+    []
+  );
+
+  // Apply sorting to data
+  const sortedCommitsData = useMemo(() => {
+    return sortData(commitsData, commitsSort);
+  }, [commitsSort, sortData]);
+
+  const sortedPullRequestsData = useMemo(() => {
+    return sortData(pullRequestsData, pullsSort);
+  }, [pullsSort, sortData]);
 
   // Get the selected commit data
   const selectedCommit =
@@ -2239,7 +2356,7 @@ export default function CommitsListPage() {
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentPageData = commitsData.slice(startIndex, endIndex);
+  const currentPageData = sortedCommitsData.slice(startIndex, endIndex);
 
   // Create mock pageLinks for pagination component
   const pageLinks = useMemo(() => {
@@ -2282,8 +2399,9 @@ export default function CommitsListPage() {
 
   // Filter pull requests by status
   const filteredPullRequests = useMemo(() => {
-    return pullRequestsData.filter(pr => pr.status === pullRequestStatus);
-  }, [pullRequestStatus]);
+    const filtered = sortedPullRequestsData.filter(pr => pr.status === pullRequestStatus);
+    return filtered;
+  }, [pullRequestStatus, sortedPullRequestsData]);
 
   // Pull request status counts
   const pullRequestCounts = useMemo(() => {
@@ -2424,9 +2542,12 @@ export default function CommitsListPage() {
             isLoading={false}
             data={currentPageData}
             columnOrder={COLUMN_ORDER}
-            columnSortBy={[]}
+            columnSortBy={
+              commitsSort ? [{key: commitsSort.field, order: commitsSort.order}] : []
+            }
             grid={{
-              renderHeadCell: renderTableHeader,
+              renderHeadCell: (column: GridColumnOrder) =>
+                renderTableHeader(column, commitsSort, handleCommitsSortChange, location),
               renderBodyCell: renderTableBody,
             }}
           />
@@ -2445,14 +2566,19 @@ export default function CommitsListPage() {
             isLoading={false}
             data={filteredPullRequests}
             columnOrder={PULLS_COLUMN_ORDER}
-            columnSortBy={[]}
+            columnSortBy={
+              pullsSort ? [{key: pullsSort.field, order: pullsSort.order}] : []
+            }
             grid={{
               renderHeadCell: (column: GridColumnOrder) =>
                 renderPullsTableHeader(
                   column,
                   pullRequestCounts,
                   pullRequestStatus,
-                  setPullRequestStatus
+                  setPullRequestStatus,
+                  pullsSort,
+                  handlePullsSortChange,
+                  location
                 ),
               renderBodyCell: renderPullsTableBody,
             }}
@@ -3051,25 +3177,6 @@ const DropdownItemText = styled('span')`
 `;
 
 // Table-specific styled components
-const HeaderCell = styled('div')<{alignment: string}>`
-  display: flex;
-  justify-content: ${p => (p.alignment === 'left' ? 'flex-start' : 'flex-end')};
-  width: 100%;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-`;
-
-const HeaderText = styled('span')`
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.xs};
-  line-height: 1em;
-  text-transform: uppercase;
-  color: ${p => p.theme.subText};
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
 const AlignmentContainer = styled('div')<{alignment: string}>`
   text-align: ${p => (p.alignment === 'left' ? 'left' : 'right')};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
@@ -3250,45 +3357,23 @@ const TooltipDescription = styled('div')`
   line-height: 1.4;
 `;
 
-const HeaderWithControl = styled('div')`
+const PullRequestHeaderContainer = styled('div')`
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: ${p => p.theme.space.lg};
+  justify-content: space-between;
+  width: 50%;
+  gap: ${p => p.theme.space.md};
 `;
 
-const SegmentedControlContainer = styled('div')`
+const PullRequestTitleRow = styled('div')`
   display: flex;
   align-items: center;
-  background: ${p => p.theme.backgroundSecondary};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
 `;
 
-const SegmentedControlButton = styled('button')<{isActive: boolean}>`
+const PullRequestControlRow = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  border: none;
-  background: ${p => (p.isActive ? p.theme.background : 'transparent')};
-  border-radius: 5px;
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => (p.isActive ? p.theme.fontWeight.bold : p.theme.fontWeight.normal)};
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: ${p => (p.isActive ? '0px 0px 2px 0px rgba(43, 34, 51, 0.32)' : 'none')};
-
-  &:hover {
-    background: ${p => (p.isActive ? p.theme.background : p.theme.backgroundTertiary)};
-  }
-`;
-
-const SegmentedControlDivider = styled('div')`
-  width: 1px;
-  height: 13px;
-  background: ${p => p.theme.border};
 `;
 
 const FileExplorerHeader = styled('div')`
@@ -4494,8 +4579,8 @@ const SunburstChartHeaderRight = styled('div')`
 // Custom component for uploads count link that opens history page in new tab
 function UploadsCountLink({children}: {children: React.ReactNode}) {
   const organization = useOrganization();
-  const params = useParams<{sha: string}>();
-  const commitHash = params.sha || headCommit.shortSha;
+  // Use a default commit hash since this is a mock component
+  const commitHash = headCommit.shortSha;
 
   const historyPath = makeCodecovPathname({
     organization,
