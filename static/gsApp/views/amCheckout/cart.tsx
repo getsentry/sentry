@@ -35,7 +35,7 @@ import * as utils from 'getsentry/views/amCheckout/utils';
 
 const PRICE_PLACEHOLDER_WIDTH = '70px';
 
-type CartProps = {
+interface CartProps {
   activePlan: Plan;
   api: Client;
   formData: CheckoutFormData;
@@ -44,15 +44,33 @@ type CartProps = {
   subscription: Subscription;
   referrer?: string;
   // discountInfo?: Promotion['discountInfo']; // TODO(ISABELLA): Add this back in
-};
+}
 
-function PlanSummary({
-  activePlan,
-  formData,
-}: {
+interface BaseSummaryProps {
   activePlan: Plan;
   formData: CheckoutFormData;
-}) {
+}
+
+interface PlanSummaryProps extends BaseSummaryProps {}
+
+interface SubtotalSummaryProps extends BaseSummaryProps {
+  previewDataLoading: boolean;
+  renewalDate: moment.Moment | null;
+}
+
+interface TotalSummaryProps extends BaseSummaryProps {
+  billedTotal: number;
+  buttonDisabled: boolean;
+  effectiveDate: moment.Moment | null;
+  isSubmitting: boolean;
+  onSubmit: () => void;
+  originalBilledTotal: number;
+  previewData: PreviewData | null;
+  previewDataLoading: boolean;
+  renewalDate: moment.Moment | null;
+}
+
+function PlanSummary({activePlan, formData}: PlanSummaryProps) {
   // TODO(checkout v3): This will need to be updated for non-budget products
   const additionalProductCategories = useMemo(
     () =>
@@ -183,12 +201,7 @@ function SubtotalSummary({
   previewDataLoading,
   renewalDate,
   formData,
-}: {
-  activePlan: Plan;
-  formData: CheckoutFormData;
-  previewDataLoading: boolean;
-  renewalDate: moment.Moment | null;
-}) {
+}: SubtotalSummaryProps) {
   const shortInterval = utils.getShortInterval(activePlan.billingInterval);
   const recurringSubtotal = useMemo(() => {
     return utils.getReservedPriceCents({
@@ -283,19 +296,7 @@ function TotalSummary({
   renewalDate,
   activePlan,
   formData,
-}: {
-  activePlan: Plan;
-  billedTotal: number;
-  buttonDisabled: boolean;
-  effectiveDate: moment.Moment | null;
-  formData: CheckoutFormData;
-  isSubmitting: boolean;
-  onSubmit: () => void;
-  originalBilledTotal: number;
-  previewData: PreviewData | null;
-  previewDataLoading: boolean;
-  renewalDate: moment.Moment | null;
-}) {
+}: TotalSummaryProps) {
   const longInterval =
     activePlan.billingInterval === 'annual' ? 'yearly' : activePlan.billingInterval;
 
