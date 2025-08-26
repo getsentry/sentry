@@ -71,12 +71,23 @@ class WorkflowValidator(CamelSnakeSerializer):
         validator: serializers.Serializer,
         Model: type[ModelType],
     ) -> ModelType:
-        if input_data.get("id") is None:
-            return validator.create(input_data)
+        has_id = input_data.get("id") is not None
 
-        instance = Model.objects.get(id=input_data["id"])
-        validator.update(instance, input_data)
-        return instance
+        # Create a new serializer instance for validation
+        if has_id:
+            instance = Model.objects.get(id=input_data["id"])
+            # partial update since we are updating an existing instance
+            # https://www.django-rest-framework.org/api-guide/serializers/#partial-updates
+            serializer = validator.__class__(
+                instance=instance, data=input_data, context=self.context, partial=True
+            )
+        else:
+            serializer = validator.__class__(data=input_data, context=self.context)
+
+        if not serializer.is_valid():
+            raise serializers.ValidationError(serializer.errors)
+
+        return serializer.save()
 
     def update_or_create_actions(
         self,
