@@ -87,7 +87,7 @@ export type UpdateFreeTextAction = {
   focusOverride?: FocusOverride;
 };
 
-type ReplaceTokensWithTextOnPasteAction = {
+export type ReplaceTokensWithTextOnPasteAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE';

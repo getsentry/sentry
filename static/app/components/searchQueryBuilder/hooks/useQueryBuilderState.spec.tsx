@@ -1,6 +1,6 @@
 import {
   replaceFreeTextTokens,
-  type ReplaceTokensWithTextAction,
+  type ReplaceTokensWithTextOnPasteAction,
   type UpdateFreeTextAction,
 } from './useQueryBuilderState';
 
@@ -10,7 +10,7 @@ describe('replaceFreeTextTokens', () => {
       description: string;
       expected: string | undefined;
       input: {
-        action: UpdateFreeTextAction | ReplaceTokensWithTextAction;
+        action: UpdateFreeTextAction | ReplaceTokensWithTextOnPasteAction;
         currentQuery: string;
         getFieldDefinition: () => null;
         rawSearchReplacement: string[];
@@ -102,7 +102,7 @@ describe('replaceFreeTextTokens', () => {
         description: 'when there is one free text token',
         input: {
           action: {
-            type: 'REPLACE_TOKENS_WITH_TEXT',
+            type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
             text: 'test',
             tokens: [],
             focusOverride: undefined,
