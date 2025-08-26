@@ -535,14 +535,13 @@ Sentry.init { options ->
         {
           type: 'code',
           language: 'java',
-          code: `import org.apache.logging.log4j.Logger;
+          code: `import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class SentryLog4jExample {
-  private static Logger logger = Logger.getLogger(SentryLog4jExample.class);
-
   public static void main(String[] args) {
-    logger.info("A simple log message");
-    logger.warn("A %s warning log message", "formatted");
+    Logger logger = LogManager.getRootLogger();
+    logger.info("A %s test log message", "formatted");
   }
 }`,
         },

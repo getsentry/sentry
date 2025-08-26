@@ -530,8 +530,7 @@ public class SentryLogbackExample {
   private static Logger logger = LoggerFactory.getLogger(SentryLogbackExample.class);
 
   public static void main(String[] args) {
-    logger.info("A simple log message");
-    logger.warn("A %s warning log message", "formatted");
+    logger.info("A test log message");
   }
 }`,
         },
