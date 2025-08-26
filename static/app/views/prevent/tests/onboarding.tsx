@@ -24,7 +24,7 @@ import {UploadFileCLIStep} from 'sentry/views/prevent/tests/onboardingSteps/uplo
 import {ViewResultsInsightsStep} from 'sentry/views/prevent/tests/onboardingSteps/viewResultsInsightsStep';
 import TestPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
 
-export enum SetupOption {
+enum SetupOption {
   GITHUB_ACTION = 'githubAction',
   CLI = 'cli',
 }
