@@ -1,7 +1,9 @@
 import {Fragment, useCallback, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import testAnalyticsTestPerfDark from 'sentry-images/features/test-analytics-test-perf-dark.svg';
 import testAnalyticsTestPerf from 'sentry-images/features/test-analytics-test-perf.svg';
 
 import {Container, Flex} from 'sentry/components/core/layout';
@@ -31,6 +33,9 @@ export enum SetupOption {
 export default function TestsOnboardingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const opt = searchParams.get('opt');
+
+  const theme = useTheme();
+  const isDarkMode = theme.type === 'dark';
 
   const handleRadioChange = useCallback(
     (newOption: SetupOption) => {
@@ -108,7 +113,10 @@ export default function TestsOnboardingPage() {
                   )}
                 </TAValueText>
               </div>
-              <img src={testAnalyticsTestPerf} alt="Test Analytics" />
+              <img
+                src={isDarkMode ? testAnalyticsTestPerfDark : testAnalyticsTestPerf}
+                alt="Test Analytics"
+              />
             </Flex>
           </IntroContainer>
           <SelectOptionHeader>{t('Select a setup option')}</SelectOptionHeader>
