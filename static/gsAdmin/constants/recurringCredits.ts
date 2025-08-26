@@ -1,16 +1,16 @@
 import {DataCategory} from 'sentry/types/core';
 
 export enum CreditType {
-  ERROR = 'error',
-  TRANSACTION = 'transaction',
-  SPAN = 'span',
-  PROFILE_DURATION = 'profile_duration',
-  PROFILE_DURATION_UI = 'profile_duration_ui',
-  ATTACHMENT = 'attachment',
-  REPLAY = 'replay',
-  DISCOUNT = 'discount',
-  PERCENT = 'percent',
-  LOG_BYTE = 'log_byte',
+  ERROR = 0,
+  TRANSACTION = 1,
+  ATTACHMENT = 2,
+  DISCOUNT = 3,
+  PERCENT = 4,
+  REPLAY = 5,
+  SPAN = 6,
+  PROFILE_DURATION = 7,
+  PROFILE_DURATION_UI = 8,
+  LOG_BYTE = 9,
 }
 
 export const RECURRING_CREDIT_LIMITS = {
