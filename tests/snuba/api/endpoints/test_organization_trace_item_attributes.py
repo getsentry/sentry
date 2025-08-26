@@ -306,16 +306,17 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
         assert response.status_code == 200, response.data
         expected: list[TraceItemAttributeKey] = [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
+            {"key": "bar", "name": "bar", "aliasType": "custom"},
+            {"key": "baz", "name": "baz", "aliasType": "custom"},
+            {"key": "foo", "name": "foo", "aliasType": "custom"},
             {
                 "key": "span.description",
                 "name": "span.description",
+                "aliasType": "internal",
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "transaction", "name": "transaction"},
-            {"key": "project", "name": "project"},
+            {"key": "transaction", "name": "transaction", "aliasType": "internal"},
+            {"key": "project", "name": "project", "aliasType": "internal"},
         ]
         assert sorted(
             response.data,
@@ -359,24 +360,27 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
         assert response.status_code == 200, response.data
         assert response.data == [
-            {"key": "tags[bar,number]", "name": "bar"},
-            {"key": "tags[baz,number]", "name": "baz"},
-            {"key": "measurements.fcp", "name": "measurements.fcp"},
-            {"key": "tags[foo,number]", "name": "foo"},
+            {"key": "tags[bar,number]", "name": "bar", "aliasType": "custom"},
+            {"key": "tags[baz,number]", "name": "baz", "aliasType": "custom"},
+            {"key": "measurements.fcp", "name": "measurements.fcp", "aliasType": "internal"},
+            {"key": "tags[foo,number]", "name": "foo", "aliasType": "custom"},
             {
                 "key": "http.decoded_response_content_length",
                 "name": "http.decoded_response_content_length",
+                "aliasType": "internal",
             },
             {
                 "key": "http.response_content_length",
                 "name": "http.response_content_length",
+                "aliasType": "internal",
             },
             {
                 "key": "http.response_transfer_size",
                 "name": "http.response_transfer_size",
+                "aliasType": "internal",
             },
-            {"key": "measurements.lcp", "name": "measurements.lcp"},
-            {"key": "span.duration", "name": "span.duration"},
+            {"key": "measurements.lcp", "name": "measurements.lcp", "aliasType": "internal"},
+            {"key": "span.duration", "name": "span.duration", "aliasType": "internal"},
         ]
 
     @override_options({"explore.trace-items.keys.max": 3})
@@ -405,15 +409,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.data
 
         expected: list[TraceItemAttributeKey] = [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
+            {"key": "bar", "name": "bar", "aliasType": "custom"},
+            {"key": "baz", "name": "baz", "aliasType": "custom"},
+            {"key": "foo", "name": "foo", "aliasType": "custom"},
             {
                 "key": "span.description",
                 "name": "span.description",
+                "aliasType": "internal",
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "project", "name": "project"},
+            {"key": "project", "name": "project", "aliasType": "internal"},
         ]
 
         assert sorted(
@@ -441,10 +446,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {
                 "key": "span.description",
                 "name": "span.description",
+                "aliasType": "internal",
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "transaction", "name": "transaction"},
-            {"key": "project", "name": "project"},
+            {"key": "transaction", "name": "transaction", "aliasType": "internal"},
+            {"key": "project", "name": "project", "aliasType": "internal"},
         ]
         assert sorted(
             response.data,
@@ -468,15 +474,16 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.content
 
         expected_3: list[TraceItemAttributeKey] = [
-            {"key": "bar", "name": "bar"},
-            {"key": "baz", "name": "baz"},
-            {"key": "foo", "name": "foo"},
+            {"key": "bar", "name": "bar", "aliasType": "custom"},
+            {"key": "baz", "name": "baz", "aliasType": "custom"},
+            {"key": "foo", "name": "foo", "aliasType": "custom"},
             {
                 "key": "span.description",
                 "name": "span.description",
+                "aliasType": "internal",
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "project", "name": "project"},
+            {"key": "project", "name": "project", "aliasType": "internal"},
         ]
         assert sorted(
             response.data,
@@ -525,18 +532,27 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert response.status_code == 200, response.data
         assert sorted(response.data, key=itemgetter("key")) == sorted(
             [
-                {"key": "tags[bar,number]", "name": "bar"},
-                {"key": "tags[baz,number]", "name": "baz"},
-                {"key": "measurements.fcp", "name": "measurements.fcp"},
-                {"key": "tags[foo,number]", "name": "foo"},
+                {"key": "tags[bar,number]", "name": "bar", "aliasType": "custom"},
+                {"key": "tags[baz,number]", "name": "baz", "aliasType": "custom"},
+                {"key": "measurements.fcp", "name": "measurements.fcp", "aliasType": "internal"},
+                {"key": "tags[foo,number]", "name": "foo", "aliasType": "custom"},
                 {
                     "key": "http.decoded_response_content_length",
                     "name": "http.decoded_response_content_length",
+                    "aliasType": "internal",
                 },
-                {"key": "http.response.body.size", "name": "http.response.body.size"},
-                {"key": "http.response.size", "name": "http.response.size"},
-                {"key": "measurements.lcp", "name": "measurements.lcp"},
-                {"key": "span.duration", "name": "span.duration"},
+                {
+                    "key": "http.response.body.size",
+                    "name": "http.response.body.size",
+                    "aliasType": "internal",
+                },
+                {
+                    "key": "http.response.size",
+                    "name": "http.response.size",
+                    "aliasType": "internal",
+                },
+                {"key": "measurements.lcp", "name": "measurements.lcp", "aliasType": "internal"},
+                {"key": "span.duration", "name": "span.duration", "aliasType": "internal"},
             ],
             key=itemgetter("key"),
         )
@@ -566,12 +582,21 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {
                 "key": "span.description",
                 "name": "span.description",
+                "aliasType": "internal",
                 "secondaryAliases": ["description", "message"],
             },
-            {"key": "project", "name": "project"},
-            {"key": "transaction", "name": "transaction"},
-            {"key": "tags[span.duration,string]", "name": "tags[span.duration,string]"},
-            {"key": "tags[span.op,string]", "name": "tags[span.op,string]"},
+            {"key": "project", "name": "project", "aliasType": "internal"},
+            {"key": "transaction", "name": "transaction", "aliasType": "internal"},
+            {
+                "key": "tags[span.duration,string]",
+                "name": "tags[span.duration,string]",
+                "aliasType": "internal",
+            },
+            {
+                "key": "tags[span.op,string]",
+                "name": "tags[span.op,string]",
+                "aliasType": "internal",
+            },
         ]
 
     def test_sentry_internal_attributes(self) -> None:

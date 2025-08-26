@@ -26,7 +26,7 @@ from sentry.search.eap.spans.attributes import (
     SPANS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.eap.types import AliasType, SupportedTraceItemType
 
 
 def add_start_end_conditions(
@@ -91,17 +91,17 @@ def translate_internal_to_public_alias(
     internal_alias: str,
     type: Literal["string", "number"],
     item_type: SupportedTraceItemType,
-) -> str | None:
+) -> tuple[str | None, AliasType]:
     mapping = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(item_type, {}).get(type, {})
     public_alias = mapping.get(internal_alias)
     if public_alias is not None:
-        return public_alias
+        return public_alias, AliasType.INTERNAL
 
     resolved_column = PUBLIC_ALIAS_TO_INTERNAL_MAPPING.get(item_type, {}).get(internal_alias)
     if resolved_column is not None:
         # if there is a known public alias with this exact name, it means we need to wrap
         # it in the explicitly typed tags syntax in order for it to reference the correct column
-        return f"tags[{internal_alias},{type}]"
+        return f"tags[{internal_alias},{type}]", AliasType.INTERNAL
 
     definitions = TRACE_ITEM_TYPE_DEFINITIONS.get(item_type)
     if definitions is not None:
@@ -109,10 +109,10 @@ def translate_internal_to_public_alias(
             column = definitions.column_to_alias(internal_alias)
             if column is not None:
                 if type == "string":
-                    return column
-                return f"tags[{column},{type}]"
+                    return column, AliasType.INTERNAL
+                return f"tags[{column},{type}]", AliasType.INTERNAL
 
-    return None
+    return None, AliasType.CUSTOM
 
 
 def get_secondary_aliases(

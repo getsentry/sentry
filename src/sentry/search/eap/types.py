@@ -45,6 +45,11 @@ class SupportedTraceItemType(str, Enum):
     UPTIME_RESULTS = "uptime_results"
 
 
+class AliasType(str, Enum):
+    INTERNAL = "internal"
+    CUSTOM = "custom"
+
+
 class TraceItemAttribute(TypedDict):
     name: str
     type: Literal["string", "number"]
