@@ -267,48 +267,43 @@ class AMCheckout extends Component<Props, State> {
 
     if (preAM3Tiers.includes(checkoutTier) || notAMTier) {
       // Display for AM1 and AM2 tiers, and non-AM tiers  (e.g. L1)
-      const steps = [
+      return [
         PlanSelect,
         AddDataVolume,
         OnDemandStep,
         ContractSelect,
         AddPaymentMethod,
         AddBillingDetails,
-      ];
-      if (!isNewCheckout) {
-        steps.push(ReviewAndConfirm);
-      }
-      return steps;
+        ReviewAndConfirm,
+      ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
     }
     // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
     if (subscription.isSelfServePartner) {
       if (hasActiveVCFeature(organization)) {
         // Don't allow VC customers to choose Annual plans
-        const steps = [PlanSelect, SetPayAsYouGo, AddDataVolume];
-        if (!isNewCheckout) {
-          steps.push(ReviewAndConfirm);
-        }
-        return steps;
+        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm].filter(
+          step => !isNewCheckout || step !== ReviewAndConfirm
+        );
       }
-      const steps = [PlanSelect, SetPayAsYouGo, AddDataVolume, ContractSelect];
-      if (!isNewCheckout) {
-        steps.push(ReviewAndConfirm);
-      }
+      return [
+        PlanSelect,
+        SetPayAsYouGo,
+        AddDataVolume,
+        ContractSelect,
+        ReviewAndConfirm,
+      ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
     }
 
     // Display for AM3 tiers and above
-    const steps = [
+    return [
       PlanSelect,
       SetPayAsYouGo,
       AddDataVolume,
       ContractSelect,
       AddPaymentMethod,
       AddBillingDetails,
-    ];
-    if (!isNewCheckout) {
-      steps.push(ReviewAndConfirm);
-    }
-    return steps;
+      ReviewAndConfirm,
+    ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
   }
 
   get activePlan() {
