@@ -381,17 +381,17 @@ export class TraceTree extends TraceTreeEventDispatcher {
   }
 
   static Loading(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
-    const t = makeExampleTrace(metadata, organization);
-    t.type = 'loading';
-    t.build();
-    return t;
+    const trace = makeExampleTrace(metadata, organization);
+    trace.type = 'loading';
+    trace.build();
+    return trace;
   }
 
   static Error(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
-    const t = makeExampleTrace(metadata, organization);
-    t.type = 'error';
-    t.build();
-    return t;
+    const trace = makeExampleTrace(metadata, organization);
+    trace.type = 'error';
+    trace.build();
+    return trace;
   }
 
   static ApplyPreferences(
@@ -1697,24 +1697,24 @@ export class TraceTree extends TraceTreeEventDispatcher {
     // Find all embedded eap-transactions, excluding the node itself
     const eapTransactions = findEAPTransactions(node);
 
-    for (const t of eapTransactions) {
-      if (isEAPTransactionNode(t)) {
-        const newParent = findNewParent(t);
+    for (const trace of eapTransactions) {
+      if (isEAPTransactionNode(trace)) {
+        const newParent = findNewParent(trace);
 
         // If the transaction already has the correct parent, we can continue
-        if (newParent === t.parent) {
+        if (newParent === trace.parent) {
           continue;
         }
 
         // If we have found a new parent to reparent the transaction under,
         // remove it from its current parent's children and add it to the new parent
         if (newParent) {
-          if (t.parent) {
-            t.parent.children = t.parent.children.filter(c => c !== t);
+          if (trace.parent) {
+            trace.parent.children = trace.parent.children.filter(c => c !== trace);
           }
-          newParent.children.push(t);
-          t.parent = newParent;
-          t.parent.children.sort(traceChronologicalSort);
+          newParent.children.push(trace);
+          trace.parent = newParent;
+          trace.parent.children.sort(traceChronologicalSort);
         }
       }
     }
@@ -1792,11 +1792,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (isEAPTransactionNode(node)) {
         TraceTree.ReparentEAPTransactions(
           node,
-          t => t.children.filter(c => isEAPTransactionNode(c)),
-          t =>
+          trace => trace.children.filter(c => isEAPTransactionNode(c)),
+          trace =>
             TraceTree.Find(node, n => {
               if (isEAPSpanNode(n)) {
-                return n.value.event_id === t.value.parent_span_id;
+                return n.value.event_id === trace.value.parent_span_id;
               }
               return false;
             })
@@ -1823,15 +1823,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (isEAPTransactionNode(node)) {
         TraceTree.ReparentEAPTransactions(
           node,
-          t =>
+          trace =>
             TraceTree.FindAll(
-              t,
+              trace,
               n =>
                 isEAPTransactionNode(n) &&
-                n !== t &&
+                n !== trace &&
                 TraceTree.ParentEAPTransaction(n) === node
             ) as Array<TraceTreeNode<TraceTree.EAPSpan>>,
-          t => TraceTree.ParentEAPTransaction(t)
+          trace => TraceTree.ParentEAPTransaction(trace)
         );
       }
 
@@ -1879,11 +1879,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
           c => isTransactionNode(c) && c !== node
         );
 
-        for (const t of transactions) {
+        for (const trace of transactions) {
           // point transactions back to their parents
-          const parent = TraceTree.ParentTransaction(t);
+          const parent = TraceTree.ParentTransaction(trace);
           // If they already have the correct parent, then we can skip this
-          if (t.parent === parent) {
+          if (trace.parent === parent) {
             continue;
           }
           if (!parent) {
@@ -1894,8 +1894,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
             });
             continue;
           }
-          t.parent = parent;
-          parent.children.push(t);
+          trace.parent = parent;
+          parent.children.push(trace);
         }
 
         node.children = node.children.filter(c => isTransactionNode(c));
@@ -2365,7 +2365,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return (
       '\n' +
       this.list
-        .map(t => printTraceTreeNode(t, 0))
+        .map(trace => printTraceTreeNode(trace, 0))
         .filter(Boolean)
         .join('\n') +
       '\n'
@@ -2420,62 +2420,62 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
 }
 
 function printTraceTreeNode(
-  t: TraceTreeNode<TraceTree.NodeValue>,
+  trace: TraceTreeNode<TraceTree.NodeValue>,
   offset: number
 ): string {
   // +1 because we may be printing from the root which is -1 indexed
-  const padding = '  '.repeat(TraceTree.Depth(t) + offset);
+  const padding = '  '.repeat(TraceTree.Depth(trace) + offset);
 
-  if (isAutogroupedNode(t)) {
-    if (isParentAutogroupedNode(t)) {
-      return padding + `parent autogroup (${t.head.value.op}: ${t.groupCount})`;
+  if (isAutogroupedNode(trace)) {
+    if (isParentAutogroupedNode(trace)) {
+      return padding + `parent autogroup (${trace.head.value.op}: ${trace.groupCount})`;
     }
-    if (isSiblingAutogroupedNode(t)) {
+    if (isSiblingAutogroupedNode(trace)) {
       return (
         padding +
-        `sibling autogroup (${(t.children[0] as TraceTreeNode<TraceTree.Span>)?.value?.op}: ${t.groupCount})`
+        `sibling autogroup (${(trace.children[0] as TraceTreeNode<TraceTree.Span>)?.value?.op}: ${trace.groupCount})`
       );
     }
 
     return padding + 'autogroup';
   }
-  if (isSpanNode(t) || isEAPSpanNode(t)) {
+  if (isSpanNode(trace) || isEAPSpanNode(trace)) {
     return (
       padding +
-      (t.value.op || 'unknown span') +
+      (trace.value.op || 'unknown span') +
       ' - ' +
-      getNodeDescriptionPrefix(t) +
-      (t.value.description || 'unknown description') +
-      (isEAPTransactionNode(t) ? ` (eap-transaction)` : '')
+      getNodeDescriptionPrefix(trace) +
+      (trace.value.description || 'unknown description') +
+      (isEAPTransactionNode(trace) ? ` (eap-transaction)` : '')
     );
   }
-  if (isTransactionNode(t)) {
+  if (isTransactionNode(trace)) {
     return (
       padding +
-      (t.value.transaction || 'unknown transaction') +
+      (trace.value.transaction || 'unknown transaction') +
       ' - ' +
-      (t.value['transaction.op'] ?? 'unknown op')
+      (trace.value['transaction.op'] ?? 'unknown op')
     );
   }
-  if (isMissingInstrumentationNode(t)) {
+  if (isMissingInstrumentationNode(trace)) {
     return padding + 'missing_instrumentation';
   }
-  if (isRootNode(t)) {
+  if (isRootNode(trace)) {
     return padding + 'virtual root';
   }
-  if (isTraceNode(t)) {
+  if (isTraceNode(trace)) {
     return padding + 'trace root';
   }
 
-  if (isEAPTraceNode(t)) {
+  if (isEAPTraceNode(trace)) {
     return padding + 'eap trace root';
   }
 
-  if (isTraceErrorNode(t) || isEAPErrorNode(t)) {
-    return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
+  if (isTraceErrorNode(trace) || isEAPErrorNode(trace)) {
+    return padding + (trace.value.event_id || trace.value.level) || 'unknown trace error';
   }
 
-  if (isCollapsedNode(t)) {
+  if (isCollapsedNode(trace)) {
     return padding + 'collapsed';
   }
 
