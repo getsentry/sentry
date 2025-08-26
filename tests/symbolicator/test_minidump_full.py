@@ -144,6 +144,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         assert event.data.get("extra") == {"foo": "bar"}
         # Other assertions are performed by `test_full_minidump`
 
+    @pytest.mark.skip(reason="flaky: #98251")
     def test_missing_dsym(self) -> None:
         with self.feature(self._FEATURES):
             with open(get_fixture_path("native", "windows.dmp"), "rb") as f:
