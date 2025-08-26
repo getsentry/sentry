@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useFetchEventsTimeSeries} from './useFetchEventsTimeSeries';
@@ -27,9 +28,12 @@ describe('useFetchEventsTimeSeries', () => {
       body: {},
     });
 
-    const {result} = renderHook(() => useFetchEventsTimeSeries({}, REFERRER), {
-      wrapper: Wrapper,
-    });
+    const {result} = renderHook(
+      () => useFetchEventsTimeSeries({}, DiscoverDatasets.SPANS, REFERRER),
+      {
+        wrapper: Wrapper,
+      }
+    );
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
@@ -42,6 +46,7 @@ describe('useFetchEventsTimeSeries', () => {
           excludeOther: 0,
           partial: 1,
           referrer: 'test-query',
+          dataset: 'spans',
         },
       })
     );
@@ -60,6 +65,7 @@ describe('useFetchEventsTimeSeries', () => {
           {
             enabled: false,
           },
+          DiscoverDatasets.SPANS,
           REFERRER
         ),
       {
@@ -81,6 +87,7 @@ describe('useFetchEventsTimeSeries', () => {
             {
               enabled: false,
             },
+            DiscoverDatasets.SPANS,
             ''
           ),
         {
