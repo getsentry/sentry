@@ -293,7 +293,7 @@ def test_as_log_message_resource_fetch_invalid_url(too_long: bool) -> None:
 
     # Real example of a filtered URL that fails urlparse.
     url = (
-        "https://pendo-static-[Filtered].storage.googleapis.com/guide-content/abcd.json?sha256="
+        "https://test-string-[Filtered].storage.googleapis.com/guide-content/abcd.json?sha256="
         + "abcd" * (100 if too_long else 1)
     )
 
