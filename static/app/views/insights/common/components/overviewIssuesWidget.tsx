@@ -87,7 +87,7 @@ const getRenderer: FieldRendererGetter = (field, _data, meta) => {
   if (field === 'last_seen()') {
     return lastSeenRenderer;
   }
-  if (field === 'title') {
+  if (field === 'issue') {
     return titleRenderer;
   }
   return getFieldRenderer(field, meta.fields, false);
