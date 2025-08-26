@@ -26,7 +26,7 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
 
     viewname = "sentry-api-0-organization-trace-item-attributes"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -180,6 +180,59 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
         assert keys == {"severity", "message", "project", "sentry.item_type2"}
+
+    def test_strip_sentry_prefix_from_message_parameter(self) -> None:
+        """Test that sentry.message.parameter.* wildcard matching works in attribute listing"""
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.message.parameter.username": {"string_value": "alice"},
+                    "sentry.message.parameter.ip": {"string_value": "192.168.1.1"},
+                    "sentry.message.parameter.0": {"string_value": "laptop"},
+                    "sentry.message.parameter.1": {"string_value": "charlie"},
+                },
+            ),
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.message.parameter.0": {"bool_value": 1},
+                    "sentry.message.parameter.1": {"int_value": 5},
+                    "sentry.message.parameter.2": {"double_value": 10},
+                },
+            ),
+        ]
+
+        self.store_ourlogs(logs)
+
+        response = self.do_request(query={"attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {
+            "project",
+            "message",
+            "severity",
+            "message.parameter.username",
+            "message.parameter.ip",
+            "message.parameter.0",
+            "message.parameter.1",
+        }
+
+        response = self.do_request(query={"attributeType": "number"})
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {
+            "tags[message.parameter.0,number]",
+            "tags[message.parameter.1,number]",
+            "tags[message.parameter.2,number]",
+            "severity_number",
+            "tags[sentry.timestamp_nanos,number]",
+            "timestamp_precise",
+        }
 
     def test_attribute_collision(self) -> None:
         logs = [
@@ -565,7 +618,7 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
 
     viewname = "sentry-api-0-organization-trace-item-attribute-values"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

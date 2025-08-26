@@ -56,7 +56,7 @@ describe('AlertWizard', () => {
           'incidents',
           'performance-view',
           'crash-rate-alerts',
-          'insights-addon-modules',
+          'insight-modules',
           'uptime',
         ],
         access: ['org:write', 'alerts:write'],

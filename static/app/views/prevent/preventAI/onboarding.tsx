@@ -2,12 +2,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import preventHero from 'sentry-images/features/prevent-hero.svg';
-import preventPrComment from 'sentry-images/features/prevent-pr-comment.png';
+import preventPrComments from 'sentry-images/features/prevent-pr-comments.png';
 
 import {Container, Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
+import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -132,10 +133,10 @@ export default function PreventAIOnboarding() {
             background="secondary"
             radius="md"
           >
-            <Text variant="primary" size="sm" bold>
+            <Text variant="primary" size="md" bold>
               {t('How to use Prevent AI')}
             </Text>
-            <Text variant="muted" size="sm">
+            <Text variant="muted" size="md">
               {t('Prevent AI helps you ship better code with three features:')}
             </Text>
             <Container as="ul" style={{margin: 0, fontSize: '12px'}}>
@@ -156,7 +157,7 @@ export default function PreventAIOnboarding() {
               <li>
                 <Text variant="muted" size="sm">
                   {tct(
-                    'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with [sentryCommand].',
+                    'It predicts which errors your code will cause. This happens automatically when you mark a PR ready for review, and when you trigger a PR review with [sentryCommand].',
                     {
                       sentryCommand: (
                         <Text variant="accent" size="sm" bold>
@@ -193,8 +194,16 @@ export default function PreventAIOnboarding() {
               )}
             </Text>
           </Flex>
+          <Text variant="muted" size="xs">
+            <Flex gap="sm" justify="center">
+              <IconInfo size="xs" />
+              {t(
+                `This page will remain visible after the app is installed. Reviewer Configuration and Usage Stats are coming soon.`
+              )}
+            </Flex>
+          </Text>
         </Flex>
-        <StyledImg src={preventPrComment} alt="Prevent PR Comment" />
+        <StyledImg src={preventPrComments} alt="Prevent PR Comments" />
       </Flex>
     </Flex>
   );

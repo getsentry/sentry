@@ -54,6 +54,8 @@ class MultiProducer:
 
     def _default_producer_factory(self, producer_config: Mapping[str, object]) -> KafkaProducer:
         """Default factory that creates real KafkaProducers."""
+        producer_config = dict(producer_config)
+        producer_config["client.id"] = "sentry.spans.consumers.process.flusher"
         return KafkaProducer(build_kafka_producer_configuration(default_config=producer_config))
 
     def _setup_producers(self):
@@ -246,7 +248,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     ) -> None:
         # TODO: remove once span buffer is live in all regions
         scope = sentry_sdk.get_isolation_scope()
-        scope.set_level("warning")
+        scope.level = "warning"
 
         shard_tag = ",".join(map(str, shards))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")

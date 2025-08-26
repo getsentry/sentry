@@ -10,7 +10,7 @@ import ProjectPluginDetailsContainer, {
   ProjectPluginDetails,
 } from 'sentry/views/settings/projectPlugins/details';
 
-describe('ProjectPluginDetails', function () {
+describe('ProjectPluginDetails', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const plugins = PluginsFixture();
@@ -23,11 +23,11 @@ describe('ProjectPluginDetails', function () {
     route: '/settings/:orgId/projects/:projectId/settings/plugins/:pluginId/',
   };
 
-  beforeAll(function () {
+  beforeAll(() => {
     jest.spyOn(console, 'info').mockImplementation(() => {});
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,
       method: 'GET',
@@ -55,7 +55,7 @@ describe('ProjectPluginDetails', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <ProjectPluginDetailsContainer organization={organization} project={project} />,
       {initialRouterConfig}
@@ -63,7 +63,7 @@ describe('ProjectPluginDetails', function () {
     expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
   });
 
-  it('resets plugin', async function () {
+  it('resets plugin', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
     render(
       <ProjectPluginDetails
@@ -83,7 +83,7 @@ describe('ProjectPluginDetails', function () {
     );
   });
 
-  it('enables/disables plugin', async function () {
+  it('enables/disables plugin', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
     render(
       <ProjectPluginDetailsContainer organization={organization} project={project} />,

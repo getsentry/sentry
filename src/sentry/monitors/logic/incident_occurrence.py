@@ -45,6 +45,7 @@ def _get_producer() -> KafkaProducer:
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
+    producer_config["client.id"] = "sentry.monitors.logic.incident_occurrence"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
@@ -268,7 +269,7 @@ def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
     }
 
 
-def resolve_incident_group(incident: MonitorIncident, project_id: int):
+def resolve_incident_group(incident: MonitorIncident, project_id: int) -> None:
     status_change = StatusChangeMessage(
         fingerprint=[incident.grouphash],
         project_id=project_id,

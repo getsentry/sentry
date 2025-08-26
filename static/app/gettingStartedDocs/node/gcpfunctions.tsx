@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
@@ -45,8 +46,16 @@ exports.helloEvents = Sentry.wrapCloudEventFunction(
   }
 );`;
 
-const getVerifySnippet = () => `
-exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
+const getVerifySnippet = (params: Params) => `
+exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {${
+  params.isLogsSelected
+    ? `
+  // Send a log before throwing the error
+  Sentry.logger.info('User triggered test error', {
+    action: 'test_error_function',
+  });`
+    : ''
+}
   throw new Error("oh, hello there!");
 });`;
 
@@ -94,7 +103,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -103,7 +112,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'javascript',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },
@@ -146,6 +155,10 @@ const docs: Docs = {
   crashReportOnboarding,
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/google-cloud-serverless',
+  }),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'gcp-functions',
+    sdkPackage: '@sentry/google-cloud-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'google-cloud-serverless',

@@ -316,7 +316,7 @@ def get_project_config(
     with sentry_sdk.isolation_scope() as scope:
         scope.set_tag("project", project.id)
         with (
-            sentry_sdk.start_span(name="get_project_config"),
+            sentry_sdk.start_transaction(name="get_project_config"),
             metrics.timer("relay.config.get_project_config.duration"),
         ):
             return _get_project_config(project, project_keys=project_keys)
@@ -1150,6 +1150,12 @@ def _get_project_config(
         event_retention = quotas.backend.get_event_retention(project.organization)
         if event_retention is not None:
             config["eventRetention"] = event_retention
+    with sentry_sdk.start_span(op="get_downsampled_event_retention"):
+        downsampled_event_retention = quotas.backend.get_downsampled_event_retention(
+            project.organization
+        )
+        if downsampled_event_retention is not None:
+            config["downsampledEventRetention"] = downsampled_event_retention
     with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config

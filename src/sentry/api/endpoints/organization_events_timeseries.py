@@ -63,6 +63,7 @@ class SeriesMeta(TypedDict):
     order: NotRequired[int]
     isOther: NotRequired[str]
     valueUnit: NotRequired[str]
+    dataScanned: NotRequired[Literal["partial", "full"]]
     valueType: str
     interval: float
 
@@ -146,7 +147,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
-            span.set_attribute("organization", organization)
+            span.set_data("organization", organization)
 
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
@@ -345,6 +346,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             series_meta["isOther"] = result.data["is_other"]
         if "order" in result.data:
             series_meta["order"] = result.data["order"]
+        if "full_scan" in result.data["meta"]:
+            series_meta["dataScanned"] = "full" if result.data["meta"]["full_scan"] else "partial"
 
         timeseries = TimeSeries(
             values=[],
