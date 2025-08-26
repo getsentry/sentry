@@ -22,6 +22,9 @@ import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {getDetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
@@ -122,6 +125,12 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
 }
 
 function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
+  const datasetConfig = getDatasetConfig(
+    getDetectorDataset(
+      detector.dataSources[0].queryObj?.snubaQuery.dataset || Dataset.ERRORS,
+      detector.dataSources[0].queryObj?.snubaQuery.eventTypes || []
+    )
+  );
   return (
     <Fragment>
       {detector.dataSources.map(dataSource => {
@@ -133,7 +142,10 @@ function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
             <DetailItem>{dataSource.queryObj.snubaQuery.environment}</DetailItem>
             <DetailItem>{dataSource.queryObj.snubaQuery.aggregate}</DetailItem>
             <DetailItem>
-              {middleEllipsis(dataSource.queryObj.snubaQuery.query, 40)}
+              {middleEllipsis(
+                datasetConfig.toSnubaQueryString(dataSource.queryObj.snubaQuery),
+                40
+              )}
             </DetailItem>
           </Fragment>
         );
