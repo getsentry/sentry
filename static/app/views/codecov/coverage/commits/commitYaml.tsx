@@ -118,15 +118,15 @@ const YamlKey = styled('span')`
 `;
 
 const YamlValue = styled('span')`
-  color: ${p => p.theme.red400};
+  color: ${p => p.theme.purple400};
 `;
 
 const YamlNumber = styled('span')`
-  color: ${p => p.theme.blue400};
+  color: var(--prism-selector);
 `;
 
 const YamlString = styled('span')`
-  color: ${p => p.theme.blue300};
+  color: var(--prism-operator);
 `;
 
 function Indent({level}: {level: number}) {
