@@ -157,9 +157,9 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 % [item.name.lower() for item in SnubaQueryEventType.EventType]
             )
 
-        if not is_logs_enabled(self.context["organization"]) and any(
-            [v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_LOG]
-        ):
+        if not is_logs_enabled(
+            self.context["organization"], actor=self.context.get("user", None)
+        ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_LOG]):
             raise serializers.ValidationError("You do not have access to the log alerts feature.")
 
         return validated
