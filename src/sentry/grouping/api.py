@@ -47,7 +47,8 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
-    from sentry.grouping.fingerprinting import FingerprintingRules, FingerprintRuleJSON
+    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting.rules import FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
     from sentry.services.eventstore.models import Event
