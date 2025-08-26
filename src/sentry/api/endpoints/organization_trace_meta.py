@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableResponse
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -35,7 +36,7 @@ class SerializedResponse(TypedDict, total=False):
     span_count: int
     transaction_child_count_map: SnubaData
     span_count_map: dict[str, int]
-    uptime_checks: int  # Only present when include_uptime is True
+    uptime_checks: int
 
 
 def extract_uptime_count(uptime_result: list[TraceItemTableResponse]) -> int:
@@ -144,6 +145,11 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             ]
         )
 
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        return bool(
+            features.has("organizations:trace-spans-format", organization, actor=request.user)
+        )
+
     def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -169,11 +175,10 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 query=f"trace:{trace_id}",
                 limit=1,
             )
-            include_uptime = request.GET.get("include_uptime", "0") == "1"
-            max_workers = 3 + (1 if include_uptime else 0)
+            # Always include uptime data
             with ThreadPoolExecutor(
                 thread_name_prefix=__name__,
-                max_workers=max_workers,
+                max_workers=4,
             ) as query_thread_pool:
                 spans_future = query_thread_pool.submit(
                     self.query_span_data, trace_id, snuba_params
@@ -184,30 +189,24 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 errors_future = query_thread_pool.submit(
                     errors_query.run_query, Referrer.API_TRACE_VIEW_GET_EVENTS.value
                 )
-
-                uptime_future = None
-                if include_uptime:
-                    uptime_query = _uptime_results_query(snuba_params, trace_id)
-                    uptime_future = query_thread_pool.submit(
-                        _run_uptime_results_query, uptime_query
-                    )
+                uptime_query = _uptime_results_query(snuba_params, trace_id)
+                uptime_future = query_thread_pool.submit(_run_uptime_results_query, uptime_query)
 
             results = spans_future.result()
             perf_issues = perf_issues_future.result()
             errors = errors_future.result()
             results["errors"] = errors
 
-            uptime_count = None
-            if uptime_future:
-                try:
-                    uptime_result = uptime_future.result()
-                    uptime_count = extract_uptime_count(uptime_result)
-                except Exception:
-                    logger.exception("Failed to fetch uptime results")
+            uptime_count = 0
+            try:
+                uptime_result = uptime_future.result()
+                uptime_count = extract_uptime_count(uptime_result)
+            except Exception:
+                logger.exception("Failed to fetch uptime results")
         return Response(self.serialize(results, perf_issues, uptime_count))
 
     def serialize(
-        self, results: dict[str, EAPResponse], perf_issues: int, uptime_count: int | None = None
+        self, results: dict[str, EAPResponse], perf_issues: int, uptime_count: int
     ) -> SerializedResponse:
         response: SerializedResponse = {
             # Values can be null if there's no result
@@ -219,7 +218,6 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             "span_count_map": {
                 row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
             },
+            "uptime_checks": uptime_count,
         }
-        if uptime_count is not None:
-            response["uptime_checks"] = uptime_count
         return response
