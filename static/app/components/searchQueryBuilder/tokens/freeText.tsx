@@ -521,6 +521,7 @@ function SearchQueryBuilderInputInternal({
               tokens: [token],
               text: inputValue,
               shouldCommitQuery: false,
+              replaceRawSearchKey: false,
             });
             resetInputValue();
           }
