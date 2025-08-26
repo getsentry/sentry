@@ -318,9 +318,7 @@ function TotalSummary({
 
   return (
     <SummarySection>
-      {previewDataLoading ? (
-        <FullWidthPlaceholder height="16px" />
-      ) : (
+      {!previewDataLoading && (
         <Fragment>
           {previewData?.invoiceItems
             .filter(
@@ -376,7 +374,7 @@ function TotalSummary({
         aria-label={t('Confirm and pay')}
         priority="primary"
         onClick={onSubmit}
-        disabled={buttonDisabled}
+        disabled={buttonDisabled || previewDataLoading}
       >
         <IconLock locked />
         {isSubmitting ? t('Checking out...') : t('Confirm and pay')}
@@ -633,11 +631,6 @@ const DueTodayAmount = styled('span')`
 const DueTodayAmountBeforeDiscount = styled(DueTodayAmount)`
   text-decoration: line-through;
   color: ${p => p.theme.subText};
-`;
-
-const FullWidthPlaceholder = styled(Placeholder)`
-  margin-bottom: ${p => p.theme.space.xl};
-  width: 100%;
 `;
 
 const Credit = styled('div')`
