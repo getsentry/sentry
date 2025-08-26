@@ -243,13 +243,28 @@ export function convertEventsStatsToTimeSeriesData(
   const label = alias ?? (seriesName || FALLBACK_SERIES_NAME);
 
   const values: TimeSeriesItem[] = seriesData.data.map(
-    ([timestamp, countsForTimestamp], index) => ({
-      timestamp: timestamp * 1000,
-      value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-      confidence: seriesData.meta?.accuracy?.confidence?.[index]?.value ?? null,
-      sampleCount: seriesData.meta?.accuracy?.sampleCount?.[index]?.value ?? undefined,
-      sampleRate: seriesData.meta?.accuracy?.samplingRate?.[index]?.value ?? undefined,
-    })
+    ([timestamp, countsForTimestamp], index) => {
+      const item: TimeSeriesItem = {
+        timestamp: timestamp * 1000,
+        value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+      };
+
+      if (seriesData.meta?.accuracy?.confidence) {
+        item.confidence = seriesData.meta?.accuracy?.confidence?.[index]?.value ?? null;
+      }
+
+      if (seriesData.meta?.accuracy?.sampleCount) {
+        item.sampleCount =
+          seriesData.meta?.accuracy?.sampleCount?.[index]?.value ?? undefined;
+      }
+
+      if (seriesData.meta?.accuracy?.samplingRate) {
+        item.sampleRate =
+          seriesData.meta?.accuracy?.samplingRate?.[index]?.value ?? undefined;
+      }
+
+      return item;
+    }
   );
 
   const interval = getTimeSeriesInterval(values);
