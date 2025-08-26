@@ -726,6 +726,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         # Verify the result is returned successfully from CPU fallback
         assert result.group_id == str(self.group.id)
         assert result.headline == "Test headline"
+        assert result.scores is not None
         assert result.scores.fixability_score == 0.7
 
         # Verify both GPU and CPU endpoints were called
@@ -779,6 +780,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         # Verify the result is returned successfully from CPU fallback
         assert result.group_id == str(self.group.id)
         assert result.headline == "Test headline"
+        assert result.scores is not None
         assert result.scores.fixability_score == 0.7
 
         # Verify both GPU and CPU endpoints were called
