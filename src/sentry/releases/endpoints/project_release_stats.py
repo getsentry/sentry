@@ -29,6 +29,8 @@ def upsert_missing_release(project, version) -> datetime | None:
             release = Release.get_or_create(project=project, version=version, date_added=oldest)
             release.add_project(project)
             return release.date_added
+        else:
+            return None
 
 
 @region_silo_endpoint
