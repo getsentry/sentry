@@ -130,11 +130,6 @@ function LowAccuracyFullTooltip({
           {t(
             "You can try adjusting your query by narrowing the date range, removing filters or increasing the chart's time interval."
           )}
-          <br />
-          <br />
-          {t(
-            'You can also increase your sampling rates to get more samples and accurate trends.'
-          )}
         </div>
       }
       disabled={noSampling}
