@@ -9,6 +9,7 @@ from sentry.integrations.source_code_management.status_check import StatusCheckC
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ def update_preprod_size_analysis_status_on_upload(preprod_artifact: PreprodArtif
         status=GitHubCheckStatus.IN_PROGRESS,
         title=SIZE_ANALYZER_TITLE,
         text=text,
-        summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing...",
+        summary=f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` is processing...",
     )
 
 
@@ -39,7 +40,7 @@ def update_preprod_size_analysis_status_on_completion(
         conclusion=GitHubCheckConclusion.SUCCESS,
         title=SIZE_ANALYZER_TITLE,
         text=text,
-        summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} processed successfully.",
+        summary=f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` processed successfully.",
         target_url=target_url,
     )
 
@@ -55,7 +56,7 @@ def update_preprod_size_analysis_status_on_failure(
         conclusion=GitHubCheckConclusion.FAILURE,
         title=SIZE_ANALYZER_TITLE,
         text=text,
-        summary=f"Build {preprod_artifact.id} for {preprod_artifact.app_id} failed.",
+        summary=f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` failed.",
     )
 
 
@@ -159,19 +160,12 @@ def _get_status_check_provider(
 def _get_status_check_client(
     project: Project, commit_comparison: CommitComparison
 ) -> StatusCheckClient | None:
-    """Get the appropriate status check client for the project's integration."""
     try:
-        from sentry.models.repository import Repository
-
-        # Repository provider format is "integrations:provider"
-        repo_provider = f"integrations:{commit_comparison.provider}"
-
         repository = Repository.objects.get(
             organization_id=project.organization_id,
             name=commit_comparison.head_repo_name,
-            provider=repo_provider,
+            provider=f"integrations:{commit_comparison.provider}",
         )
-
         if not repository.integration_id:
             logger.info(
                 "Repository found but no integration_id set",
@@ -184,7 +178,8 @@ def _get_status_check_client(
             return None
 
         integration = Integration.objects.get(id=repository.integration_id)
-        client = _create_client_for_provider(commit_comparison.provider, integration, project.organization_id)
+        installation = integration.get_installation(organization_id=project.organization_id)
+        client = installation.get_client()
         return client
 
     except Repository.DoesNotExist:
@@ -220,25 +215,7 @@ def _get_status_check_client(
         return None
 
 
-def _create_client_for_provider(
-    provider: str, integration: Integration, organization_id: int
-) -> StatusCheckClient | None:
-    """Create the appropriate client for the given provider and integration."""
-    if provider == IntegrationProviderSlug.GITHUB:
-        # Use the proper integration installation pattern
-        installation = integration.get_installation(organization_id=organization_id)
-        return installation.get_client()
-    else:
-        logger.info(
-            "Status checks not currently supported for provider",
-            extra={"provider": provider},
-        )
-        return None
-
-
 class _StatusCheckProvider(ABC):
-    """Abstract base class for provider-specific status check implementations."""
-
     def __init__(self, client: StatusCheckClient):
         self.client = client
 
@@ -260,8 +237,6 @@ class _StatusCheckProvider(ABC):
 
 
 class _GitHubStatusCheckProvider(_StatusCheckProvider):
-    """GitHub-specific status check provider using Check Runs API."""
-
     def create_status_check(
         self,
         repo: str,
