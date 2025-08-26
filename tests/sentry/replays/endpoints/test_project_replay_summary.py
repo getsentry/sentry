@@ -332,12 +332,11 @@ class ProjectReplaySummaryTestCase(
         assert any("Great website!" in log for log in logs)
         assert any("User submitted feedback" in log for log in logs)
 
-    @patch("sentry.replays.endpoints.project_replay_summary.requests")
-    def test_post_with_trace_errors_both_datasets(self, mock_requests):
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_post_with_trace_errors_both_datasets(self, mock_make_seer_api_request):
         """Test that trace connected error snuba query works correctly with both datasets."""
-        mock_requests.post.return_value = Mock(
-            status_code=200, json=lambda: {"summary": "Test summary"}
-        )
+        mock_response = MockSeerResponse(200, {"summary": "Test summary"})
+        mock_make_seer_api_request.return_value = mock_response
 
         now = datetime.now(UTC)
         project_1 = self.create_project()
@@ -423,9 +422,10 @@ class ProjectReplaySummaryTestCase(
         assert response.get("Content-Type") == "application/json"
         assert response.json() == {"summary": "Test summary"}
 
-        assert mock_requests.post.call_count == 1
-        data = mock_requests.post.call_args.kwargs["data"]
-        logs = json.loads(data)["logs"]
+        mock_make_seer_api_request.assert_called_once()
+        call_args = mock_make_seer_api_request.call_args
+        request_body = json.loads(call_args[1]["body"].decode())
+        logs = request_body["logs"]
         assert len(logs) == 3
 
         # Verify that regular error event is included
@@ -437,12 +437,11 @@ class ProjectReplaySummaryTestCase(
         assert "Great website" in logs[2]
         assert "User submitted feedback" in logs[2]
 
-    @patch("sentry.replays.endpoints.project_replay_summary.requests")
-    def test_post_with_trace_errors_duplicate_feedback(self, mock_requests):
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_post_with_trace_errors_duplicate_feedback(self, mock_make_seer_api_request):
         """Test that duplicate feedback events are filtered."""
-        mock_requests.post.return_value = Mock(
-            status_code=200, json=lambda: {"summary": "Test summary"}
-        )
+        mock_response = MockSeerResponse(200, {"summary": "Test summary"})
+        mock_make_seer_api_request.return_value = mock_response
 
         now = datetime.now(UTC)
         feedback_event_id = uuid.uuid4().hex
@@ -526,9 +525,10 @@ class ProjectReplaySummaryTestCase(
         assert response.get("Content-Type") == "application/json"
         assert response.json() == {"summary": "Test summary"}
 
-        assert mock_requests.post.call_count == 1
-        data = mock_requests.post.call_args.kwargs["data"]
-        logs = json.loads(data)["logs"]
+        mock_make_seer_api_request.assert_called_once()
+        call_args = mock_make_seer_api_request.call_args
+        request_body = json.loads(call_args[1]["body"].decode())
+        logs = request_body["logs"]
 
         # Verify that only the unique feedback logs are included
         assert len(logs) == 2
