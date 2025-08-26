@@ -559,9 +559,6 @@ class FingerprintingVisitor(NodeVisitor[list[FingerprintRule]]):
     visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidFingerprintingConfig,)
 
-    def __init__(self, bases: Sequence[str] | None) -> None:
-        self.bases = bases
-
     # a note on the typing of `children`
     # these are actually lists of sub-lists of the various types
     # so instead typed as tuples so unpacking works
