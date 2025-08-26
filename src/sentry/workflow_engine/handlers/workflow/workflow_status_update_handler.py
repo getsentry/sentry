@@ -38,7 +38,7 @@ def workflow_status_update_handler(
     detector_id = status_change_message.get("detector_id")
 
     if detector_id is None:
-        # We should not hit this case, i should only occur if there is a bug
+        # We should not hit this case, it should only occur if there is a bug
         # passing it from the workflow_engine to the issue platform.
         metrics.incr("workflow_engine.tasks.error.no_detector_id")
         if features.has(

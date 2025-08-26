@@ -270,7 +270,7 @@ def process_status_change_message(
     ):
         logger.info(
             "status_change.kwargs",
-            extra=kwargs,
+            extra=kwargs["status_change"],
         )
 
     txn.set_tag("organization_id", organization.id)
