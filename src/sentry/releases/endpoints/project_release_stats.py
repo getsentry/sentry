@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,22 +10,27 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectEventsError, Projec
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.release import Release
-from sentry.models.releases.release_project import ReleaseProject
 from sentry.release_health.base import is_overview_stat
 from sentry.utils.dates import get_rollup_from_request
 
 
-def upsert_missing_release(project, version):
+def upsert_missing_release(project, version) -> datetime | None:
     """This adds a release to postgres if it should exist but does not do yet."""
     try:
-        return ReleaseProject.objects.get(project=project, release__version=version).release
-    except ReleaseProject.DoesNotExist:
+        return Release.objects.values_list("date_added", flat=True).get(
+            organization=project.organization,
+            projects=project,
+            version=version,
+        )
+    except Release.DoesNotExist:
         rows = release_health.backend.get_oldest_health_data_for_releases([(project.id, version)])
         if rows:
             oldest = next(iter(rows.values()))
             release = Release.get_or_create(project=project, version=version, date_added=oldest)
             release.add_project(project)
-            return release
+            return release.date_added
+        else:
+            return None
 
 
 @region_silo_endpoint
@@ -67,8 +74,8 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
         except ProjectEventsError as e:
             return Response({"detail": str(e)}, status=400)
 
-        release = upsert_missing_release(project, version)
-        if release is None:
+        release_date_added = upsert_missing_release(project, version)
+        if release_date_added is None:
             raise ResourceDoesNotExist
 
         stats, totals = release_health.backend.get_project_release_stats(
@@ -86,7 +93,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             project_id=params["project_id"][0],
             release=version,
             environments=params.get("environment"),
-            start=release.date_added,
+            start=release_date_added,
         ):
             users_breakdown.append(
                 {
