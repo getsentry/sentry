@@ -48,14 +48,9 @@ def workflow_status_update_handler(
     if features.has(  # Metric issue single processing
         "organizations:workflow-engine-single-process-metric-issues",
         group.organization,
-    ) or (  # Metric dual processing
-        features.has(
-            "organizations:workflow-engine-metric-alert-processing",
-            group.organization,
-        )
-        and features.has(
-            "organizations:workflow-engine-process-metric-issue-workflows", group.organization
-        )
+    ) or features.has(  # Metric dual processing
+        "organizations:workflow-engine-metric-alert-processing",
+        group.organization,
     ):
         process_workflow_activity.delay(
             activity_id=activity.id,
