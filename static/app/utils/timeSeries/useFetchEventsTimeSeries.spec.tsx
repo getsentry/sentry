@@ -29,7 +29,14 @@ describe('useFetchEventsTimeSeries', () => {
     });
 
     const {result} = renderHook(
-      () => useFetchEventsTimeSeries({}, DiscoverDatasets.SPANS, REFERRER),
+      () =>
+        useFetchEventsTimeSeries(
+          {
+            yAxis: 'epm()',
+          },
+          DiscoverDatasets.SPANS,
+          REFERRER
+        ),
       {
         wrapper: Wrapper,
       }
@@ -47,6 +54,46 @@ describe('useFetchEventsTimeSeries', () => {
           partial: 1,
           referrer: 'test-query',
           dataset: 'spans',
+          yAxis: 'epm()',
+        },
+      })
+    );
+  });
+
+  it('fetches multiple Y axes', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result} = renderHook(
+      () =>
+        useFetchEventsTimeSeries(
+          {
+            yAxis: ['count(span.duration)', 'p50(span.duration)'],
+          },
+          DiscoverDatasets.SPANS,
+          REFERRER
+        ),
+      {
+        wrapper: Wrapper,
+      }
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          excludeOther: 0,
+          partial: 1,
+          referrer: 'test-query',
+          dataset: 'spans',
+          yAxis: ['count(span.duration)', 'p50(span.duration)'],
         },
       })
     );
@@ -63,6 +110,7 @@ describe('useFetchEventsTimeSeries', () => {
       () =>
         useFetchEventsTimeSeries(
           {
+            yAxis: ['epm()'],
             enabled: false,
           },
           DiscoverDatasets.SPANS,
@@ -85,6 +133,7 @@ describe('useFetchEventsTimeSeries', () => {
         () =>
           useFetchEventsTimeSeries(
             {
+              yAxis: ['epm()'],
               enabled: false,
             },
             DiscoverDatasets.SPANS,

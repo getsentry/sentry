@@ -7,13 +7,14 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 
-interface UseFetchEventsTimeSeriesOptions {
+interface UseFetchEventsTimeSeriesOptions<Field> {
+  yAxis: Field | Field[];
   enabled?: boolean;
 }
 
-// TODO: This hook's interface is compatible with `useDiscoverSeries` for easier interoperability. Once we eliminate `useDiscoverSeries`, we can make changes here as appropriate
-export function useFetchEventsTimeSeries(
-  {enabled}: UseFetchEventsTimeSeriesOptions,
+// TODO: This hook's interface is mostly compatible with `useDiscoverSeries` for easier interoperability. Once we eliminate `useDiscoverSeries`, we can make changes here as appropriate
+export function useFetchEventsTimeSeries<T extends string>(
+  {yAxis, enabled}: UseFetchEventsTimeSeriesOptions<T>,
   dataset: DiscoverDatasets,
   referrer: string
 ) {
@@ -34,6 +35,7 @@ export function useFetchEventsTimeSeries(
           excludeOther: 0,
           dataset,
           referrer,
+          yAxis,
         },
       },
     ],
