@@ -74,7 +74,7 @@ describe('DetectorsList', () => {
                   aggregate: 'count()',
                   dataset: Dataset.ERRORS,
                   id: '1',
-                  query: 'event.type:error',
+                  query: '',
                   timeWindow: 3600,
                   eventTypes: [EventTypes.ERROR],
                 },

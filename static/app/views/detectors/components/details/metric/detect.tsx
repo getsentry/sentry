@@ -28,6 +28,7 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
       dataSource.queryObj.snubaQuery.eventTypes
     )
   );
+  const query = datasetConfig.toSnubaQueryString(dataSource.queryObj.snubaQuery);
 
   return (
     <Container>
@@ -38,10 +39,10 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
           <Value>
             {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
           </Value>
-          {dataSource.queryObj.snubaQuery.query && (
+          {query && (
             <Fragment>
               <Label>{t('where:')}</Label>
-              <Value>{dataSource.queryObj.snubaQuery.query}</Value>
+              <Value>{query}</Value>
             </Fragment>
           )}
         </Query>
