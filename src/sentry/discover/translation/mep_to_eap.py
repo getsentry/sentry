@@ -237,6 +237,12 @@ def translate_columns(columns):
 
 
 def translate_equations(equations):
+    """
+    This is used to translate arithmetic equations to EAP compatible equations.
+    It ideally takes in equations with equation notation and returns the EAP equation with equation notation.
+    @param equations: list of equations to translate
+    @return: (translated_equations, dropped_equations, dropped_fields)
+    """
     if equations is None:
         return None, None, None
 
@@ -274,7 +280,7 @@ def translate_equations(equations):
             continue
 
         # translated equations are not returned with the equation prefix
-        translated_equation = "".join(flattened_equation)
+        translated_equation = "equation|" + "".join(flattened_equation)
 
         translated_equations.append(translated_equation)
 
@@ -282,6 +288,12 @@ def translate_equations(equations):
 
 
 def translate_orderbys(orderbys):
+    """
+    This is used to translate orderbys to EAP compatible orderbys.
+    It ideally takes in orderbys with equation notation, function notation or fields and returns the EAP orderby with the same notation.
+    @param orderbys: list of orderbys to translate
+    @return: (translated_orderbys, dropped_orderbys)
+    """
     if orderbys is None:
         return None, None
 
@@ -299,12 +311,9 @@ def translate_orderbys(orderbys):
         # if orderby is an equation
         if arithmetic.is_equation(orderby_without_neg):
             orderby_equation = arithmetic.strip_equation(orderby_without_neg)
-            stripped_translated_orderby, dropped_orderby, dropped_fields = translate_equations(
+            translated_orderby, dropped_orderby, dropped_fields = translate_equations(
                 [orderby_equation]
             )
-            translated_orderby = []
-            for stripped_equation in stripped_translated_orderby:
-                translated_orderby.append(f"equation|{stripped_equation}")
 
         # if orderby is a field/function
         else:
