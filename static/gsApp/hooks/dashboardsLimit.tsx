@@ -12,7 +12,7 @@ interface UseDashboardsLimitResult {
   dashboardsLimit: number;
   hasReachedDashboardLimit: boolean;
   isLoading: boolean;
-  limitMessage?: React.ReactNode;
+  limitMessage: React.ReactNode | null;
 }
 
 const UNLIMITED_DASHBOARDS_LIMIT = -1;
@@ -64,8 +64,14 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
     dashboardsLimit === 0;
   const limitMessage = hasReachedDashboardLimit
     ? tct(
-        'You have reached the dashboard limit ([dashboardsLimit]) for your plan. Upgrade to create more dashboards.',
-        {dashboardsLimit}
+        'You have reached the maximum number of Dashboards available on your plan. To add more, [link:upgrade your plan]',
+        {
+          link: (
+            <Link to="/organizations/organization-slug/settings/billing/upgrade/">
+              {t('upgrade your plan')}
+            </Link>
+          ),
+        }
       )
     : null;
 
@@ -87,55 +93,14 @@ type Props = {
       }) => React.ReactNode);
 };
 
-export function DashboardLimitHovercard({children}: Props) {
-  const {hasReachedDashboardLimit, isLoading} = useDashboardsLimit();
-
-  if (!hasReachedDashboardLimit) {
-    return typeof children === 'function'
-      ? children({hasReachedDashboardLimit, isLoading, limitMessage: null})
-      : children;
-  }
-
-  // const hoverBody = (
-  //   <LearnMoreTextBody data-test-id="dashboard-limit-hovercard">
-  //     <Flex direction="column" gap="md" align="center">
-  //       <Text>
-  //         {}
-  //       </Text>
-  //     </Flex>
-  //   </LearnMoreTextBody>
-  // );
-
-  const limitMessage = tct(
-    'You have reached the maximum number of Dashboards available on your plan. To add more, [link:upgrade your plan]',
-    {
-      link: (
-        <Link to="/organizations/organization-slug/settings/billing/upgrade/">
-          {t('upgrade your plan')}
-        </Link>
-      ),
-    }
-  );
+export function DashboardLimitHovercard({children, ...props}: Props) {
+  const dashboardLimitData = useDashboardsLimit();
 
   return (
     <Fragment>
       {typeof children === 'function'
-        ? children({hasReachedDashboardLimit, isLoading, limitMessage})
+        ? children({...props, ...dashboardLimitData})
         : children}
     </Fragment>
   );
 }
-
-// const LearnMoreTextBody = styled('div')`
-//   padding: ${space(1)};
-//   width: 250px;
-// `;
-
-// const StyledHovercard = styled(Hovercard)`
-//   width: auto;
-//   border-radius: ${p => p.theme.borderRadius};
-//   .power-icon {
-//     padding: 0;
-//     align-items: center;
-//   }
-// `;
