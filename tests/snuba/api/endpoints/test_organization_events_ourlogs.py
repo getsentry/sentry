@@ -364,12 +364,20 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         logs = [
             self.create_ourlog(
                 {"body": "foo"},
-                attributes={"sentry.observed_timestamp_nanos": str(self.ten_mins_ago.timestamp())},
+                attributes={
+                    "sentry.observed_timestamp_nanos": str(
+                        self.ten_mins_ago.timestamp() * 1_000_000_000
+                    )
+                },
                 timestamp=self.ten_mins_ago,
             ),
             self.create_ourlog(
                 {"body": "bar"},
-                attributes={"sentry.observed_timestamp_nanos": str(self.nine_mins_ago.timestamp())},
+                attributes={
+                    "sentry.observed_timestamp_nanos": str(
+                        self.nine_mins_ago.timestamp() * 1_000_000_000
+                    ),
+                },
                 timestamp=self.nine_mins_ago,
             ),
         ]
@@ -414,7 +422,9 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                 "tags[sentry.timestamp_precise,number]": pytest.approx(
                     source.attributes["sentry.timestamp_precise"].int_value
                 ),
-                "observed_timestamp": None,
+                "observed_timestamp": source.attributes[
+                    "sentry.observed_timestamp_nanos"
+                ].string_value,
                 "message": source.attributes["sentry.body"].string_value,
             }
         assert meta["dataset"] == self.dataset
