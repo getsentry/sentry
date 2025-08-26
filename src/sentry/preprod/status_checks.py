@@ -107,7 +107,7 @@ def _create_preprod_status_check_impl(
     commit_comparison: CommitComparison = preprod_artifact.commit_comparison
     if not commit_comparison.head_sha or not commit_comparison.head_repo_name:
         logger.info(
-            "Missing required git information for status check",
+            "Missing required git information for status check, skipping",
             extra={
                 "artifact_id": preprod_artifact.id,
                 "commit_comparison_id": commit_comparison.id,
@@ -147,16 +147,6 @@ def _create_preprod_status_check_impl(
     return True
 
 
-def _get_status_check_provider(
-    client: StatusCheckClient, provider: str
-) -> _StatusCheckProvider | None:
-    """Get the appropriate status check provider for the given provider type."""
-    if provider == IntegrationProviderSlug.GITHUB:
-        return _GitHubStatusCheckProvider(client)
-    else:
-        return None
-
-
 def _get_status_check_client(
     project: Project, commit_comparison: CommitComparison
 ) -> StatusCheckClient | None:
@@ -180,6 +170,18 @@ def _get_status_check_client(
         integration = Integration.objects.get(id=repository.integration_id)
         installation = integration.get_installation(organization_id=project.organization_id)
         client = installation.get_client()
+
+        if not isinstance(client, StatusCheckClient):
+            logger.info(
+                "Client is not a status check client, skipping",
+                extra={
+                    "provider": commit_comparison.provider,
+                    "project_id": project.id,
+                    "repo_name": commit_comparison.head_repo_name,
+                },
+            )
+            return None
+
         return client
 
     except Repository.DoesNotExist:
@@ -215,7 +217,26 @@ def _get_status_check_client(
         return None
 
 
+def _get_status_check_provider(
+    client: StatusCheckClient, provider: str
+) -> _StatusCheckProvider | None:
+    """Get the appropriate status check provider for the given provider type."""
+    if provider == IntegrationProviderSlug.GITHUB:
+        return _GitHubStatusCheckProvider(client)
+    else:
+        logger.info(
+            "Status checks not currently supported for provider, skipping",
+            extra={"provider": provider},
+        )
+        return None
+
+
 class _StatusCheckProvider(ABC):
+    """
+    The APIs for creating status checks are slightly different for each provider.
+    This abstract class provides a common interface for creating status checks.
+    """
+
     def __init__(self, client: StatusCheckClient):
         self.client = client
 
