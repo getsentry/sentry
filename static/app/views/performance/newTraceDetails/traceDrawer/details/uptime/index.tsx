@@ -8,7 +8,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   useTraceItemDetails,
   type TraceItemDetailsResponse,
@@ -19,8 +18,6 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-
-import {RequestWaterfall, type RequestWaterfallData} from './requestWaterfall';
 
 function UptimeNodeDetailsHeader({
   node,
@@ -131,43 +128,6 @@ function UptimeSpanNodeDetailsContent({
   const location = useLocation();
   const attributes = traceItemData.attributes;
 
-  const attrs = attributes.reduce(
-    (acc, attribute) => {
-      // Some attribute keys include prefixes and metadata (e.g. "tags[ai.prompt_tokens.used,number]")
-      // prettifyAttributeName normalizes those
-      acc[prettifyAttributeName(attribute.name)] = attribute.value;
-      return acc;
-    },
-    {} as Record<string, string | number | boolean>
-  );
-
-  const waterfall: RequestWaterfallData = {
-    dns: {
-      durationUs: Number(attrs.dns_lookup_duration_us),
-      startUs: Number(attrs.dns_lookup_start_us),
-    },
-    TcpConn: {
-      durationUs: Number(attrs.tcp_connection_duration_us),
-      startUs: Number(attrs.tcp_connection_start_us),
-    },
-    tlsHandshake: {
-      durationUs: Number(attrs.tls_handshake_duration_us),
-      startUs: Number(attrs.tls_handshake_start_us),
-    },
-    receiveResponse: {
-      durationUs: Number(attrs.receive_response_duration_us),
-      startUs: Number(attrs.receive_response_start_us),
-    },
-    sendRequest: {
-      durationUs: Number(attrs.send_request_duration_us),
-      startUs: Number(attrs.send_request_start_us),
-    },
-    firstByte: {
-      durationUs: Number(attrs.time_to_first_byte_duration_us),
-      startUs: Number(attrs.time_to_first_byte_start_us),
-    },
-  };
-
   return (
     <TraceDrawerComponents.DetailContainer>
       <UptimeNodeDetailsHeader
@@ -177,7 +137,6 @@ function UptimeSpanNodeDetailsContent({
         hideNodeActions={hideNodeActions}
       />
       <TraceDrawerComponents.BodyContainer>
-        <RequestWaterfall data={waterfall} />
         <Attributes
           node={node}
           attributes={attributes}
