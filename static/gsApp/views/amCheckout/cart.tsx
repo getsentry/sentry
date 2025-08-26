@@ -311,19 +311,20 @@ function TotalSummary({
     <SummarySection>
       {!previewDataLoading && (
         <Fragment>
-          {previewData?.invoiceItems
-            .filter(item => item.type === InvoiceItemType.SALES_TAX)
-            .map(item => {
-              const formattedPrice = utils.displayPrice({cents: item.amount});
-              return (
-                <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
-                  <ItemFlex>
-                    <div>{item.description}</div>
-                    <div>{formattedPrice}</div>
-                  </ItemFlex>
-                </Item>
-              );
-            })}
+          {!effectiveDate &&
+            previewData?.invoiceItems
+              .filter(item => item.type === InvoiceItemType.SALES_TAX)
+              .map(item => {
+                const formattedPrice = utils.displayPrice({cents: item.amount});
+                return (
+                  <Item key={item.type} data-test-id={`summary-item-${item.type}`}>
+                    <ItemFlex>
+                      <div>{item.description}</div>
+                      <div>{formattedPrice}</div>
+                    </ItemFlex>
+                  </Item>
+                );
+              })}
         </Fragment>
       )}
       {!previewDataLoading && !effectiveDate && !!previewData?.creditApplied && (
