@@ -42,7 +42,7 @@ class LastAction(Enum):
         raise ValueError(f"Unknown LastAction: {self}")
 
 
-def retry_task(exc: Exception | None = None) -> NoReturn:
+def retry_task(exc: Exception | None = None, raise_on_no_retries: bool = True) -> NoReturn:
     """
     Helper for triggering retry errors.
     If all retries have been consumed, this will raise a
@@ -59,7 +59,7 @@ def retry_task(exc: Exception | None = None) -> NoReturn:
         assert False, "unreachable"
     else:
         current = taskworker_current_task()
-        if current and not current.retries_remaining:
+        if current and not current.retries_remaining and raise_on_no_retries:
             metrics.incr("taskworker.retry.no_retries_remaining")
             raise NoRetriesRemainingError()
         raise RetryError()
