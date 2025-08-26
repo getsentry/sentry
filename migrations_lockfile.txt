@@ -27,7 +27,7 @@ preprod: 0014_commitcomparisons_fk
 
 replays: 0006_add_bulk_delete_job
 
-sentry: 0967_large_tables_legacy_json_field
+sentry: 0968_delete_dashboardwidgetsnapshot_db_constraint
 
 social_auth: 0003_social_auth_json_field
 
