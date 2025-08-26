@@ -427,6 +427,33 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const source: TraceWaterFallSource = props.replay ? 'replay_details' : 'trace_view';
 
+  useEffect(() => {
+    if (props.tree.type !== 'trace' || props.meta.status !== 'success') {
+      return;
+    }
+
+    const traceNode = props.tree.root.children[0];
+
+    if (!traceNode) {
+      throw new Error('Trace is initialized but no trace node is found');
+    }
+
+    // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
+    // with the correct spans count for EAP traces.
+    if (
+      traceNode &&
+      isEAPTraceNode(traceNode) &&
+      props.tree.eap_spans_count !== props.meta?.data?.span_count
+    ) {
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['trace-eap-spans-count-mismatch']);
+        scope.captureMessage(
+          'EAP spans count from /trace/ and /trace-meta/ are not equal'
+        );
+      });
+    }
+  }, [props.tree, props.meta]);
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
@@ -541,22 +568,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         action_source: 'load',
       });
     });
-
-    // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
-    // with the correct spans count for EAP traces.
-    if (
-      traceNode &&
-      isEAPTraceNode(traceNode) &&
-      props.tree.eap_spans_count !== props.meta?.data?.span_count
-    ) {
-      Sentry.withScope(scope => {
-        scope.setFingerprint(['trace-eap-spans-count-mismatch']);
-        scope.captureMessage(
-          'EAP spans count from /trace/ and /trace-meta/ are not equal'
-        );
-      });
-    }
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     setRowAsFocused,

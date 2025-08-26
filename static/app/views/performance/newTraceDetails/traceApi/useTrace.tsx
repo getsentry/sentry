@@ -286,6 +286,7 @@ export function useTrace(
     ],
     {
       staleTime: Infinity,
+      retry: false,
       enabled: hasValidTrace && !isDemoMode && isEAPEnabled,
     }
   );
