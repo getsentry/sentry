@@ -238,7 +238,7 @@ def translate_columns(columns):
 
 def translate_equations(equations):
     if equations is None:
-        return None
+        return None, None, None
 
     translated_equations = []
     dropped_equations = []
@@ -269,10 +269,11 @@ def translate_equations(equations):
 
         # record dropped fields and equations and skip these translations
         if len(translation_visitor.dropped_fields) > 0:
-            dropped_equations.append("".join(flattened_equation))
+            dropped_equations.append(arithmetic_equation)
             dropped_fields.extend(translation_visitor.dropped_fields)
             continue
 
+        # translated equations are not returned with the equation prefix
         translated_equation = "".join(flattened_equation)
 
         translated_equations.append(translated_equation)
