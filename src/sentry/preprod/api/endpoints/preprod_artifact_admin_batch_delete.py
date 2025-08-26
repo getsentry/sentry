@@ -1,6 +1,7 @@
 import logging
 
 import orjson
+from django.db import transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -93,22 +94,6 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                     },
                 )
 
-        # Delete installable artifacts (download links)
-        installable_artifacts = InstallablePreprodArtifact.objects.filter(
-            preprod_artifact=preprod_artifact
-        )
-        installable_count = installable_artifacts.count()
-        for installable in installable_artifacts:
-            installable.delete()
-            logger.info(
-                "preprod_artifact.admin_batch_delete.installable_deleted",
-                extra={
-                    "artifact_id": artifact_id,
-                    "installable_id": installable.id,
-                    "url_path": installable.url_path,
-                },
-            )
-
         # Delete size analysis metrics and their associated files
         size_metrics = list(
             PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=preprod_artifact)
@@ -144,6 +129,32 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                             "error": str(e),
                         },
                     )
+
+            # Delete the size metric record itself
+            size_metric.delete()
+            logger.info(
+                "preprod_artifact.admin_batch_delete.size_metric_deleted",
+                extra={
+                    "artifact_id": artifact_id,
+                    "size_metric_id": size_metric.id,
+                },
+            )
+
+        # Delete installable artifacts (download links)
+        installable_artifacts = InstallablePreprodArtifact.objects.filter(
+            preprod_artifact=preprod_artifact
+        )
+        installable_count = installable_artifacts.count()
+        for installable in installable_artifacts:
+            installable.delete()
+            logger.info(
+                "preprod_artifact.admin_batch_delete.installable_deleted",
+                extra={
+                    "artifact_id": artifact_id,
+                    "installable_id": installable.id,
+                    "url_path": installable.url_path,
+                },
+            )
 
         return files_deleted, installable_count, size_metrics_count, files_failed_to_delete
 
@@ -218,21 +229,25 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
             artifact_id = preprod_artifact.id
 
             try:
-                # Store info for logging before deletion
                 organization_id = preprod_artifact.project.organization_id
                 project_id = preprod_artifact.project.id
 
-                # Delete associated files and get counts
-                files_deleted, installable_count, size_metrics_count, files_failed = (
-                    self._delete_artifact_files(preprod_artifact, artifact_id)
-                )
+                with transaction.atomic():
+                    files_deleted, installable_count, size_metrics_count, files_failed = (
+                        self._delete_artifact_files(preprod_artifact, artifact_id)
+                    )
+
+                    # If any files failed to delete, rollback the transaction
+                    if files_failed:
+                        raise Exception(f"Failed to delete files: {files_failed}")
+
+                    # Delete the artifact record (related objects already explicitly deleted above)
+                    preprod_artifact.delete()
+
                 total_files_deleted.extend(files_deleted)
                 total_files_failed_to_delete.extend(files_failed)
                 total_size_metrics_deleted += size_metrics_count
                 total_installable_artifacts_deleted += installable_count
-
-                # Delete the artifact record (this will cascade delete size metrics and installable artifacts)
-                preprod_artifact.delete()
 
                 deletion_results.append(
                     {
