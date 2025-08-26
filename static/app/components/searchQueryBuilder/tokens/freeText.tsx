@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -292,10 +292,10 @@ function SearchQueryBuilderInputInternal({
     setInputValue(trimmedTokenValue);
   }
 
-  // This is a hack to get the current input for ask seer.
-  if (inputValue !== currentInputValueRef.current) {
+  // Update the ref when inputValue changes for ask seer
+  useEffect(() => {
     currentInputValueRef.current = inputValue;
-  }
+  }, [inputValue, currentInputValueRef]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
