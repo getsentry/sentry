@@ -3,8 +3,11 @@ from unittest.mock import Mock, patch
 import orjson
 import pytest
 
+from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import (
+    AutofixState,
     AutofixTriggerSource,
+    CodingAgentStatus,
     get_autofix_prompt,
     get_coding_agent_prompt,
 )
@@ -27,7 +30,7 @@ class TestGetAutofixPrompt(TestCase):
         """Test get_autofix_prompt sends correct params for root cause."""
         mock_response = Mock()
         mock_response.status = 200
-        mock_response.data = orjson.dumps(self.mock_response_data).encode()
+        mock_response.data = orjson.dumps(self.mock_response_data)
         mock_make_request.return_value = mock_response
 
         result = get_autofix_prompt(self.run_id, True, False)
@@ -55,7 +58,7 @@ class TestGetAutofixPrompt(TestCase):
         """Test get_autofix_prompt sends correct params for solution."""
         mock_response = Mock()
         mock_response.status = 200
-        mock_response.data = orjson.dumps(self.mock_response_data).encode()
+        mock_response.data = orjson.dumps(self.mock_response_data)
         mock_make_request.return_value = mock_response
 
         result = get_autofix_prompt(self.run_id, True, True)
@@ -76,7 +79,7 @@ class TestGetAutofixPrompt(TestCase):
         """Test get_autofix_prompt raises on HTTP error status."""
         mock_response = Mock()
         mock_response.status = 404
-        mock_response.data = orjson.dumps({}).encode()
+        mock_response.data = orjson.dumps({})
         mock_make_request.return_value = mock_response
 
         with pytest.raises(Exception):
@@ -114,7 +117,7 @@ class TestGetAutofixPrompt(TestCase):
         """Test get_autofix_prompt handles empty prompt in response."""
         mock_response = Mock()
         mock_response.status = 200
-        mock_response.data = orjson.dumps({"prompt": None}).encode()
+        mock_response.data = orjson.dumps({"prompt": None})
         mock_make_request.return_value = mock_response
 
         result = get_autofix_prompt(self.run_id, True, True)
@@ -126,7 +129,7 @@ class TestGetAutofixPrompt(TestCase):
         """Test get_autofix_prompt handles missing prompt key in response."""
         mock_response = Mock()
         mock_response.status = 200
-        mock_response.data = orjson.dumps({"run_id": self.run_id}).encode()
+        mock_response.data = orjson.dumps({"run_id": self.run_id})
         mock_make_request.return_value = mock_response
 
         result = get_autofix_prompt(self.run_id, True, True)
@@ -168,3 +171,54 @@ class TestGetCodingAgentPrompt(TestCase):
         expected = "Please fix the following issue:\n\nRoot cause analysis prompt"
         assert result == expected
         mock_get_autofix_prompt.assert_called_once_with(12345, True, False)
+
+
+class TestAutofixStateParsing(TestCase):
+    def test_autofix_state_validate_parses_nested_structures(self):
+        state_data = {
+            "run_id": 1,
+            "request": {
+                "project_id": 42,
+                "issue": {"id": 999, "title": "Something broke"},
+                "repos": [
+                    {
+                        "provider": "github",
+                        "owner": "getsentry",
+                        "name": "sentry",
+                        "external_id": "123",
+                    }
+                ],
+            },
+            "updated_at": "2025-08-25T12:34:56.000Z",
+            "status": "PROCESSING",
+            "codebases": {
+                "123": {
+                    "repo_external_id": "123",
+                    "file_changes": [],
+                    "is_readable": True,
+                    "is_writeable": False,
+                }
+            },
+            "steps": [{"key": "root_cause_analysis", "id": "rca"}],
+            "coding_agents": {
+                "agent-1": {
+                    "id": "agent-1",
+                    "status": "completed",
+                    "name": "Autofixer",
+                    "started_at": "2025-08-25T12:00:00.000Z",
+                    "results": [],
+                }
+            },
+        }
+
+        state = AutofixState.validate(state_data)
+
+        # Check that stuff is parsed
+        assert state.run_id == 1
+        assert state.status == AutofixStatus.PROCESSING
+
+        codebase = state.codebases["123"]
+        assert codebase.repo_external_id == "123"
+
+        # Top-level coding_agents map is parsed with enum status
+        assert state.coding_agents["agent-1"].status == CodingAgentStatus.COMPLETED

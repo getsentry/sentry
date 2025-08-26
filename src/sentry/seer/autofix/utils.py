@@ -16,6 +16,7 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
+from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -31,7 +32,7 @@ class AutofixIssue(TypedDict):
 class AutofixRequest(TypedDict):
     project_id: int
     issue: AutofixIssue
-    repos: list[dict]
+    repos: list[SeerRepoDefinition]
 
 
 class FileChange(BaseModel):
@@ -73,7 +74,6 @@ class CodebaseState(BaseModel):
     file_changes: list[FileChange] = []
     is_readable: bool | None = None
     is_writeable: bool | None = None
-    coding_agent_state: CodingAgentState | None = None
 
 
 class AutofixState(BaseModel):
