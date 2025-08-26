@@ -787,7 +787,7 @@ class RegionJiraIntegrationTest(APITestCase):
             },
         )
 
-        with pytest.raises(IntegrationInstallationConfigurationError) as e:
+        with pytest.raises(IntegrationInstallationConfigurationError):
             installation.create_issue(
                 {
                     "title": "example summary",
@@ -796,7 +796,6 @@ class RegionJiraIntegrationTest(APITestCase):
                     "project": "10000",
                 }
             )
-            assert e.value.args[0] == "Issue can be assigned only active or future sprints."
 
     def test_outbound_issue_sync(self) -> None:
         external_issue = ExternalIssue.objects.create(
