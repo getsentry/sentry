@@ -1,9 +1,13 @@
 from unittest.mock import Mock, patch
 
 import orjson
-import requests
+import pytest
 
-from sentry.seer.autofix.utils import get_autofix_prompt, get_coding_agent_prompt
+from sentry.seer.autofix.utils import (
+    AutofixTriggerSource,
+    get_autofix_prompt,
+    get_coding_agent_prompt,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -18,179 +22,118 @@ class TestGetAutofixPrompt(TestCase):
             "has_solution": True,
         }
 
-    @patch("sentry.seer.autofix.utils.requests.post")
-    @patch("sentry.seer.autofix.utils.settings")
-    def test_get_autofix_prompt_root_cause_trigger(self, mock_settings, mock_post):
-        """Test get_autofix_prompt with root_cause trigger source."""
-        mock_settings.SEER_AUTOFIX_URL = "https://seer.test.com"
-
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_prompt_root_cause_params(self, mock_make_request):
+        """Test get_autofix_prompt sends correct params for root cause."""
         mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = self.mock_response_data
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_response.data = orjson.dumps(self.mock_response_data).encode()
+        mock_make_request.return_value = mock_response
 
-        result = get_autofix_prompt(self.run_id, "root_cause")
+        result = get_autofix_prompt(self.run_id, True, False)
 
         assert result == "Test prompt content"
 
-        # Verify the request was made correctly
-        mock_post.assert_called_once()
-        call_args = mock_post.call_args
+        mock_make_request.assert_called_once()
+        call = mock_make_request.call_args
+        # Positional args: (connection_pool, path)
+        assert call.args[0] is not None
+        assert call.args[1] == "/v1/automation/autofix/prompt"
 
-        # Check URL
-        assert call_args[0][0] == "https://seer.test.com/v1/automation/autofix/prompt"
-
-        # Check request body
+        # Keyword args
         expected_body = {
             "run_id": self.run_id,
             "include_root_cause": True,
             "include_solution": False,
         }
-        actual_body = orjson.loads(call_args[1]["data"])
+        actual_body = orjson.loads(call.kwargs["body"])  # bytes -> dict
         assert actual_body == expected_body
+        assert call.kwargs["timeout"] == 15
 
-        # Check headers
-        assert call_args[1]["headers"]["content-type"] == "application/json;charset=utf-8"
-        assert call_args[1]["timeout"] == 30
-
-    @patch("sentry.seer.autofix.utils.requests.post")
-    @patch("sentry.seer.autofix.utils.settings")
-    def test_get_autofix_prompt_solution_trigger(self, mock_settings, mock_post):
-        """Test get_autofix_prompt with solution trigger source."""
-        mock_settings.SEER_AUTOFIX_URL = "https://seer.test.com"
-
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_prompt_solution_params(self, mock_make_request):
+        """Test get_autofix_prompt sends correct params for solution."""
         mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = self.mock_response_data
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_response.data = orjson.dumps(self.mock_response_data).encode()
+        mock_make_request.return_value = mock_response
 
-        result = get_autofix_prompt(self.run_id, "solution")
+        result = get_autofix_prompt(self.run_id, True, True)
 
         assert result == "Test prompt content"
 
-        # Check request body for solution trigger
-        call_args = mock_post.call_args
+        call = mock_make_request.call_args
         expected_body = {
             "run_id": self.run_id,
             "include_root_cause": True,
             "include_solution": True,
         }
-        actual_body = orjson.loads(call_args[1]["data"])
+        actual_body = orjson.loads(call.kwargs["body"])  # bytes -> dict
         assert actual_body == expected_body
 
-    @patch("sentry.seer.autofix.utils.requests.post")
-    @patch("sentry.seer.autofix.utils.settings")
-    def test_get_autofix_prompt_http_error(self, mock_settings, mock_post):
-        """Test get_autofix_prompt handles HTTP errors."""
-        mock_settings.SEER_AUTOFIX_URL = "https://seer.test.com"
-
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_prompt_http_error_raises(self, mock_make_request):
+        """Test get_autofix_prompt raises on HTTP error status."""
         mock_response = Mock()
-        mock_response.raise_for_status.side_effect = requests.HTTPError("404 Not Found")
-        mock_post.return_value = mock_response
+        mock_response.status = 404
+        mock_response.data = orjson.dumps({}).encode()
+        mock_make_request.return_value = mock_response
 
-        result = get_autofix_prompt(self.run_id, "solution")
+        with pytest.raises(Exception):
+            get_autofix_prompt(self.run_id, True, True)
 
-        assert result is None
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_prompt_timeout_error_raises(self, mock_make_request):
+        """Test get_autofix_prompt propagates timeout errors."""
+        mock_make_request.side_effect = Exception("Request timed out")
 
-    @patch("sentry.seer.autofix.utils.requests.post")
-    @patch("sentry.seer.autofix.utils.settings")
-    def test_get_autofix_prompt_timeout_error(self, mock_settings, mock_post):
-        """Test get_autofix_prompt handles timeout errors."""
-        mock_settings.SEER_AUTOFIX_URL = "https://seer.test.com"
+        with pytest.raises(Exception):
+            get_autofix_prompt(self.run_id, True, True)
 
-        mock_post.side_effect = requests.Timeout("Request timed out")
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_prompt_connection_error_raises(self, mock_make_request):
+        """Test get_autofix_prompt propagates connection errors."""
+        mock_make_request.side_effect = Exception("Connection failed")
 
-        result = get_autofix_prompt(self.run_id, "solution")
+        with pytest.raises(Exception):
+            get_autofix_prompt(self.run_id, True, True)
 
-        assert result is None
-
-    @patch("sentry.seer.autofix.utils.requests.post")
-    @patch("sentry.seer.autofix.utils.settings")
-    def test_get_autofix_prompt_connection_error(self, mock_settings, mock_post):
-        """Test get_autofix_prompt handles connection errors."""
-        mock_settings.SEER_AUTOFIX_URL = "https://seer.test.com"
-
-        mock_post.side_effect = requests.ConnectionError("Connection failed")
-
-        result = get_autofix_prompt(self.run_id, "solution")
-
-        assert result is None
-
-    @patch("sentry.seer.autofix.utils.requests.post")
-    @patch("sentry.seer.autofix.utils.settings")
-    def test_get_autofix_prompt_json_decode_error(self, mock_settings, mock_post):
-        """Test get_autofix_prompt handles JSON decode errors."""
-        mock_settings.SEER_AUTOFIX_URL = "https://seer.test.com"
-
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_prompt_json_decode_error_raises(self, mock_make_request):
+        """Test get_autofix_prompt propagates JSON decode errors."""
         mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.side_effect = ValueError("Invalid JSON")
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_response.data = b"invalid orjson"
+        mock_make_request.return_value = mock_response
 
-        result = get_autofix_prompt(self.run_id, "solution")
+        with pytest.raises(Exception):
+            get_autofix_prompt(self.run_id, True, True)
 
-        assert result is None
-
-    @patch("sentry.seer.autofix.utils.requests.post")
-    @patch("sentry.seer.autofix.utils.settings")
-    def test_get_autofix_prompt_empty_response(self, mock_settings, mock_post):
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_prompt_empty_response(self, mock_make_request):
         """Test get_autofix_prompt handles empty prompt in response."""
-        mock_settings.SEER_AUTOFIX_URL = "https://seer.test.com"
-
         mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {"prompt": None}
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_response.data = orjson.dumps({"prompt": None}).encode()
+        mock_make_request.return_value = mock_response
 
-        result = get_autofix_prompt(self.run_id, "solution")
+        result = get_autofix_prompt(self.run_id, True, True)
 
         assert result is None
 
-    @patch("sentry.seer.autofix.utils.requests.post")
-    @patch("sentry.seer.autofix.utils.settings")
-    def test_get_autofix_prompt_missing_prompt_key(self, mock_settings, mock_post):
+    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
+    def test_get_autofix_prompt_missing_prompt_key(self, mock_make_request):
         """Test get_autofix_prompt handles missing prompt key in response."""
-        mock_settings.SEER_AUTOFIX_URL = "https://seer.test.com"
-
         mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = {"run_id": self.run_id}
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_response.status = 200
+        mock_response.data = orjson.dumps({"run_id": self.run_id}).encode()
+        mock_make_request.return_value = mock_response
 
-        result = get_autofix_prompt(self.run_id, "solution")
+        result = get_autofix_prompt(self.run_id, True, True)
 
         assert result is None
 
-    @patch("sentry.seer.autofix.utils.requests.post")
-    @patch("sentry.seer.autofix.utils.settings")
-    @patch("sentry.seer.autofix.utils.sign_with_seer_secret")
-    def test_get_autofix_prompt_uses_seer_secret(self, mock_sign, mock_settings, mock_post):
-        """Test get_autofix_prompt uses Seer secret signing."""
-        mock_settings.SEER_AUTOFIX_URL = "https://seer.test.com"
-        mock_sign.return_value = {"Authorization": "Bearer test-token"}
-
-        mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
-        mock_response.json.return_value = self.mock_response_data
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
-
-        result = get_autofix_prompt(self.run_id, "solution")
-
-        assert result == "Test prompt content"
-
-        # Verify signing was called
-        mock_sign.assert_called_once()
-
-        # Verify signed headers were included
-        call_args = mock_post.call_args
-        headers = call_args[1]["headers"]
-        assert "Authorization" in headers
-        assert headers["Authorization"] == "Bearer test-token"
+    # Signing is handled inside the request helper now; parameters are validated above.
 
 
 class TestGetCodingAgentPrompt(TestCase):
@@ -199,29 +142,29 @@ class TestGetCodingAgentPrompt(TestCase):
         """Test get_coding_agent_prompt with successful autofix prompt."""
         mock_get_autofix_prompt.return_value = "This is the autofix prompt"
 
-        result = get_coding_agent_prompt(12345, "solution")
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION)
 
         expected = "Please fix the following issue:\n\nThis is the autofix prompt"
         assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, "solution")
+        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
 
     @patch("sentry.seer.autofix.utils.get_autofix_prompt")
     def test_get_coding_agent_prompt_autofix_prompt_none(self, mock_get_autofix_prompt):
         """Test get_coding_agent_prompt when autofix prompt is None."""
         mock_get_autofix_prompt.return_value = None
 
-        result = get_coding_agent_prompt(12345, "solution")
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION)
 
         assert result is None
-        mock_get_autofix_prompt.assert_called_once_with(12345, "solution")
+        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
 
     @patch("sentry.seer.autofix.utils.get_autofix_prompt")
     def test_get_coding_agent_prompt_root_cause_trigger(self, mock_get_autofix_prompt):
         """Test get_coding_agent_prompt with root_cause trigger."""
         mock_get_autofix_prompt.return_value = "Root cause analysis prompt"
 
-        result = get_coding_agent_prompt(12345, "root_cause")
+        result = get_coding_agent_prompt(12345, AutofixTriggerSource.ROOT_CAUSE)
 
         expected = "Please fix the following issue:\n\nRoot cause analysis prompt"
         assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, "root_cause")
+        mock_get_autofix_prompt.assert_called_once_with(12345, True, False)
