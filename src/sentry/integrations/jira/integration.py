@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import sys
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
 from typing import Any, NoReturn, TypedDict
@@ -150,7 +151,13 @@ class JiraIntegration(IssueSyncIntegration):
 
     def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
         if isinstance(exc, ApiInvalidRequestError):
-            # These errors are invalid configuration errors, so we should just raise an error for the frontend
+            if exc.json:
+                error_fields = self.error_fields_from_json(exc.json)
+                if error_fields is not None:
+                    raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
+
+            # Even if Jira's error response isn't standard, we should still raise an error for the frontend
+            # TODO(iamrajjoshi): Rename this error to something better because we don't use it for what it's named for
             raise IntegrationInstallationConfigurationError from exc
 
         raise super().raise_error(exc=exc, identity=identity)
