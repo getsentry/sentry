@@ -166,14 +166,32 @@ function SpansSearchBar({
 }: {
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
-  const {displayAskSeer, query, currentInputValueRef} = useSearchQueryBuilder();
+  const {displayAskSeer, query, currentInputValueRef, committedQuery} =
+    useSearchQueryBuilder();
+  const previousInputValue = usePrevious(
+    currentInputValueRef.current,
+    // We want to skip updating the previous input value if the value has gone empty, but
+    // there is still a query value.
+    currentInputValueRef.current.trim().length === 0 && !(query.trim().length === 0)
+  );
+
   let initialSeerQuery = query.trim()
     ? query.trim()
     : currentInputValueRef.current.trim();
 
-  // if the user has cleared out the input, but hasn't committed it, we shouldn't bring
-  // it along, and clear the query input string.
-  if (currentInputValueRef.current.trim().length !== 0 && query.trim().length > 0) {
+  // If the user manually selects an input value, we never actually have an input value,
+  // so we need to check if the user has ever inputted a value.
+  const userHasInputted =
+    currentInputValueRef.current.trim().length > 0 ||
+    previousInputValue.trim().length > 0;
+
+  // We want to reset the query if the user has cleared the input, but there's still
+  // a committed query present
+  if (
+    userHasInputted &&
+    previousInputValue.trim().length === 0 &&
+    committedQuery.trim().length > 0
+  ) {
     initialSeerQuery = '';
   }
 
