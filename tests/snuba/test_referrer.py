@@ -1,7 +1,7 @@
-from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
 from sentry.snuba.referrer import Referrer, validate_referrer
+from sentry.testutils.cases import TestCase
 from sentry.tsdb.base import TSDBModel
 
 
