@@ -409,7 +409,7 @@ export const LogsSidebarCollapseButton = withChonk(
     margin-left: -31px;
     display: none;
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
+    @media (min-width: ${p => p.theme.breakpoints.lg}) {
       display: block;
     }
   `,
@@ -418,7 +418,7 @@ export const LogsSidebarCollapseButton = withChonk(
     display: none;
     margin-left: -31px;
 
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
+    @media (min-width: ${p => p.theme.breakpoints.lg}) {
       display: inline-flex;
     }
 
