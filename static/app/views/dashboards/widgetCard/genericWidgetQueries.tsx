@@ -19,7 +19,7 @@ import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-export function getReferrer(displayType: DisplayType) {
+function getReferrer(displayType: DisplayType) {
   let referrer = '';
 
   if (displayType === DisplayType.TABLE) {

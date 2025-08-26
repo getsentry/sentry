@@ -104,6 +104,10 @@ export type DashboardsEventParameters = {
   'dashboards_views.open_in_discover.opened': {
     widget_type: string;
   };
+  'dashboards_views.open_in_explore.opened': {
+    display_type: string;
+    widget_type: string;
+  };
   'dashboards_views.query_selector.opened': {
     widget_type: string;
   };
@@ -179,6 +183,7 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.widget.duplicate': 'Dashboards2: dashboard widget duplicated',
   'dashboards_views.widget.delete': 'Dashboards2: dashboard widget deleted',
   'dashboards_views.open_in_discover.opened': 'Dashboards2: Widget Opened In Discover',
+  'dashboards_views.open_in_explore.opened': 'Dashboards2: Widget Opened In Explore',
   'dashboards_views.widget_library.add_widget':
     'Dashboards2: Title of prebuilt widget added',
   'dashboards_views.widget_library.opened': 'Dashboards2: Add Widget Library opened',
