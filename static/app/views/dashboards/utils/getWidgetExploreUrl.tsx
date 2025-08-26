@@ -90,8 +90,7 @@ export function getWidgetLogURL(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
-  organization: Organization,
-  referrer?: string
+  organization: Organization
 ) {
   const params = new URLSearchParams();
   if (widget.queries?.[0]) {
@@ -147,9 +146,9 @@ export function getWidgetLogURL(
   for (const environment of effectiveSelection.environments) {
     params.append('environments', environment);
   }
-  if (referrer) {
-    params.append('referrer', referrer);
-  }
+
+  const referrer = getReferrer(widget.displayType);
+  params.append('referrer', referrer);
 
   return normalizeUrl(
     `/organizations/${organization.slug}/explore/logs?${params.toString()}`
@@ -161,10 +160,10 @@ export function getWidgetExploreUrl(
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
-  preferMode?: Mode,
-  referrer?: string
+  preferMode?: Mode
 ) {
   const traceItemDataset = getTraceItemDatasetFromWidgetType(widget.widgetType);
+  const referrer = getReferrer(widget.displayType);
 
   if (widget.queries.length > 1) {
     if (traceItemDataset === TraceItemDataset.LOGS) {
