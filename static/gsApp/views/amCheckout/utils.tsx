@@ -586,12 +586,13 @@ export async function submitCheckout(
   api: Client,
   onFetchPreviewData: () => void,
   onHandleCardAction: (intentDetails: IntentDetails) => void,
+  expand: string[],
   onSubmitting?: (b: boolean) => void,
   intentId?: string,
   referrer = 'billing',
   shouldUpdateOnDemand = true
 ) {
-  const endpoint = `/customers/${organization.slug}/subscription/`;
+  const endpoint = `/customers/${organization.slug}/subscription/${expand.length > 0 ? `?expand=${expand.join(',')}` : ''}`;
 
   let {onDemandBudget} = formData;
   if (onDemandBudget) {

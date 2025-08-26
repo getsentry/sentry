@@ -200,6 +200,7 @@ function SubtotalSummary({
   previewDataLoading: boolean;
   renewalDate: moment.Moment | null;
 }) {
+  const shortInterval = utils.getShortInterval(activePlan.billingInterval);
   const recurringSubtotal = useMemo(() => {
     return utils.getReservedPriceCents({
       plan: activePlan,
@@ -262,7 +263,9 @@ function SubtotalSummary({
           {previewDataLoading ? (
             <Placeholder height="16px" width={PRICE_PLACEHOLDER_WIDTH} />
           ) : (
-            <span>{utils.displayPrice({cents: recurringSubtotal})}</span>
+            <span>
+              {utils.displayPrice({cents: recurringSubtotal})}/{shortInterval}
+            </span>
           )}
         </ItemFlex>
         {previewDataLoading ? (
@@ -515,6 +518,7 @@ function Cart({
       api,
       () => fetchPreview(),
       (intentDetails: any) => handleCardAction(intentDetails),
+      ['invoice'],
       (b: boolean) => setIsSubmitting(b),
       intentId,
       referrer

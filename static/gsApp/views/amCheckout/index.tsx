@@ -257,7 +257,7 @@ class AMCheckout extends Component<Props, State> {
   }
 
   get checkoutSteps() {
-    const {organization, subscription, checkoutTier} = this.props;
+    const {organization, subscription, checkoutTier, isNewCheckout} = this.props;
     const OnDemandStep = hasOnDemandBudgetsFeature(organization, subscription)
       ? OnDemandBudgetsStep
       : OnDemandSpend;
@@ -267,35 +267,48 @@ class AMCheckout extends Component<Props, State> {
 
     if (preAM3Tiers.includes(checkoutTier) || notAMTier) {
       // Display for AM1 and AM2 tiers, and non-AM tiers  (e.g. L1)
-      return [
+      const steps = [
         PlanSelect,
         AddDataVolume,
         OnDemandStep,
         ContractSelect,
         AddPaymentMethod,
         AddBillingDetails,
-        ReviewAndConfirm,
       ];
+      if (!isNewCheckout) {
+        steps.push(ReviewAndConfirm);
+      }
+      return steps;
     }
     // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
     if (subscription.isSelfServePartner) {
       if (hasActiveVCFeature(organization)) {
         // Don't allow VC customers to choose Annual plans
-        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm];
+        const steps = [PlanSelect, SetPayAsYouGo, AddDataVolume];
+        if (!isNewCheckout) {
+          steps.push(ReviewAndConfirm);
+        }
+        return steps;
       }
-      return [PlanSelect, SetPayAsYouGo, AddDataVolume, ContractSelect, ReviewAndConfirm];
+      const steps = [PlanSelect, SetPayAsYouGo, AddDataVolume, ContractSelect];
+      if (!isNewCheckout) {
+        steps.push(ReviewAndConfirm);
+      }
     }
 
     // Display for AM3 tiers and above
-    return [
+    const steps = [
       PlanSelect,
       SetPayAsYouGo,
       AddDataVolume,
       ContractSelect,
       AddPaymentMethod,
       AddBillingDetails,
-      ReviewAndConfirm,
     ];
+    if (!isNewCheckout) {
+      steps.push(ReviewAndConfirm);
+    }
+    return steps;
   }
 
   get activePlan() {
