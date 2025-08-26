@@ -1,7 +1,5 @@
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {HOUR, MINUTE} from 'sentry/utils/formatters';
 
 export enum MetricDetectorTimePeriod {
   SIX_HOURS = '6h',
@@ -141,20 +139,6 @@ export function getEapTimePeriodsForInterval(
   interval: MetricDetectorInterval
 ): MetricDetectorTimePeriod[] {
   return EAP_TIME_PERIODS_MAP[interval] ?? [];
-}
-
-/**
- * Return a human-readable label for a time window (interval), mirroring TIME_WINDOW_MAP.
- */
-export function getTimeWindowLabel(interval: MetricDetectorInterval): string {
-  const minutes = interval as number;
-  if (minutes < 60) {
-    // seconds input, force minimum unit to minutes
-    return getDuration(minutes * 60, 0, false, false, false, MINUTE);
-  }
-
-  // seconds input, force minimum unit to hours
-  return getDuration(minutes * 60, 0, false, false, false, HOUR);
 }
 
 /**
