@@ -531,20 +531,20 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
         }
 
-        let occurences: TraceTree.TraceOccurrence[] = [];
+        let occurrences: TraceTree.TraceOccurrence[] = [];
         if ('performance_issues' in c.value) {
-          occurences = c.value.performance_issues;
+          occurrences = c.value.performance_issues;
         } else if ('occurrences' in c.value) {
-          occurences = c.value.occurrences as TraceTree.TraceOccurrence[];
+          occurrences = c.value.occurrences as TraceTree.TraceOccurrence[];
         }
 
-        for (const occurence of occurences) {
-          traceNode.occurrences.add(occurence);
+        for (const occurrence of occurrences) {
+          traceNode.occurrences.add(occurrence);
 
-          // Propagate occurences to the closest EAP transaction for visibility in the initially collapsed
+          // Propagate occurrences to the closest EAP transaction for visibility in the initially collapsed
           // eap-transactions only view, on load
           if (closestEAPTransaction) {
-            closestEAPTransaction.occurrences.add(occurence);
+            closestEAPTransaction.occurrences.add(occurrence);
           }
         }
 
@@ -798,8 +798,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       baseTraceNode.errors.add(error);
     }
 
-    for (const occurence of additionalTraceNode.occurrences) {
-      baseTraceNode.occurrences.add(occurence);
+    for (const occurrence of additionalTraceNode.occurrences) {
+      baseTraceNode.occurrences.add(occurrence);
     }
 
     for (const profile of additionalTraceNode.profiles) {
@@ -984,7 +984,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let groupMatchCount = 0;
 
       let errors: TraceTree.TraceErrorIssue[] = [];
-      let occurences: TraceTree.TraceOccurrence[] = [];
+      let occurrences: TraceTree.TraceOccurrence[] = [];
 
       let start = head.space[0];
       let end = head.space[0] + head.space[1];
@@ -1002,7 +1002,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         end = Math.max(end, tail.space[0] + tail.space[1]);
 
         errors = errors.concat(Array.from(tail.errors));
-        occurences = occurences.concat(Array.from(tail.occurrences));
+        occurrences = occurrences.concat(Array.from(tail.occurrences));
 
         groupMatchCount++;
         tail = tail.children[0];
@@ -1057,14 +1057,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
       // Checking the tail node for errors as it is not included in the grouping
       // while loop, but is hidden when the autogrouped node is collapsed
       errors = errors.concat(Array.from(tail.errors));
-      occurences = occurences.concat(Array.from(tail.occurrences));
+      occurrences = occurrences.concat(Array.from(tail.occurrences));
 
       start = Math.min(start, tail.space[0]);
       end = Math.max(end, tail.space[0] + tail.space[1]);
 
       autoGroupedNode.space = [start, end - start];
       autoGroupedNode.errors = new Set(errors);
-      autoGroupedNode.occurrences = new Set(occurences);
+      autoGroupedNode.occurrences = new Set(occurrences);
 
       for (const c of tail.children) {
         c.parent = autoGroupedNode;
@@ -1220,8 +1220,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
                 autoGroupedNode.errors.add(error);
               }
 
-              for (const occurence of child.occurrences) {
-                autoGroupedNode.occurrences.add(occurence);
+              for (const occurrence of child.occurrences) {
+                autoGroupedNode.occurrences.add(occurrence);
               }
             }
 
@@ -2578,17 +2578,17 @@ function getRelatedPerformanceIssuesFromTransaction(
     return [];
   }
 
-  const occurences: TraceTree.TraceOccurrence[] = [];
+  const occurrences: TraceTree.TraceOccurrence[] = [];
 
   for (const perfIssue of node.value.performance_issues) {
     for (const suspect of perfIssue.suspect_spans) {
       if (suspect === span.span_id) {
-        occurences.push(perfIssue);
+        occurrences.push(perfIssue);
       }
     }
   }
 
-  return occurences;
+  return occurrences;
 }
 
 export function getNodeDescriptionPrefix(
