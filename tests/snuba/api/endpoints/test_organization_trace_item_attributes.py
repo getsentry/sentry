@@ -26,7 +26,7 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
 
     viewname = "sentry-api-0-organization-trace-item-attributes"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -194,11 +194,20 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                     "sentry.message.parameter.1": {"string_value": "charlie"},
                 },
             ),
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.message.parameter.0": {"bool_value": 1},
+                    "sentry.message.parameter.1": {"int_value": 5},
+                    "sentry.message.parameter.2": {"double_value": 10},
+                },
+            ),
         ]
 
         self.store_ourlogs(logs)
 
-        response = self.do_request()
+        response = self.do_request(query={"attributeType": "string"})
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
@@ -210,6 +219,19 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
             "message.parameter.ip",
             "message.parameter.0",
             "message.parameter.1",
+        }
+
+        response = self.do_request(query={"attributeType": "number"})
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {
+            "tags[message.parameter.0,number]",
+            "tags[message.parameter.1,number]",
+            "tags[message.parameter.2,number]",
+            "severity_number",
+            "tags[sentry.timestamp_nanos,number]",
+            "timestamp_precise",
         }
 
     def test_attribute_collision(self) -> None:
@@ -596,7 +618,7 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
 
     viewname = "sentry-api-0-organization-trace-item-attribute-values"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

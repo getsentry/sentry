@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class OrganizationEventIDLookupDocs(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         event = self.create_event("a", message="oh no")
         self.url = reverse(
             "sentry-api-0-event-id-lookup",

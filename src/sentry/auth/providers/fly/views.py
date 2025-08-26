@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING, Any
 
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
+from django.http.response import HttpResponseBase
 
 from sentry.auth.providers.oauth2 import OAuth2Login
 from sentry.auth.services.auth.model import RpcAuthProvider
@@ -12,6 +14,9 @@ from sentry.plugins.base.response import DeferredResponse
 
 from .client import FlyClient
 from .constants import AUTHORIZE_URL, ERR_NO_ORG_ACCESS, SCOPE
+
+if TYPE_CHECKING:
+    from sentry.auth.helper import AuthHelper
 
 logger = logging.getLogger("sentry.auth.fly")
 
@@ -25,15 +30,19 @@ class FlyOAuth2Login(OAuth2Login):
 
 
 class FetchUser(AuthView):
-    def __init__(self, org=None, *args, **kwargs) -> None:
+    def __init__(
+        self, org: RpcOrganization | dict[str, Any] | None = None, *args: Any, **kwargs: Any
+    ) -> None:
         """
         NOTE: org/args are configured via provider `build_config` method and provided at SSO time
         """
         self.org = org
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: HttpRequest, pipeline) -> HttpResponse:
-        with FlyClient(pipeline.fetch_state("data")["access_token"]) as client:
+    def handle(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
+        data: dict[str, Any] | None = pipeline.fetch_state("data")
+        assert data is not None
+        with FlyClient(data["access_token"]) as client:
             """
             Utilize the access token to make final request to token introspection endpoint
             pipeline.fetch_state -> base pipeline _fetch_state
@@ -43,7 +52,8 @@ class FetchUser(AuthView):
             info = client.get_info()
             if self.org is not None:
                 user_orgs = info.get("organizations", {})
-                if self.org["id"] not in [org["id"] for org in user_orgs]:
+                org_id = self.org["id"] if isinstance(self.org, dict) else self.org.id
+                if org_id not in [org["id"] for org in user_orgs]:
                     logger.warning(
                         "SSO attempt no org access", extra={"org": self.org, "user_orgs": user_orgs}
                     )
@@ -55,6 +65,6 @@ class FetchUser(AuthView):
 
 
 def fly_configure_view(
-    request: HttpRequest, org: RpcOrganization, auth_provider: RpcAuthProvider
+    request: HttpRequest, org: RpcOrganization | dict[str, Any], auth_provider: RpcAuthProvider
 ) -> DeferredResponse:
     return DeferredResponse("sentry_auth_fly/configure.html")

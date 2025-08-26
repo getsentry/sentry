@@ -187,7 +187,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         self.feature_context = Feature("organizations:preprod-artifact-assemble")
         self.feature_context.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.feature_context.__exit__(None, None, None)
         super().tearDown()
 
