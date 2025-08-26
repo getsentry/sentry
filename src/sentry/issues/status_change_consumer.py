@@ -7,6 +7,7 @@ from typing import Any
 
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
+from sentry import features
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.status_change_message import StatusChangeMessageData
@@ -262,6 +263,15 @@ def process_status_change_message(
 
     project = Project.objects.get_from_cache(id=status_change_data["project_id"])
     organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+    if features.has(
+        "organizations:workflow-engine-metric-alert-dual-processing-logs",
+        organization,
+    ):
+        logger.info(
+            "status_change.kwargs",
+            extra=kwargs,
+        )
 
     txn.set_tag("organization_id", organization.id)
     txn.set_tag("organization_slug", organization.slug)

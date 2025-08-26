@@ -1,3 +1,6 @@
+import logging
+
+from sentry import features
 from sentry.issues.status_change_consumer import group_status_update_registry
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.activity import Activity
@@ -6,6 +9,8 @@ from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
 SUPPORTED_ACTIVITIES = [ActivityType.SET_RESOLVED.value]
+
+logger = logging.getLogger(__name__)
 
 
 @group_status_update_registry.register("workflow_status_update")
@@ -33,9 +38,22 @@ def workflow_status_update_handler(
     detector_id = status_change_message.get("detector_id")
 
     if detector_id is None:
-        # We should not hit this case, it's should only occur if there is a bug
+        # We should not hit this case, i should only occur if there is a bug
         # passing it from the workflow_engine to the issue platform.
         metrics.incr("workflow_engine.tasks.error.no_detector_id")
+        if features.has(
+            "organizations:workflow-engine-metric-alert-dual-processing-logs",
+            group.organization,
+        ):
+            logger.info(
+                "Detector ID not found when processing resolves",
+                extra={
+                    "detector_id": detector_id,
+                    "activity_id": activity.id,
+                    "new_status": status_change_message["new_status"],
+                    "new_substatus": status_change_message["new_substatus"],
+                },
+            )
         return
 
     # We should only fire actions for activity updates if we should be firing actions
