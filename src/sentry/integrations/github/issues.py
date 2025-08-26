@@ -124,10 +124,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         repo, issue_num = external_issue.key.split("#")
         if not repo:
-            raise IntegrationError("repo must be provided")
+            raise IntegrationFormError({"repo": "Repository is required"})
 
         if not issue_num:
-            raise IntegrationError("issue number must be provided")
+            raise IntegrationFormError({"externalIssue": "Issue number is required"})
 
         comment = data.get("comment")
         if comment:
@@ -219,11 +219,14 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         client = self.get_client()
         repo = data.get("repo")
         if not repo:
-            raise IntegrationError("repo kwarg must be provided")
+            raise IntegrationFormError({"repo": "Repository is required"})
 
         # Create clean issue data with required fields
-        if not data.get("title") or not data.get("description"):
-            raise IntegrationError("title and description kwarg must be provided")
+        if not data.get("title"):
+            raise IntegrationFormError({"title": "Title is required"})
+
+        if not data.get("description"):
+            raise IntegrationFormError({"description": "Description is required"})
 
         issue_data = {
             "title": data["title"],
@@ -309,10 +312,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         client = self.get_client()
 
         if not repo:
-            raise IntegrationError("repo must be provided")
+            raise IntegrationFormError({"repo": "Repository is required"})
 
         if not issue_num:
-            raise IntegrationError("issue must be provided")
+            raise IntegrationFormError({"externalIssue": "Issue number is required"})
 
         try:
             issue = client.get_issue(repo, issue_num)
