@@ -6,8 +6,12 @@ from collections.abc import Callable
 from typing import Deque
 
 from arroyo.backends.abstract import ProducerFuture
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer
-from arroyo.types import BrokerValue, Partition, Topic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
+from arroyo.types import BrokerValue, Partition
+from arroyo.types import Topic as ArroyoTopic
+
+from sentry.conf.types.kafka_definition import Topic
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 _ProducerFuture = ProducerFuture[BrokerValue[KafkaPayload]]
 
@@ -29,7 +33,9 @@ class SingletonProducer:
         self._futures: Deque[_ProducerFuture] = deque()
         self.max_futures = max_futures
 
-    def produce(self, destination: Topic | Partition, payload: KafkaPayload) -> _ProducerFuture:
+    def produce(
+        self, destination: ArroyoTopic | Partition, payload: KafkaPayload
+    ) -> _ProducerFuture:
         future = self._get().produce(destination, payload)
         self._track_futures(future)
         return future
@@ -60,3 +66,30 @@ class SingletonProducer:
 
         if self._producer:
             self._producer.close()
+
+
+def get_arroyo_producer(
+    name: str,
+    topic: Topic,
+    additional_config: dict | None = None,
+    exclude_config_keys: list[str] | None = None,
+    **kafka_producer_kwargs,
+) -> KafkaProducer:
+    topic_definition = get_topic_definition(topic)
+
+    producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
+
+    # Remove any excluded config keys
+    if exclude_config_keys:
+        for key in exclude_config_keys:
+            producer_config.pop(key, None)
+
+    # Apply additional config
+    if additional_config:
+        producer_config.update(additional_config)
+
+    producer_config["client.id"] = name
+
+    return KafkaProducer(
+        build_kafka_producer_configuration(default_config=producer_config), **kafka_producer_kwargs
+    )
