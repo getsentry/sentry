@@ -136,8 +136,7 @@ def process_message_with_profiling(
         finally:
             sentry_sdk.profiler.stop_profiler()
     else:
-        result = process_message(message)
-        return result
+        return process_message(message)
 
 
 def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | FilteredPayload:
