@@ -1,5 +1,21 @@
+import enum
 from abc import ABC, abstractmethod
 from typing import Any
+
+
+class StatusCheckStatus(str, enum.Enum):
+    """
+    A subset of possible status values for a status check that is compatible across various providers.
+    For example, Github uses more state/conclusion values that won't map over to everything.
+    If needed, use those directly.
+    """
+
+    ACTION_REQUIRED = "action_required"
+    IN_PROGRESS = "in_progress"
+    FAILURE = "failure"
+    NEUTRAL = "neutral"
+    SUCCESS = "success"
+    TIMED_OUT = "timed_out"
 
 
 class StatusCheckClient(ABC):

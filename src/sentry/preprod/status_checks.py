@@ -5,13 +5,19 @@ import uuid
 from abc import ABC, abstractmethod
 
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.github.commit_status import GitHubCheckConclusion, GitHubCheckStatus
+from sentry.integrations.github.status_check import (
+    GITHUB_STATUS_CHECK_CONCLUSION_MAPPING,
+    GITHUB_STATUS_CHECK_STATUS_MAPPING,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
-from sentry.integrations.source_code_management.status_check import StatusCheckClient
+from sentry.integrations.source_code_management.status_check import (
+    StatusCheckClient,
+    StatusCheckStatus,
+)
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
@@ -60,24 +66,21 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADING
         or preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
     ):
-        status = GitHubCheckStatus.IN_PROGRESS
+        status = StatusCheckStatus.IN_PROGRESS
         text = f"⏳ Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing... {uuid.uuid4()}"
         summary = f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` is processing... {uuid.uuid4()}"
-        conclusion = None
         target_url = None
     elif preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED:
-        status = GitHubCheckStatus.COMPLETED
+        status = StatusCheckStatus.FAILURE
         text = f"❌ Build {preprod_artifact.id} failed. Error: {preprod_artifact.error_message}"
         summary = f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` failed."
-        conclusion = GitHubCheckConclusion.FAILURE
         target_url = None
     elif preprod_artifact.state == PreprodArtifact.ArtifactState.COMPLETED:
-        status = GitHubCheckStatus.COMPLETED
+        status = StatusCheckStatus.SUCCESS
         text = f"✅ Build {preprod_artifact.id} processed successfully."
         summary = (
             f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` processed successfully."
         )
-        conclusion = GitHubCheckConclusion.SUCCESS
         target_url = None
     else:
         raise ValueError(f"Invalid artifact state: {preprod_artifact.state}")
@@ -129,7 +132,6 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         summary=summary,
         external_id=str(preprod_artifact.id),
         target_url=target_url,
-        conclusion=conclusion,
     )
     if check_id is None:
         logger.error(
@@ -143,7 +145,6 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         extra={
             "artifact_id": preprod_artifact.id,
             "status": status.value,
-            "conclusion": conclusion.value if conclusion else None,
             "check_id": check_id,
         },
     )
@@ -256,13 +257,12 @@ class _StatusCheckProvider(ABC):
         self,
         repo: str,
         sha: str,
-        status: GitHubCheckStatus,
+        status: StatusCheckStatus,
         title: str,
         text: str,
         summary: str,
         external_id: str,
         target_url: str | None = None,
-        conclusion: GitHubCheckConclusion | None = None,
     ) -> str | None:
         """Create a status check using provider-specific format."""
         raise NotImplementedError
@@ -273,15 +273,17 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         self,
         repo: str,
         sha: str,
-        status: GitHubCheckStatus,
+        status: StatusCheckStatus,
         title: str,
         text: str,
         summary: str,
         external_id: str,
         target_url: str | None = None,
-        conclusion: GitHubCheckConclusion | None = None,
     ) -> str | None:
         with self._create_scm_interaction_event().capture() as _:
+            mapped_status = GITHUB_STATUS_CHECK_STATUS_MAPPING.get(status)
+            mapped_conclusion = GITHUB_STATUS_CHECK_CONCLUSION_MAPPING.get(status)
+
             check_data = {
                 "name": title,
                 "head_sha": sha,
@@ -291,16 +293,15 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                     "summary": summary,
                     "text": text,
                 },
-                "status": status.value,
+                "status": mapped_status.value,
             }
 
-            # Only include conclusion when status is completed
-            if status == GitHubCheckStatus.COMPLETED and conclusion:
-                check_data["conclusion"] = conclusion.value
+            if mapped_conclusion:
+                check_data["conclusion"] = mapped_conclusion.value
 
             if target_url:
                 check_data["details_url"] = target_url
 
             response = self.client.create_check_run(repo=repo, data=check_data)
             check_id = response.get("id")
-            return str(check_id)
+            return str(check_id) if check_id else None
