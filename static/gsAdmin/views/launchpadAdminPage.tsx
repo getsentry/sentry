@@ -35,7 +35,9 @@ function LaunchpadAdminPage() {
       });
     },
     onSuccess: () => {
-      addSuccessMessage(`Analysis rerun initiated successfully for artifact: ${rerunArtifactId}`);
+      addSuccessMessage(
+        `Analysis rerun initiated successfully for artifact: ${rerunArtifactId}`
+      );
       setRerunArtifactId('');
     },
     onError: () => {
@@ -55,7 +57,9 @@ function LaunchpadAdminPage() {
       });
     },
     onSuccess: () => {
-      addSuccessMessage(`All data deleted successfully for artifact: ${deleteArtifactId}`);
+      addSuccessMessage(
+        `All data deleted successfully for artifact: ${deleteArtifactId}`
+      );
       setDeleteArtifactId('');
     },
     onError: () => {
@@ -72,7 +76,9 @@ function LaunchpadAdminPage() {
     api.request(`/internal/preprod-artifact/${fetchInfoArtifactId}/info/`, {
       method: 'GET',
       success: (data: any) => {
-        addSuccessMessage(`Artifact info fetched successfully for: ${fetchInfoArtifactId}`);
+        addSuccessMessage(
+          `Artifact info fetched successfully for: ${fetchInfoArtifactId}`
+        );
         setFetchedArtifactInfo(data);
         setFetchInfoArtifactId('');
       },
@@ -88,13 +94,18 @@ function LaunchpadAdminPage() {
         url: `/internal/preprod-artifact/batch-delete/`,
         method: 'DELETE',
         data: {
-          preprod_artifact_ids: batchDeleteArtifactIds.split(',').map(id => id.trim()).filter(id => id),
+          preprod_artifact_ids: batchDeleteArtifactIds
+            .split(',')
+            .map(id => id.trim())
+            .filter(id => id),
         },
         options: {},
       });
     },
     onSuccess: () => {
-      const artifactCount = batchDeleteArtifactIds.split(',').filter(id => id.trim()).length;
+      const artifactCount = batchDeleteArtifactIds
+        .split(',')
+        .filter(id => id.trim()).length;
       addSuccessMessage(`Successfully deleted ${artifactCount} artifacts`);
       setBatchDeleteArtifactIds('');
     },
@@ -126,7 +137,9 @@ function LaunchpadAdminPage() {
             <li>All associated files</li>
             <li>All related metadata</li>
           </ul>
-          <p><strong>This action cannot be undone.</strong></p>
+          <p>
+            <strong>This action cannot be undone.</strong>
+          </p>
         </div>
       ),
       confirmText: 'Delete All Data',
@@ -144,7 +157,10 @@ function LaunchpadAdminPage() {
   const handleBatchDeleteSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const artifactIds = batchDeleteArtifactIds.split(',').map(id => id.trim()).filter(id => id);
+    const artifactIds = batchDeleteArtifactIds
+      .split(',')
+      .map(id => id.trim())
+      .filter(id => id);
     const artifactCount = artifactIds.length;
 
     openAdminConfirmModal({
@@ -153,7 +169,8 @@ function LaunchpadAdminPage() {
         <div>
           <p>
             <strong>
-              Are you sure you want to delete ALL data for {artifactCount} artifact{artifactCount > 1 ? 's' : ''}?
+              Are you sure you want to delete ALL data for {artifactCount} artifact
+              {artifactCount > 1 ? 's' : ''}?
             </strong>
           </p>
           <p>Artifact IDs: {artifactIds.join(', ')}</p>
@@ -163,7 +180,9 @@ function LaunchpadAdminPage() {
             <li>All associated files</li>
             <li>All related metadata</li>
           </ul>
-          <p><strong>This action cannot be undone.</strong></p>
+          <p>
+            <strong>This action cannot be undone.</strong>
+          </p>
         </div>
       ),
       confirmText: `Delete ${artifactCount} Artifact${artifactCount > 1 ? 's' : ''}`,
@@ -178,8 +197,8 @@ function LaunchpadAdminPage() {
       <PageHeader title="Launchpad Admin Page" />
       <Container>
         <p>
-          This is a launchpad admin page for managing preprod artifacts.
-          Provide the preprod artifact ID to perform the desired action.
+          This is a launchpad admin page for managing preprod artifacts. Provide the
+          preprod artifact ID to perform the desired action.
         </p>
 
         <CompactSelect
@@ -210,11 +229,7 @@ function LaunchpadAdminPage() {
               onChange={e => setRerunArtifactId(e.target.value)}
               placeholder="Enter preprod artifact ID"
             />
-            <Button
-              priority="primary"
-              type="submit"
-              disabled={!rerunArtifactId.trim()}
-            >
+            <Button priority="primary" type="submit" disabled={!rerunArtifactId.trim()}>
               Rerun Analysis
             </Button>
           </FormSection>
@@ -230,11 +245,7 @@ function LaunchpadAdminPage() {
               onChange={e => setDeleteArtifactId(e.target.value)}
               placeholder="Enter preprod artifact ID"
             />
-            <Button
-              priority="danger"
-              type="submit"
-              disabled={!deleteArtifactId.trim()}
-            >
+            <Button priority="danger" type="submit" disabled={!deleteArtifactId.trim()}>
               Delete Data
             </Button>
           </FormSection>
@@ -262,7 +273,9 @@ function LaunchpadAdminPage() {
           <FormSection onSubmit={handleBatchDeleteSubmit}>
             <h3>Batch Delete Artifacts</h3>
             <p>Delete multiple artifacts at once using comma-separated IDs.</p>
-            <label htmlFor="batchDeleteArtifactIds">Preprod Artifact IDs (comma-separated):</label>
+            <label htmlFor="batchDeleteArtifactIds">
+              Preprod Artifact IDs (comma-separated):
+            </label>
             <StyledInput
               type="text"
               name="batchDeleteArtifactIds"
@@ -286,10 +299,7 @@ function LaunchpadAdminPage() {
             <InfoDisplay>
               <pre>{JSON.stringify(fetchedArtifactInfo, null, 2)}</pre>
             </InfoDisplay>
-            <Button
-              priority="default"
-              onClick={() => setFetchedArtifactInfo(null)}
-            >
+            <Button priority="default" onClick={() => setFetchedArtifactInfo(null)}>
               Clear Info
             </Button>
           </InfoDisplayContainer>
