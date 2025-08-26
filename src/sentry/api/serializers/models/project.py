@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Final, NotRequired, TypedDict
 
 import orjson
 import sentry_sdk
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db import connection
 from django.db.models import prefetch_related_objects
@@ -20,6 +21,7 @@ from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
 from sentry.dynamic_sampling.utils import (
@@ -245,6 +247,14 @@ def get_features_for_projects(
             features_by_project[project].append("releases")
 
     return features_by_project
+
+
+# Determines hasLogs based on SENTRY_MODE for SAAS use flags, otherwise (single tenant and self hosted) skip onboarding
+# This is because has_logs is currently set via the outcomes consumer, which doesn't run in all envs.
+def get_has_logs(project: Project) -> bool:
+    if settings.SENTRY_MODE == SentryMode.SAAS:
+        return bool(project.flags.has_logs)
+    return True
 
 
 class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
@@ -555,7 +565,7 @@ class ProjectSerializer(Serializer):
             "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
             "hasInsightsAgentMonitoring": bool(obj.flags.has_insights_agent_monitoring),
             "hasInsightsMCP": bool(obj.flags.has_insights_mcp),
-            "hasLogs": bool(obj.flags.has_logs),
+            "hasLogs": get_has_logs(obj),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -792,7 +802,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
             hasInsightsAgentMonitoring=bool(obj.flags.has_insights_agent_monitoring),
             hasInsightsMCP=bool(obj.flags.has_insights_mcp),
-            hasLogs=bool(obj.flags.has_logs),
+            hasLogs=get_has_logs(obj),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
