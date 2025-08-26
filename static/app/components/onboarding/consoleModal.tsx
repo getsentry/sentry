@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import {PlatformIcon} from 'platformicons';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
@@ -15,15 +16,15 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 export const CONSOLE_PLATFORM_INSTRUCTIONS = {
   [ConsolePlatform.PLAYSTATION]: (
-    <Fragment>
+    <Flex direction="column" gap="md">
       <p>
         {t(
-          'You can get started using Sentry on PlayStation without any changes to your game, on devkits as well as retail devices.'
+          'You can get started using Sentry on PlayStation without any changes to your game, on DevKits as well as Retail devices.'
         )}
       </p>
       <p>
         {tct(
-          "Please complete the verification process on the [partnersWebsiteLink:PlayStation Partners website] and confirm your developer status by clicking on [italic:Confirm status]. We'll receive your request and get back to you with the next steps.",
+          'Please complete the verification process on the [partnersWebsiteLink:PlayStation Partners website] and confirm your developer status by clicking on [italic:Confirm status].',
           {
             partnersWebsiteLink: (
               <ExternalLink href="https://game.develop.playstation.net/tm/verify/functionalsw" />
@@ -32,14 +33,23 @@ export const CONSOLE_PLATFORM_INSTRUCTIONS = {
           }
         )}
       </p>
-    </Fragment>
+      <p>{t("We'll receive your request and get back to you with the next steps.")}</p>
+    </Flex>
   ),
   [ConsolePlatform.NINTENDO_SWITCH]: (
-    <Fragment>
+    <Flex direction="column" gap="md">
+      <p>
+        {t(
+          'You can get started using Sentry on Nintendo Switch without any changes to your game, on DevKits as well as Retail devices.'
+        )}
+      </p>
       <p>
         {tct(
-          "You can get started using Sentry on Nintendo Switch without any changes to your game, on devkits as well as retail devices. You can configure Nintendo's CRPORTAL to forward crashes to Sentry using [lp1Link:lp1 for retail devices] or [dd1Link:dd1 for devkits].",
+          "Please complete the verification process by submitting an access request to the [nintendoDeveloperAuthorizationFormLink: Nintendo Developer Authorization form] and configure Nintendo's CRPORTAL to forward crashes to Sentry using [lp1Link:lp1 for retail devices] or [dd1Link:dd1 for devkits].",
           {
+            nintendoDeveloperAuthorizationFormLink: (
+              <ExternalLink href="https://developer.nintendo.com/group/development/getting-started/g1kr9vj6/middleware/sentry" />
+            ),
             lp1Link: (
               <ExternalLink href="https://crash-report.wc.lp1.er.srv.nintendo.net/sentry/get_started" />
             ),
@@ -49,34 +59,22 @@ export const CONSOLE_PLATFORM_INSTRUCTIONS = {
           }
         )}
       </p>
-      <Heading as="h4">Nintendo Switch SDK</Heading>
-      <p>
-        {tct(
-          'To add more context to your crash dumps or capture non-fatal events, Sentry provides a dedicated SDK for Nintendo Switch. With this SDK, you can include details like [breadcrumbsLink:breadcrumbs] and [tagsLink:tags]. To request access, please use the [nintendoDeveloperAuthorizationFormLink:Nintendo Developer Authorization form].',
-          {
-            nintendoDeveloperAuthorizationFormLink: (
-              <ExternalLink href="https://developer.nintendo.com/group/development/getting-started/g1kr9vj6/middleware/sentry" />
-            ),
-            breadcrumbsLink: (
-              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/breadcrumbs/" />
-            ),
-            tagsLink: (
-              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/#tags" />
-            ),
-          }
-        )}
-      </p>
-      <p>{t('Sentry supports both the original Switch and Switch 2.')}</p>
-    </Fragment>
+      <p>{t("We'll receive your request and get back to you with the next steps.")}</p>
+      <Alert type="info" showIcon>
+        {t('Sentry supports both the original Switch and Switch 2.')}
+      </Alert>
+    </Flex>
   ),
   [ConsolePlatform.XBOX]: (
-    <Fragment>
+    <Flex direction="column" gap="md">
       <p>
-        {t('Sentry supports Xbox One and Series X|S, devkits as well as retail devices.')}
+        {t(
+          'Sentry supports Xbox One and Series X|S, across both DevKits and Retail devices through an SDK.'
+        )}
       </p>
       <p>
         {tct(
-          'You can get started with Sentry by [microsoftGameDevelopmentKitLink: requesting access to the Microsoft Game Development Kit (GDK) Middleware]. We will get back to you with the next steps as soon as we receive your request.',
+          'Please complete the verification process by requesting access to the [microsoftGameDevelopmentKitLink:Microsoft Game Development Kit (GDK) Middleware].',
           {
             microsoftGameDevelopmentKitLink: (
               <ExternalLink href="https://developer.microsoft.com/en-us/games/support/request-gdkx-middleware" />
@@ -84,7 +82,8 @@ export const CONSOLE_PLATFORM_INSTRUCTIONS = {
           }
         )}
       </p>
-    </Fragment>
+      <p>{t("We'll receive your request and get back to you with the next steps.")}</p>
+    </Flex>
   ),
 };
 
