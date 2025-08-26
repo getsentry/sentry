@@ -275,8 +275,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
             assert response.status_code == 500
             assert response.data["detail"] == "Failed to generate a summary for a list of feedbacks"
 
-        # TODO(vishnupsatish): uncomment the below once we are to EA, this is commented because the cache is disabled for now.
-
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     @patch("sentry.feedback.endpoints.organization_feedback_summary.cache")
     def test_get_feedback_summary_cache_hit(
