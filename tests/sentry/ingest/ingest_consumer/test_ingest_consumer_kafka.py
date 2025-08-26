@@ -8,6 +8,7 @@ import orjson
 import pytest
 from django.conf import settings
 
+import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.conf.types.kafka_definition import Topic
 from sentry.consumers import get_stream_processor
 from sentry.event_manager import EventManager
@@ -18,7 +19,11 @@ from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.kafka_config import get_topic_definition
 
-pytestmark = [requires_snuba, requires_kafka]
+pytestmark = [
+    requires_snuba,
+    requires_kafka,
+    thread_leaks.allowlist(reason="ingest consumers", issue=97037),
+]
 
 logger = logging.getLogger(__name__)
 
