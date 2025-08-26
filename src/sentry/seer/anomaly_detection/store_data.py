@@ -65,7 +65,7 @@ def handle_send_historical_data_to_seer(
     project: Project,
     method: str,
     event_types: list[SnubaQueryEventType.EventType] | None = None,
-):
+) -> None:
     event_types_param = event_types or snuba_query.event_types
     try:
         rule_status = send_historical_data_to_seer(

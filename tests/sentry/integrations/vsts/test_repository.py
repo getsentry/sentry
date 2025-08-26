@@ -170,7 +170,7 @@ class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):
         }
         self.login_as(self.user)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         responses.reset()
 

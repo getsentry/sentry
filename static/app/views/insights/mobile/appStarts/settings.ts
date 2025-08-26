@@ -8,4 +8,4 @@ export const DATA_TYPE_PLURAL = t('App Starts');
 export const MODULE_DOC_LINK =
   'https://docs.sentry.io/product/insights/mobile/app-starts/';
 
-export const MODULE_FEATURES = ['insights-initial-modules'];
+export const MODULE_FEATURES = ['insight-modules'];

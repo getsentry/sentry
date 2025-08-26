@@ -12,7 +12,7 @@ class OrganizationEventsUptimeResultsEndpointTest(
 ):
     dataset = "uptime_results"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.features = {
             "organizations:uptime-eap-enabled": True,

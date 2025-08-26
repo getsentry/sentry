@@ -498,3 +498,5 @@ class ColumnDefinitions:
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType
     filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], list[SearchFilter]]]
+    alias_to_column: Callable[[str], str | None] | None
+    column_to_alias: Callable[[str], str | None] | None

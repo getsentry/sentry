@@ -23,6 +23,7 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
   getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
@@ -248,7 +249,15 @@ Sentry.startSpan({
   op: "test",
   name: "My First Test Span",
 }, () => {
-  try {
+  try {${
+    params.isLogsSelected
+      ? `
+    // Send a log before throwing the error
+    Sentry.logger.info('User triggered test error', {
+      action: 'test_error_span',
+    });`
+      : ''
+  }
     foo();
   } catch (e) {
     Sentry.captureException(e);
@@ -256,7 +265,15 @@ Sentry.startSpan({
 });`
             : `
 const Sentry = require("@sentry/node");
-
+${
+  params.isLogsSelected
+    ? `
+// Send a log before throwing the error
+Sentry.logger.info('User triggered test error', {
+  action: 'test_error_basic',
+});`
+    : ''
+}
 try {
   foo();
 } catch (e) {
@@ -403,6 +420,10 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   profilingOnboarding: getNodeProfilingOnboarding({
     profilingLifecycle: 'manual',
+  }),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'node',
+    sdkPackage: '@sentry/node',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
   mcpOnboarding: getNodeMcpOnboarding(),

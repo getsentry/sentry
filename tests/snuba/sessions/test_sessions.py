@@ -1030,7 +1030,7 @@ class GetCrashFreeRateTestCase(TestCase, BaseMetricsTestCase):
 
     backend = MetricsReleaseHealthBackend()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.session_started = time.time() // 60 * 60
         self.session_started_gt_24_lt_48 = self.session_started - 30 * 60 * 60
@@ -1312,7 +1312,7 @@ class CheckReleasesHaveHealthDataTest(TestCase, BaseMetricsTestCase):
 class CheckNumberOfSessions(TestCase, BaseMetricsTestCase):
     backend = MetricsReleaseHealthBackend()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # now_dt should be set to 17:40 of some day not in the future and (system time - now_dt)
         # must be less than 90 days for the metrics DB TTL

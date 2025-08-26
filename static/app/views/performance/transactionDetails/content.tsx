@@ -15,7 +15,6 @@ import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMetadata from 'sentry/components/events/eventMetadata';
 import EventVitals from 'sentry/components/events/eventVitals';
 import getUrlFromEvent from 'sentry/components/events/interfaces/request/getUrlFromEvent';
-import {SpanEntryContext} from 'sentry/components/events/interfaces/spans/context';
 import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -39,7 +38,6 @@ import {
   getTraceTimeRangeFromEvent,
   isTransaction,
 } from 'sentry/utils/performance/quickTrace/utils';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import Projects from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {appendTagCondition, decodeScalar} from 'sentry/utils/queryString';
@@ -214,56 +212,41 @@ function EventDetailsContent(props: Props) {
                   <Layout.Main fullWidth={!isSidebarVisible}>
                     <Projects orgId={organization.slug} slugs={[projectId]}>
                       {({projects: _projects}) => (
-                        <SpanEntryContext
-                          value={{
-                            getViewChildTransactionTarget: childTransactionProps => {
-                              return getTransactionDetailsUrl(
-                                organization.slug,
-                                childTransactionProps.eventSlug,
-                                childTransactionProps.transaction,
-                                location.query
-                              );
-                            },
-                          }}
-                        >
-                          <QuickTraceContext value={results}>
-                            {hasProfilingFeature ? (
-                              <ProfilesProvider
-                                orgSlug={organization.slug}
-                                projectSlug={projectId}
-                                profileMeta={profileId || ''}
-                              >
-                                <ProfileContext.Consumer>
-                                  {profiles => (
-                                    <ProfileGroupProvider
-                                      type="flamechart"
-                                      input={
-                                        profiles?.type === 'resolved'
-                                          ? profiles.data
-                                          : null
-                                      }
-                                      traceID={profileId || ''}
-                                    >
-                                      <BorderlessEventEntries
-                                        organization={organization}
-                                        event={event}
-                                        project={_projects[0] as Project}
-                                        showTagSummary={false}
-                                      />
-                                    </ProfileGroupProvider>
-                                  )}
-                                </ProfileContext.Consumer>
-                              </ProfilesProvider>
-                            ) : (
-                              <BorderlessEventEntries
-                                organization={organization}
-                                event={event}
-                                project={_projects[0] as Project}
-                                showTagSummary={false}
-                              />
-                            )}
-                          </QuickTraceContext>
-                        </SpanEntryContext>
+                        <QuickTraceContext value={results}>
+                          {hasProfilingFeature ? (
+                            <ProfilesProvider
+                              orgSlug={organization.slug}
+                              projectSlug={projectId}
+                              profileMeta={profileId || ''}
+                            >
+                              <ProfileContext.Consumer>
+                                {profiles => (
+                                  <ProfileGroupProvider
+                                    type="flamechart"
+                                    input={
+                                      profiles?.type === 'resolved' ? profiles.data : null
+                                    }
+                                    traceID={profileId || ''}
+                                  >
+                                    <BorderlessEventEntries
+                                      organization={organization}
+                                      event={event}
+                                      project={_projects[0] as Project}
+                                      showTagSummary={false}
+                                    />
+                                  </ProfileGroupProvider>
+                                )}
+                              </ProfileContext.Consumer>
+                            </ProfilesProvider>
+                          ) : (
+                            <BorderlessEventEntries
+                              organization={organization}
+                              event={event}
+                              project={_projects[0] as Project}
+                              showTagSummary={false}
+                            />
+                          )}
+                        </QuickTraceContext>
                       )}
                     </Projects>
                   </Layout.Main>
