@@ -17,6 +17,10 @@ type TestAnalyticsTableResponse = {
   isBrokenTest: boolean;
   lastRun: string;
   testName: string;
+  totalFailCount: number;
+  totalFlakyFailCount: number;
+  totalPassCount: number;
+  totalSkipCount: number;
 };
 
 export type Row = Pick<
@@ -27,6 +31,10 @@ export type Row = Pick<
   | 'commitsFailed'
   | 'lastRun'
   | 'isBrokenTest'
+  | 'totalFailCount'
+  | 'totalFlakyFailCount'
+  | 'totalPassCount'
+  | 'totalSkipCount'
 >;
 export type Column = GridColumnHeader<
   'testName' | 'averageDurationMs' | 'flakeRate' | 'commitsFailed' | 'lastRun'

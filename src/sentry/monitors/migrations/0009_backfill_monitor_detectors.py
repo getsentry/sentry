@@ -15,14 +15,31 @@ def backfill_monitor_detectors(apps: StateApps, schema_editor: BaseDatabaseSchem
     DataSource = apps.get_model("workflow_engine", "DataSource")
     Detector = apps.get_model("workflow_engine", "Detector")
     DataSourceDetector = apps.get_model("workflow_engine", "DataSourceDetector")
+    Project = apps.get_model("sentry", "Project")
+    Team = apps.get_model("sentry", "Team")
     for monitor in RangeQuerySetWrapperWithProgressBar(Monitor.objects.all()):
+        if (
+            monitor.status not in (0, 1)
+            or not Project.objects.filter(id=monitor.project_id).exists()
+            or (
+                monitor.owner_team_id is not None
+                and not Team.objects.filter(id=monitor.owner_team_id).exists()
+            )
+        ):
+            continue
+
         # Copied from `ensure_cron_detector`
         with transaction.atomic(router.db_for_write(DataSource)):
-            data_source, created = DataSource.objects.get_or_create(
-                type=DATA_SOURCE_CRON_MONITOR,
-                organization_id=monitor.organization_id,
-                source_id=str(monitor.id),
-            )
+            try:
+                data_source, created = DataSource.objects.get_or_create(
+                    type=DATA_SOURCE_CRON_MONITOR,
+                    organization_id=monitor.organization_id,
+                    source_id=str(monitor.id),
+                )
+            except DataSource.MultipleObjectsReturned:
+                # If these rows already exist just skip. We shouldn't have multiple rows, but because there's no unique
+                # key on `type, organization_id, source_id` we can have race conditions.
+                continue
             if created:
                 detector = Detector.objects.create(
                     # MonitorIncidentType.slug
