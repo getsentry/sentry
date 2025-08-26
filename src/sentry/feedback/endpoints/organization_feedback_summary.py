@@ -98,16 +98,14 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         summary_cache_key = f"feedback_summary:{organization.id}:{start.strftime('%Y-%m-%d-%H')}:{end.strftime('%Y-%m-%d-%H')}:{hashed_project_ids}"
         summary_cache = cache.get(summary_cache_key)
-        # TODO(vishnupsatish): remove this once we are to EA. This is to allow users to regenerate the summary on reload.
         if summary_cache:
-            # return Response(
-            #     {
-            #         "summary": summary_cache["summary"],
-            #         "success": True,
-            #         "numFeedbacksUsed": summary_cache["numFeedbacksUsed"],
-            #     }
-            # )
-            pass
+            return Response(
+                {
+                    "summary": summary_cache["summary"],
+                    "success": True,
+                    "numFeedbacksUsed": summary_cache["numFeedbacksUsed"],
+                }
+            )
 
         filters = {
             "type": FeedbackGroup.type_id,
@@ -170,12 +168,11 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             )
         summary = response_data["data"]
 
-        # TODO(vishnupsatish): remove this once we are to EA. This is to allow users to regenerate the summary on reload.
-        # cache.set(
-        #     summary_cache_key,
-        #     {"summary": summary, "numFeedbacksUsed": len(group_feedbacks)},
-        #     timeout=SUMMARY_CACHE_TIMEOUT,
-        # )
+        cache.set(
+            summary_cache_key,
+            {"summary": summary, "numFeedbacksUsed": len(group_feedbacks)},
+            timeout=SUMMARY_CACHE_TIMEOUT,
+        )
 
         return Response(
             {
