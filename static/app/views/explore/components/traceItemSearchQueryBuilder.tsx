@@ -1,12 +1,22 @@
-import {useMemo} from 'react';
+import React, {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {getHasTag} from 'sentry/components/events/searchBar';
 import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
+import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import {space} from 'sentry/styles/space';
+import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+  type FieldDefinition,
+} from 'sentry/utils/fields';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
@@ -110,6 +120,35 @@ export function useSearchQueryBuilderProps({
   };
 }
 
+export const TraceItemSearchQueryBuilderContext = React.createContext<{
+  customKeyRenderer?: (
+    tag: Tag,
+    fieldDefinition: FieldDefinition | null
+  ) => React.ReactNode;
+} | null>(null);
+
+const customTraceItemKeyRenderer = (
+  tag: Tag,
+  fieldDefinition: FieldDefinition | null
+) => {
+  const baseLabel = getKeyLabel(tag, fieldDefinition);
+  const typeLabel = getAttributeTypeLabel(fieldDefinition?.valueType);
+  const isSentryTag = tag.key.startsWith('message.parameter.0');
+  const hackedType = isSentryTag ? 'number' : typeLabel;
+  const isHacked2 = tag.key.startsWith('message.parameter.1');
+  const hackedType2 = isHacked2 ? 'boolean' : hackedType;
+
+  return (
+    <KeyItemWrapper>
+      <KeyLabelSection>
+        <span>{baseLabel}</span>
+        {isSentryTag && <SentryIcon size="xs" />}
+      </KeyLabelSection>
+      <TypeIndicator type={hackedType2}>{hackedType2}</TypeIndicator>
+    </KeyItemWrapper>
+  );
+};
+
 /**
  * This component should replace EAPSpansSearchQueryBuilder in the future,
  * once spans support has been added to the trace-items attribute endpoints.
@@ -149,7 +188,15 @@ export function TraceItemSearchQueryBuilder({
     supportedAggregates,
   });
 
-  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
+  return (
+    <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+      <TraceItemSearchQueryBuilderContext.Provider
+        value={{customKeyRenderer: customTraceItemKeyRenderer}}
+      >
+        <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />
+      </TraceItemSearchQueryBuilderContext.Provider>
+    </SearchQueryBuilderProvider>
+  );
 }
 
 function useFunctionTags(
@@ -227,3 +274,66 @@ function itemTypeToDefaultPlaceholder(itemType: TraceItemDataset) {
   }
   return t('Search for logs, users, tags, and more');
 }
+
+function getAttributeTypeLabel(valueType: FieldValueType | null | undefined): string {
+  switch (valueType) {
+    case FieldValueType.INTEGER:
+    case FieldValueType.NUMBER:
+    case FieldValueType.DURATION:
+    case FieldValueType.PERCENTAGE:
+    case FieldValueType.SIZE:
+    case FieldValueType.RATE:
+      return 'number';
+    case FieldValueType.BOOLEAN:
+      return 'boolean';
+    case FieldValueType.DATE:
+      return 'date';
+    case FieldValueType.STRING:
+    default:
+      return 'string';
+  }
+}
+
+const KeyItemWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+const KeyLabelSection = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  flex: 1;
+  min-width: 0;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const SentryIcon = styled(IconSentry)`
+  flex-shrink: 0;
+  line-height: 1;
+  margin-left: ${space(0.5)};
+  color: ${p => p.theme.subText};
+`;
+
+const TypeIndicator = styled('span')<{type: string}>`
+  margin-left: ${space(2)};
+  flex-shrink: 0;
+  color: ${p => {
+    switch (p.type) {
+      case 'number':
+        return p.theme.yellow400;
+      case 'boolean':
+        return p.theme.pink400;
+      case 'string':
+      default:
+        return p.theme.purple400;
+    }
+  }};
+`;

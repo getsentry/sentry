@@ -19,6 +19,7 @@ import {
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -128,10 +129,15 @@ export function useSortedFilterKeyItems({
   inputValue,
   filterValue,
   includeSuggestions,
+  customKeyRenderer,
 }: {
   filterValue: string;
   includeSuggestions: boolean;
   inputValue: string;
+  customKeyRenderer?: (
+    tag: Tag,
+    fieldDefinition: FieldDefinition | null
+  ) => React.ReactNode;
 }): SearchKeyItem[] {
   const {
     filterKeys,
@@ -179,7 +185,9 @@ export function useSortedFilterKeyItems({
     if (!filterValue || !search) {
       if (!filterKeySections.length) {
         return flatKeys
-          .map(key => createItem(key, getFieldDefinition(key.key)))
+          .map(key =>
+            createItem(key, getFieldDefinition(key.key), undefined, customKeyRenderer)
+          )
           .sort((a, b) => a.textValue.localeCompare(b.textValue));
       }
 
@@ -190,7 +198,9 @@ export function useSortedFilterKeyItems({
       return filterSectionKeys
         .map(key => filterKeys[key])
         .filter(defined)
-        .map(key => createItem(key, getFieldDefinition(key.key)));
+        .map(key =>
+          createItem(key, getFieldDefinition(key.key), undefined, customKeyRenderer)
+        );
     }
 
     const searched = search.search(filterValue);
@@ -199,7 +209,12 @@ export function useSortedFilterKeyItems({
       .map(({item}) => item)
       .filter(item => item.type === 'key' && filterKeys[item.item.key])
       .map(({item}) => {
-        return createItem(filterKeys[item.key]!, getFieldDefinition(item.key));
+        return createItem(
+          filterKeys[item.key]!,
+          getFieldDefinition(item.key),
+          undefined,
+          customKeyRenderer
+        );
       });
 
     const askSeerItem = [];
@@ -304,6 +319,7 @@ export function useSortedFilterKeyItems({
 
     return [...keyItems, ...askSeerItem];
   }, [
+    customKeyRenderer,
     disallowFreeText,
     enableAISearch,
     filterKeySections,

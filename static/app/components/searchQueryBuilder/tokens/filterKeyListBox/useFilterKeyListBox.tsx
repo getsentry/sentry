@@ -30,8 +30,9 @@ import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import type {RecentSearch, TagCollection} from 'sentry/types/group';
+import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {FieldDefinition} from 'sentry/utils/fields';
 import clamp from 'sentry/utils/number/clamp';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -87,7 +88,12 @@ function findNextMatchingItem(
   return nextItem;
 }
 
-function useFilterKeyItems() {
+function useFilterKeyItems(
+  customKeyRenderer?: (
+    tag: Tag,
+    fieldDefinition: FieldDefinition | null
+  ) => React.ReactNode
+) {
   const {filterKeySections, getFieldDefinition, filterKeys} = useSearchQueryBuilder();
 
   const sectionedItems = useMemo(() => {
@@ -104,7 +110,7 @@ function useFilterKeyItems() {
     );
 
     const sections = filterKeySections.map(section =>
-      createSection(section, filterKeys, getFieldDefinition)
+      createSection(section, filterKeys, getFieldDefinition, customKeyRenderer)
     );
     if (uncategorizedFilterKeys.length) {
       sections.push(
@@ -115,12 +121,13 @@ function useFilterKeyItems() {
             children: uncategorizedFilterKeys,
           },
           filterKeys,
-          getFieldDefinition
+          getFieldDefinition,
+          customKeyRenderer
         )
       );
     }
     return sections;
-  }, [filterKeySections, filterKeys, getFieldDefinition]);
+  }, [filterKeySections, filterKeys, getFieldDefinition, customKeyRenderer]);
 
   return {sectionedItems};
 }
@@ -163,7 +170,16 @@ function useFilterKeySections({
 
   return {sections, selectedSection, setSelectedSection};
 }
-export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
+export function useFilterKeyListBox({
+  filterValue,
+  customKeyRenderer,
+}: {
+  filterValue: string;
+  customKeyRenderer?: (
+    tag: Tag,
+    fieldDefinition: FieldDefinition | null
+  ) => React.ReactNode;
+}) {
   const {
     filterKeys,
     getFieldDefinition,
@@ -173,7 +189,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
     gaveSeerConsent,
     currentInputValue,
   } = useSearchQueryBuilder();
-  const {sectionedItems} = useFilterKeyItems();
+  const {sectionedItems} = useFilterKeyItems(customKeyRenderer);
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
   const {sections, selectedSection, setSelectedSection} = useFilterKeySections({

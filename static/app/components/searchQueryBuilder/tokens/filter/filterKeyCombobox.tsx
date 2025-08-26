@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useContext, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item} from '@react-stately/collections';
 import type {Node} from '@react-types/shared';
@@ -22,6 +22,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TraceItemSearchQueryBuilderContext} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 
 type KeyComboboxProps = {
   item: Node<ParseResultToken>;
@@ -35,10 +36,14 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
 
   const organization = useOrganization();
   const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
+  const customKeyRenderer = useContext(
+    TraceItemSearchQueryBuilderContext
+  )?.customKeyRenderer;
   const sortedFilterKeys = useSortedFilterKeyItems({
     filterValue: inputValue,
     inputValue,
     includeSuggestions: false,
+    customKeyRenderer,
   });
   const {
     dispatch,

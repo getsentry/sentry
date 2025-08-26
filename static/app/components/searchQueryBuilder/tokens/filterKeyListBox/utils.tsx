@@ -78,7 +78,11 @@ export function getKeyLabel(
 export function createSection(
   section: FilterKeySection,
   keys: TagCollection,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  customKeyRenderer?: (
+    tag: Tag,
+    fieldDefinition: FieldDefinition | null
+  ) => React.ReactNode
 ): KeySectionItem {
   return {
     key: section.value,
@@ -89,7 +93,7 @@ export function createSection(
         if (!keys[key]) {
           return null;
         }
-        return createItem(keys[key], getFieldDefinition(key), section);
+        return createItem(keys[key], getFieldDefinition(key), section, customKeyRenderer);
       })
       .filter(defined),
     type: 'section',
@@ -99,7 +103,11 @@ export function createSection(
 export function createItem(
   tag: Tag,
   fieldDefinition: FieldDefinition | null,
-  section?: FilterKeySection
+  section?: FilterKeySection,
+  customKeyRenderer?: (
+    tag: Tag,
+    fieldDefinition: FieldDefinition | null
+  ) => React.ReactNode
 ): KeyItem {
   const description = fieldDefinition?.desc;
 
@@ -107,13 +115,16 @@ export function createItem(
 
   return {
     key: getEscapedKey(key),
-    label: getKeyLabel(tag, fieldDefinition),
+    label: customKeyRenderer
+      ? customKeyRenderer(tag, fieldDefinition)
+      : getKeyLabel(tag, fieldDefinition),
     description: description ?? '',
     value: tag.key,
     textValue: tag.key,
     hideCheck: true,
     showDetailsInOverlay: true,
     details: <KeyDescription tag={tag} />,
+    tag,
     type: 'item',
   };
 }

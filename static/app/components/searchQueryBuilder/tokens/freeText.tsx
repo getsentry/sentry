@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {Fragment, useCallback, useContext, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -39,6 +39,7 @@ import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TraceItemSearchQueryBuilderContext} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
@@ -274,14 +275,19 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [trimmedTokenValue, updateSelectionIndex, setCurrentInputValue]);
 
+  const customKeyRenderer = useContext(
+    TraceItemSearchQueryBuilderContext
+  )?.customKeyRenderer;
   const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
     useFilterKeyListBox({
       filterValue,
+      customKeyRenderer,
     });
   const sortedFilteredItems = useSortedFilterKeyItems({
     filterValue,
     inputValue,
     includeSuggestions: true,
+    customKeyRenderer,
   });
 
   const items = customMenu ? sectionItems : sortedFilteredItems;

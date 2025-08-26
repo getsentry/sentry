@@ -4,12 +4,15 @@ import type {
   SelectOptionWithKey,
   SelectSectionWithKey,
 } from 'sentry/components/core/compactSelect/types';
+import type {Tag} from 'sentry/types/group';
 
 export interface KeyItem extends SelectOptionWithKey<string> {
   description: string;
   details: React.ReactNode;
   hideCheck: boolean;
   showDetailsInOverlay: boolean;
+  // Tag should be used if using a custom key renderer
+  tag: Tag;
   textValue: string;
   type: 'item';
   value: string;
