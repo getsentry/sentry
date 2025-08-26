@@ -11,7 +11,10 @@ import {t, tct} from 'sentry/locale';
 import {AddScriptToYamlStep} from 'sentry/views/prevent/tests/onboardingSteps/addScriptToYamlStep';
 import {AddUploadTokenStep} from 'sentry/views/prevent/tests/onboardingSteps/addUploadTokenStep';
 import type {UploadPermission} from 'sentry/views/prevent/tests/onboardingSteps/chooseUploadPermissionStep';
-import {ChooseUploadPermissionStep} from 'sentry/views/prevent/tests/onboardingSteps/chooseUploadPermissionStep';
+import {
+  ChooseUploadPermissionStep,
+  UploadPermission,
+} from 'sentry/views/prevent/tests/onboardingSteps/chooseUploadPermissionStep';
 import {EditGHAWorkflowStep} from 'sentry/views/prevent/tests/onboardingSteps/editGHAWorkflowStep';
 import {InstallPreventCLIStep} from 'sentry/views/prevent/tests/onboardingSteps/installPreventCLIStep';
 import {OutputCoverageFileStep} from 'sentry/views/prevent/tests/onboardingSteps/outputCoverageFileStep';
@@ -20,7 +23,10 @@ import {UploadFileCLIStep} from 'sentry/views/prevent/tests/onboardingSteps/uplo
 import {ViewResultsInsightsStep} from 'sentry/views/prevent/tests/onboardingSteps/viewResultsInsightsStep';
 import TestPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
 
-type SetupOption = 'githubAction' | 'cli';
+export enum SetupOption {
+  GITHUB_ACTION = 'githubAction',
+  CLI = 'cli',
+}
 
 export default function TestsOnboardingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,8 +39,9 @@ export default function TestsOnboardingPage() {
     [setSearchParams]
   );
   const [selectedUploadPermission, setSelectedUploadPermission] =
-    useState<UploadPermission>('oidc');
+    useState<UploadPermission>(UploadPermission.OIDC);
 
+  // currently only used for testing
   if (searchParams.get('preOnb') !== null) {
     return (
       <LayoutGap>
@@ -68,7 +75,7 @@ export default function TestsOnboardingPage() {
         selectedUploadPermission={selectedUploadPermission}
         setSelectedUploadPermission={setSelectedUploadPermission}
       />
-      {selectedUploadPermission === 'oidc'
+      {selectedUploadPermission === UploadPermission.OIDC
         ? uploadPermissionOidcSteps
         : uploadPermissionUploadTokenSteps}
     </Fragment>
@@ -90,7 +97,7 @@ export default function TestsOnboardingPage() {
       <OnboardingContainer>
         <OnboardingContent>
           <IntroContainer>
-            <Flex justify="between" gap="2xl">
+            <Flex justify="between">
               <div>
                 <GetStartedHeader>
                   {t('Get Started with Test Analytics')}
@@ -107,15 +114,15 @@ export default function TestsOnboardingPage() {
           <SelectOptionHeader>{t('Select a setup option')}</SelectOptionHeader>
           <RadioGroup
             label="Select a setup option"
-            value={opt === 'cli' ? 'cli' : 'githubAction'}
+            value={opt === SetupOption.CLI ? SetupOption.CLI : SetupOption.GITHUB_ACTION}
             onChange={handleRadioChange}
             choices={[
-              ['githubAction', t('Use GitHub Actions to run my CI')],
-              ['cli', t("Use Sentry Prevent's CLI to upload testing reports")],
+              [SetupOption.GITHUB_ACTION, t('Use GitHub Actions to run my CI')],
+              [SetupOption.CLI, t("Use Sentry Prevent's CLI to upload testing reports")],
             ]}
           />
           <Flex direction="column" gap="2xl" maxWidth="1000px" padding="2xl 0 0 3xl">
-            {opt === 'githubAction' ? githubActionSteps : cliSteps}
+            {opt === SetupOption.CLI ? cliSteps : githubActionSteps}
             <div>
               {tct('To learn more about Test Analytics, please visit [ourDocs].', {
                 ourDocs: (
