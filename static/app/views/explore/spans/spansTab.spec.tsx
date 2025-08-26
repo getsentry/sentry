@@ -200,7 +200,45 @@ describe('SpansTabContent', () => {
       'timestamp',
       'project',
     ]);
-  }, 20_000);
+  });
+
+  it('opens toolbar when switching to aggregates tab', async () => {
+    render(
+      <Wrapper>
+        <SpansTabContent datePageFilterProps={datePageFilterProps} />
+      </Wrapper>,
+      {organization}
+    );
+
+    // by default the toolbar should be visible
+    expect(screen.getByTestId('explore-span-toolbar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Collapse sidebar')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Expand sidebar')).not.toBeInTheDocument();
+
+    // collapse the toolbar
+    await userEvent.click(screen.getByLabelText('Collapse sidebar'));
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Collapse sidebar')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
+
+    // switching to the aggregates tab should expand the toolbar
+    await userEvent.click(await screen.findByRole('tab', {name: 'Aggregates'}));
+    expect(screen.getByTestId('explore-span-toolbar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Collapse sidebar')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Expand sidebar')).not.toBeInTheDocument();
+
+    // collapse the toolbar
+    await userEvent.click(screen.getByLabelText('Collapse sidebar'));
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Collapse sidebar')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
+
+    // switching to the span samples tab should NOT expand the toolbar
+    await userEvent.click(await screen.findByRole('tab', {name: 'Span Samples'}));
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Collapse sidebar')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
+  });
 
   describe('schema hints', () => {
     let spies: jest.SpyInstance[];

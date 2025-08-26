@@ -18,7 +18,7 @@ jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPLandingPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules', 'insights-entry-points'],
+    features: ['insight-modules', 'insights-entry-points'],
   });
 
   let throughputRequestMock!: jest.Mock;

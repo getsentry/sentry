@@ -42,6 +42,9 @@ def _process_suspect_commits(
     sdk_name=None,
     **kwargs,
 ):
+    """
+    This is the logic behind SuspectCommitStrategy.RELEASE_BASED
+    """
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
 
@@ -209,6 +212,9 @@ def process_suspect_commits(
     sdk_name=None,
     **kwargs,
 ):
+    """
+    This is the task behind SuspectCommitStrategy.RELEASE_BASED
+    """
     lock = locks.get(
         f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
     )
