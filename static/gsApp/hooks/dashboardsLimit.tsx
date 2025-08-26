@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
+import {Link} from 'react-router-dom';
 
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
@@ -76,21 +77,65 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
   };
 }
 
-type DashboardsLimitProviderProps = {
-  children: ((data: UseDashboardsLimitResult & any) => React.ReactNode) | React.ReactNode;
+type Props = {
+  children?:
+    | React.ReactNode
+    | ((props: {
+        hasReachedDashboardLimit: boolean;
+        isLoading: boolean;
+        limitMessage: React.ReactNode | null;
+      }) => React.ReactNode);
 };
 
-export function DashboardsLimitProvider({
-  children,
-  ...props
-}: DashboardsLimitProviderProps & any) {
-  const dashboardLimitData = useDashboardsLimit();
+export function DashboardLimitHovercard({children}: Props) {
+  const {hasReachedDashboardLimit, isLoading} = useDashboardsLimit();
+
+  if (!hasReachedDashboardLimit) {
+    return typeof children === 'function'
+      ? children({hasReachedDashboardLimit, isLoading, limitMessage: null})
+      : children;
+  }
+
+  // const hoverBody = (
+  //   <LearnMoreTextBody data-test-id="dashboard-limit-hovercard">
+  //     <Flex direction="column" gap="md" align="center">
+  //       <Text>
+  //         {}
+  //       </Text>
+  //     </Flex>
+  //   </LearnMoreTextBody>
+  // );
+
+  const limitMessage = tct(
+    'You have reached the maximum number of Dashboards available on your plan. To add more, [link:upgrade your plan]',
+    {
+      link: (
+        <Link to="/organizations/organization-slug/settings/billing/upgrade/">
+          {t('upgrade your plan')}
+        </Link>
+      ),
+    }
+  );
 
   return (
     <Fragment>
       {typeof children === 'function'
-        ? children({...props, ...dashboardLimitData})
+        ? children({hasReachedDashboardLimit, isLoading, limitMessage})
         : children}
     </Fragment>
   );
 }
+
+// const LearnMoreTextBody = styled('div')`
+//   padding: ${space(1)};
+//   width: 250px;
+// `;
+
+// const StyledHovercard = styled(Hovercard)`
+//   width: auto;
+//   border-radius: ${p => p.theme.borderRadius};
+//   .power-icon {
+//     padding: 0;
+//     align-items: center;
+//   }
+// `;

@@ -157,15 +157,14 @@ export type GithubInstallationInstallButtonProps = {
   isSaving: boolean;
 };
 
-type DashboardLimitProviderProps = {
+type DashboardLimitHovercardProps = {
   children:
-    | ((limitData: {
-        dashboardsLimit: number;
+    | React.ReactNode
+    | ((props: {
         hasReachedDashboardLimit: boolean;
         isLoading: boolean;
         limitMessage: React.ReactNode | null;
-      }) => React.ReactNode)
-    | React.ReactNode;
+      }) => React.ReactNode);
 };
 
 /**
@@ -180,7 +179,7 @@ type ComponentHooks = {
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
-  'component:dashboards-limit-provider': () => React.ComponentType<DashboardLimitProviderProps>;
+  'component:dashboards-limit-hovercard': () => React.ComponentType<DashboardLimitHovercardProps>;
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
