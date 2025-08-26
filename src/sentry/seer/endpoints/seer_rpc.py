@@ -640,7 +640,7 @@ def get_spans(
     org_id: int,
     project_ids: list[int],
     query: str = "",
-    sort: str = "",
+    sort: list[dict[str, str | bool]] = None,
     stats_period: str = "7d",
     columns: list[dict[str, str]],
     limit: int = 10,
@@ -702,17 +702,18 @@ def get_spans(
             )
         )
 
-    # Determine sort field and direction
+    descending = True
     if sort:
-        # Handle descending sort (starts with -)
-        descending = sort.startswith("-")
-        sort_field = sort.lstrip("-")
-        # For explicit sorts, use the field as-is (no resolution needed)
-        sort_column_name = sort_field
-        sort_column_type = AttributeKey.Type.TYPE_STRING
+        descending = sort[0]["descending"]
+        sort_column_name = sort[0]["name"]
+        resolved_column, _ = resolver.resolve_attribute(sort_column_name)
+        sort_column_name = resolved_column.internal_name
+        sort_column_type = (
+            AttributeKey.Type.TYPE_STRING
+            if sort[0]["type"] == "TYPE_STRING"
+            else AttributeKey.Type.TYPE_DOUBLE
+        )
     else:
-        # Default to first column, descending
-        descending = True
         column_name = columns[0]["name"]
         resolved_column, _ = resolver.resolve_attribute(column_name)
         sort_column_name = resolved_column.internal_name
@@ -752,7 +753,7 @@ def get_spans(
         meta=meta,
         columns=request_columns,
         order_by=order_by_list,
-        filter=query_filter,  # TODO: should this default to an empty string if its none?
+        filter=query_filter,
         limit=min(limit, 100),  # Force the upper limit to 100 to avoid abuse
     )
 

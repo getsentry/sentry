@@ -338,7 +338,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 {"name": "transaction", "type": "TYPE_STRING"},
                 {"name": "span.duration", "type": "TYPE_DOUBLE"},
             ],
-            limit=50,
+            limit=10,
         )
 
         assert "data" in result
@@ -392,3 +392,46 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         transactions = {span["transaction"] for span in result["data"]}
         assert transactions == {"foo"}
+
+        for span in result["data"]:
+            assert "transaction" in span
+            assert "span.duration" in span
+
+    def test_get_spans_with_sort(self) -> None:
+        """Test get_spans with sort string"""
+        for i, transaction in enumerate(["foo", "bar", "baz"]):
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:16],
+                organization_id=self.organization.id,
+                parent_span_id=None,
+                timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+                transaction=transaction,
+                duration=i * 100,
+                exclusive_time=100,
+                is_eap=True,
+            )
+
+        result = get_spans(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            columns=[
+                {"name": "transaction", "type": "TYPE_STRING"},
+                {"name": "span.duration", "type": "TYPE_DOUBLE"},
+            ],
+            sort=[
+                {
+                    "name": "span.duration",
+                    "type": "TYPE_DOUBLE",
+                    "descending": False,
+                },
+            ],
+        )
+
+        assert result["data"] == [
+            {"transaction": "foo", "span.duration": 0},
+            {"transaction": "bar", "span.duration": 100},
+            {"transaction": "baz", "span.duration": 200},
+        ]
