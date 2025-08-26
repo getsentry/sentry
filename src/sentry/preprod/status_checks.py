@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.github.commit_status import GitHubCheckConclusion, GitHubCheckStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.status_check import StatusCheckClient
@@ -11,6 +12,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +31,7 @@ def update_preprod_size_analysis_status_on_upload(preprod_artifact: PreprodArtif
     )
 
 
-def update_preprod_size_analysis_status_on_completion(
-    preprod_artifact: PreprodArtifact, target_url: str | None = None
-) -> None:
+def update_preprod_size_analysis_status_on_completion(preprod_artifact: PreprodArtifact) -> None:
     """Update status to SUCCESS when artifact processing is complete."""
     text = f"✅ Build {preprod_artifact.id} processed successfully."
     return _create_preprod_status_check(
@@ -41,7 +41,7 @@ def update_preprod_size_analysis_status_on_completion(
         title=SIZE_ANALYZER_TITLE,
         text=text,
         summary=f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` processed successfully.",
-        target_url=target_url,
+        target_url=None,  # TODO(preprod): add link to frontend
     )
 
 
@@ -69,21 +69,34 @@ def _create_preprod_status_check(
     conclusion: GitHubCheckConclusion | None = None,
     target_url: str | None = None,
 ) -> None:
+    logger.info(
+        "preprod.status_checks.create.start",
+        extra={
+            "artifact_id": preprod_artifact.id,
+            "status": status.value,
+            "conclusion": conclusion.value if conclusion else None,
+        },
+    )
+
     try:
         if not _create_preprod_status_check_impl(
             preprod_artifact, status, title, text, summary, conclusion, target_url
         ):
             logger.error(
-                "Failed to create preprod status check",
-                extra={"artifact_id": preprod_artifact.id, "status": status.value},
+                "preprod.status_checks.create.error",
+                extra={
+                    "artifact_id": preprod_artifact.id,
+                    "status": status.value,
+                    "conclusion": conclusion.value if conclusion else None,
+                },
             )
-    except Exception as e:
+    except Exception:
         logger.exception(
-            "Failed to create preprod status check",
+            "preprod.status_checks.create.exception",
             extra={
                 "artifact_id": preprod_artifact.id,
                 "status": status.value,
-                "error": str(e),
+                "conclusion": conclusion.value if conclusion else None,
             },
         )
 
@@ -99,7 +112,7 @@ def _create_preprod_status_check_impl(
 ) -> bool:
     if not preprod_artifact.commit_comparison:
         logger.info(
-            "No commit comparison found for preprod artifact",
+            "preprod.status_checks.create.no_commit_comparison",
             extra={"artifact_id": preprod_artifact.id},
         )
         return False
@@ -107,7 +120,7 @@ def _create_preprod_status_check_impl(
     commit_comparison: CommitComparison = preprod_artifact.commit_comparison
     if not commit_comparison.head_sha or not commit_comparison.head_repo_name:
         logger.info(
-            "Missing required git information for status check, skipping",
+            "preprod.status_checks.create.missing_git_info",
             extra={
                 "artifact_id": preprod_artifact.id,
                 "commit_comparison_id": commit_comparison.id,
@@ -123,7 +136,7 @@ def _create_preprod_status_check_impl(
     if not provider:
         return False
 
-    provider.create_status_check(
+    check_id = provider.create_status_check(
         repo=commit_comparison.head_repo_name,
         sha=commit_comparison.head_sha,
         status=status,
@@ -136,12 +149,12 @@ def _create_preprod_status_check_impl(
     )
 
     logger.info(
-        "Created preprod status check",
+        "preprod.status_checks.create.success",
         extra={
             "artifact_id": preprod_artifact.id,
             "status": status.value,
-            "repo": commit_comparison.head_repo_name,
-            "sha": commit_comparison.head_sha,
+            "conclusion": conclusion.value if conclusion else None,
+            "check_id": check_id,
         },
     )
     return True
@@ -150,71 +163,68 @@ def _create_preprod_status_check_impl(
 def _get_status_check_client(
     project: Project, commit_comparison: CommitComparison
 ) -> StatusCheckClient | None:
+    """Get status check client for the project's integration.
+
+    Returns None for expected failure cases (missing repo, integration, etc).
+    Raises exceptions for unexpected errors that should be handled upstream.
+    """
     try:
         repository = Repository.objects.get(
             organization_id=project.organization_id,
             name=commit_comparison.head_repo_name,
             provider=f"integrations:{commit_comparison.provider}",
         )
-        if not repository.integration_id:
-            logger.info(
-                "Repository found but no integration_id set",
-                extra={
-                    "provider": commit_comparison.provider,
-                    "project_id": project.id,
-                    "repo_name": commit_comparison.head_repo_name,
-                },
-            )
-            return None
-
-        integration = Integration.objects.get(id=repository.integration_id)
-        installation = integration.get_installation(organization_id=project.organization_id)
-        client = installation.get_client()
-
-        if not isinstance(client, StatusCheckClient):
-            logger.info(
-                "Client is not a status check client, skipping",
-                extra={
-                    "provider": commit_comparison.provider,
-                    "project_id": project.id,
-                    "repo_name": commit_comparison.head_repo_name,
-                },
-            )
-            return None
-
-        return client
-
     except Repository.DoesNotExist:
         logger.info(
-            "No repository found for provider and repo name",
+            "preprod.status_checks.create.no_repository",
             extra={
-                "provider": commit_comparison.provider,
+                "commit_comparison": commit_comparison.id,
                 "project_id": project.id,
-                "repo_name": commit_comparison.head_repo_name,
+                "provider": commit_comparison.provider,
             },
         )
         return None
+
+    if not repository.integration_id:
+        logger.info(
+            "preprod.status_checks.create.no_integration_id",
+            extra={
+                "repository": repository.id,
+                "project_id": project.id,
+            },
+        )
+        return None
+
+    try:
+        integration: Integration = Integration.objects.get(id=repository.integration_id)
     except Integration.DoesNotExist:
         logger.info(
-            "Integration not found for repository",
+            "preprod.status_checks.create.no_integration",
             extra={
-                "provider": commit_comparison.provider,
+                "repository": repository.id,
+                "integration_id": repository.integration_id,
                 "project_id": project.id,
-                "repo_name": commit_comparison.head_repo_name,
             },
         )
         return None
-    except Exception as e:
-        logger.exception(
-            "Failed to get status check client",
+
+    installation: IntegrationInstallation = integration.get_installation(
+        organization_id=project.organization_id
+    )
+    client = installation.get_client()
+
+    if not isinstance(client, StatusCheckClient):
+        logger.info(
+            "preprod.status_checks.create.not_status_check_client",
             extra={
-                "provider": commit_comparison.provider,
+                "repository": repository.id,
+                "installation": installation.id,
                 "project_id": project.id,
-                "repo_name": commit_comparison.head_repo_name,
-                "error": str(e),
             },
         )
         return None
+
+    return client
 
 
 def _get_status_check_provider(
@@ -225,7 +235,7 @@ def _get_status_check_provider(
         return _GitHubStatusCheckProvider(client)
     else:
         logger.info(
-            "Status checks not currently supported for provider, skipping",
+            "preprod.status_checks.create.not_supported_provider",
             extra={"provider": provider},
         )
         return None
@@ -252,7 +262,7 @@ class _StatusCheckProvider(ABC):
         external_id: str,
         target_url: str | None = None,
         conclusion: GitHubCheckConclusion | None = None,
-    ) -> None:
+    ) -> str | None:
         """Create a status check using provider-specific format."""
         raise NotImplementedError
 
@@ -269,7 +279,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         external_id: str,
         target_url: str | None = None,
         conclusion: GitHubCheckConclusion | None = None,
-    ) -> None:
+    ) -> str | None:
 
         check_data = {
             "name": title,
@@ -290,4 +300,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         if target_url:
             check_data["details_url"] = target_url
 
-        self.client.create_check_run(repo=repo, data=check_data)
+        response = self.client.create_check_run(repo=repo, data=check_data)
+        response_json = json.loads(response)
+        check_id = response_json.get("id")
+        return str(check_id)
