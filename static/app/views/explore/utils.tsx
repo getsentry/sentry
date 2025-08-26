@@ -348,7 +348,7 @@ export function generateTargetQuery({
   }
 
   return {
-    fields,
+    fields: newFields,
     search,
     sortBys: [sortBy],
   };
