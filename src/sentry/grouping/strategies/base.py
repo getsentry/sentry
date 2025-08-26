@@ -326,8 +326,8 @@ class StrategyConfiguration:
     enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
-    def __init__(self, enhancements: str | None = None):
-        if enhancements is None:
+    def __init__(self, base64_enhancements: str | None = None):
+        if base64_enhancements is None:
             enhancements_config = EnhancementsConfig.from_rules_text("", referrer="strategy_config")
         else:
             # If the enhancements string has been loaded from an existing event, it may be from an
@@ -335,7 +335,7 @@ class StrategyConfiguration:
             # this grouping config
             try:
                 enhancements_config = EnhancementsConfig.from_base64_string(
-                    enhancements, referrer="strategy_config"
+                    base64_enhancements, referrer="strategy_config"
                 )
             except InvalidEnhancerConfig:
                 enhancements_config = ENHANCEMENT_BASES[
