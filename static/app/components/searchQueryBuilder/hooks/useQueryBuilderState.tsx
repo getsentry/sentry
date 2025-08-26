@@ -87,35 +87,35 @@ export type UpdateFreeTextAction = {
   focusOverride?: FocusOverride;
 };
 
-export type ReplaceTokensWithTextOnPasteAction = {
+type ReplaceTokensWithTextOnPasteAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE';
   focusOverride?: FocusOverride;
 };
 
-export type ReplaceTokensWithTextOnDeleteAction = {
+type ReplaceTokensWithTextOnDeleteAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE';
   focusOverride?: FocusOverride;
 };
 
-export type ReplaceTokensWithTextOnCutAction = {
+type ReplaceTokensWithTextOnCutAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_CUT';
   focusOverride?: FocusOverride;
 };
 
-export type ReplaceTokensWithTextOnKeyDownAction = {
+type ReplaceTokensWithTextOnKeyDownAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN';
   focusOverride?: FocusOverride;
 };
 
-export type ReplaceTokensWithTextOnSelectAction = {
+type ReplaceTokensWithTextOnSelectAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT';
