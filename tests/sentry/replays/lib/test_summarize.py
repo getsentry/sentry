@@ -81,8 +81,8 @@ def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
     result = get_summary_logs(_faker(), error_events=error_events, project_id=1)
     assert result == [
         "User experienced an error: 'BadError: something else bad' at 1.0",
-        "Logged: hello at 1.5",
-        "Logged: world at 2.0",
+        "Logged: 'hello' at 1.5",
+        "Logged: 'world' at 2.0",
         "User experienced an error: 'ZeroDivisionError: division by zero' at 3.0",
         "User submitted feedback: 'Great website!' at 4.0",
     ]
@@ -291,6 +291,15 @@ def test_as_log_message() -> None:
     }
     assert as_log_message(event) is None
     assert as_log_message({}) is None
+
+
+def test_as_log_message_long_console_message() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 0.0,
+        "data": {"tag": "breadcrumb", "payload": {"category": "console", "message": "a" * 2000}},
+    }
+    assert as_log_message(event) == f"Logged: '{'a' * 200} [truncated]' at 0.0"
 
 
 def test_parse_iso_timestamp_to_ms() -> None:

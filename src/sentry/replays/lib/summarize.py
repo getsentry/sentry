@@ -278,8 +278,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 to = event["data"]["payload"]["description"]
                 return f"User navigated to: {to} at {timestamp}"
             case EventType.CONSOLE:
-                message = event["data"]["payload"]["message"]
-                return f"Logged: {message} at {timestamp}"
+                message = str(event["data"]["payload"]["message"])
+                trunc_length = 200
+                if len(message) > trunc_length:
+                    message = message[:trunc_length] + " [truncated]"
+                return f"Logged: '{message}' at {timestamp}"
             case EventType.UI_BLUR:
                 return None
             case EventType.UI_FOCUS:
@@ -368,7 +371,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return None
             case EventType.NAVIGATION:
                 return None  # we favor NAVIGATION_SPAN since the frontend favors navigation span events in the breadcrumb tab
-    except (KeyError, ValueError):
+    except (KeyError, ValueError, TypeError):
         logger.exception(
             "Error parsing event in replay AI summary",
             extra={
