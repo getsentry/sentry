@@ -656,32 +656,30 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         """
         # Test cases: each tuple contains (test_case_name, blames_setup, group_first_seen_days_ago, expected_group_owner_exists, expected_commit_id)
         test_cases = [
-            # All commits too young
-            ("all_commits_too_young", ["blame_recent"], 3, False, None),
-            # Early exit on too old
-            ("early_exit_too_old", ["blame_too_old", "blame_existing_commit"], 10, False, None),
-            # All outside threshold
-            ("mixed_young_then_old", ["blame_recent", "blame_too_old"], 10, False, None),
-            # Skip young, find valid
+            ("all_commits_too_young", ["blame_recent"], 3, False, None),  # All commits too young
+            (
+                "all_outside_range",
+                ["blame_recent", "blame_too_old"],
+                10,
+                False,
+                None,
+            ),  # All outside range
             (
                 "skip_young_find_valid",
                 ["blame_recent", "blame_existing_commit"],
                 5,
                 True,
                 "existing-commit",
-            ),
-            # All valid, picks most recent
+            ),  # Skip young, find valid
             (
                 "all_valid_picks_most_recent",
                 ["blame_existing_commit", "blame_no_existing_commit"],
                 5,
                 True,
                 "existing-commit",
-            ),
-            # All commits too old
-            ("only_old_commits", ["blame_too_old"], 10, False, None),
-            # Empty blames
-            ("empty_blames", [], 10, False, None),
+            ),  # All valid, picks most recent
+            ("only_old_commits", ["blame_too_old"], 10, False, None),  # All commits too old
+            ("empty_blames", [], 10, False, None),  # No blames
         ]
 
         existing_commit = self.create_commit(
