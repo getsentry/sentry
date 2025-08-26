@@ -131,6 +131,10 @@ describe('useInfiniteTestResults', () => {
       lastDuration: 0.052,
       lastRun: '2024-01-15T10:30:00Z',
       isBrokenTest: false, // totalFailCount !== totalPassCount + totalFlakyFailCount + totalSkipCount
+      totalFailCount: 12,
+      totalFlakyFailCount: 8,
+      totalPassCount: 88,
+      totalSkipCount: 2,
     });
   });
 
