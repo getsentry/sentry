@@ -31,12 +31,7 @@ const COLUMNS_ORDER: Column[] = [
   {key: 'regenerateToken', name: '', width: 100},
 ];
 
-const SORTABLE_FIELDS = ['name'] as const;
-
-export const DEFAULT_SORT: ValidSort = {
-  field: 'name',
-  kind: 'desc',
-};
+export const SORTABLE_FIELDS = ['name'] as const;
 
 interface Props {
   response: {
@@ -44,7 +39,7 @@ interface Props {
     isLoading: boolean;
     error?: Error | null;
   };
-  sort: ValidSort;
+  sort?: ValidSort; // undefined when no visible column is sorted
 }
 
 export default function RepoTokenTable({response, sort}: Props) {
@@ -57,21 +52,25 @@ export default function RepoTokenTable({response, sort}: Props) {
       error={response.error}
       data={data}
       columnOrder={COLUMNS_ORDER}
-      columnSortBy={[
-        {
-          key: sort.field,
-          order: sort.kind,
-        },
-      ]}
+      columnSortBy={
+        sort
+          ? [
+              {
+                key: sort.field,
+                order: sort.kind,
+              },
+            ]
+          : []
+      }
       grid={{
-        renderHeadCell: (column: Column) =>
+        renderHeadCell: column =>
           renderTableHeader({
-            column,
+            column: column as Column,
             sort,
           }),
-        renderBodyCell: (column: Column, row: Row) =>
+        renderBodyCell: (column, row) =>
           renderTableBody({
-            column,
+            column: column as Column,
             row,
           }),
       }}
