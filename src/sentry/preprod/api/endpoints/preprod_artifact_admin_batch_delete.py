@@ -295,7 +295,7 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                     {
                         "artifact_id": str(artifact_id),
                         "success": False,
-                        "error": str(e),
+                        "error": "Internal error deleting artifact.",
                     }
                 )
                 logger.exception(
