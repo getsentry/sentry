@@ -111,3 +111,14 @@ def test_format_feedback_title() -> None:
     special_message = "The @login button doesn't work! It's broken & needs fixing."
     expected_special = "User Feedback: The @login button doesn't work! It's broken & needs fixing."
     assert format_feedback_title(special_message) == expected_special
+
+    # Test with include_prefix=False
+    assert (
+        format_feedback_title("Login button broken", include_prefix=False) == "Login button broken"
+    )
+    assert format_feedback_title("Bug", include_prefix=False) == "Bug"
+
+    # Test long message with include_prefix=False
+    long_message_no_prefix = "This is a very long feedback message that goes on and on and describes many different issues"
+    expected_no_prefix = "This is a very long feedback message that goes on..."
+    assert format_feedback_title(long_message_no_prefix, include_prefix=False) == expected_no_prefix
