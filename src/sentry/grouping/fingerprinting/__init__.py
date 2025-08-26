@@ -312,8 +312,8 @@ class FingerprintingRules:
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid fingerprinting config: %s" % e)
 
-    @staticmethod
-    def from_config_string(s: Any, bases: Sequence[str] | None = None) -> Any:
+    @classmethod
+    def from_config_string(cls, s: Any, bases: Sequence[str] | None = None) -> FingerprintingRules:
         try:
             tree = fingerprinting_grammar.parse(s)
         except ParseError as e:
@@ -323,7 +323,10 @@ class FingerprintingRules:
             raise InvalidFingerprintingConfig(
                 f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
-        return FingerprintingVisitor(bases=bases).visit(tree)
+
+        rules = FingerprintingVisitor().visit(tree)
+
+        return cls(rules=rules, bases=bases)
 
 
 class BuiltInFingerprintingRules(FingerprintingRules):
@@ -331,8 +334,8 @@ class BuiltInFingerprintingRules(FingerprintingRules):
     A FingerprintingRules object that marks all of its rules as built-in
     """
 
-    @staticmethod
-    def from_config_string(s: str, bases: Sequence[str] | None = None) -> FingerprintingRules:
+    @classmethod
+    def from_config_string(cls, s: str, bases: Sequence[str] | None = None) -> FingerprintingRules:
         fingerprinting_rules = FingerprintingRules.from_config_string(s, bases=bases)
         for r in fingerprinting_rules.rules:
             r.is_builtin = True
