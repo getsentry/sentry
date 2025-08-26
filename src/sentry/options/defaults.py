@@ -3481,7 +3481,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
 # option used to enable/disable tracking
 # rate of potential functions metrics to
 # be written into EAP
