@@ -1,9 +1,15 @@
+import styled from '@emotion/styled';
+
+import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import {type MenuItemProps} from 'sentry/components/dropdownMenu';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
+import {WidgetFrame} from 'sentry/views/dashboards/widgetCard/widgetFrame';
 import type {
   TabularColumn,
   TabularMeta,
@@ -26,12 +32,15 @@ const ALIASES: Record<string, string> = {
   'last_seen()': 'Last Seen',
 };
 
+const WIDGET_LIMIT = 4;
+
 export function OverviewIssuesWidget() {
+  const organization = useOrganization();
   const {data, meta, isLoading} = useErrors(
     {
       fields: [ErrorField.ISSUE_ID, ErrorField.TITLE, 'last_seen()', 'epm()'],
       sorts: [{field: 'epm()', kind: 'desc'}],
-      limit: 6,
+      limit: 10,
     },
     Referrer.OVERVIEW_ISSUES_WIDGET
   );
@@ -52,13 +61,45 @@ export function OverviewIssuesWidget() {
     meta: {fields: {...meta?.fields}, units: {...meta?.units}} as TabularMeta, // TODO: ideally this is properly typed, but EventsMeta doesn't match TabularMeta even tho they seem like they should
   };
 
+  const menuItems: MenuItemProps[] = [
+    {
+      key: 'open-in-issues',
+      label: 'Open in Issues',
+      to: normalizeUrl(`/organizations/${organization.slug}/issues/`),
+    },
+  ];
+
+  const handleFullScreenViewClick = () => {
+    openInsightChartModal({
+      title: 'Issues',
+      children: (
+        <TableWidgetVisualization
+          tableData={tableData}
+          columns={COLUMNS}
+          aliases={ALIASES}
+          getRenderer={getRenderer}
+        />
+      ),
+    });
+  };
+
   return (
-    <TableWidgetVisualization
-      tableData={tableData}
-      columns={COLUMNS}
-      aliases={ALIASES}
-      getRenderer={getRenderer}
-    />
+    <WidgetFrame
+      title="Recommended Issues"
+      actions={menuItems}
+      onFullScreenViewClick={handleFullScreenViewClick}
+      noVisualizationPadding
+    >
+      <TableWrapper>
+        <TableWidgetVisualization
+          tableData={{data: tableData.data.slice(0, WIDGET_LIMIT), meta: tableData.meta}}
+          columns={COLUMNS}
+          aliases={ALIASES}
+          getRenderer={getRenderer}
+          frameless
+        />
+      </TableWrapper>
+    </WidgetFrame>
   );
 }
 
@@ -92,3 +133,7 @@ const getRenderer: FieldRendererGetter = (field, _data, meta) => {
   }
   return getFieldRenderer(field, meta.fields, false);
 };
+
+const TableWrapper = styled('div')`
+  margin-top: ${p => p.theme.space.md};
+`;
