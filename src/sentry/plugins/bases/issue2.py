@@ -95,10 +95,10 @@ class IssueTrackingPlugin2(Plugin):
     issue_fields: frozenset[str] | None = None
     # issue_fields = frozenset(['id', 'title', 'url'])
 
-    def get_plugin_type(self):
+    def get_plugin_type(self) -> str:
         return "issue-tracking"
 
-    def has_project_conf(self):
+    def has_project_conf(self) -> bool:
         return True
 
     def get_group_body(self, group, event, **kwargs):

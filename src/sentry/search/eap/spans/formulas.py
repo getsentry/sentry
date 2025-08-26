@@ -35,7 +35,7 @@ from sentry.search.eap.spans.utils import (
     transform_vital_score_to_ratio,
 )
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.eap.utils import literal_validator
+from sentry.search.eap.validator import literal_validator
 from sentry.search.events.constants import (
     MISERY_ALPHA,
     MISERY_BETA,
@@ -342,7 +342,9 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     )
 
 
-def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
+def total_opportunity_score(
+    _: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
 

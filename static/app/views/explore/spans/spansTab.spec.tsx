@@ -55,10 +55,10 @@ const datePageFilterProps: PickableDays = {
   }),
 };
 
-describe('SpansTabContent', function () {
+describe('SpansTabContent', () => {
   const {organization, project} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     // without this the `CompactSelect` component errors with a bunch of async updates
@@ -115,7 +115,7 @@ describe('SpansTabContent', function () {
     });
   });
 
-  it('should fire analytics once per change', async function () {
+  it('should fire analytics once per change', async () => {
     render(
       <Wrapper>
         <SpansTabContent datePageFilterProps={datePageFilterProps} />
@@ -151,7 +151,7 @@ describe('SpansTabContent', function () {
     );
   });
 
-  it('inserts group bys from aggregate mode as fields in samples mode', async function () {
+  it('inserts group bys from aggregate mode as fields in samples mode', async () => {
     let fields: string[] = [];
     let groupBys: string[] = [];
     function Component() {
@@ -200,12 +200,50 @@ describe('SpansTabContent', function () {
       'timestamp',
       'project',
     ]);
-  }, 20_000);
+  });
 
-  describe('schema hints', function () {
+  it('opens toolbar when switching to aggregates tab', async () => {
+    render(
+      <Wrapper>
+        <SpansTabContent datePageFilterProps={datePageFilterProps} />
+      </Wrapper>,
+      {organization}
+    );
+
+    // by default the toolbar should be visible
+    expect(screen.getByTestId('explore-span-toolbar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Collapse sidebar')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Expand sidebar')).not.toBeInTheDocument();
+
+    // collapse the toolbar
+    await userEvent.click(screen.getByLabelText('Collapse sidebar'));
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Collapse sidebar')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
+
+    // switching to the aggregates tab should expand the toolbar
+    await userEvent.click(await screen.findByRole('tab', {name: 'Aggregates'}));
+    expect(screen.getByTestId('explore-span-toolbar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Collapse sidebar')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Expand sidebar')).not.toBeInTheDocument();
+
+    // collapse the toolbar
+    await userEvent.click(screen.getByLabelText('Collapse sidebar'));
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Collapse sidebar')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
+
+    // switching to the span samples tab should NOT expand the toolbar
+    await userEvent.click(await screen.findByRole('tab', {name: 'Span Samples'}));
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Collapse sidebar')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Expand sidebar')).toBeInTheDocument();
+  });
+
+  describe('schema hints', () => {
     let spies: jest.SpyInstance[];
 
-    beforeEach(function () {
+    beforeEach(() => {
       const useSpanTagsSpy = jest
         .spyOn(spanTagsModule, 'useTraceItemTags')
         .mockImplementation(type => {
@@ -258,11 +296,11 @@ describe('SpansTabContent', function () {
       spies = [useSpanTagsSpy, getBoundingClientRectSpy, clientWidthGetSpy];
     });
 
-    afterEach(function () {
+    afterEach(() => {
       spies.forEach(spy => spy.mockRestore());
     });
 
-    it('should show hints', function () {
+    it('should show hints', () => {
       render(
         <Wrapper>
           <SpansTabContent datePageFilterProps={datePageFilterProps} />

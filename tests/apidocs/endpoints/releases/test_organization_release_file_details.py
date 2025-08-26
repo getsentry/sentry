@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ReleaseFileDetailsDocsTest(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")

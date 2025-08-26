@@ -175,6 +175,11 @@ class SnubaProtocolEventStream(EventStream):
                 {
                     "group_id": event.group_id,
                     "group_ids": [group.id for group in getattr(event, "groups", [])],
+                    "group_first_seen": (
+                        json.datetime_to_str(event.group.first_seen)
+                        if event.group is not None
+                        else None
+                    ),
                     "event_id": event.event_id,
                     "organization_id": project.organization_id,
                     "project_id": event.project_id,

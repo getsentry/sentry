@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from unittest import mock
 
@@ -254,30 +255,37 @@ class MonitorEnvironmentTestCase(TestCase):
         }
 
     def test_config_validator(self) -> None:
+        config = {
+            "checkin_margin": None,
+            "max_runtime": None,
+            "schedule": [1, "month"],
+            "schedule_type": ScheduleType.INTERVAL,
+            "alert_rule_id": 1,
+        }
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="Unicron",
             slug="unicron",
-            config={
-                "checkin_margin": None,
-                "max_runtime": None,
-                "schedule": [1, "month"],
-                "schedule_type": ScheduleType.INTERVAL,
-                "alert_rule_id": 1,
-            },
+            config=config,
         )
         validated_config = monitor.get_validated_config()
-        assert validated_config is not None
+        assert validated_config == config
 
-        # Check to make sure bad config fails validation
         validated_config["bad_key"] = 100
         monitor.config = validated_config
-        assert monitor.get_validated_config() is None
+
+        with self.assertLogs(logger="root", level=logging.WARNING) as cm:
+            bad_config = monitor.get_validated_config()
+            assert bad_config == validated_config
+            assert bad_config["bad_key"] == 100
+
+        assert len(cm.records) == 1
+        assert "invalid config" in cm.records[0].message
 
 
 class CronMonitorDataSourceHandlerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.monitor = self.create_monitor(
             project=self.project,
@@ -290,11 +298,11 @@ class CronMonitorDataSourceHandlerTest(TestCase):
             organization_id=self.organization.id,
         )
 
-    def test_bulk_get_query_object(self):
+    def test_bulk_get_query_object(self) -> None:
         result = CronMonitorDataSourceHandler.bulk_get_query_object([self.data_source])
         assert result[self.data_source.id] == self.monitor
 
-    def test_bulk_get_query_object__multiple_monitors(self):
+    def test_bulk_get_query_object__multiple_monitors(self) -> None:
         monitor2 = self.create_monitor(
             project=self.project,
             name="Test Monitor 2",
@@ -311,7 +319,7 @@ class CronMonitorDataSourceHandlerTest(TestCase):
         assert result[self.data_source.id] == self.monitor
         assert result[data_source2.id] == monitor2
 
-    def test_bulk_get_query_object__incorrect_data_source(self):
+    def test_bulk_get_query_object__incorrect_data_source(self) -> None:
         ds_with_invalid_monitor_id = DataSource.objects.create(
             type=DATA_SOURCE_CRON_MONITOR,
             source_id="not_an_int",
@@ -333,7 +341,7 @@ class CronMonitorDataSourceHandlerTest(TestCase):
                 },
             )
 
-    def test_bulk_get_query_object__missing_monitor(self):
+    def test_bulk_get_query_object__missing_monitor(self) -> None:
         ds_with_deleted_monitor = DataSource.objects.create(
             type=DATA_SOURCE_CRON_MONITOR,
             source_id="99999999",
@@ -346,11 +354,11 @@ class CronMonitorDataSourceHandlerTest(TestCase):
         assert result[self.data_source.id] == self.monitor
         assert result[ds_with_deleted_monitor.id] is None
 
-    def test_bulk_get_query_object__empty_list(self):
+    def test_bulk_get_query_object__empty_list(self) -> None:
         result = CronMonitorDataSourceHandler.bulk_get_query_object([])
         assert result == {}
 
-    def test_related_model(self):
+    def test_related_model(self) -> None:
         relations = CronMonitorDataSourceHandler.related_model(self.data_source)
         assert len(relations) == 1
         relation = relations[0]
@@ -358,9 +366,9 @@ class CronMonitorDataSourceHandlerTest(TestCase):
         assert relation.params["model"] == Monitor
         assert relation.params["query"] == {"id": self.data_source.source_id}
 
-    def test_get_instance_limit(self):
+    def test_get_instance_limit(self) -> None:
         assert CronMonitorDataSourceHandler.get_instance_limit(self.organization) is None
 
-    def test_get_current_instance_count(self):
+    def test_get_current_instance_count(self) -> None:
         with pytest.raises(NotImplementedError):
             CronMonitorDataSourceHandler.get_current_instance_count(self.organization)

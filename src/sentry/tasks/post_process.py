@@ -1012,6 +1012,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
                 group_state=job["group_state"],
                 has_reappeared=job["has_reappeared"],
                 has_escalated=job["has_escalated"],
+                start_timestamp_seconds=time(),
             ),
             headers={"sentry-propagate-traces": False},
         )
@@ -1066,6 +1067,10 @@ def process_rules(job: PostProcessJob) -> None:
     ) or job["event"].group.type in options.get("workflow_engine.issue_alert.group.type_id.ga"):
         # we are only processing through the workflow engine
         return
+
+    metrics.incr(
+        "post_process.rules_processor_events", tags={"group_type": job["event"].group.type}
+    )
 
     from sentry.rules.processing.processor import RuleProcessor
 

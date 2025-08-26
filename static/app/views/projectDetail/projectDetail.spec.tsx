@@ -11,19 +11,19 @@ import ProjectDetail from './projectDetail';
 
 jest.mock('sentry/actionCreators/organization');
 
-describe('ProjectDetail', function () {
+describe('ProjectDetail', () => {
   const {organization, router, projects} = initializeOrg();
   const project = projects[0]!;
 
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.init();
   });
 
-  afterEach(function () {
+  afterEach(() => {
     ProjectsStore.reset();
   });
 
-  it('Render an error if project not found', async function () {
+  it('Render an error if project not found', async () => {
     ProjectsStore.loadInitialData([{...project, slug: 'slug'}]);
 
     render(
@@ -51,7 +51,7 @@ describe('ProjectDetail', function () {
     );
   });
 
-  it('Render warning if user is not a member of the project', async function () {
+  it('Render warning if user is not a member of the project', async () => {
     ProjectsStore.loadInitialData([{...project, hasAccess: false}]);
 
     render(
@@ -74,7 +74,7 @@ describe('ProjectDetail', function () {
     ).toBeInTheDocument();
   });
 
-  it('Render project details', async function () {
+  it('Render project details', async () => {
     ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
@@ -101,7 +101,7 @@ describe('ProjectDetail', function () {
     expect(await screen.findByText(/project details/i)).toBeInTheDocument();
   });
 
-  it('Sync project with slug', async function () {
+  it('Sync project with slug', async () => {
     ProjectsStore.loadInitialData([project]);
     jest.spyOn(pageFilters, 'updateProjects');
 

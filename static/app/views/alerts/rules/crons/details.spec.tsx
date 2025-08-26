@@ -40,7 +40,7 @@ describe('Monitor Details', () => {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<MonitorDetails {...routerProps} />);
     expect(await screen.findByText(monitor.slug, {exact: false})).toBeInTheDocument();
 
@@ -52,7 +52,7 @@ describe('Monitor Details', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders error when monitor is not found', async function () {
+  it('renders error when monitor is not found', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/monitors/${monitor.slug}/`,
       statusCode: 404,
@@ -64,7 +64,7 @@ describe('Monitor Details', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows processing errors when they exist', async function () {
+  it('shows processing errors when they exist', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/monitors/${monitor.slug}/processing-errors/`,
       body: [CheckinProcessingErrorFixture()],

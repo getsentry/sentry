@@ -7,7 +7,7 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import GroupingStore from 'sentry/stores/groupingStore';
 import GroupMergedView from 'sentry/views/issueDetails/groupMerged';
 
-describe('Issues -> Merged View', function () {
+describe('Issues -> Merged View', () => {
   const events = DetailedEventsFixture();
   const group = GroupFixture();
   const mockData = {
@@ -25,7 +25,7 @@ describe('Issues -> Merged View', function () {
     ],
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     GroupingStore.init();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -34,7 +34,7 @@ describe('Issues -> Merged View', function () {
     });
   });
 
-  it('renders initially with loading component', async function () {
+  it('renders initially with loading component', async () => {
     const {organization, project, router} = initializeOrg({
       router: {
         params: {groupId: 'groupId'},
@@ -57,7 +57,7 @@ describe('Issues -> Merged View', function () {
     await act(tick);
   });
 
-  it('renders with mocked data', async function () {
+  it('renders with mocked data', async () => {
     const {organization, project, router} = initializeOrg({
       router: {
         params: {groupId: 'groupId'},

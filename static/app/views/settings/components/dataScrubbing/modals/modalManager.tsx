@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -10,15 +11,20 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import submitRules from 'sentry/views/settings/components/dataScrubbing/submitRules';
 import type {
+  AttributeResults,
   KeysOfUnion,
   Rule,
 } from 'sentry/views/settings/components/dataScrubbing/types';
 import {
+  AllowedDataScrubbingDatasets,
   EventIdStatus,
   MethodType,
   RuleType,
 } from 'sentry/views/settings/components/dataScrubbing/types';
-import {valueSuggestions} from 'sentry/views/settings/components/dataScrubbing/utils';
+import {
+  TraceItemFieldSelector,
+  valueSuggestions,
+} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import Form from './form';
 import handleError, {ErrorType} from './handleError';
@@ -32,6 +38,7 @@ type SourceSuggestions = FormProps['sourceSuggestions'];
 
 type Props = ModalRenderProps & {
   api: Client;
+  attributeResults: AttributeResults;
   endpoint: string;
   onGetNewRules: (values: Values) => Rule[];
   onSubmitSuccess: (data: {relayPiiConfig: string}) => void;
@@ -43,6 +50,7 @@ type Props = ModalRenderProps & {
 };
 
 type State = {
+  dataset: AllowedDataScrubbingDatasets;
   errors: FormProps['errors'];
   eventId: EventId;
   isFormValid: boolean;
@@ -74,9 +82,16 @@ class ModalManager extends Component<Props, State> {
   getDefaultState(): Readonly<State> {
     const {eventId, sourceSuggestions} = fetchSourceGroupData();
     const values = this.getInitialValues();
+    // Create a temporary rule-like object for dataset determination
+    const tempRule = {...values, id: 0} as Rule;
+    const traceItemFieldSelector = TraceItemFieldSelector.fromRule(tempRule);
+    const dataset =
+      traceItemFieldSelector?.getDataset() ?? AllowedDataScrubbingDatasets.DEFAULT;
+
     return {
       values,
       requiredValues: this.getRequiredValues(values),
+      dataset,
       errors: {},
       isFormValid: false,
       eventId: {
@@ -195,10 +210,25 @@ class ModalManager extends Component<Props, State> {
           },
         }));
         break;
+      case ErrorType.ATTRIBUTE_INVALID:
+        this.setState(prevState => ({
+          errors: {
+            ...prevState.errors,
+            source: error.message,
+          },
+        }));
+        break;
       default:
         addErrorMessage(error.message);
     }
   }
+
+  handleAttributeError = (message: string) => {
+    this.convertRequestError({
+      type: ErrorType.ATTRIBUTE_INVALID,
+      message,
+    });
+  };
 
   handleChange = <R extends Rule, K extends KeysOfUnion<R>>(field: K, value: R[K]) => {
     const values = {
@@ -219,6 +249,16 @@ class ModalManager extends Component<Props, State> {
       requiredValues: this.getRequiredValues(values),
       errors: omit(prevState.errors, field),
     }));
+  };
+
+  handleChangeDataset = (dataset: AllowedDataScrubbingDatasets) => {
+    if (!dataset) {
+      Sentry.captureException(new Error('Dataset is required'));
+      return;
+    }
+    this.setState({
+      dataset,
+    });
   };
 
   handleSave = async () => {
@@ -277,7 +317,7 @@ class ModalManager extends Component<Props, State> {
 
   render() {
     const {values, errors, isFormValid, eventId, sourceSuggestions} = this.state;
-    const {title} = this.props;
+    const {title, attributeResults, projectId} = this.props;
 
     return (
       <Modal
@@ -287,13 +327,18 @@ class ModalManager extends Component<Props, State> {
         disabled={!isFormValid}
         content={
           <Form
+            dataset={this.state.dataset}
             onChange={this.handleChange}
+            onChangeDataset={this.handleChangeDataset}
             onValidate={this.handleValidate}
             onUpdateEventId={this.handleUpdateEventId}
+            onAttributeError={this.handleAttributeError}
             eventId={eventId}
             errors={errors}
             values={values}
             sourceSuggestions={sourceSuggestions}
+            attributeResults={attributeResults}
+            projectId={projectId}
           />
         }
       />

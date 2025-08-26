@@ -41,7 +41,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
     def post(self, request: Request):
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
-        response = {}
+        response: dict[str, Any] = {}
 
         if not relay.is_internal:
             return Response("Relay unauthorized for config information", status=403)

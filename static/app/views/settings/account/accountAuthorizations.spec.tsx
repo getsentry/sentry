@@ -4,12 +4,12 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import AccountAuthorizations from 'sentry/views/settings/account/accountAuthorizations';
 
-describe('AccountAuthorizations', function () {
-  beforeEach(function () {
+describe('AccountAuthorizations', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.addMockResponse({
       url: '/api-authorizations/',
       method: 'GET',
@@ -22,7 +22,7 @@ describe('AccountAuthorizations', function () {
     ).toBeInTheDocument();
   });
 
-  it('revokes authorizations correctly', async function () {
+  it('revokes authorizations correctly', async () => {
     MockApiClient.addMockResponse({
       url: '/api-authorizations/',
       method: 'GET',

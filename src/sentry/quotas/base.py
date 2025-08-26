@@ -401,6 +401,13 @@ class Quota(Service):
         """
         return _limit_from_settings(options.get("system.event-retention-days"))
 
+    def get_downsampled_event_retention(self, organization):
+        """
+        Returns the retention for downsampled events in the given organization in days.
+        Returning ``0`` means downsampled event retention will default to the value of ``get_event_retention``.
+        """
+        return 0
+
     def validate(self):
         """
         Validates that the quota service is operational.
@@ -746,5 +753,11 @@ class Quota(Service):
     def get_dashboard_limit(self, org_id: int) -> int:
         """
         Returns the maximum number of dashboards allowed for the organization's plan type.
+        """
+        return -1
+
+    def get_metric_detector_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of detectors allowed for the organization's plan type.
         """
         return -1

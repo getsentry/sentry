@@ -4,7 +4,13 @@ from slack_sdk.web.slack_response import SlackResponse
 
 
 def mock_slack_response(
-    method_name, body, status_code=200, http_verb="POST", api_url=None, req_args=None, headers=None
+    method_name: str,
+    body: dict[str, object] | bytes,
+    status_code: int = 200,
+    http_verb: str = "POST",
+    api_url: str | None = None,
+    req_args: dict[str, object] | None = None,
+    headers: dict[str, object] | None = None,
 ):
     if api_url is None:
         api_url = f"https://slack.com/api/{method_name}"
