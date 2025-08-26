@@ -245,7 +245,9 @@ const getIssuesUrl = ({
   selection: PageFilters;
   webVital: WebVitals;
 }) => {
-  const query = getIssueQueryFilter(WEB_VITAL_PERFORMANCE_ISSUES[webVital]);
+  const query = getIssueQueryFilter({
+    issueTypes: WEB_VITAL_PERFORMANCE_ISSUES[webVital],
+  });
   return `/organizations/${organization.slug}/issues/?${qs.stringify({
     query,
     ...pageFiltersToQueryParams(selection),
