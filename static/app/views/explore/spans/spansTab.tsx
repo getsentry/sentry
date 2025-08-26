@@ -351,7 +351,7 @@ function SpanTabControlSection({
         position="right"
         margin={-8}
       >
-        <ExploreToolbar width={300} extras={toolbarExtras} />
+        {controlSectionExpanded && <ExploreToolbar width={300} extras={toolbarExtras} />}
       </TourElement>
     </ControlSection>
   );
@@ -369,19 +369,14 @@ function SpanTabContentSection({
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
   const {selection} = usePageFilters();
-  const mode = useQueryParamsMode();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
-  const [samplesTab, setSamplesTab] = useTab();
+  const [tab, setTab] = useTab();
 
   const query = useExploreQuery();
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
-    mode === Mode.AGGREGATE
-      ? 'aggregate'
-      : samplesTab === Tab.TRACE
-        ? 'traces'
-        : 'samples';
+    tab === Mode.AGGREGATE ? 'aggregate' : tab === Tab.TRACE ? 'traces' : 'samples';
 
   const limit = 50;
 
@@ -505,8 +500,13 @@ function SpanTabContentSection({
           spansTableResult={spansTableResult}
           tracesTableResult={tracesTableResult}
           confidences={confidences}
-          samplesTab={samplesTab}
-          setSamplesTab={setSamplesTab}
+          tab={tab}
+          setTab={(newTab: Mode | Tab) => {
+            if (newTab === Mode.AGGREGATE) {
+              setControlSectionExpanded(true);
+            }
+            setTab(newTab);
+          }}
         />
       </TourElement>
     </ContentSection>
