@@ -8,7 +8,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
   fetchDataQuery,
-  Query,
   useApiQuery,
   useInfiniteQuery,
   useQueryClient,
@@ -16,7 +15,6 @@ import {
   type InfiniteData,
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -225,54 +223,6 @@ export function useLogsQueryKeyWithInfinite({
   return {
     queryKey: [...queryKey, 'infinite'] as QueryKey,
     other,
-  };
-}
-
-/**
- * Requires LogsParamsContext to be provided.
- */
-export function useLogsQuery({
-  disabled,
-  limit,
-  referrer,
-  refetchInterval,
-}: {
-  disabled?: boolean;
-  limit?: number;
-  referrer?: string;
-  refetchInterval?: (
-    query: Query<
-      ApiResult<EventsLogsResult>,
-      RequestError,
-      ApiResult<EventsLogsResult>,
-      ApiQueryKey
-    >
-  ) => number;
-}) {
-  const _referrer = referrer ?? 'api.explore.logs-table';
-  const {queryKey, other} = useLogsQueryKey({limit, referrer: _referrer});
-
-  const queryResult = useApiQuery<EventsLogsResult>(queryKey, {
-    enabled: !disabled,
-    staleTime: getStaleTimeForEventView(other.eventView),
-    refetchOnWindowFocus: false,
-    retry: false,
-    refetchInterval,
-  });
-
-  return {
-    isPending: queryResult.isPending,
-    isRefetching: queryResult.isRefetching,
-    isError: queryResult.isError,
-    isLoading: queryResult.isLoading,
-    queryResult,
-    data: queryResult?.data?.data,
-    refetch: queryResult.refetch,
-    infiniteData: queryResult?.data?.data,
-    error: queryResult.error,
-    meta: queryResult?.data?.meta,
-    queryKey,
-    pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
   };
 }
 
@@ -652,5 +602,4 @@ export function useInfiniteLogsQuery({
   };
 }
 
-export type UseLogsQueryResult = ReturnType<typeof useLogsQuery>;
 export type UseInfiniteLogsQueryResult = ReturnType<typeof useInfiniteLogsQuery>;

@@ -245,7 +245,7 @@ describe('Data Scrubbing', () => {
 
   describe('with ourlogs-enabled', () => {
     const organization = OrganizationFixture({
-      features: ['ourlogs-enabled', 'ourlogs-visualize-sidebar'],
+      features: ['ourlogs-enabled'],
     });
 
     beforeEach(() => {

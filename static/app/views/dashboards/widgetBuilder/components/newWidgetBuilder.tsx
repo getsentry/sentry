@@ -52,6 +52,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {isLogsEnabled} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useNavContext} from 'sentry/views/nav/context';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
@@ -85,7 +86,7 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
   }
 
   if (state.dataset === WidgetType.LOGS) {
-    enabled = organization.features.includes('ourlogs-dashboards');
+    enabled = isLogsEnabled(organization);
     traceItemType = TraceItemDataset.LOGS;
   }
 

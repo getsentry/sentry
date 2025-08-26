@@ -346,10 +346,13 @@ export function calculateAverageLogsPerSecond(
   return totalLogs / totalDurationSeconds;
 }
 
+export function isLogsEnabled(organization: Organization): boolean {
+  return organization.features.includes('ourlogs-enabled');
+}
+
 export function hasLogsOnReplays(organization: Organization): boolean {
   return (
-    organization.features.includes('ourlogs-enabled') &&
-    organization.features.includes('ourlogs-replay-ui')
+    isLogsEnabled(organization) && organization.features.includes('ourlogs-replay-ui')
   );
 }
 

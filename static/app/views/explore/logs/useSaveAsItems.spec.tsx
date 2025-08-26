@@ -34,7 +34,7 @@ const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
 
 describe('useSaveAsItems', () => {
   const organization = OrganizationFixture({
-    features: ['ourlogs-alerts', 'ourlogs-dashboards', 'ourlogs-saved-queries'],
+    features: ['ourlogs-enabled'],
   });
   const project = ProjectFixture({id: '1'});
   const queryClient = makeTestQueryClient();
