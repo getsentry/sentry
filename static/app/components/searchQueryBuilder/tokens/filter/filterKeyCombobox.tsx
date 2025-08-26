@@ -106,7 +106,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       }
 
       dispatch({
-        type: 'REPLACE_TOKENS_WITH_TEXT',
+        type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT',
         tokens: [token],
         text: getInitialFilterText(keyName, newFieldDef),
         focusOverride: {
