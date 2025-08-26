@@ -1,8 +1,10 @@
-import {useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
+import testAnalyticsTestPerf from 'sentry-images/features/test-analytics-test-perf.svg';
+
+import {Container, Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
@@ -41,18 +43,66 @@ export default function TestsOnboardingPage() {
     );
   }
 
-  // TODO: modify to designate full scenario for GHAction vs CLI
+  const uploadPermissionOidcSteps = (
+    <Fragment>
+      <EditGHAWorkflowStep step="3" />
+      <RunTestSuiteStep step="4" />
+      <ViewResultsInsightsStep step="5" />
+    </Fragment>
+  );
+
+  const uploadPermissionUploadTokenSteps = (
+    <Fragment>
+      <AddUploadTokenStep step="2b" />
+      <AddScriptToYamlStep step="3" />
+      <RunTestSuiteStep step="4" />
+      <ViewResultsInsightsStep step="5" />
+    </Fragment>
+  );
+
+  const githubActionSteps = (
+    <Fragment>
+      <OutputCoverageFileStep step="1" />
+      <ChooseUploadPermissionStep
+        step="2"
+        selectedUploadPermission={selectedUploadPermission}
+        setSelectedUploadPermission={setSelectedUploadPermission}
+      />
+      {selectedUploadPermission === 'oidc'
+        ? uploadPermissionOidcSteps
+        : uploadPermissionUploadTokenSteps}
+    </Fragment>
+  );
+
+  const cliSteps = (
+    <Fragment>
+      <OutputCoverageFileStep step="1" />
+      <AddUploadTokenStep step="2" />
+      <InstallPreventCLIStep step="3" />
+      <UploadFileCLIStep previousStep="3" step="4" />
+      <RunTestSuiteStep step="5" />
+      <ViewResultsInsightsStep step="6" />
+    </Fragment>
+  );
+
   return (
     <LayoutGap>
       <OnboardingContainer>
         <OnboardingContent>
           <IntroContainer>
-            <GetStartedHeader>{t('Get Started with Test Analytics')}</GetStartedHeader>
-            <TAValueText>
-              {t(
-                'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly.'
-              )}
-            </TAValueText>
+            <Flex justify="between" gap="2xl">
+              <div>
+                <GetStartedHeader>
+                  {t('Get Started with Test Analytics')}
+                </GetStartedHeader>
+                <TAValueText>
+                  {t(
+                    'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly.'
+                  )}
+                </TAValueText>
+              </div>
+              <img src={testAnalyticsTestPerf} alt="Test Analytics" />
+            </Flex>
           </IntroContainer>
           <SelectOptionHeader>{t('Select a setup option')}</SelectOptionHeader>
           <RadioGroup
@@ -65,20 +115,7 @@ export default function TestsOnboardingPage() {
             ]}
           />
           <Flex direction="column" gap="2xl" maxWidth="1000px" padding="2xl 0 0 3xl">
-            <OutputCoverageFileStep step="1" />
-            {/* TODO coming soon: we will conditionally render this based on CLI vs GHAction and OIDC vs Token for CLI */}
-            <ChooseUploadPermissionStep
-              step="2a"
-              selectedUploadPermission={selectedUploadPermission}
-              setSelectedUploadPermission={setSelectedUploadPermission}
-            />
-            <AddUploadTokenStep step="2b" />
-            <AddScriptToYamlStep step="3" />
-            <InstallPreventCLIStep step="3" />
-            <EditGHAWorkflowStep step="3" />
-            <RunTestSuiteStep step="4" />
-            <UploadFileCLIStep previousStep="3" step="4" />
-            <ViewResultsInsightsStep step="5" />
+            {opt === 'githubAction' ? githubActionSteps : cliSteps}
             <div>
               {tct('To learn more about Test Analytics, please visit [ourDocs].', {
                 ourDocs: (
@@ -100,8 +137,8 @@ const LayoutGap = styled('div')`
   gap: ${p => p.theme.space.xl};
 `;
 
-const OnboardingContainer = styled('div')`
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space['3xl']};
+const OnboardingContainer = styled(Container)`
+  padding: ${p => p.theme.space['3xl']};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
@@ -130,5 +167,6 @@ const TAValueText = styled('p')`
 const SelectOptionHeader = styled('h5')`
   font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.tokens.content.primary};
-  margin-top: ${p => p.theme.space['2xl']};
+  /* margin-top: ${p => p.theme.space['2xl']}; */
+  padding-top: ${p => p.theme.space['2xl']};
 `;
