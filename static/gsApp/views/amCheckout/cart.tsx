@@ -32,6 +32,19 @@ import {loadStripe} from 'getsentry/utils/stripe';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
+const PRICE_PLACEHOLDER_WIDTH = '70px';
+const DISCOUNT_INVOICE_ITEM_TYPES = [
+  InvoiceItemType.RECURRING_DISCOUNT,
+  InvoiceItemType.DISCOUNT,
+  InvoiceItemType.CREDIT_APPLIED,
+  InvoiceItemType.SUBSCRIPTION_CREDIT,
+];
+
+const ADDITIONAL_FEES_INVOICE_ITEM_TYPES = [
+  InvoiceItemType.CANCELLATION_FEE,
+  InvoiceItemType.SALES_TAX,
+];
+
 type CartProps = {
   activePlan: Plan;
   api: Client;
@@ -42,8 +55,6 @@ type CartProps = {
   referrer?: string;
   // discountInfo?: Promotion['discountInfo']; // TODO(ISABELLA): Add this back in
 };
-
-const PRICE_PLACEHOLDER_WIDTH = '70px';
 
 function Cart({
   activePlan,
@@ -87,15 +98,14 @@ function Cart({
             moment(planItem?.period_end ?? subscription.contractPeriodEnd).add(1, 'day')
           );
           if (effectiveImmediately) {
+            // include all items after tax
             setOriginalBilledTotal(
               invoiceItems
                 .filter(
                   item =>
                     ![
-                      InvoiceItemType.UNKNOWN,
-                      InvoiceItemType.BALANCE_CHANGE,
-                      InvoiceItemType.SUBSCRIPTION_CREDIT,
-                      InvoiceItemType.CREDIT_APPLIED,
+                      ...DISCOUNT_INVOICE_ITEM_TYPES,
+                      InvoiceItemType.BALANCE_CHANGE, // can add or subtract from the total
                     ].includes(item.type)
                 )
                 .reduce((acc, item) => acc + item.amount, 0)
@@ -348,8 +358,8 @@ function Cart({
             {previewData?.invoiceItems
               .filter(
                 item =>
-                  item.type === InvoiceItemType.SALES_TAX ||
-                  (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0)
+                  ADDITIONAL_FEES_INVOICE_ITEM_TYPES.includes(item.type) ||
+                  (item.type === InvoiceItemType.BALANCE_CHANGE && item.amount > 0) // they might have an outstanding balance
               )
               .map(item => {
                 return (
@@ -378,7 +388,7 @@ function Cart({
               <Placeholder height="24px" width={PRICE_PLACEHOLDER_WIDTH} />
             ) : (
               <DueTodayPrice>
-                {originalBilledTotal !== billedTotal && (
+                {originalBilledTotal > billedTotal && (
                   <DueTodayAmountBeforeDiscount>
                     {utils.displayPrice({
                       cents: originalBilledTotal,
@@ -414,7 +424,7 @@ function Cart({
                 }
               )
             : tct(
-                'Plan renews [longInterval] on [renewalDate], plus any additional usage (up to $[onDemandMaxSpend]/month)',
+                'Plan renews [longInterval] on [renewalDate], plus any additional usage (up to [onDemandMaxSpend]/month)',
                 {
                   longInterval,
                   renewalDate: moment(renewalDate).format('MMM D, YYYY'),

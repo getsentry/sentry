@@ -611,6 +611,8 @@ export enum InvoiceItemType {
   CANCELLATION_FEE = 'cancellation_fee',
   SUBSCRIPTION_CREDIT = 'subscription_credit',
   CREDIT_APPLIED = 'credit_applied',
+  RECURRING_DISCOUNT = 'recurring_discount',
+  DISCOUNT = 'discount',
   SALES_TAX = 'sales_tax',
   /**
    * Used for AM plans
