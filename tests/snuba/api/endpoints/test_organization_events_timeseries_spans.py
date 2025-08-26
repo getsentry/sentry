@@ -645,6 +645,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert timeseries["groupBy"] == [{"key": "transaction", "value": "bar"}]
         assert timeseries["meta"] == {
+            "dataScanned": "full",
             "valueUnit": "millisecond",
             "valueType": "duration",
             "interval": 60_000,
