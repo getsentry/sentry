@@ -26,11 +26,11 @@ import {
 } from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   areScrubbingDatasetsEnabled,
-  createAttributeFieldValidator,
   getDatasetLabelLong,
   getMethodLabel,
   getRuleLabel,
   TraceItemFieldSelector,
+  validateTraceItemFieldSelector,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import AttributeField from './attributeField';
@@ -45,6 +45,7 @@ type Props<V extends Values, K extends keyof V> = {
   dataset: AllowedDataScrubbingDatasets;
   errors: Partial<V>;
   eventId: EventId;
+  onAttributeError: (message: string) => void;
   onChange: (field: K, value: string) => void;
   onChangeDataset: (dataset: AllowedDataScrubbingDatasets) => void;
   onUpdateEventId: (eventId: string) => void;
@@ -75,19 +76,16 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
   };
 
   handleValidateAttributeField = (value: string) => {
-    const {values} = this.props;
-    const validator = createAttributeFieldValidator({
-      type: values.type,
-      method: values.method,
-      placeholder: values.placeholder,
-      pattern: values.pattern,
-    });
+    // Value here is the event.target.value, which is the text of the attribute.
+    const traceItemField = TraceItemFieldSelector.fromField(this.props.dataset, value);
 
-    const validation = validator(value);
+    if (!traceItemField) {
+      return;
+    }
+
+    const validation = validateTraceItemFieldSelector(traceItemField);
     if (!validation.isValid && validation.error) {
-      // Set the error in the form state (this would need to be passed up to the parent)
-      // The actual error handling should be done by the parent component
-      // validation.error contains the error message
+      this.props.onAttributeError(validation.error);
     }
   };
 
