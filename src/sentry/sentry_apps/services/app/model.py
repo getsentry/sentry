@@ -196,3 +196,9 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
     status: int
     api_token_id: int
     api_installation_token_id: str
+
+
+class SentryAppUpdateArgs(TypedDict, total=False):
+    events: list[str]
+    name: str
+    # TODO add whatever else as needed
