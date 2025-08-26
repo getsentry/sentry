@@ -83,7 +83,7 @@ export function OverviewIssuesWidget() {
 
   return (
     <WidgetFrame
-      title="Issues"
+      title="Recommended Issues"
       actions={menuItems}
       onFullScreenViewClick={handleFullScreenViewClick}
       noVisualizationPadding
