@@ -43,8 +43,10 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import CoverageTrendPage from 'sentry/views/codecov/coverage/coverageTrend';
 import {makeCodecovPathname} from 'sentry/views/codecov/pathnames';
+import {COVERAGE_BASE_URL} from 'sentry/views/codecov/settings';
 
 // Mock data for demonstration - replace with actual data
 const organizationOptions = [
@@ -2631,9 +2633,7 @@ export default function CommitsListPage() {
                     >
                       {t('Uploads count')}
                     </SummaryEntryLabel>
-                    <SummaryEntryValueLink filterBy="uploadsCount">
-                      65
-                    </SummaryEntryValueLink>
+                    <UploadsCountLink>65</UploadsCountLink>
                     <StatusIndicatorContainer>
                       <StatusItem>
                         <StatusDot $variant="success" />
@@ -4489,6 +4489,54 @@ const SunburstChartHeaderRight = styled('div')`
   display: flex;
   align-items: center;
   margin-top: 2px;
+`;
+
+// Custom component for uploads count link that opens history page in new tab
+function UploadsCountLink({children}: {children: React.ReactNode}) {
+  const organization = useOrganization();
+  const params = useParams<{sha: string}>();
+  const commitHash = params.sha || headCommit.shortSha;
+
+  const historyPath = makeCodecovPathname({
+    organization,
+    path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/history/`,
+  });
+
+  return (
+    <UploadsCountContainer>
+      <IconOpen />
+      <a href={historyPath} target="_blank" rel="noopener noreferrer">
+        <StyledUploadsCountLink>{children}</StyledUploadsCountLink>
+      </a>
+    </UploadsCountContainer>
+  );
+}
+
+const UploadsCountContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const StyledUploadsCountLink = styled('span')`
+  font-variant-numeric: tabular-nums;
+  color: ${p => p.theme.linkColor};
+  font-size: 2.25rem;
+
+  /* This stops the text from jumping when becoming bold */
+  &::after {
+    content: attr(data-text);
+    height: 0;
+    visibility: hidden;
+    overflow: hidden;
+    pointer-events: none;
+    font-weight: ${p => p.theme.fontWeight.bold};
+    display: block;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const SunburstLabelToggle = styled('div')`

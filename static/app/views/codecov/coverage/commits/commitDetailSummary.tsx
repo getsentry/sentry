@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {
@@ -16,6 +17,9 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconArrow, IconChevron, IconGithub, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
+import {makeCodecovPathname} from 'sentry/views/codecov/pathnames';
+import {COVERAGE_BASE_URL} from 'sentry/views/codecov/settings';
 
 const headCommit = {
   sha: '31b72ff64bd75326ea5e43bf8e93b415db56cb62',
@@ -115,6 +119,54 @@ const uncoveredLinesData = [
     ],
   },
 ];
+
+const UploadsCountContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const StyledUploadsCountLink = styled('span')`
+  font-variant-numeric: tabular-nums;
+  color: ${p => p.theme.linkColor};
+  font-size: 2.25rem;
+
+  /* This stops the text from jumping when becoming bold */
+  &::after {
+    content: attr(data-text);
+    height: 0;
+    visibility: hidden;
+    overflow: hidden;
+    pointer-events: none;
+    font-weight: ${p => p.theme.fontWeight.bold};
+    display: block;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+// Custom component for uploads count link that opens history page in new tab
+function UploadsCountLink({children}: {children: React.ReactNode}) {
+  const organization = useOrganization();
+  const params = useParams<{sha: string}>();
+  const commitHash = params.sha || headCommit.shortSha;
+
+  const historyPath = makeCodecovPathname({
+    organization,
+    path: `/${COVERAGE_BASE_URL}/commits/${commitHash}/history/`,
+  });
+
+  return (
+    <UploadsCountContainer>
+      <IconOpen />
+      <a href={historyPath} target="_blank" rel="noopener noreferrer">
+        <StyledUploadsCountLink>{children}</StyledUploadsCountLink>
+      </a>
+    </UploadsCountContainer>
+  );
+}
 
 export function CommitDetailSummary() {
   return (
@@ -240,7 +292,7 @@ export function CommitDetailSummary() {
                 >
                   {t('Uploads count')}
                 </SummaryEntryLabel>
-                <SummaryEntryValueLink filterBy="uploadsCount">65</SummaryEntryValueLink>
+                <UploadsCountLink>65</UploadsCountLink>
                 <StatusIndicatorContainer>
                   <StatusItem>
                     <StatusDot $variant="success" />
