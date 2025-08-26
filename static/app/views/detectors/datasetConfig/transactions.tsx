@@ -9,19 +9,26 @@ import {
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 
 import type {DetectorDatasetConfig} from './base';
+import {parseEventTypesFromQuery} from './eventTypes';
 
 type TransactionsSeriesResponse = EventsStats;
 
+const DEFAULT_EVENT_TYPES = ['transaction'];
+
 export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSeriesResponse> =
   {
+    SearchBar: TraceSearchBar,
+    defaultEventTypes: DEFAULT_EVENT_TYPES,
     defaultField: TransactionsConfig.defaultField,
     getAggregateOptions: TransactionsConfig.getTableFieldOptions,
-    SearchBar: TraceSearchBar,
     getSeriesQueryOptions: options =>
       getDiscoverSeriesQueryOptions({
         ...options,
         dataset: DiscoverDatasets.TRANSACTIONS,
       }),
+    separateEventTypesFromQuery: query =>
+      parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
+    toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
     transformSeriesQueryData: (data, aggregate) => {
       return [transformEventsStatsToSeries(data, aggregate)];
     },
