@@ -14,7 +14,6 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
-from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.projects.project_rules.creator import ProjectRuleCreator
@@ -394,7 +393,6 @@ def update_issue_alert_rule(
 
 
 def ensure_cron_detector(monitor: Monitor):
-
     try:
         with atomic_transaction(using=router.db_for_write(DataSource)):
             data_source, created = DataSource.objects.get_or_create(
@@ -403,12 +401,15 @@ def ensure_cron_detector(monitor: Monitor):
                 source_id=str(monitor.id),
             )
             if created:
+                from sentry.monitors.grouptype import MonitorIncidentType
+
                 detector = Detector.objects.create(
                     type=MonitorIncidentType.slug,
                     project_id=monitor.project_id,
                     name=monitor.name,
                     owner_user_id=monitor.owner_user_id,
                     owner_team_id=monitor.owner_team_id,
+                    config={},
                 )
                 DataSourceDetector.objects.create(data_source=data_source, detector=detector)
     except Exception:
