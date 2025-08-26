@@ -248,11 +248,13 @@ def translate_equations(equations):
 
         flattened_equation = []
 
+        # strip equation prefix
         if arithmetic.is_equation(equation):
             arithmetic_equation = arithmetic.strip_equation(equation)
         else:
             arithmetic_equation = equation
 
+        # function to flatten the parsed + updated equation
         def _flatten(seq):
             for item in seq:
                 if isinstance(item, list):
@@ -265,6 +267,7 @@ def translate_equations(equations):
         parsed = translation_visitor.visit(tree)
         _flatten(parsed)
 
+        # record dropped fields and equations and skip these translations
         if len(translation_visitor.dropped_fields) > 0:
             dropped_equations.append("".join(flattened_equation))
             dropped_fields.extend(translation_visitor.dropped_fields)
