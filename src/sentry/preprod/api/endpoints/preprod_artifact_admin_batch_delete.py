@@ -1,7 +1,7 @@
 import logging
 
 import orjson
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -232,7 +232,7 @@ class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
                 organization_id = preprod_artifact.project.organization_id
                 project_id = preprod_artifact.project.id
 
-                with transaction.atomic():
+                with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
                     files_deleted, installable_count, size_metrics_count, files_failed = (
                         self._delete_artifact_files(preprod_artifact, artifact_id)
                     )
