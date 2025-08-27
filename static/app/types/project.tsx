@@ -69,6 +69,7 @@ export type Project = {
   verifySSL: boolean;
   autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
+  debugFilesRole?: string | null;
   defaultEnvironment?: string;
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
