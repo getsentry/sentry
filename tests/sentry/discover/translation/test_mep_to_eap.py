@@ -149,30 +149,48 @@ def test_mep_to_eap_simple_selected_columns(input: list[str], expected: list[str
     "input,expected",
     [
         pytest.param(
-            ["count() + 5"],
-            ["count(span.duration) + 5"],
+            ["equation|count() + 5"],
+            ["equation|count(span.duration) + 5"],
         ),
         pytest.param(
             [
-                "user_misery(300) + count()",
+                "equation|user_misery(300) + count()",
             ],
-            ["user_misery(span.duration,300) + count(span.duration)"],
+            ["equation|user_misery(span.duration,300) + count(span.duration)"],
         ),
         pytest.param(
-            ["sum(transaction.duration) + 5", "percentile(transaction.duration,0.437)"],
-            ["sum(span.duration) + 5", "p50(span.duration)"],
+            [
+                "equation|sum(transaction.duration) + 5",
+                "equation|percentile(transaction.duration,0.437)",
+            ],
+            ["equation|sum(span.duration) + 5", "equation|p50(span.duration)"],
         ),
         pytest.param(
-            ["count(span.duration) + 5", "count_web_vitals(user,300) * 3"],
-            ["count(span.duration) + 5"],
+            ["equation|count(span.duration) + 5", "equation|count_web_vitals(user,300) * 3"],
+            ["equation|count(span.duration) + 5"],
         ),
         pytest.param(
-            ["count(span.duration) + total.count", "count_miserable(user,300)"],
+            ["equation|count(span.duration) + total.count", "equation|count_miserable(user,300)"],
             [],
         ),
         pytest.param(
-            ["transaction.duration * 2"],
-            ["span.duration * 2"],
+            ["equation|transaction.duration * 2"],
+            ["equation|span.duration * 2"],
+        ),
+        pytest.param(
+            ["equation|(sum(transaction.duration) + 5) + count_miserable(user,300)"],
+            [],
+        ),
+        pytest.param(
+            [
+                "equation|(avg(transaction.duration) * 2) + p50(span.duration)",
+                "equation|(count_unique(title) / 4) * (count_unique(http.method) * 2)",
+                "equation|(total.count * 2) - count()",
+            ],
+            [
+                "equation|(avg(span.duration) * 2) + p50(span.duration)",
+                "equation|(count_unique(transaction) / 4) * (count_unique(transaction.method) * 2)",
+            ],
         ),
     ],
 )

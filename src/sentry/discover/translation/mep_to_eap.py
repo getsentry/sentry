@@ -242,7 +242,6 @@ def translate_equations(equations):
 
     translated_equations = []
     dropped_equations = []
-    dropped_fields = []
 
     for equation in equations:
 
@@ -269,16 +268,17 @@ def translate_equations(equations):
 
         # record dropped fields and equations and skip these translations
         if len(translation_visitor.dropped_fields) > 0:
-            dropped_equations.append(arithmetic_equation)
-            dropped_fields.extend(translation_visitor.dropped_fields)
+            dropped_equations.append(
+                {"equation": equation, "reason": translation_visitor.dropped_fields}
+            )
             continue
 
         # translated equations are not returned with the equation prefix
-        translated_equation = "".join(flattened_equation)
+        translated_equation = "equation|" + "".join(flattened_equation)
 
         translated_equations.append(translated_equation)
 
-    return translated_equations, dropped_equations, dropped_fields
+    return translated_equations, dropped_equations
 
 
 def translate_mep_to_eap(query_parts: QueryParts):
@@ -292,7 +292,7 @@ def translate_mep_to_eap(query_parts: QueryParts):
     """
     new_query = translate_query(query_parts["query"])
     new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
-    new_equations, dropped_equations, dropped_fields = translate_equations(query_parts["equations"])
+    new_equations, dropped_equations = translate_equations(query_parts["equations"])
 
     eap_query = QueryParts(
         query=new_query,
