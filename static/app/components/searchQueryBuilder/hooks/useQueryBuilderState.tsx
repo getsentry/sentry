@@ -126,6 +126,8 @@ type UpdateAggregateArgsAction = {
   focusOverride?: FocusOverride;
 };
 
+type ResetClearAskSeerFeedbackAction = {type: 'RESET_CLEAR_ASK_SEER_FEEDBACK'};
+
 export type QueryBuilderActions =
   | ClearAction
   | CommitQueryAction
@@ -139,7 +141,8 @@ export type QueryBuilderActions =
   | UpdateFilterOpAction
   | UpdateTokenValueAction
   | UpdateAggregateArgsAction
-  | MultiSelectFilterValueAction;
+  | MultiSelectFilterValueAction
+  | ResetClearAskSeerFeedbackAction;
 
 function removeQueryTokensFromQuery(
   query: string,
@@ -731,6 +734,8 @@ export function useQueryBuilderState({
           return updateAggregateArgs(state, action, {getFieldDefinition});
         case 'TOGGLE_FILTER_VALUE':
           return multiSelectTokenValue(state, action);
+        case 'RESET_CLEAR_ASK_SEER_FEEDBACK':
+          return {...state, clearAskSeerFeedback: false};
         default:
           return state;
       }
@@ -743,6 +748,8 @@ export function useQueryBuilderState({
   useEffect(() => {
     if (state.clearAskSeerFeedback) {
       setDisplayAskSeerFeedback(false);
+      // Reset the flag after clearing the feedback
+      dispatch({type: 'RESET_CLEAR_ASK_SEER_FEEDBACK'});
     }
   }, [setDisplayAskSeerFeedback, state.clearAskSeerFeedback]);
 

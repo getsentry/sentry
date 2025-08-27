@@ -172,19 +172,22 @@ function SpansTabSeerComboBox() {
   }, [committedQuery, query]);
 
   const inputValue = currentInputValueRef.current.trim();
-  // Remove any tokens that include the user inputted value.
+
+  // Only filter out FREE_TEXT tokens if there's actual input value to filter by
   const filteredCommittedQuery = queryDetails?.parsedQuery
     ?.filter(
-      token => !(token.type === Token.FREE_TEXT && token.text.includes(inputValue))
+      token =>
+        !(token.type === Token.FREE_TEXT && inputValue && token.text.includes(inputValue))
     )
     ?.map(token => stringifyToken(token))
     ?.join(' ')
     ?.trim();
 
-  if (typeof filteredCommittedQuery === 'string') {
-    initialSeerQuery = `${filteredCommittedQuery}`;
+  // Use filteredCommittedQuery if it exists and has content, otherwise fall back to queryToUse
+  if (filteredCommittedQuery && filteredCommittedQuery.length > 0) {
+    initialSeerQuery = filteredCommittedQuery;
   } else if (queryDetails?.queryToUse) {
-    initialSeerQuery = `${queryDetails?.queryToUse}`;
+    initialSeerQuery = queryDetails.queryToUse;
   }
 
   if (inputValue) {
