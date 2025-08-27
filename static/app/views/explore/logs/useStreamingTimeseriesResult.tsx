@@ -18,6 +18,7 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   getLogRowTimestampMillis,
   getLogTimestampBucketIndex,
+  isLogsEnabled,
 } from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsGroupBys,
@@ -95,8 +96,7 @@ export function useStreamingTimeseriesResult(
   const timeseriesValues = timeseriesResult.data
     ? Object.values(timeseriesResult.data)[0]?.[0]?.values
     : undefined;
-  const shouldUseStreamedData =
-    organization.features.includes('ourlogs-live-refresh') && !!timeseriesValues?.length;
+  const shouldUseStreamedData = isLogsEnabled(organization) && !!timeseriesValues?.length;
 
   const timeseriesStartTimestamp = timeseriesValues?.[0]?.timestamp;
   const timeseriesLastTimestamp =

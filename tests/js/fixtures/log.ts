@@ -103,7 +103,6 @@ export function initializeLogsTest({
   organization: orgOverrides = {},
   project: projectOverrides,
   ourlogs = true,
-  liveRefresh: hasLiveRefreshFlag = false,
   routerQuery = {},
   refreshInterval = '60', // Fast refresh for testing, should always exceed waitFor internal timer interval (50ms default)
 }: LogsTestInitOptions = {}): {
@@ -123,19 +122,7 @@ export function initializeLogsTest({
   setupPageFilters: () => void;
   setupTraceItemsMock: (logFixtures: OurLogsResponseItem[]) => jest.Mock[];
 } {
-  const baseFeatures = ourlogs
-    ? [
-        'ourlogs-enabled',
-        'ourlogs-visualize-sidebar',
-        'ourlogs-dashboard',
-        'ourlogs-alerts',
-        'ourlogs-infinite-scroll',
-      ]
-    : [];
-
-  if (hasLiveRefreshFlag && ourlogs) {
-    baseFeatures.push('ourlogs-live-refresh');
-  }
+  const baseFeatures = ourlogs ? ['ourlogs-enabled'] : [];
 
   const forcedProject = projectOverrides ?? {hasLogs: true};
   const {organization, project} = initializeOrg({

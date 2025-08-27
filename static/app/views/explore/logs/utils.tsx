@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
+import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import type {ApiResult} from 'sentry/api';
@@ -7,6 +8,7 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -26,6 +28,7 @@ import {
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
+  setLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -49,8 +52,11 @@ import {
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
-import type {PickableDays} from 'sentry/views/explore/utils';
+import {
+  type BaseVisualize,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
+import {generateTargetQuery, type PickableDays} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 const {warn, fmt} = Sentry.logger;
@@ -340,10 +346,13 @@ export function calculateAverageLogsPerSecond(
   return totalLogs / totalDurationSeconds;
 }
 
+export function isLogsEnabled(organization: Organization): boolean {
+  return organization.features.includes('ourlogs-enabled');
+}
+
 export function hasLogsOnReplays(organization: Organization): boolean {
   return (
-    organization.features.includes('ourlogs-enabled') &&
-    organization.features.includes('ourlogs-replay-ui')
+    isLogsEnabled(organization) && organization.features.includes('ourlogs-replay-ui')
   );
 }
 
@@ -501,6 +510,49 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
     }
   }
   return JSON.stringify(copy, null, 2);
+}
+
+export function viewLogsSamplesTarget({
+  location,
+  search,
+  fields,
+  groupBys,
+  visualizes,
+  sorts,
+  row,
+  projects,
+}: {
+  fields: string[];
+  groupBys: readonly string[];
+  location: Location;
+  // needed to generate targets when `project` is in the group by
+  projects: Project[];
+  row: Record<string, any>;
+  search: MutableSearch;
+  sorts: Sort[];
+  visualizes: readonly Visualize[];
+}) {
+  const {
+    fields: newFields,
+    search: newSearch,
+    sortBys: newSortBys,
+  } = generateTargetQuery({
+    fields,
+    groupBys: groupBys.slice(),
+    location,
+    projects,
+    search,
+    row,
+    sorts,
+    yAxes: visualizes.map(visualize => visualize.yAxis),
+  });
+
+  return setLogsPageParams(location, {
+    mode: Mode.SAMPLES,
+    fields: newFields,
+    search: newSearch,
+    sortBys: newSortBys,
+  });
 }
 
 export const logOnceFactory = (logSeverity: 'info' | 'warn') => {

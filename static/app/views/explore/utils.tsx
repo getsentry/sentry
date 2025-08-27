@@ -27,6 +27,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
@@ -193,12 +194,14 @@ export function getExploreMultiQueryUrl({
   queries,
   title,
   id,
+  referrer,
 }: {
   interval: string;
   organization: Organization;
   queries: ReadableExploreQueryParts[];
   selection: PageFilters;
   id?: number;
+  referrer?: string;
   title?: string;
 }) {
   const {start, end, period: statsPeriod, utc} = selection.datetime;
@@ -223,22 +226,22 @@ export function getExploreMultiQueryUrl({
     title,
     id,
     utc,
+    referrer,
   };
 
   return `/organizations/${organization.slug}/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
-export function combineConfidenceForSeries(
-  series: Array<Pick<TimeSeries, 'confidence'>>
-): Confidence {
+export function combineConfidenceForSeries(series: TimeSeries[]): Confidence {
   let lows = 0;
   let highs = 0;
   let nulls = 0;
 
   for (const s of series) {
-    if (s.confidence === 'low') {
+    const confidence = determineTimeSeriesConfidence(s);
+    if (confidence === 'low') {
       lows += 1;
-    } else if (s.confidence === 'high') {
+    } else if (confidence === 'high') {
       highs += 1;
     } else {
       nulls += 1;
@@ -256,27 +259,27 @@ export function combineConfidenceForSeries(
   return 'high';
 }
 
-export function viewSamplesTarget({
-  location,
-  query,
+export function generateTargetQuery({
   fields,
   groupBys,
-  visualizes,
-  sorts,
-  row,
+  location,
   projects,
+  search,
+  row,
+  sorts,
+  yAxes,
 }: {
   fields: string[];
   groupBys: string[];
   location: Location;
   // needed to generate targets when `project` is in the group by
   projects: Project[];
-  query: string;
   row: Record<string, any>;
+  search: MutableSearch;
   sorts: Sort[];
-  visualizes: Visualize[];
+  yAxes: string[];
 }) {
-  const search = new MutableSearch(query);
+  search = search.copy();
 
   // first update the resulting query to filter for the target group
   for (const groupBy of groupBys) {
@@ -300,8 +303,8 @@ export function viewSamplesTarget({
   const seenFields = new Set(newFields);
 
   // add all the arguments of the visualizations as columns
-  for (const visualize of visualizes) {
-    const parsedFunction = parseFunction(visualize.yAxis);
+  for (const yAxis of yAxes) {
+    const parsedFunction = parseFunction(yAxis);
     if (!parsedFunction?.arguments[0]) {
       continue;
     }
@@ -347,11 +350,55 @@ export function viewSamplesTarget({
     break;
   }
 
+  return {
+    fields: newFields,
+    search,
+    sortBys: [sortBy],
+  };
+}
+
+export function viewSamplesTarget({
+  location,
+  query,
+  fields,
+  groupBys,
+  visualizes,
+  sorts,
+  row,
+  projects,
+}: {
+  fields: string[];
+  groupBys: string[];
+  location: Location;
+  // needed to generate targets when `project` is in the group by
+  projects: Project[];
+  query: string;
+  row: Record<string, any>;
+  sorts: Sort[];
+  visualizes: Visualize[];
+}) {
+  const search = new MutableSearch(query);
+
+  const {
+    fields: newFields,
+    search: newSearch,
+    sortBys: newSortBys,
+  } = generateTargetQuery({
+    fields,
+    groupBys,
+    location,
+    projects,
+    search,
+    row,
+    sorts,
+    yAxes: visualizes.map(visualize => visualize.yAxis),
+  });
+
   return newExploreTarget(location, {
     mode: Mode.SAMPLES,
     fields: newFields,
-    query: search.formatString(),
-    sampleSortBys: [sortBy],
+    query: newSearch.formatString(),
+    sampleSortBys: newSortBys,
   });
 }
 
