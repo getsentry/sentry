@@ -35,9 +35,7 @@ class DatabaseBackedIssueService(IssueService):
 =======
             return None
 
-        if (
-            integration := integration_service.get_integration(integration_id=integration_id)
-        ) is None:
+        if integration_service.get_integration(integration_id=integration_id) is None:
             return None
 
         if (
@@ -63,10 +61,14 @@ class DatabaseBackedIssueService(IssueService):
         organization = Organization.objects.filter(id__in=org_integration_org_ids)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 2a6b812155d (refactor again)
         external_issue_ids = external_issues.values_list("id", flat=True)
 
         # get the latest group link date for each group
         group_link_subquery = dict(
+<<<<<<< HEAD
             GroupLink.objects.filter(
                 linked_id__in=external_issue_ids,
 =======
@@ -75,6 +77,10 @@ class DatabaseBackedIssueService(IssueService):
             GroupLink.objects.filter(
                 linked_id__in=external_issue_subquery,
 >>>>>>> e252b9580bc (search for all external issues for the integration in the region)
+=======
+            GroupLink.objects.filter(
+                linked_id__in=external_issue_ids,
+>>>>>>> 2a6b812155d (refactor again)
                 project__organization__in=organization,
             )
             .values("group_id")
