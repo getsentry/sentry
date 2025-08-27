@@ -650,14 +650,12 @@ function Cart({
   return (
     <CartContainer data-test-id="cart">
       {errorMessage && <Alert type="error">{errorMessage}</Alert>}
-      <SummarySection>
-        <CartDiff
-          activePlan={activePlan}
-          formData={formData}
-          subscription={subscription}
-          freePlan={freePlan}
-        />
-      </SummarySection>
+      <CartDiff
+        activePlan={activePlan}
+        formData={formData}
+        subscription={subscription}
+        freePlan={freePlan}
+      />
       <PlanSummary activePlan={activePlan} formData={formData} />
       <SubtotalSummary
         activePlan={activePlan}

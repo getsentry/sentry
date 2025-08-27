@@ -1,5 +1,6 @@
 import React, {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -73,31 +74,33 @@ function OnDemandDiff({
 
       return (
         <Fragment>
-          {budgetsList.map(([category, budget]) => {
-            const showOldBudget = budgetsList.indexOf([category, budget]) === 0;
-            const formattedCategory = getPlanCategoryName({
-              plan: newPlan,
-              category: category as DataCategory,
-              title: true,
-            });
+          {budgetsList
+            .filter(([_, budget]) => budget > 0)
+            .map(([category, budget]) => {
+              const showOldBudget = budgetsList.indexOf([category, budget]) === 0;
+              const formattedCategory = getPlanCategoryName({
+                plan: newPlan,
+                category: category as DataCategory,
+                title: true,
+              });
 
-            return (
-              <Fragment key={category}>
-                {showOldBudget ? (
-                  <Removed>
-                    {t('Shared spend cap')}
+              return (
+                <Fragment key={category}>
+                  {showOldBudget ? (
+                    <Removed>
+                      {t('Shared spend cap')}
+                      <span>{utils.displayPrice({cents: budget})}</span>
+                    </Removed>
+                  ) : (
+                    <Change />
+                  )}
+                  <Added>
+                    {t('%s spend cap', formattedCategory)}
                     <span>{utils.displayPrice({cents: budget})}</span>
-                  </Removed>
-                ) : (
-                  <Change />
-                )}
-                <Added>
-                  {t('%s spend cap', formattedCategory)}
-                  <span>{utils.displayPrice({cents: budget})}</span>
-                </Added>
-              </Fragment>
-            );
-          })}
+                  </Added>
+                </Fragment>
+              );
+            })}
         </Fragment>
       );
     }
@@ -106,31 +109,33 @@ function OnDemandDiff({
       const budgetsList = Object.entries(currentOnDemandBudgets.budgets);
       return (
         <Fragment>
-          {budgetsList.map(([category, budget]) => {
-            const showNewBudget = budgetsList.indexOf([category, budget]) === 0;
-            const formattedCategory = getPlanCategoryName({
-              plan: currentPlan,
-              category: category as DataCategory,
-              title: true,
-            });
+          {budgetsList
+            .filter(([_, budget]) => budget > 0)
+            .map(([category, budget]) => {
+              const showNewBudget = budgetsList.indexOf([category, budget]) === 0;
+              const formattedCategory = getPlanCategoryName({
+                plan: currentPlan,
+                category: category as DataCategory,
+                title: true,
+              });
 
-            return (
-              <Fragment key={category}>
-                <Removed>
-                  {t('%s spend cap', formattedCategory)}
-                  <span>${utils.displayPrice({cents: budget})}</span>
-                </Removed>
-                {showNewBudget ? (
-                  <Added>
-                    {t('Shared spend cap')}
+              return (
+                <Fragment key={category}>
+                  <Removed>
+                    {t('%s spend cap', formattedCategory)}
                     <span>${utils.displayPrice({cents: budget})}</span>
-                  </Added>
-                ) : (
-                  <Change />
-                )}
-              </Fragment>
-            );
-          })}
+                  </Removed>
+                  {showNewBudget ? (
+                    <Added>
+                      {t('Shared spend cap')}
+                      <span>${utils.displayPrice({cents: budget})}</span>
+                    </Added>
+                  ) : (
+                    <Change />
+                  )}
+                </Fragment>
+              );
+            })}
         </Fragment>
       );
     }
@@ -509,10 +514,17 @@ function CartDiff({
         },
         {} as Partial<Record<SelectableProduct, boolean>>
       ),
-      reserved: Object.entries(formData.reserved).reduce(
-        (acc, [category, reserved]) => {
-          if (reserved !== RESERVED_BUDGET_QUOTA) {
-            acc[category as DataCategory] = reserved ?? 0;
+      reserved: activePlan.categories.reduce(
+        (acc, category) => {
+          const isReservedBudgetCategory = Object.values(
+            activePlan.availableReservedBudgetTypes
+          ).some(budgetType => budgetType.dataCategories.includes(category));
+          if (
+            !isReservedBudgetCategory ||
+            (formData.reserved[category] &&
+              formData.reserved[category] !== RESERVED_BUDGET_QUOTA)
+          ) {
+            acc[category] = formData.reserved[category] ?? 0;
           }
           return acc;
         },
@@ -535,7 +547,8 @@ function CartDiff({
         : DEFAULT_PAYG_BUDGET,
       products: Object.entries(subscription.reservedBudgets ?? {}).reduce(
         (acc, [_, reservedBudget]) => {
-          acc[reservedBudget.apiName as unknown as SelectableProduct] = !isOnTrialPlan;
+          acc[reservedBudget.apiName as unknown as SelectableProduct] =
+            reservedBudget.reservedBudget > 0 && !isOnTrialPlan;
           return acc;
         },
         {} as Partial<Record<SelectableProduct, boolean>>
@@ -550,7 +563,15 @@ function CartDiff({
           )
         : Object.entries(subscription.categories).reduce(
             (acc, [category, history]) => {
-              if (history.reserved !== RESERVED_BUDGET_QUOTA) {
+              const isReservedBudgetCategory = Object.values(
+                subscription.planDetails.availableReservedBudgetTypes
+              ).some(budgetType =>
+                budgetType.dataCategories.includes(category as DataCategory)
+              );
+              if (
+                !isReservedBudgetCategory ||
+                (history.reserved !== RESERVED_BUDGET_QUOTA && history.reserved !== 0)
+              ) {
                 acc[category as DataCategory] = history.reserved ?? 0;
               }
               return acc;
@@ -584,10 +605,76 @@ function CartDiff({
   }, [newSubscriptionState, currentSubscriptionState]);
 
   const hasAnyChange = useMemo(() => {
-    return Object.entries(newSubscriptionState).some(([key, value]) => {
-      return value !== currentSubscriptionState[key as keyof SubscriptionState];
-    });
-  }, [newSubscriptionState, currentSubscriptionState]);
+    const naiveComparison = !isEqual(newSubscriptionState, currentSubscriptionState);
+
+    if (!naiveComparison) {
+      return true;
+    }
+
+    const someNonCategoryChange = Object.entries(newSubscriptionState)
+      .filter(([_, value]) => typeof value !== 'object')
+      .some(([key, value]) => {
+        return isChanged(
+          key as keyof SubscriptionState,
+          currentSubscriptionState[key as keyof SubscriptionState],
+          value
+        );
+      });
+
+    if (someNonCategoryChange) {
+      return true;
+    }
+
+    const someOnDemandChange = !isOnDemandBudgetsEqual(
+      newSubscriptionState.onDemandBudgets,
+      currentSubscriptionState.onDemandBudgets
+    );
+
+    if (someOnDemandChange) {
+      return true;
+    }
+
+    // TODO(ISABELLA): check products too
+
+    const currentPlanCategories = subscription.planDetails.categories;
+    const newPlanCategories = activePlan.categories;
+
+    if (isEqual(currentPlanCategories, newPlanCategories)) {
+      return naiveComparison; // no new categories or removed categories, so the naive comparison is enough
+    }
+
+    let hasSomeCategoryChange = false;
+    for (const category of newPlanCategories) {
+      if (currentPlanCategories.includes(category)) {
+        hasSomeCategoryChange =
+          currentSubscriptionState.reserved[category] !==
+          newSubscriptionState.reserved[category];
+      } else {
+        hasSomeCategoryChange = newSubscriptionState.reserved[category] !== 0;
+      }
+
+      if (hasSomeCategoryChange) {
+        break;
+      }
+    }
+
+    for (const category of currentPlanCategories) {
+      if (!newPlanCategories.includes(category)) {
+        hasSomeCategoryChange = currentSubscriptionState.reserved[category] !== 0;
+      }
+
+      if (hasSomeCategoryChange) {
+        break;
+      }
+    }
+
+    return hasSomeCategoryChange;
+  }, [
+    newSubscriptionState,
+    currentSubscriptionState,
+    activePlan.categories,
+    subscription.planDetails.categories,
+  ]);
 
   // TODO(checkout v3): this will need to be updated once
   // things can be bought on developer
@@ -596,7 +683,7 @@ function CartDiff({
   }
 
   return (
-    <div>
+    <CartDiffContainer>
       <Title>{t('Changes')}</Title>
       <Changes>
         {changedKeys.map(key => {
@@ -674,11 +761,18 @@ function CartDiff({
           );
         })}
       </Changes>
-    </div>
+    </CartDiffContainer>
   );
 }
 
 export default CartDiff;
+
+const CartDiffContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  padding: 0 ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.xl};
+`;
 
 const Title = styled('h1')`
   font-size: ${p => p.theme.fontSize.xl};
@@ -696,6 +790,7 @@ const Changes = styled('div')`
 const Change = styled('div')`
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: ${p => p.theme.space.sm};
   font-family: ${p => p.theme.text.familyMono};
   background: ${p => p.theme.backgroundSecondary};
