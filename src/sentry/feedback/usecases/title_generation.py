@@ -33,7 +33,6 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
     Args:
         title: The title to format
         max_words: Maximum number of words to include from the title
-        include_prefix: Whether to include the "User Feedback: " prefix
 
     Returns:
         A formatted title string
