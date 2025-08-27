@@ -12,8 +12,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
-import {getDetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
@@ -188,7 +189,11 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
   const start = location.query?.start as string | undefined;
   const end = location.query?.end as string | undefined;
   const dateParams =
-    start && end ? {start, end} : statsPeriod ? {statsPeriod} : {statsPeriod: '7d'};
+    start && end
+      ? {start, end}
+      : statsPeriod
+        ? {statsPeriod}
+        : {statsPeriod: TimePeriod.SEVEN_DAYS};
 
   if (!snubaQuery) {
     // Unlikely, helps narrow types
