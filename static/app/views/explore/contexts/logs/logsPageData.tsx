@@ -2,9 +2,9 @@ import {useMemo} from 'react';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import useOrganization from 'sentry/utils/useOrganization';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useInfiniteLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
-import {isLogsEnabled} from 'sentry/views/explore/logs/utils';
 
 interface LogsPageData {
   infiniteLogsQueryResult: UseInfiniteLogsQueryResult;

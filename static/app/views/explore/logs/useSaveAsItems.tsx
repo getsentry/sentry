@@ -28,10 +28,11 @@ import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useLogsSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
-import {isLogsEnabled} from 'sentry/views/explore/logs/utils';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+
+import {isLogsEnabled} from './isLogsEnabled';
 
 interface UseSaveAsItemsOptions {
   groupBys: readonly string[];

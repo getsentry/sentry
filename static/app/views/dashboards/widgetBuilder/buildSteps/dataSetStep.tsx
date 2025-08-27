@@ -16,7 +16,7 @@ import {DisplayType, type WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
-import {isLogsEnabled} from 'sentry/views/explore/logs/utils';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 import {BuildStep} from './buildStep';
 
