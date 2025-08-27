@@ -20,7 +20,6 @@ import {
   useLogsFields,
   useLogsSearch,
   useLogsSortBys,
-  useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
@@ -33,6 +32,7 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
+  useSetQueryParamsAggregateCursor,
 } from 'sentry/views/explore/queryParams/context';
 
 export function LogsAggregateTable() {
@@ -40,9 +40,9 @@ export function LogsAggregateTable() {
     limit: 50,
   });
 
-  const setLogsPageParams = useSetLogsPageParams();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
+  const setAggregateCursor = useSetQueryParamsAggregateCursor();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const search = useLogsSearch();
@@ -177,10 +177,7 @@ export function LogsAggregateTable() {
           },
         }}
       />
-      <Pagination
-        pageLinks={pageLinks}
-        onCursor={cursor => setLogsPageParams({aggregateCursor: cursor})}
-      />
+      <Pagination pageLinks={pageLinks} onCursor={cursor => setAggregateCursor(cursor)} />
     </TableContainer>
   );
 }

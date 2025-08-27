@@ -184,3 +184,19 @@ export function useQueryParamsAggregateCursor(): string {
   const queryParams = useQueryParams();
   return queryParams.aggregateCursor;
 }
+
+export function useSetQueryParamsAggregateCursor() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (aggregateCursor: string | undefined) => {
+      setQueryParams({aggregateCursor});
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsCursor(): string {
+  const queryParams = useQueryParams();
+  return queryParams.cursor;
+}
