@@ -3372,7 +3372,7 @@ register(
 # Taskbroker flags
 register(
     "taskworker.enabled",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3476,6 +3476,24 @@ register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR
 # Whether to use 60s granularity for the dynamic sampling query
 register(
     "dynamic-sampling.query-granularity-60s",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option used to enable/disable tracking
+# rate of potential functions metrics to
+# be written into EAP
+register(
+    "profiling.track_functions_metrics_write_rate.eap.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether to use 60s granularity for the dynamic sampling query
+register(
+    "dynamic-sampling.query-granularity-60s.active-orgs",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

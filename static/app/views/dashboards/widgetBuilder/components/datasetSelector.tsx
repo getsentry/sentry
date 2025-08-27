@@ -22,6 +22,7 @@ import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
+import {isLogsEnabled} from 'sentry/views/explore/logs/utils';
 
 function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
@@ -68,7 +69,7 @@ function WidgetBuilderDatasetSelector() {
   if (organization.features.includes('visibility-explore-view')) {
     datasetChoices.push([WidgetType.SPANS, t('Spans')]);
   }
-  if (organization.features.includes('ourlogs-dashboards')) {
+  if (isLogsEnabled(organization)) {
     datasetChoices.push([
       WidgetType.LOGS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Logs')} key={'dataset-choice-logs'}>

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import EventTagsPill from 'sentry/components/events/eventTags/eventTagsPill';
-import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header';
 import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -19,12 +18,6 @@ import {isTraceTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import {appendTagCondition} from 'sentry/utils/queryString';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-export {
-  Row,
-  SpanDetails as TransactionDetails,
-  SpanDetailContainer as TransactionDetailsContainer,
-} from 'sentry/components/events/interfaces/spans/spanDetail';
-
 export const TraceSearchContainer = styled('div')`
   display: flex;
   width: 100%;
@@ -32,14 +25,6 @@ export const TraceSearchContainer = styled('div')`
 
 export const TraceSearchBar = styled(SearchBar)`
   flex-grow: 1;
-`;
-
-export const TraceViewHeaderContainer = styled(SecondaryHeader)`
-  border-top: none;
-  border-bottom: 1px solid ${p => p.theme.border};
-  position: sticky;
-  top: 0;
-  z-index: 1;
 `;
 
 export const TraceDetailHeader = styled('div')`
@@ -52,23 +37,6 @@ export const TraceDetailHeader = styled('div')`
     grid-template-columns: max-content max-content;
     grid-row-gap: 0;
   }
-`;
-
-export const TraceDetailBody = styled('div')`
-  height: 100%;
-`;
-
-export const TraceViewContainer = styled('div')`
-  overflow-x: hidden;
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
-`;
-
-export const ProjectBadgeContainer = styled('span')`
-  margin-right: ${space(0.75)};
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 `;
 
 const StyledPills = styled(Pills)`

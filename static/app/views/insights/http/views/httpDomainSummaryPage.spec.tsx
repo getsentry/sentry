@@ -20,7 +20,7 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPDomainSummaryPage', () => {
-  const organization = OrganizationFixture({features: ['insights-initial-modules']});
+  const organization = OrganizationFixture({features: ['insight-modules']});
 
   let throughputRequestMock!: jest.Mock;
   let durationRequestMock!: jest.Mock;

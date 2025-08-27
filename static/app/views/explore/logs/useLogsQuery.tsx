@@ -8,7 +8,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
   fetchDataQuery,
-  Query,
   useApiQuery,
   useInfiniteQuery,
   useQueryClient,
@@ -16,7 +15,6 @@ import {
   type InfiniteData,
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -31,10 +29,7 @@ import {
   useLogsSearch,
   useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {
-  usePrefetchTraceItemDetailsOnHover,
-  useTraceItemDetails,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   AlwaysPresentLogFields,
   MAX_LOG_INGEST_DELAY,
@@ -74,33 +69,6 @@ export function useExploreLogsTableRow(props: {
     traceItemType: TraceItemDataset.LOGS,
     referrer: 'api.explore.log-item-details',
     enabled: props.enabled && pageFiltersReady,
-  });
-}
-
-export function usePrefetchLogTableRowOnHover({
-  logId,
-  projectId,
-  traceId,
-  hoverPrefetchDisabled,
-  sharedHoverTimeoutRef,
-  timeout,
-}: {
-  logId: string | number;
-  projectId: string;
-  sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
-  timeout: number;
-  traceId: string;
-  hoverPrefetchDisabled?: boolean;
-}) {
-  return usePrefetchTraceItemDetailsOnHover({
-    traceItemId: String(logId),
-    projectId,
-    traceId,
-    traceItemType: TraceItemDataset.LOGS,
-    hoverPrefetchDisabled,
-    sharedHoverTimeoutRef,
-    timeout,
-    referrer: 'api.explore.log-item-details',
   });
 }
 
@@ -255,54 +223,6 @@ export function useLogsQueryKeyWithInfinite({
   return {
     queryKey: [...queryKey, 'infinite'] as QueryKey,
     other,
-  };
-}
-
-/**
- * Requires LogsParamsContext to be provided.
- */
-export function useLogsQuery({
-  disabled,
-  limit,
-  referrer,
-  refetchInterval,
-}: {
-  disabled?: boolean;
-  limit?: number;
-  referrer?: string;
-  refetchInterval?: (
-    query: Query<
-      ApiResult<EventsLogsResult>,
-      RequestError,
-      ApiResult<EventsLogsResult>,
-      ApiQueryKey
-    >
-  ) => number;
-}) {
-  const _referrer = referrer ?? 'api.explore.logs-table';
-  const {queryKey, other} = useLogsQueryKey({limit, referrer: _referrer});
-
-  const queryResult = useApiQuery<EventsLogsResult>(queryKey, {
-    enabled: !disabled,
-    staleTime: getStaleTimeForEventView(other.eventView),
-    refetchOnWindowFocus: false,
-    retry: false,
-    refetchInterval,
-  });
-
-  return {
-    isPending: queryResult.isPending,
-    isRefetching: queryResult.isRefetching,
-    isError: queryResult.isError,
-    isLoading: queryResult.isLoading,
-    queryResult,
-    data: queryResult?.data?.data,
-    refetch: queryResult.refetch,
-    infiniteData: queryResult?.data?.data,
-    error: queryResult.error,
-    meta: queryResult?.data?.meta,
-    queryKey,
-    pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
   };
 }
 
@@ -627,6 +547,7 @@ export function useInfiniteLogsQuery({
       data?.pages.reduce(
         (acc, [pageData]) => {
           return {
+            ...pageData.meta,
             fields: {...acc.fields, ...pageData.meta?.fields},
             units: {...acc.units, ...pageData.meta?.units},
           };
@@ -681,5 +602,4 @@ export function useInfiniteLogsQuery({
   };
 }
 
-export type UseLogsQueryResult = ReturnType<typeof useLogsQuery>;
 export type UseInfiniteLogsQueryResult = ReturnType<typeof useInfiniteLogsQuery>;

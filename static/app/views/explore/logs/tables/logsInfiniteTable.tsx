@@ -59,6 +59,9 @@ import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 type LogsTableProps = {
   allowPagination?: boolean;
   embedded?: boolean;
+  embeddedOptions?: {
+    openWithExpandedIds?: string[];
+  };
   embeddedStyling?: {
     disableBodyPadding?: boolean;
     showVerticalScrollbar?: boolean;
@@ -84,6 +87,7 @@ export function LogsInfiniteTable({
   stringAttributes,
   scrollContainer,
   embeddedStyling,
+  embeddedOptions,
 }: LogsTableProps) {
   const theme = useTheme();
   const fields = useLogsFields();
@@ -110,7 +114,9 @@ export function LogsInfiniteTable({
 
   const tableRef = useRef<HTMLTableElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
-  const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(new Set());
+  const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(
+    new Set(embeddedOptions?.openWithExpandedIds ?? [])
+  );
   const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
     Record<string, number>
   >({});
@@ -291,9 +297,11 @@ export function LogsInfiniteTable({
           {isError && <ErrorRenderer />}
           {isEmpty && (emptyRenderer ? emptyRenderer() : <EmptyRenderer />)}
           {!autoRefresh && !isPending && isFetchingPreviousPage && (
-            <HoveringRowLoadingRenderer position="top" />
+            <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
           )}
-          {isRefetching && <HoveringRowLoadingRenderer position="top" />}
+          {isRefetching && (
+            <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
+          )}
           {virtualItems.map(virtualRow => {
             const dataRow = data?.[virtualRow.index];
 
@@ -326,7 +334,7 @@ export function LogsInfiniteTable({
             </TableRow>
           )}
           {!autoRefresh && !isPending && isFetchingNextPage && (
-            <HoveringRowLoadingRenderer position="bottom" />
+            <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
           )}
         </LogTableBody>
       </Table>
@@ -458,14 +466,24 @@ export function LoadingRenderer({size}: {size?: number}) {
   );
 }
 
-function HoveringRowLoadingRenderer({position}: {position: 'top' | 'bottom'}) {
+function HoveringRowLoadingRenderer({
+  position,
+  isEmbedded,
+}: {
+  isEmbedded: boolean;
+  position: 'top' | 'bottom';
+}) {
   return (
     <HoveringRowLoadingRendererContainer
       position={position}
-      rowHeight={LOGS_GRID_BODY_ROW_HEIGHT}
-      headerHeight={45}
+      headerHeight={isEmbedded ? 0 : 45}
+      height={isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 1 : LOGS_GRID_BODY_ROW_HEIGHT * 3}
     >
-      <LoadingIndicator size={LOGS_GRID_BODY_ROW_HEIGHT * 1.5} />
+      <LoadingIndicator
+        size={
+          isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 0.8 : LOGS_GRID_BODY_ROW_HEIGHT * 1.5
+        }
+      />
     </HoveringRowLoadingRendererContainer>
   );
 }

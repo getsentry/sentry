@@ -4,7 +4,6 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
-import ModalStore from 'sentry/stores/modalStore';
 
 const steps = [
   {
@@ -49,7 +48,6 @@ describe('FeatureTourModal', () => {
   }
 
   beforeEach(() => {
-    ModalStore.reset();
     onAdvance = jest.fn();
     onCloseModal = jest.fn();
   });

@@ -14,7 +14,7 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -500,7 +500,6 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
         assert response.data["foo"]["meta"]["dataset"] == "spans"
 
     def test_top_events_multi_y_axis(self) -> None:
-        # Each of these denotes how many events to create in each minute
         self.store_spans(
             [
                 self.create_span(
@@ -542,7 +541,6 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
                 assert result[1][0]["count"] == expected, key
 
     def test_top_events_with_project(self) -> None:
-        # Each of these denotes how many events to create in each minute
         projects = [self.create_project(), self.create_project()]
         self.store_spans(
             [
@@ -591,7 +589,6 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
         assert response.data["Other"]["meta"]["dataset"] == "spans"
 
     def test_top_events_with_project_and_project_id(self) -> None:
-        # Each of these denotes how many events to create in each minute
         projects = [self.create_project(), self.create_project()]
         self.store_spans(
             [
@@ -642,7 +639,6 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
         assert response.data["Other"]["meta"]["dataset"] == "spans"
 
     def test_top_events_with_no_data(self) -> None:
-        # Each of these denotes how many events to create in each minute
         response = self._do_request(
             data={
                 "start": self.day_ago,
@@ -2358,3 +2354,41 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
                 "aggregate"
             ]
         )
+
+    def test_groupby_non_existent_attribute(self):
+        self.store_spans(
+            [
+                self.create_span({"description": "span"}, start_ts=self.day_ago),
+                self.create_span({"description": "span"}, start_ts=self.day_ago),
+                self.create_span(
+                    {
+                        "description": "span",
+                        "tags": {"foo": "foo"},
+                        "measurements": {"bar": {"value": 1}},
+                    },
+                    start_ts=self.day_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count(span.duration)",
+                "field": ["foo", "tags[bar,number]", "count(span.duration)"],
+                "orderby": ["-count(span.duration)"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        count_none = sum(entry[1][0]["count"] for entry in response.data["None,None"]["data"])
+        assert count_none == 2
+
+        count_foo_1 = sum(entry[1][0]["count"] for entry in response.data["foo,1.0"]["data"])
+        assert count_foo_1 == 1

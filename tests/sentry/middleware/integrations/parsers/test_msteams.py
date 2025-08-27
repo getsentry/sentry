@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 import responses
 from django.http import HttpRequest, HttpResponse
@@ -40,7 +41,7 @@ class MsTeamsRequestParserTest(TestCase):
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    def generate_card_response(self, integration_id: int):
+    def generate_card_response(self, integration_id: int) -> dict[str, Any]:
         return {
             "type": "message",
             "from": {"id": "user_id"},

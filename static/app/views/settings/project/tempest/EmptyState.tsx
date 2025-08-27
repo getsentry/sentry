@@ -27,6 +27,7 @@ interface EmptyStateProps {
   isRemoving: boolean;
   onRemoveCredential: (data: {id: number}) => void;
   project: Project;
+  removingCredentialId?: number;
   tempestCredentials?: TempestCredentials[];
 }
 
@@ -36,6 +37,7 @@ export default function EmptyState({
   isRemoving,
   hasWriteAccess,
   onRemoveCredential,
+  removingCredentialId,
 }: EmptyStateProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -101,7 +103,7 @@ export default function EmptyState({
                     <CredentialRow
                       key={credential.id}
                       credential={credential}
-                      isRemoving={isRemoving}
+                      isRemoving={isRemoving && removingCredentialId === credential.id}
                       removeCredential={hasWriteAccess ? onRemoveCredential : undefined}
                     />
                   ))}

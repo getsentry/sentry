@@ -4,11 +4,13 @@ from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
 import requests
-import responses
 from django.conf import settings
 from django.urls import reverse
 
-from sentry.replays.endpoints.project_replay_summary import SEER_POLL_STATE_URL, SEER_START_TASK_URL
+from sentry.replays.endpoints.project_replay_summary import (
+    SEER_POLL_STATE_ENDPOINT_PATH,
+    SEER_START_TASK_ENDPOINT_PATH,
+)
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import TransactionTestCase
@@ -16,13 +18,14 @@ from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
 
-def mock_seer_response(method: str, **kwargs) -> None:
-    """Use with @responses.activate to cleanup after tests. Not compatible with store_replay."""
-    responses.add(
-        responses.POST,
-        SEER_START_TASK_URL if method == "POST" else SEER_POLL_STATE_URL,
-        **kwargs,
-    )
+class MockSeerResponse:
+    def __init__(self, status: int, json_data: dict):
+        self.status = status
+        self.json_data = json_data
+        self.data = json.dumps(json_data)
+
+    def json(self):
+        return self.json_data
 
 
 # have to use TransactionTestCase because we're using threadpools
@@ -104,24 +107,25 @@ class ProjectReplaySummaryTestCase(
                 )
                 assert response.status_code == 403, method
 
-    @responses.activate
-    def test_get_simple(self) -> None:
-        mock_seer_response("GET", status=200, json={"hello": "world"})
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_get_simple(self, mock_make_seer_api_request: Mock) -> None:
+        mock_response = MockSeerResponse(200, json_data={"hello": "world"})
+        mock_make_seer_api_request.return_value = mock_response
+
         with self.feature(self.features):
             response = self.client.get(self.url)
             assert response.status_code == 200
             assert response.json() == {"hello": "world"}
 
-        assert len(responses.calls) == 1
-        seer_request = responses.calls[0].request
-        assert seer_request.url == SEER_POLL_STATE_URL
-        assert seer_request.method == "POST"
-        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
-        assert seer_request.body == json.dumps({"replay_id": self.replay_id})
+        mock_make_seer_api_request.assert_called_once()
+        call_args = mock_make_seer_api_request.call_args
+        assert call_args[1]["path"] == SEER_POLL_STATE_ENDPOINT_PATH
+        assert json.loads(call_args[1]["body"].decode()) == {"replay_id": self.replay_id}
 
-    @responses.activate
-    def test_post_simple(self) -> None:
-        mock_seer_response("POST", status=200, json={"hello": "world"})
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_post_simple(self, mock_make_seer_api_request: Mock) -> None:
+        mock_response = MockSeerResponse(200, json_data={"hello": "world"})
+        mock_make_seer_api_request.return_value = mock_response
 
         data = [
             {
@@ -152,13 +156,12 @@ class ProjectReplaySummaryTestCase(
         assert response.status_code == 200
         assert response.json() == {"hello": "world"}
 
-        assert len(responses.calls) == 1
-        seer_request = responses.calls[0].request
-        assert seer_request.url == SEER_START_TASK_URL
-        assert seer_request.method == "POST"
-        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
-        assert json.loads(seer_request.body) == {
-            "logs": ["Logged: hello at 0.0", "Logged: world at 0.0"],
+        mock_make_seer_api_request.assert_called_once()
+        call_args = mock_make_seer_api_request.call_args
+        assert call_args[1]["path"] == SEER_START_TASK_ENDPOINT_PATH
+        request_body = json.loads(call_args[1]["body"].decode())
+        assert request_body == {
+            "logs": ["Logged: 'hello' at 0.0", "Logged: 'world' at 0.0"],
             "num_segments": 2,
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
@@ -166,10 +169,13 @@ class ProjectReplaySummaryTestCase(
             "temperature": None,
         }
 
-    @patch("sentry.replays.endpoints.project_replay_summary.requests")
-    def test_post_with_both_direct_and_trace_connected_errors(self, mock_requests) -> None:
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_post_with_both_direct_and_trace_connected_errors(
+        self, mock_make_seer_api_request: Mock
+    ) -> None:
         """Test handling of breadcrumbs with both direct and trace connected errors"""
-        mock_requests.post.return_value = Mock(status_code=200, json=lambda: {"hello": "world"})
+        mock_response = MockSeerResponse(200, json_data={"hello": "world"})
+        mock_make_seer_api_request.return_value = mock_response
 
         now = datetime.now(UTC)
         trace_id = uuid.uuid4().hex
@@ -247,20 +253,22 @@ class ProjectReplaySummaryTestCase(
             assert response.status_code == 200
             assert response.json() == {"hello": "world"}
 
-        assert mock_requests.post.call_count == 1
-        data = mock_requests.post.call_args.kwargs["data"]
-        logs = json.loads(data)["logs"]
+        mock_make_seer_api_request.assert_called_once()
+        request_body = json.loads(mock_make_seer_api_request.call_args[1]["body"].decode())
+        logs = request_body["logs"]
         assert any("ZeroDivisionError" in log for log in logs)
         assert any("division by zero" in log for log in logs)
         assert any("ConnectionError" in log for log in logs)
         assert any("Failed to connect to database" in log for log in logs)
 
-    @patch("sentry.replays.endpoints.project_replay_summary.requests")
-    def test_post_with_feedback(self, mock_requests) -> None:
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_post_with_feedback(self, mock_make_seer_api_request: Mock) -> None:
         """Test handling of breadcrumbs with user feedback"""
-        mock_requests.post.return_value = Mock(
-            status_code=200, json=lambda: {"feedback": "Feedback was submitted"}
+        mock_response = MockSeerResponse(
+            200,
+            json_data={"feedback": "Feedback was submitted"},
         )
+        mock_make_seer_api_request.return_value = mock_response
 
         now = datetime.now(UTC)
         feedback_event_id = uuid.uuid4().hex
@@ -314,16 +322,17 @@ class ProjectReplaySummaryTestCase(
         assert response.status_code == 200
         assert response.json() == {"feedback": "Feedback was submitted"}
 
-        assert mock_requests.post.call_count == 1
-        data = mock_requests.post.call_args.kwargs["data"]
-        logs = json.loads(data)["logs"]
+        mock_make_seer_api_request.assert_called_once()
+        request_body = json.loads(mock_make_seer_api_request.call_args[1]["body"].decode())
+        logs = request_body["logs"]
         assert any("Great website!" in log for log in logs)
         assert any("User submitted feedback" in log for log in logs)
 
-    @responses.activate
     @patch("sentry.replays.endpoints.project_replay_summary.MAX_SEGMENTS_TO_SUMMARIZE", 1)
-    def test_post_max_segments_exceeded(self) -> None:
-        mock_seer_response("POST", status=200, json={"hello": "world"})
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_post_max_segments_exceeded(self, mock_make_seer_api_request: Mock) -> None:
+        mock_response = MockSeerResponse(200, json_data={"hello": "world"})
+        mock_make_seer_api_request.return_value = mock_response
 
         data1 = [
             {
@@ -355,13 +364,12 @@ class ProjectReplaySummaryTestCase(
 
         assert response.status_code == 200
 
-        assert len(responses.calls) == 1
-        seer_request = responses.calls[0].request
-        assert seer_request.url == SEER_START_TASK_URL
-        assert seer_request.method == "POST"
-        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
-        assert json.loads(seer_request.body) == {
-            "logs": ["Logged: hello at 0.0"],  # only 1 log from the first segment.
+        mock_make_seer_api_request.assert_called_once()
+        call_args = mock_make_seer_api_request.call_args
+        assert call_args[1]["path"] == SEER_START_TASK_ENDPOINT_PATH
+        request_body = json.loads(call_args[1]["body"].decode())
+        assert request_body == {
+            "logs": ["Logged: 'hello' at 0.0"],  # only 1 log from the first segment.
             "num_segments": 1,  # capped to 1.
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
@@ -369,9 +377,10 @@ class ProjectReplaySummaryTestCase(
             "temperature": None,
         }
 
-    @responses.activate
-    def test_post_with_temperature(self) -> None:
-        mock_seer_response("POST", status=200, json={"hello": "world"})
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_post_with_temperature(self, mock_make_seer_api_request: Mock) -> None:
+        mock_response = MockSeerResponse(200, json_data={"hello": "world"})
+        mock_make_seer_api_request.return_value = mock_response
 
         data = [
             {
@@ -394,13 +403,12 @@ class ProjectReplaySummaryTestCase(
 
         assert response.status_code == 200
 
-        assert len(responses.calls) == 1
-        seer_request = responses.calls[0].request
-        assert seer_request.url == SEER_START_TASK_URL
-        assert seer_request.method == "POST"
-        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
-        assert json.loads(seer_request.body) == {
-            "logs": ["Logged: hello at 0.0"],
+        mock_make_seer_api_request.assert_called_once()
+        call_args = mock_make_seer_api_request.call_args
+        assert call_args[1]["path"] == SEER_START_TASK_ENDPOINT_PATH
+        request_body = json.loads(call_args[1]["body"].decode())
+        assert request_body == {
+            "logs": ["Logged: 'hello' at 0.0"],
             "num_segments": 1,
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
@@ -408,45 +416,11 @@ class ProjectReplaySummaryTestCase(
             "temperature": 0.73,
         }
 
-    @responses.activate
-    def test_seer_timeout(self) -> None:
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_seer_timeout(self, mock_make_seer_api_request: Mock) -> None:
         for method in ["GET", "POST"]:
-            mock_seer_response(method, body=requests.exceptions.Timeout("Request timed out"))
-            self.save_recording_segment(0, json.dumps([]).encode())
-
-            with self.feature(self.features):
-                response = (
-                    self.client.get(self.url)
-                    if method == "GET"
-                    else self.client.post(
-                        self.url, data={"num_segments": 1}, content_type="application/json"
-                    )
-                )
-
-            assert response.status_code == 504, method
-
-    @responses.activate
-    def test_seer_connection_error(self) -> None:
-        for method in ["GET", "POST"]:
-            mock_seer_response(method, body=requests.exceptions.ConnectionError("Connection error"))
-            self.save_recording_segment(0, json.dumps([]).encode())
-
-            with self.feature(self.features):
-                response = (
-                    self.client.get(self.url)
-                    if method == "GET"
-                    else self.client.post(
-                        self.url, data={"num_segments": 1}, content_type="application/json"
-                    )
-                )
-
-            assert response.status_code == 502, method
-
-    @responses.activate
-    def test_seer_request_error(self) -> None:
-        for method in ["GET", "POST"]:
-            mock_seer_response(
-                method, body=requests.exceptions.RequestException("Generic request error")
+            mock_make_seer_api_request.side_effect = requests.exceptions.Timeout(
+                "Request timed out"
             )
             self.save_recording_segment(0, json.dumps([]).encode())
 
@@ -459,13 +433,55 @@ class ProjectReplaySummaryTestCase(
                     )
                 )
 
-            assert response.status_code == 502, method
+            assert response.status_code == 500, method
 
-    @responses.activate
-    def test_seer_http_errors(self) -> None:
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_seer_connection_error(self, mock_make_seer_api_request: Mock) -> None:
+        for method in ["GET", "POST"]:
+            mock_make_seer_api_request.side_effect = requests.exceptions.ConnectionError(
+                "Connection error"
+            )
+            self.save_recording_segment(0, json.dumps([]).encode())
+
+            with self.feature(self.features):
+                response = (
+                    self.client.get(self.url)
+                    if method == "GET"
+                    else self.client.post(
+                        self.url, data={"num_segments": 1}, content_type="application/json"
+                    )
+                )
+
+            assert response.status_code == 500, method
+
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_seer_request_error(self, mock_make_seer_api_request: Mock) -> None:
+        for method in ["GET", "POST"]:
+            mock_make_seer_api_request.side_effect = requests.exceptions.RequestException(
+                "Generic request error"
+            )
+            self.save_recording_segment(0, json.dumps([]).encode())
+
+            with self.feature(self.features):
+                response = (
+                    self.client.get(self.url)
+                    if method == "GET"
+                    else self.client.post(
+                        self.url, data={"num_segments": 1}, content_type="application/json"
+                    )
+                )
+
+            assert response.status_code == 500, method
+
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_seer_http_errors(self, mock_make_seer_api_request: Mock) -> None:
         for method in ["GET", "POST"]:
             for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
-                mock_seer_response(method, status=status)
+                mock_response = MockSeerResponse(
+                    status=status,
+                    json_data={"error": "Test error"},
+                )
+                mock_make_seer_api_request.return_value = mock_response
                 self.save_recording_segment(0, json.dumps([]).encode())
 
                 with self.feature(self.features):
@@ -477,4 +493,4 @@ class ProjectReplaySummaryTestCase(
                         )
                     )
 
-                assert response.status_code == status, method
+                assert response.status_code == 500, method

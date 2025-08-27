@@ -30,5 +30,5 @@ class OrganizationAvatar(AvatarBase):
         app_label = "sentry"
         db_table = "sentry_organizationavatar"
 
-    def get_cache_key(self, size):
+    def get_cache_key(self, size) -> str:
         return f"org_avatar:{self.organization_id}:{size}"

@@ -48,6 +48,7 @@ def find_commit_context_for_event_all_frames(
     """
     Given a list of event frames and code mappings, finds the most recent commit.
     Will also emit analytics events for success or failure.
+    This is the logic behind SuspectCommitStrategy.SCM_BASED
     """
     valid_frames = list(
         OrderedSet(
@@ -79,10 +80,11 @@ def find_commit_context_for_event_all_frames(
     )
 
     most_recent_blame = max(file_blames, key=lambda blame: blame.commit.committedDate, default=None)
-    # Only return suspect commits that are less than a year old
+    # Only return suspect commits that are less than 2 months old
     selected_blame = (
         most_recent_blame
-        if most_recent_blame and is_date_less_than_year(most_recent_blame.commit.committedDate)
+        if most_recent_blame
+        and is_date_less_than_two_months(most_recent_blame.commit.committedDate)
         else None
     )
 
@@ -109,8 +111,8 @@ def find_commit_context_for_event_all_frames(
     return (selected_blame, selected_install)
 
 
-def is_date_less_than_year(date: datetime) -> bool:
-    return date > datetime.now(tz=timezone.utc) - timedelta(days=365)
+def is_date_less_than_two_months(date: datetime) -> bool:
+    return date > datetime.now(tz=timezone.utc) - timedelta(days=60)
 
 
 def get_or_create_commit_from_blame(
@@ -346,7 +348,7 @@ def _record_commit_context_all_frames_analytics(
     selected_provider: str | None,
     platform: str,
     sdk_name: str | None,
-):
+) -> None:
     if not selected_blame:
         reason = _get_failure_reason(
             num_successfully_mapped_frames=num_successfully_mapped_frames,
@@ -376,7 +378,7 @@ def _record_commit_context_all_frames_analytics(
                 reason=reason,
             )
         )
-        return
+        return None
 
     unique_commit_ids = {blame.commit.commitId for blame in file_blames}
     unique_author_emails = {blame.commit.commitAuthorEmail for blame in file_blames}
@@ -413,7 +415,7 @@ def _record_commit_context_all_frames_analytics(
     )
 
 
-def _get_failure_reason(num_successfully_mapped_frames: int, has_old_blames: bool):
+def _get_failure_reason(num_successfully_mapped_frames: int, has_old_blames: bool) -> str:
     if num_successfully_mapped_frames < 1:
         return "no_successful_code_mapping"
     if has_old_blames:

@@ -115,7 +115,7 @@ describe('useDashboardsLimit', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'You have reached the dashboard limit (0) for your plan. Upgrade to create more dashboards.'
+          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
         )
       )
     ).toBeInTheDocument();
@@ -206,7 +206,7 @@ describe('useDashboardsLimit', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'You have reached the dashboard limit (3) for your plan. Upgrade to create more dashboards.'
+          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
         )
       )
     ).toBeInTheDocument();
@@ -252,7 +252,7 @@ describe('useDashboardsLimit', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'You have reached the dashboard limit (2) for your plan. Upgrade to create more dashboards.'
+          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
         )
       )
     ).toBeInTheDocument();
@@ -356,7 +356,7 @@ describe('useDashboardsLimit', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'You have reached the dashboard limit (0) for your plan. Upgrade to create more dashboards.'
+          'You have reached the maximum number of Dashboards available on your plan. To add more, upgrade your plan'
         )
       )
     ).toBeInTheDocument();

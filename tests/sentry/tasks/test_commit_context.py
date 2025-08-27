@@ -132,7 +132,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             lineno=30,
             commit=CommitInfo(
                 commitId="commit-id-old",
-                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=370),
+                committedDate=datetime.now(tz=datetime_timezone.utc) - timedelta(days=62),
                 commitMessage="old commit message",
                 commitAuthorName=None,
                 commitAuthorEmail="old@localhost",
@@ -527,8 +527,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         self, mock_get_commit_context, mock_record, mock_process_suspect_commits
     ):
         """
-        A simple failure case where the event has no in app frames, so we bail out
-        and fall back to the release-based suspect commits.
+        A simple failure case where the event has no in app frames, so we bail out.
         """
         self.event_with_no_inapp_frames = self.store_event(
             data={
@@ -575,14 +574,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 
         assert not mock_get_commit_context.called
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        mock_process_suspect_commits.assert_called_once_with(
-            event_id=self.event.event_id,
-            event_platform=self.event.platform,
-            event_frames=event_frames,
-            group_id=self.event.group_id,
-            project_id=self.event.project_id,
-            sdk_name="sentry.python",
-        )
+        mock_process_suspect_commits.assert_not_called()
 
         assert_any_analytics_event(
             mock_record,
@@ -607,8 +599,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         self, mock_get_commit_context, mock_record, mock_process_suspect_commits, mock_logger_info
     ):
         """
-        A simple failure case where no blames are returned. We bail out and fall back
-        to the release-based suspect commits.
+        A simple failure case where no blames are returned. We bail out.
         """
         mock_get_commit_context.return_value = []
         with self.tasks():
@@ -624,14 +615,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             )
 
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        mock_process_suspect_commits.assert_called_once_with(
-            event_id=self.event.event_id,
-            event_platform=self.event.platform,
-            event_frames=event_frames,
-            group_id=self.event.group_id,
-            project_id=self.event.project_id,
-            sdk_name="sentry.python",
-        )
+        mock_process_suspect_commits.assert_not_called()
 
         assert_any_analytics_event(
             mock_record,
@@ -668,8 +652,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         self, mock_get_commit_context, mock_record, mock_process_suspect_commits, mock_logger_info
     ):
         """
-        A simple failure case where no blames are returned. We bail out and fall back
-        to the release-based suspect commits.
+        A failure case where the only blame returned is past the time threshold. We bail out.
         """
         mock_get_commit_context.return_value = [self.blame_too_old]
         with self.tasks():
@@ -685,14 +668,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             )
 
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        mock_process_suspect_commits.assert_called_once_with(
-            event_id=self.event.event_id,
-            event_platform=self.event.platform,
-            event_frames=event_frames,
-            group_id=self.event.group_id,
-            project_id=self.event.project_id,
-            sdk_name="sentry.python",
-        )
+        mock_process_suspect_commits.assert_not_called()
 
         assert_any_analytics_event(
             mock_record,
@@ -757,7 +733,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     ):
         """
         A failure case where the integration hits an a 404 error.
-        This type of failure should immediately fall back to the release-based suspesct commits.
+        This type of failure should immediately bail.
         """
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
@@ -772,7 +748,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             )
 
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        mock_process_suspect_commits.assert_called_once()
+        mock_process_suspect_commits.assert_not_called()
 
     @patch("celery.app.task.Task.request")
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
@@ -780,12 +756,12 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
         side_effect=ApiError("Unknown API error"),
     )
-    def test_falls_back_on_max_retries(
+    def test_no_fall_back_on_max_retries(
         self, mock_get_commit_context, mock_process_suspect_commits, mock_request
     ):
         """
         A failure case where the integration hits an unknown API error a fifth time.
-        After 5 retries, the task should fall back to the release-based suspect commits.
+        After 5 retries, the task should bail.
         """
         mock_request.called_directly = False
         mock_request.retries = 5
@@ -804,7 +780,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             )
 
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        mock_process_suspect_commits.assert_called_once()
+        mock_process_suspect_commits.assert_not_called()
 
     @patch("sentry.integrations.utils.commit_context.logger.exception")
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
@@ -820,7 +796,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     ):
         """
         A failure case where the integration returned an API error.
-        The error should be recorded and we should fall back to the release-based suspect commits.
+        The error should be recorded.
         """
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
@@ -835,14 +811,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             )
 
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        mock_process_suspect_commits.assert_called_once_with(
-            event_id=self.event.event_id,
-            event_platform=self.event.platform,
-            event_frames=event_frames,
-            group_id=self.event.group_id,
-            project_id=self.event.project_id,
-            sdk_name="sentry.python",
-        )
+        mock_process_suspect_commits.assert_not_called()
 
         mock_logger_exception.assert_any_call(
             "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",

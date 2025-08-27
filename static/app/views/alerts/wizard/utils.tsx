@@ -4,6 +4,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {isLogsEnabled} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
@@ -92,10 +93,7 @@ export function getAlertTypeFromAggregateDataset({
 }
 
 export function hasLogAlerts(organization: Organization): boolean {
-  return (
-    organization.features.includes('ourlogs-alerts') &&
-    organization.features.includes('ourlogs-enabled')
-  );
+  return isLogsEnabled(organization);
 }
 
 export function getTraceItemTypeForDatasetAndEventType(
