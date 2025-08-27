@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from django.db import IntegrityError
 
 from sentry import audit_log
+from sentry.analytics.events.internal_integration_created import InternalIntegrationCreatedEvent
 from sentry.analytics.events.sentry_app_created import SentryAppCreatedEvent
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.integrations.types import EventLifecycleOutcome
@@ -291,9 +292,11 @@ class TestInternalCreator(TestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         ).run(user=self.user, request=MagicMock())
 
-        record.assert_called_with(
-            "internal_integration.created",
-            user_id=self.user.id,
-            organization_id=self.org.id,
-            sentry_app=sentry_app.slug,
+        assert_any_analytics_event(
+            record,
+            InternalIntegrationCreatedEvent(
+                user_id=self.user.id,
+                organization_id=self.org.id,
+                sentry_app=sentry_app.slug,
+            ),
         )
