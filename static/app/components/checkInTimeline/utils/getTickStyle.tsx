@@ -18,7 +18,6 @@ export function getTickStyle<Status extends string>(
   return css`
     border: 1px solid ${style.tickColor};
     background-size: 3px 3px;
-    opacity: 0.5;
     background-image:
       linear-gradient(
         -45deg,
