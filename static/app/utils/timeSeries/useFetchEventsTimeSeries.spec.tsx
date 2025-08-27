@@ -7,6 +7,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -139,6 +140,7 @@ describe('useFetchEventsTimeSeries', () => {
           DiscoverDatasets.SPANS,
           {
             yAxis: 'p50(span.duration)',
+            search: new MutableSearch('span.op:db*'),
           },
           REFERRER
         ),
@@ -162,6 +164,7 @@ describe('useFetchEventsTimeSeries', () => {
           environment: ['prod'],
           project: [42],
           interval: '1h',
+          search: 'span.op:db*',
         },
       })
     );
