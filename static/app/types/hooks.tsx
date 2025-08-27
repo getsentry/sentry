@@ -264,7 +264,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:open-in-discover': FeatureDisabledHook;
   'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
-  'feature-disabled:performance-quick-trace': FeatureDisabledHook;
   'feature-disabled:profiling-page': FeatureDisabledHook;
   'feature-disabled:profiling-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;

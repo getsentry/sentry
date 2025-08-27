@@ -7,7 +7,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {EAPTraceMeta, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -15,6 +14,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
+
+import type {EAPTraceMeta, TraceMeta} from './types';
 
 type TraceMetaQueryParams =
   | {

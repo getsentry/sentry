@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
+import {getTraceTimeRangeFromEvent} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 

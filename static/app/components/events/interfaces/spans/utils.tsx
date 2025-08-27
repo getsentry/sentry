@@ -13,12 +13,7 @@ import type {
 } from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
-import {MobileVital, WebVital} from 'sentry/utils/fields';
-import type {
-  TraceError,
-  TraceFullDetailed,
-} from 'sentry/utils/performance/quickTrace/types';
-import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import type {TraceError} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 
 import type SpanTreeModel from './spanTreeModel';
 import type {
@@ -31,8 +26,6 @@ import type {
   SpanType,
   TraceContextType,
 } from './types';
-
-const MERGE_LABELS_THRESHOLD_PERCENT = 10;
 
 const isValidSpanID = (maybeSpanID: any) =>
   typeof maybeSpanID === 'string' && maybeSpanID.length > 0;
@@ -623,137 +616,6 @@ export function isEventFromBrowserJavaScriptSDK(
     'sentry.javascript.sveltekit',
     'sentry.javascript.astro',
   ].includes(sdkName.toLowerCase());
-}
-
-type Measurements = Record<
-  string,
-  {
-    failedThreshold: boolean;
-    timestamp: number;
-    value: number | undefined;
-  }
->;
-
-export type VerticalMark = {
-  failedThreshold: boolean;
-  marks: Measurements;
-};
-
-function hasFailedThreshold(marks: Measurements): boolean {
-  const names = Object.keys(marks);
-  const records = Object.values(VITAL_DETAILS).filter(vital =>
-    names.includes(vital.slug)
-  );
-
-  return records.some(record => {
-    const {value} = marks[record.slug]!;
-    if (typeof value === 'number' && typeof record.poorThreshold === 'number') {
-      return value >= record.poorThreshold;
-    }
-    return false;
-  });
-}
-
-export function getMeasurements(
-  event: EventTransaction | TraceFullDetailed | AggregateEventTransaction,
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
-): Map<number, VerticalMark> {
-  const startTimestamp =
-    (event as EventTransaction).startTimestamp ||
-    (event as TraceFullDetailed).start_timestamp;
-  if (!event.measurements || !startTimestamp) {
-    return new Map();
-  }
-
-  // Note: CLS and INP should not be included here, since they are not timeline-based measurements.
-  const allowedVitals = new Set<string>([
-    WebVital.FCP,
-    WebVital.FP,
-    WebVital.FID,
-    WebVital.LCP,
-    WebVital.TTFB,
-    MobileVital.TIME_TO_FULL_DISPLAY,
-    MobileVital.TIME_TO_INITIAL_DISPLAY,
-  ]);
-
-  const measurements = Object.keys(event.measurements)
-    .filter(name => allowedVitals.has(`measurements.${name}`))
-    .map(name => {
-      const associatedMeasurement = event.measurements![name]!;
-      return {
-        name,
-        // Time timestamp is in seconds, but the measurement value is given in ms so convert it here
-        timestamp: startTimestamp + associatedMeasurement.value / 1000,
-        value: associatedMeasurement ? associatedMeasurement.value : undefined,
-      };
-    });
-
-  const mergedMeasurements = new Map<number, VerticalMark>();
-
-  measurements.forEach(measurement => {
-    const name = measurement.name;
-    const value = measurement.value;
-
-    const bounds = generateBounds({
-      startTimestamp: measurement.timestamp,
-      endTimestamp: measurement.timestamp,
-    });
-
-    // This condition will never be hit, since we're using the same value for start and end in generateBounds
-    // I've put this condition here to prevent the TS linter from complaining
-    if (bounds.type !== 'TIMESTAMPS_EQUAL') {
-      return;
-    }
-
-    const roundedPos = Math.round(bounds.start * 100);
-
-    // Compare this position with the position of the other measurements, to determine if
-    // they are close enough to be bucketed together
-
-    for (const [otherPos] of mergedMeasurements) {
-      const positionDelta = Math.abs(otherPos - roundedPos);
-      if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
-        const verticalMark = mergedMeasurements.get(otherPos)!;
-
-        const {poorThreshold} =
-          VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
-
-        verticalMark.marks = {
-          ...verticalMark.marks,
-          [name]: {
-            value,
-            timestamp: measurement.timestamp,
-            failedThreshold: value ? value >= poorThreshold! : false,
-          },
-        };
-
-        if (!verticalMark.failedThreshold) {
-          verticalMark.failedThreshold = hasFailedThreshold(verticalMark.marks);
-        }
-
-        mergedMeasurements.set(otherPos, verticalMark);
-        return;
-      }
-    }
-
-    const {poorThreshold} =
-      VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
-
-    const marks = {
-      [name]: {
-        value,
-        timestamp: measurement.timestamp,
-        failedThreshold: value ? value >= poorThreshold! : false,
-      },
-    };
-
-    mergedMeasurements.set(roundedPos, {
-      marks,
-      failedThreshold: hasFailedThreshold(marks),
-    });
-  });
-
-  return mergedMeasurements;
 }
 
 export function getSiblingGroupKey(span: SpanType, occurrence?: number): string {

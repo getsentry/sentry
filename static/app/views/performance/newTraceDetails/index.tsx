@@ -55,7 +55,7 @@ function decodeTraceSlug(maybeSlug: string | undefined): string {
 
 const TRACE_VIEW_PREFERENCES_KEY = 'trace-waterfall-preferences';
 
-export function TraceView() {
+export default function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = useMemo(() => decodeTraceSlug(params.traceSlug), [params.traceSlug]);
 

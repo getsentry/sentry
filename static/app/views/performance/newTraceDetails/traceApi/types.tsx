@@ -1,17 +1,13 @@
 import type {Theme} from '@emotion/react';
 
 import type {EventTag, Measurement} from 'sentry/types/event';
-import type {
-  DiscoverQueryProps,
-  GenericChildrenProps,
-} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 /**
  * `EventLite` represents the type of a simplified event from
  * the `events-trace` and `events-trace-light` endpoints.
  */
-export type EventLite = {
+type EventLite = {
   event_id: string;
   generation: number | null;
   parent_event_id: string | null;
@@ -51,9 +47,7 @@ export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
   issue_short_id?: string;
 };
 
-export type TraceLite = EventLite[];
-
-export type QuickTraceEvent = EventLite & {
+type QuickTraceEvent = EventLite & {
   errors?: TraceError[];
 };
 
@@ -63,7 +57,7 @@ export type QuickTraceEvent = EventLite & {
  *
  * This is the type returned with `detailed=0`
  */
-export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
+type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
   /**
    * In the full trace, generation, children and errors are always defined.
    */
@@ -93,45 +87,6 @@ export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLit
   orphan_errors: TraceError[];
   transactions: U[];
 };
-
-type TraceProps = {
-  traceId: string;
-  end?: string;
-  start?: string;
-  statsPeriod?: string | null;
-};
-
-export type TraceRequestProps = DiscoverQueryProps & TraceProps;
-
-type EmptyQuickTrace = {
-  trace: QuickTraceEvent[];
-  type: 'empty' | 'missing';
-  orphanErrors?: TraceError[];
-};
-
-export type PartialQuickTrace = {
-  trace: QuickTraceEvent[] | null;
-  type: 'partial';
-  orphanErrors?: TraceError[];
-};
-
-export type FullQuickTrace = {
-  trace: QuickTraceEvent[] | null;
-  type: 'full';
-  orphanErrors?: TraceError[];
-};
-
-export type BaseTraceChildrenProps = Omit<
-  GenericChildrenProps<TraceProps>,
-  'tableData' | 'pageLinks'
->;
-
-export type QuickTrace = EmptyQuickTrace | PartialQuickTrace | FullQuickTrace;
-
-export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps &
-  QuickTrace & {
-    currentEvent: QuickTraceEvent | TraceError | null;
-  };
 
 export type TraceMeta = {
   errors: number;
