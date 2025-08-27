@@ -127,7 +127,7 @@ describe('useFetchEventsTimeSeries', () => {
     }).toThrow();
   });
 
-  it('attaches default query params', async () => {
+  it('makes simple multi-series requests', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
@@ -166,6 +166,57 @@ describe('useFetchEventsTimeSeries', () => {
           interval: '1h',
           search: 'span.op:db*',
           sampling: 'NORMAL',
+        },
+      })
+    );
+  });
+
+  it('makes top N requests', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {result} = renderHook(
+      () =>
+        useFetchEventsTimeSeries(
+          DiscoverDatasets.SPANS,
+          {
+            yAxis: 'p50(span.duration)',
+            topEvents: 5,
+            groupBy: ['span.category', 'transaction'],
+            sort: {
+              field: 'p50(span.duration)',
+              kind: 'desc',
+            },
+          },
+          REFERRER
+        ),
+      hookOptions
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          excludeOther: 0,
+          partial: 1,
+          referrer: 'test-query',
+          dataset: 'spans',
+          statsPeriod: '10d',
+          yAxis: 'p50(span.duration)',
+          environment: ['prod'],
+          project: [42],
+          interval: '1h',
+          sampling: 'NORMAL',
+          topEvents: 5,
+          groupBy: ['span.category', 'transaction'],
+          sort: '-p50(span.duration)',
         },
       })
     );

@@ -1,4 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {encodeSort} from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -17,13 +19,24 @@ import {getIntervalForTimeSeriesQuery} from './getIntervalForTimeSeriesQuery';
 interface UseFetchEventsTimeSeriesOptions<Field> {
   yAxis: Field | Field[];
   enabled?: boolean;
+  groupBy?: Field[];
   sampling?: SamplingMode;
   search?: MutableSearch;
+  sort?: Sort;
+  topEvents?: number;
 }
 
 export function useFetchEventsTimeSeries<T extends string>(
   dataset: DiscoverDatasets,
-  {yAxis, search, sampling, enabled}: UseFetchEventsTimeSeriesOptions<T>,
+  {
+    yAxis,
+    search,
+    sampling,
+    topEvents,
+    groupBy,
+    sort,
+    enabled,
+  }: UseFetchEventsTimeSeriesOptions<T>,
   referrer: string
 ) {
   const organization = useOrganization();
@@ -52,6 +65,9 @@ export function useFetchEventsTimeSeries<T extends string>(
           interval: getIntervalForTimeSeriesQuery(yAxis, selection.datetime),
           search: search ? search.formatString() : undefined,
           sampling: sampling ?? DEFAULT_SAMPLING_MODE,
+          topEvents,
+          groupBy,
+          sort: sort ? encodeSort(sort) : undefined,
         },
       },
     ],
