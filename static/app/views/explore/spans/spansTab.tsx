@@ -161,6 +161,40 @@ function useVisitExplore() {
   }, [id, visitQuery]);
 }
 
+function SpansTabSeerComboBox() {
+  const {currentInputValueRef, query, committedQuery} = useSearchQueryBuilder();
+
+  let initialSeerQuery = '';
+  const queryDetails = useMemo(() => {
+    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
+    const parsedQuery = parseQueryBuilderValue(queryToUse, getFieldDefinition);
+    return {parsedQuery, queryToUse};
+  }, [committedQuery, query]);
+
+  const inputValue = currentInputValueRef.current.trim();
+  // Remove any tokens that include the user inputted value.
+  const filteredCommittedQuery = queryDetails?.parsedQuery
+    ?.filter(
+      token => !(token.type === Token.FREE_TEXT && token.text.includes(inputValue))
+    )
+    ?.map(token => stringifyToken(token))
+    ?.join(' ')
+    ?.trim();
+
+  if (typeof filteredCommittedQuery === 'string') {
+    initialSeerQuery = `${filteredCommittedQuery}`;
+  } else if (queryDetails?.queryToUse) {
+    initialSeerQuery = `${queryDetails?.queryToUse}`;
+  }
+
+  if (inputValue) {
+    initialSeerQuery =
+      initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
+  }
+
+  return <SeerComboBox initialQuery={initialSeerQuery} />;
+}
+
 interface SpanTabSearchSectionProps {
   datePageFilterProps: PickableDays;
 }
@@ -170,36 +204,10 @@ function SpansSearchBar({
 }: {
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
-  const {displayAskSeer, currentInputValueRef, query, committedQuery} =
-    useSearchQueryBuilder();
+  const {displayAskSeer} = useSearchQueryBuilder();
 
   if (displayAskSeer) {
-    const inputValue = currentInputValueRef.current.trim();
-    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
-    const parsedQuery = parseQueryBuilderValue(queryToUse, getFieldDefinition);
-
-    // Remove any tokens that include the user inputted value.
-    const filteredCommittedQuery = parsedQuery
-      ?.filter(
-        token => !(token.type === Token.FREE_TEXT && token.text.includes(inputValue))
-      )
-      ?.map(token => stringifyToken(token))
-      ?.join(' ')
-      ?.trim();
-
-    let initialSeerQuery = '';
-    if (typeof filteredCommittedQuery === 'string') {
-      initialSeerQuery = `${filteredCommittedQuery}`;
-    } else if (queryToUse) {
-      initialSeerQuery = `${queryToUse}`;
-    }
-
-    if (inputValue) {
-      initialSeerQuery =
-        initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
-    }
-
-    return <SeerComboBox initialQuery={initialSeerQuery} />;
+    return <SpansTabSeerComboBox />;
   }
 
   return <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />;
