@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.search.eap import constants
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 logger = logging.getLogger(__name__)
@@ -279,7 +280,47 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         ]
         self.store_ourlogs(logs)
 
-        with patch("sentry.snuba.ourlogs.OurLogs.run_table_query") as mock_run_query:
+        with patch("sentry.snuba.rpc_dataset_common.RPCBase._run_table_query") as mock_run_query:
+            mock_run_query.return_value = {
+                "data": [
+                    {
+                        # Data not relevant for this test
+                    }
+                ],
+                "meta": {"fields": {}, "units": {}},
+            }
+
+            response = self.client.get(
+                self.url,
+                data={"traceId": trace_id, "orderby": "timestamp"},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        mock_run_query.assert_called_once()
+
+        call_args = mock_run_query.call_args
+        query = call_args.args[0]
+        selected_columns = query.selected_columns
+        orderby = query.orderby
+
+        assert constants.TIMESTAMP_PRECISE_ALIAS in selected_columns
+        assert orderby == [
+            constants.TIMESTAMP_ALIAS,
+            constants.TIMESTAMP_PRECISE_ALIAS,
+        ]
+
+    def test_timestamp_precise_alias_and_orderby_desc(self) -> None:
+        trace_id = "1" * 32
+        logs = [
+            self.create_ourlog(
+                {"body": "foo", "trace_id": trace_id},
+                timestamp=self.ten_mins_ago,
+            )
+        ]
+        self.store_ourlogs(logs)
+
+        with patch("sentry.snuba.rpc_dataset_common.RPCBase._run_table_query") as mock_run_query:
             mock_run_query.return_value = {
                 "data": [
                     {
@@ -295,15 +336,16 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
                 format="json",
             )
 
-            assert response.status_code == 200, response.content
-            mock_run_query.assert_called_once()
+        assert response.status_code == 200, response.content
+        mock_run_query.assert_called_once()
 
-            call_args = mock_run_query.call_args
-            selected_columns = call_args.kwargs["selected_columns"]
-            orderby = call_args.kwargs["orderby"]
+        call_args = mock_run_query.call_args
+        query = call_args.args[0]
+        selected_columns = query.selected_columns
+        orderby = query.orderby
 
-            assert "sentry.timestamp_precise" in selected_columns
-            assert orderby == [
-                "-sentry.timestamp",
-                "-sentry.timestamp_precise",
-            ]
+        assert constants.TIMESTAMP_PRECISE_ALIAS in selected_columns
+        assert orderby == [
+            f"-{constants.TIMESTAMP_ALIAS}",
+            f"-{constants.TIMESTAMP_PRECISE_ALIAS}",
+        ]

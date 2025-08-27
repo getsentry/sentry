@@ -13,7 +13,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.eap import constants
-from sentry.search.eap.ourlogs.attributes import ourlog_attribute_map
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba.ourlogs import OurLogs
@@ -63,63 +62,40 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
     ) -> EventsResponse:
         """Queries log data for a given trace"""
 
-        attribute_mapping = ourlog_attribute_map()
-
         required_keys = [
             "id",
             "project.id",
-            "trace",
+            constants.TRACE_ALIAS,
             "severity_number",
             "severity",
-            "timestamp",
-            "timestamp_precise",
+            constants.TIMESTAMP_ALIAS,
+            constants.TIMESTAMP_PRECISE_ALIAS,
             "message",
         ]
-        allowed_attributes = []
-        for key in required_keys:
-            attr = attribute_mapping.get(key)
-            if attr is None:
-                raise ValueError(f"Required attribute '{key}' not found in attribute mapping")
-            allowed_attributes.append(attr)
-        allowed_aliases = [attr.public_alias for attr in allowed_attributes]
-        selected_columns = [attr.internal_name for attr in allowed_attributes]
-        precise_timestamp_internal_name = attribute_mapping["timestamp_precise"].internal_name
-
-        converted_orderby = []
+        # Validate that orderby values are also in required_keys
         for column in orderby:
-            prefix = "-" if column.startswith("-") else ""
-            directionless_column = column.lstrip("-")
-            if directionless_column not in allowed_aliases:
+            stripped_orderby = column.lstrip("-")
+            if stripped_orderby not in required_keys:
                 raise ParseError(
-                    f"{directionless_column} must be one of {','.join(sorted(allowed_aliases))}"
+                    f"{stripped_orderby} must be one of {','.join(sorted(required_keys))}"
                 )
-            attr = attribute_mapping.get(directionless_column)
-            if attr is None:
-                raise ParseError(f"Unknown attribute: {directionless_column}")
-            converted_orderby.append(f"{prefix}{attr.internal_name}")
-            if directionless_column == "timestamp":
-                # Timestamp precise must also be added when sorting by timestamp as timestamp since timestamp should have been a DateTime64...
-                converted_orderby.append(f"{prefix}{precise_timestamp_internal_name}")
 
-        trace_attr = attribute_mapping.get("trace")
-        if trace_attr is None:
-            raise ParseError("trace attribute not found")
-        trace_alias = trace_attr.public_alias
-
+        # Create the query based on the trace ids
         base_query = (
-            f"{trace_alias}:{trace_ids[0]}"
+            f"{constants.TRACE_ALIAS}:{trace_ids[0]}"
             if len(trace_ids) == 1
-            else f"{trace_alias}:[{','.join(trace_ids)}]"
+            else f"{constants.TRACE_ALIAS}:[{','.join(trace_ids)}]"
         )
         if additional_query is not None:
             query = f"{base_query} and {additional_query}"
         else:
             query = base_query
+
         results = OurLogs.run_table_query(
             params=snuba_params,
             query_string=query,
-            selected_columns=selected_columns,
-            orderby=converted_orderby,
+            selected_columns=required_keys,
+            orderby=orderby,
             offset=offset,
             limit=limit,
             referrer=Referrer.API_TRACE_VIEW_LOGS.value,

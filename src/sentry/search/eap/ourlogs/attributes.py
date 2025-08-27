@@ -37,13 +37,13 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="trace",
+            public_alias=constants.TRACE_ALIAS,
             internal_name="sentry.trace_id",
             search_type="string",
             validator=is_event_id_or_list,
         ),
         ResolvedAttribute(
-            public_alias="timestamp_precise",
+            public_alias=constants.TIMESTAMP_PRECISE_ALIAS,
             internal_name="sentry.timestamp_precise",
             search_type="number",
         ),
@@ -96,6 +96,11 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         ),
     ]
 }
+
+# Ensure that required fields are defined at runtime
+for field in {constants.TIMESTAMP_ALIAS, constants.TIMESTAMP_PRECISE_ALIAS, constants.TRACE_ALIAS}:
+    assert field in OURLOG_ATTRIBUTE_DEFINITIONS, f"{field} must be defined for ourlogs"
+
 
 OURLOG_VIRTUAL_CONTEXTS = {
     key: VirtualColumnDefinition(
@@ -167,11 +172,3 @@ def ourlog_column_to_custom_alias(column: str) -> str | None:
     if column.startswith("sentry.message.parameter."):
         return column[len("sentry.") :]
     return None
-
-
-def ourlog_attribute_map() -> dict[str, ResolvedAttribute]:
-    """Return all ResolvedAttribute objects keyed by their public alias"""
-    attribute_mapping = {}
-    for public_alias, definition in OURLOG_ATTRIBUTE_DEFINITIONS.items():
-        attribute_mapping[public_alias] = definition
-    return attribute_mapping

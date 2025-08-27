@@ -3,7 +3,6 @@ from datetime import timedelta
 
 import sentry_sdk
 
-from sentry.search.eap.ourlogs.attributes import ourlog_attribute_map
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import handle_downsample_meta
@@ -38,13 +37,11 @@ class OurLogs(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         debug: bool = False,
     ) -> EAPResponse:
-        attribute_mapping = ourlog_attribute_map()
+        timestamp_attribute = cls.DEFINITIONS.columns["timestamp"]
+        timestamp_precise_attribute = cls.DEFINITIONS.columns["timestamp_precise"]
 
-        timestamp_attribute = attribute_mapping.get("timestamp")
-        timestamp_precise_attribute = attribute_mapping.get("timestamp_precise")
-        if timestamp_attribute is None or timestamp_precise_attribute is None:
-            raise ValueError("timestamp or timestamp_precise attribute not found")
-
+        """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
+        so we need to always order by it regardless of what is actually passed to the orderby"""
         timestamp_alias = timestamp_attribute.public_alias
         precise_timestamp_alias = timestamp_precise_attribute.public_alias
         if orderby == [f"-{timestamp_alias}"]:
