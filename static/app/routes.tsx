@@ -2519,6 +2519,23 @@ function buildRoutes(): RouteObject[] {
     deprecatedRouteProps: true,
   };
 
+  const pullRequestChildren: SentryRouteObject[] = [
+    {
+      path: ':prId/',
+      component: make(
+        () => import('sentry/views/pullRequest/details/pullRequestDetails')
+      ),
+    },
+  ];
+
+  const pullRequestRoutes: SentryRouteObject = {
+    path: '/:repoName/pr/',
+    component: make(() => import('sentry/views/pullRequest/index')),
+    withOrgPath: true,
+    children: pullRequestChildren,
+    deprecatedRouteProps: true,
+  };
+
   const feedbackV2Children: SentryRouteObject[] = [
     {
       index: true,
@@ -2984,6 +3001,7 @@ function buildRoutes(): RouteObject[] {
       alertRoutes,
       preventRoutes,
       preprodRoutes,
+      pullRequestRoutes,
       replayRoutes,
       releasesRoutes,
       statsRoutes,
