@@ -170,11 +170,13 @@ function SpansSearchBar({
 }: {
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
-  const {displayAskSeer, currentInputValueRef, committedQuery} = useSearchQueryBuilder();
+  const {displayAskSeer, currentInputValueRef, query, committedQuery} =
+    useSearchQueryBuilder();
 
   if (displayAskSeer) {
     const inputValue = currentInputValueRef.current.trim();
-    const parsedQuery = parseQueryBuilderValue(committedQuery, getFieldDefinition);
+    const queryToUse = committedQuery.length > 0 ? committedQuery : query;
+    const parsedQuery = parseQueryBuilderValue(queryToUse, getFieldDefinition);
 
     // Remove any tokens that include the user inputted value.
     const filteredCommittedQuery = parsedQuery
@@ -188,8 +190,8 @@ function SpansSearchBar({
     let initialSeerQuery = '';
     if (typeof filteredCommittedQuery === 'string') {
       initialSeerQuery = `${filteredCommittedQuery}`;
-    } else if (committedQuery) {
-      initialSeerQuery = `${committedQuery}`;
+    } else if (queryToUse) {
+      initialSeerQuery = `${queryToUse}`;
     }
 
     if (inputValue) {
