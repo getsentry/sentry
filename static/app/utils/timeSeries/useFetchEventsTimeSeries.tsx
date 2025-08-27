@@ -34,6 +34,9 @@ export function useSpanSeries<Field extends SpanProperty>(
   return useFetchEventsTimeSeries(DiscoverDatasets.SPANS, options, referrer);
 }
 
+/**
+ * Fetch time series data from the `/events-timeseries/` endpoint. Returns an array of `TimeSeries` objects.
+ */
 export function useFetchEventsTimeSeries<T extends string>(
   dataset: DiscoverDatasets,
   {
