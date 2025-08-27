@@ -73,15 +73,7 @@ function WidgetBuilderDatasetSelector() {
     datasetChoices.push([
       WidgetType.LOGS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Logs')} key={'dataset-choice-logs'}>
-        {t('Logs')}{' '}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t(
-              'This feature is available for early adopters and the UX may change'
-            ),
-          }}
-        />
+        {t('Logs')} <FeatureBadge type="new" />
       </FeatureBadgeAlignmentWrapper>,
     ]);
   }

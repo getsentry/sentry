@@ -104,15 +104,7 @@ export function DataSetStep({
     datasetChoices.set(
       DataSet.SPANS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Spans')}>
-        {t('Spans')}{' '}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t(
-              'This feature is available for early adopters and the UX may change'
-            ),
-          }}
-        />
+        {t('Spans')} <FeatureBadge type="new" />
       </FeatureBadgeAlignmentWrapper>
     );
   }
@@ -121,15 +113,7 @@ export function DataSetStep({
     datasetChoices.set(
       DataSet.LOGS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Logs')}>
-        {t('Logs')}{' '}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t(
-              'This feature is available for early adopters and the UX may change'
-            ),
-          }}
-        />
+        {t('Logs')} <FeatureBadge type="new" />
       </FeatureBadgeAlignmentWrapper>
     );
   }

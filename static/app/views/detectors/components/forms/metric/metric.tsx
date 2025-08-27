@@ -255,7 +255,7 @@ function useDatasetChoices() {
             {
               value: DetectorDataset.LOGS,
               label: t('Logs'),
-              trailingItems: <FeatureBadge type="beta" />,
+              trailingItems: <FeatureBadge type="new" />,
             },
           ]
         : []),
