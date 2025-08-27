@@ -48,6 +48,7 @@ def get_scope() -> sentry_sdk.scope.Scope:
     scope.update_from_kwargs(
         # Don't set level - scope overrides event-level
         extras={"git-branch": branch, "git-sha": sha},
+        tags={"github.repo": environ.get("GITHUB_REPOSITORY", "unknown")},
     )
     return scope
 

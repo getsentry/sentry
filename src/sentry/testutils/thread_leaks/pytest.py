@@ -29,6 +29,13 @@ def pytest_runtest_call(item: pytest.Item):
         yield
         return
 
+    # Set pytest context on thread leak Sentry scope
+    from .sentry import get_scope
+
+    scope = get_scope()
+    scope.set_tag("pytest.file", item.nodeid.split("::", 1)[0])
+    scope.set_extra("pytest.nodeid", item.nodeid)
+
     # TODO(DI-1067): strict mode
     with assert_none(strict=False):
         yield
