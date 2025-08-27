@@ -222,14 +222,13 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             existing_commit.update(message="")
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
-            with self.options({"issues.suspect-commit-strategy": True}):
-                process_commit_context(
-                    event_id=self.event.event_id,
-                    event_platform=self.event.platform,
-                    event_frames=event_frames,
-                    group_id=self.event.group_id,
-                    project_id=self.event.project_id,
-                )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
 
         created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
@@ -289,14 +288,13 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             existing_commit.update(message="")
             assert Commit.objects.count() == 2
             event_frames = get_frame_paths(self.event)
-            with self.options({"issues.suspect-commit-strategy": True}):
-                process_commit_context(
-                    event_id=self.event.event_id,
-                    event_platform=self.event.platform,
-                    event_frames=event_frames,
-                    group_id=self.event.group_id,
-                    project_id=self.event.project_id,
-                )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
 
         created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
@@ -321,14 +319,13 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         with self.tasks():
             assert GroupOwner.objects.filter(group=self.event.group).count() == 1
             event_frames = get_frame_paths(self.event)
-            with self.options({"issues.suspect-commit-strategy": True}):
-                process_commit_context(
-                    event_id=self.event.event_id,
-                    event_platform=self.event.platform,
-                    event_frames=event_frames,
-                    group_id=self.event.group_id,
-                    project_id=self.event.project_id,
-                )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
 
         assert GroupOwner.objects.filter(group=self.event.group).count() == 1
 
@@ -366,14 +363,13 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             event_frames = get_frame_paths(self.event)
-            with self.options({"issues.suspect-commit-strategy": True}):
-                process_commit_context(
-                    event_id=self.event.event_id,
-                    event_platform=self.event.platform,
-                    event_frames=event_frames,
-                    group_id=self.event.group_id,
-                    project_id=self.event.project_id,
-                )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
 
         created_commit_author = CommitAuthor.objects.get(
             organization_id=self.organization.id, email="admin2@localhost"
@@ -423,14 +419,13 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             event_frames = get_frame_paths(self.event)
-            with self.options({"issues.suspect-commit-strategy": True}):
-                process_commit_context(
-                    event_id=self.event.event_id,
-                    event_platform=self.event.platform,
-                    event_frames=event_frames,
-                    group_id=self.event.group_id,
-                    project_id=self.event.project_id,
-                )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
 
         created_group_owner = GroupOwner.objects.get(
             group=self.event.group,
