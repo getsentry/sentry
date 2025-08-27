@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
-from datetime import datetime
+from django.db.models import Max
 
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.services.issue.model import RpcExternalIssueGroupMetadata, RpcGroupShareMetadata
@@ -27,9 +27,7 @@ class DatabaseBackedIssueService(IssueService):
         if not external_issues.exists():
             return None
 
-        if (
-            integration := integration_service.get_integration(integration_id=integration_id)
-        ) is None:
+        if integration_service.get_integration(integration_id=integration_id) is None:
             return None
 
         if (
@@ -48,18 +46,17 @@ class DatabaseBackedIssueService(IssueService):
 
         organization = Organization.objects.filter(id__in=org_integration_org_ids)
 
-        external_issue_subquery = ExternalIssue.objects.get_for_integration(
-            integration, external_issue_key
-        ).values_list("id", flat=True)
+        external_issue_ids = external_issues.values_list("id", flat=True)
 
         # get the latest group link date for each group
-        group_link_subquery: dict[int, datetime] = dict(
+        group_link_subquery = dict(
             GroupLink.objects.filter(
-                linked_id__in=external_issue_subquery,
+                linked_id__in=external_issue_ids,
                 project__organization__in=organization,
             )
-            .order_by("datetime")
-            .values_list("group_id", "datetime")
+            .values("group_id")
+            .annotate(latest_datetime=Max("datetime"))
+            .values_list("group_id", "latest_datetime")
         )
 
         groups = Group.objects.filter(
