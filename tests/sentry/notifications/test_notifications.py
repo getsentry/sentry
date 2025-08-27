@@ -15,6 +15,8 @@ from slack_sdk.web import SlackResponse
 
 from sentry.event_manager import EventManager
 from sentry.eventstream.types import EventStreamEventType
+from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
+from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -25,6 +27,7 @@ from sentry.notifications.notifications.activity.regression import RegressionAct
 from sentry.silo.base import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -264,22 +267,30 @@ class ActivityNotificationTest(APITestCase):
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "integrations.email.notification_sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-            notification_uuid=notification_uuid,
+            EmailNotificationSent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                group_id=self.group.id,
+                notification_uuid=notification_uuid,
+                category="",
+                id=0,
+                actor_type="User",
+            ),
+            exclude_fields=["category", "id", "project_id", "actor_id", "actor_type"],
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "integrations.slack.notification_sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-            notification_uuid=notification_uuid,
-            actor_type="User",
+            SlackIntegrationNotificationSent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                group_id=self.group.id,
+                notification_uuid=notification_uuid,
+                actor_type="User",
+                category="",
+            ),
+            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
         )
 
     @patch("sentry.analytics.record")
@@ -331,22 +342,30 @@ class ActivityNotificationTest(APITestCase):
             footer
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "integrations.email.notification_sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            group_id=None,
-            notification_uuid=notification_uuid,
+            EmailNotificationSent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                group_id=None,
+                notification_uuid=notification_uuid,
+                category="",
+                id=0,
+                actor_type="User",
+            ),
+            exclude_fields=["category", "id", "project_id", "actor_id", "actor_type"],
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "integrations.slack.notification_sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            group_id=None,
-            notification_uuid=notification_uuid,
-            actor_type="User",
+            SlackIntegrationNotificationSent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                group_id=None,
+                notification_uuid=notification_uuid,
+                actor_type="User",
+                category="",
+            ),
+            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
         )
 
     @patch("sentry.analytics.record")
@@ -399,22 +418,30 @@ class ActivityNotificationTest(APITestCase):
             footer
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "integrations.email.notification_sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            group_id=group.id,
-            notification_uuid=notification_uuid,
+            EmailNotificationSent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                group_id=group.id,
+                notification_uuid=notification_uuid,
+                category="",
+                id=0,
+                actor_type="User",
+            ),
+            exclude_fields=["category", "id", "project_id", "actor_id", "actor_type"],
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "integrations.slack.notification_sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            group_id=group.id,
-            notification_uuid=notification_uuid,
-            actor_type="User",
+            SlackIntegrationNotificationSent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                group_id=group.id,
+                notification_uuid=notification_uuid,
+                actor_type="User",
+                category="",
+            ),
+            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
         )
 
     @patch("sentry.analytics.record")
@@ -462,22 +489,30 @@ class ActivityNotificationTest(APITestCase):
             footer
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "integrations.email.notification_sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-            notification_uuid=notification_uuid,
+            EmailNotificationSent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                group_id=self.group.id,
+                notification_uuid=notification_uuid,
+                category="",
+                id=0,
+                actor_type="User",
+            ),
+            exclude_fields=["category", "id", "project_id", "actor_id", "actor_type"],
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "integrations.slack.notification_sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-            notification_uuid=notification_uuid,
-            actor_type="User",
+            SlackIntegrationNotificationSent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                group_id=self.group.id,
+                notification_uuid=notification_uuid,
+                actor_type="User",
+                category="",
+            ),
+            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
         )
 
     def test_sends_processing_issue_notification(self, mock_post: MagicMock) -> None:
@@ -547,20 +582,28 @@ class ActivityNotificationTest(APITestCase):
             footer
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "integrations.email.notification_sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            group_id=event.group_id,
-            notification_uuid=notification_uuid,
+            EmailNotificationSent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                group_id=event.group_id,
+                notification_uuid=notification_uuid,
+                category="",
+                id=0,
+                actor_type="User",
+            ),
+            exclude_fields=["category", "id", "project_id", "actor_id", "actor_type"],
         )
-        assert self.analytics_called_with_args(
+        assert_any_analytics_event(
             record_analytics,
-            "integrations.slack.notification_sent",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            group_id=event.group_id,
-            notification_uuid=notification_uuid,
-            actor_type="User",
+            SlackIntegrationNotificationSent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                group_id=event.group_id,
+                notification_uuid=notification_uuid,
+                actor_type="User",
+                category="",
+            ),
+            exclude_fields=["category", "project_id", "actor_id", "actor_type"],
         )
