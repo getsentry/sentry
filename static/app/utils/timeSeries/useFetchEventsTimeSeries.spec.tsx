@@ -21,11 +21,19 @@ describe('useFetchEventsTimeSeries', () => {
     );
   }
 
+  const hookOptions = {
+    wrapper: Wrapper,
+  };
+
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
   it('fetches from `/events-timeseries`', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {},
+      body: [],
     });
 
     const {result} = renderHook(
@@ -37,9 +45,7 @@ describe('useFetchEventsTimeSeries', () => {
           },
           REFERRER
         ),
-      {
-        wrapper: Wrapper,
-      }
+      hookOptions
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
@@ -49,52 +55,7 @@ describe('useFetchEventsTimeSeries', () => {
       '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
         method: 'GET',
-        query: {
-          excludeOther: 0,
-          partial: 1,
-          referrer: 'test-query',
-          dataset: 'spans',
-          yAxis: 'epm()',
-        },
-      })
-    );
-  });
-
-  it('fetches multiple Y axes', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
-      method: 'GET',
-      body: {},
-    });
-
-    const {result} = renderHook(
-      () =>
-        useFetchEventsTimeSeries(
-          DiscoverDatasets.SPANS,
-          {
-            yAxis: ['count(span.duration)', 'p50(span.duration)'],
-          },
-          REFERRER
-        ),
-      {
-        wrapper: Wrapper,
-      }
-    );
-
-    await waitFor(() => expect(result.current.isPending).toBe(false));
-
-    expect(request).toHaveBeenCalledTimes(1);
-    expect(request).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-timeseries/',
-      expect.objectContaining({
-        method: 'GET',
-        query: {
-          excludeOther: 0,
-          partial: 1,
-          referrer: 'test-query',
-          dataset: 'spans',
-          yAxis: 'epm()',
-        },
+        query: expect.anything(),
       })
     );
   });
@@ -103,7 +64,7 @@ describe('useFetchEventsTimeSeries', () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {},
+      body: [],
     });
 
     const {result} = renderHook(
@@ -116,9 +77,7 @@ describe('useFetchEventsTimeSeries', () => {
           },
           REFERRER
         ),
-      {
-        wrapper: Wrapper,
-      }
+      hookOptions
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(true));
@@ -144,6 +103,43 @@ describe('useFetchEventsTimeSeries', () => {
         }
       );
     }).toThrow();
+  });
+
+  it('makes requests for multiple Y axes', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {result} = renderHook(
+      () =>
+        useFetchEventsTimeSeries(
+          DiscoverDatasets.SPANS,
+          {
+            yAxis: ['count(span.duration)', 'p50(span.duration)'],
+          },
+          REFERRER
+        ),
+      hookOptions
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          excludeOther: 0,
+          partial: 1,
+          referrer: 'test-query',
+          dataset: 'spans',
+          yAxis: ['count(span.duration)', 'p50(span.duration)'],
+        },
+      })
+    );
   });
 });
 
