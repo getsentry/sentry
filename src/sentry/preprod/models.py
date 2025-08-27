@@ -218,6 +218,9 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         choices=MetricsArtifactType.as_choices(), null=True
     )
 
+    # Some apps can have multiple ArtifactTypes (e.g. Android dynamic features) so need an identifier to differentiate.
+    identifier = models.CharField(max_length=255, null=True)
+
     # Size analysis processing state
     state = BoundedPositiveIntegerField(
         default=SizeAnalysisState.PENDING, choices=SizeAnalysisState.as_choices()
