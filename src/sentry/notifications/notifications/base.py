@@ -19,6 +19,7 @@ from sentry.types.actor import Actor
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
+    from sentry.models.group import Group
     from sentry.models.organization import Organization
     from sentry.models.project import Project
 
@@ -52,9 +53,13 @@ class BaseNotification(abc.ABC):
     # some notifications have no settings for it which is why it is optional
     notification_setting_type_enum: NotificationSettingEnum | None = None
 
+    group: Group
+    project: Project
+
     def __init__(self, organization: Organization, notification_uuid: str | None = None):
         self.organization = organization
         self.notification_uuid = notification_uuid if notification_uuid else str(uuid.uuid4())
+        self.alert_id: int | None = None
 
     @property
     def from_email(self) -> str | None:
@@ -176,15 +181,19 @@ class BaseNotification(abc.ABC):
         from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 
         with sentry_sdk.start_span(op="notification.send", name="record_notification_sent"):
+            event: analytics.Event | None = None
+
+            project: Project | None = getattr(self, "project", None)
+            group: Group | None = getattr(self, "group", None)
 
             if provider == ExternalProviders.EMAIL:
                 event = EmailNotificationSent(
                     organization_id=self.organization.id,
-                    project_id=self.project.id if self.project else None,
+                    project_id=project.id if project else None,
                     category=self.metrics_key,
                     actor_id=recipient.id if recipient.is_user else None,
                     user_id=recipient.id if recipient.is_user else None,
-                    group_id=self.group.id if self.group else None,
+                    group_id=group.id if group else None,
                     id=recipient.id,
                     actor_type=recipient.actor_type,
                     notification_uuid=self.notification_uuid,
@@ -193,11 +202,11 @@ class BaseNotification(abc.ABC):
             elif provider == ExternalProviders.SLACK:
                 event = SlackIntegrationNotificationSent(
                     organization_id=self.organization.id,
-                    project_id=self.project.id if self.project else None,
+                    project_id=project.id if project else None,
                     category=self.metrics_key,
                     actor_id=recipient.id if recipient.is_user else None,
                     user_id=recipient.id if recipient.is_user else None,
-                    group_id=self.group.id if self.group else None,
+                    group_id=group.id if group else None,
                     notification_uuid=self.notification_uuid,
                     alert_id=self.alert_id if self.alert_id else None,
                     actor_type=recipient.actor_type,
@@ -205,18 +214,18 @@ class BaseNotification(abc.ABC):
             elif provider == ExternalProviders.PAGERDUTY:
                 event = PagerdutyIntegrationNotificationSent(
                     organization_id=self.organization.id,
-                    project_id=self.project.id if self.project else None,
+                    project_id=project.id if project else None,
                     category=self.metrics_key,
-                    group_id=self.group.id if self.group else None,
+                    group_id=group.id if group else None,
                     notification_uuid=self.notification_uuid,
                     alert_id=self.alert_id if self.alert_id else None,
                 )
             elif provider == ExternalProviders.DISCORD:
                 event = DiscordIntegrationNotificationSent(
                     organization_id=self.organization.id,
-                    project_id=self.project.id if self.project else None,
+                    project_id=project.id if project else None,
                     category=self.metrics_key,
-                    group_id=self.group.id if self.group else None,
+                    group_id=group.id if group else None,
                     notification_uuid=self.notification_uuid,
                     alert_id=self.alert_id if self.alert_id else None,
                 )
@@ -225,16 +234,17 @@ class BaseNotification(abc.ABC):
                     organization_id=self.organization.id,
                     project_id=self.project.id if self.project else None,
                     category=self.metrics_key,
-                    group_id=self.group.id if self.group else None,
+                    group_id=group.id if group else None,
                     notification_uuid=self.notification_uuid,
                     alert_id=self.alert_id if self.alert_id else None,
                 )
 
-            self.record_analytics(event)
+            if event is not None:
+                analytics.record(event)
 
             # record an optional second event
             if notification_event := self.get_specific_analytics_event(provider):
-                self.record_analytics(notification_event)
+                analytics.record(notification_event)
 
     def get_referrer(self, provider: ExternalProviders, recipient: Actor | None = None) -> str:
         # referrer needs the provider and recipient
@@ -345,8 +355,8 @@ class BaseNotification(abc.ABC):
 
 class ProjectNotification(BaseNotification, abc.ABC):
     def __init__(self, project: Project, notification_uuid: str | None = None) -> None:
-        self.project = project
         super().__init__(project.organization, notification_uuid)
+        self.project = project
 
     def get_project_link(self) -> str:
         return self.organization.absolute_url(
