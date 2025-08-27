@@ -46,7 +46,7 @@ class OurLogs(rpc_dataset_common.RPCBase):
             and orderby[0].lstrip("-") == constants.TIMESTAMP_ALIAS
         ):
             desc = orderby[0] == "-"
-            orderby.append("-" if desc else "" + constants.TIMESTAMP_PRECISE_ALIAS)
+            orderby.append(("-" if desc else "") + constants.TIMESTAMP_PRECISE_ALIAS)
             if constants.TIMESTAMP_PRECISE_ALIAS not in selected_columns:
                 selected_columns.append(constants.TIMESTAMP_PRECISE_ALIAS)
 
