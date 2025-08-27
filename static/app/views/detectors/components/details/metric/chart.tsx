@@ -18,6 +18,7 @@ import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetect
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
+import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
@@ -67,10 +68,29 @@ function MetricDetectorChart({
       comparisonSeries,
     });
 
-  // TODO: Fetch open periods and transform them into the right format
-  const openPeriods: any[] = [];
+  const {data: openPeriods = []} = useOpenPeriods({
+    detectorId: detector.id,
+    start,
+    end,
+    statsPeriod,
+  });
+
+  const incidentPeriods = useMemo(() => {
+    const endDate = end ? new Date(end).getTime() : Date.now();
+
+    return openPeriods.map(period => ({
+      ...period,
+      // TODO: When open periods return a priority, use that to determine the color
+      color: 'red',
+      name: t('Open Periods'),
+      type: 'openPeriod',
+      end: period.end ? new Date(period.end).getTime() : endDate,
+      start: new Date(period.start).getTime(),
+    }));
+  }, [openPeriods, end]);
+
   const openPeriodMarkerResult = useIncidentMarkers({
-    incidents: openPeriods,
+    incidents: incidentPeriods,
     seriesName: t('Open Periods'),
     seriesId: '__incident_marker__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
