@@ -306,6 +306,13 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
 
 // List of platforms that have logging onboarding checklist content
 export const withLoggingOnboarding: Set<PlatformKey> = new Set([
+  'android',
+  'apple',
+  'apple-ios',
+  'apple-macos',
+  'bun',
+  'dart',
+  'flutter',
   'go',
   'go-echo',
   'go-fasthttp',
@@ -315,6 +322,11 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'go-iris',
   'go-martini',
   'go-negroni',
+  'java',
+  'java-log4j2',
+  'java-logback',
+  'java-spring',
+  'java-spring-boot',
   'javascript',
   'javascript-angular',
   'javascript-astro',
@@ -366,6 +378,10 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'python-tornado',
   'python-tryton',
   'python-wsgi',
+  'ruby',
+  'ruby-rack',
+  'ruby-rails',
+  'rust',
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
@@ -501,7 +517,6 @@ export const releaseHealth: PlatformKey[] = [
   'native-qt',
   'electron',
   'javascript-electron',
-  'rust',
   'php',
   'php-laravel',
   'php-symfony',

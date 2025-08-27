@@ -4,6 +4,7 @@ export enum ErrorType {
   UNKNOWN = 'unknown',
   INVALID_SELECTOR = 'invalid-selector',
   REGEX_PARSE = 'regex-parse',
+  ATTRIBUTE_INVALID = 'attribute-invalid',
 }
 
 type Error = {

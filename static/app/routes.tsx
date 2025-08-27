@@ -1386,7 +1386,7 @@ function buildRoutes(): RouteObject[] {
 
   const traceView: SentryRouteObject = {
     path: 'trace/:traceSlug/',
-    component: make(() => import('sentry/views/performance/traceDetails')),
+    component: make(() => import('sentry/views/performance/newTraceDetails/index')),
     deprecatedRouteProps: true,
   };
 
@@ -1811,11 +1811,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/discover/results')),
       deprecatedRouteProps: true,
     },
-    {
-      path: ':eventSlug/',
-      component: make(() => import('sentry/views/discover/eventDetails')),
-      deprecatedRouteProps: true,
-    },
   ];
   const discoverRoutes: SentryRouteObject = {
     path: '/discover/',
@@ -2213,10 +2208,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'browser/pageloads',
       redirectTo: `/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.VITAL]}/`,
-    },
-    {
-      path: ':eventSlug/',
-      component: make(() => import('sentry/views/performance/transactionDetails')),
     },
   ];
   const performanceRoutes: SentryRouteObject = {

@@ -1,6 +1,8 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {space} from 'sentry/styles/space';
@@ -37,11 +39,24 @@ export function renderTableBody({column, row, wrapToggleValue}: TableBodyProps) 
 
   if (key === 'flakeRate') {
     const isBrokenTest = row.isBrokenTest;
+
     return (
-      <NumberContainer>
-        {isBrokenTest && <StyledTag type={'highlight'}>Broken test</StyledTag>}
-        {Number(value).toFixed(2)}%
-      </NumberContainer>
+      <Tooltip
+        showUnderline
+        isHoverable
+        maxWidth={300}
+        title={
+          <Fragment>
+            {row.totalPassCount} Passed, {row.totalFailCount} Failed, (
+            {row.totalFlakyFailCount} Flaky), {row.totalSkipCount} Skipped
+          </Fragment>
+        }
+      >
+        <NumberContainer>
+          {isBrokenTest && <StyledTag type={'highlight'}>Broken test</StyledTag>}
+          {Number(value).toFixed(2)}%
+        </NumberContainer>
+      </Tooltip>
     );
   }
 

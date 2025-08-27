@@ -78,6 +78,11 @@ describe('DetectorEdit', () => {
       match: [MockApiClient.matchQuery({ids: ['100']})],
       body: [AutomationFixture({id: '100', name: 'Workflow foo'})],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
   });
 
   describe('Metric Detector', () => {
@@ -154,5 +159,70 @@ describe('DetectorEdit', () => {
         );
       });
     });
+
+    it('can submit a new metric detector with event.type:error', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/tags/event.type/values/`,
+        body: [{name: 'error'}, {name: 'default'}],
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+
+      const title = await screen.findByText('New Monitor');
+      await userEvent.click(title);
+      await userEvent.keyboard('Foo{enter}');
+
+      // Pick errors dataset
+      await userEvent.click(screen.getByText('Spans'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Errors'}));
+
+      await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
+
+      await userEvent.click(screen.getByLabelText('Add a search term'));
+      await userEvent.paste(
+        // Filter to a specific event type
+        'event.type:error'
+      );
+
+      await userEvent.click(screen.getByText('Create Monitor'));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              conditionGroup: {
+                conditions: [{comparison: 100, conditionResult: 75, type: 'gt'}],
+                logicType: 'any',
+              },
+              config: {detectionType: 'static', thresholdPeriod: 1},
+              dataSource: {
+                aggregate: 'count()',
+                dataset: 'events',
+                environment: null,
+                // Event type has moved from the query to the eventTypes field
+                eventTypes: ['error'],
+                query: '',
+                queryType: 0,
+                timeWindow: 3600,
+              },
+              name: 'Foo',
+              owner: null,
+              projectId: '2',
+              type: 'metric_issue',
+              workflowIds: [],
+            }),
+          })
+        );
+      });
+    }, 10_000);
   });
 });

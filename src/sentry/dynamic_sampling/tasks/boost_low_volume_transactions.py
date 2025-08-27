@@ -119,7 +119,14 @@ def boost_low_volume_transactions(context: TaskContext) -> None:
     get_volumes_small = "GetTransactionVolumes(small)"
     get_volumes_big = "GetTransactionVolumes(big)"
 
-    orgs_iterator = TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY))
+    if options.get("dynamic-sampling.query-granularity-60s.active-orgs", None):
+        granularity = Granularity(60)
+    else:
+        granularity = Granularity(3600)
+
+    orgs_iterator = TimedIterator(
+        context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity)
+    )
     for orgs in orgs_iterator:
         # get the low and high transactions
         totals_it = TimedIterator(
@@ -310,6 +317,11 @@ class FetchProjectTransactionTotals:
         if not self._cache_empty():
             return self._get_from_cache()
 
+        if options.get("dynamic-sampling.query-granularity-60s.fetch-transaction-totals", None):
+            granularity = Granularity(60)
+        else:
+            granularity = Granularity(3600)
+
         if self.has_more_results:
             query = (
                 Query(
@@ -334,7 +346,7 @@ class FetchProjectTransactionTotals:
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                         Condition(Column("org_id"), Op.IN, self.org_ids),
                     ],
-                    granularity=Granularity(3600),
+                    granularity=granularity,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
                         OrderBy(Column("project_id"), Direction.ASC),
@@ -483,6 +495,11 @@ class FetchProjectTransactionVolumes:
             # data in cache no need to go to the db
             return self._get_from_cache()
 
+        if options.get("dynamic-sampling.query-granularity-60s.fetch-transaction-totals", None):
+            granularity = Granularity(60)
+        else:
+            granularity = Granularity(3600)
+
         if self.has_more_results:
             # still data in the db, load cache
             query = (
@@ -509,7 +526,7 @@ class FetchProjectTransactionVolumes:
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                         Condition(Column("org_id"), Op.IN, self.org_ids),
                     ],
-                    granularity=Granularity(3600),
+                    granularity=granularity,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
                         OrderBy(Column("project_id"), Direction.ASC),

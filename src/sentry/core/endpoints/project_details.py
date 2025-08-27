@@ -11,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import audit_log, features
+from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -39,7 +39,8 @@ from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
@@ -136,6 +137,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "tempestFetchDumps",
         "autofixAutomationTuning",
         "seerScannerAutomation",
+        "debugFilesRole",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -233,6 +235,12 @@ E.g. `['release', 'environment']`""",
     # Keeping options here for backward compatibility but removing it from documentation.
     options = serializers.DictField(
         required=False,
+    )
+    debugFilesRole = serializers.ChoiceField(
+        choices=roles.get_choices(),
+        required=False,
+        allow_null=True,
+        help_text="The role required to download debug information files, ProGuard mappings and source maps. If not set, inherits from organization setting.",
     )
 
     def validate(self, data):
@@ -445,6 +453,16 @@ E.g. `['release', 'environment']`""",
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
             )
+        return value
+
+    def validate_debugFilesRole(self, value):
+        if value is None:
+            return value
+
+        try:
+            roles.get(value)
+        except KeyError:
+            raise serializers.ValidationError("Invalid role")
         return value
 
 
@@ -752,6 +770,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:seer_scanner_automation"] = result[
                     "seerScannerAutomation"
                 ]
+        if "debugFilesRole" in result:
+            if result["debugFilesRole"] is None:
+                project.delete_option("sentry:debug_files_role")
+                changed_proj_settings["sentry:debug_files_role"] = None
+            else:
+                if project.update_option("sentry:debug_files_role", result["debugFilesRole"]):
+                    changed_proj_settings["sentry:debug_files_role"] = result["debugFilesRole"]
 
         if has_elevated_scopes:
             options = result.get("options", {})

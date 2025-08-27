@@ -14,6 +14,7 @@ import type {
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   getLogRowTimestampMillis,
@@ -95,8 +96,7 @@ export function useStreamingTimeseriesResult(
   const timeseriesValues = timeseriesResult.data
     ? Object.values(timeseriesResult.data)[0]?.[0]?.values
     : undefined;
-  const shouldUseStreamedData =
-    organization.features.includes('ourlogs-live-refresh') && !!timeseriesValues?.length;
+  const shouldUseStreamedData = isLogsEnabled(organization) && !!timeseriesValues?.length;
 
   const timeseriesStartTimestamp = timeseriesValues?.[0]?.timestamp;
   const timeseriesLastTimestamp =
