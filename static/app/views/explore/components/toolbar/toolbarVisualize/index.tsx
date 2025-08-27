@@ -8,10 +8,7 @@ import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {
-  AggregationKey,
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS,
-} from 'sentry/utils/fields';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -55,7 +52,7 @@ export function ToolbarVisualizeDropdown({
 }: ToolbarVisualizeDropdownProps) {
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
-    ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS[aggregateFunc as AggregationKey]
+    ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
 
   return (
@@ -78,6 +75,15 @@ export function ToolbarVisualizeDropdown({
           />
         );
       })}
+      {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
+        <FieldCompactSelect
+          searchable
+          options={fieldOptions}
+          value={parsedFunction?.arguments[0] ?? ''}
+          onChange={option => onChangeArgument(0, option)}
+          disabled
+        />
+      )}
       {canDelete ? (
         <Button
           borderless

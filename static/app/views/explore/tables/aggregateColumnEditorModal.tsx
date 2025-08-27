@@ -28,8 +28,6 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {
-  AggregationKey,
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   FieldKind,
   getFieldDefinition,
@@ -322,7 +320,7 @@ function AggregateSelector({
   const parsedFunction = useMemo(() => parseFunction(yAxis), [yAxis]);
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
-    ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS[aggregateFunc as AggregationKey]
+    ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
@@ -403,6 +401,21 @@ function AggregateSelector({
           />
         );
       })}
+      {aggregateDefinition?.parameters?.length === 0 && (
+        <DoubleWidthCompactSelect
+          data-test-id="editor-visualize-argument"
+          options={argumentOptions}
+          value={parsedFunction?.arguments[0] ?? ''}
+          onChange={option => handleArgumentChange(0, option)}
+          searchable
+          disabled
+          triggerProps={{
+            style: {
+              width: '100%',
+            },
+          }}
+        />
+      )}
     </Fragment>
   );
 }
