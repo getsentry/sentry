@@ -362,6 +362,8 @@ class DedupeCronWorkflowsTest(TestMigrations):
         assert (
             alert_rule_workflows.exists()
         ), "AlertRuleWorkflow should exist for surviving workflow"
+        first_workflow = alert_rule_workflows.first()
+        assert first_workflow
         assert (
-            alert_rule_workflows.first().rule_id == self.org1_cron_rule1.id
+            first_workflow.rule_id == self.org1_cron_rule1.id
         ), "AlertRuleWorkflow should point to first rule in deduplication group"
