@@ -27,6 +27,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import SplitPanel from 'sentry/components/splitPanel';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
@@ -44,6 +45,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import CoverageTrendPage from 'sentry/views/codecov/coverage/coverageTrend';
@@ -2109,6 +2111,7 @@ export default function CommitsListPage() {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useMedia('(max-width: 768px)');
 
   // Sort handlers
   const handleCommitsSortChange = useCallback((field: string, order: 'asc' | 'desc') => {
@@ -3035,71 +3038,150 @@ export default function CommitsListPage() {
             <PathFilterResultsText>{getFilteredLinesCount()} lines</PathFilterResultsText>
           </PathFilterContainer>
 
-          <FileExplorerContent>
-            <LeftPanel>
-              <FileTree
-                nodes={fileTree}
-                onToggle={handleFileTreeToggle}
-                selectedNode={selectedFileNode}
-                onNodeSelect={setSelectedFileNode}
-                displayMode={displayMode}
-                onDisplayModeChange={setDisplayMode}
-                pathFilter={selectedPath}
-                matchingFiles={selectedPath ? getMatchingFiles(selectedPath) : []}
-              />
-            </LeftPanel>
-            <RightPanel>
-              {selectedFileNode ? (
-                <UncoveredLinesTable
-                  fileData={selectedFileNode}
-                  fileTree={fileTree}
-                  onBackToResults={
-                    originalPathFilter
-                      ? () => {
-                          setSelectedPath(originalPathFilter);
-                          setSelectedFileNode(null);
-                          setOriginalPathFilter('');
-                        }
-                      : undefined
-                  }
-                  pathFilter={originalPathFilter}
-                />
-              ) : selectedPath ? (
-                <PathFilterResults
-                  fileTree={fileTree}
-                  matchingFiles={getMatchingFiles(selectedPath)}
-                  onFileSelect={file => {
-                    setSelectedFileNode(file);
-                    setOriginalPathFilter(selectedPath); // Store the original path filter
-                    setSelectedPath(''); // Clear the path filter to show coverage details
-                  }}
+          {isMobile ? (
+            <MobileFileExplorerContent>
+              <ResizableLeftPanel>
+                <FileTree
+                  nodes={fileTree}
+                  onToggle={handleFileTreeToggle}
+                  selectedNode={selectedFileNode}
+                  onNodeSelect={setSelectedFileNode}
+                  displayMode={displayMode}
+                  onDisplayModeChange={setDisplayMode}
                   pathFilter={selectedPath}
+                  matchingFiles={selectedPath ? getMatchingFiles(selectedPath) : []}
                 />
-              ) : (
-                <SectionContent>
-                  <RightPanelHeader>Coverage Information</RightPanelHeader>
-                  <RightPanelDescription>
-                    Select a file or folder from the explorer to view coverage details, or
-                    use the path filter to find specific files.
-                  </RightPanelDescription>
-                  <RightPanelFeatures>
-                    <FeatureItem>
-                      <strong>Files:</strong> View uncovered lines and detailed code
-                      coverage
-                    </FeatureItem>
-                    <FeatureItem>
-                      <strong>Folders:</strong> View uncovered lines from all files within
-                      the folder
-                    </FeatureItem>
-                    <FeatureItem>
-                      <strong>Path Filter:</strong> Type a path and press Enter to find
-                      matching files
-                    </FeatureItem>
-                  </RightPanelFeatures>
-                </SectionContent>
-              )}
-            </RightPanel>
-          </FileExplorerContent>
+              </ResizableLeftPanel>
+              <ResizableRightPanel>
+                {selectedFileNode ? (
+                  <UncoveredLinesTable
+                    fileData={selectedFileNode}
+                    fileTree={fileTree}
+                    onBackToResults={
+                      originalPathFilter
+                        ? () => {
+                            setSelectedPath(originalPathFilter);
+                            setSelectedFileNode(null);
+                            setOriginalPathFilter('');
+                          }
+                        : undefined
+                    }
+                    pathFilter={originalPathFilter}
+                  />
+                ) : selectedPath ? (
+                  <PathFilterResults
+                    fileTree={fileTree}
+                    matchingFiles={getMatchingFiles(selectedPath)}
+                    onFileSelect={file => {
+                      setSelectedFileNode(file);
+                      setOriginalPathFilter(selectedPath); // Store the original path filter
+                      setSelectedPath(''); // Clear the path filter to show coverage details
+                    }}
+                    pathFilter={selectedPath}
+                  />
+                ) : (
+                  <SectionContent>
+                    <RightPanelHeader>Coverage Information</RightPanelHeader>
+                    <RightPanelDescription>
+                      Select a file or folder from the explorer to view coverage details,
+                      or use the path filter to find specific files.
+                    </RightPanelDescription>
+                    <RightPanelFeatures>
+                      <FeatureItem>
+                        <strong>Files:</strong> View uncovered lines and detailed code
+                        coverage
+                      </FeatureItem>
+                      <FeatureItem>
+                        <strong>Folders:</strong> View uncovered lines from all files
+                        within the folder
+                      </FeatureItem>
+                      <FeatureItem>
+                        <strong>Path Filter:</strong> Type a path and press Enter to find
+                        matching files
+                      </FeatureItem>
+                    </RightPanelFeatures>
+                  </SectionContent>
+                )}
+              </ResizableRightPanel>
+            </MobileFileExplorerContent>
+          ) : (
+            <SplitPanel
+              availableSize={window.innerWidth - 64} // Account for padding/margins
+              left={{
+                content: (
+                  <ResizableLeftPanel>
+                    <FileTree
+                      nodes={fileTree}
+                      onToggle={handleFileTreeToggle}
+                      selectedNode={selectedFileNode}
+                      onNodeSelect={setSelectedFileNode}
+                      displayMode={displayMode}
+                      onDisplayModeChange={setDisplayMode}
+                      pathFilter={selectedPath}
+                      matchingFiles={selectedPath ? getMatchingFiles(selectedPath) : []}
+                    />
+                  </ResizableLeftPanel>
+                ),
+                default: 350,
+                min: 200,
+                max: 600,
+              }}
+              right={
+                <ResizableRightPanel>
+                  {selectedFileNode ? (
+                    <UncoveredLinesTable
+                      fileData={selectedFileNode}
+                      fileTree={fileTree}
+                      onBackToResults={
+                        originalPathFilter
+                          ? () => {
+                              setSelectedPath(originalPathFilter);
+                              setSelectedFileNode(null);
+                              setOriginalPathFilter('');
+                            }
+                          : undefined
+                      }
+                      pathFilter={originalPathFilter}
+                    />
+                  ) : selectedPath ? (
+                    <PathFilterResults
+                      fileTree={fileTree}
+                      matchingFiles={getMatchingFiles(selectedPath)}
+                      onFileSelect={file => {
+                        setSelectedFileNode(file);
+                        setOriginalPathFilter(selectedPath); // Store the original path filter
+                        setSelectedPath(''); // Clear the path filter to show coverage details
+                      }}
+                      pathFilter={selectedPath}
+                    />
+                  ) : (
+                    <SectionContent>
+                      <RightPanelHeader>Coverage Information</RightPanelHeader>
+                      <RightPanelDescription>
+                        Select a file or folder from the explorer to view coverage
+                        details, or use the path filter to find specific files.
+                      </RightPanelDescription>
+                      <RightPanelFeatures>
+                        <FeatureItem>
+                          <strong>Files:</strong> View uncovered lines and detailed code
+                          coverage
+                        </FeatureItem>
+                        <FeatureItem>
+                          <strong>Folders:</strong> View uncovered lines from all files
+                          within the folder
+                        </FeatureItem>
+                        <FeatureItem>
+                          <strong>Path Filter:</strong> Type a path and press Enter to
+                          find matching files
+                        </FeatureItem>
+                      </RightPanelFeatures>
+                    </SectionContent>
+                  )}
+                </ResizableRightPanel>
+              }
+              sizeStorageKey="codecov-filetree-width"
+            />
+          )}
         </FileExplorerSection>
       )}
 
@@ -3721,36 +3803,34 @@ const CommitCoverageTag = styled('div')`
   white-space: nowrap;
 `;
 
-// File Explorer specific styled components
-const FileExplorerContent = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xl};
-  min-height: 500px;
+// File Explorer specific styled components (legacy panels removed, now using resizable SplitPanel)
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    flex-direction: column;
-    gap: ${p => p.theme.space.lg};
-  }
-`;
-
-const LeftPanel = styled('div')`
-  flex: 0 0 350px;
+// Resizable panel styled components
+const ResizableLeftPanel = styled('div')`
+  height: 100%;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    flex: none;
-  }
+  min-height: 500px;
 `;
 
-const RightPanel = styled('div')`
-  flex: 1;
+const ResizableRightPanel = styled('div')`
+  height: 100%;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${p => p.theme.space.lg};
+  min-height: 500px;
+  overflow: auto;
+`;
+
+// Mobile-specific layout that stacks panels vertically
+const MobileFileExplorerContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.lg};
+  min-height: 500px;
 `;
 
 // FileTree styled components
