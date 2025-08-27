@@ -32,6 +32,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEd
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {
   IconArrow,
+  IconCheckmark,
   IconChevron,
   IconClose,
   IconCommit,
@@ -39,6 +40,7 @@ import {
   IconGithub,
   IconOpen,
   IconSearch,
+  IconSync,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -97,153 +99,244 @@ const pullRequestsData = [
       name: 'Flamefire',
       username: 'flamefire',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/1234567?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '2',
     title: 'steps3: add Codecov badge',
     number: 9,
-    author: 'Flamefire',
+    author: 'Maya Rodriguez',
     status: 'open',
     timestamp: '1 day ago',
     coverage: null,
     authorUser: {
       id: '2',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'maya.rodriguez@example.com',
+      name: 'Maya Rodriguez',
+      username: 'mayarod',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/7654321?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '3',
     title: 'step3: add project status check target',
     number: 7,
-    author: 'Flamefire',
+    author: 'Alex Chen',
     status: 'open',
     timestamp: '1 day ago',
     coverage: null,
     authorUser: {
       id: '3',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'alex.chen@example.com',
+      name: 'Alex Chen',
+      username: 'alexchen',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/9876543?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '4',
     title: 'steps3: cover divide by 0 case',
     number: 8,
-    author: 'Flamefire',
+    author: 'Sarah Johnson',
     status: 'open',
     timestamp: '1 day ago',
     coverage: '100%',
     authorUser: {
       id: '4',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'sarah.johnson@example.com',
+      name: 'Sarah Johnson',
+      username: 'sarahj',
       ip_address: '',
+      avatar: {
+        avatarUrl: null,
+        avatarType: 'gravatar' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '5',
     title: 'step3: add project status check target',
     number: 6,
-    author: 'Flamefire',
+    author: 'David Kim',
     status: 'open',
     timestamp: '1 day ago',
     coverage: null,
     authorUser: {
       id: '5',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'david.kim@example.com',
+      name: 'David Kim',
+      username: 'dkim',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/5432109?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '6',
     title: 'step2: upload coverage reports to Codecov',
     number: 5,
-    author: 'Flamefire',
+    author: 'Emma Thompson',
     status: 'open',
     timestamp: '1 day ago',
     coverage: null,
     authorUser: {
       id: '6',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'emma.thompson@example.com',
+      name: 'Emma Thompson',
+      username: 'emmathompson',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/9876543?v=4',
+        avatarType: 'gravatar' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '7',
     title: 'step1: create initial project structure',
     number: 4,
-    author: 'Flamefire',
+    author: 'Marcus Johnson',
     status: 'merged',
     timestamp: '2 days ago',
     coverage: '95%',
     authorUser: {
       id: '7',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'marcus.johnson@example.com',
+      name: 'Marcus Johnson',
+      username: 'marcusj',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/1357924?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '8',
     title: 'initial commit setup',
     number: 3,
-    author: 'Flamefire',
+    author: 'Priya Patel',
     status: 'merged',
     timestamp: '3 days ago',
     coverage: '88%',
     authorUser: {
       id: '8',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'priya.patel@example.com',
+      name: 'Priya Patel',
+      username: 'priyap',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/2468135?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '9',
     title: 'fix typo in documentation',
     number: 2,
-    author: 'Flamefire',
+    author: 'Jake Wilson',
     status: 'merged',
     timestamp: '4 days ago',
     coverage: null,
     authorUser: {
       id: '9',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'jake.wilson@example.com',
+      name: 'Jake Wilson',
+      username: 'jakew',
       ip_address: '',
+      avatar: {
+        avatarUrl: null,
+        avatarType: 'gravatar' as const,
+        avatarUuid: null,
+      },
     },
   },
   // Add closed pull requests to match the design
-  ...Array.from({length: 35}, (_, index) => ({
-    id: `closed-${index + 1}`,
-    title: `Closed PR ${index + 1}`,
-    number: 100 + index,
-    author: 'Various Authors',
-    status: 'closed',
-    timestamp: `${Math.floor(index / 7) + 1} weeks ago`,
-    coverage: index % 3 === 0 ? `${80 + (index % 20)}%` : null,
-    authorUser: {
+  ...Array.from({length: 35}, (_, index) => {
+    const authors = [
+      'Lisa Wang',
+      'Carlos Rivera',
+      'Aisha Okafor',
+      "Ryan O'Connor",
+      'Fatima Al-Zahra',
+      'Hiroshi Tanaka',
+      'Elena Petrov',
+      'Ahmed Hassan',
+      'Sophie Dubois',
+      'Raj Sharma',
+      'Isabella Santos',
+      'Dmitri Volkov',
+      'Zara Khan',
+      'Lucas Anderson',
+      'Mei Chen',
+      'Omar Benali',
+      'Ingrid Larsson',
+      'Kenji Nakamura',
+      'Nadia Popov',
+      'Gabriel Silva',
+      'Yuki Sato',
+      'Amara Osei',
+      'Viktor Kozlov',
+      'Camila Torres',
+      'Hassan Ali',
+      'Nina Johansson',
+      'Arjun Gupta',
+      'Leila Moradi',
+      'Diego Fernandez',
+      'Anya Petrov',
+      'Kwame Asante',
+      'Sakura Yamamoto',
+      'Mateo Rodriguez',
+      'Zoe Mitchell',
+      'Tariq Mahmoud',
+    ];
+    const author = authors[index % authors.length]!;
+    const username = author
+      .toLowerCase()
+      .replace(/['\s]/g, '')
+      .replace("o'connor", 'oconnor');
+    const email = `${username}@example.com`;
+
+    return {
       id: `closed-${index + 1}`,
-      email: 'author@example.com',
-      name: 'Various Authors',
-      username: 'author',
-      ip_address: '',
-    },
-  })),
+      title: `Closed PR ${index + 1}`,
+      number: 100 + index,
+      author,
+      status: 'closed',
+      timestamp: `${Math.floor(index / 7) + 1} weeks ago`,
+      coverage: index % 3 === 0 ? `${80 + (index % 20)}%` : null,
+      authorUser: {
+        id: `closed-${index + 1}`,
+        email,
+        name: author,
+        username,
+        ip_address: '',
+      },
+    };
+  }),
 ];
 
 // Mock data for uncovered lines table
@@ -506,12 +599,17 @@ const commitsData = [
       name: 'Flamefire',
       username: 'flamefire',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/1234567?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '2',
     message: 'step3: add Codecov badge',
-    author: 'Flamefire',
+    author: 'Maya Rodriguez',
     hash: '3d59704',
     timestamp: '2 days ago',
     coverage: '65%',
@@ -523,16 +621,21 @@ const commitsData = [
     },
     authorUser: {
       id: '2',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'maya.rodriguez@example.com',
+      name: 'Maya Rodriguez',
+      username: 'mayarod',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/87772943?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '3',
     message: 'step3: add Codecov badge',
-    author: 'Flamefire',
+    author: 'Alex Chen',
     hash: '4663d65',
     timestamp: '3 days ago',
     coverage: '100%',
@@ -544,16 +647,21 @@ const commitsData = [
     },
     authorUser: {
       id: '3',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'alex.chen@example.com',
+      name: 'Alex Chen',
+      username: 'alexchen',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/88201630?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '4',
     message: 'step3: cover divide by 0 case',
-    author: 'Flamefire',
+    author: 'Sarah Johnson',
     hash: 'f0a9d69',
     timestamp: '3 days ago',
     coverage: '100%',
@@ -565,16 +673,21 @@ const commitsData = [
     },
     authorUser: {
       id: '4',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'sarah.johnson@example.com',
+      name: 'Sarah Johnson',
+      username: 'sarahj',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/71270647?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '5',
     message: 'step3: cover divide by 0 case',
-    author: 'Flamefire',
+    author: 'David Kim',
     hash: '3c01a7b',
     timestamp: '3 days ago',
     coverage: '100%',
@@ -586,16 +699,21 @@ const commitsData = [
     },
     authorUser: {
       id: '5',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'david.kim@example.com',
+      name: 'David Kim',
+      username: 'dkim',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/159853603?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '6',
     message: 'step3: add project status check target',
-    author: 'Flamefire',
+    author: 'Emma Thompson',
     hash: 'ee98986',
     timestamp: '3 days ago',
     coverage: '100%',
@@ -607,16 +725,21 @@ const commitsData = [
     },
     authorUser: {
       id: '6',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'emma.thompson@example.com',
+      name: 'Emma Thompson',
+      username: 'emmathompson',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/3456789?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '7',
     message: 'step3: add project status check target',
-    author: 'Flamefire',
+    author: 'Marcus Johnson',
     hash: 'a09f75c',
     timestamp: '3 days ago',
     coverage: '100%',
@@ -628,16 +751,21 @@ const commitsData = [
     },
     authorUser: {
       id: '7',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'marcus.johnson@example.com',
+      name: 'Marcus Johnson',
+      username: 'marcusj',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/6789012?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '8',
     message: 'step2: upload coverage reports to Codecov',
-    author: 'Flamefire',
+    author: 'Priya Patel',
     hash: '366e107',
     timestamp: '3 days ago',
     coverage: '100%',
@@ -649,16 +777,21 @@ const commitsData = [
     },
     authorUser: {
       id: '8',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'priya.patel@example.com',
+      name: 'Priya Patel',
+      username: 'priyap',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/8901234?v=4',
+        avatarType: 'upload' as const,
+        avatarUuid: null,
+      },
     },
   },
   {
     id: '9',
     message: 'step2: upload coverage reports to Codecov',
-    author: 'Flamefire',
+    author: 'Jake Wilson',
     hash: '79d45ad',
     timestamp: '3 days ago',
     coverage: '100%',
@@ -670,10 +803,15 @@ const commitsData = [
     },
     authorUser: {
       id: '9',
-      email: 'flamefire@example.com',
-      name: 'Flamefire',
-      username: 'flamefire',
+      email: 'jake.wilson@example.com',
+      name: 'Jake Wilson',
+      username: 'jakew',
       ip_address: '',
+      avatar: {
+        avatarUrl: 'https://avatars.githubusercontent.com/u/5678901?v=4',
+        avatarType: 'gravatar' as const,
+        avatarUuid: null,
+      },
     },
   },
 ];
@@ -1145,7 +1283,7 @@ function renderTableBody(
   if (key === 'commit') {
     const commitCell = (
       <CommitCell>
-        <UserAvatar user={row.authorUser} size={40} />
+        <UserAvatar user={row.authorUser} size={40} gravatar />
         <CommitInfo>
           <CommitMessage>{row.message}</CommitMessage>
           <CommitDetails>
@@ -1188,14 +1326,18 @@ function renderTableBody(
       <UploadCountCell>
         <UploadBreakdown>
           <UploadStatus>
-            <StatusDotLegacy $color="success" />
+            <StatusDotLegacy $color="success">
+              <IconCheckmark />
+            </StatusDotLegacy>
             <UploadText>
               {processed} {t('Processed')}
             </UploadText>
           </UploadStatus>
           {pending > 0 && (
             <UploadStatus>
-              <StatusDotLegacy $color="warning" />
+              <StatusDotLegacy $color="warning">
+                <IconSync />
+              </StatusDotLegacy>
               <UploadText>
                 {pending} {t('Pending')}
               </UploadText>
@@ -1203,7 +1345,9 @@ function renderTableBody(
           )}
           {failed > 0 && (
             <UploadStatus>
-              <StatusDotLegacy $color="error" />
+              <StatusDotLegacy $color="error">
+                <IconClose />
+              </StatusDotLegacy>
               <UploadText>
                 {failed} {t('Failed')}
               </UploadText>
@@ -1304,7 +1448,7 @@ function renderPullsTableBody(
   if (key === 'pullRequest') {
     const pullRequestCell = (
       <CommitCell>
-        <UserAvatar user={row.authorUser} size={40} />
+        <UserAvatar user={row.authorUser} size={40} gravatar />
         <CommitInfo>
           <CommitMessage>
             {rowIndex === 0 ? (
@@ -1949,7 +2093,9 @@ export default function CommitsListPage() {
   } | null>(null);
   const [isCommitDropdownOpen, setIsCommitDropdownOpen] = useState(false);
   const [fileTree, setFileTree] = useState<FileTreeNode[]>(fileTreeData);
-  const [selectedFileNode, setSelectedFileNode] = useState<FileTreeNode | null>(null);
+  const [selectedFileNode, setSelectedFileNode] = useState<FileTreeNode | null>(
+    fileTreeData.find(node => node.id === 'src') || null
+  );
   const [pathFilter, setPathFilter] = useState('');
   const [selectedPath, setSelectedPath] = useState('');
   const [originalPathFilter, setOriginalPathFilter] = useState('');
@@ -2597,7 +2743,7 @@ export default function CommitsListPage() {
                 <CommitSelectorButton
                   onClick={() => setIsCommitDropdownOpen(!isCommitDropdownOpen)}
                 >
-                  <UserAvatar user={selectedCommit?.authorUser} size={16} />
+                  <UserAvatar user={selectedCommit?.authorUser} size={16} gravatar />
                   <CommitSelectorText>
                     {selectedCommit?.author} committed {selectedCommit?.hash} •{' '}
                     {selectedCommit?.timestamp}
@@ -2615,7 +2761,7 @@ export default function CommitsListPage() {
                         onClick={() => handleCommitSelect(commit.id)}
                         $isSelected={commit.id === selectedCommitId}
                       >
-                        <UserAvatar user={commit.authorUser} size={16} />
+                        <UserAvatar user={commit.authorUser} size={16} gravatar />
                         <CommitDropdownText>
                           <CommitDropdownMessage>{commit.message}</CommitDropdownMessage>
                           <CommitDropdownDetails>
@@ -3280,7 +3426,7 @@ const UploadBreakdown = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};
-  width: 253px;
+  width: 300px;
 `;
 
 const UploadStatus = styled('div')`
@@ -3290,21 +3436,41 @@ const UploadStatus = styled('div')`
 `;
 
 const StatusDotLegacy = styled('div')<{$color: 'success' | 'warning' | 'error'}>`
-  width: 10px;
-  height: 10px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: ${p => {
     switch (p.$color) {
       case 'success':
-        return p.theme.success;
+        return `${p.theme.success}20`;
       case 'warning':
-        return p.theme.warning;
+        return `${p.theme.warning}20`;
       case 'error':
-        return p.theme.error;
+        return `${p.theme.error}20`;
       default:
-        return p.theme.gray300;
+        return `${p.theme.gray300}20`;
     }
   }};
+
+  svg {
+    width: 10px;
+    height: 10px;
+    color: ${p => {
+      switch (p.$color) {
+        case 'success':
+          return p.theme.success;
+        case 'warning':
+          return p.theme.warning;
+        case 'error':
+          return p.theme.error;
+        default:
+          return p.theme.gray300;
+      }
+    }};
+  }
 `;
 
 const UploadText = styled('span')`
