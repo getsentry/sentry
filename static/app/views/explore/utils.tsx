@@ -194,12 +194,14 @@ export function getExploreMultiQueryUrl({
   queries,
   title,
   id,
+  referrer,
 }: {
   interval: string;
   organization: Organization;
   queries: ReadableExploreQueryParts[];
   selection: PageFilters;
   id?: number;
+  referrer?: string;
   title?: string;
 }) {
   const {start, end, period: statsPeriod, utc} = selection.datetime;
@@ -224,6 +226,7 @@ export function getExploreMultiQueryUrl({
     title,
     id,
     utc,
+    referrer,
   };
 
   return `/organizations/${organization.slug}/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
