@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {CardElement, Elements, useElements, useStripe} from '@stripe/react-stripe-js';
-import {loadStripe, type Stripe, type StripeCardElement} from '@stripe/stripe-js';
+import {type Stripe, type StripeCardElement} from '@stripe/stripe-js';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
@@ -13,9 +13,9 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NODE_ENV} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 
+import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import type {FTCConsentLocation} from 'getsentry/types';
 
 export type SubmitData = {
@@ -93,12 +93,10 @@ type Props = {
  * and classic card flows.
  */
 function CreditCardForm(props: Props) {
-  const [stripePromise] = useState(() =>
-    loadStripe(ConfigStore.get('getsentry.stripePublishKey')!)
-  );
+  const stripe = useStripeInstance();
 
   return (
-    <Elements stripe={stripePromise}>
+    <Elements stripe={stripe}>
       <CreditCardFormInner {...props} />
     </Elements>
   );
