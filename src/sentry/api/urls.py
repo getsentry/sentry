@@ -251,7 +251,6 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
-    GroupOpenPeriodsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
@@ -805,11 +804,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/events/$",
             GroupEventsEndpoint.as_view(),
             name=f"{name_prefix}-group-events",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/open-periods/$",
-            GroupOpenPeriodsEndpoint.as_view(),
-            name=f"{name_prefix}-group-open-periods",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/events/(?P<event_id>(?:latest|oldest|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",

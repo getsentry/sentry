@@ -3372,7 +3372,7 @@ register(
 # Taskbroker flags
 register(
     "taskworker.enabled",
-    default=True,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3494,6 +3494,13 @@ register(
 # Whether to use 60s granularity for the dynamic sampling query
 register(
     "dynamic-sampling.query-granularity-60s.active-orgs",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.query-granularity-60s.fetch-transaction-totals",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
