@@ -124,8 +124,8 @@ function getFilteredProjectsBasedOnTeams({
     isAllTeams && showNonMemberProjects
       ? projects.filter(project => !currentProjectIds.has(project.id))
       : [];
-  return [...currentProjects, ...unassignedProjects].filter(project =>
-    project.slug.includes(projectQuery)
+  return [...currentProjects, ...unassignedProjects].filter(
+    project => project.slug.includes(projectQuery) || project.id.startsWith(projectQuery)
   );
 }
 
@@ -262,7 +262,7 @@ function Dashboard() {
             />
             <StyledSearchBar
               defaultQuery=""
-              placeholder={t('Search for projects by name')}
+              placeholder={t('Search for projects')}
               onChange={debouncedSearchQuery}
               query={projectQuery}
             />

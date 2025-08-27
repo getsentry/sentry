@@ -78,9 +78,7 @@ describe('ProjectsDashboard', () => {
 
       expect(await screen.findByTestId('join-team')).toBeInTheDocument();
       expect(screen.getByTestId('create-project')).toBeInTheDocument();
-      expect(
-        screen.getByPlaceholderText('Search for projects by name')
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search for projects')).toBeInTheDocument();
       expect(screen.getByText('My Teams')).toBeInTheDocument();
       expect(screen.getByText('Resources')).toBeInTheDocument();
       expect(await screen.findByTestId('badge-display-name')).toBeInTheDocument();
@@ -433,13 +431,43 @@ describe('ProjectsDashboard', () => {
         deprecatedRouterMocks: true,
       });
       await userEvent.type(
-        screen.getByPlaceholderText('Search for projects by name'),
+        screen.getByPlaceholderText('Search for projects'),
         'project2{enter}'
       );
       expect(screen.getByText('project2')).toBeInTheDocument();
       await waitFor(() => {
         expect(screen.queryByText('project1')).not.toBeInTheDocument();
       });
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+    });
+
+    it('searches projects by id', async () => {
+      const teamA = TeamFixture({slug: 'team1', isMember: true});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/projects/`,
+        body: [],
+      });
+      const projects = [
+        ProjectFixture({
+          id: '123',
+          slug: 'project1',
+          teams: [teamA],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ];
+
+      ProjectsStore.loadInitialData(projects);
+      const teamWithProject = [TeamFixture({projects})];
+      TeamStore.loadInitialData(teamWithProject);
+      render(<ProjectsDashboard />, {
+        deprecatedRouterMocks: true,
+      });
+      await userEvent.type(
+        screen.getByPlaceholderText('Search for projects'),
+        '123{enter}'
+      );
+      expect(screen.getByText('project1')).toBeInTheDocument();
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
 
