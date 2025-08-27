@@ -75,7 +75,7 @@ function WidgetBuilderDatasetSelector() {
       <FeatureBadgeAlignmentWrapper aria-label={t('Logs')} key={'dataset-choice-logs'}>
         {t('Logs')}{' '}
         <FeatureBadge
-          type="beta"
+          type="new"
           tooltipProps={{
             title: t(
               'This feature is available for early adopters and the UX may change'

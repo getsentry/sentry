@@ -106,7 +106,7 @@ export function DataSetStep({
       <FeatureBadgeAlignmentWrapper aria-label={t('Spans')}>
         {t('Spans')}{' '}
         <FeatureBadge
-          type="beta"
+          type="new"
           tooltipProps={{
             title: t(
               'This feature is available for early adopters and the UX may change'
@@ -123,7 +123,7 @@ export function DataSetStep({
       <FeatureBadgeAlignmentWrapper aria-label={t('Logs')}>
         {t('Logs')}{' '}
         <FeatureBadge
-          type="beta"
+          type="new"
           tooltipProps={{
             title: t(
               'This feature is available for early adopters and the UX may change'
