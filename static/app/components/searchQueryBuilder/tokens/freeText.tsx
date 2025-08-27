@@ -242,12 +242,14 @@ function SearchQueryBuilderInputInternal({
   state,
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
-  const organization = useOrganization();
   const inputRef = useRef<HTMLInputElement>(null);
-  const trimmedTokenValue = token.text.trim();
+
   const [isOpen, setIsOpen] = useState(false);
+  const trimmedTokenValue = token.text.trim();
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
   const [selectionIndex, setSelectionIndex] = useState(0);
+
+  const organization = useOrganization();
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -297,6 +299,15 @@ function SearchQueryBuilderInputInternal({
     currentInputValueRef.current = inputValue;
   }, [inputValue, currentInputValueRef]);
 
+  // Track the usage of ctrl+a so that we can ignore replacing the raw search key and keep
+  // it as a free text token, so that the functionality of doing ctrl+a to select the
+  // text to replace or delete still works as expected.
+  const ctrlABeingPressed = useRef(false);
+  const onKeyUp = useCallback(() => {
+    // reset once the key has been released
+    ctrlABeingPressed.current = false;
+  }, []);
+
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
       updateSelectionIndex();
@@ -312,7 +323,10 @@ function SearchQueryBuilderInputInternal({
             e.continuePropagation();
           }
         } else if (e.key === 'a') {
+          ctrlABeingPressed.current = true;
           e.continuePropagation();
+        } else {
+          ctrlABeingPressed.current = false;
         }
       }
 
@@ -487,6 +501,7 @@ function SearchQueryBuilderInputInternal({
               value,
             }),
             shouldCommitQuery: false,
+            replaceRawSearchKey: !ctrlABeingPressed.current,
           });
           resetInputValue();
         }}
@@ -623,6 +638,7 @@ function SearchQueryBuilderInputInternal({
           setInputValue(e.target.value);
           setSelectionIndex(e.target.selectionStart ?? 0);
         }}
+        onKeyUp={onKeyUp}
         onKeyDown={onKeyDown}
         onKeyDownCapture={onKeyDownCapture}
         onOpenChange={setIsOpen}
