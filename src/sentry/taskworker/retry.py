@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from enum import Enum
 from multiprocessing.context import TimeoutError
-from typing import NoReturn
 
 from celery import current_task
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
@@ -42,7 +41,7 @@ class LastAction(Enum):
         raise ValueError(f"Unknown LastAction: {self}")
 
 
-def retry_task(exc: Exception | None = None, raise_on_no_retries: bool = True) -> NoReturn:
+def retry_task(exc: Exception | None = None, raise_on_no_retries: bool = True) -> None:
     """
     Helper for triggering retry errors.
     If all retries have been consumed, this will raise a
@@ -64,7 +63,7 @@ def retry_task(exc: Exception | None = None, raise_on_no_retries: bool = True) -
             if raise_on_no_retries:
                 raise NoRetriesRemainingError()
             else:
-                pass
+                return
         raise RetryError()
 
 
