@@ -22,7 +22,7 @@ type UseOpenPeriodsParams =
       groupId: string;
     } & CommonParams);
 
-export function makeOpenPeriodsQueryKey({
+function makeOpenPeriodsQueryKey({
   orgSlug,
   ...params
 }: UseOpenPeriodsParams & {orgSlug: string}): ApiQueryKey {
