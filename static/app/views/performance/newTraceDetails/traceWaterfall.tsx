@@ -579,7 +579,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         action_source: 'load',
       });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     setRowAsFocused,
     traceDispatch,
