@@ -208,7 +208,7 @@ describe('useErrorFilters', () => {
       expect(result.current.getProjectOptions()).toStrictEqual([]);
     });
 
-    it('should return a sorted list of project slugs', () => {
+    it('should return a sorted list of options', () => {
       const errorFrames = [ERROR_2_NEXTJS_TYPEERROR!, ERROR_3_JS_UNDEFINED!];
 
       const {result} = renderHook(useErrorFilters, {
@@ -221,13 +221,15 @@ describe('useErrorFilters', () => {
       ]);
     });
 
-    it('should deduplicate BreadcrumbType', () => {
+    it('should deduplicate ProjectOptions', () => {
       const errorFrames = [ERROR_1_JS_RANGEERROR!, ERROR_3_JS_UNDEFINED!];
 
       const {result} = renderHook(useErrorFilters, {
         initialProps: {errorFrames},
       });
 
+      // Given >1 errorFrames each with the same projectSlug, we should only
+      // have one option in the list.
       expect(result.current.getProjectOptions()).toStrictEqual([
         {label: 'javascript', value: 'javascript', qs: 'f_e_project'},
       ]);
