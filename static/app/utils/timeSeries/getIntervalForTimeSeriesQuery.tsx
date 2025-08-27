@@ -5,8 +5,11 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {getIntervalForMetricFunction} from 'sentry/views/insights/database/utils/getIntervalForMetricFunction';
 
-// TODO: Add some documentation
-// Pick the highest possible interval for the given yAxis selection. Find the ideal interval for each function, then choose the largest one. This results in the lowest granularity, but best performance.
+/**
+ * Given a list of requested Y axes and a date range, figures out the most appropriate interval.
+ *
+ * This is a legacy function that was useful in the days of span metrics, where some metrics were much more expensive to query than others. In the age of EAP, this is not needed anymore. In EAP, granularity is _very cheap_, and we can be more generous with it regardless of the specific metric being queried.
+ */
 export function getIntervalForTimeSeriesQuery(
   yAxis: string | string[],
   datetime: DateTimeObject
