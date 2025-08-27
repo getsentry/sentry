@@ -91,8 +91,6 @@ class CodeOwnersTest(TestCase):
         self, mock_get_codeowner_file: MagicMock, mock_timezone_now: MagicMock
     ) -> None:
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
-            mock_now = datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc)
-            mock_timezone_now.return_value = mock_now
             self.create_external_team()
             self.create_external_user(external_name="@NisanthanNanthakumar")
             commit = Commit.objects.create(
@@ -107,6 +105,8 @@ class CodeOwnersTest(TestCase):
                 filename=".github/CODEOWNERS",
                 type="A",
             )
+            mock_now = datetime(2023, 1, 1, 0, 0, tzinfo=timezone.utc)
+            mock_timezone_now.return_value = mock_now
             code_owners_auto_sync(commit.id)
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
