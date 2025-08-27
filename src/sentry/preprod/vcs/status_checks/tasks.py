@@ -275,7 +275,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         external_id: str,
         target_url: str | None = None,
     ) -> str | None:
-        with self._create_scm_interaction_event().capture() as _:
+        with self._create_scm_interaction_event().capture() as lifecycle:
             mapped_status = GITHUB_STATUS_CHECK_STATUS_MAPPING.get(status)
             mapped_conclusion = GITHUB_STATUS_CHECK_CONCLUSION_MAPPING.get(status)
 
@@ -304,9 +304,13 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
             if target_url:
                 check_data["details_url"] = target_url
 
-            response = self.client.create_check_run(repo=repo, data=check_data)
-            check_id = response.get("id")
-            return str(check_id) if check_id else None
+            try:
+                response = self.client.create_check_run(repo=repo, data=check_data)
+                check_id = response.get("id")
+                return str(check_id) if check_id else None
+            except Exception as e:
+                lifecycle.record_failure(e)
+                return None
 
 
 GITHUB_STATUS_CHECK_STATUS_MAPPING: dict[StatusCheckStatus, GitHubCheckStatus] = {
