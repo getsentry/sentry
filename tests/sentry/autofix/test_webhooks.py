@@ -19,7 +19,9 @@ class AutofixPrWebhookTest(APITestCase):
             request={
                 "project_id": 2,
                 "issue": {"id": 3, "title": "Test issue"},
-                "repos": [{"owner": "test", "name": "test"}],
+                "repos": [
+                    {"provider": "github", "owner": "test", "name": "test", "external_id": "123"}
+                ],
             },
             updated_at=datetime.now(timezone.utc),
             status=AutofixStatus.PROCESSING,
@@ -56,7 +58,9 @@ class AutofixPrWebhookTest(APITestCase):
             request={
                 "project_id": 2,
                 "issue": {"id": 3, "title": "Test issue"},
-                "repos": [{"owner": "test", "name": "test"}],
+                "repos": [
+                    {"provider": "github", "owner": "test", "name": "test", "external_id": "123"}
+                ],
             },
             updated_at=datetime.now(timezone.utc),
             status=AutofixStatus.PROCESSING,
@@ -93,7 +97,9 @@ class AutofixPrWebhookTest(APITestCase):
             request={
                 "project_id": 2,
                 "issue": {"id": 3, "title": "Test issue"},
-                "repos": [{"owner": "test", "name": "test"}],
+                "repos": [
+                    {"provider": "github", "owner": "test", "name": "test", "external_id": "123"}
+                ],
             },
             updated_at=datetime.now(timezone.utc),
             status=AutofixStatus.PROCESSING,
