@@ -362,6 +362,10 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 # Workflow engine
 /src/sentry/workflow_engine/                               @getsentry/alerts-create-issues
 /tests/sentry/workflow_engine/                             @getsentry/alerts-create-issues
+/static/app/components/workflowEngine/                     @getsentry/alerts-create-issues
+/static/app/views/automations/                             @getsentry/alerts-create-issues
+/static/app/views/detectors/                               @getsentry/alerts-create-issues
+# End of Workflow Engine (ACI)
 
 ## Integrations
 /src/sentry/sentry_apps/                                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem
@@ -653,12 +657,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 # Streaming platform
 /src/sentry/utils/arroyo.py                              @getsentry/streaming-platform
 /src/sentry/utils/arroyo_producer.py                     @getsentry/streaming-platform
-
-
-/static/app/components/workflowEngine/                     @getsentry/alerts-create-issues
-/static/app/views/automations/                             @getsentry/alerts-create-issues
-/static/app/views/detectors/                               @getsentry/alerts-create-issues
-# End of Workflow Engine (ACI)
 
 ## Migrations
 /src/sentry/migrations/                                  @getsentry/owners-migrations
