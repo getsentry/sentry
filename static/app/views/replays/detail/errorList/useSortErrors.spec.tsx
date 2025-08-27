@@ -33,6 +33,7 @@ const {
       'issue.id': 11,
       issue: 'JAVASCRIPT-RANGE',
       title: 'Invalid time value',
+      level: 'warning',
       'project.name': 'javascript',
     }),
     RawReplayErrorFixture({
@@ -42,6 +43,7 @@ const {
       'issue.id': 22,
       issue: 'NEXTJS-TYPE',
       title: `undefined is not an object (evaluating 'e.apply').`,
+      level: 'error',
       'project.name': 'next-js',
     }),
     RawReplayErrorFixture({
@@ -51,6 +53,7 @@ const {
       'issue.id': 22,
       issue: 'JAVASCRIPT-UNDEF',
       title: `Maximum update depth exceeded`,
+      level: 'error',
       'project.name': 'javascript',
     }),
   ]
