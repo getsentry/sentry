@@ -209,7 +209,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
                     span_id=span_id,
                     parent_span_id=parent_span_id,
                     span_op=span_op,
-                    span_description=normalize_description(span_description or ""),
+                    span_description=span_description or "",
                 )
             )
 
