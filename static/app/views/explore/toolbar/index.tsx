@@ -27,7 +27,7 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
   const setGroupBys = useSetExploreGroupBys();
 
   return (
-    <Container width={width}>
+    <Container data-test-id="explore-span-toolbar" width={width}>
       <ToolbarVisualize
         visualizes={visualizes}
         setVisualizes={setVisualizes}

@@ -1,4 +1,4 @@
-import {Children, type ReactNode, useState} from 'react';
+import {Children, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';

@@ -1,4 +1,5 @@
 import React, {Fragment} from 'react';
+import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import AutoSelectText from 'sentry/components/autoSelectText';
@@ -7,6 +8,8 @@ import {DateTime} from 'sentry/components/dateTime';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 type Props = {
@@ -24,6 +27,7 @@ function TimestampTooltipBody({
   timestamp: string | number;
 }) {
   const currentTimezone = useTimezone();
+  const organization = useOrganization();
   const preciseTimestamp = attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
   const preciseTimestampMs = preciseTimestamp
     ? Number(preciseTimestamp) / 1_000_000
@@ -37,7 +41,7 @@ function TimestampTooltipBody({
       : null;
   const observedTime = observedTimeMs ? new Date(observedTimeMs) : null;
 
-  const isUTC = currentTimezone === 'UTC';
+  const isUTCLocalTimezone = currentTimezone === 'UTC';
 
   return (
     <DescriptionList>
@@ -47,7 +51,7 @@ function TimestampTooltipBody({
           <AutoSelectText>
             <DateTime date={timestampToUse} seconds milliseconds timeZone />
           </AutoSelectText>
-          {!isUTC && (
+          {!isUTCLocalTimezone && (
             <AutoSelectText>
               <DateTime date={timestampToUse} seconds milliseconds timeZone utc />
             </AutoSelectText>
@@ -57,6 +61,25 @@ function TimestampTooltipBody({
           </TimestampLabel>
         </TimestampValues>
       </dd>
+      {isUTCLocalTimezone && (
+        <Fragment>
+          <dt />
+          <TimestampLabelLinkContainer>
+            <TimestampLabelLink
+              target="_blank"
+              to="/settings/account/details/#timezone"
+              onClick={() =>
+                trackAnalytics('logs.timestamp_tooltip.add_timezone_clicked', {
+                  organization,
+                })
+              }
+            >
+              <br />
+              {t('Add your local timezone')}
+            </TimestampLabelLink>
+          </TimestampLabelLinkContainer>
+        </Fragment>
+      )}
 
       {observedTime && (
         <Fragment>
@@ -128,6 +151,14 @@ const HorizontalRule = styled('hr')`
   border-top: 1px solid ${p => p.theme.border};
 `;
 
+const TimestampLabelLink = styled(Link)`
+  line-height: 0.8;
+`;
+
 const TimestampLabel = styled('span')`
   color: ${p => p.theme.gray400};
+`;
+
+const TimestampLabelLinkContainer = styled('dd')`
+  line-height: 0.8;
 `;

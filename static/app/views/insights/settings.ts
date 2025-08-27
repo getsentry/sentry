@@ -9,16 +9,16 @@ import {
 import {
   DATA_TYPE as RESOURCE_DATA_TYPE,
   DATA_TYPE_PLURAL as RESOURCE_DATA_TYPE_PLURAL,
-  MODULE_DOC_LINK as RESOURCES_MODULE_DOC_LINK,
   MODULE_FEATURES as RESOURCE_MODULE_FEATURES,
+  MODULE_DOC_LINK as RESOURCES_MODULE_DOC_LINK,
   MODULE_TITLE as RESOURCES_MODULE_TITLE,
 } from 'sentry/views/insights/browser/resources/settings';
 import {
-  DATA_TYPE as WEB_VITALS_DATA_TYPE,
-  DATA_TYPE_PLURAL as WEB_VITALS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as VITALS_MODULE_DOC_LINK,
   MODULE_FEATURES as VITALS_MODULE_FEATURES,
   MODULE_TITLE as VITALS_MODULE_TITLE,
+  DATA_TYPE as WEB_VITALS_DATA_TYPE,
+  DATA_TYPE_PLURAL as WEB_VITALS_DATA_TYPE_PLURAL,
 } from 'sentry/views/insights/browser/webVitals/settings';
 import {
   DATA_TYPE as CACHE_DATA_TYPE,
@@ -73,14 +73,14 @@ import {
 import {
   DATA_TYPE as MOBILE_SCREENS_DATA_TYPE,
   DATA_TYPE_PLURAL as MOBILE_SCREENS_DATA_TYPE_PLURAL,
-  MODULE_DOC_LINK as MODULE_SCREENS_DOC_LINK,
   MODULE_FEATURE as MOBILE_SCREENS_MODULE_FEATURE,
   MODULE_TITLE as MOBILE_SCREENS_MODULE_TITLE,
+  MODULE_DOC_LINK as MODULE_SCREENS_DOC_LINK,
 } from 'sentry/views/insights/mobile/screens/settings';
 import {
-  MODULE_DOC_LINK as MODULE_UI_DOC_LINK,
   MODULE_FEATURES as MOBILE_UI_MODULE_FEATURES,
   MODULE_TITLE as MOBILE_UI_MODULE_TITLE,
+  MODULE_DOC_LINK as MODULE_UI_DOC_LINK,
 } from 'sentry/views/insights/mobile/ui/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
@@ -93,10 +93,10 @@ import {
   MODULE_TITLE as QUEUE_MODULE_TITLE,
 } from 'sentry/views/insights/queues/settings';
 import {
-  DATA_TYPE as SESSIONS_DATA_TYPE,
-  DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
   FRONTEND_MODULE_DOC_LINK as FRONTEND_SESSIONS_MODULE_DOC_LINK,
   MOBILE_MODULE_DOC_LINK as MOBILE_SESSIONS_MODULE_DOC_LINK,
+  DATA_TYPE as SESSIONS_DATA_TYPE,
+  DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
   MODULE_TITLE as SESSIONS_MODULE_TITLE,
   MODULE_VISIBLE_FEATURES as SESSIONS_MODULE_VISIBLE_FEATURES,
 } from 'sentry/views/insights/sessions/settings';
@@ -109,7 +109,8 @@ export const INSIGHTS_BASE_URL = 'insights';
 
 export const DEFAULT_INTERVAL = '10m';
 
-export const QUERY_DATE_RANGE_LIMIT = 7; // Maximum number of days that can be queried for, enabled by the `insights-query-date-range-limit` feature flag
+export const QUERY_DATE_RANGE_LIMIT = 30; // Maximum number of days that can be queried for, enabled by the `insights-query-date-range-limit` feature flag
+export const OLD_QUERY_DATE_RANGE_LIMIT = 7;
 
 export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_MODULE_TITLE,

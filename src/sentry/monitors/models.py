@@ -5,7 +5,7 @@ import uuid
 import zoneinfo
 from collections.abc import Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 from uuid import uuid4
 
 import jsonschema
@@ -34,12 +34,17 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH, SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
+from sentry.deletions.base import ModelRelation
 from sentry.locks import locks
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.types import CrontabSchedule, IntervalSchedule
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.workflow_engine.models import DataSource
+from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import DataSourceTypeHandler
 
 logger = logging.getLogger(__name__)
 
@@ -365,9 +370,11 @@ class Monitor(Model):
     def get_validated_config(self):
         try:
             jsonschema.validate(self.config, MONITOR_CONFIG)
-            return self.config
         except jsonschema.ValidationError:
-            logging.exception("Monitor: %s invalid config: %s", self.id, self.config)
+            logging.warning("Monitor: %s invalid config: %s", self.id, self.config, exc_info=True)
+        # We should always return the config here - just log an error if we detect that it doesn't
+        # match the schema
+        return self.config
 
     def get_issue_alert_rule(self):
         issue_alert_rule_id = self.config.get("alert_rule_id")
@@ -790,3 +797,41 @@ class MonitorEnvBrokenDetection(Model):
     class Meta:
         app_label = "monitors"
         db_table = "sentry_monitorenvbrokendetection"
+
+
+@data_source_type_registry.register(DATA_SOURCE_CRON_MONITOR)
+class CronMonitorDataSourceHandler(DataSourceTypeHandler[Monitor]):
+    @staticmethod
+    def bulk_get_query_object(
+        data_sources: list[DataSource],
+    ) -> dict[int, Monitor | None]:
+        monitor_ids: list[int] = []
+
+        for ds in data_sources:
+            try:
+                monitor_ids.append(int(ds.source_id))
+            except ValueError:
+                logger.exception(
+                    "Invalid DataSource.source_id fetching Monitor",
+                    extra={"id": ds.id, "source_id": ds.source_id},
+                )
+
+        qs_lookup = {
+            str(monitor.id): monitor for monitor in Monitor.objects.filter(id__in=monitor_ids)
+        }
+        return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
+
+    @staticmethod
+    def related_model(instance) -> list[ModelRelation]:
+        return [ModelRelation(Monitor, {"id": instance.source_id})]
+
+    @override
+    @staticmethod
+    def get_instance_limit(org: Organization) -> int | None:
+        return None
+
+    @override
+    @staticmethod
+    def get_current_instance_count(org: Organization) -> int:
+        # We don't have a limit at the moment, so no need to count.
+        raise NotImplementedError

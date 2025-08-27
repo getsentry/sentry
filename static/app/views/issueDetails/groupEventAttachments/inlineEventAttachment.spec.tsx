@@ -7,12 +7,12 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';
 
-describe('InlineEventAttachment', function () {
+describe('InlineEventAttachment', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const event = EventFixture();
 
-  it('renders rrweb viewer for rrweb.json attachment', function () {
+  it('renders rrweb viewer for rrweb.json attachment', () => {
     const attachment = EventAttachmentFixture({
       name: 'rrweb.json',
       mimetype: 'application/json',
@@ -40,7 +40,7 @@ describe('InlineEventAttachment', function () {
     expect(screen.getByRole('link', {name: 'View the replay'})).toBeInTheDocument();
   });
 
-  it('renders rrweb viewer for rrweb- prefixed attachment', function () {
+  it('renders rrweb viewer for rrweb- prefixed attachment', () => {
     const attachment = EventAttachmentFixture({
       name: 'rrweb-12345.json',
       mimetype: 'application/json',

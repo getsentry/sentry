@@ -153,6 +153,8 @@ class Table extends Component<Props, State> {
       Actions.EXCLUDE,
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
+      Actions.OPEN_EXTERNAL_LINK,
+      Actions.OPEN_INTERNAL_LINK,
     ];
 
     if (field === 'transaction') {
@@ -379,7 +381,7 @@ class Table extends Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           limit={10}
-          referrer="api.performance.vital-detail"
+          referrer="api.insights.vital-detail"
         >
           {({pageLinks, isLoading, tableData}) => (
             <Fragment>

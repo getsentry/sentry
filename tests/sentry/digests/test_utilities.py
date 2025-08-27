@@ -10,11 +10,11 @@ from sentry.digests.utils import (
     get_personalized_digests,
     sort_records,
 )
-from sentry.eventstore.models import Event
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -96,7 +96,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         assert record.value.rules == [shadow_rule.id]
 
 
-def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]):
+def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]) -> None:
     for rule, groups in digest.items():
         assert rule.id in expected_rule_ids
 
@@ -107,7 +107,7 @@ def assert_get_personalized_digests(
     expected_result: Mapping[int, Iterable[Event]],
     target_type: ActionTargetType = ActionTargetType.ISSUE_OWNERS,
     target_identifier: int | None = None,
-):
+) -> None:
     result_user_ids = []
     participants_by_provider_by_event = get_participants_by_event(
         digest,

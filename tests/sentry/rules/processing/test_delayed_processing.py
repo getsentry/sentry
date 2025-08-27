@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from sentry import buffer
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -21,6 +20,7 @@ from sentry.rules.conditions.event_frequency import (
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import (
     DataAndGroups,
+    EventData,
     LogConfig,
     UniqueConditionQuery,
     apply_delayed,
@@ -36,6 +36,7 @@ from sentry.rules.processing.delayed_processing import (
     parse_rulegroup_to_event_data,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY, RuleProcessor
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -420,8 +421,8 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         self.rule = self.create_alert_rule(self.organization, [self.project])
 
         # Create some groups
-        self.group1 = self.create_group(self.project)
-        self.group2 = self.create_group(self.project)
+        self.group1: Group = self.create_group(self.project)
+        self.group2: Group = self.create_group(self.project)
 
         # Create some events
         e1 = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
@@ -434,15 +435,17 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         self.occurrence1 = {"occurrence_id": "occ1"}
         self.occurrence2 = {"occurrence_id": "occ2"}
 
-        self.parsed_data = {
-            (self.rule.id, self.group1.id): {
-                "event_id": self.event1.event_id,
-                **self.occurrence1,
-            },
-            (self.rule.id, self.group2.id): {
-                "event_id": self.event2.event_id,
-                **self.occurrence2,
-            },
+        entry1: EventData = {
+            "event_id": self.event1.event_id,
+            "occurrence_id": self.occurrence1["occurrence_id"],
+        }
+        entry2: EventData = {
+            "event_id": self.event2.event_id,
+            "occurrence_id": self.occurrence2["occurrence_id"],
+        }
+        self.parsed_data: dict[tuple[int, int], EventData] = {
+            (self.rule.id, self.group1.id): entry1,
+            (self.rule.id, self.group2.id): entry2,
         }
         self.group_ids = {self.group1.id, self.group2.id}
 
@@ -453,7 +456,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         )
 
         assert len(result) == 1
-        assert result[self.group1] == self.event1
+        assert result[self.group1][0] == self.event1
 
     def test_many(self) -> None:
         result = get_group_to_groupevent(
@@ -461,18 +464,18 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         )
 
         assert len(result) == 2
-        assert result[self.group1] == self.event1
-        assert result[self.group2] == self.event2
+        assert result[self.group1][0] == self.event1
+        assert result[self.group2][0] == self.event2
 
     def test_missing_event(self) -> None:
-        parsed_data = {
+        parsed_data: dict[tuple[int, int], EventData] = {
             (self.rule.id, self.group2.id): {
                 "event_id": "0",
-                **self.occurrence2,
+                **self.occurrence2,  # type: ignore[typeddict-item]
             },
             (self.rule.id, self.group1.id): {
                 "event_id": self.event1.event_id,
-                **self.occurrence1,
+                **self.occurrence1,  # type: ignore[typeddict-item]
             },
         }
 
@@ -481,7 +484,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         )
 
         assert len(result) == 1
-        assert result[self.group1] == self.event1
+        assert result[self.group1][0] == self.event1
 
     def test_invalid_project_id(self) -> None:
         result = get_group_to_groupevent(self.log_config, self.parsed_data, 0, self.group_ids)
@@ -518,7 +521,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
             # Verify only event1 was requested
             assert requested_event_ids == {self.event1.event_id}
             assert len(result) == 1
-            assert result[self.group1] == self.event1
+            assert result[self.group1][0] == self.event1
             assert self.group2 not in result
 
 
@@ -557,7 +560,7 @@ class GetRulesToFireTest(TestCase):
         self.patcher = patch("sentry.rules.processing.delayed_processing.passes_comparison")
         self.mock_passes_comparison = self.patcher.start()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.patcher.stop()
 
     def test_comparison(self) -> None:
@@ -1532,7 +1535,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups[self.rule.id].add(group_two.id)
         rules_to_groups[self.rule.id].add(group_three.id)
 
-        process_in_batches(self.project.id, "delayed_processing")
+        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
         batch_one_key = mock_apply_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_two_key = mock_apply_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 

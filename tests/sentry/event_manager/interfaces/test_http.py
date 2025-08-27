@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.services import eventstore
 from sentry.testutils.pytest.fixtures import django_db_all
 
 

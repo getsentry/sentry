@@ -16,6 +16,7 @@ import {DisplayType, type WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
+import {isLogsEnabled} from 'sentry/views/explore/logs/utils';
 
 import {BuildStep} from './buildStep';
 
@@ -89,7 +90,7 @@ export function DataSetStep({
     if (organization.features.includes('discover-saved-queries-deprecation')) {
       disabledChoices.push([
         DataSet.TRANSACTIONS,
-        t('This dataset is is no longer supported. Please use the Spans dataset.'),
+        t('This dataset is no longer supported. Please use the Spans dataset.'),
       ]);
     }
     datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
@@ -116,7 +117,7 @@ export function DataSetStep({
     );
   }
 
-  if (organization.features.includes('ourlogs-dashboards')) {
+  if (isLogsEnabled(organization)) {
     datasetChoices.set(
       DataSet.LOGS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Logs')}>

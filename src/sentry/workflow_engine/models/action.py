@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import builtins
 import logging
-from dataclasses import asdict
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 from django.db.models.signals import pre_save
@@ -16,6 +15,8 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.utils import metrics
 from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
@@ -26,6 +27,15 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class ActionManager(BaseManager["Action"]):
+    def get_queryset(self) -> BaseQuerySet[Action]:
+        return (
+            super()
+            .get_queryset()
+            .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
+        )
 
 
 @region_silo_model
@@ -40,6 +50,9 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 
     __relocation_scope__ = RelocationScope.Excluded
     __repr__ = sane_repr("id", "type")
+
+    objects: ClassVar[ActionManager] = ActionManager()
+    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
 
     class Type(StrEnum):
         SLACK = "slack"
@@ -92,8 +105,13 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         return action_handler_registry.get(action_type)
 
     def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
-        handler = self.get_handler()
-        handler.execute(event_data, self, detector)
+        with metrics.timer(
+            "workflow_engine.action.trigger.execution_time",
+            tags={"action_type": self.type, "detector_type": detector.type},
+            sample_rate=1.0,
+        ):
+            handler = self.get_handler()
+            handler.execute(event_data, self, detector)
 
         metrics.incr(
             "workflow_engine.action.trigger",
@@ -106,9 +124,30 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             extra={
                 "detector_id": detector.id,
                 "action_id": self.id,
-                "event_data": asdict(event_data),
             },
         )
+
+    def get_dedup_key(self, workflow_id: int | None) -> str:
+        key_parts = [self.type]
+        if workflow_id is not None:
+            key_parts.append(str(workflow_id))
+
+        if self.integration_id:
+            key_parts.append(str(self.integration_id))
+
+        if self.config:
+            config = self.config.copy()
+            config.pop("target_display", None)
+            key_parts.append(str(config))
+
+        if self.data:
+            data = self.data.copy()
+            if "dynamic_form_fields" in data:
+                data = data["dynamic_form_fields"]
+
+            key_parts.append(str(data))
+
+        return ":".join(key_parts)
 
 
 @receiver(pre_save, sender=Action)

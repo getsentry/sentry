@@ -28,7 +28,7 @@ class OrganizationEventsMetaEndpoint(
     SpanTestCase,
     OurLogTestCase,
 ):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.login_as(user=self.user)
@@ -317,7 +317,7 @@ class OrganizationEventsMetaEndpoint(
 
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
     def test_find_related_issue(self) -> None:
@@ -590,11 +590,12 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             duration=200,
             start_ts=self.ten_mins_ago,
         )
-        self.store_span(span)
+        self.store_span(span, is_eap=True)
 
         response = self.client.get(
             url,
             {
+                "dataset": "spans",
                 "query": "",
                 "lowerBound": "0",
                 "firstBound": "100",
@@ -637,11 +638,12 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
             ),
         ]
 
-        self.store_spans(spans)
+        self.store_spans(spans, is_eap=True)
 
         response = self.client.get(
             url,
             {
+                "dataset": "spans",
                 "lowerBound": "0",
                 "firstBound": "100",
                 "secondBound": "250",
@@ -660,6 +662,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, Snuba
         response = self.client.get(
             url,
             {
+                "dataset": "spans",
                 "lowerBound": "0",
                 "firstBound": "100",
                 "secondBound": "250",

@@ -135,8 +135,6 @@ def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     subscription_id = subscription.subscription_id
     if subscription.status == UptimeSubscription.Status.DELETING.value:
         subscription.delete()
-    else:
-        subscription.update(subscription_id=None)
 
     if subscription_id is not None:
         for region_slug in region_slugs:
@@ -237,7 +235,6 @@ def broken_monitor_checker(**kwargs):
         )
     ):
         detector = get_detector(uptime_subscription)
-        assert detector
         if detector.config["mode"] == UptimeMonitorMode.AUTO_DETECTED_ACTIVE:
             try:
                 disable_uptime_detector(detector)

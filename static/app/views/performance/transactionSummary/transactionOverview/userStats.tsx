@@ -51,7 +51,7 @@ function UserStats({
   );
   const webVitalsUrl = useModuleURL(ModuleName.VITAL, false, 'frontend');
 
-  const hasWebVitalsFlag = organization.features.includes('insights-initial-modules');
+  const hasWebVitalsFlag = organization.features.includes('insight-modules');
 
   let userMisery = error === null ? <Placeholder height="34px" /> : <div>{'\u2014'}</div>;
 

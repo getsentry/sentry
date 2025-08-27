@@ -7,7 +7,10 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import {ReplaySummaryStatus} from 'sentry/views/replays/detail/ai/utils';
+import {
+  ReplaySummaryStatus,
+  ReplaySummaryTemp,
+} from 'sentry/views/replays/detail/ai/utils';
 
 import {useFetchReplaySummary} from './useFetchReplaySummary';
 
@@ -281,7 +284,7 @@ describe('useFetchReplaySummary', () => {
           `/projects/${mockOrganization.slug}/${mockProject.slug}/replays/replay-123/summarize/`,
           expect.objectContaining({
             method: 'POST',
-            data: {num_segments: 2},
+            data: {num_segments: 2, temperature: ReplaySummaryTemp.MED},
           })
         );
       });

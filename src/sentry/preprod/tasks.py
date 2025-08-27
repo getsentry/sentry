@@ -101,24 +101,11 @@ def assemble_preprod_artifact(
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
 
-        produce_preprod_artifact_to_kafka(
-            project_id=project_id,
-            organization_id=org_id,
-            artifact_id=artifact_id,
-            head_sha=kwargs.get("head_sha"),
-            base_sha=kwargs.get("base_sha"),
-            provider=kwargs.get("provider"),
-            head_repo_name=kwargs.get("head_repo_name"),
-            base_repo_name=kwargs.get("base_repo_name"),
-            head_ref=kwargs.get("head_ref"),
-            base_ref=kwargs.get("base_ref"),
-            pr_number=kwargs.get("pr_number"),
-        )
-
     except Exception as e:
+        user_friendly_error_message = "Failed to assemble preprod artifact"
         sentry_sdk.capture_exception(e)
         logger.exception(
-            "Failed to assemble and create preprod artifact",
+            user_friendly_error_message,
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
@@ -127,7 +114,35 @@ def assemble_preprod_artifact(
             },
         )
         PreprodArtifact.objects.filter(id=artifact_id).update(
-            state=PreprodArtifact.ArtifactState.FAILED
+            state=PreprodArtifact.ArtifactState.FAILED,
+            error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
+            error_message=user_friendly_error_message,
+        )
+        return
+
+    try:
+        produce_preprod_artifact_to_kafka(
+            project_id=project_id,
+            organization_id=org_id,
+            artifact_id=artifact_id,
+            **kwargs,
+        )
+    except Exception as e:
+        user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
+        sentry_sdk.capture_exception(e)
+        logger.exception(
+            user_friendly_error_message,
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "checksum": checksum,
+                "preprod_artifact_id": artifact_id,
+            },
+        )
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            state=PreprodArtifact.ArtifactState.FAILED,
+            error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
+            error_message=user_friendly_error_message,
         )
         return
 
@@ -147,6 +162,7 @@ def create_preprod_artifact(
     project_id,
     checksum,
     build_configuration=None,
+    release_notes=None,
     head_sha=None,
     base_sha=None,
     provider=None,
@@ -200,11 +216,17 @@ def create_preprod_artifact(
                     name=build_configuration,
                 )
 
+            # Prepare extras data if release_notes is provided
+            extras = None
+            if release_notes:
+                extras = {"release_notes": release_notes}
+
             preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
                 project=project,
                 build_configuration=build_config,
                 state=PreprodArtifact.ArtifactState.UPLOADING,
                 commit_comparison=commit_comparison,
+                extras=extras,
             )
 
             logger.info(

@@ -155,20 +155,6 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert "base_sha" in error
         assert result == {}
 
-    def test_provider_too_long(self) -> None:
-        """Test provider field too long returns error."""
-        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "provider": "a" * 65})
-        result, error = validate_preprod_artifact_schema(body)
-        assert error is not None
-        assert result == {}
-
-    def test_head_repo_name_too_long(self) -> None:
-        """Test head_repo_name field too long returns error."""
-        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "head_repo_name": "a" * 256})
-        result, error = validate_preprod_artifact_schema(body)
-        assert error is not None
-        assert result == {}
-
     def test_pr_number_invalid(self) -> None:
         """Test invalid pr_number returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "pr_number": 0})
@@ -201,7 +187,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         self.feature_context = Feature("organizations:preprod-artifact-assemble")
         self.feature_context.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.feature_context.__exit__(None, None, None)
         super().tearDown()
 
@@ -374,15 +360,27 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.OK
+        assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        assert response.data["artifactId"] == artifact_id
+        expected_url = (
+            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
+        )
+        assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -393,14 +391,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
                 "build_configuration": None,
-                "head_sha": None,
-                "base_sha": None,
-                "provider": None,
-                "head_repo_name": None,
-                "base_repo_name": None,
-                "head_ref": None,
-                "base_ref": None,
-                "pr_number": None,
             }
         )
 
@@ -440,15 +430,27 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.OK
+        assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        assert response.data["artifactId"] == artifact_id
+        expected_url = (
+            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
+        )
+        assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
             org_id=self.organization.id,
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration="release",
+            release_notes=None,
+            head_sha="e" * 40,
+            base_sha="f" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name="owner/repo",
+            head_ref="feature/xyz",
+            base_ref="main",
+            pr_number=123,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -459,14 +461,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "chunks": [blob.checksum],
                 "artifact_id": artifact_id,
                 "build_configuration": "release",
-                "head_sha": "e" * 40,
-                "base_sha": "f" * 40,
-                "provider": "github",
-                "head_repo_name": "owner/repo",
-                "base_repo_name": "owner/repo",
-                "head_ref": "feature/xyz",
-                "base_ref": "main",
-                "pr_number": 123,
             }
         )
 
@@ -500,7 +494,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.OK
+        assert response.data["state"] == ChunkFileState.CREATED
 
     def test_assemble_response(self) -> None:
         content = b"test response content"
@@ -518,7 +512,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.OK
+        assert response.data["state"] == ChunkFileState.CREATED
 
     def test_assemble_with_pending_deletion_project(self) -> None:
         self.project.status = ObjectStatus.PENDING_DELETION
@@ -637,7 +631,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
 
         # Even if assembly status exists, endpoint doesn't check it
         set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, checksum, ChunkFileState.OK
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, checksum, ChunkFileState.CREATED
         )
 
         response = self.client.post(
@@ -671,7 +665,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
 
         # Even if task sets status, this endpoint doesn't read it
         set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum, ChunkFileState.OK
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum, ChunkFileState.CREATED
         )
 
         response = self.client.post(
@@ -734,4 +728,13 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
+            head_sha=None,
+            base_sha=None,
+            provider=None,
+            head_repo_name=None,
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
         )

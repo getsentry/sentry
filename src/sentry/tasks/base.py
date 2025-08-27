@@ -64,7 +64,7 @@ class TaskSiloLimit(SiloLimit):
 
         limited_func = self.create_override(decorated_task)
         if hasattr(decorated_task, "name"):
-            limited_func.name = decorated_task.name
+            limited_func.name = decorated_task.name  # type: ignore[attr-defined]
         return limited_func
 
 
@@ -234,6 +234,7 @@ def retry(
     if func:
         return retry()(func)
 
+    timeout_exceptions: tuple[type[BaseException], ...]
     timeout_exceptions = (ProcessingDeadlineExceeded, SoftTimeLimitExceeded)
     if not timeouts:
         timeout_exceptions = ()

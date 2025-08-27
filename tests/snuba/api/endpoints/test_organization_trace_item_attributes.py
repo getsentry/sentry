@@ -26,7 +26,7 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
 
     viewname = "sentry-api-0-organization-trace-item-attributes"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -181,6 +181,59 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         keys = {item["key"] for item in response.data}
         assert keys == {"severity", "message", "project", "sentry.item_type2"}
 
+    def test_strip_sentry_prefix_from_message_parameter(self) -> None:
+        """Test that sentry.message.parameter.* wildcard matching works in attribute listing"""
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.message.parameter.username": {"string_value": "alice"},
+                    "sentry.message.parameter.ip": {"string_value": "192.168.1.1"},
+                    "sentry.message.parameter.0": {"string_value": "laptop"},
+                    "sentry.message.parameter.1": {"string_value": "charlie"},
+                },
+            ),
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.message.parameter.0": {"bool_value": 1},
+                    "sentry.message.parameter.1": {"int_value": 5},
+                    "sentry.message.parameter.2": {"double_value": 10},
+                },
+            ),
+        ]
+
+        self.store_ourlogs(logs)
+
+        response = self.do_request(query={"attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {
+            "project",
+            "message",
+            "severity",
+            "message.parameter.username",
+            "message.parameter.ip",
+            "message.parameter.0",
+            "message.parameter.1",
+        }
+
+        response = self.do_request(query={"attributeType": "number"})
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {
+            "tags[message.parameter.0,number]",
+            "tags[message.parameter.1,number]",
+            "tags[message.parameter.2,number]",
+            "severity_number",
+            "tags[sentry.timestamp_nanos,number]",
+            "timestamp_precise",
+        }
+
     def test_attribute_collision(self) -> None:
         logs = [
             self.create_ourlog(
@@ -206,7 +259,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
 
 
 class OrganizationTraceItemAttributesEndpointSpansTest(
-    OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase
+    OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase, SpanTestCase
 ):
     feature_flags = {"organizations:visibility-explore-view": True}
     item_type = SupportedTraceItemType.SPANS
@@ -521,6 +574,43 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             {"key": "tags[span.op,string]", "name": "tags[span.op,string]"},
         ]
 
+    def test_sentry_internal_attributes(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "tags": {
+                            "normal_attr": "normal_value",
+                            "__sentry_internal_span_buffer_outcome": "different",
+                            "__sentry_internal_test": "internal_value",
+                        }
+                    },
+                    start_ts=before_now(days=0, minutes=10),
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(query={"substringMatch": ""})
+        assert response.status_code == 200
+
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "__sentry_internal_span_buffer_outcome" not in attribute_names
+        assert "__sentry_internal_test" not in attribute_names
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.do_request(query={"substringMatch": ""})
+        assert response.status_code == 200
+
+        attribute_names = {attr["name"] for attr in response.data}
+        assert "normal_attr" in attribute_names
+        assert "__sentry_internal_span_buffer_outcome" in attribute_names
+        assert "__sentry_internal_test" in attribute_names
+
 
 class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTestCase):
     feature_flags: dict[str, bool]
@@ -528,7 +618,7 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
 
     viewname = "sentry-api-0-organization-trace-item-attribute-values"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

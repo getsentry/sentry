@@ -40,7 +40,7 @@ class BasicPreprocessorPlugin(Plugin2):
 
         return []
 
-    def is_enabled(self, project=None):
+    def is_enabled(self, project=None) -> bool:
         return True
 
 
@@ -70,13 +70,13 @@ def mock_symbolicate_event():
 
 @pytest.fixture
 def mock_event_processing_store():
-    with mock.patch("sentry.eventstore.processing.event_processing_store") as m:
+    with mock.patch("sentry.services.eventstore.processing.event_processing_store") as m:
         yield m
 
 
 @pytest.fixture
 def mock_transaction_processing_store():
-    with mock.patch("sentry.eventstore.processing.transaction_processing_store") as m:
+    with mock.patch("sentry.services.eventstore.processing.transaction_processing_store") as m:
         yield m
 
 
@@ -246,7 +246,7 @@ def test_scrubbing_after_processing(
     mock_save_event,
     register_plugin,
     mock_event_processing_store,
-    setting_method,
+    setting_method: str,
     options_model,
 ):
     class TestPlugin(Plugin2):
@@ -258,7 +258,7 @@ def test_scrubbing_after_processing(
 
             return [more_extra]
 
-        def is_enabled(self, project=None):
+        def is_enabled(self, project=None) -> bool:
             return True
 
     register_plugin(globals(), TestPlugin)

@@ -34,11 +34,11 @@ function initializeData() {
     },
     projects: [],
   });
-  act(() => void ProjectsStore.loadInitialData(initialData.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 
-describe('Performance Transaction Events Content', function () {
+describe('Performance Transaction Events Content', () => {
   let fields: string[];
   let data: any[];
   let transactionName: string;
@@ -46,7 +46,7 @@ describe('Performance Transaction Events Content', function () {
   let initialData: ReturnType<typeof initializeData>;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
-  beforeEach(function () {
+  beforeEach(() => {
     transactionName = 'transactionName';
     fields = [
       'id',
@@ -176,13 +176,13 @@ describe('Performance Transaction Events Content', function () {
     );
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
   });
 
-  it('basic rendering', async function () {
+  it('basic rendering', async () => {
     render(
       <OrganizationContext value={initialData.organization}>
         <EventsPageContent
@@ -221,7 +221,7 @@ describe('Performance Transaction Events Content', function () {
     ]);
   });
 
-  it('rendering with webvital selected', async function () {
+  it('rendering with webvital selected', async () => {
     render(
       <OrganizationContext value={initialData.organization}>
         <EventsPageContent
@@ -254,7 +254,7 @@ describe('Performance Transaction Events Content', function () {
     expect(columnTitles).toStrictEqual(expect.arrayContaining(['measurements.lcp']));
   });
 
-  it('rendering with http.method', async function () {
+  it('rendering with http.method', async () => {
     const _eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,

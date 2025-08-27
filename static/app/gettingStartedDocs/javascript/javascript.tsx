@@ -36,7 +36,10 @@ import {
 } from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptLogsOnboarding,
+  getJavascriptProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 
 import {updateDynamicSdkLoaderOptions} from './jsLoader/updateDynamicSdkLoaderOptions';
 
@@ -423,8 +426,8 @@ Sentry.init({
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
-    // send console.log, console.error, and console.warn calls as logs to Sentry
-    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
+    // send console.log, console.warn, and console.error calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
 });
 \`\`\`
@@ -1004,6 +1007,12 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
   docsLink: 'https://docs.sentry.io/platforms/javascript/profiling/browser-profiling/',
 });
 
+const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
+  installSnippetBlock,
+  docsPlatform: 'javascript',
+  sdkPackage: '@sentry/browser',
+});
+
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
@@ -1088,6 +1097,7 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   profilingOnboarding,
   featureFlagOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

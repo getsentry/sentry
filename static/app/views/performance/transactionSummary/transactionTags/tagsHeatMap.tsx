@@ -33,8 +33,8 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
-  TableData as TagTableData,
   TableDataRow,
+  TableData as TagTableData,
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -328,7 +328,7 @@ function TagsHeatMap(
               eventView={transactionEventView}
               orgSlug={organization.slug}
               limit={4}
-              referrer="api.performance.tag-page"
+              referrer="api.insights.tag-page"
             >
               {({isLoading: isTransactionsLoading, tableData: transactionTableData}) => {
                 if (isTransactionsLoading) {

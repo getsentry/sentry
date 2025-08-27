@@ -5,17 +5,22 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {FieldKind} from 'sentry/utils/fields';
 import {LOGS_REFRESH_INTERVAL_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import type {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {
   EventsLogsResult,
   OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import type {AttributeResults} from 'sentry/views/settings/components/dataScrubbing/types';
+import {AllowedDataScrubbingDatasets} from 'sentry/views/settings/components/dataScrubbing/types';
 
 export function LogFixture({
   [OurLogKnownFieldKey.PROJECT_ID]: projectId,
@@ -27,6 +32,8 @@ export function LogFixture({
   [OurLogKnownFieldKey.TIMESTAMP]: timestamp = '2025-04-03T15:50:10+00:00',
   [OurLogKnownFieldKey.TRACE_ID]: traceId = '7b91699fd385d9fd52e0c4bc',
   [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise = 1.744312870049196e18,
+  [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]:
+    observedTimestampPrecise = 1.744312870049196e18,
   ...rest
 }: Partial<OurLogsResponseItem> &
   Required<
@@ -47,6 +54,7 @@ export function LogFixture({
     [OurLogKnownFieldKey.TIMESTAMP]: timestamp,
     [OurLogKnownFieldKey.TRACE_ID]: traceId,
     [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise,
+    [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: observedTimestampPrecise,
     ...rest,
   };
 }
@@ -72,6 +80,7 @@ export function LogFixtureMeta(
 }
 
 interface LogsTestInitOptions {
+  isProjectOnboarded?: boolean;
   liveRefresh?: boolean;
   organization?: Partial<Organization>;
   ourlogs?: boolean;
@@ -92,9 +101,8 @@ type LocationConfig = {
  */
 export function initializeLogsTest({
   organization: orgOverrides = {},
-  project: projectOverrides = {},
+  project: projectOverrides,
   ourlogs = true,
-  liveRefresh: hasLiveRefreshFlag = false,
   routerQuery = {},
   refreshInterval = '60', // Fast refresh for testing, should always exceed waitFor internal timer interval (50ms default)
 }: LogsTestInitOptions = {}): {
@@ -114,26 +122,15 @@ export function initializeLogsTest({
   setupPageFilters: () => void;
   setupTraceItemsMock: (logFixtures: OurLogsResponseItem[]) => jest.Mock[];
 } {
-  const baseFeatures = ourlogs
-    ? [
-        'ourlogs-enabled',
-        'ourlogs-visualize-sidebar',
-        'ourlogs-dashboard',
-        'ourlogs-alerts',
-        'ourlogs-infinite-scroll',
-      ]
-    : [];
+  const baseFeatures = ourlogs ? ['ourlogs-enabled'] : [];
 
-  if (hasLiveRefreshFlag && ourlogs) {
-    baseFeatures.push('ourlogs-live-refresh');
-  }
-
+  const forcedProject = projectOverrides ?? {hasLogs: true};
   const {organization, project} = initializeOrg({
     organization: {
       features: baseFeatures,
       ...orgOverrides,
     },
-    project: projectOverrides,
+    projects: [forcedProject],
   });
 
   const initialLocation: LocationConfig = {
@@ -368,5 +365,64 @@ export function createLogFixtures(
   return {
     baseFixtures,
     detailedFixtures,
+  };
+}
+
+/**
+ * Creates mock attribute results for data scrubbing tests
+ */
+export function createMockAttributeResults(empty = false): AttributeResults {
+  const mockAttributes: TagCollection = {
+    'user.email': {
+      key: 'user.email',
+      name: 'user.email',
+      kind: FieldKind.TAG,
+    },
+    'user.id': {
+      key: 'user.id',
+      name: 'user.id',
+      kind: FieldKind.TAG,
+    },
+    'custom.field': {
+      key: 'custom.field',
+      name: 'custom.field',
+      kind: FieldKind.TAG,
+    },
+    'request.method': {
+      key: 'request.method',
+      name: 'request.method',
+      kind: FieldKind.TAG,
+    },
+    'response.status': {
+      key: 'response.status',
+      name: 'response.status',
+      kind: FieldKind.TAG,
+    },
+  };
+
+  const mockTraceItemAttributeKeysResult: ReturnType<typeof useTraceItemAttributeKeys> = {
+    attributes: mockAttributes,
+    isLoading: false,
+    error: null,
+  };
+
+  const mockTraceItemAttributeKeysEmptyResult: ReturnType<
+    typeof useTraceItemAttributeKeys
+  > = {
+    attributes: {},
+    isLoading: false,
+    error: null,
+  };
+
+  if (empty) {
+    return {
+      [AllowedDataScrubbingDatasets.DEFAULT]: null,
+      [AllowedDataScrubbingDatasets.LOGS]: mockTraceItemAttributeKeysEmptyResult,
+    };
+  }
+
+  return {
+    [AllowedDataScrubbingDatasets.DEFAULT]: null,
+    [AllowedDataScrubbingDatasets.LOGS]: mockTraceItemAttributeKeysResult,
   };
 }

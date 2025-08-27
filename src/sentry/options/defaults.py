@@ -524,6 +524,13 @@ register(
     default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enables profiling for replay recording ingestion.
+register(
+    "replay.consumer.recording.profiling.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -930,6 +937,21 @@ register(
 
 register(
     "issues.severity.gpu-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.fixability.gpu-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout rate to route issue summary requests to the summarization URL
+register(
+    "issues.summary.summarization-url-rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3140,6 +3162,12 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "workflow_engine.buffer.use_new_buffer",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
@@ -3344,7 +3372,7 @@ register(
 # Taskbroker flags
 register(
     "taskworker.enabled",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3383,6 +3411,16 @@ register(
 register(
     "sdk-deprecation.profile-chunk.cocoa.hard",
     default="8.49.0",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sdk-deprecation.profile-chunk.cocoa.reject",
+    default="8.49.2",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sdk-deprecation.profile.cocoa.reject",
+    default="8.49.2",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3424,27 +3462,38 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "sentry.hybridcloud.cacheversion.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable enhancing access logs with snuba responses
-register("issues.use-snuba-error-data", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Use "first-seen" group instead of "most-seen" group when merging
-register(
-    "issues.merging.first-seen",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enables saving the suspectCommitStrategy on GroupOwner
 register(
     "issues.suspect-commit-strategy",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether the new objectstore implementation is being used for attachments
+register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Whether to use 60s granularity for the dynamic sampling query
+register(
+    "dynamic-sampling.query-granularity-60s",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option used to enable/disable tracking
+# rate of potential functions metrics to
+# be written into EAP
+register(
+    "profiling.track_functions_metrics_write_rate.eap.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether to use 60s granularity for the dynamic sampling query
+register(
+    "dynamic-sampling.query-granularity-60s.active-orgs",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

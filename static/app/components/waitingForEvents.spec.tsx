@@ -6,11 +6,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import WaitingForEvents from 'sentry/components/waitingForEvents';
 
-describe('WaitingForEvents', function () {
+describe('WaitingForEvents', () => {
   let getIssues: jest.Func;
   let router: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     router = RouterFixture();
     getIssues = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/issues/',
@@ -24,7 +24,7 @@ describe('WaitingForEvents', function () {
     MockApiClient.clearMockResponses();
   });
 
-  describe('with a project', function () {
+  describe('with a project', () => {
     function createWrapper() {
       return render(
         <WaitingForEvents org={OrganizationFixture()} project={ProjectFixture()} />,
@@ -35,21 +35,21 @@ describe('WaitingForEvents', function () {
       );
     }
 
-    it('Renders a button for creating an event', async function () {
+    it('Renders a button for creating an event', async () => {
       createWrapper();
       const button = await screen.findByRole('button', {name: 'Create a sample event'});
       expect(button).toBeEnabled();
       expect(getIssues).toHaveBeenCalled();
     });
 
-    it('Renders installation instructions', async function () {
+    it('Renders installation instructions', async () => {
       createWrapper();
       await userEvent.click(screen.getByText('Installation Instructions'));
       expect(router.push).toHaveBeenCalledWith('/org-slug/project-slug/getting-started/');
     });
   });
 
-  describe('without a project', function () {
+  describe('without a project', () => {
     function createWrapper() {
       return render(<WaitingForEvents org={OrganizationFixture()} />, {
         router,
@@ -57,14 +57,14 @@ describe('WaitingForEvents', function () {
       });
     }
 
-    it('Renders a disabled create event button', function () {
+    it('Renders a disabled create event button', () => {
       createWrapper();
       const button = screen.getByRole('button', {name: 'Create a sample event'});
       expect(button).toBeDisabled();
       expect(getIssues).toHaveBeenCalledTimes(0);
     });
 
-    it('does not display install instructions', function () {
+    it('does not display install instructions', () => {
       createWrapper();
       expect(screen.queryByText('Installation Instructions')).not.toBeInTheDocument();
     });

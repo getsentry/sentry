@@ -22,7 +22,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
     def do_request(self, query, features=None, **kwargs):
         return super().do_request(query, features, **kwargs)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.features = {
             "organizations:starfish-view": True,
@@ -2815,7 +2815,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                     duration=1000,
                     start_ts=self.ten_mins_ago,
                 ),
-            ]
+            ],
+            is_eap=True,
         )
 
         response = self.do_request(
@@ -3080,6 +3081,25 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.06
         assert meta["dataset"] == "spans"
 
+    def test_performance_score_zero(self) -> None:
+
+        response = self.do_request(
+            {
+                "field": [
+                    "performance_score(measurements.score.lcp)",
+                ],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["performance_score(measurements.score.lcp)"] is None
+        assert meta["dataset"] == "spans"
+
     def test_division_if(self) -> None:
         self.store_spans(
             [
@@ -3307,7 +3327,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.02
         assert data[0]["performance_score(measurements.score.cls)"] == 0.08
-        assert data[0]["performance_score(measurements.score.ttfb)"] == 0.0
+        assert data[0]["performance_score(measurements.score.ttfb)"] is None
         assert data[0]["performance_score(measurements.score.fcp)"] == 0.08
         assert data[0]["performance_score(measurements.score.inp)"] == 0.5
         self.assertAlmostEqual(data[0]["performance_score(measurements.score.total)"], 0.20)
@@ -3365,8 +3385,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["transaction"] == "foo_transaction"
         self.assertAlmostEqual(data[0]["performance_score(measurements.score.total)"], 0.8)
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.8
-        assert data[0]["performance_score(measurements.score.cls)"] == 0.0
-        assert data[0]["performance_score(measurements.score.fcp)"] == 0.0
+        assert data[0]["performance_score(measurements.score.cls)"] is None
+        assert data[0]["performance_score(measurements.score.fcp)"] is None
         self.assertAlmostEqual(
             data[0]["opportunity_score(measurements.score.total)"], 0.13333333333333333
         )
@@ -3375,9 +3395,9 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["opportunity_score(measurements.score.fcp)"] == 0.0
         assert data[1]["transaction"] == "bar_transaction"
         self.assertAlmostEqual(data[1]["performance_score(measurements.score.total)"], 0.7)
-        assert data[1]["performance_score(measurements.score.lcp)"] == 0.0
+        assert data[1]["performance_score(measurements.score.lcp)"] is None
         assert data[1]["performance_score(measurements.score.cls)"] == 0.7
-        assert data[1]["performance_score(measurements.score.fcp)"] == 0.0
+        assert data[1]["performance_score(measurements.score.fcp)"] is None
         self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.total)"], 0.1)
         assert data[1]["opportunity_score(measurements.score.lcp)"] == 0.0
         self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.cls)"], 0.3)
@@ -5964,3 +5984,102 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
 
         assert response.status_code == 400, response.content
+
+    def test_formula_filtering(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {"transaction": "transactionA", "browser.name": "Chrome"},
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.frozen": {"value": 70},
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {"transaction": "transactionA", "browser.name": "Chrome"},
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.frozen": {"value": 70},
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {"transaction": "transactionB", "browser.name": "Chrome"},
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.frozen": {"value": 20},
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "division_if(mobile.frozen_frames,mobile.total_frames,browser.name,equals,Chrome)",
+                    "transaction",
+                ],
+                "query": "division_if(mobile.frozen_frames,mobile.total_frames,browser.name,equals,Chrome):>0.5",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert (
+            data[0][
+                "division_if(mobile.frozen_frames,mobile.total_frames,browser.name,equals,Chrome)"
+            ]
+            == 0.7
+        )
+        assert data[0]["transaction"] == "transactionA"
+        assert meta["dataset"] == "spans"
+
+    @pytest.mark.xfail(
+        reason="https://linear.app/getsentry/issue/EAP-255/aggregationcomparisonfilter-does-not-work-with-binaryformula"
+    )
+    def test_formula_filtering_attribute_aggregation_only(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status": "ok", "transaction": "transactionA"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"status": "failure", "transaction": "transactionA"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"status": "ok", "transaction": "transactionB"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+
+        response = self.do_request(
+            {
+                "field": ["failure_rate()", "transaction"],
+                "query": "failure_rate():>0.4",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["failure_rate()"] == 0.5
+        assert data[0]["transaction"] == "transactionA"
+        assert meta["dataset"] == "spans"
