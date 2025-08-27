@@ -101,17 +101,11 @@ def assemble_preprod_artifact(
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
 
-        produce_preprod_artifact_to_kafka(
-            project_id=project_id,
-            organization_id=org_id,
-            artifact_id=artifact_id,
-            **kwargs,
-        )
-
     except Exception as e:
+        user_friendly_error_message = "Failed to assemble preprod artifact"
         sentry_sdk.capture_exception(e)
         logger.exception(
-            "Failed to assemble and create preprod artifact",
+            user_friendly_error_message,
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
@@ -120,7 +114,35 @@ def assemble_preprod_artifact(
             },
         )
         PreprodArtifact.objects.filter(id=artifact_id).update(
-            state=PreprodArtifact.ArtifactState.FAILED
+            state=PreprodArtifact.ArtifactState.FAILED,
+            error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
+            error_message=user_friendly_error_message,
+        )
+        return
+
+    try:
+        produce_preprod_artifact_to_kafka(
+            project_id=project_id,
+            organization_id=org_id,
+            artifact_id=artifact_id,
+            **kwargs,
+        )
+    except Exception as e:
+        user_friendly_error_message = "Failed to dispatch preprod artifact event for analysis"
+        sentry_sdk.capture_exception(e)
+        logger.exception(
+            user_friendly_error_message,
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "checksum": checksum,
+                "preprod_artifact_id": artifact_id,
+            },
+        )
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            state=PreprodArtifact.ArtifactState.FAILED,
+            error_code=PreprodArtifact.ErrorCode.ARTIFACT_PROCESSING_ERROR,
+            error_message=user_friendly_error_message,
         )
         return
 
