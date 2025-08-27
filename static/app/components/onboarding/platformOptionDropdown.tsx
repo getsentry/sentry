@@ -69,22 +69,22 @@ export function PlatformOptionDropdown({
     });
   };
 
-  const platforms = platformOptions.siblingOption ?? platformOptions.packageManager;
-
-  if (!platforms) {
+  if (Object.keys(platformOptions).length === 0) {
     return null;
   }
 
   return (
     <Fragment>
       {t('with')}
-      <OptionControl
-        key="platformOption"
-        option={platforms}
-        value={urlOptionValues.siblingOption ?? platforms.items[0]?.label!}
-        onChange={v => handleChange('siblingOption', v.value)}
-        disabled={disabled}
-      />
+      {Object.keys(platformOptions).map(key => (
+        <OptionControl
+          key={key}
+          option={platformOptions[key]!}
+          value={urlOptionValues[key]!}
+          onChange={v => handleChange(key, v.value)}
+          disabled={disabled}
+        />
+      ))}
     </Fragment>
   );
 }
