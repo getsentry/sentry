@@ -488,7 +488,7 @@ function TotalSummary({
           </StyledButton>
         )}
         <StyledButton
-          aria-label={t('Confirm and pay')}
+          aria-label={isMigratingPartner ? t('Schedule changes') : t('Confirm and pay')}
           priority="primary"
           onClick={() => onSubmit()}
           disabled={buttonDisabled || previewDataLoading}
