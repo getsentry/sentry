@@ -2,8 +2,9 @@ import {useMemo} from 'react';
 
 import getDuration from 'sentry/utils/duration/getDuration';
 import {TimeWindow} from 'sentry/views/alerts/rules/metric/types';
-import {type MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {isEapDataset} from 'sentry/views/detectors/datasetConfig/utils/isEapDataset';
 
 const baseIntervals: TimeWindow[] = [
   TimeWindow.ONE_MINUTE,
@@ -41,9 +42,6 @@ export function useIntervalChoices({dataset, detectionType}: UseIntervalChoicesP
     // 4. Everything else → All intervals allowed
     const shouldExcludeSubHour = dataset === DetectorDataset.RELEASES;
     const isDynamicDetection = detectionType === 'dynamic';
-    // EAP-derived datasets (spans, logs) exclude 1-minute intervals
-    const isEAPDerivedDataset =
-      dataset === DetectorDataset.SPANS || dataset === DetectorDataset.LOGS;
 
     const filteredIntervals = baseIntervals.filter(timeWindow => {
       if (shouldExcludeSubHour) {
@@ -52,7 +50,8 @@ export function useIntervalChoices({dataset, detectionType}: UseIntervalChoicesP
       if (isDynamicDetection) {
         return dynamicIntervalChoices.includes(timeWindow);
       }
-      if (isEAPDerivedDataset) {
+      // EAP-derived datasets (spans, logs) exclude 1-minute intervals
+      if (isEapDataset(dataset)) {
         return timeWindow !== TimeWindow.ONE_MINUTE;
       }
       return true;

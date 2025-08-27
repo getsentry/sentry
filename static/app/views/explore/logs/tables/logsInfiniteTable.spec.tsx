@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -76,9 +77,9 @@ jest.mock('@tanstack/react-virtual', () => {
   };
 });
 
-describe('LogsInfiniteTable', function () {
+describe('LogsInfiniteTable', () => {
   const organization = OrganizationFixture({
-    features: ['ourlogs', 'ourlogs-enabled', 'ourlogs-infinite-scroll'],
+    features: ['ourlogs-enabled'],
   });
   const project = ProjectFixture();
 
@@ -133,7 +134,7 @@ describe('LogsInfiniteTable', function () {
 
   const frozenColumnFields = [OurLogKnownFieldKey.TIMESTAMP, OurLogKnownFieldKey.MESSAGE];
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
 
@@ -254,7 +255,9 @@ describe('LogsInfiniteTable', function () {
     for (const row of allTreeRows) {
       for (const field of visibleColumnFields) {
         await userEvent.hover(row, {delay: null});
-        jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+        act(() => {
+          jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+        });
         const cell = await within(row).findByTestId(`log-table-cell-${field}`);
         const actionsButton = within(cell).queryByRole('button', {
           name: 'Actions',

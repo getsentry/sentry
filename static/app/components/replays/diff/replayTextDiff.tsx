@@ -52,7 +52,7 @@ export function ReplayTextDiff() {
         </After>
       </ContentSliderDiff.Header>
       <SplitDiffScrollWrapper>
-        <SplitDiff base={leftBody ?? ''} target={rightBody ?? ''} type="words" />
+        <SplitDiff base={leftBody ?? ''} target={rightBody ?? ''} type="lines" />
       </SplitDiffScrollWrapper>
     </Container>
   );

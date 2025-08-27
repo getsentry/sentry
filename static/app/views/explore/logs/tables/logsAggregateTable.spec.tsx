@@ -72,7 +72,7 @@ describe('LogsAggregateTable', () => {
     route: '/organizations/:orgId/explore/logs/',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
@@ -132,8 +132,8 @@ describe('LogsAggregateTable', () => {
     ];
     rows.forEach((row, i) => {
       const cells = within(row).getAllByTestId('grid-body-cell');
-      expect(cells[0]).toHaveTextContent(expected[i]![0]!);
-      expect(cells[1]).toHaveTextContent(expected[i]![1]!);
+      expect(cells[1]).toHaveTextContent(expected[i]![0]!);
+      expect(cells[2]).toHaveTextContent(expected[i]![1]!);
     });
   });
 });

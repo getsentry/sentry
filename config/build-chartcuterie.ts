@@ -77,6 +77,21 @@ async function runEsbuild(commitHash: string): Promise<void> {
     minify: false,
     treeShaking: true,
     logLevel: 'info',
+    loader: {
+      '.svg': 'file',
+      '.png': 'file',
+      '.jpg': 'file',
+      '.jpeg': 'file',
+      '.gif': 'file',
+      '.ico': 'file',
+      '.webp': 'file',
+      '.mp4': 'file',
+      '.woff': 'file',
+      '.woff2': 'file',
+      '.ttf': 'file',
+      '.eot': 'file',
+      '.pegjs': 'text',
+    },
   });
 }
 

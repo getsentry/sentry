@@ -21,6 +21,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.constants import ObjectStatus
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues import grouptype
@@ -154,7 +155,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic(router.db_for_write(Detector)):
-            updated_detector = validator.save()
+            with in_test_hide_transaction_boundary():
+                updated_detector = validator.save()
 
             workflow_ids = request.data.get("workflowIds")
             if workflow_ids is not None:

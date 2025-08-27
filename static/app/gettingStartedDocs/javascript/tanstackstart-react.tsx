@@ -5,7 +5,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptFullStackOnboarding,
+  getJavascriptLogsFullStackOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
@@ -496,6 +499,10 @@ const docs: Docs = {
   profilingOnboarding,
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'tanstackstart-react',
+  }),
+  logsOnboarding: getJavascriptLogsFullStackOnboarding({
+    docsPlatform: 'tanstackstart-react',
+    sdkPackage: '@sentry/tanstackstart-react',
   }),
 };
 

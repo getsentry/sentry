@@ -47,7 +47,7 @@ from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
-from sentry.workflow_engine.processors import process_detectors
+from sentry.workflow_engine.processors.detector import process_detectors
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +71,7 @@ def _get_snuba_uptime_checks_producer() -> KafkaProducer:
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
+    producer_config["client.id"] = "sentry.uptime.consumers.results_consumer"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
@@ -309,10 +310,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if should_run_region_checks(subscription, result):
             try_check_and_update_regions(subscription, subscription_regions)
 
-        detector = get_detector(subscription, prefetch_workflow_data=True)
-
-        # Nothing to do if there's an orphaned project subscription
-        if not detector:
+        try:
+            detector = get_detector(subscription, prefetch_workflow_data=True)
+        except Detector.DoesNotExist:
+            # Nothing to do if there's an orphaned project subscription
             remove_uptime_subscription_if_unused(subscription)
             return
 

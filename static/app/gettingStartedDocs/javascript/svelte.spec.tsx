@@ -6,7 +6,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './svelte';
 
-describe('javascript-svelte onboarding docs', function () {
+describe('javascript-svelte onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 

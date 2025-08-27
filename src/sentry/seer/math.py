@@ -83,7 +83,7 @@ def rrf_score(
     ]
 
 
-def rank_min(xs: list[float], ascending: bool = False):
+def rank_min(xs: list[float], ascending: bool = False) -> list[int]:
     ranks = {x: rank for rank, x in enumerate(sorted(set(xs), reverse=not ascending), 1)}
     return [ranks[x] for x in xs]
 

@@ -146,6 +146,7 @@ export type Plan = {
   categories: DataCategory[];
   checkoutCategories: DataCategory[];
   contractInterval: 'monthly' | 'annual';
+  dashboardLimit: number;
   description: string;
   features: string[];
 
@@ -153,6 +154,7 @@ export type Plan = {
   id: string;
   isTestPlan: boolean;
   maxMembers: number | null;
+  metricDetectorLimit: number;
   name: string;
   onDemandCategories: DataCategory[];
   onDemandEventPrice: number;

@@ -32,7 +32,7 @@ jest.mock('getsentry/utils/stripe', () => ({
   },
 }));
 
-describe('InvoiceDetails > Payment Form', function () {
+describe('InvoiceDetails > Payment Form', () => {
   const organization = OrganizationFixture();
   const invoice = InvoiceFixture(
     {
@@ -56,14 +56,14 @@ describe('InvoiceDetails > Payment Form', function () {
     returnUrl: 'https://example.com/',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, {});
   });
 
   const modalDummy = ({children}: {children?: ReactNode}) => <div>{children}</div>;
 
-  it('renders basic a card form', async function () {
+  it('renders basic a card form', async () => {
     const mockget = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
       method: 'GET',
@@ -95,7 +95,7 @@ describe('InvoiceDetails > Payment Form', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders an error when intent creation fails', async function () {
+  it('renders an error when intent creation fails', async () => {
     const reloadInvoice = jest.fn();
     const mockget = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,
@@ -130,7 +130,7 @@ describe('InvoiceDetails > Payment Form', function () {
     expect(error).toBeInTheDocument();
   });
 
-  it('can submit the form', async function () {
+  it('can submit the form', async () => {
     const reloadInvoice = jest.fn();
     const mockget = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/${invoice.id}/new/`,

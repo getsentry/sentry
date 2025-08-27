@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Exists, F, OuterRef, Q
@@ -45,7 +47,7 @@ from . import get_allowed_org_roles, save_team_assignments
 @extend_schema_serializer(
     deprecate_fields=["role", "teams"], exclude_fields=["regenerate", "role", "teams"]
 )
-class OrganizationMemberRequestSerializer(serializers.Serializer):
+class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]):
     email = AllowedEmailField(
         max_length=75, required=True, help_text="The email address to send the invitation to."
     )
@@ -82,7 +84,7 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
     )
     regenerate = serializers.BooleanField(required=False)
 
-    def validate_email(self, email):
+    def validate_email(self, email: str) -> str:
         users = user_service.get_many_by_email(
             emails=[email],
             is_active=True,
@@ -111,10 +113,10 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
 
         return email
 
-    def validate_role(self, role):
+    def validate_role(self, role: str) -> str:
         return self.validate_orgRole(role)
 
-    def validate_orgRole(self, role):
+    def validate_orgRole(self, role: str) -> str:
         if role == "billing" and features.has(
             "organizations:invite-billing", self.context["organization"]
         ):
@@ -130,7 +132,7 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
             )
         return role
 
-    def validate_teams(self, teams):
+    def validate_teams(self, teams: list[Team]) -> list[Team]:
         valid_teams = list(
             Team.objects.filter(
                 organization=self.context["organization"], status=TeamStatus.ACTIVE, slug__in=teams
@@ -142,7 +144,7 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
 
         return valid_teams
 
-    def validate_teamRoles(self, teamRoles) -> list[tuple[Team, str]]:
+    def validate_teamRoles(self, teamRoles: list[dict[str, Any]]) -> list[tuple[Team, str]]:
         roles = {item["role"] for item in teamRoles}
         valid_roles = [r.id for r in team_roles.get_all()] + [None]
         if roles.difference(valid_roles):
@@ -314,7 +316,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationMemberExamples.CREATE_ORG_MEMBER,
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Add or invite a member to an organization.
         """
@@ -425,7 +427,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             om = OrganizationMember(
                 organization=organization,
                 email=result["email"],
-                role=result["role"],
+                role=assigned_org_role,
                 inviter_id=request.user.id,
             )
 

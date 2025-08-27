@@ -29,7 +29,7 @@ const dataConditionHandlers: DataConditionHandler[] = [
   }),
 ];
 
-describe('DataConditionNodeList', function () {
+describe('DataConditionNodeList', () => {
   const organization = OrganizationFixture({features: ['workflow-engine-ui']});
 
   const mockOnAddRow = jest.fn();
@@ -58,7 +58,7 @@ describe('DataConditionNodeList', function () {
     removeError: jest.fn(),
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-conditions/`,
@@ -66,7 +66,7 @@ describe('DataConditionNodeList', function () {
     });
   });
 
-  it('renders correct condition options', async function () {
+  it('renders correct condition options', async () => {
     render(
       <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
@@ -90,7 +90,7 @@ describe('DataConditionNodeList', function () {
     ).toBeInTheDocument();
   });
 
-  it('adds conditions', async function () {
+  it('adds conditions', async () => {
     render(
       <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
@@ -108,7 +108,7 @@ describe('DataConditionNodeList', function () {
     expect(mockOnAddRow).toHaveBeenCalledWith(DataConditionType.AGE_COMPARISON);
   });
 
-  it('updates existing conditions', async function () {
+  it('updates existing conditions', async () => {
     render(
       <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
@@ -127,7 +127,7 @@ describe('DataConditionNodeList', function () {
     });
   });
 
-  it('deletes existing condition', async function () {
+  it('deletes existing condition', async () => {
     render(
       <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
         <AutomationBuilderConflictContext.Provider value={defaultConflictContextProps}>
@@ -144,7 +144,7 @@ describe('DataConditionNodeList', function () {
     expect(mockOnDeleteRow).toHaveBeenCalledWith('1');
   });
 
-  it('shows conflicting condition warning for action filters', function () {
+  it('shows conflicting condition warning for action filters', () => {
     const conflictReason = 'The conditions highlighted in red are in conflict.';
     render(
       <AutomationBuilderErrorContext.Provider value={defaultErrorContextProps}>
@@ -165,7 +165,7 @@ describe('DataConditionNodeList', function () {
     expect(screen.getByText(conflictReason)).toBeInTheDocument();
   });
 
-  it('only shows conflicting condition warning for two or more workflow triggers', function () {
+  it('only shows conflicting condition warning for two or more workflow triggers', () => {
     const conflictReason = 'The conditions highlighted in red are in conflict.';
     // Only one conflicting condition should not show the warning
     render(
@@ -208,7 +208,7 @@ describe('DataConditionNodeList', function () {
     expect(screen.getByText(conflictReason)).toBeInTheDocument();
   });
 
-  it('displays error message when error context contains an error for a condition', function () {
+  it('displays error message when error context contains an error for a condition', () => {
     const conditionWithError = DataConditionFixture({
       id: 'condition-with-error',
     });
@@ -231,7 +231,7 @@ describe('DataConditionNodeList', function () {
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 
-  it('shows warning message for occurrence-based monitors', async function () {
+  it('shows warning message for occurrence-based monitors', async () => {
     render(
       <AutomationBuilderErrorContext.Provider
         value={{errors: {}, setErrors: jest.fn(), removeError: jest.fn()}}

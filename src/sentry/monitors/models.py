@@ -370,9 +370,11 @@ class Monitor(Model):
     def get_validated_config(self):
         try:
             jsonschema.validate(self.config, MONITOR_CONFIG)
-            return self.config
         except jsonschema.ValidationError:
-            logging.exception("Monitor: %s invalid config: %s", self.id, self.config)
+            logging.warning("Monitor: %s invalid config: %s", self.id, self.config, exc_info=True)
+        # We should always return the config here - just log an error if we detect that it doesn't
+        # match the schema
+        return self.config
 
     def get_issue_alert_rule(self):
         issue_alert_rule_id = self.config.get("alert_rule_id")

@@ -10,14 +10,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 jest.mock('sentry/api');
 jest.mock('sentry/utils/analytics');
 
-describe('IssueDiff', function () {
+describe('IssueDiff', () => {
   const entries123Target = Entries123Target();
   const entries123Base = Entries123Base();
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/issues/base/events/latest/',
       body: {
@@ -46,11 +46,11 @@ describe('IssueDiff', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('is loading when initially rendering', async function () {
+  it('is loading when initially rendering', async () => {
     render(
       <IssueDiff
         api={api}
@@ -73,7 +73,7 @@ describe('IssueDiff', function () {
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
   });
 
-  it('can dynamically import SplitDiff', async function () {
+  it('can dynamically import SplitDiff', async () => {
     render(
       <IssueDiff
         api={api}
@@ -100,7 +100,7 @@ describe('IssueDiff', function () {
     expect(trackAnalytics).toHaveBeenCalled();
   });
 
-  it('can diff message', async function () {
+  it('can diff message', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/events/123target/`,
       body: {
