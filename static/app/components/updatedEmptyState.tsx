@@ -146,12 +146,21 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     };
   }
 
+  if (currentPlatformKey === 'javascript') {
+    docParams.platformOptions = {
+      ...docParams.platformOptions,
+      installationMode: 'manual',
+    };
+  }
+
   const install = loadGettingStarted.docs.onboarding.install(docParams);
   const configure = loadGettingStarted.docs.onboarding.configure(docParams);
   const verify = loadGettingStarted.docs.onboarding.verify(docParams);
 
   // TODO: Is there a reason why we are only selecting a few steps?
-  const steps = [install[0], configure[0], configure[1], verify[0]].filter(Boolean);
+  const steps = [install[0], configure[0], configure[1], verify[0]]
+    // Filter optional steps
+    .filter(step => !!step && !step.collapsible);
 
   return (
     <AuthTokenGeneratorProvider projectSlug={project?.slug}>
