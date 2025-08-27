@@ -28,6 +28,7 @@ describe('Cart', () => {
   const businessPlan = PlanDetailsLookupFixture('am3_business');
   const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf');
   const legacyTeamPlan = PlanDetailsLookupFixture('am2_team');
+  const freePlan = PlanDetailsLookupFixture('am3_f')!;
 
   const defaultFormData: CheckoutFormData = {
     plan: 'am3_business',
@@ -116,6 +117,7 @@ describe('Cart', () => {
 
     render(
       <Cart
+        freePlan={freePlan}
         activePlan={teamPlanAnnual!}
         formData={formData}
         hasCompleteBillingDetails
@@ -166,6 +168,7 @@ describe('Cart', () => {
 
     render(
       <Cart
+        freePlan={freePlan}
         activePlan={legacyTeamPlan!}
         formData={formData}
         hasCompleteBillingDetails
@@ -217,6 +220,7 @@ describe('Cart', () => {
 
     render(
       <Cart
+        freePlan={freePlan}
         activePlan={businessPlan!}
         formData={defaultFormData}
         hasCompleteBillingDetails
@@ -256,6 +260,7 @@ describe('Cart', () => {
 
     render(
       <Cart
+        freePlan={freePlan}
         activePlan={businessPlan!}
         formData={defaultFormData}
         hasCompleteBillingDetails
@@ -275,6 +280,7 @@ describe('Cart', () => {
   it('disables confirm and pay button for incomplete billing details', async () => {
     render(
       <Cart
+        freePlan={freePlan}
         activePlan={businessPlan!}
         formData={defaultFormData}
         hasCompleteBillingDetails={false}
@@ -304,6 +310,7 @@ describe('Cart', () => {
 
     render(
       <Cart
+        freePlan={freePlan}
         activePlan={businessPlan!}
         formData={defaultFormData}
         hasCompleteBillingDetails
@@ -342,6 +349,7 @@ describe('Cart', () => {
 
     render(
       <Cart
+        freePlan={freePlan}
         activePlan={businessPlan!}
         formData={defaultFormData}
         hasCompleteBillingDetails
