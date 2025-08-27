@@ -103,7 +103,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
             request, organization, project_ids, results, standard_meta, dataset
         )
         for event in results["data"]:
-            if "timestamp_ms" in event and event["timestamp_ms"] is not None:
+            if "timestamp_ms" in event and event["timestamp_ms"]:
                 event["timestamp"] = reformat_timestamp_ms_to_isoformat(event["timestamp_ms"])
 
             if "timestamp_ms" in event:
