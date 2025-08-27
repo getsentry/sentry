@@ -14,6 +14,7 @@ import type {
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   getLogRowTimestampMillis,
@@ -24,8 +25,6 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-
-import {isLogsEnabled} from './isLogsEnabled';
 
 type BufferEntry = {
   bucketIndex: number;
