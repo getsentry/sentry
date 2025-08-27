@@ -5,6 +5,8 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {DEFAULT_SAMPLING_MODE} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -15,12 +17,13 @@ import {getIntervalForTimeSeriesQuery} from './getIntervalForTimeSeriesQuery';
 interface UseFetchEventsTimeSeriesOptions<Field> {
   yAxis: Field | Field[];
   enabled?: boolean;
+  sampling?: SamplingMode;
   search?: MutableSearch;
 }
 
 export function useFetchEventsTimeSeries<T extends string>(
   dataset: DiscoverDatasets,
-  {yAxis, search, enabled}: UseFetchEventsTimeSeriesOptions<T>,
+  {yAxis, search, sampling, enabled}: UseFetchEventsTimeSeriesOptions<T>,
   referrer: string
 ) {
   const organization = useOrganization();
@@ -48,6 +51,7 @@ export function useFetchEventsTimeSeries<T extends string>(
           environment: selection.environments,
           interval: getIntervalForTimeSeriesQuery(yAxis, selection.datetime),
           search: search ? search.formatString() : undefined,
+          sampling: sampling ?? DEFAULT_SAMPLING_MODE,
         },
       },
     ],

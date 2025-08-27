@@ -165,6 +165,7 @@ describe('useFetchEventsTimeSeries', () => {
           project: [42],
           interval: '1h',
           search: 'span.op:db*',
+          sampling: 'NORMAL',
         },
       })
     );
