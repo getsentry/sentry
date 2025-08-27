@@ -89,7 +89,10 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
       />
     );
   } else if (daysLeft > 7 && trial.isStarted) {
-    alertHeader = t('%s Trial', titleCase(getProductName(trial.category)));
+    alertHeader = t(
+      '%s Trial is currently active',
+      titleCase(getProductName(trial.category))
+    );
     alertText = t(
       'You have full access to unlimited %s until %s',
       getProductName(product ? product : trial.category),
