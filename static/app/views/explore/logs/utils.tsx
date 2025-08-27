@@ -240,20 +240,18 @@ export function adjustLogTraceID(traceID: string) {
   return traceID.replace(/-/g, '');
 }
 
-export function logsPickableDays(organization: Organization): PickableDays {
+export function logsPickableDays(): PickableDays {
   const relativeOptions: Array<[string, ReactNode]> = [
     ['1h', t('Last hour')],
     ['24h', t('Last 24 hours')],
     ['7d', t('Last 7 days')],
+    ['14d', t('Last 14 days')],
+    ['30d', t('Last 30 days')],
   ];
-
-  if (organization.features.includes('visibility-explore-range-high')) {
-    relativeOptions.push(['14d', t('Last 14 days')]);
-  }
 
   return {
     defaultPeriod: '24h',
-    maxPickableDays: 14,
+    maxPickableDays: 30,
     relativeOptions: ({
       arbitraryOptions,
     }: {
