@@ -17,7 +17,6 @@ import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amChecko
 const MOCK_TODAY = 1654492173000;
 
 describe('Cart', () => {
-  const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
   const billingConfig = BillingConfigFixture(PlanTier.AM3);
@@ -82,7 +81,7 @@ describe('Cart', () => {
   it('renders with default selections', async () => {
     render(
       <AMCheckout
-        api={api}
+        api={new MockApiClient()}
         checkoutTier={PlanTier.AM3}
         onToggleLegacy={jest.fn()}
         {...props}
@@ -117,7 +116,6 @@ describe('Cart', () => {
     render(
       <Cart
         activePlan={teamPlanAnnual!}
-        api={api}
         formData={formData}
         hasCompleteBillingDetails
         organization={organization}
@@ -168,7 +166,6 @@ describe('Cart', () => {
     render(
       <Cart
         activePlan={legacyTeamPlan!}
-        api={api}
         formData={formData}
         hasCompleteBillingDetails
         organization={organization}
@@ -220,7 +217,6 @@ describe('Cart', () => {
     render(
       <Cart
         activePlan={businessPlan!}
-        api={api}
         formData={defaultFormData}
         hasCompleteBillingDetails
         organization={organization}
@@ -260,7 +256,6 @@ describe('Cart', () => {
     render(
       <Cart
         activePlan={businessPlan!}
-        api={api}
         formData={defaultFormData}
         hasCompleteBillingDetails
         organization={organization}
@@ -280,7 +275,6 @@ describe('Cart', () => {
     render(
       <Cart
         activePlan={businessPlan!}
-        api={api}
         formData={defaultFormData}
         hasCompleteBillingDetails={false}
         organization={organization}

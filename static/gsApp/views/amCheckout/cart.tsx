@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -15,12 +14,14 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import useApi from 'sentry/utils/useApi';
 
 import {
   InvoiceItemType,
   OnDemandBudgetMode,
   type Plan,
   type PreviewData,
+  type Promotion,
   type Subscription,
 } from 'getsentry/types';
 import {
@@ -34,16 +35,56 @@ import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amChecko
 import * as utils from 'getsentry/views/amCheckout/utils';
 
 const PRICE_PLACEHOLDER_WIDTH = '70px';
+const NULL_PREVIEW_STATE: CartPreviewState = {
+  billedTotal: 0,
+  effectiveDate: null,
+  originalBilledTotal: 0,
+  previewData: null,
+  isLoading: false,
+  renewalDate: null,
+};
 
 interface CartProps {
   activePlan: Plan;
-  api: Client;
   formData: CheckoutFormData;
   hasCompleteBillingDetails: boolean;
   organization: Organization;
   subscription: Subscription;
+  /**
+   * TODO(isabella): Add this back in (was not ported from checkout v1 to v2)
+   */
+  discountInfo?: Promotion['discountInfo'];
   referrer?: string;
-  // discountInfo?: Promotion['discountInfo']; // TODO(ISABELLA): Add this back in
+}
+
+interface CartPreviewState {
+  /**
+   * What the customer will actually be billed today
+   */
+  billedTotal: number;
+  /**
+   * The date that the changes will take effect
+   * This is null for immediate changes
+   */
+  effectiveDate: Date | null;
+  /**
+   * True when previewData is being fetched
+   */
+  isLoading: boolean;
+  /**
+   * What the customer would've originally been billed today
+   * before any credits are applied
+   */
+  originalBilledTotal: number;
+  /**
+   * Includes variable invoice items (eg. sales tax, applied credits, etc.)
+   * and the final billed total
+   */
+  previewData: PreviewData | null;
+  /**
+   * The date that the plan will auto-renew
+   */
+  renewalDate: Date | null;
 }
 
 interface BaseSummaryProps {
@@ -55,19 +96,19 @@ interface PlanSummaryProps extends BaseSummaryProps {}
 
 interface SubtotalSummaryProps extends BaseSummaryProps {
   previewDataLoading: boolean;
-  renewalDate: moment.Moment | null;
+  renewalDate: Date | null;
 }
 
 interface TotalSummaryProps extends BaseSummaryProps {
   billedTotal: number;
   buttonDisabled: boolean;
-  effectiveDate: moment.Moment | null;
+  effectiveDate: Date | null;
   isSubmitting: boolean;
   onSubmit: () => void;
   originalBilledTotal: number;
   previewData: PreviewData | null;
   previewDataLoading: boolean;
-  renewalDate: moment.Moment | null;
+  renewalDate: Date | null;
 }
 
 function PlanSummary({activePlan, formData}: PlanSummaryProps) {
@@ -276,7 +317,7 @@ function SubtotalSummary({
           renewalDate && (
             <RenewalDate>
               {tct('Renews [date]', {
-                date: renewalDate.format('MMM D, YYYY'),
+                date: moment(renewalDate).format('MMM D, YYYY'),
               })}
             </RenewalDate>
           )
@@ -406,32 +447,32 @@ function TotalSummary({
 
 function Cart({
   activePlan,
-  api,
   formData,
   subscription,
   organization,
   referrer,
   hasCompleteBillingDetails,
 }: CartProps) {
-  const [previewDataLoading, setPreviewDataLoading] = useState(false);
+  const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [stripe, setStripe] = useState<stripe.Stripe>();
-  const [effectiveDate, setEffectiveDate] = useState<moment.Moment | null>(null); // this is only set when the effective date is in the future
-  const [renewalDate, setRenewalDate] = useState<moment.Moment | null>(null);
-  const [originalBilledTotal, setOriginalBilledTotal] = useState(0);
-  const [billedTotal, setBilledTotal] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const api = useApi();
+
+  const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
 
   const fetchPreview = useCallback(async () => {
     await utils.fetchPreviewData(
       organization,
       api,
       formData,
-      () => setPreviewDataLoading(true),
+      () => setPreviewState(prev => ({...prev, isLoading: true})),
       (data: PreviewData | null) => {
-        setPreviewData(data);
-        setPreviewDataLoading(false);
+        setPreviewState(prev => ({
+          ...prev,
+          previewData: data,
+          isLoading: false,
+        }));
         setErrorMessage(null);
 
         if (data) {
@@ -442,33 +483,36 @@ function Cart({
           const planItem = invoiceItems.find(
             item => item.type === InvoiceItemType.SUBSCRIPTION
           );
+          const renewalDate = moment(
+            planItem?.period_end ?? subscription.contractPeriodEnd
+          )
+            .add(1, 'day')
+            .toDate();
 
-          setRenewalDate(
-            moment(planItem?.period_end ?? subscription.contractPeriodEnd).add(1, 'day')
-          );
           if (atPeriodEnd) {
-            setOriginalBilledTotal(0);
-            setBilledTotal(0);
-            setEffectiveDate(moment(effectiveAt).add(1, 'day'));
+            setPreviewState(prev => ({
+              ...prev,
+              originalBilledTotal: 0,
+              billedTotal: 0,
+              effectiveDate: moment(effectiveAt).add(1, 'day').toDate(),
+              renewalDate,
+            }));
           } else {
-            setOriginalBilledTotal(proratedAmount);
-            setBilledTotal(billedAmount);
-            setEffectiveDate(null);
+            setPreviewState(prev => ({
+              ...prev,
+              originalBilledTotal: proratedAmount,
+              billedTotal: billedAmount,
+              effectiveDate: null,
+              renewalDate,
+            }));
           }
         } else {
-          setRenewalDate(null);
-          setOriginalBilledTotal(0);
-          setBilledTotal(0);
-          setEffectiveDate(null);
+          resetPreviewState();
         }
       },
       (error: Error) => {
         setErrorMessage(error.message);
-        setPreviewDataLoading(false);
-        setRenewalDate(null);
-        setOriginalBilledTotal(0);
-        setBilledTotal(0);
-        setEffectiveDate(null);
+        resetPreviewState();
       }
     );
   }, [api, formData, organization, subscription.contractPeriodEnd]);
@@ -477,6 +521,7 @@ function Cart({
     fetchPreview();
   }, [fetchPreview]);
 
+  // TODO(checkout v3): This should be refactored with the new Stripe changes
   useEffect(() => {
     loadStripe(Stripe => {
       const apiKey = ConfigStore.get('getsentry.stripePublishKey');
@@ -485,11 +530,19 @@ function Cart({
     });
   }, []);
 
-  const handleCardAction = (intentDetails: utils.IntentDetails) => {
+  const handleCardAction = ({intentDetails}: {intentDetails: utils.IntentDetails}) => {
     utils.stripeHandleCardAction(
       intentDetails,
       stripe,
-      () => completeCheckout(intentDetails.paymentIntent),
+      () =>
+        completeCheckout({
+          data: utils.normalizeAndGetCheckoutAPIData({
+            formData,
+            previewToken: previewState.previewData?.previewToken,
+            referrer,
+            paymentIntent: intentDetails.paymentIntent,
+          }),
+        }),
       stripeErrorMessage => {
         setErrorMessage(stripeErrorMessage ?? null);
         setIsSubmitting(false);
@@ -497,28 +550,38 @@ function Cart({
     );
   };
 
-  const completeCheckout = async (intentId?: string) => {
-    await utils.submitCheckout(
-      organization,
-      subscription,
-      previewData!,
-      formData,
-      api,
-      () => fetchPreview(),
-      (intentDetails: any) => handleCardAction(intentDetails),
-      ['invoice'],
-      (b: boolean) => setIsSubmitting(b),
-      intentId,
-      referrer
-    );
-  };
+  const {mutateAsync: completeCheckout} = utils.useSubmitCheckout({
+    organization,
+    subscription,
+    onErrorMessage: setErrorMessage,
+    onSubmitting: setIsSubmitting,
+    onHandleCardAction: handleCardAction,
+    onFetchPreviewData: fetchPreview,
+    referrer,
+  });
 
   const handleConfirmAndPay = (applyNow?: boolean) => {
+    const {previewData} = previewState;
+    if (!previewData) {
+      // this should never happen since the button is disabled if there is no preview data
+      setErrorMessage(
+        t(
+          "Cannot complete checkout because we couldn't fetch the preview data. Please try again"
+        )
+      );
+      return;
+    }
     if (applyNow) {
       formData.applyNow = true;
     }
     setIsSubmitting(true);
-    completeCheckout();
+    completeCheckout({
+      data: utils.normalizeAndGetCheckoutAPIData({
+        formData,
+        previewToken: previewState.previewData?.previewToken,
+        referrer,
+      }),
+    });
   };
 
   return (
@@ -528,20 +591,20 @@ function Cart({
       <SubtotalSummary
         activePlan={activePlan}
         formData={formData}
-        previewDataLoading={previewDataLoading}
-        renewalDate={renewalDate}
+        previewDataLoading={previewState.isLoading}
+        renewalDate={previewState.renewalDate}
       />
       <TotalSummary
         activePlan={activePlan}
-        billedTotal={billedTotal}
+        billedTotal={previewState.billedTotal}
         buttonDisabled={!hasCompleteBillingDetails}
         formData={formData}
         isSubmitting={isSubmitting}
-        originalBilledTotal={originalBilledTotal}
-        previewData={previewData}
-        previewDataLoading={previewDataLoading}
-        renewalDate={renewalDate}
-        effectiveDate={effectiveDate}
+        originalBilledTotal={previewState.originalBilledTotal}
+        previewData={previewState.previewData}
+        previewDataLoading={previewState.isLoading}
+        renewalDate={previewState.renewalDate}
+        effectiveDate={previewState.effectiveDate}
         onSubmit={() => handleConfirmAndPay()}
       />
     </CartContainer>
