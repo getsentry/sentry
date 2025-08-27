@@ -521,3 +521,59 @@ class TestMetricIssueGroupByIntegration(BaseWorkflowTest, BaseMetricIssueTest):
                             },
                             sample_rate=1.0,
                         )
+
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    def test_grouped_resolution_missing_group_data(self, mock_trigger: MagicMock) -> None:
+        """Test resolution when data packet contains no data for a previously triggering group"""
+        # Initial: trigger critical for error group
+        group_values = {"error": self.critical_detector_trigger.comparison + 1}  # 6
+        data_packet = self.create_grouped_subscription_packet(group_values)
+        occurrences = self.process_grouped_packet_and_return_results(data_packet)
+
+        assert len(occurrences) == 1
+        error_occurrence = occurrences["level=error"]
+        error_occurrence.save()
+        group = self.get_group(error_occurrence)
+        self.call_post_process_group(error_occurrence)
+        assert mock_trigger.call_count == 2  # both actions
+
+        mock_trigger.reset_mock()
+
+        # Resolution: send data packet with no error group data (missing group should resolve)
+        group_values = {"warning": 2, "info": 1}  # Only other groups, no error group
+        data_packet = self.create_grouped_subscription_packet(group_values, time_jump=1000)
+        from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+
+        results = process_data_packet(data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
+
+        if results:
+            # Check if we get a status change message for the missing error group
+            resolved_groups = []
+            for detector_id, group_results in results:
+                for group_key, evaluation_result in group_results.items():
+                    if isinstance(evaluation_result.result, StatusChangeMessage):
+                        resolved_groups.append(group_key)
+                        message = evaluation_result.result.to_dict()
+                        with patch(
+                            "sentry.workflow_engine.tasks.workflows.metrics.incr"
+                        ) as mock_incr:
+                            with self.tasks():
+                                update_status(group, message)
+                            mock_incr.assert_any_call(
+                                "workflow_engine.tasks.process_workflows.activity_update.executed",
+                                tags={
+                                    "activity_type": ActivityType.SET_RESOLVED.value,
+                                    "detector_type": self.detector.type,
+                                },
+                                sample_rate=1.0,
+                            )
+
+            # The error group that was previously triggering should be resolved
+            # since it's missing from the current data packet
+            assert "level=error" in resolved_groups, "Missing error group should trigger resolution"
+        else:
+            # If no results, this might indicate the missing group behavior isn't implemented
+            # This is a valid test outcome - it tells us about the current implementation
+            assert (
+                False
+            ), "Expected resolution result when group data is missing, but got no results. This may indicate missing group resolution behavior is not yet implemented."
