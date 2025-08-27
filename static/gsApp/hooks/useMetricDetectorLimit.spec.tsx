@@ -43,7 +43,6 @@ describe('useMetricDetectorLimit', () => {
     queryClient.clear();
     SubscriptionStore.init();
 
-    // Mock alert-rules endpoint to prevent failures
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/',
       headers: {'X-Hits': '0'},
