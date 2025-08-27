@@ -13,7 +13,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {IconAdd, IconCheckmark, IconSeer} from 'sentry/icons';
+import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -21,6 +21,7 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 
+import {getProductIcon} from 'getsentry/utils/billing';
 import {getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {SelectableProduct, type StepProps} from 'getsentry/views/amCheckout/types';
@@ -46,7 +47,6 @@ function ProductSelect({
   const theme = useTheme();
   const PRODUCT_CHECKOUT_INFO = {
     [SelectableProduct.SEER]: {
-      icon: <IconSeer size="lg" color="pink400" />,
       color: theme.pink400 as Color,
       gradientEndColor: theme.pink100 as Color,
       buttonBorderColor: theme.pink200 as Color,
@@ -90,6 +90,10 @@ function ProductSelect({
           return null;
         }
 
+        const productIcon = getProductIcon(
+          productInfo.apiName as string as SelectableProduct
+        );
+
         // how much the customer is paying for the product
         const priceInCents = utils.getReservedPriceForReservedBudgetCategory({
           plan: activePlan,
@@ -132,7 +136,7 @@ function ProductSelect({
             >
               <ProductOptionContent isSelected={isSelected} isNewCheckout>
                 <Column>
-                  {checkoutInfo.icon}
+                  {productIcon}
                   <ProductLabel>
                     <ProductName>
                       {toTitleCase(productInfo.productCheckoutName, {
@@ -229,7 +233,7 @@ function ProductSelect({
               <Row>
                 <Column>
                   <ProductLabel productColor={checkoutInfo.color}>
-                    {checkoutInfo.icon}
+                    {productIcon}
                     <ProductName>
                       {toTitleCase(productInfo.productCheckoutName, {
                         allowInnerUpperCase: true,
