@@ -90,5 +90,5 @@ type EventsTimeSeriesResponse = {
     end: number;
     start: number;
   };
-  timeseries: TimeSeries[];
+  timeSeries: TimeSeries[];
 };
