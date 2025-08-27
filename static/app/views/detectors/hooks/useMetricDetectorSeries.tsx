@@ -6,7 +6,6 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP} from 'sentry/views/detectors/datasetConfig/utils/discoverDatasetMap';
 
 interface UseMetricDetectorSeriesProps {
   aggregate: string;
@@ -54,7 +53,7 @@ export function useMetricDetectorSeries({
     query,
     environment: environment || '',
     projectId,
-    dataset: DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP[dataset],
+    dataset: datasetConfig.getDiscoverDataset(),
     statsPeriod,
     start,
     end,

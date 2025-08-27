@@ -1,4 +1,5 @@
 import type {EventsStats} from 'sentry/types/organization';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isOnDemandAggregate, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
@@ -27,6 +28,7 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
       return getDiscoverSeriesQueryOptions({
         ...options,
         ...(isOnDemand && {extra: {useOnDemandMetrics: 'true'}}),
+        dataset: DetectorTransactionsConfig.getDiscoverDataset(),
       });
     },
     separateEventTypesFromQuery: query =>
@@ -41,4 +43,6 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     fromApiAggregate: aggregate => aggregate,
     toApiAggregate: aggregate => aggregate,
     supportedDetectionTypes: ['static', 'percent', 'dynamic'],
+    // TODO: This will need to fall back to the discover dataset if metrics enhanced is not available?
+    getDiscoverDataset: () => DiscoverDatasets.METRICS_ENHANCED,
   };

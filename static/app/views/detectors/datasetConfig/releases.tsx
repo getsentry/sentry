@@ -5,6 +5,7 @@ import type {
   AggregationKeyWithAlias,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ReleaseSearchBar} from 'sentry/views/detectors/datasetConfig/components/releaseSearchBar';
 import {
   getReleasesSeriesQueryOptions,
@@ -110,4 +111,5 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
     return [];
   },
   supportedDetectionTypes: ['static'],
+  getDiscoverDataset: () => DiscoverDatasets.METRICS,
 };

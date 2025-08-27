@@ -68,11 +68,12 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
   defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: DEFAULT_FIELD,
   getAggregateOptions: () => AGGREGATE_OPTIONS,
-  getSeriesQueryOptions: options =>
-    getDiscoverSeriesQueryOptions({
+  getSeriesQueryOptions: options => {
+    return getDiscoverSeriesQueryOptions({
       ...options,
-      dataset: DiscoverDatasets.ERRORS,
-    }),
+      dataset: DetectorErrorsConfig.getDiscoverDataset(),
+    });
+  },
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
   },
@@ -107,4 +108,6 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
   },
   separateEventTypesFromQuery: query =>
     parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
+  // TODO: This should use the discover dataset unless `is:unresolved` is in the query
+  getDiscoverDataset: () => DiscoverDatasets.ERRORS,
 };

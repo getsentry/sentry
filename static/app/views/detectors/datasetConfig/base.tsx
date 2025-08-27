@@ -86,6 +86,7 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     tags?: TagCollection,
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
+  getDiscoverDataset: () => DiscoverDatasets;
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
   /**
    * Extracts event types from the query string
