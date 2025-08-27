@@ -10,6 +10,7 @@ import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/uti
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -187,9 +188,7 @@ function WidgetCard(props: Props) {
   const onDemandWarning = useOnDemandWarning({widget});
   const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
-
-  // TODO: DAIN-840 Enable this depending on user's plans
-  const spanTimeRangeWarning = useTimeRangeWarning({widget, enabled: false});
+  const spanTimeRangeWarning = useTimeRangeWarning({widget});
 
   const onDataFetchStart = () => {
     if (timeoutRef.current) {
@@ -383,20 +382,38 @@ function useOnDemandWarning(props: {widget: Widget}): string | null {
   return null;
 }
 
-function useTimeRangeWarning(props: {enabled: boolean; widget: Widget}) {
+function useTimeRangeWarning({widget}: {widget: Widget}) {
   const {
     selection: {datetime},
   } = usePageFilters();
+  const useRetentionLimit =
+    HookStore.get('react-hook:use-dashboard-dataset-retention-limit')[0] ??
+    (() => [null, '']);
+  const [retentionLimitDate, retentionLimitDays] = useRetentionLimit({
+    dataset: widget.widgetType ?? WidgetType.ERRORS,
+  });
 
-  if (props.widget.widgetType !== WidgetType.SPANS || !props.enabled) {
-    return null;
-  }
+  // Number of days from now using the stats period
+  const statsPeriodDaysFromNow = statsPeriodToDays(
+    datetime.period,
+    datetime.start,
+    datetime.end
+  );
 
-  if (statsPeriodToDays(datetime.period, datetime.start, datetime.end) > 30) {
-    // This message applies if the user has selected a time range >30d because we truncate the
-    // snuba response to 30 days to reduce load on the system.
-    return t(
-      "Spans-based widgets have been truncated to 30 days of data. We're working on ramping this up."
+  // Convert the number of days to ms so we can get an end date to check if the
+  // widget is querying more than its retention allows
+  const statsPeriodToEnd = new Date(
+    Date.now() - statsPeriodDaysFromNow * 24 * 60 * 60 * 1000
+  );
+  if (
+    (retentionLimitDate && datetime.end && retentionLimitDate > datetime.end) ||
+    (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
+  ) {
+    return tct(
+      `This widget is querying more data than the retention limit on the dataset allows. The data may be incomplete before [numDays] days.`,
+      {
+        numDays: retentionLimitDays,
+      }
     );
   }
 
