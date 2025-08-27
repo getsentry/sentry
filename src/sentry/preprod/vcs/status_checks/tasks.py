@@ -204,7 +204,6 @@ def _get_status_check_client(
             "preprod.status_checks.create.not_status_check_client",
             extra={
                 "repository": repository.id,
-                "installation": installation.id,
                 "project_id": project.id,
             },
         )
@@ -214,7 +213,7 @@ def _get_status_check_client(
 
 
 def _get_status_check_provider(
-    client: StatusCheckClient, provider: str, organization_id: int, integration_id: int
+    client: StatusCheckClient, provider: str | None, organization_id: int, integration_id: int
 ) -> _StatusCheckProvider | None:
     if provider == IntegrationProviderSlug.GITHUB:
         return _GitHubStatusCheckProvider(client, provider, organization_id, integration_id)
@@ -279,6 +278,13 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         with self._create_scm_interaction_event().capture() as _:
             mapped_status = GITHUB_STATUS_CHECK_STATUS_MAPPING.get(status)
             mapped_conclusion = GITHUB_STATUS_CHECK_CONCLUSION_MAPPING.get(status)
+
+            if not mapped_status:
+                logger.error(
+                    "preprod.status_checks.create.invalid_status_mapping",
+                    extra={"status": status},
+                )
+                return None
 
             check_data = {
                 "name": title,
