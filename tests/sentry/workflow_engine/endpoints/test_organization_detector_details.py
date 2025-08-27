@@ -26,7 +26,6 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
     DataSource,
-    DataSourceDetector,
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition
@@ -225,15 +224,17 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         condition = conditions[0]
         self.assert_data_condition_updated(condition)
 
-        data_source_detector = DataSourceDetector.objects.get(detector=detector)
-        data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
+        # data_source_detectors = DataSourceDetector.objects.filter(detector=detector)
+        data_sources = DataSource.objects.filter(datasourcedetector__detector=detector)
 
-        import pdb
-        pdb.set_trace()
+        # verify the count of data sources is correct to the input
+        assert data_sources.count() == self.valid_data["dataSources"].__len__()
+        data_source = data_sources[0]
 
-        # make sure the we update the data source, not replace it
-        assert data_source.id == self.data_source.id
+        # verify the old data source is removed
+        assert not self.detector.data_sources.filter(id=self.data_source.id).exists()
 
+        # verify the data_source has the correct attributes
         query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
         self.assert_snuba_query_updated(snuba_query)
@@ -259,8 +260,9 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         condition = conditions[0]
         self.assert_data_condition_updated(condition)
 
-        data_source_detector = DataSourceDetector.objects.get(detector=detector)
-        data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
+        data_source = DataSource.objects.get(
+            datasourcedetector__detector=detector,
+        )
 
         # make sure the data source was removed and a new one was created
         assert data_source.id != self.data_source.id
