@@ -49,6 +49,9 @@ ERR_EDIT_WHEN_REINVITING = (
     "You cannot modify member details when resending an invitation. Separate requests are required."
 )
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
+ERR_ONLY_OWNER_OR_MANAGER = (
+    "You cannot remove the only remaining owner or manager of the organization."
+)
 ERR_UNINVITABLE = "You cannot send an invitation to a user who is already a full member."
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
@@ -479,8 +482,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         elif not request.access.has_scope("member:admin"):
             return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
 
-        if member.is_only_owner():
-            return Response({"detail": ERR_ONLY_OWNER}, status=403)
+        if member.is_only_member_with_org_write():
+            return Response({"detail": ERR_ONLY_OWNER_OR_MANAGER}, status=403)
 
         if getattr(member.flags, "idp:provisioned"):
             return Response(

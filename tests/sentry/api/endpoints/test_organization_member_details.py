@@ -1008,9 +1008,29 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert owner_om.role == "owner"
 
-        self.get_error_response(self.organization.slug, owner_om.id, status_code=403)
+        response = self.get_error_response(self.organization.slug, owner_om.id, status_code=403)
+        assert (
+            response.data["detail"]
+            == "You cannot remove the only remaining owner or manager of the organization."
+        )
 
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
+
+    def test_cannot_delete_only_owner_or_manager(self) -> None:
+        org = self.create_organization()
+        manager_user = self.create_user()
+        manager_member = self.create_member(organization=org, role="manager", user=manager_user)
+        self.login_as(manager_user)
+
+        # Assert there is only 1 organization member (the manager)
+        assert OrganizationMember.objects.filter(organization=org).count() == 1
+
+        response = self.get_error_response(org.slug, manager_member.id, status_code=403)
+        assert (
+            response.data["detail"]
+            == "You cannot remove the only remaining owner or manager of the organization."
+        )
+        assert OrganizationMember.objects.filter(user_id=manager_user.id, organization=org).exists()
 
     def test_can_delete_self(self) -> None:
         other_user = self.create_user("bar@example.com")
