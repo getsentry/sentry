@@ -161,7 +161,7 @@ const JobTick = styled('div')<{
   position: absolute;
   width: 4px;
   height: 14px;
-  opacity: 0.7;
+  opacity: ${p => (p.theme.isChonk ? undefined : 0.7)};
 
   ${p =>
     p.roundedLeft &&
