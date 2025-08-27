@@ -62,13 +62,13 @@ import {
   type IssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
+import {GroupContentSkeleton} from 'sentry/views/issueDetails/skeletons/groupContentSkeleton';
+import {GroupDetailsSkeleton} from 'sentry/views/issueDetails/skeletons/groupDetailsSkeleton';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
-import {GroupContentSkeleton} from 'sentry/views/issueDetails/skeletons/groupContentSkeleton';
-import {GroupDetailsSkeleton} from 'sentry/views/issueDetails/skeletons/groupDetailsSkeleton';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -865,20 +865,19 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   const regressionIssueLoaded = defined(injectedEvent ?? props.event);
-  
+
   // Show skeleton while essential data is loading, but allow partial rendering once we have some data
-  const showFullPageSkeleton = !projectsLoaded || 
-    (!projectWithFallback && projectsLoaded) || 
+  const showFullPageSkeleton =
+    !projectsLoaded ||
+    (!projectWithFallback && projectsLoaded) ||
     (!props.group && !props.loadingGroup);
-    
-  const showPartialSkeleton = props.group && 
-    isRegressionIssue && 
-    !regressionIssueLoaded;
-  
+
+  const showPartialSkeleton = props.group && isRegressionIssue && !regressionIssueLoaded;
+
   if (showFullPageSkeleton) {
     return <GroupDetailsSkeleton hasProject={!!projectWithFallback} />;
   }
-  
+
   if (showPartialSkeleton) {
     // Show partial content with skeleton for missing event data
     return (
@@ -966,7 +965,11 @@ function GroupDetails() {
           shouldForceProject
         >
           {config?.showFeedbackWidget && <FloatingFeedbackWidget />}
-          <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group} loadingGroup={loadingGroup}>
+          <GroupDetailsPageContent
+            {...fetchGroupDetailsProps}
+            group={group}
+            loadingGroup={loadingGroup}
+          >
             <Outlet />
           </GroupDetailsPageContent>
         </PageFiltersContainer>

@@ -21,7 +21,7 @@ export function GroupContentSkeleton({hasEvent, hasGroup}: GroupContentSkeletonP
           <Placeholder height="20px" width="40%" />
         </HeaderSkeleton>
       )}
-      
+
       {/* Event navigation skeleton */}
       {!hasEvent && (
         <NavigationSkeleton>
@@ -30,7 +30,7 @@ export function GroupContentSkeleton({hasEvent, hasGroup}: GroupContentSkeletonP
           <Placeholder height="24px" width="90px" />
         </NavigationSkeleton>
       )}
-      
+
       {/* Main content skeleton */}
       <ContentSkeleton>
         <Placeholder height="200px" />

@@ -30,7 +30,7 @@ function StreamlinedSkeleton({hasProject}: {hasProject?: boolean}) {
           <Placeholder height="32px" width="120px" />
         </HeaderActions>
       </HeaderSkeleton>
-      
+
       {/* Main Content Area */}
       <ContentWrapper>
         <MainContent>
@@ -39,14 +39,14 @@ function StreamlinedSkeleton({hasProject}: {hasProject?: boolean}) {
             <Placeholder height="24px" width="60%" />
             <Placeholder height="16px" width="40%" />
           </EventHeaderSkeleton>
-          
+
           {/* Navigation */}
           <NavigationSkeleton>
             <Placeholder height="20px" width="80px" />
             <Placeholder height="20px" width="100px" />
             <Placeholder height="20px" width="90px" />
           </NavigationSkeleton>
-          
+
           {/* Content Area */}
           <ContentAreaSkeleton>
             <Placeholder height="200px" />
@@ -54,7 +54,7 @@ function StreamlinedSkeleton({hasProject}: {hasProject?: boolean}) {
             <Placeholder height="300px" />
           </ContentAreaSkeleton>
         </MainContent>
-        
+
         {/* Sidebar */}
         <SidebarSkeleton>
           <Placeholder height="150px" />
@@ -80,7 +80,7 @@ function LegacySkeleton({hasProject}: {hasProject?: boolean}) {
           <Placeholder height="32px" width="120px" />
         </HeaderActions>
       </HeaderSkeleton>
-      
+
       {/* Tabs */}
       <TabsSkeleton>
         <Placeholder height="24px" width="80px" />
@@ -88,7 +88,7 @@ function LegacySkeleton({hasProject}: {hasProject?: boolean}) {
         <Placeholder height="24px" width="90px" />
         <Placeholder height="24px" width="110px" />
       </TabsSkeleton>
-      
+
       {/* Content */}
       <ContentAreaSkeleton>
         <Placeholder height="200px" />
@@ -132,7 +132,7 @@ const ContentWrapper = styled('div')`
   grid-template-columns: 1fr 325px;
   flex: 1;
   background-color: ${p => p.theme.background};
-  
+
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     display: flex;
     flex-direction: column;
@@ -142,7 +142,7 @@ const ContentWrapper = styled('div')`
 const MainContent = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
   border-right: 1px solid ${p => p.theme.translucentBorder};
-  
+
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     border-right: none;
     border-bottom: 1px solid ${p => p.theme.translucentBorder};
@@ -152,7 +152,7 @@ const MainContent = styled('div')`
 const EventHeaderSkeleton = styled('div')`
   padding: ${space(3)} ${space(4)};
   border-bottom: 1px solid ${p => p.theme.border};
-  
+
   & > div:first-child {
     margin-bottom: ${space(1)};
   }

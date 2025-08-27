@@ -187,7 +187,7 @@ function GroupHeaderTabs({
 
 function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   const location = useLocation();
-  
+
   // Show skeleton if group is not available
   if (!group) {
     return (
@@ -200,7 +200,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
       </Layout.Header>
     );
   }
-  
+
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   const {

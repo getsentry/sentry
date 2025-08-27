@@ -13,6 +13,7 @@ import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
+import {GroupContentSkeleton} from 'sentry/views/issueDetails/skeletons/groupContentSkeleton';
 import {
   IssueDetailsContextProvider,
   useIssueDetails,
@@ -22,7 +23,6 @@ import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNa
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
-import {GroupContentSkeleton} from 'sentry/views/issueDetails/skeletons/groupContentSkeleton';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
@@ -91,11 +91,7 @@ export function GroupDetailsLayout({
               )}
               <ContentPadding>
                 {/* Show skeleton for content if event is missing */}
-                {!event ? (
-                  <GroupContentSkeleton hasGroup hasEvent={false} />
-                ) : (
-                  children
-                )}
+                {event ? children : <GroupContentSkeleton hasGroup hasEvent={false} />}
               </ContentPadding>
             </GroupContent>
           </SharedTourElement>
