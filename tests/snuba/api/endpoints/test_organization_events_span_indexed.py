@@ -5649,6 +5649,11 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                     duration=400,
                 ),
                 self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                    duration=400,
+                ),
+                self.create_span(
                     {
                         "description": "bar",
                         "sentry_tags": {"status": "invalid_argument"},
@@ -5681,24 +5686,6 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["dataset"] == "spans"
 
     def test_count_if_numeric_raises_invalid_search_query_with_bad_value(self) -> None:
-        self.store_spans(
-            [
-                self.create_span(
-                    {"description": "foo", "sentry_tags": {"status": "success"}},
-                    start_ts=self.ten_mins_ago,
-                    duration=400,
-                ),
-                self.create_span(
-                    {
-                        "description": "bar",
-                        "sentry_tags": {"status": "invalid_argument"},
-                    },
-                    start_ts=self.ten_mins_ago,
-                    duration=200,
-                ),
-            ],
-            is_eap=True,
-        )
         response = self.do_request(
             {
                 "field": ["count_if(span.duration,greater,three)"],

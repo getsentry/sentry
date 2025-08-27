@@ -87,11 +87,7 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     trace_filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
             key=key,
-            op=(
-                ComparisonFilter.OP_EQUALS
-                if operator == "equals"
-                else ComparisonFilter.OP_NOT_EQUALS
-            ),
+            op=constants.LITERAL_OPERATOR_MAP[operator],
             value=attr_value,
         )
     )
