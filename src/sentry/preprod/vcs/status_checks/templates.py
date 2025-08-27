@@ -1,20 +1,47 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from django.utils.translation import gettext_lazy as _
 
 from sentry.preprod.models import PreprodArtifact
 
 
+@dataclass(frozen=True)
+class _StatusCheckData:
+    """Data for formatting status check messages."""
+
+    build_id: int
+    app_id: str
+    version: str
+
+
+@dataclass(frozen=True)
+class _SuccessStatusCheckData(_StatusCheckData):
+    """Extended data for successful status checks with size metrics."""
+
+    download_size: str
+    download_change: str
+    install_size: str
+    install_change: str
+
+
+@dataclass(frozen=True)
+class _FailureStatusCheckData(_StatusCheckData):
+    """Extended data for failed status checks with error information."""
+
+    error_message: str
+
+
 def format_status_check_messages(
     preprod_artifact: PreprodArtifact,
-) -> tuple[str, str, str, str | None]:
+) -> tuple[str, str, str]:
     """
     Format status check messages based on artifact state.
 
     Returns:
-        tuple: (title, subtitle, summary, target_url)
+        tuple: (title, subtitle, summary)
     """
-    # Build version string (used by all states)
     version_parts = []
     if preprod_artifact.build_version:
         version_parts.append(preprod_artifact.build_version)
@@ -22,79 +49,59 @@ def format_status_check_messages(
         version_parts.append(f"({preprod_artifact.build_number})")
     version_string = " ".join(version_parts) if version_parts else "Unknown"
 
-    base_data = {
-        "build_id": preprod_artifact.id,
-        "app_id": preprod_artifact.app_id,
-        "version": version_string,
-    }
+    base_data = _StatusCheckData(
+        build_id=preprod_artifact.id,
+        app_id=preprod_artifact.app_id,
+        version=version_string,
+    )
 
-    if (
-        preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADING
-        or preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
-    ):
-        summary = _SIZE_ANALYZER_PROCESSING_SUMMARY_TEMPLATE % base_data
+    title = str(_SIZE_ANALYZER_TITLE_BASE)
 
-    elif preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED:
-        failure_data = {
-            **base_data,
-            "error_message": preprod_artifact.error_message or "Unknown error",
-        }
-        summary = _SIZE_ANALYZER_FAILURE_SUMMARY_TEMPLATE % failure_data
+    match preprod_artifact.state:
+        case PreprodArtifact.ArtifactState.UPLOADING | PreprodArtifact.ArtifactState.UPLOADED:
+            summary = _SIZE_ANALYZER_PROCESSING_SUMMARY_TEMPLATE % base_data.__dict__
+            subtitle = str(_SIZE_ANALYZER_SUBTITLE_PROCESSING)
+        case PreprodArtifact.ArtifactState.FAILED:
+            failure_data = _FailureStatusCheckData(
+                build_id=preprod_artifact.id,
+                app_id=preprod_artifact.app_id,
+                version=version_string,
+                error_message=preprod_artifact.error_message or "Unknown error",
+            )
+            summary = _SIZE_ANALYZER_FAILURE_SUMMARY_TEMPLATE % failure_data.__dict__
+            subtitle = str(_SIZE_ANALYZER_SUBTITLE_ERROR)
+        case PreprodArtifact.ArtifactState.PROCESSED:
+            from sentry.preprod.models import PreprodArtifactSizeMetrics
 
-    elif preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED:
-        # Get current artifact's size metrics
-        from sentry.preprod.models import PreprodArtifactSizeMetrics
+            current_metrics = PreprodArtifactSizeMetrics.objects.filter(
+                preprod_artifact=preprod_artifact,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            ).first()
 
-        current_metrics = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact=preprod_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        ).first()
-
-        if current_metrics:
-            # Get previous metrics for comparison
-            previous_metrics = _get_previous_artifact_metrics(preprod_artifact)
-
-            success_data = {
-                **base_data,
-                "download_size": _format_file_size(current_metrics.min_download_size),
-                "download_change": _format_size_change(
-                    current_metrics.min_download_size,
-                    previous_metrics.min_download_size if previous_metrics else None,
-                ),
-                "install_size": _format_file_size(current_metrics.min_install_size),
-                "install_change": _format_size_change(
-                    current_metrics.min_install_size,
-                    previous_metrics.min_install_size if previous_metrics else None,
-                ),
-                "details_url": f"https://sentry.io/preprod/builds/{preprod_artifact.id}/",
-            }
-            summary = _SIZE_ANALYZER_SUCCESS_SUMMARY_TEMPLATE % success_data
-        else:
-            # TODO(telkins): what to do in this case?
-            summary = _("Build %(build_id)s for `%(app_id)s` processed successfully.") % base_data
-
-    else:
-        raise ValueError(f"Invalid artifact state: {preprod_artifact.state}")
-
-    # Use different titles for different states
-    if preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED:
-        title = str(_SIZE_ANALYZER_TITLE_BASE)
-        subtitle = str(_SIZE_ANALYZER_SUBTITLE_ERROR)
-    elif (
-        preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADING
-        or preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
-    ):
-        title = str(_SIZE_ANALYZER_TITLE_BASE)
-        subtitle = str(_SIZE_ANALYZER_SUBTITLE_PROCESSING)
-    else:  # PROCESSED
-        title = str(_SIZE_ANALYZER_TITLE_BASE)
-        # Generate dynamic subtitle based on size changes
-        subtitle = _generate_success_subtitle(preprod_artifact)
+            if current_metrics:
+                success_data = _SuccessStatusCheckData(
+                    build_id=preprod_artifact.id,
+                    app_id=preprod_artifact.app_id,
+                    version=version_string,
+                    download_size=_format_file_size(current_metrics.min_download_size),
+                    download_change="N/A",
+                    install_size=_format_file_size(current_metrics.min_install_size),
+                    install_change="N/A",
+                )
+                summary = _SIZE_ANALYZER_SUCCESS_SUMMARY_TEMPLATE % success_data.__dict__
+            else:
+                # TODO(telkins): what to do in this case?
+                summary = (
+                    _("Build %(build_id)s for `%(app_id)s` processed successfully.")
+                    % base_data.__dict__
+                )
+            subtitle = _generate_success_subtitle(preprod_artifact)
+        case _:
+            raise ValueError(f"Invalid artifact state: {preprod_artifact.state}")
 
     # Convert lazy translation strings to regular strings for JSON serialization
-    # TODO(telkins): add rich text from our data
-    return str(title), str(subtitle), str(summary), None
+    return str(title), str(subtitle), str(summary)
 
 
 _SIZE_ANALYZER_TITLE_BASE = _("Size Analysis")
@@ -102,9 +109,10 @@ _SIZE_ANALYZER_SUBTITLE_PROCESSING = _("Processing...")
 _SIZE_ANALYZER_SUBTITLE_SUCCESS = _("Complete")
 _SIZE_ANALYZER_SUBTITLE_ERROR = _("Error processing")
 _SIZE_ANALYZER_SUBTITLE_COMPLETE_FIRST_BUILD = _("1 build analyzed")
-_SIZE_ANALYZER_SUBTITLE_SIZE_INCREASED = _("1 build increased in size")
-_SIZE_ANALYZER_SUBTITLE_SIZE_DECREASED = _("1 build decreased in size")
-_SIZE_ANALYZER_SUBTITLE_NO_CHANGE = _("1 build, no size change")
+# TODO: Re-add these when size comparison is implemented
+# _SIZE_ANALYZER_SUBTITLE_SIZE_INCREASED = _("1 build increased in size")
+# _SIZE_ANALYZER_SUBTITLE_SIZE_DECREASED = _("1 build decreased in size")
+# _SIZE_ANALYZER_SUBTITLE_NO_CHANGE = _("1 build, no size change")
 
 _SIZE_ANALYZER_PROCESSING_SUMMARY_TEMPLATE = _(
     """| Name | Version | Download | Change | Install | Change | Approval |
@@ -127,33 +135,6 @@ _SIZE_ANALYZER_SUCCESS_SUMMARY_TEMPLATE = _(
 )
 
 
-def _format_size_change(current_size: int | None, previous_size: int | None) -> str:
-    """Format size change with appropriate icon and percentage."""
-    if current_size is None or previous_size is None:
-        return "N/A"
-
-    diff = current_size - previous_size
-    if diff == 0:
-        return "No change"
-
-    # Format the absolute difference
-    if abs(diff) >= 1024 * 1024:  # MB
-        size_str = f"{abs(diff) / (1024 * 1024):.1f} MB"
-    elif abs(diff) >= 1024:  # KB
-        size_str = f"{abs(diff) / 1024:.1f} KB"
-    else:  # B
-        size_str = f"{abs(diff)} B"
-
-    # Calculate percentage
-    percentage = (diff / previous_size) * 100
-
-    # Add appropriate icon and format
-    if diff > 0:
-        return f"🔺 {size_str} ({percentage:.2f}%)"
-    else:
-        return f"🔽 {size_str} ({percentage:.2f}%)"
-
-
 def _format_file_size(size_bytes: int | None) -> str:
     """Format file size in human readable format."""
     if size_bytes is None:
@@ -171,7 +152,6 @@ def _generate_success_subtitle(preprod_artifact: PreprodArtifact) -> str:
     """Generate a dynamic subtitle based on size changes for successful builds."""
     from sentry.preprod.models import PreprodArtifactSizeMetrics
 
-    # Get current metrics
     current_metrics = PreprodArtifactSizeMetrics.objects.filter(
         preprod_artifact=preprod_artifact,
         metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
@@ -181,49 +161,5 @@ def _generate_success_subtitle(preprod_artifact: PreprodArtifact) -> str:
     if not current_metrics:
         return str(_SIZE_ANALYZER_SUBTITLE_SUCCESS)
 
-    # Get previous metrics for comparison
-    previous_metrics = _get_previous_artifact_metrics(preprod_artifact)
-
-    if not previous_metrics:
-        # No previous build to compare to
-        return str(_SIZE_ANALYZER_SUBTITLE_COMPLETE_FIRST_BUILD)
-
-    # Check if sizes increased, decreased, or stayed the same
-    download_change = current_metrics.min_download_size - previous_metrics.min_download_size
-    install_change = current_metrics.min_install_size - previous_metrics.min_install_size
-
-    # For now, just consider one build (this artifact)
-    # In the future, this can be expanded to handle multiple builds
-    if download_change > 0 or install_change > 0:
-        return str(_SIZE_ANALYZER_SUBTITLE_SIZE_INCREASED)
-    elif download_change < 0 or install_change < 0:
-        return str(_SIZE_ANALYZER_SUBTITLE_SIZE_DECREASED)
-    else:
-        return str(_SIZE_ANALYZER_SUBTITLE_NO_CHANGE)
-
-
-def _get_previous_artifact_metrics(preprod_artifact: PreprodArtifact):
-    """Get the previous artifact's size metrics for comparison."""
-    from sentry.preprod.models import PreprodArtifactSizeMetrics
-
-    # Find previous artifact in the same project with the same app_id
-    previous_artifact = (
-        PreprodArtifact.objects.filter(
-            project=preprod_artifact.project,
-            app_id=preprod_artifact.app_id,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            id__lt=preprod_artifact.id,  # Earlier artifact
-        )
-        .order_by("-id")
-        .first()
-    )
-
-    if not previous_artifact:
-        return None
-
-    # Get main artifact metrics from the previous artifact
-    return PreprodArtifactSizeMetrics.objects.filter(
-        preprod_artifact=previous_artifact,
-        metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-        state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-    ).first()
+    # For now, just show "1 build analyzed" since we're not doing diffing yet
+    return str(_SIZE_ANALYZER_SUBTITLE_COMPLETE_FIRST_BUILD)

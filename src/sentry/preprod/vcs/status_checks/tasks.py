@@ -19,6 +19,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.preprod.vcs.status_checks.templates import format_status_check_messages
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -55,19 +56,23 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     )
 
     # Map artifact state to status check status
-    if (
-        preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADING
-        or preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
-    ):
-        status = StatusCheckStatus.IN_PROGRESS
-    elif preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED:
-        status = StatusCheckStatus.FAILURE
-    elif preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED:
-        status = StatusCheckStatus.SUCCESS
-    else:
-        raise ValueError(f"Invalid artifact state: {preprod_artifact.state}")
+    match preprod_artifact.state:
+        case PreprodArtifact.ArtifactState.UPLOADING | PreprodArtifact.ArtifactState.UPLOADED:
+            status = StatusCheckStatus.IN_PROGRESS
+        case PreprodArtifact.ArtifactState.FAILED:
+            status = StatusCheckStatus.FAILURE
+        case PreprodArtifact.ArtifactState.PROCESSED:
+            status = StatusCheckStatus.SUCCESS
+        case _:
+            raise ValueError(f"Unhandled artifact state: {preprod_artifact.state}")
 
-    title, subtitle, summary, text = format_status_check_messages(preprod_artifact)
+    title, subtitle, summary = format_status_check_messages(preprod_artifact)
+
+    target_url = get_preprod_artifact_url(
+        preprod_artifact.project.organization_id,
+        preprod_artifact.project.slug,
+        preprod_artifact.id,
+    )
 
     if not preprod_artifact.commit_comparison:
         logger.info(
@@ -113,10 +118,10 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         status=status,
         title=title,
         subtitle=subtitle,
-        text=text,
+        text=None,  # We don't use text field
         summary=summary,
         external_id=str(preprod_artifact.id),
-        target_url=None,
+        target_url=target_url,
     )
     if check_id is None:
         logger.error(

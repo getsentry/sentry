@@ -113,168 +113,17 @@ class FormatStatusMessagesTest(TestCase):
 
         # Check title and subtitle
         assert title == "Size Analysis"
-        assert subtitle == "1 build analyzed"  # First build
+        assert subtitle == "1 build analyzed"  # Simplified subtitle
         assert "sentry.io/preprod/builds" in target_url
 
         # Check summary contains size table
         assert "1.0 MB" in summary  # Download size
         assert "2.0 MB" in summary  # Install size
-        assert "N/A" in summary  # No change for first build
+        assert "N/A" in summary  # No diffing yet
         assert "com.example.app" in summary
 
-    def test_processed_state_with_metrics_size_increased(self):
-        """Test formatting for processed state with increased sizes."""
-        # Create previous artifact with smaller sizes
-        previous_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app",
-            build_version="0.9.0",
-            build_number=1,
-        )
-
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=previous_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            min_download_size=1024 * 1024,  # 1 MB
-            max_download_size=1024 * 1024,
-            min_install_size=2 * 1024 * 1024,  # 2 MB
-            max_install_size=2 * 1024 * 1024,
-        )
-
-        # Create current artifact with larger sizes
-        current_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app",
-            build_version="1.0.0",
-            build_number=2,
-        )
-
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=current_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            min_download_size=1024 * 1024 + 100 * 1024,  # 1.1 MB
-            max_download_size=1024 * 1024 + 100 * 1024,
-            min_install_size=2 * 1024 * 1024 + 200 * 1024,  # 2.2 MB
-            max_install_size=2 * 1024 * 1024 + 200 * 1024,
-        )
-
-        title, subtitle, summary, target_url = format_status_check_messages(current_artifact)
-
-        # Check title and subtitle
-        assert title == "Size Analysis"
-        assert subtitle == "1 build increased in size"
-        assert "sentry.io/preprod/builds" in target_url
-
-        # Check summary contains size increases
-        assert "🔺" in summary  # Increase indicators
-        assert "100.0 KB" in summary  # Download increase
-        assert "200.0 KB" in summary  # Install increase
-
-    def test_processed_state_with_metrics_size_decreased(self):
-        """Test formatting for processed state with decreased sizes."""
-        # Create previous artifact with larger sizes
-        previous_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app",
-            build_version="0.9.0",
-            build_number=1,
-        )
-
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=previous_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            min_download_size=1024 * 1024 + 100 * 1024,  # 1.1 MB
-            max_download_size=1024 * 1024 + 100 * 1024,
-            min_install_size=2 * 1024 * 1024 + 200 * 1024,  # 2.2 MB
-            max_install_size=2 * 1024 * 1024 + 200 * 1024,
-        )
-
-        # Create current artifact with smaller sizes
-        current_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app",
-            build_version="1.0.0",
-            build_number=2,
-        )
-
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=current_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            min_download_size=1024 * 1024,  # 1 MB
-            max_download_size=1024 * 1024,
-            min_install_size=2 * 1024 * 1024,  # 2 MB
-            max_install_size=2 * 1024 * 1024,
-        )
-
-        title, subtitle, summary, target_url = format_status_check_messages(current_artifact)
-
-        # Check title and subtitle
-        assert title == "Size Analysis"
-        assert subtitle == "1 build decreased in size"
-        assert "sentry.io/preprod/builds" in target_url
-
-        # Check summary contains size decreases
-        assert "🔽" in summary  # Decrease indicators
-        assert "100.0 KB" in summary  # Download decrease
-        assert "200.0 KB" in summary  # Install decrease
-
-    def test_processed_state_with_metrics_no_size_change(self):
-        """Test formatting for processed state with no size changes."""
-        # Create previous artifact with same sizes
-        previous_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app",
-            build_version="0.9.0",
-            build_number=1,
-        )
-
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=previous_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            min_download_size=1024 * 1024,  # 1 MB
-            max_download_size=1024 * 1024,
-            min_install_size=2 * 1024 * 1024,  # 2 MB
-            max_install_size=2 * 1024 * 1024,
-        )
-
-        # Create current artifact with same sizes
-        current_artifact = PreprodArtifact.objects.create(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app",
-            build_version="1.0.0",
-            build_number=2,
-        )
-
-        PreprodArtifactSizeMetrics.objects.create(
-            preprod_artifact=current_artifact,
-            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-            min_download_size=1024 * 1024,  # 1 MB
-            max_download_size=1024 * 1024,
-            min_install_size=2 * 1024 * 1024,  # 2 MB
-            max_install_size=2 * 1024 * 1024,
-        )
-
-        title, subtitle, summary, target_url = format_status_check_messages(current_artifact)
-
-        # Check title and subtitle
-        assert title == "Size Analysis"
-        assert subtitle == "1 build, no size change"
-        assert "sentry.io/preprod/builds" in target_url
-
-        # Check summary shows no change
-        assert "No change" in summary
+    # TODO: Add back diffing tests when size comparison is implemented
+    # For now, all processed states with metrics will show "1 build analyzed"
 
     def test_version_string_formatting(self):
         """Test version string formatting with different combinations."""
