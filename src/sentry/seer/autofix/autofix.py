@@ -341,9 +341,18 @@ def _get_all_tags_overview(group: Group) -> dict[str, Any] | None:
 
     all_tags: list[dict] = []
 
-    KEYS_TO_EXCLUDE = ["release"]  # tags we think are useless for Autofix
+    KEYS_TO_EXCLUDE = {
+        "release",
+        "browser.name",  # the 'browser' tag is better
+        "device.class",
+        "mechanism",
+        "os.name",  # the 'os' tag is better
+        "replay_id",
+        "replayid",
+        "level",
+    }  # tags we think are useless for Autofix
     for tag in tag_keys:
-        if tag.key in KEYS_TO_EXCLUDE:
+        if tag.key.lower() in KEYS_TO_EXCLUDE:
             continue
 
         # Calculate percentages for each tag value
