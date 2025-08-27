@@ -9,9 +9,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.constants import DataCategory
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
+from sentry.utils.outcomes import Outcome, track_outcome
 
 
 def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, str | None]:
@@ -137,6 +139,8 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
         except PreprodArtifact.DoesNotExist:
             return Response({"error": f"Preprod artifact {artifact_id} not found"}, status=404)
 
+        original_state = preprod_artifact.state
+
         updated_fields = []
 
         if "date_built" in data:
@@ -207,6 +211,30 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
                 updated_fields.append("state")
 
             preprod_artifact.save(update_fields=updated_fields + ["date_updated"])
+
+        # XXX: this is not quite right place for this:
+        # We want to report an outcome at most once per preprod_artifact for each
+        # feature {size, distro}.
+        new_state = preprod_artifact.state
+        if original_state != new_state and new_state == PreprodArtifact.ArtifactState.PROCESSED:
+            track_outcome(
+                org_id=project.organization_id,
+                project_id=project.id,
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                quantity=1,
+                category=DataCategory.SIZE_ANALYSIS,
+                # If None this defaults to the current time. This seems
+                # better than the time of the upload (which could have
+                # been long before the analysis runs).
+                timestamp=None,
+                # We have neither of the below since size analysis is
+                # not triggered by an event or reported via a DSN.
+                # The id of the event.
+                event_id=None,
+                # The id of the DSN.
+                key_id=None,
+            )
 
         return Response(
             {
