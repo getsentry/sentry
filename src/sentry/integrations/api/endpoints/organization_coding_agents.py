@@ -25,6 +25,7 @@ from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.utils import (
     AutofixState,
+    AutofixTriggerSource,
     CodingAgentState,
     get_autofix_state,
     get_coding_agent_prompt,
@@ -103,7 +104,7 @@ class OrganizationCodingAgentLaunchSerializer(serializers.Serializer[dict[str, o
     integration_id = serializers.IntegerField(required=True)
     run_id = serializers.IntegerField(required=True, min_value=1)
     trigger_source = serializers.ChoiceField(
-        choices=["root_cause", "solution"], default="solution", required=False
+        choices=AutofixTriggerSource, default=AutofixTriggerSource.SOLUTION, required=False
     )
 
 
@@ -215,7 +216,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         autofix_state: AutofixState,
         run_id: int,
         organization,
-        trigger_source: str,
+        trigger_source: AutofixTriggerSource,
     ) -> list[dict]:
         """Launch coding agents for all repositories in the solution."""
         repos = self._extract_repos_from_solution(autofix_state)
@@ -340,7 +341,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             return self.respond("Autofix state not found", status=status.HTTP_400_BAD_REQUEST)
 
         # Get and validate trigger_source
-        trigger_source = validated.get("trigger_source", "solution")
+        trigger_source = validated.get("trigger_source", AutofixTriggerSource.SOLUTION)
 
         logger.info(
             "coding_agent.launch_request",
