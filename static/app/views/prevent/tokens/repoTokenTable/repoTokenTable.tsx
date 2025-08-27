@@ -17,7 +17,11 @@ export type Column = GridColumnHeader<'name' | 'token' | 'regenerateToken'>;
 
 type ValidField = (typeof SORTABLE_FIELDS)[number];
 
-export function isAValidSort(sort: Sort): sort is ValidSort {
+export function isAValidSort(sort?: Sort): sort is ValidSort {
+  if (!sort) {
+    return false;
+  }
+
   return SORTABLE_FIELDS.includes(sort.field as ValidField);
 }
 

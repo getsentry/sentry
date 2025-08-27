@@ -9,7 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 type HeaderParams = {
   fieldName: string;
   label: string;
-  sort: undefined | Sort;
+  sort?: Sort;
 };
 
 function TokensSortableHeader({fieldName, label, sort}: HeaderParams) {
