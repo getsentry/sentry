@@ -84,9 +84,6 @@ export default function EmptyState({
                 )}
               </DescriptionWrapper>
               <Flex direction="column" align="end" gap="xl">
-                {!tempestCredentials?.length && (
-                  <AddCredentialsButton project={project} />
-                )}
                 <StyledPanelTable
                   headers={[
                     t('Client ID'),
