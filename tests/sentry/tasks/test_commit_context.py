@@ -626,7 +626,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 event_id=self.event.event_id,
                 num_frames=1,
                 num_successfully_mapped_frames=1,
-                reason="no_commit_found",
+                reason="no_commits_found",
             ),
         )
 
@@ -637,7 +637,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 "group": self.event.group_id,
                 "event": self.event.event_id,
                 "project_id": self.project.id,
-                "reason": "no_commit_found",
+                "reason": "no_commits_found",
                 "num_frames": 1,
             },
         )
