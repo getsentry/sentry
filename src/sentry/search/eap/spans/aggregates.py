@@ -54,18 +54,19 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     key = cast(AttributeKey, args[1])
     operator = cast(str, args[2])
 
+    value = args[3]
+    assert isinstance(
+        value, str
+    )  # This should always be a string. Assertion to deal with typing errors.
+
     try:
         if key.type == AttributeKey.Type.TYPE_DOUBLE:
-            value = float(args[3])
-            attr_value = AttributeValue(val_double=value)
+            attr_value = AttributeValue(val_double=float(value))
         elif key.type == AttributeKey.Type.TYPE_FLOAT:
-            value = float(args[3])
-            attr_value = AttributeValue(val_float=value)
+            attr_value = AttributeValue(val_float=float(value))
         elif key.type == AttributeKey.Type.TYPE_INT:
-            value = int(args[3])
-            attr_value = AttributeValue(val_int=value)
+            attr_value = AttributeValue(val_int=int(value))
         else:
-            value = cast(str, args[3])
             attr_value = AttributeValue(val_str=value)
     except ValueError:
         expected_type = "string"
@@ -73,7 +74,7 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
             expected_type = "number"
         if key.type == AttributeKey.Type.TYPE_INT:
             expected_type = "integer"
-        raise InvalidSearchQuery(f"Invalid parameter '{args[3]}'. Must be of type {expected_type}.")
+        raise InvalidSearchQuery(f"Invalid parameter '{value}'. Must be of type {expected_type}.")
 
     if key.type == AttributeKey.TYPE_BOOLEAN:
         lower_value = value.lower()
