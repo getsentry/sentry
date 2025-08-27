@@ -1,14 +1,14 @@
-import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {
   isEAPTraceNode,
   isEAPTransaction,
+  isRootEvent,
   isTraceNode,
+  isTraceSplitResult,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
 
 export function isEmptyTrace(trace: TraceTree.Trace): boolean {
   if (isTraceSplitResult(trace)) {
