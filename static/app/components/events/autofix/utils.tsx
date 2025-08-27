@@ -109,6 +109,13 @@ export function getSolutionIsLoading(autofixData: AutofixData) {
   return solutionProgressStep?.status === AutofixStatus.PROCESSING;
 }
 
+export function getRootCauseIsLoading(autofixData: AutofixData) {
+  const rootCauseStep = autofixData.steps?.find(
+    step => step.key === 'root_cause_analysis'
+  );
+  return rootCauseStep?.status === AutofixStatus.PROCESSING;
+}
+
 export function getCodeChangesDescription(autofixData: AutofixData) {
   if (!autofixData) {
     return null;

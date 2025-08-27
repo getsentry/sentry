@@ -32,6 +32,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
@@ -52,6 +53,7 @@ import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRou
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
+  useHasAIMode,
 } from 'sentry/views/issueDetails/utils';
 
 interface GroupHeaderProps {
@@ -115,6 +117,13 @@ export default function StreamlinedGroupHeader({
     'issue-details-learn-more',
     true
   );
+  const navigate = useNavigate();
+  const [isAIMode, setIsAIMode] = useHasAIMode();
+
+  const toggleAIMode = () => {
+    // Toggle AI mode preference and save to localStorage for persistence
+    setIsAIMode(!isAIMode);
+  };
 
   return (
     <Fragment>
@@ -162,6 +171,17 @@ export default function StreamlinedGroupHeader({
                 {showLearnMore ? t("See What's New") : null}
               </LinkButton>
             )}
+            {!isAIMode && !hasOnlyOneUIOption && !isQueryInjection && (
+              <Button
+                size="xs"
+                priority="default"
+                onClick={toggleAIMode}
+                title={t('Enable AI-powered analysis of this issue')}
+                aria-label={t('Enable Seer Mode')}
+              >
+                {t('Seer Mode')}
+              </Button>
+            )}
             {isQueryInjection ? (
               <ButtonBar gap="xs">
                 <LinkButton
@@ -183,131 +203,135 @@ export default function StreamlinedGroupHeader({
             )}
           </ButtonBar>
         </Flex>
-        <HeaderGrid>
-          <Title>
-            <Tooltip
-              title={primaryTitle}
-              skipWrapper
-              isHoverable
-              showOnlyOnOverflow
-              delay={1000}
-            >
-              <PrimaryTitle>{primaryTitle}</PrimaryTitle>
-            </Tooltip>
-            {isQueryInjection && <FeatureBadge type="beta" />}
-          </Title>
-          <StatTitle>
-            {issueTypeConfig.eventAndUserCounts.enabled && (
-              <StatLink
-                to={`${baseUrl}events/${location.search}`}
-                aria-label={t('View events')}
+        {!isAIMode && (
+          <HeaderGrid>
+            <Title>
+              <Tooltip
+                title={primaryTitle}
+                skipWrapper
+                isHoverable
+                showOnlyOnOverflow
+                delay={1000}
               >
-                {t('Events (total)')}
-              </StatLink>
-            )}
-          </StatTitle>
-          <StatTitle>
-            {issueTypeConfig.eventAndUserCounts.enabled &&
-              (userCount === 0 ? (
-                t('Users %s', userCountPeriod)
-              ) : (
+                <PrimaryTitle>{primaryTitle}</PrimaryTitle>
+              </Tooltip>
+              {isQueryInjection && <FeatureBadge type="beta" />}
+            </Title>
+            <StatTitle>
+              {issueTypeConfig.eventAndUserCounts.enabled && (
                 <StatLink
-                  to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
-                  aria-label={t('View affected users')}
+                  to={`${baseUrl}events/${location.search}`}
+                  aria-label={t('View events')}
                 >
-                  {t('Users %s', userCountPeriod)}
+                  {t('Events (total)')}
                 </StatLink>
-              ))}
-          </StatTitle>
-          <EventMessage
-            data={group}
-            level={group.level}
-            message={secondaryTitle}
-            type={group.type}
-          />
-          {issueTypeConfig.eventAndUserCounts.enabled && (
-            <Fragment>
-              <StatCount value={eventCount} aria-label={t('Event count')} />
-              <StatCount value={userCount} aria-label={t('User count')} />
-            </Fragment>
-          )}
-          <Flex gap="md" align="center">
-            {group.isUnhandled && (
+              )}
+            </StatTitle>
+            <StatTitle>
+              {issueTypeConfig.eventAndUserCounts.enabled &&
+                (userCount === 0 ? (
+                  t('Users %s', userCountPeriod)
+                ) : (
+                  <StatLink
+                    to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
+                    aria-label={t('View affected users')}
+                  >
+                    {t('Users %s', userCountPeriod)}
+                  </StatLink>
+                ))}
+            </StatTitle>
+            <EventMessage
+              data={group}
+              level={group.level}
+              message={secondaryTitle}
+              type={group.type}
+            />
+            {issueTypeConfig.eventAndUserCounts.enabled && (
               <Fragment>
-                <UnhandledTag />
-                <Divider />
+                <StatCount value={eventCount} aria-label={t('Event count')} />
+                <StatCount value={userCount} aria-label={t('User count')} />
               </Fragment>
             )}
-            {statusProps?.status ? (
-              <Fragment>
-                <Tooltip
-                  isHoverable
-                  title={tct('[tooltip] [link:Learn more]', {
-                    tooltip: statusProps.tooltip,
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
-                    ),
-                  })}
-                >
-                  <Subtext>{statusProps?.status}</Subtext>
-                </Tooltip>
-              </Fragment>
-            ) : null}
-            {subtitle && (
-              <Fragment>
-                <Divider />
-                <Tooltip
-                  title={subtitle}
-                  skipWrapper
-                  isHoverable
-                  showOnlyOnOverflow
-                  delay={1000}
-                >
-                  <Subtext>{subtitle}</Subtext>
-                </Tooltip>
-              </Fragment>
-            )}
-            <ErrorBoundary customComponent={null}>
-              <AttachmentsBadge group={group} />
-              <UserFeedbackBadge group={group} project={project} />
-              <ReplayBadge group={group} project={project} />
-              <SeerBadge group={group} />
-            </ErrorBoundary>
-          </Flex>
-        </HeaderGrid>
-      </Header>
-      <TourElement<IssueDetailsTour>
-        tourContext={IssueDetailsTourContext}
-        id={IssueDetailsTour.WORKFLOWS}
-        title={t('Take action')}
-        description={t(
-          'Now that you’ve learned about this issue, it’s time to assign an owner, update priority, and take additional actions.'
+            <Flex gap="md" align="center">
+              {group.isUnhandled && (
+                <Fragment>
+                  <UnhandledTag />
+                  <Divider />
+                </Fragment>
+              )}
+              {statusProps?.status ? (
+                <Fragment>
+                  <Tooltip
+                    isHoverable
+                    title={tct('[tooltip] [link:Learn more]', {
+                      tooltip: statusProps.tooltip,
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
+                      ),
+                    })}
+                  >
+                    <Subtext>{statusProps?.status}</Subtext>
+                  </Tooltip>
+                </Fragment>
+              ) : null}
+              {subtitle && (
+                <Fragment>
+                  <Divider />
+                  <Tooltip
+                    title={subtitle}
+                    skipWrapper
+                    isHoverable
+                    showOnlyOnOverflow
+                    delay={1000}
+                  >
+                    <Subtext>{subtitle}</Subtext>
+                  </Tooltip>
+                </Fragment>
+              )}
+              <ErrorBoundary customComponent={null}>
+                <AttachmentsBadge group={group} />
+                <UserFeedbackBadge group={group} project={project} />
+                <ReplayBadge group={group} project={project} />
+                <SeerBadge group={group} />
+              </ErrorBoundary>
+            </Flex>
+          </HeaderGrid>
         )}
-        position="bottom-end"
-      >
-        <ActionBar isComplete={isComplete} role="banner">
-          <GroupActions
-            group={group}
-            project={project}
-            disabled={disableActions}
-            event={event}
-          />
-          <WorkflowActions>
-            <Workflow>
-              {t('Priority')}
-              <GroupPriority group={group} />
-            </Workflow>
-            <Workflow>
-              {t('Assignee')}
-              <GroupHeaderAssigneeSelector
-                group={group}
-                project={project}
-                event={event}
-              />
-            </Workflow>
-          </WorkflowActions>
-        </ActionBar>
-      </TourElement>
+      </Header>
+      {!isAIMode && (
+        <TourElement<IssueDetailsTour>
+          tourContext={IssueDetailsTourContext}
+          id={IssueDetailsTour.WORKFLOWS}
+          title={t('Take action')}
+          description={t(
+            'Now that you’ve learned about this issue, it’s time to assign an owner, update priority, and take additional actions.'
+          )}
+          position="bottom-end"
+        >
+          <ActionBar isComplete={isComplete} role="banner">
+            <GroupActions
+              group={group}
+              project={project}
+              disabled={disableActions}
+              event={event}
+            />
+            <WorkflowActions>
+              <Workflow>
+                {t('Priority')}
+                <GroupPriority group={group} />
+              </Workflow>
+              <Workflow>
+                {t('Assignee')}
+                <GroupHeaderAssigneeSelector
+                  group={group}
+                  project={project}
+                  event={event}
+                />
+              </Workflow>
+            </WorkflowActions>
+          </ActionBar>
+        </TourElement>
+      )}
     </Fragment>
   );
 }

@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {
@@ -16,9 +16,11 @@ import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useUser} from 'sentry/utils/useUser';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
@@ -290,6 +292,72 @@ export function useHasStreamlinedUI() {
 
   // Apply the UI based on user preferences
   return userStreamlinedUIOption ?? false;
+}
+
+const SYNCED_AI_MODE_EVENT = 'synced-ai-mode';
+const AI_MODE_STORAGE_KEY = 'issue-details-ai-mode';
+
+export function useHasAIMode() {
+  const location = useLocation();
+
+  // Initialize state by reading current localStorage value synchronously or URL override
+  const [isAIMode, setIsAIMode] = useState(() => {
+    // Check for URL parameter first
+    const aiModeParam = location.query.aiMode;
+    if (aiModeParam === 'true' || aiModeParam === '1') {
+      return true;
+    }
+
+    const currentValue = localStorage.getItem(AI_MODE_STORAGE_KEY);
+    if (currentValue === null) {
+      return false;
+    }
+    try {
+      const parsed = JSON.parse(currentValue);
+      return parsed === true || parsed === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Override state if URL parameter is present
+  useEffect(() => {
+    const aiModeParam = location.query.aiMode;
+    if (aiModeParam === 'true' || aiModeParam === '1') {
+      setIsAIMode(true);
+    } else if (aiModeParam === 'false' || aiModeParam === '0') {
+      setIsAIMode(false);
+    }
+  }, [location.query.aiMode]);
+
+  // Listen for sync events from other hook instances
+  useEffect(() => {
+    const handleSyncEvent = (event: CustomEvent<{value: boolean}>) => {
+      setIsAIMode(event.detail.value);
+    };
+
+    window.addEventListener(SYNCED_AI_MODE_EVENT, handleSyncEvent as EventListener);
+
+    return () => {
+      window.removeEventListener(SYNCED_AI_MODE_EVENT, handleSyncEvent as EventListener);
+    };
+  }, []);
+
+  // Custom setter that writes synchronously and broadcasts
+  const wrappedSetIsAIMode = useCallback((newValue: boolean) => {
+    // Write to localStorage synchronously
+    localStorage.setItem(AI_MODE_STORAGE_KEY, JSON.stringify(newValue));
+
+    // Update local state
+    setIsAIMode(newValue);
+
+    // Broadcast to other hook instances
+    window.dispatchEvent(
+      new CustomEvent(SYNCED_AI_MODE_EVENT, {detail: {value: newValue}})
+    );
+  }, []);
+
+  return [isAIMode, wrappedSetIsAIMode] as const;
 }
 
 export function useIsSampleEvent(): boolean {
