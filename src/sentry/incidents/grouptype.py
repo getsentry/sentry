@@ -339,18 +339,8 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         else:
             comparison = detector_trigger.comparison
 
-        template = (
-            "{group_key} {label}: {metric} in the last {time_window} {higher_or_lower} {comparison}"
-        )
-
-        return template.format(
-            group_key=group_key,
-            label=label.capitalize(),
-            metric=aggregate,
-            higher_or_lower=higher_or_lower,
-            comparison=comparison,
-            time_window=time_window,
-        )
+        prefix = f"{group_key} " if group_key is not None else ""
+        return f"{prefix}{label.capitalize()}: {aggregate} in the last {time_window} {higher_or_lower} {comparison}"
 
 
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
