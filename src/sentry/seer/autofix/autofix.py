@@ -345,8 +345,8 @@ def _get_all_tags_overview(group: Group) -> dict[str, Any] | None:
         "release",
         "browser.name",  # the 'browser' tag is better
         "device.class",
-        "mechanism",  # the 'os' tag is better
-        "os.name",
+        "mechanism",
+        "os.name",  # the 'os' tag is better
         "replay_id",
         "replayid",
         "level",
