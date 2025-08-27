@@ -299,6 +299,7 @@ export function LogsTabContent({
                 defaultPeriod={defaultPeriod}
                 maxPickableDays={maxPickableDays}
                 relativeOptions={relativeOptions}
+                searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
               />
             </StyledPageFilterBar>
             <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
