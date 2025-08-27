@@ -15,7 +15,7 @@ import msgpack
 import sentry_sdk
 import vroomrs
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.conf import settings
 from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
@@ -75,7 +75,7 @@ UI_PROFILE_PLATFORMS = {"cocoa", "android", "javascript"}
 UNSAMPLED_PROFILE_ID = "00000000000000000000000000000000"
 
 
-def _get_profiles_producer_from_topic(topic: Topic):
+def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
     return get_arroyo_producer(
         name="sentry.profiles.task",
         topic=topic,
