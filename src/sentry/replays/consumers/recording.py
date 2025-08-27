@@ -1,6 +1,7 @@
 import logging
 import zlib
 from collections.abc import Mapping
+from contextlib import contextmanager
 from typing import cast
 
 import sentry_sdk.profiler
@@ -35,6 +36,32 @@ logger = logging.getLogger(__name__)
 
 class DropSilently(Exception):
     pass
+
+
+@contextmanager
+def profiling():
+    """Context manager for profiling replay recording operations.
+
+    Only enables profiling if it's enabled in options and we have a DSN and sample rate > 0.
+    Yields nothing, just manages the profiler lifecycle.
+    """
+    profiling_dsn = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
+    )
+    profile_session_sample_rate = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
+    )
+    profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
+    profiling_enabled = options.get("replay.consumer.recording.profiling.enabled")
+
+    if profiling_active and profiling_enabled:
+        sentry_sdk.profiler.start_profiler()
+        try:
+            yield
+        finally:
+            sentry_sdk.profiler.stop_profiler()
+    else:
+        yield
 
 
 class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -119,23 +146,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 def process_message_with_profiling(
     message: Message[KafkaPayload],
 ) -> ProcessedEvent | FilteredPayload:
-    # Only initialize profiling if it's enabled and we have a DSN and sample rate > 0
-    profiling_dsn = getattr(
-        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
-    )
-    profile_session_sample_rate = getattr(
-        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
-    )
-    profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
-    profiling_enabled = options.get("replay.consumer.recording.profiling.enabled")
-
-    if profiling_active and profiling_enabled:
-        sentry_sdk.profiler.start_profiler()
-        try:
-            return process_message(message)
-        finally:
-            sentry_sdk.profiler.stop_profiler()
-    else:
+    with profiling():
         return process_message(message)
 
 
@@ -232,23 +243,7 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 
 
 def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
-    # Only initialize profiling if it's enabled and we have a DSN and sample rate > 0
-    profiling_dsn = getattr(
-        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
-    )
-    profile_session_sample_rate = getattr(
-        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
-    )
-    profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
-    profiling_enabled = options.get("replay.consumer.recording.profiling.enabled")
-
-    if profiling_active and profiling_enabled:
-        sentry_sdk.profiler.start_profiler()
-        try:
-            commit_message(message)
-        finally:
-            sentry_sdk.profiler.stop_profiler()
-    else:
+    with profiling():
         commit_message(message)
 
 
