@@ -3469,7 +3469,7 @@ register(
 register(
     "issues.suspect-commit-strategy",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
