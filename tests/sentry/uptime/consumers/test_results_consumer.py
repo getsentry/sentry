@@ -20,6 +20,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 
+import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.conf.types import kafka_definition
 from sentry.conf.types.kafka_definition import Topic as KafkaTopic
 from sentry.conf.types.kafka_definition import get_topic_codec
@@ -55,6 +56,7 @@ from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
 
+@thread_leaks.allowlist(reason="uptime consumers", issue=97045)
 class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     __test__ = Abstract(__module__, __qualname__)
 
@@ -1221,6 +1223,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         )
 
 
+@thread_leaks.allowlist(reason="uptime consumers", issue=97045)
 class ProcessResultSerialTest(ProcessResultTest):
     strategy_processing_mode = "serial"
 
