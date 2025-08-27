@@ -160,7 +160,7 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsV2Endpoin
             distribution = {
                 "attributeName": translate_internal_to_public_alias(
                     attr, "string", SupportedTraceItemType.SPANS
-                )
+                )[0]
                 or attr,
                 "cohort1": cohort_1_distribution_map.get(attr),
                 "cohort2": cohort_2_distribution_map.get(attr),
