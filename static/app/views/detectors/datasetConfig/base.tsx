@@ -36,7 +36,7 @@ export interface DetectorSeriesQueryOptions {
   dataset: DiscoverDatasets;
   environment: string;
   /**
-   * example: `1h`
+   * Metric detector interval in seconds
    */
   interval: number;
   organization: Organization;

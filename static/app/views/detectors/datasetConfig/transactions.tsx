@@ -11,7 +11,6 @@ import {
   BASE_DYNAMIC_INTERVALS,
   BASE_INTERVALS,
   getStandardTimePeriodsForInterval,
-  MetricDetectorInterval,
   MetricDetectorTimePeriod,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
@@ -31,9 +30,9 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     getSeriesQueryOptions: options => {
       // Force statsPeriod to be 9998m to avoid the 10k results limit.
       // This is specific to the transactions dataset, since it has 1m intervals and does not support 10k+ results.
+      const isOneMinuteInterval = options.interval === 60;
       const timePeriod =
-        options.interval === MetricDetectorInterval.ONE_MINUTE &&
-        options.statsPeriod === MetricDetectorTimePeriod.SEVEN_DAYS
+        options.statsPeriod === MetricDetectorTimePeriod.SEVEN_DAYS && isOneMinuteInterval
           ? '9998m'
           : options.statsPeriod;
 
