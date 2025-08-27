@@ -627,3 +627,11 @@ def register_temporary_features(manager: FeatureManager) -> None:
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=True,
     )
+
+    # Control access to a new debug files role management
+    manager.add(
+        "organizations:debug-files-role-management",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=True,
+    )
