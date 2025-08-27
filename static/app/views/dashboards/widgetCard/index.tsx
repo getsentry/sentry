@@ -414,7 +414,7 @@ function useTimeRangeWarning({widget}: {widget: Widget}) {
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
   ) {
     return tct(
-      `This widget is querying more data than the retention limit on the dataset allows. The data may be incomplete before [numDays] days.`,
+      `You've selected a time range longer than the retention period for this dataset. Data older than [numDays] days may be unavailable.`,
       {
         numDays: retentionLimitDays,
       }
