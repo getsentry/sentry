@@ -14,6 +14,7 @@ from google.api_core.exceptions import ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 from urllib3.response import HTTPResponse
 
+import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
@@ -112,6 +113,7 @@ EVENT_WITH_THREADS_STACKTRACE = {
 
 
 @django_db_all
+@thread_leaks.allowlist(reason="sentry sdk background worker", issue=97042)
 class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     def create_exception_values(self, function_name: str, type: str, value: str):
         return {

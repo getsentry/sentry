@@ -6,6 +6,7 @@ import pytest
 from django.utils import timezone
 
 import sentry.models.groupsnooze
+import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.models.group import Group
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
@@ -14,6 +15,7 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
+@thread_leaks.allowlist(reason="sentry sdk background worker", issue=97042)
 class GroupSnoozeTest(
     TestCase,
     SnubaTestCase,
