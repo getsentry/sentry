@@ -118,6 +118,21 @@ class QueryInjectionDetector(PerformanceDetector):
         return True
 
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
+        if project is not None and project.platform in [
+            "php",
+            "php-laravel",
+            "php-symfony",
+            "go",
+            "go-echo",
+            "go-fasthttp",
+            "go-fiber",
+            "go-gin",
+            "go-http",
+            "go-iris",
+            "go-martini",
+            "go-negroni",
+        ]:
+            return False
         return self.settings["detection_enabled"]
 
     def _is_span_eligible(self, span: Span) -> bool:
