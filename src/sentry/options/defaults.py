@@ -3498,3 +3498,10 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "dynamic-sampling.query-granularity-60s.fetch-transaction-totals",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
