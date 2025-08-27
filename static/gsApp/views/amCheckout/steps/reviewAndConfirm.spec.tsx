@@ -23,35 +23,7 @@ import ReviewAndConfirm from './reviewAndConfirm';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('getsentry/utils/trackGetsentryAnalytics');
-jest.mock('getsentry/utils/stripe', () => ({
-  loadStripe: (cb: any) => {
-    if (!cb) {
-      return;
-    }
-    cb(() => ({
-      handleCardAction(secretKey: string, _options: any) {
-        if (secretKey === 'ERROR') {
-          return new Promise(resolve => {
-            resolve({error: {message: 'Invalid card', type: 'card_error'}});
-          });
-        }
-        if (secretKey === 'GENERIC_ERROR') {
-          return new Promise(resolve => {
-            resolve({
-              error: {
-                message: 'Something bad that users should not see',
-                type: 'internal_error',
-              },
-            });
-          });
-        }
-        return new Promise(resolve => {
-          resolve({setupIntent: {payment_method: 'pm_abc123'}});
-        });
-      },
-    }));
-  },
-}));
+// Stripe mocks handled by global setup.ts
 
 describe('AmCheckout > ReviewAndConfirm', () => {
   const api = new MockApiClient();

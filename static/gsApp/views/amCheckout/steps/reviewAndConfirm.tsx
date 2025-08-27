@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {loadStripe, type Stripe} from '@stripe/stripe-js';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -18,7 +19,6 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import type {PreviewData, Subscription} from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
-import {loadStripe} from 'getsentry/utils/stripe';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepPropsWithApi} from 'getsentry/views/amCheckout/types';
 import type {IntentDetails} from 'getsentry/views/amCheckout/utils';
@@ -61,7 +61,7 @@ function ReviewAndConfirm({
     submitting: false,
   });
   const title = t('Review & Confirm');
-  const [stripe, setStripe] = useState<stripe.Stripe>();
+  const [stripe, setStripe] = useState<Stripe | null>(null);
   const hasPartnerMigrationFeature = organization.features.includes(
     'partner-billing-migration'
   );
@@ -101,10 +101,8 @@ function ReviewAndConfirm({
   }, [isActive, formData, fetchPreview]);
 
   useEffect(() => {
-    loadStripe(Stripe => {
-      const apiKey = ConfigStore.get('getsentry.stripePublishKey');
-      const instance = Stripe(apiKey);
-      setStripe(instance);
+    loadStripe(ConfigStore.get('getsentry.stripePublishKey')!).then(stripeInstance => {
+      setStripe(stripeInstance);
     });
   }, []);
 

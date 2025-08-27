@@ -10,27 +10,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {InvoiceItemType} from 'getsentry/types';
 import InvoiceDetailsPaymentForm from 'getsentry/views/invoiceDetails/paymentForm';
 
-jest.mock('getsentry/utils/stripe', () => ({
-  loadStripe: (cb: any) => {
-    cb(() => ({
-      confirmCardPayment: jest.fn(
-        () =>
-          new Promise(resolve => {
-            resolve({error: undefined, paymentIntent: {id: 'pi_123abc'}});
-          })
-      ),
-      elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
-          on(_name: any, handler: any) {
-            handler();
-          },
-          update: jest.fn(),
-        })),
-      })),
-    }));
-  },
-}));
+// Stripe mocks handled by global setup.ts
 
 describe('InvoiceDetails > Payment Form', () => {
   const organization = OrganizationFixture();

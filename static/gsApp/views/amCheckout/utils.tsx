@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import {type PaymentIntentResult, type Stripe} from '@stripe/stripe-js';
 import moment from 'moment-timezone';
 
 import {
@@ -479,7 +480,7 @@ function recordAnalytics(
 
 export function stripeHandleCardAction(
   intentDetails: IntentDetails,
-  stripeInstance?: stripe.Stripe,
+  stripeInstance: Stripe | null,
   onSuccess?: () => void,
   onError?: (errorMessage?: string) => void
 ) {
@@ -490,7 +491,7 @@ export function stripeHandleCardAction(
   // This allows us to complete 3DS and MFA during checkout.
   stripeInstance
     .handleCardAction(intentDetails.paymentSecret)
-    .then((result: stripe.PaymentIntentResponse) => {
+    .then((result: PaymentIntentResult) => {
       if (result.error) {
         let message =
           'Your payment could not be authorized. Please try a different card, or try again later.';

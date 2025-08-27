@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {loadStripe, type Stripe} from '@stripe/stripe-js';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -30,7 +31,6 @@ import {
   getProductIcon,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
-import {loadStripe} from 'getsentry/utils/stripe';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -459,7 +459,7 @@ function Cart({
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [stripe, setStripe] = useState<stripe.Stripe>();
+  const [stripe, setStripe] = useState<Stripe | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const api = useApi();
 
@@ -527,10 +527,8 @@ function Cart({
 
   // TODO(checkout v3): This should be refactored with the new Stripe changes
   useEffect(() => {
-    loadStripe(Stripe => {
-      const apiKey = ConfigStore.get('getsentry.stripePublishKey');
-      const instance = Stripe(apiKey);
-      setStripe(instance);
+    loadStripe(ConfigStore.get('getsentry.stripePublishKey')!).then(stripeInstance => {
+      setStripe(stripeInstance);
     });
   }, []);
 

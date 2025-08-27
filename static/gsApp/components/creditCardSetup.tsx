@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {type SetupIntentResult} from '@stripe/stripe-js';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -83,7 +84,7 @@ function CreditCardSetup({
       return;
     }
 
-    let setupResult: stripe.SetupIntentResponse;
+    let setupResult: SetupIntentResult;
     try {
       setupResult = await stripe.confirmCardSetup(intentData.clientSecret, {
         payment_method: {
