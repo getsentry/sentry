@@ -181,6 +181,5 @@ const TAValueText = styled('p')`
 const SelectOptionHeader = styled('h5')`
   font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.tokens.content.primary};
-  /* margin-top: ${p => p.theme.space['2xl']}; */
   padding-top: ${p => p.theme.space['2xl']};
 `;
