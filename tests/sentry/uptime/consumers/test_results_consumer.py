@@ -1330,5 +1330,6 @@ class ProcessResultSerialTest(ProcessResultTest):
         assert group_2 == [result_3]
 
 
+@thread_leaks.allowlist(reason="uptime consumers", issue=97045)
 class ProcessResultParallelTest(ProcessResultTest):
     strategy_processing_mode = "parallel"
