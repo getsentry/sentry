@@ -45,7 +45,7 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
     [`/organizations/${organization.slug}/alert-rules/`, {query: {limit: 1}}],
     {
       enabled: hasFlag && !isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
-      staleTime: 0,
+      staleTime: 3,
     }
   );
 
