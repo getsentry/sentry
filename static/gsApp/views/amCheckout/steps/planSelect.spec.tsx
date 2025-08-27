@@ -47,6 +47,13 @@ describe('PlanSelect', () => {
       method: 'GET',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: {
+        invoiceItems: [],
+      },
+    });
   });
 
   it('renders', async () => {
@@ -78,15 +85,12 @@ describe('PlanSelect', () => {
       method: 'GET',
       body: BillingConfigFixture(PlanTier.AM3),
     });
-    const newCheckoutOrg = OrganizationFixture({
-      features: ['checkout-v3'],
-    });
     const freeSubscription = SubscriptionFixture({
-      organization: newCheckoutOrg,
+      organization,
       plan: 'am3_f',
       isFree: true,
     });
-    SubscriptionStore.set(newCheckoutOrg.slug, freeSubscription);
+    SubscriptionStore.set(organization.slug, freeSubscription);
 
     render(
       <AMCheckout
@@ -95,8 +99,9 @@ describe('PlanSelect', () => {
         api={api}
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM3}
+        isNewCheckout
       />,
-      {organization: newCheckoutOrg}
+      {organization}
     );
 
     expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();

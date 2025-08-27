@@ -12,8 +12,11 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
 
 import {
   DEFAULT_TIER,
@@ -578,6 +581,152 @@ export async function fetchPreviewData(
   }
 }
 
+export function normalizeAndGetCheckoutAPIData({
+  formData,
+  previewToken,
+  paymentIntent,
+  referrer = 'billing',
+  shouldUpdateOnDemand = true,
+}: Pick<
+  APIDataProps,
+  'formData' | 'previewToken' | 'paymentIntent' | 'referrer' | 'shouldUpdateOnDemand'
+>): CheckoutAPIData {
+  let {onDemandBudget} = formData;
+  if (onDemandBudget) {
+    onDemandBudget = normalizeOnDemandBudget(onDemandBudget);
+  }
+  return getCheckoutAPIData({
+    formData,
+    onDemandBudget,
+    previewToken,
+    paymentIntent,
+    referrer,
+    shouldUpdateOnDemand,
+  });
+}
+
+export function useSubmitCheckout({
+  organization,
+  subscription,
+  onErrorMessage,
+  onSubmitting,
+  onHandleCardAction,
+  onFetchPreviewData,
+  referrer = 'billing',
+}: {
+  onErrorMessage: (message: string) => void;
+  onFetchPreviewData: () => void;
+  onHandleCardAction: ({intentDetails}: {intentDetails: IntentDetails}) => void;
+  onSubmitting: (b: boolean) => void;
+  organization: Organization;
+  subscription: Subscription;
+  referrer?: string;
+}) {
+  const api = useApi({});
+
+  // this is necessary for recording partner billing migration-specific analytics after
+  // the migration is successful (during which the flag is flipped off)
+  const isMigratingPartnerAccount = organization.features.includes(
+    'partner-billing-migration'
+  );
+
+  return useMutation({
+    mutationFn: ({data}: {data: CheckoutAPIData}) => {
+      return api.requestPromise(
+        `/customers/${organization.slug}/subscription/?expand=invoice`,
+        {
+          method: 'PUT',
+          data,
+        }
+      );
+    },
+    onSuccess: (_, _variables) => {
+      recordAnalytics(
+        organization,
+        subscription,
+        _variables.data,
+        isMigratingPartnerAccount
+      );
+
+      // seer automation alert
+      const alreadyHasSeer =
+        !isTrialPlan(subscription.plan) &&
+        subscription.reservedBudgets?.some(
+          budget =>
+            (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
+            budget.reservedBudget > 0
+        );
+      const justBoughtSeer = _variables.data.seer && !alreadyHasSeer;
+
+      // refresh org and subscription state
+      // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
+      // request doesn't get cancelled
+      fetchOrganizationDetails(new Client(), organization.slug);
+      SubscriptionStore.loadData(organization.slug);
+
+      // TODO(checkout v3): This should be changed to redirect to the success page
+      browserHistory.push(
+        normalizeUrl(
+          `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
+            justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
+          }`
+        )
+      );
+    },
+    onError: (error: RequestError, _variables) => {
+      const body = error.responseJSON;
+
+      if (body?.previewToken) {
+        onErrorMessage(
+          t('Your preview expired, please review changes and submit again.')
+        );
+        onFetchPreviewData?.();
+      } else if (body?.paymentIntent && body?.paymentSecret && body?.detail) {
+        // When an error response contains payment intent information
+        // we can retry the payment using the client-side confirmation flow
+        // in stripe.
+        // We don't re-enable the button here as we don't want users clicking it
+        // while there are UI transitions happening.
+        if (typeof body.detail === 'string') {
+          onErrorMessage(body.detail);
+        } else {
+          onErrorMessage(
+            body.detail.message ??
+              t('An unknown error occurred while saving your subscription')
+          );
+        }
+        const intent: IntentDetails = {
+          paymentIntent: body.paymentIntent as string,
+          paymentSecret: body.paymentSecret as string,
+        };
+        onHandleCardAction?.({intentDetails: intent});
+      } else {
+        if (typeof body?.detail === 'string') {
+          onErrorMessage(body.detail);
+        } else {
+          onErrorMessage(
+            body?.detail?.message ??
+              t('An unknown error occurred while saving your subscription')
+          );
+        }
+        onSubmitting?.(false);
+
+        // Don't capture 402 errors as that status code is used for
+        // customer credit card failures.
+        if (error.status !== 402) {
+          Sentry.withScope(scope => {
+            scope.setExtras({data: _variables.data});
+            Sentry.captureException(error);
+          });
+        }
+      }
+    },
+  });
+}
+
+/**
+ * @deprecated use useSubmitCheckout instead
+ */
 export async function submitCheckout(
   organization: Organization,
   subscription: Subscription,
@@ -593,20 +742,14 @@ export async function submitCheckout(
 ) {
   const endpoint = `/customers/${organization.slug}/subscription/`;
 
-  let {onDemandBudget} = formData;
-  if (onDemandBudget) {
-    onDemandBudget = normalizeOnDemandBudget(onDemandBudget);
-  }
-
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
   const isMigratingPartnerAccount = organization.features.includes(
     'partner-billing-migration'
   );
 
-  const data = getCheckoutAPIData({
+  const data = normalizeAndGetCheckoutAPIData({
     formData,
-    onDemandBudget,
     previewToken: previewData?.previewToken,
     paymentIntent: intentId,
     referrer,

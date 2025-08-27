@@ -60,6 +60,7 @@ import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
 import {loadStripe} from 'getsentry/utils/stripe';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
+import Cart from 'getsentry/views/amCheckout/cart';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
@@ -76,7 +77,7 @@ import type {
   SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {SelectableProduct} from 'getsentry/views/amCheckout/types';
-import {getBucket, hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
+import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
@@ -93,6 +94,7 @@ type Props = {
   organization: Organization;
   queryClient: QueryClient;
   subscription: Subscription;
+  isNewCheckout?: boolean;
   promotionData?: PromotionData;
   refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
 } & RouteComponentProps<Record<PropertyKey, unknown>, unknown>;
@@ -255,7 +257,7 @@ class AMCheckout extends Component<Props, State> {
   }
 
   get checkoutSteps() {
-    const {organization, subscription, checkoutTier} = this.props;
+    const {organization, subscription, checkoutTier, isNewCheckout} = this.props;
     const OnDemandStep = hasOnDemandBudgetsFeature(organization, subscription)
       ? OnDemandBudgetsStep
       : OnDemandSpend;
@@ -273,15 +275,23 @@ class AMCheckout extends Component<Props, State> {
         AddPaymentMethod,
         AddBillingDetails,
         ReviewAndConfirm,
-      ];
+      ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
     }
     // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
     if (subscription.isSelfServePartner) {
       if (hasActiveVCFeature(organization)) {
         // Don't allow VC customers to choose Annual plans
-        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm];
+        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm].filter(
+          step => !isNewCheckout || step !== ReviewAndConfirm
+        );
       }
-      return [PlanSelect, SetPayAsYouGo, AddDataVolume, ContractSelect, ReviewAndConfirm];
+      return [
+        PlanSelect,
+        SetPayAsYouGo,
+        AddDataVolume,
+        ContractSelect,
+        ReviewAndConfirm,
+      ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
     }
 
     // Display for AM3 tiers and above
@@ -293,7 +303,7 @@ class AMCheckout extends Component<Props, State> {
       AddPaymentMethod,
       AddBillingDetails,
       ReviewAndConfirm,
-    ];
+    ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
   }
 
   get activePlan() {
@@ -621,8 +631,14 @@ class AMCheckout extends Component<Props, State> {
   };
 
   renderSteps() {
-    const {organization, onToggleLegacy, subscription, checkoutTier, promotionData} =
-      this.props;
+    const {
+      organization,
+      onToggleLegacy,
+      subscription,
+      checkoutTier,
+      promotionData,
+      isNewCheckout,
+    } = this.props;
     const {currentStep, completedSteps, formData, billingConfig} = this.state;
 
     const promoClaimed = getCompletedOrActivePromotion(promotionData);
@@ -652,7 +668,6 @@ class AMCheckout extends Component<Props, State> {
       const isActive = currentStep === stepNumber;
       const isCompleted = !isActive && completedSteps.has(stepNumber);
       const prevStepCompleted = completedSteps.has(stepNumber - 1);
-      const isNewCheckout = hasCheckoutV3(organization); // TODO(checkout-v3): remove post-GA
 
       return (
         <CheckoutStep
@@ -698,8 +713,14 @@ class AMCheckout extends Component<Props, State> {
   }
 
   render() {
-    const {subscription, organization, isLoading, promotionData, checkoutTier} =
-      this.props;
+    const {
+      subscription,
+      organization,
+      isLoading,
+      promotionData,
+      checkoutTier,
+      isNewCheckout,
+    } = this.props;
     const {loading, error, formData, billingConfig} = this.state;
 
     if (loading || isLoading) {
@@ -778,7 +799,15 @@ class AMCheckout extends Component<Props, State> {
           </CheckoutMain>
           <SidePanel>
             <OverviewContainer>
-              {checkoutTier === PlanTier.AM3 ? (
+              {isNewCheckout ? (
+                <Cart
+                  {...overviewProps}
+                  referrer={this.referrer}
+                  // TODO(checkout v3): we'll also need to fetch billing details but
+                  // this will be done in a later PR
+                  hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
+                />
+              ) : checkoutTier === PlanTier.AM3 ? (
                 <CheckoutOverviewV2 {...overviewProps} />
               ) : (
                 <CheckoutOverview {...overviewProps} />
