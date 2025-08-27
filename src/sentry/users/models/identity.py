@@ -89,6 +89,8 @@ class IdentityManager(BaseManager["Identity"]):
         the case where the user is linked to a different identity or the
         identity is linked to a different user.
         """
+        from sentry.integrations.slack.analytics import IntegrationIdentityLinked
+
         defaults = {
             **(defaults or {}),
             "status": IdentityStatus.VALID,
@@ -106,12 +108,13 @@ class IdentityManager(BaseManager["Identity"]):
             return self.reattach(idp, external_id, user, defaults)
 
         analytics.record(
-            "integrations.identity_linked",
-            provider=IntegrationProviderSlug.SLACK.value,
-            # Note that prior to circa March 2023 this was user.actor_id. It changed
-            # when actor ids were no longer stable between regions for the same user
-            actor_id=user.id,
-            actor_type="user",
+            IntegrationIdentityLinked(
+                provider=IntegrationProviderSlug.SLACK.value,
+                # Note that prior to circa March 2023 this was user.actor_id. It changed
+                # when actor ids were no longer stable between regions for the same user
+                actor_id=user.id,
+                actor_type="user",
+            )
         )
         return identity
 
