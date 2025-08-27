@@ -40,7 +40,7 @@ export function useUpdateDetectorsMutation() {
         t(
           'Unable to %s monitors: %2$s',
           variables.enabled ? t('enable') : t('disable'),
-          error.message
+          error.responseText
         )
       );
     },
