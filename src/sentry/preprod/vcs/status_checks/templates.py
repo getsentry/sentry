@@ -5,7 +5,9 @@ from django.utils.translation import gettext_lazy as _
 from sentry.preprod.models import PreprodArtifact
 
 
-def format_status_messages(preprod_artifact: PreprodArtifact) -> tuple[str, str, str, str | None]:
+def format_status_check_messages(
+    preprod_artifact: PreprodArtifact,
+) -> tuple[str, str, str, str | None]:
     """
     Format status check messages based on artifact state.
 

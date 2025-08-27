@@ -19,7 +19,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.vcs.status_checks.templates import format_status_messages
+from sentry.preprod.vcs.status_checks.templates import format_status_check_messages
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -67,7 +67,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
     else:
         raise ValueError(f"Invalid artifact state: {preprod_artifact.state}")
 
-    title, subtitle, summary, text = format_status_messages(preprod_artifact)
+    title, subtitle, summary, text = format_status_check_messages(preprod_artifact)
 
     if not preprod_artifact.commit_comparison:
         logger.info(
