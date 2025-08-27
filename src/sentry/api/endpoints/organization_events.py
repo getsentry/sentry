@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
+    transform_orderby_for_error_upsampling,
     transform_query_columns_for_error_upsampling,
 )
 from sentry.api.paginator import GenericOffsetPaginator
@@ -321,19 +322,22 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             query: str | None,
         ):
             selected_columns = self.get_field_list(organization, request)
+            orderby = self.get_orderby(request)
             if is_errors_query_for_error_upsampled_projects(
                 snuba_params, organization, dataset, request
             ):
                 selected_columns = transform_query_columns_for_error_upsampling(
                     selected_columns, False
                 )
+                if orderby:
+                    orderby = transform_orderby_for_error_upsampling(orderby)
             query_source = self.get_request_source(request)
             return dataset_query(
                 selected_columns=selected_columns,
                 query=query or "",
                 snuba_params=snuba_params,
                 equations=self.get_equation_list(organization, request),
-                orderby=self.get_orderby(request),
+                orderby=orderby,
                 offset=offset,
                 limit=limit,
                 referrer=referrer,
