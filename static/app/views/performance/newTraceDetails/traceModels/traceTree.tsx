@@ -11,8 +11,7 @@ import type {
   TraceFullDetailed,
   TracePerformanceIssue as TracePerformanceIssueType,
   TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
-import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
+} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
@@ -32,12 +31,14 @@ import {
   isNonTransactionEAPSpanNode,
   isPageloadTransactionNode,
   isParentAutogroupedNode,
+  isRootEvent,
   isRootNode,
   isServerRequestHandlerTransactionNode,
   isSiblingAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
+  isTraceSplitResult,
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
@@ -46,7 +47,6 @@ import {
   type RENDERABLE_MEASUREMENTS,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 

@@ -18,7 +18,6 @@ import DisabledCustomInboundFilters from 'getsentry/components/features/disabled
 import DisabledDataForwarding from 'getsentry/components/features/disabledDataForwarding';
 import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
-import DisabledQuickTrace from 'getsentry/components/features/disabledQuickTrace';
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
 import DisabledRelay from 'getsentry/components/features/disabledRelay';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
@@ -288,7 +287,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </LazyLoad>
   ),
-  'feature-disabled:performance-quick-trace': p => <DisabledQuickTrace {...p} />,
   'feature-disabled:alerts-page': p => (
     <LazyLoad
       LazyComponent={DisabledAlertsPage}
