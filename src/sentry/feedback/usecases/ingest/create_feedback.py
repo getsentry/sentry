@@ -314,6 +314,9 @@ def create_feedback_issue(
         get_feedback_title(feedback_message, project.organization_id, use_ai_title)
     )
 
+    # Set feedback summary to the title without the "User Feedback: " prefix
+    evidence_data["summary"] = title
+
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event["event_id"],
@@ -339,10 +342,6 @@ def create_feedback_issue(
             "tags": event.get("tags", {}),
         }
     )
-
-    # Set feedback summary to the title without the "User Feedback: " prefix
-    if "metadata" in event_fixed:
-        event_fixed["metadata"]["summary"] = title
 
     # Generating labels using Seer, which will later be used to categorize feedbacks
     if should_query_seer and features.has(

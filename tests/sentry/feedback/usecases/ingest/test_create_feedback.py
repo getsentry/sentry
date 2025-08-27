@@ -939,6 +939,10 @@ def test_create_feedback_issue_title(
             occurrence.issue_title
             == "User Feedback: This is a very long feedback message that describes multiple..."
         )
+        assert (
+            occurrence.evidence_data["summary"]
+            == "This is a very long feedback message that describes multiple..."
+        )
 
 
 @django_db_all
@@ -966,6 +970,7 @@ def test_create_feedback_issue_title_from_seer(
         assert mock_produce_occurrence_to_kafka.call_count == 1
         occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
         assert occurrence.issue_title == "User Feedback: Login Button Issue"
+        assert occurrence.evidence_data["summary"] == "Login Button Issue"
 
 
 @django_db_all
