@@ -1,6 +1,7 @@
 import type {EventsStats} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isOnDemandAggregate, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
@@ -38,11 +39,15 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
           ? '9998m'
           : options.statsPeriod;
 
-      // TODO: Check that the user has access to on-demand metrics
+      const hasMetricDataset =
+        hasOnDemandMetricAlertFeature(options.organization) ||
+        options.organization.features.includes('mep-rollout-flag') ||
+        options.organization.features.includes('dashboards-metrics-transition');
       const isOnDemandQuery =
         options.dataset === Dataset.GENERIC_METRICS &&
         isOnDemandQueryString(options.query);
-      const isOnDemand = isOnDemandAggregate(options.aggregate) && isOnDemandQuery;
+      const isOnDemand =
+        hasMetricDataset && (isOnDemandAggregate(options.aggregate) || isOnDemandQuery);
       const query = DetectorTransactionsConfig.toSnubaQueryString({
         eventTypes: options.eventTypes,
         query: options.query,
