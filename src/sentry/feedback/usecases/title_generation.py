@@ -25,7 +25,7 @@ class GenerateFeedbackTitleRequest(TypedDict):
     feedback_message: str
 
 
-def format_feedback_title(title: str, max_words: int = 10, include_prefix: bool = True) -> str:
+def format_feedback_title(title: str, max_words: int = 10) -> str:
     """
     Clean and format a title for user feedback issues.
     Format: "User Feedback: [first few words of title]"
@@ -54,7 +54,7 @@ def format_feedback_title(title: str, max_words: int = 10, include_prefix: bool 
     if len(summary) > 185:  # Conservative limit
         summary = summary[:182] + "..."
 
-    return f"User Feedback: {summary}" if include_prefix else summary
+    return summary
 
 
 @metrics.wraps("feedback.ai_title_generation")

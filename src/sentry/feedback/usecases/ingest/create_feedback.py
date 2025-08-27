@@ -310,17 +310,16 @@ def create_feedback_issue(
     use_ai_title = should_query_seer and features.has(
         "organizations:user-feedback-ai-titles", project.organization
     )
-    title_without_prefix = get_feedback_title(
-        feedback_message, project.organization_id, use_ai_title
+    title = format_feedback_title(
+        get_feedback_title(feedback_message, project.organization_id, use_ai_title)
     )
-    title = format_feedback_title(title_without_prefix)
 
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event["event_id"],
         project_id=project.id,
         fingerprint=issue_fingerprint,  # random UUID for fingerprint so feedbacks are grouped individually
-        issue_title=title,
+        issue_title=f"User Feedback: {title}",
         subtitle=feedback_message,
         resource_id=None,
         evidence_data=evidence_data,
@@ -343,9 +342,7 @@ def create_feedback_issue(
 
     # Set feedback summary to the title without the "User Feedback: " prefix
     event_fixed["metadata"] = event_fixed.get("metadata", {})
-    event_fixed["metadata"]["summary"] = format_feedback_title(
-        title_without_prefix, include_prefix=False
-    )
+    event_fixed["metadata"]["summary"] = title
 
     # Generating labels using Seer, which will later be used to categorize feedbacks
     if should_query_seer and features.has(
