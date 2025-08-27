@@ -19,6 +19,8 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
@@ -29,6 +31,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  getFieldDefinition,
   type AggregationKey,
 } from 'sentry/utils/fields';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
@@ -166,40 +169,32 @@ function SpansSearchBar({
 }: {
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
-  const {displayAskSeer, query, currentInputValueRef, committedQuery} =
-    useSearchQueryBuilder();
-  const previousInputValue = usePrevious(
-    currentInputValueRef.current,
-    // We want to skip updating the previous input value if the value has gone empty, but
-    // there is still a query value.
-    currentInputValueRef.current.trim().length === 0 && !(query.trim().length === 0)
-  );
+  const {displayAskSeer, currentInputValueRef, committedQuery} = useSearchQueryBuilder();
 
-  let initialSeerQuery = query.trim()
-    ? query.trim()
-    : currentInputValueRef.current.trim();
+  if (displayAskSeer) {
+    const inputValue = currentInputValueRef.current.trim();
+    const parsedQuery = parseQueryBuilderValue(committedQuery, getFieldDefinition);
+    // Remove any tokens that include the user inputted value.
+    const filteredCommittedQuery = parsedQuery
+      ?.filter(token => token.text.length > 0 && !token.text.includes(inputValue))
+      ?.map(token => stringifyToken(token))
+      .join(' ')
+      .trim();
 
-  // If the user manually selects an input value, we never actually have an input value,
-  // so we need to check if the user has ever inputted a value.
-  const userHasInputted =
-    currentInputValueRef.current.trim().length > 0 ||
-    previousInputValue.trim().length > 0;
+    let initialSeerQuery = '';
+    if (filteredCommittedQuery) {
+      initialSeerQuery = `${filteredCommittedQuery}`;
+    }
 
-  // We want to reset the query if the user has cleared the input, but there's still
-  // a committed query present
-  if (
-    userHasInputted &&
-    previousInputValue.trim().length === 0 &&
-    committedQuery.trim().length > 0
-  ) {
-    initialSeerQuery = '';
+    if (inputValue) {
+      initialSeerQuery =
+        initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
+    }
+
+    return <SeerComboBox initialQuery={initialSeerQuery} />;
   }
 
-  return displayAskSeer ? (
-    <SeerComboBox initialQuery={initialSeerQuery} />
-  ) : (
-    <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
-  );
+  return <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />;
 }
 
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
