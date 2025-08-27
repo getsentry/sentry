@@ -345,7 +345,57 @@ describe('SpansTabContent', () => {
       });
     });
 
-    it('brings along only the submitted query', async () => {
+    it('brings along the query', async () => {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const input = screen.getByRole('combobox');
+      await userEvent.click(input);
+      await userEvent.type(input, 'span.duration:>10ms{enter}');
+
+      // re-open the combobox
+      await userEvent.click(input);
+      const askSeer = await screen.findByText(/Ask Seer/);
+      await userEvent.click(askSeer);
+
+      const askSeerInput = screen.getByRole('combobox', {
+        name: 'Ask Seer with Natural Language',
+      });
+
+      await waitFor(() => {
+        expect(askSeerInput).toHaveValue('span.duration is greater than 10ms ');
+      });
+    });
+
+    it('brings along the user input', async () => {
+      render(
+        <Wrapper>
+          <SpansTabContent datePageFilterProps={datePageFilterProps} />
+        </Wrapper>,
+        {organization}
+      );
+
+      const input = screen.getByRole('combobox');
+      await userEvent.click(input);
+      await userEvent.type(input, ' random');
+
+      const askSeer = await screen.findByText(/Ask Seer/);
+      await userEvent.click(askSeer);
+
+      const askSeerInput = screen.getByRole('combobox', {
+        name: 'Ask Seer with Natural Language',
+      });
+
+      await waitFor(() => {
+        expect(askSeerInput).toHaveValue('random ');
+      });
+    });
+
+    it('brings along only the query and the user input', async () => {
       render(
         <Wrapper>
           <SpansTabContent datePageFilterProps={datePageFilterProps} />
@@ -366,7 +416,7 @@ describe('SpansTabContent', () => {
       });
 
       await waitFor(() => {
-        expect(askSeerInput).toHaveValue('span.duration is greater than 10ms ');
+        expect(askSeerInput).toHaveValue('span.duration is greater than 10ms random ');
       });
     });
   });
