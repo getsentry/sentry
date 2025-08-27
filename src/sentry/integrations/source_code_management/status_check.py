@@ -15,7 +15,6 @@ class StatusCheckStatus(str, enum.Enum):
     FAILURE = "failure"
     NEUTRAL = "neutral"
     SUCCESS = "success"
-    TIMED_OUT = "timed_out"
 
 
 class StatusCheckClient(ABC):
