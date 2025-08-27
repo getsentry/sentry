@@ -72,7 +72,7 @@ export function ToolbarVisualizeDropdown({
             key={param.name}
             searchable
             options={fieldOptions}
-            value={parsedFunction?.arguments[0] ?? ''}
+            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
             onChange={option => onChangeArgument(index, option)}
             disabled={fieldOptions.length === 1}
           />

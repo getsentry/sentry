@@ -391,7 +391,7 @@ function AggregateSelector({
             key={param.name}
             data-test-id="editor-visualize-argument"
             options={argumentOptions}
-            value={parsedFunction?.arguments[0] ?? ''}
+            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
             onChange={option => handleArgumentChange(index, option)}
             searchable
             disabled={argumentOptions.length === 1}
