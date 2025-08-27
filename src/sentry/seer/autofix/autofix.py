@@ -326,8 +326,9 @@ def _get_all_tags_overview(group: Group) -> dict[str, Any] | None:
     Returns aggregated tag data with percentages for all tags.
     """
     environment_ids = list(
-        Environment.objects.filter(organization_id=group.project.organization_id)
-        .values_list("id", flat=True)[:25]
+        Environment.objects.filter(organization_id=group.project.organization_id).values_list(
+            "id", flat=True
+        )[:25]
     )
 
     tag_keys = tagstore.backend.get_group_tag_keys_and_top_values(
