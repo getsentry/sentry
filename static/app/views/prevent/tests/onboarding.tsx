@@ -114,7 +114,7 @@ export default function TestsOnboardingPage() {
               </div>
               <img
                 src={isDarkMode ? testAnalyticsTestPerfDark : testAnalyticsTestPerf}
-                alt="Test Analytics"
+                alt={t('Test Analytics example')}
               />
             </Flex>
           </IntroContainer>
