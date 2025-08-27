@@ -15,9 +15,8 @@ import {setWindowLocation} from 'sentry-test/utils';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
-import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import useProjects from 'sentry/utils/useProjects';
-import {TraceView} from 'sentry/views/performance/newTraceDetails/index';
+import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
   makeEventTransaction,
   makeSpan,
@@ -26,6 +25,8 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 import type {StoredTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+
+import type {TraceFullDetailed} from './traceApi/types';
 
 // TODO Abdullah Khan: Remove this, it's a hack as mocking ProjectsStore is not working,
 // a number of tests are failing as a result.

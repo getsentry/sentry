@@ -97,7 +97,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
             ts = datetime.fromisoformat(log["timestamp"])
             assert ts.tzinfo == timezone.utc
             timestamp_from_nanos = (
-                source.attributes["sentry.timestamp_nanos"].int_value / 1_000_000_000
+                source.attributes["sentry.observed_timestamp_nanos"].int_value / 1_000_000_000
             )
             assert ts.timestamp() == pytest.approx(timestamp_from_nanos, abs=5), "timestamp"
 
@@ -364,12 +364,20 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         logs = [
             self.create_ourlog(
                 {"body": "foo"},
-                attributes={"sentry.observed_timestamp_nanos": str(self.ten_mins_ago.timestamp())},
+                attributes={
+                    "sentry.observed_timestamp_nanos": str(
+                        self.ten_mins_ago.timestamp() * 1_000_000_000
+                    )
+                },
                 timestamp=self.ten_mins_ago,
             ),
             self.create_ourlog(
                 {"body": "bar"},
-                attributes={"sentry.observed_timestamp_nanos": str(self.nine_mins_ago.timestamp())},
+                attributes={
+                    "sentry.observed_timestamp_nanos": str(
+                        self.nine_mins_ago.timestamp() * 1_000_000_000
+                    ),
+                },
                 timestamp=self.nine_mins_ago,
             ),
         ]
@@ -386,7 +394,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                     "severity",
                     "timestamp",
                     "tags[sentry.timestamp_precise,number]",
-                    "sentry.observed_timestamp_nanos",
+                    "observed_timestamp",
                     "message",
                 ],
                 "per_page": 1000,
@@ -414,7 +422,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                 "tags[sentry.timestamp_precise,number]": pytest.approx(
                     source.attributes["sentry.timestamp_precise"].int_value
                 ),
-                "sentry.observed_timestamp_nanos": source.attributes[
+                "observed_timestamp": source.attributes[
                     "sentry.observed_timestamp_nanos"
                 ].string_value,
                 "message": source.attributes["sentry.body"].string_value,
@@ -441,6 +449,14 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                 attributes={
                     "sentry.message.parameter.0": "laptop",
                     "sentry.message.parameter.1": "charlie",
+                },
+                timestamp=self.nine_mins_ago - timedelta(minutes=1),
+            ),
+            self.create_ourlog(
+                {"body": "Item {0} of {1}"},
+                attributes={
+                    "sentry.message.parameter.0": 5,
+                    "sentry.message.parameter.1": 10,
                 },
                 timestamp=self.nine_mins_ago - timedelta(minutes=1),
             ),
@@ -489,6 +505,27 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["message"] == "Item {0} was purchased by {1}"
         assert data[0]["message.parameter.0"] == "laptop"
         assert data[0]["message.parameter.1"] == "charlie"
+
+        response = self.do_request(
+            {
+                "field": [
+                    "timestamp",
+                    "message",
+                    "tags[message.parameter.0,number]",
+                    "tags[message.parameter.1,number]",
+                ],
+                "query": "tags[message.parameter.0,number]:>0",
+                "orderby": "-timestamp",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["message"] == "Item {0} of {1}"
+        assert data[0]["tags[message.parameter.0,number]"] == 5
+        assert data[0]["tags[message.parameter.1,number]"] == 10
 
         response = self.do_request(
             {

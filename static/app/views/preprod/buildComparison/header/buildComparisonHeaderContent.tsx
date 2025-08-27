@@ -53,11 +53,17 @@ export function BuildComparisonHeaderContent(props: BuildComparisonHeaderContent
         </Flex>
         <Flex gap="sm" align="center">
           <InfoIcon>
-            <PlatformIcon
-              platform={getPlatformIconFromPlatform(buildDetails.app_info.platform)}
-            />
+            {buildDetails.app_info.platform ? (
+              <PlatformIcon
+                platform={getPlatformIconFromPlatform(buildDetails.app_info.platform)}
+              />
+            ) : null}
           </InfoIcon>
-          <Text>{getReadablePlatformLabel(buildDetails.app_info.platform)}</Text>
+          <Text>
+            {buildDetails.app_info.platform
+              ? getReadablePlatformLabel(buildDetails.app_info.platform)
+              : ''}
+          </Text>
         </Flex>
         <Flex gap="sm" align="center">
           <InfoIcon>
