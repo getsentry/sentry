@@ -1491,9 +1491,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 == "Enabled platforms: PlayStation, Xbox; Disabled platforms: Nintendo Switch"
             )
 
-    def test_enable_pr_review_test_generation_default_true(self) -> None:
+    def test_enable_pr_review_test_generation_default_false(self) -> None:
         response = self.get_success_response(self.organization.slug)
-        assert response.data["enablePrReviewTestGeneration"] is True
+        assert response.data["enablePrReviewTestGeneration"] is False
 
     def test_enable_pr_review_test_generation_can_be_disabled(self) -> None:
         data = {"enablePrReviewTestGeneration": False}
