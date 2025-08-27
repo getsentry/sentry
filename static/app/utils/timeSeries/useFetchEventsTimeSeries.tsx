@@ -49,7 +49,7 @@ export function useFetchEventsTimeSeries<T extends string>(
     );
   }
 
-  return useApiQuery<TimeSeries[]>(
+  return useApiQuery<EventsTimeSeriesResponse>(
     [
       `/organizations/${organization.slug}/events-timeseries/`,
       {
@@ -80,3 +80,12 @@ export function useFetchEventsTimeSeries<T extends string>(
     }
   );
 }
+
+type EventsTimeSeriesResponse = {
+  meta: {
+    dataset: DiscoverDatasets;
+    end: number;
+    start: number;
+  };
+  timeseries: TimeSeries[];
+};
