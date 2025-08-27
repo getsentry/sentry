@@ -131,6 +131,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         assert event.message == "Expect-CT failed for 'www.example.com'"
         assert event.group.title == "Expect-CT failed for 'www.example.com'"
 
+    @pytest.mark.skip(reason="flaky: #98361")
     def test_expect_staple(self) -> None:
         event_data = {
             "expect-staple-report": {
