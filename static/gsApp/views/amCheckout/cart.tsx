@@ -21,7 +21,6 @@ import {
   OnDemandBudgetMode,
   type Plan,
   type PreviewData,
-  type Promotion,
   type Subscription,
 } from 'getsentry/types';
 import {
@@ -32,6 +31,7 @@ import {
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import {loadStripe} from 'getsentry/utils/stripe';
+import CartDiff from 'getsentry/views/amCheckout/cartDiff';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -48,13 +48,10 @@ const NULL_PREVIEW_STATE: CartPreviewState = {
 interface CartProps {
   activePlan: Plan;
   formData: CheckoutFormData;
+  freePlan: Plan;
   hasCompleteBillingDetails: boolean;
   organization: Organization;
   subscription: Subscription;
-  /**
-   * TODO(isabella): Add this back in (was not ported from checkout v1 to v2)
-   */
-  discountInfo?: Promotion['discountInfo'];
   referrer?: string;
 }
 
@@ -517,6 +514,7 @@ function Cart({
   organization,
   referrer,
   hasCompleteBillingDetails,
+  freePlan,
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -652,6 +650,14 @@ function Cart({
   return (
     <CartContainer data-test-id="cart">
       {errorMessage && <Alert type="error">{errorMessage}</Alert>}
+      <SummarySection>
+        <CartDiff
+          activePlan={activePlan}
+          formData={formData}
+          subscription={subscription}
+          freePlan={freePlan}
+        />
+      </SummarySection>
       <PlanSummary activePlan={activePlan} formData={formData} />
       <SubtotalSummary
         activePlan={activePlan}

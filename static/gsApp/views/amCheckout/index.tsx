@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {QueryObserverResult} from '@tanstack/react-query';
@@ -239,6 +240,10 @@ class AMCheckout extends Component<Props, State> {
     }
 
     this.setState({loading: false});
+  }
+
+  getFreePlan(billingConfig: BillingConfig) {
+    return billingConfig.planList.find(plan => plan.id === billingConfig.freePlan)!;
   }
 
   getPaidPlans(billingConfig: BillingConfig) {
@@ -792,13 +797,13 @@ class AMCheckout extends Component<Props, State> {
           data-test-id="change-subscription"
         />
 
-        <CheckoutContainer>
+        <CheckoutContainer isNewCheckout={!!isNewCheckout}>
           <CheckoutMain>
             {this.renderPartnerAlert()}
             <div data-test-id="checkout-steps">{this.renderSteps()}</div>
           </CheckoutMain>
           <SidePanel>
-            <OverviewContainer>
+            <OverviewContainer isNewCheckout={!!isNewCheckout}>
               {isNewCheckout ? (
                 <Cart
                   {...overviewProps}
@@ -806,6 +811,7 @@ class AMCheckout extends Component<Props, State> {
                   // TODO(checkout v3): we'll also need to fetch billing details but
                   // this will be done in a later PR
                   hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
+                  freePlan={this.getFreePlan(billingConfig)}
                 />
               ) : checkoutTier === PlanTier.AM3 ? (
                 <CheckoutOverviewV2 {...overviewProps} />
@@ -854,12 +860,13 @@ class AMCheckout extends Component<Props, State> {
   }
 }
 
-const CheckoutContainer = styled('div')`
+const CheckoutContainer = styled('div')<{isNewCheckout: boolean}>`
   display: grid;
   gap: ${space(3)};
-  grid-template-columns: 58% auto;
+  grid-template-columns: 3fr 2fr;
 
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+  @media (max-width: ${p =>
+      p.isNewCheckout ? p.theme.breakpoints.md : p.theme.breakpoints.lg}) {
     grid-template-columns: auto;
   }
 `;
@@ -872,13 +879,18 @@ const SidePanel = styled('div')`
 `;
 
 /**
- * Hide overview at smaller screen sizes
- * but keep cancel subscription button
+ * Hide overview at smaller screen sizes in old checkout
+ * Bring overview to bottom at smaller screen sizes in new checkout
+ * Cancel subscription button is always visible
  */
-const OverviewContainer = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    display: none;
-  }
+const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
+  ${p =>
+    !p.isNewCheckout &&
+    css`
+      @media (max-width: ${p.theme.breakpoints.lg}) {
+        display: none;
+      }
+    `}
 `;
 
 const SupportPrompt = styled(Panel)`
