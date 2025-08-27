@@ -238,7 +238,7 @@ def translate_columns(columns):
 
 def translate_equations(equations):
     if equations is None:
-        return None, None, None
+        return None, None
 
     translated_equations = []
     dropped_equations = []
