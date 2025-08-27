@@ -48,6 +48,8 @@ import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
 
+const DAYS_TO_MS = 24 * 60 * 60 * 1000;
+
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
 const SESSION_DURATION_ALERT_TEXT = tct(
@@ -387,11 +389,14 @@ function useTimeRangeWarning({widget}: {widget: Widget}) {
     selection: {datetime},
   } = usePageFilters();
   const useRetentionLimit =
-    HookStore.get('react-hook:use-dashboard-dataset-retention-limit')[0] ??
-    (() => [null, '']);
-  const [retentionLimitDate, retentionLimitDays] = useRetentionLimit({
+    HookStore.get('react-hook:use-dashboard-dataset-retention-limit')[0] ?? (() => null);
+  const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });
+
+  if (!retentionLimitDays) {
+    return null;
+  }
 
   // Number of days from now using the stats period
   const statsPeriodDaysFromNow = statsPeriodToDays(
@@ -402,9 +407,8 @@ function useTimeRangeWarning({widget}: {widget: Widget}) {
 
   // Convert the number of days to ms so we can get an end date to check if the
   // widget is querying more than its retention allows
-  const statsPeriodToEnd = new Date(
-    Date.now() - statsPeriodDaysFromNow * 24 * 60 * 60 * 1000
-  );
+  const statsPeriodToEnd = new Date(Date.now() - statsPeriodDaysFromNow * DAYS_TO_MS);
+  const retentionLimitDate = new Date(Date.now() - retentionLimitDays * DAYS_TO_MS);
   if (
     (retentionLimitDate && datetime.end && retentionLimitDate > datetime.end) ||
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)

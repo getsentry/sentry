@@ -331,7 +331,7 @@ type ReactHooks = {
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
-  }) => [Date, string];
+  }) => number;
   'react-hook:use-get-max-retention-days': () => number | undefined;
   'react-hook:use-metric-detector-limit': () => {
     detectorCount: number;

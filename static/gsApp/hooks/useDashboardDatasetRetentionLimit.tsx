@@ -3,8 +3,8 @@ import {WidgetType} from 'sentry/views/dashboards/types';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
 
-const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
+const THIRTY_DAYS = 30;
+const NINETY_DAYS = 90;
 
 /**
  * Returns the retention limit for a given dataset.
@@ -12,13 +12,13 @@ const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
  * The retention limit is in relation to the organization's plan.
  *
  * @param dataset - The dataset to get the retention limit for.
- * @returns The date of the last data point that can be displayed in the dashboard and the number of days of retention.
+ * @returns The number of days of retention from now.
  */
 export function useDashboardDatasetRetentionLimit({
   dataset,
 }: {
   dataset: WidgetType;
-}): [Date, string] {
+}): number {
   const subscription = useSubscription();
   let retentionLimit = NINETY_DAYS;
 
@@ -35,8 +35,5 @@ export function useDashboardDatasetRetentionLimit({
       break;
   }
 
-  return [
-    new Date(Date.now() - retentionLimit),
-    retentionLimit === NINETY_DAYS ? '90' : '30',
-  ];
+  return retentionLimit;
 }
