@@ -264,6 +264,7 @@ DETAILED_PROJECT = {
     "symbolSources": "[]",
     "tempestFetchScreenshots": False,
     "tempestFetchDumps": False,
+    "debugFilesRole": None,
     "isDynamicallySampled": True,
     "autofixAutomationTuning": "off",
     "seerScannerAutomation": True,
