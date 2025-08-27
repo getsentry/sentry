@@ -4,6 +4,7 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {getIntervalForMetricFunction} from 'sentry/views/insights/database/utils/getIntervalForMetricFunction';
+import {DEFAULT_INTERVAL} from 'sentry/views/insights/settings';
 
 /**
  * Given a list of requested Y axes and a date range, figures out the most appropriate interval.
@@ -31,5 +32,3 @@ export function getIntervalForTimeSeriesQuery(
     intervalToMilliseconds
   ).at(-1)!; // NOTE: Non-null assertion because we check the length at the start of the function!
 }
-
-const DEFAULT_INTERVAL = '10m';
