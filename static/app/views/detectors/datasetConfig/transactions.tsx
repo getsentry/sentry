@@ -1,6 +1,7 @@
 import type {EventsStats} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isOnDemandAggregate, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
 import {
@@ -20,7 +21,7 @@ import {parseEventTypesFromQuery} from './eventTypes';
 
 type TransactionsSeriesResponse = EventsStats;
 
-const DEFAULT_EVENT_TYPES = ['transaction'];
+const DEFAULT_EVENT_TYPES = [EventTypes.TRANSACTION];
 
 export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSeriesResponse> =
   {
@@ -37,11 +38,19 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
           ? '9998m'
           : options.statsPeriod;
 
-      const isOnDemand =
-        isOnDemandAggregate(options.aggregate) && isOnDemandQueryString(options.query);
+      // TODO: Check that the user has access to on-demand metrics
+      const isOnDemandQuery =
+        options.dataset === Dataset.GENERIC_METRICS &&
+        isOnDemandQueryString(options.query);
+      const isOnDemand = isOnDemandAggregate(options.aggregate) && isOnDemandQuery;
+      const query = DetectorTransactionsConfig.toSnubaQueryString({
+        eventTypes: options.eventTypes,
+        query: options.query,
+      });
 
       return getDiscoverSeriesQueryOptions({
         ...options,
+        query,
         statsPeriod: timePeriod,
         dataset: DetectorTransactionsConfig.getDiscoverDataset(),
         ...(isOnDemand && {extra: {useOnDemandMetrics: 'true'}}),
@@ -53,7 +62,17 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     getTimePeriods: interval => getStandardTimePeriodsForInterval(interval),
     separateEventTypesFromQuery: query =>
       parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
-    toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
+    toSnubaQueryString: snubaQuery => {
+      if (!snubaQuery) {
+        return '';
+      }
+
+      if (snubaQuery.query.includes('event.type:transaction')) {
+        return snubaQuery.query;
+      }
+
+      return `event.type:transaction ${snubaQuery.query}`;
+    },
     transformSeriesQueryData: (data, aggregate) => {
       return [transformEventsStatsToSeries(data, aggregate)];
     },
