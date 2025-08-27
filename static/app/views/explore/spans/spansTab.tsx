@@ -175,18 +175,21 @@ function SpansSearchBar({
   if (displayAskSeer) {
     const inputValue = currentInputValueRef.current.trim();
     const parsedQuery = parseQueryBuilderValue(committedQuery, getFieldDefinition);
+
     // Remove any tokens that include the user inputted value.
     const filteredCommittedQuery = parsedQuery
       ?.filter(
         token => !(token.type === Token.FREE_TEXT && token.text.includes(inputValue))
       )
       ?.map(token => stringifyToken(token))
-      .join(' ')
-      .trim();
+      ?.join(' ')
+      ?.trim();
 
     let initialSeerQuery = '';
-    if (filteredCommittedQuery) {
+    if (typeof filteredCommittedQuery === 'string') {
       initialSeerQuery = `${filteredCommittedQuery}`;
+    } else if (committedQuery) {
+      initialSeerQuery = `${committedQuery}`;
     }
 
     if (inputValue) {
