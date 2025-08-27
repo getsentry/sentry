@@ -8,7 +8,7 @@ import {
 import {openConfirmModal} from 'sentry/components/confirm';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -57,14 +57,22 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
   const mutationOptions = useMemo(
     () => ({
       onError: () => {
-        addErrorMessage(t('An error occurred while updating the feedback'));
+        addErrorMessage(
+          tn(
+            'An error occurred while updating the feedback item',
+            'An error occurred while updating the feedback items',
+            selectedIds.length
+          )
+        );
       },
       onSuccess: () => {
-        addSuccessMessage(t('Updated feedback'));
+        addSuccessMessage(
+          tn('Updated feedback item', 'Updated feedback items', selectedIds.length)
+        );
         deselectAll();
       },
     }),
-    [deselectAll]
+    [deselectAll, selectedIds.length]
   );
 
   const onToggleResolved = useCallback(
@@ -79,14 +87,28 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
               type: 'bulk',
             });
           }
-          addLoadingMessage(t('Updating feedback...'));
+          addLoadingMessage(
+            tn(
+              'Updating feedback item...',
+              'Updating feedback items...',
+              selectedIds.length
+            )
+          );
           resolve(newMailbox, mutationOptions);
         },
         message: moveToInbox
-          ? t('Are you sure you want to move these feedback to the inbox?')
-          : tct('Are you sure you want to mark these feedback as [status]?', {
-              status: statusToText[newMailbox],
-            }),
+          ? tn(
+              'Are you sure you want to move this feedback item to the inbox?',
+              'Are you sure you want to move these feedback items to the inbox?',
+              selectedIds.length
+            )
+          : selectedIds.length === 1
+            ? tct('Are you sure you want to mark this feedback item as [status]?', {
+                status: statusToText[newMailbox],
+              })
+            : tct('Are you sure you want to mark these feedback items as [status]?', {
+                status: statusToText[newMailbox],
+              }),
         confirmText: moveToInbox ? t('Move to Inbox') : statusToButtonLabel[newMailbox],
       });
     },
@@ -98,10 +120,20 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
       openConfirmModal({
         bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
         onConfirm: () => {
-          addLoadingMessage(t('Updating feedback...'));
+          addLoadingMessage(
+            tn(
+              'Updating feedback item...',
+              'Updating feedback items...',
+              selectedIds.length
+            )
+          );
           markAsRead(true, mutationOptions);
         },
-        message: t('Are you sure you want to mark these feedback as read?'),
+        message: tn(
+          'Are you sure you want to mark this feedback item as read?',
+          'Are you sure you want to mark these feedback items as read?',
+          selectedIds.length
+        ),
         confirmText: 'Mark read',
       }),
     [markAsRead, mutationOptions, selectedIds]
@@ -112,18 +144,36 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
       openConfirmModal({
         bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
         onConfirm: () => {
-          addLoadingMessage(t('Updating feedback...'));
+          addLoadingMessage(
+            tn(
+              'Updating feedback item...',
+              'Updating feedback items...',
+              selectedIds.length
+            )
+          );
           markAsRead(false, {
             onError: () => {
-              addErrorMessage(t('An error occurred while updating the feedback'));
+              addErrorMessage(
+                tn(
+                  'An error occurred while updating the feedback item',
+                  'An error occurred while updating the feedback items',
+                  selectedIds.length
+                )
+              );
             },
             onSuccess: () => {
-              addSuccessMessage(t('Updated feedback'));
+              addSuccessMessage(
+                tn('Updated feedback item', 'Updated feedback items', selectedIds.length)
+              );
               deselectAll();
             },
           });
         },
-        message: t('Are you sure you want to mark these feedback as unread?'),
+        message: tn(
+          'Are you sure you want to mark this feedback item as unread?',
+          'Are you sure you want to mark these feedback items as unread?',
+          selectedIds.length
+        ),
         confirmText: 'Mark unread',
       }),
     [deselectAll, markAsRead, selectedIds]
