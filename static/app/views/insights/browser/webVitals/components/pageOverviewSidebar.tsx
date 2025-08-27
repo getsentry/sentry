@@ -6,6 +6,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
   makeAutofixQueryKey,
@@ -431,12 +432,10 @@ const ProjectScoreEmptyLoadingElement = styled('div')`
   height: 160px;
 `;
 
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
+const Content = styled(Flex)`
   gap: ${p => p.theme.space.xs};
   position: relative;
-  margin: ${p => p.theme.space.xs} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const InsightGrid = styled('div')`
