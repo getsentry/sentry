@@ -25,17 +25,16 @@ class GenerateFeedbackTitleRequest(TypedDict):
     feedback_message: str
 
 
-def format_feedback_title(title: str, max_words: int = 10) -> str:
+def truncate_feedback_title(title: str, max_words: int = 10) -> str:
     """
-    Clean and format a title for user feedback issues.
-    Format: "User Feedback: [first few words of title]"
+    Clean, truncate, and format a title for user feedback issues.
 
     Args:
-        title: The title to format
+        title: The title to truncate
         max_words: Maximum number of words to include from the title
 
     Returns:
-        A formatted title string
+        A truncated and formatted title string
     """
     stripped_message = title.strip()
 
