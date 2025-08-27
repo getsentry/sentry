@@ -14,11 +14,11 @@ import type {
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   getLogRowTimestampMillis,
   getLogTimestampBucketIndex,
-  isLogsEnabled,
 } from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsGroupBys,

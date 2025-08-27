@@ -22,7 +22,7 @@ import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
-import {isLogsEnabled} from 'sentry/views/explore/logs/utils';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
