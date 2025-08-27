@@ -60,19 +60,19 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     )  # This should always be a string. Assertion to deal with typing errors.
 
     try:
-        if key.type == AttributeKey.Type.TYPE_DOUBLE:
+        if key.type == AttributeKey.TYPE_DOUBLE:
             attr_value = AttributeValue(val_double=float(value))
-        elif key.type == AttributeKey.Type.TYPE_FLOAT:
+        elif key.type == AttributeKey.TYPE_FLOAT:
             attr_value = AttributeValue(val_float=float(value))
-        elif key.type == AttributeKey.Type.TYPE_INT:
+        elif key.type == AttributeKey.TYPE_INT:
             attr_value = AttributeValue(val_int=int(value))
         else:
             attr_value = AttributeValue(val_str=value)
     except ValueError:
         expected_type = "string"
-        if key.type in [AttributeKey.Type.TYPE_FLOAT, AttributeKey.Type.TYPE_DOUBLE]:
+        if key.type in [AttributeKey.TYPE_FLOAT, AttributeKey.TYPE_DOUBLE]:
             expected_type = "number"
-        if key.type == AttributeKey.Type.TYPE_INT:
+        if key.type == AttributeKey.TYPE_INT:
             expected_type = "integer"
         raise InvalidSearchQuery(f"Invalid parameter '{value}'. Must be of type {expected_type}.")
 
