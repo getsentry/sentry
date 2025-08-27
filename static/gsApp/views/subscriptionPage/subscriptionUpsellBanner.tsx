@@ -90,7 +90,7 @@ function useIsSubscriptionUpsellHidden(
     !subscription.canTrial;
 
   // hide upsell for customers on partner plans with flag
-  const hasPBM = hasPartnerMigrationFeature(organization);
+  const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
 
   // exclude current tiers business, non-self serve, current trial orgs, legacy upsells, and orgs with pending business upgrade
   if (
@@ -99,7 +99,7 @@ function useIsSubscriptionUpsellHidden(
       isBizPlanFamily(subscription.planDetails)) ||
     subscription.isTrial ||
     isLegacyUpsell ||
-    hasPBM ||
+    hasEndingPartnerPlan ||
     isBizPlanFamily(subscription.pendingChanges?.planDetails)
   ) {
     return true;

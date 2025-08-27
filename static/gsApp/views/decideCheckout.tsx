@@ -23,8 +23,8 @@ function DecideCheckout(props: Props) {
   };
 
   const hasAm3Feature = organization.features?.includes('am3-billing');
-  const hasPBM = hasPartnerMigrationFeature(organization);
-  if (hasAm3Feature || hasPBM) {
+  const isMigratingPartner = hasPartnerMigrationFeature(organization);
+  if (hasAm3Feature || isMigratingPartner) {
     return (
       <ErrorBoundary errorTag={{checkout: PlanTier.AM3}}>
         <AMCheckout checkoutTier={PlanTier.AM3} {...checkoutProps} />
