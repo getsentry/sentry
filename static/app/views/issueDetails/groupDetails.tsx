@@ -67,6 +67,8 @@ import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
+import {GroupContentSkeleton} from 'sentry/views/issueDetails/skeletons/groupContentSkeleton';
+import {GroupDetailsSkeleton} from 'sentry/views/issueDetails/skeletons/groupDetailsSkeleton';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -250,6 +252,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   } = useGroupEvent({
     groupId,
     eventId: params.eventId,
+    // Enable event fetching even if group is still loading to parallelize requests
+    options: {enabled: !!groupId},
   });
 
   const {
@@ -258,6 +262,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     isError: isGroupError,
     error: groupError,
     refetch: refetchGroupCall,
+    isPlaceholderData: isGroupPlaceholderData,
   } = useGroup({groupId});
 
   /**
@@ -477,7 +482,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   }, []);
 
   return {
-    loadingGroup,
+    loadingGroup: loadingGroup && !isGroupPlaceholderData,
     group,
     // Allow previous event to be displayed while new event is loading
     event: (loadingEvent ? (event ?? previousEvent) : event) ?? null,
@@ -713,6 +718,33 @@ function GroupDetailsContent({
     Tab.ACTIVITY,
   ].includes(currentTab);
 
+  // Show partial skeleton if we have group but missing event
+  if (!event && isDisplayingEventDetails) {
+    return hasStreamlinedUI ? (
+      <GroupDetailsLayout group={group} event={undefined} project={project}>
+        <GroupContentSkeleton hasGroup hasEvent={false} />
+      </GroupDetailsLayout>
+    ) : (
+      <Tabs
+        value={currentTab}
+        onChange={tab => trackTabChanged({tab, group, project, event, organization})}
+      >
+        <GroupHeader
+          organization={organization}
+          event={event}
+          group={group}
+          baseUrl={baseUrl}
+          project={project}
+        />
+        <GroupTabPanels>
+          <TabPanels.Item key={currentTab}>
+            <GroupContentSkeleton hasGroup hasEvent={false} />
+          </TabPanels.Item>
+        </GroupTabPanels>
+      </Tabs>
+    );
+  }
+
   return hasStreamlinedUI ? (
     <GroupDetailsLayout group={group} event={event ?? undefined} project={project}>
       {isDisplayingEventDetails ? (
@@ -744,6 +776,7 @@ function GroupDetailsContent({
 
 interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
   children: React.ReactNode;
+  loadingGroup?: boolean;
 }
 
 function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
@@ -832,13 +865,38 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   const regressionIssueLoaded = defined(injectedEvent ?? props.event);
-  if (
-    !projectsLoaded ||
-    !projectWithFallback ||
-    !props.group ||
-    (isRegressionIssue && !regressionIssueLoaded)
-  ) {
-    return <LoadingIndicator />;
+  
+  // Show skeleton while essential data is loading, but allow partial rendering once we have some data
+  const showFullPageSkeleton = !projectsLoaded || 
+    (!projectWithFallback && projectsLoaded) || 
+    (!props.group && !props.loadingGroup);
+    
+  const showPartialSkeleton = props.group && 
+    isRegressionIssue && 
+    !regressionIssueLoaded;
+  
+  if (showFullPageSkeleton) {
+    return <GroupDetailsSkeleton hasProject={!!projectWithFallback} />;
+  }
+  
+  if (showPartialSkeleton) {
+    // Show partial content with skeleton for missing event data
+    return (
+      <TourContextProvider<IssueDetailsTour>
+        tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
+        isCompleted={isIssueDetailsTourCompleted}
+        orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
+        TourContext={IssueDetailsTourContext}
+      >
+        <GroupDetailsContent
+          project={projectWithFallback!}
+          group={props.group}
+          event={props.event ?? injectedEvent}
+        >
+          <GroupContentSkeleton hasGroup hasEvent={false} />
+        </GroupDetailsContent>
+      </TourContextProvider>
+    );
   }
 
   return (
@@ -861,7 +919,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
 
 function GroupDetails() {
   const organization = useOrganization();
-  const {group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
+  const {group, loadingGroup, ...fetchGroupDetailsProps} = useFetchGroupDetails();
   const isSampleError = useIsSampleEvent();
 
   const getGroupDetailsTitle = () => {
@@ -885,6 +943,17 @@ function GroupDetails() {
 
   const config = group && getConfigForIssueType(group, group.project);
 
+  // Show skeleton immediately if we don't have group data yet
+  if (loadingGroup && !group) {
+    return (
+      <SentryDocumentTitle noSuffix title="Loading Issue Details — Sentry">
+        <PageFiltersContainer skipLoadLastUsed>
+          <GroupDetailsSkeleton />
+        </PageFiltersContainer>
+      </SentryDocumentTitle>
+    );
+  }
+
   return (
     <Fragment>
       {isSampleError && group && (
@@ -897,7 +966,7 @@ function GroupDetails() {
           shouldForceProject
         >
           {config?.showFeedbackWidget && <FloatingFeedbackWidget />}
-          <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
+          <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group} loadingGroup={loadingGroup}>
             <Outlet />
           </GroupDetailsPageContent>
         </PageFiltersContainer>

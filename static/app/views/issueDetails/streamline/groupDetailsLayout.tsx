@@ -22,6 +22,7 @@ import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNa
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
+import {GroupContentSkeleton} from 'sentry/views/issueDetails/skeletons/groupContentSkeleton';
 import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
@@ -88,7 +89,14 @@ export function GroupDetailsLayout({
                   {!hasFilterBar && <ToggleSidebar size="sm" />}
                 </NavigationSidebarWrapper>
               )}
-              <ContentPadding>{children}</ContentPadding>
+              <ContentPadding>
+                {/* Show skeleton for content if event is missing */}
+                {!event ? (
+                  <GroupContentSkeleton hasGroup hasEvent={false} />
+                ) : (
+                  children
+                )}
+              </ContentPadding>
             </GroupContent>
           </SharedTourElement>
         </div>

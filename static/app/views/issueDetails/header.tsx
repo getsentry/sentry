@@ -15,6 +15,7 @@ import EventMessage from 'sentry/components/events/eventMessage';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import Placeholder from 'sentry/components/placeholder';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -41,7 +42,7 @@ import {getGroupReprocessingStatus} from './utils';
 type Props = {
   baseUrl: string;
   event: Event | null;
-  group: Group;
+  group: Group | null;
   organization: Organization;
   project: Project;
 };
@@ -186,6 +187,20 @@ function GroupHeaderTabs({
 
 function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   const location = useLocation();
+  
+  // Show skeleton if group is not available
+  if (!group) {
+    return (
+      <Layout.Header>
+        <SkeletonWrapper>
+          <Placeholder height="24px" width="200px" />
+          <Placeholder height="36px" width="60%" />
+          <Placeholder height="28px" width="40%" />
+        </SkeletonWrapper>
+      </Layout.Header>
+    );
+  }
+  
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   const {
@@ -332,6 +347,13 @@ const TitleHeading = styled('div')`
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
+`;
+
+const SkeletonWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  padding: ${space(2)} 0;
 `;
 
 const StatsWrapper = styled('div')`

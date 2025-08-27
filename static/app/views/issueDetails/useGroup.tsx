@@ -46,6 +46,14 @@ export function useGroup({groupId, options}: UseGroupOptions) {
       staleTime: 30000,
       gcTime: 30000,
       retry: false,
+      // Enable placeholder data to keep showing previous group while loading new environment data
+      placeholderData: (previousData, previousQuery) => {
+        // If we're changing environments for the same group, keep showing the previous data
+        if (previousData && previousQuery?.queryKey?.[0]?.includes?.(groupId)) {
+          return previousData;
+        }
+        return undefined;
+      },
       ...options,
     }
   );
