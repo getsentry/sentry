@@ -1,3 +1,4 @@
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks/index';
 
@@ -18,21 +19,42 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
   const organization = useOrganization();
   const subscription = useSubscription();
   const detectorLimit = subscription?.planDetails?.metricDetectorLimit ?? UNLIMITED_QUOTA;
+
+  const isWorkflowEngine = organization.features.includes('workflow-engine-ui');
   const hasFlag = organization.features.includes('workflow-engine-metric-detector-limit');
 
-  const {isLoading, isError, getResponseHeader} = useDetectorsQuery(
+  const {
+    isLoading: isDetectorsLoading,
+    isError: isDetectorsError,
+    getResponseHeader,
+  } = useDetectorsQuery(
     {
       query: 'type:metric',
       limit: 1,
     },
     {
-      enabled: hasFlag && detectorLimit !== UNLIMITED_QUOTA,
-      staleTime: 5 * 60 * 1000, // Set stale time to 5 mins to avoid unnecessary re-fetching
+      enabled: hasFlag && isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
     }
   );
 
-  const hits = getResponseHeader?.('X-Hits');
-  const detectorCount = hits ? parseInt(hits, 10) : NO_COUNT;
+  const {
+    isLoading: isCombinedRulesLoading,
+    isError: isCombinedRulesError,
+    getResponseHeader: getCombinedRulesResponseHeader,
+  } = useApiQuery<any[]>(
+    [`/organizations/${organization.slug}/alert-rules/`, {query: {limit: 1}}],
+    {
+      enabled: hasFlag && !isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
+      staleTime: 0,
+    }
+  );
+
+  const isLoading = isWorkflowEngine ? isDetectorsLoading : isCombinedRulesLoading;
+  const isError = isWorkflowEngine ? isDetectorsError : isCombinedRulesError;
+  const detectorHits = isWorkflowEngine
+    ? getResponseHeader?.('X-Hits')
+    : getCombinedRulesResponseHeader?.('X-Hits');
+  const detectorCount = detectorHits ? parseInt(detectorHits, 10) : NO_COUNT;
 
   if (!hasFlag || detectorLimit === UNLIMITED_QUOTA) {
     return {
