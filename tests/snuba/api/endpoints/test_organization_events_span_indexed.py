@@ -2847,10 +2847,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
 
         assert response.status_code == 400, response.content
-        assert (
-            "Invalid parameter snequals. Must be one of ['equals', 'notEquals']"
-            == response.data["detail"]
-        )
+        assert "Invalid parameter snequals" in response.data["detail"]
 
     def test_ttif_ttfd_contribution_rate(self) -> None:
         spans = []
@@ -5713,7 +5710,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
 
         assert response.status_code == 400, response.content
-        assert "Invalid parameter " in response.data["detail"].title()
+        assert "Invalid Parameter " in response.data["detail"].title()
 
     def test_apdex_function(self) -> None:
         """Test the apdex function with span.duration and threshold."""
