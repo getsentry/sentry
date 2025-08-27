@@ -243,7 +243,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactsizemetrics"
-        unique_together = ("preprod_artifact", "metrics_artifact_type")
+        unique_together = ("preprod_artifact", "metrics_artifact_type", "identifier")
 
 
 @region_silo_model
