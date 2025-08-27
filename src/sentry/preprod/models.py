@@ -243,7 +243,20 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactsizemetrics"
-        unique_together = ("preprod_artifact", "metrics_artifact_type", "identifier")
+        constraints = [
+            # Unique constraint that properly handles NULL values
+            models.UniqueConstraint(
+                fields=["preprod_artifact", "metrics_artifact_type", "identifier"],
+                name="preprod_artifact_size_metrics_unique",
+                condition=models.Q(identifier__isnull=False),
+            ),
+            # Additional unique constraint for records without identifier
+            models.UniqueConstraint(
+                fields=["preprod_artifact", "metrics_artifact_type"],
+                name="preprod_artifact_size_metrics_unique_no_identifier",
+                condition=models.Q(identifier__isnull=True),
+            ),
+        ]
 
 
 @region_silo_model
