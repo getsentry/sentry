@@ -22,7 +22,7 @@ import {
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import DetectorsList from 'sentry/views/detectors/list';
 
-describe('DetectorsList', function () {
+describe('DetectorsList', () => {
   const organization = OrganizationFixture({
     features: ['workflow-engine-ui'],
     access: ['org:write'],
@@ -254,8 +254,8 @@ describe('DetectorsList', function () {
     });
   });
 
-  describe('bulk actions', function () {
-    beforeEach(function () {
+  describe('bulk actions', () => {
+    beforeEach(() => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
@@ -291,7 +291,7 @@ describe('DetectorsList', function () {
       );
     });
 
-    it('can select detectors', async function () {
+    it('can select detectors', async () => {
       render(<DetectorsList />, {organization});
       await screen.findByText('Enabled Detector');
 
@@ -337,7 +337,7 @@ describe('DetectorsList', function () {
       expect(screen.getByRole('button', {name: 'Delete'})).toBeInTheDocument();
     });
 
-    it('can enable selected detectors with confirmation', async function () {
+    it('can enable selected detectors with confirmation', async () => {
       const updateRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
         method: 'PUT',
@@ -377,7 +377,7 @@ describe('DetectorsList', function () {
       });
     });
 
-    it('can disable selected detectors with confirmation', async function () {
+    it('can disable selected detectors with confirmation', async () => {
       const updateRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
         method: 'PUT',
@@ -416,7 +416,7 @@ describe('DetectorsList', function () {
       });
     });
 
-    it('can delete selected detectors with confirmation', async function () {
+    it('can delete selected detectors with confirmation', async () => {
       const deleteRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
         method: 'DELETE',
@@ -453,7 +453,7 @@ describe('DetectorsList', function () {
       });
     });
 
-    it('shows option to select all query results when page is selected', async function () {
+    it('shows option to select all query results when page is selected', async () => {
       const deleteRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
         method: 'DELETE',
@@ -529,7 +529,7 @@ describe('DetectorsList', function () {
       });
     });
 
-    it('disables action buttons when user does not have permissions', async function () {
+    it('disables action buttons when user does not have permissions', async () => {
       const noPermsOrganization = OrganizationFixture({
         features: ['workflow-engine-ui'],
         access: [],
