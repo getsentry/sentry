@@ -163,14 +163,17 @@ class EventAttachment(Model):
 
     @classmethod
     def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
-        from sentry.models.files import FileBlob
-
         content_type = normalize_content_type(attachment.content_type, attachment.name)
-        data = attachment.data
-
-        if len(data) == 0:
+        if attachment.size == 0:
             return PutfileResult(content_type=content_type, size=0, sha1=sha1().hexdigest())
+        if attachment.stored_id is not None:
+            checksum = sha1().hexdigest()  # TODO: can we just remove the checksum requirement?
+            blob_path = V2_PREFIX + attachment.stored_id
+            return PutfileResult(
+                content_type=content_type, size=attachment.size, sha1=checksum, blob_path=blob_path
+            )
 
+        data = attachment.data
         blob = BytesIO(data)
         size, checksum = get_size_and_checksum(blob)
 
@@ -178,6 +181,8 @@ class EventAttachment(Model):
             blob_path = ":" + data.decode()
 
         elif not in_random_rollout("objectstore.enable_for.attachments"):
+            from sentry.models.files import FileBlob
+
             blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
 
             storage = get_storage()

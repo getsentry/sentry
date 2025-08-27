@@ -159,6 +159,7 @@ def _get_window_class_names(attachments: list[CachedAttachment]) -> list[str]:
 
     for attachment in attachments:
         if attachment.type == "event.view_hierarchy":
+            # TODO: adapt this to work with stored attachments
             view_hierarchy = orjson.loads(attachment_cache.get_data(attachment))
             windows_to_deobfuscate.extend(view_hierarchy.get("windows"))
 
@@ -201,6 +202,7 @@ def _deobfuscate_view_hierarchies(
     new_attachments = []
     for attachment in attachments:
         if attachment.type == "event.view_hierarchy":
+            # TODO: adapt this to work with stored attachments
             view_hierarchy = orjson.loads(attachment_cache.get_data(attachment))
             _deobfuscate_view_hierarchy(view_hierarchy, class_names)
             # Reupload to cache as a unchunked data

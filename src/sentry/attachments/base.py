@@ -25,8 +25,9 @@ class CachedAttachment:
         name=None,
         content_type=None,
         type=None,
-        data=UNINITIALIZED_DATA,
         chunks=None,
+        data=UNINITIALIZED_DATA,
+        stored_id=None,
         cache=None,
         rate_limited=None,
         size=None,
@@ -48,8 +49,9 @@ class CachedAttachment:
         else:
             self.size = 0
 
-        self._data = data
         self.chunks = chunks
+        self._data = data
+        self.stored_id = stored_id
         self._cache = cache
         self._has_initial_data = data is not UNINITIALIZED_DATA
 
@@ -93,11 +95,12 @@ class CachedAttachment:
             {
                 "id": self.id,
                 "name": self.name,
+                "rate_limited": self.rate_limited,
                 "content_type": self.content_type,
                 "type": self.type,
-                "chunks": self.chunks,
                 "size": self.size or None,  # None for backwards compatibility
-                "rate_limited": self.rate_limited,
+                "chunks": self.chunks,
+                "stored_id": self.stored_id,
             }
         )
 
@@ -108,7 +111,7 @@ class BaseAttachmentCache:
 
     def set(self, key, attachments, timeout=None):
         for id, attachment in enumerate(attachments):
-            if attachment.chunks is not None:
+            if attachment.chunks is not None or attachment.stored_id is not None:
                 continue
             # TODO(markus): We need to get away from sequential IDs, they
             # are risking collision when using Relay.

@@ -378,7 +378,8 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
     attachment_msg = message["attachment"]
     attachment_type = attachment_msg.pop("attachment_type")
 
-    # NOTE: `get_from_chunks` will avoid the cache if `attachment_msg` contains `data` inline
+    # NOTE: `get_from_chunks` will avoid the cache if `attachment_msg` contains `data` inline,
+    # or if the attachment has already been stored with a `stored_id`.
     attachment = attachment_cache.get_from_chunks(
         key=cache_key, type=attachment_type, **attachment_msg
     )

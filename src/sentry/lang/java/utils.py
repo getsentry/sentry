@@ -71,6 +71,7 @@ def deobfuscation_template(data, map_type, deobfuscation_fn):
     new_attachments = []
     for attachment in attachments:
         if attachment.type == "event.view_hierarchy":
+            # TODO: adapt this to work with stored attachments
             view_hierarchy = orjson.loads(attachment_cache.get_data(attachment))
             deobfuscation_fn(data, project, view_hierarchy)
 
