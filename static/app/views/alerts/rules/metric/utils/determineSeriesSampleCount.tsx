@@ -35,27 +35,27 @@ export function determineSeriesSampleCountAndIsSampled(
   let hasUnsampledInterval = false;
   let dataScanned: 'full' | 'partial' | undefined;
 
-  const series: number[] = data[0]?.sampleCount?.map(item => item.value) ?? [];
+  const series: number[] = data[0]?.values?.map(item => item.sampleCount ?? 0) ?? [];
 
   for (let i = 0; i < data.length; i++) {
-    if (defined(data[i]?.sampleCount)) {
-      for (let j = 0; j < data[i]!.sampleCount!.length; j++) {
-        if (i > 0) {
-          series[j] = merge(series[j] || 0, data[i]!.sampleCount![j]!.value);
-        }
-        const sampleRate = data[i]?.samplingRate?.[j]?.value;
-        if (sampleRate === 1) {
-          hasUnsampledInterval = true;
-        } else if (defined(sampleRate) && sampleRate < 1) {
-          hasSampledInterval = true;
-        }
+    for (let j = 0; j < data[i]!.values.length; j++) {
+      if (i > 0) {
+        series[j] = merge(series[j] || 0, data[i]!.values[j]!.sampleCount || 0);
+      }
+
+      const sampleRate = data[i]!.values[j]!.sampleRate;
+      if (sampleRate === 1) {
+        hasUnsampledInterval = true;
+      } else if (defined(sampleRate) && sampleRate < 1) {
+        hasSampledInterval = true;
       }
     }
+
     if (!dataScanned) {
       // Take one entry of dataScanned, they should all be the same
-      if (data[i]?.dataScanned === 'partial') {
+      if (data[i]?.meta.dataScanned === 'partial') {
         dataScanned = 'partial';
-      } else if (data[i]?.dataScanned === 'full') {
+      } else if (data[i]?.meta.dataScanned === 'full') {
         dataScanned = 'full';
       }
     }
