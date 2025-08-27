@@ -771,8 +771,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "seerScannerAutomation"
                 ]
         if "debugFilesRole" in result:
-            if project.update_option("sentry:debug_files_role", result["debugFilesRole"]):
-                changed_proj_settings["sentry:debug_files_role"] = result["debugFilesRole"]
+            if result["debugFilesRole"] is None:
+                project.delete_option("sentry:debug_files_role")
+                changed_proj_settings["sentry:debug_files_role"] = None
+            else:
+                if project.update_option("sentry:debug_files_role", result["debugFilesRole"]):
+                    changed_proj_settings["sentry:debug_files_role"] = result["debugFilesRole"]
 
         if has_elevated_scopes:
             options = result.get("options", {})
