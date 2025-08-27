@@ -735,13 +735,12 @@ export async function submitCheckout(
   api: Client,
   onFetchPreviewData: () => void,
   onHandleCardAction: (intentDetails: IntentDetails) => void,
-  expand: string[],
   onSubmitting?: (b: boolean) => void,
   intentId?: string,
   referrer = 'billing',
   shouldUpdateOnDemand = true
 ) {
-  const endpoint = `/customers/${organization.slug}/subscription/${expand.length > 0 ? `?expand=${expand.join(',')}` : ''}`;
+  const endpoint = `/customers/${organization.slug}/subscription/`;
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)

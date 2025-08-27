@@ -137,7 +137,6 @@ function ReviewAndConfirm({
       api,
       () => fetchPreview(),
       (intentDetails: any) => handleCardAction(intentDetails),
-      [],
       (b: any) => setState({...state, submitting: b}),
       intentId,
       referrer
