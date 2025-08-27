@@ -1,6 +1,6 @@
-import pytest
 from datetime import timedelta
 
+import pytest
 from django.urls import reverse
 
 from sentry.testutils.helpers.datetime import before_now
