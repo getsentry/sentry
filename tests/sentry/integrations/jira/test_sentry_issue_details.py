@@ -259,13 +259,11 @@ class JiraIssueHookControlTest(APITestCase):
         assert UNABLE_TO_VERIFY_INSTALLATION.encode() in response.content
 
     @patch.object(ExternalIssue.objects, "get")
-    @patch.object(Group, "get_last_release")
     @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")
     @responses.activate
     def test_simple_get(
         self,
         mock_get_integration_from_request: MagicMock,
-        mock_get_last_release: MagicMock,
         mock_get_external_issue: MagicMock,
     ) -> None:
         responses.add(
@@ -274,20 +272,13 @@ class JiraIssueHookControlTest(APITestCase):
 
         mock_get_external_issue.side_effect = [self.de_external_issue, self.us_external_issue]
 
-        mock_get_last_release.return_value = self.last_release.version
         mock_get_integration_from_request.return_value = self.integration
         response = self.client.get(self.path)
         assert response.status_code == 200
         resp_content = response.content.decode()
 
         for group in [self.us_group, self.de_group]:
-            assert group.title in resp_content
             assert group.get_absolute_url() in resp_content
-            assert group.first_seen.strftime("%b. %d, %Y") in resp_content
-            assert group.last_seen.strftime("%b. %d, %Y") in resp_content
-
-        assert self.first_release.version in resp_content
-        assert self.last_release.version in resp_content
 
     @patch("sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request")
     @responses.activate

@@ -190,7 +190,7 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
     Fans the request to all regions and returns the groups from all regions.
     """
 
-    html_file = "sentry/integrations/jira-issue.html"
+    html_file = "sentry/integrations/jira-issue-list.html"
 
     def handle_groups(self, groups: list[RpcExternalIssueGroupMetadata]) -> Response:
         response_context = {"groups": [dict(group) for group in groups]}
