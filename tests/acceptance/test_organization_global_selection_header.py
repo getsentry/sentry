@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone as django_timezone
@@ -15,7 +15,7 @@ event_time = before_now(days=3)
 
 @no_silo_test
 class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -48,7 +48,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.issues_list = IssueListPage(self.browser, self.client)
         self.issue_details = IssueDetailsPage(self.browser, self.client)
 
-    def create_issues(self):
+    def create_issues(self) -> None:
         self.issue_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -69,7 +69,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             project_id=self.project_2.id,
         )
 
-    def test_global_selection_header_dropdown(self):
+    def test_global_selection_header_dropdown(self) -> None:
         self.project.update(first_event=django_timezone.now())
         self.issues_list.visit_issue_list(
             self.org.slug, query="?query=assigned%3Ame&project=" + str(self.project_1.id)
@@ -83,7 +83,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.click('[data-test-id="page-filter-timerange-selector"]')
 
     @pytest.mark.skip(reason="Has been flaky lately.")
-    def test_global_selection_header_loads_with_correct_project(self):
+    def test_global_selection_header_loads_with_correct_project(self) -> None:
         """
         Global Selection Header should:
         1) load project from URL if it exists
@@ -121,7 +121,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.issues_list.wait_until_loaded()
         assert f"project={self.project_3.id}" in self.browser.current_url
 
-    def test_global_selection_header_navigates_with_browser_back_button(self):
+    def test_global_selection_header_navigates_with_browser_back_button(self) -> None:
         """
         Global Selection Header should:
         1) load project from URL if it exists
@@ -147,7 +147,9 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         assert f"project={self.project_1.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
 
-    def test_global_selection_header_updates_environment_with_browser_navigation_buttons(self):
+    def test_global_selection_header_updates_environment_with_browser_navigation_buttons(
+        self,
+    ) -> None:
         """
         Global Selection Header should:
         1) load project from URL if it exists
@@ -214,7 +216,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             assert "environment=" not in self.browser.current_url
             assert self.issue_details.global_selection.get_selected_environment() == "All Envs"
 
-    def test_global_selection_header_loads_with_correct_project_with_multi_project(self):
+    def test_global_selection_header_loads_with_correct_project_with_multi_project(self) -> None:
         """
         Global Selection Header should:
         1) load project from URL if it exists
@@ -271,7 +273,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             )
 
     @patch("django.utils.timezone.now")
-    def test_issues_list_to_details_and_back_with_all_projects(self, mock_now):
+    def test_issues_list_to_details_and_back_with_all_projects(self, mock_now: MagicMock) -> None:
         """
         If user has access to the `global-views` feature, which allows selecting multiple projects,
         they should be able to visit issues list with no project in URL and list issues
@@ -309,7 +311,9 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             )
 
     @patch("django.utils.timezone.now")
-    def test_issues_list_to_details_and_back_with_initial_project(self, mock_now):
+    def test_issues_list_to_details_and_back_with_initial_project(
+        self, mock_now: MagicMock
+    ) -> None:
         """
         If user has a project defined in URL, if they visit an issue and then
         return back to issues list, that project id should still exist in URL
@@ -342,7 +346,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
 
     @patch("django.utils.timezone.now")
-    def test_issue_details_to_stream_with_initial_env_no_project(self, mock_now):
+    def test_issue_details_to_stream_with_initial_env_no_project(self, mock_now: MagicMock) -> None:
         """
         Visiting issue details directly with no project but with an environment defined in URL.
         When navigating back to issues stream, should keep environment and project in context.
@@ -371,8 +375,8 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_issue_details_to_stream_with_initial_env_no_project_with_multi_project_feature(
-        self, mock_now
-    ):
+        self, mock_now: MagicMock
+    ) -> None:
         """
         Visiting issue details directly with no project but with an environment defined in URL.
         When navigating back to issues stream, should keep environment and project in context.

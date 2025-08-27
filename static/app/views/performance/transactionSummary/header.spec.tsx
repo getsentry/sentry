@@ -48,8 +48,8 @@ function initializeData(opts?: InitialOpts) {
   };
 }
 
-describe('Performance > Transaction Summary Header', function () {
-  beforeEach(function () {
+describe('Performance > Transaction Summary Header', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
@@ -57,7 +57,7 @@ describe('Performance > Transaction Summary Header', function () {
     });
   });
 
-  it('should render web vitals tab when yes', async function () {
+  it('should render web vitals tab when yes', async () => {
     const {project, organization, router, eventView} = initializeData();
 
     MockApiClient.addMockResponse({
@@ -81,7 +81,7 @@ describe('Performance > Transaction Summary Header', function () {
     expect(await screen.findByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
-  it('should not render web vitals tab when hasWebVitals=no', async function () {
+  it('should not render web vitals tab when hasWebVitals=no', async () => {
     const {project, organization, router, eventView} = initializeData();
 
     MockApiClient.addMockResponse({
@@ -107,7 +107,7 @@ describe('Performance > Transaction Summary Header', function () {
     expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });
 
-  it('should render web vitals tab when maybe and is frontend platform', async function () {
+  it('should render web vitals tab when maybe and is frontend platform', async () => {
     const {project, organization, router, eventView} = initializeData({
       platform: 'javascript',
     });
@@ -133,7 +133,7 @@ describe('Performance > Transaction Summary Header', function () {
     expect(await screen.findByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
-  it('should render web vitals tab when maybe and has measurements', async function () {
+  it('should render web vitals tab when maybe and has measurements', async () => {
     const {project, organization, router, eventView} = initializeData();
 
     const eventHasMeasurementsMock = MockApiClient.addMockResponse({
@@ -159,7 +159,7 @@ describe('Performance > Transaction Summary Header', function () {
     expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
-  it('should not render web vitals tab when maybe and has no measurements', async function () {
+  it('should not render web vitals tab when maybe and has no measurements', async () => {
     const {project, organization, router, eventView} = initializeData();
 
     const eventHasMeasurementsMock = MockApiClient.addMockResponse({

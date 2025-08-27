@@ -5,7 +5,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectGroupIssueDetailsDocs(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.create_release(project=self.project, version="abcdabc")
 
         first_release = {
@@ -28,13 +28,13 @@ class ProjectGroupIssueDetailsDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
 
-    def test_put(self):
+    def test_put(self) -> None:
         data = {"status": "resolved"}
 
         response = self.client.put(self.url, data)
@@ -42,7 +42,7 @@ class ProjectGroupIssueDetailsDocs(APIDocsTestCase):
 
         self.validate_schema(request, response)
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         response = self.client.delete(self.url)
         request = RequestFactory().delete(self.url)
 

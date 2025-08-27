@@ -7,7 +7,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class ApiApplicationsListTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         app1 = ApiApplication.objects.create(owner=self.user, name="a")
         app2 = ApiApplication.objects.create(owner=self.user, name="b")
         ApiApplication.objects.create(owner=self.create_user("foo@example.com"))
@@ -23,7 +23,7 @@ class ApiApplicationsListTest(APITestCase):
 
 @control_silo_test
 class ApiApplicationsCreateTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(self.user)
         url = reverse("sentry-api-0-api-applications")
         response = self.client.post(url, data={})

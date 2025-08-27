@@ -1,8 +1,8 @@
 import omit from 'lodash/omit';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import type {BreadcrumbTypeHTTP} from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';

@@ -3,13 +3,13 @@ import {Referrer} from 'sentry/views/insights/cache/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
 
 export default function CacheThroughputChartWidget(props: LoadableChartWidgetProps) {
   const search = MutableSearch.fromQueryObject(BASE_FILTERS);
   const referrer = Referrer.LANDING_CACHE_THROUGHPUT_CHART;
-  const {isPending, data, error} = useSpanMetricsSeries(
+  const {isPending, data, error} = useSpanSeries(
     {
       search,
       yAxis: ['epm()'],

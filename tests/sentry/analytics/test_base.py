@@ -12,7 +12,7 @@ class DummyAnalytics(Analytics):
 
 
 class AnalyticsTest(TestCase):
-    def test_record(self):
+    def test_record(self) -> None:
         organization = self.create_organization()
         provider = DummyAnalytics()
         provider.record("organization.created", organization)
@@ -23,7 +23,7 @@ class AnalyticsTest(TestCase):
         assert event.data["slug"] == organization.slug
         assert not event.data["actor_id"]
 
-    def test_record_with_attrs(self):
+    def test_record_with_attrs(self) -> None:
         organization = self.create_organization()
         provider = DummyAnalytics()
         provider.record("organization.created", organization, actor_id=1)

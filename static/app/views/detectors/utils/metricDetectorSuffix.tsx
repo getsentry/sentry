@@ -25,19 +25,14 @@ export function getStaticDetectorThresholdSuffix(aggregate: string) {
   }
 }
 
-export function getMetricDetectorSuffix(detector: MetricDetector) {
-  switch (detector.config.detectionType) {
+export function getMetricDetectorSuffix(
+  detectorType: MetricDetector['config']['detectionType'],
+  aggregate: string
+) {
+  switch (detectorType) {
     case 'static':
     case 'dynamic':
-      if (
-        detector.dataSources?.[0]?.type === 'snuba_query_subscription' &&
-        detector.dataSources[0].queryObj?.snubaQuery?.aggregate
-      ) {
-        return getStaticDetectorThresholdSuffix(
-          detector.dataSources[0].queryObj.snubaQuery.aggregate
-        );
-      }
-      return 'ms';
+      return getStaticDetectorThresholdSuffix(aggregate);
     case 'percent':
       return '%';
     default:

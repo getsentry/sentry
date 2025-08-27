@@ -19,7 +19,7 @@ class PostgresIndexerV2Test(TestCase):
     def tearDown(self) -> None:
         cache.clear()
 
-    def test_get_db_records(self):
+    def test_get_db_records(self) -> None:
         """
         Make sure that calling `_get_db_records` doesn't populate the cache
         """

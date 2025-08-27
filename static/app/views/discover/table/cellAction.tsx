@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -7,15 +7,19 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
+  fieldAlignment,
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {FieldKey} from 'sentry/utils/fields';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {TableColumn} from './types';
 
@@ -28,19 +32,9 @@ export enum Actions {
   DRILLDOWN = 'drilldown',
   EDIT_THRESHOLD = 'edit_threshold',
   COPY_TO_CLIPBOARD = 'copy_to_clipboard',
-}
-
-export function copyToClipBoard(data: any) {
-  function stringifyValue(value: any): string {
-    if (!value) return '';
-    if (typeof value !== 'object') {
-      return value.toString();
-    }
-    return JSON.stringify(value) ?? value.toString();
-  }
-  navigator.clipboard.writeText(stringifyValue(data)).catch(_ => {
-    addErrorMessage('Error copying to clipboard');
-  });
+  OPEN_EXTERNAL_LINK = 'open_external_link',
+  OPEN_INTERNAL_LINK = 'open_internal_link',
+  OPEN_ROW_IN_EXPLORE = 'open_row_in_explore',
 }
 
 export function updateQuery(
@@ -99,10 +93,12 @@ export function updateQuery(
     // these actions do not modify the query in any way,
     // instead they have side effects
     case Actions.COPY_TO_CLIPBOARD:
-      copyToClipBoard(value);
+      copyToClipboard(value);
       break;
+    case Actions.OPEN_EXTERNAL_LINK:
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
+    case Actions.OPEN_INTERNAL_LINK:
       break;
     default:
       throw new Error(`Unknown action type. ${action}`);
@@ -152,6 +148,23 @@ export function excludeFromFilter(
   oldFilter.addFilterValues(negation, value);
 }
 
+/**
+ * Copies the provided value to a user's clipboard.
+ * @param value
+ */
+export function copyToClipboard(value: string | number | string[]) {
+  function stringifyValue(val: string | number | string[]): string {
+    if (!val) return '';
+    if (typeof val !== 'object') {
+      return val.toString();
+    }
+    return JSON.stringify(val) ?? val.toString();
+  }
+  navigator.clipboard.writeText(stringifyValue(value)).catch(_ => {
+    addErrorMessage('Error copying to clipboard');
+  });
+}
+
 type CellActionsOpts = {
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
@@ -161,6 +174,10 @@ type CellActionsOpts = {
    */
   allowActions?: Actions[];
   children?: React.ReactNode;
+  /**
+   * Any parsed out internal links that should be added to the menu as an option
+   */
+  to?: string;
 };
 
 function makeCellActions({
@@ -168,6 +185,7 @@ function makeCellActions({
   column,
   handleCellAction,
   allowActions,
+  to,
 }: CellActionsOpts) {
   // Do not render context menu buttons for the span op breakdown field.
   if (isRelativeSpanOperationBreakdownField(column.name)) {
@@ -203,9 +221,27 @@ function makeCellActions({
         label: itemLabel,
         textValue: itemTextValue,
         onAction: () => handleCellAction(action, value!),
+        to: action === Actions.OPEN_INTERNAL_LINK && to ? stripURLOrigin(to) : undefined,
+        externalHref:
+          action === Actions.OPEN_EXTERNAL_LINK ? (value as string) : undefined,
       });
     }
   }
+
+  if (to && to !== value) {
+    const field = String(column.key);
+    addMenuItem(Actions.OPEN_INTERNAL_LINK, getInternalLinkActionLabel(field));
+  }
+
+  if (isUrl(value)) {
+    addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
+  }
+
+  if (allowActions) {
+    addMenuItem(Actions.OPEN_ROW_IN_EXPLORE, t('View span samples'));
+  }
+
+  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
 
   if (
     !['duration', 'number', 'percentage'].includes(column.type) ||
@@ -250,8 +286,6 @@ function makeCellActions({
     );
   }
 
-  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
-
   if (actions.length === 0) {
     return null;
   }
@@ -259,33 +293,87 @@ function makeCellActions({
   return actions;
 }
 
-type Props = React.PropsWithoutRef<CellActionsOpts>;
+/**
+ * Provides the correct text for the dropdown menu based on the field.
+ * @param field column field name
+ */
+function getInternalLinkActionLabel(field: string): string {
+  switch (field) {
+    case FieldKey.TRACE:
+      return t('Open trace');
+    case FieldKey.PROJECT:
+    case 'project_id':
+    case 'project.id':
+      return t('Open project');
+    case FieldKey.RELEASE:
+      return t('View details');
+    case FieldKey.ISSUE:
+      return t('Open issue');
+    case FieldKey.REPLAY_ID:
+      return t('Open replay');
+    default:
+      break;
+  }
+  return t('Open link');
+}
 
-type State = {
-  isHovering: boolean;
-  isOpen: boolean;
+/**
+ * Potentially temporary as design and product need more time to determine how logs table should trigger the dropdown.
+ * Currently, the agreed default for every table should be bold hover. Logs is the only table to use the ellipsis trigger.
+ */
+export enum ActionTriggerType {
+  ELLIPSIS = 'ellipsis',
+  BOLD_HOVER = 'bold_hover',
+}
+
+type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
+  triggerType?: ActionTriggerType;
 };
 
-class CellAction extends Component<Props, State> {
-  render() {
-    const {children} = this.props;
-    const cellActions = makeCellActions(this.props);
+function CellAction({
+  triggerType = ActionTriggerType.BOLD_HOVER,
+  allowActions,
+  ...props
+}: Props) {
+  const organization = useOrganization();
+  const {children, column} = props;
+  // The menu is activated by clicking the value, which doesn't work if the value is rendered as a link
+  // So, `target` contains an internal link extracted from the DOM on click and that link is added dropdown menu.
+  const [target, setTarget] = useState<string>();
 
+  const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
+  let filteredActions = allowActions;
+  if (!useCellActionsV2 && filteredActions) {
+    // New dropdown menu options should not be allowed if the feature flag is not on
+    filteredActions = filteredActions.filter(
+      action =>
+        action !== Actions.OPEN_EXTERNAL_LINK && action !== Actions.OPEN_INTERNAL_LINK
+    );
+  }
+  const cellActions = makeCellActions({
+    ...props,
+    allowActions: filteredActions,
+    to: target,
+  });
+  const align = fieldAlignment(column.key as string, column.type);
+
+  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER)
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
       >
-        {children}
-        {cellActions?.length && (
+        {cellActions?.length ? (
           <DropdownMenu
             items={cellActions}
-            usePortal
+            strategy="fixed"
             size="sm"
             offset={4}
-            position="bottom"
+            position={align === 'left' ? 'bottom-start' : 'bottom-end'}
             preventOverflowOptions={{padding: 4}}
             flipOptions={{
               fallbackPlacements: [
+                'bottom-start',
+                'bottom-end',
                 'top',
                 'right-start',
                 'right-end',
@@ -294,19 +382,67 @@ class CellAction extends Component<Props, State> {
               ],
             }}
             trigger={triggerProps => (
-              <ActionMenuTrigger
+              <ActionMenuTriggerV2
                 {...triggerProps}
-                translucentBorder
                 aria-label={t('Actions')}
-                icon={<IconEllipsis size="xs" />}
-                size="zero"
-              />
+                onClickCapture={e => {
+                  // Allow for users to hold shift, ctrl or cmd to open links instead of the menu
+                  if (e.metaKey || e.shiftKey || e.ctrlKey) {
+                    e.stopPropagation();
+                  } else {
+                    const aTags = e.currentTarget.getElementsByTagName('a');
+                    if (aTags?.[0]) {
+                      const href = aTags[0].href;
+                      setTarget(href);
+                    }
+                    e.preventDefault();
+                  }
+                }}
+              >
+                {children}
+              </ActionMenuTriggerV2>
             )}
+            minMenuWidth={0}
           />
+        ) : (
+          children
         )}
       </Container>
     );
-  }
+
+  return (
+    <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
+      {children}
+      {cellActions?.length && (
+        <DropdownMenu
+          items={cellActions}
+          usePortal
+          size="sm"
+          offset={4}
+          position="bottom"
+          preventOverflowOptions={{padding: 4}}
+          flipOptions={{
+            fallbackPlacements: [
+              'top',
+              'right-start',
+              'right-end',
+              'left-start',
+              'left-end',
+            ],
+          }}
+          trigger={triggerProps => (
+            <ActionMenuTrigger
+              {...triggerProps}
+              translucentBorder
+              aria-label={t('Actions')}
+              icon={<IconEllipsis size="xs" />}
+              size="zero"
+            />
+          )}
+        />
+      )}
+    </Container>
+  );
 }
 
 export default CellAction;
@@ -325,7 +461,7 @@ const ActionMenuTrigger = styled(Button)`
   top: 50%;
   right: -1px;
   transform: translateY(-50%);
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 
   display: flex;
   align-items: center;
@@ -336,5 +472,16 @@ const ActionMenuTrigger = styled(Button)`
   &[aria-expanded='true'],
   ${Container}:hover & {
     opacity: 1;
+  }
+`;
+
+const ActionMenuTriggerV2 = styled('div')`
+  a,
+  span {
+    color: ${p => p.theme.textColor};
+  }
+  :hover {
+    cursor: pointer;
+    text-shadow: 0.5px 0px;
   }
 `;

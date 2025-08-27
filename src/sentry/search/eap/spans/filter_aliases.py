@@ -199,7 +199,9 @@ def semver_build_filter_converter(
             build,
             project_ids=params.project_ids,
             negated=negated,
-        ).values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
+        )
+        .values_list("version", flat=True)
+        .order_by("-date_added")[: constants.MAX_SEARCH_RELEASES]
     )
 
     if not validate_snuba_array_parameter(versions):

@@ -3,8 +3,8 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 
-describe('normalizeDateTimeParams', function () {
-  it('should return default statsPeriod if it is not provided or is invalid', function () {
+describe('normalizeDateTimeParams', () => {
+  it('should return default statsPeriod if it is not provided or is invalid', () => {
     expect(normalizeDateTimeParams({})).toEqual({statsPeriod: '14d'});
     expect(normalizeDateTimeParams({statsPeriod: 'invalid'})).toEqual({
       statsPeriod: '14d',
@@ -17,7 +17,7 @@ describe('normalizeDateTimeParams', function () {
     expect(normalizeDateTimeParams({statsPeriod: '24'})).toEqual({statsPeriod: '24s'});
   });
 
-  it('should parse statsPeriod', function () {
+  it('should parse statsPeriod', () => {
     expect(normalizeDateTimeParams({statsPeriod: '5s'})).toEqual({statsPeriod: '5s'});
     expect(normalizeDateTimeParams({statsPeriod: '11h'})).toEqual({statsPeriod: '11h'});
     expect(normalizeDateTimeParams({statsPeriod: '14d'})).toEqual({statsPeriod: '14d'});
@@ -25,13 +25,13 @@ describe('normalizeDateTimeParams', function () {
     expect(normalizeDateTimeParams({statsPeriod: '42m'})).toEqual({statsPeriod: '42m'});
   });
 
-  it('should parse first valid statsPeriod', function () {
+  it('should parse first valid statsPeriod', () => {
     expect(normalizeDateTimeParams({statsPeriod: ['invalid', '24d', '5s']})).toEqual({
       statsPeriod: '24d',
     });
   });
 
-  it('should return statsPeriod if statsPeriod, start, and end are provided', function () {
+  it('should return statsPeriod if statsPeriod, start, and end are provided', () => {
     expect(
       normalizeDateTimeParams({
         start: '2019-10-01T00:00:00',
@@ -58,7 +58,7 @@ describe('normalizeDateTimeParams', function () {
     ).toEqual({statsPeriod: '55d'});
   });
 
-  it('should parse start and end', function () {
+  it('should parse start and end', () => {
     expect(
       normalizeDateTimeParams({start: '2019-10-01T00:00:00', end: '2019-10-02T00:00:00'})
     ).toEqual({start: '2019-10-01T00:00:00.000', end: '2019-10-02T00:00:00.000'});
@@ -71,7 +71,7 @@ describe('normalizeDateTimeParams', function () {
     ).toEqual({start: '2019-10-23T04:28:49.000', end: '2019-10-26T02:56:17.000'});
   });
 
-  it('should parse first valid start and end', function () {
+  it('should parse first valid start and end', () => {
     expect(
       normalizeDateTimeParams({
         start: ['invalid', '2019-10-01T00:00:00', '2020-10-01T00:00:00'],
@@ -80,7 +80,7 @@ describe('normalizeDateTimeParams', function () {
     ).toEqual({start: '2019-10-01T00:00:00.000', end: '2019-10-02T00:00:00.000'});
   });
 
-  it('should return default statsPeriod if both start and end are not provided, or either are invalid', function () {
+  it('should return default statsPeriod if both start and end are not provided, or either are invalid', () => {
     expect(normalizeDateTimeParams({start: '2019-10-01T00:00:00'})).toEqual({
       statsPeriod: '14d',
     });
@@ -136,7 +136,7 @@ describe('normalizeDateTimeParams', function () {
     ).toEqual({statsPeriod: '14d'});
   });
 
-  it('should use pageStart/pageEnd/pageUtc to override start/end/utc', function () {
+  it('should use pageStart/pageEnd/pageUtc to override start/end/utc', () => {
     expect(
       normalizeDateTimeParams(
         {
@@ -156,7 +156,7 @@ describe('normalizeDateTimeParams', function () {
     });
   });
 
-  it('should use pageStatsPeriod to override statsPeriod', function () {
+  it('should use pageStatsPeriod to override statsPeriod', () => {
     expect(
       normalizeDateTimeParams({
         pageStart: '2021-10-23T04:28:49+0000',
@@ -173,11 +173,11 @@ describe('normalizeDateTimeParams', function () {
     });
   });
 
-  it('does not return default statsPeriod if `allowEmptyPeriod` option is passed', function () {
+  it('does not return default statsPeriod if `allowEmptyPeriod` option is passed', () => {
     expect(normalizeDateTimeParams({}, {allowEmptyPeriod: true})).toEqual({});
   });
 
-  it('should parse utc when it is defined', function () {
+  it('should parse utc when it is defined', () => {
     expect(
       normalizeDateTimeParams({
         utc: 'true',
@@ -217,8 +217,8 @@ describe('normalizeDateTimeParams', function () {
   });
 });
 
-describe('parseStatsPeriod', function () {
-  it('should parse statsPeriod', function () {
+describe('parseStatsPeriod', () => {
+  it('should parse statsPeriod', () => {
     expect(parseStatsPeriod('5s')).toEqual({period: '5', periodLength: 's'});
     expect(parseStatsPeriod('11h')).toEqual({period: '11', periodLength: 'h'});
     expect(parseStatsPeriod('14d')).toEqual({period: '14', periodLength: 'd'});
@@ -226,14 +226,14 @@ describe('parseStatsPeriod', function () {
     expect(parseStatsPeriod('42m')).toEqual({period: '42', periodLength: 'm'});
   });
 
-  it('should return default statsPeriod if it is not provided or is invalid', function () {
+  it('should return default statsPeriod if it is not provided or is invalid', () => {
     expect(parseStatsPeriod('invalid')).toBeUndefined();
     expect(parseStatsPeriod('24f')).toBeUndefined();
     expect(parseStatsPeriod('')).toBeUndefined();
     expect(parseStatsPeriod('24')).toEqual({period: '24', periodLength: 's'});
   });
 
-  it('does not return start and end if `allowAbsoluteDatetime` option is passed', function () {
+  it('does not return start and end if `allowAbsoluteDatetime` option is passed', () => {
     expect(
       normalizeDateTimeParams(
         {start: '2019-10-01T00:00:00', end: '2019-10-02T00:00:00'},

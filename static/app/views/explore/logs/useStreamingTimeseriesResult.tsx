@@ -11,16 +11,19 @@ import type {
   TimeSeries,
   TimeSeriesItem,
 } from 'sentry/views/dashboards/widgets/common/types';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  useLogsAutoRefresh,
-  useLogsGroupBy,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   getLogRowTimestampMillis,
   getLogTimestampBucketIndex,
 } from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 type BufferEntry = {
@@ -41,7 +44,7 @@ type BufferedTimeseriesGroup = {
  *
  * The streaming approach is as follows:
  * 1. Start accumulating table data from the last timeseries bucket onwards
- * 2. Replace (don't merge) the last bucket with fresh counts since we can't be sure which log item was counted in the original timeseries bucket.
+ * 2. Merge (don't replace) the last bucket with fresh counts since the groupBuffer is now limited by timeseriesIngestDelay.
  * 3. Maintain fixed-length buffers that match the original timeseries intervals for visual consistency, shifting out old data as new data arrives
  * 4. Only recalculate buckets from the beginning of the bucket containing the current virtual time onwards to not recount logs
  *
@@ -66,20 +69,24 @@ type BufferedTimeseriesGroup = {
  *    ┌─────────────────────────────────────────────────────────────┐
  *    │ [01:00] [02:00] [03:00] [04:00] [05:00] [06:00] [07:00] ... │
  *    │  +0      +0      +0      +0       1       1       1         │ ← From table
- *    │   1       2       3       4    replaced  n/a     n/a        │ ← Original
+ *    │   1       2       3       4       5      n/a     n/a        │ ← Original
  *    │  ---     ---     ---     ---     ---     ---     ---        │
- *    │   1       2       3       4       1       1       1         │ ← Final result
+ *    │   1       2       3       4       6       1       1         │ ← Final result
  *    └─────────────────────────────────────────────────────────────┘
- *                                        ↑ Replace the last timeseries bucket with the table data
+ *                                        ↑ Merge the last timeseries bucket with the table data
  */
 
 export function useStreamingTimeseriesResult(
   tableData: ReturnType<typeof useLogsPageDataQueryResult>,
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>,
+  timeseriesIngestDelay: bigint
 ): ReturnType<typeof useSortedTimeSeries> {
   const organization = useOrganization();
-  const groupByKey = useLogsGroupBy();
-  const autoRefresh = useLogsAutoRefresh();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
+  const aggregate = visualizes[0]?.yAxis;
+
+  const autoRefresh = useLogsAutoRefreshEnabled();
   const {selection} = usePageFilters();
   const previousSelection = usePrevious(selection);
 
@@ -89,8 +96,7 @@ export function useStreamingTimeseriesResult(
   const timeseriesValues = timeseriesResult.data
     ? Object.values(timeseriesResult.data)[0]?.[0]?.values
     : undefined;
-  const shouldUseStreamedData =
-    organization.features.includes('ourlogs-live-refresh') && !!timeseriesValues?.length;
+  const shouldUseStreamedData = isLogsEnabled(organization) && !!timeseriesValues?.length;
 
   const timeseriesStartTimestamp = timeseriesValues?.[0]?.timestamp;
   const timeseriesLastTimestamp =
@@ -106,12 +112,21 @@ export function useStreamingTimeseriesResult(
     ? timeseriesValues.length - 1
     : null;
 
+  // Always present log fields don't cause a query key change so we have to manually reset the buffer.
+  const groupBysChangedToIncluded = groupBys
+    .filter(Boolean)
+    .every(groupBy => AlwaysPresentLogFields.includes(groupBy));
+
   useEffect(() => {
-    if (autoRefresh || !isEqual(selection, previousSelection)) {
+    if (
+      autoRefresh ||
+      !isEqual(selection, previousSelection) ||
+      groupBysChangedToIncluded
+    ) {
       groupBuffersRef.current = {};
       lastProcessedBucketRef.current = null;
     }
-  }, [autoRefresh, selection, previousSelection]);
+  }, [autoRefresh, selection, previousSelection, groupBysChangedToIncluded]);
 
   const groupBuffers = useMemo(() => {
     const buffers = createBufferFromTableData(
@@ -122,10 +137,12 @@ export function useStreamingTimeseriesResult(
       timeseriesStartTimestamp,
       timeseriesLastTimestamp,
       timeseriesIntervalDuration,
-      groupByKey,
+      timeseriesIngestDelay,
+      groupBys,
       groupBuffersRef.current,
       lastProcessedBucketRef,
       autoRefresh,
+      aggregate,
       timeseriesResult.data ? Object.values(timeseriesResult.data)[0] : undefined
     );
     groupBuffersRef.current = buffers;
@@ -138,9 +155,11 @@ export function useStreamingTimeseriesResult(
     timeseriesStartTimestamp,
     timeseriesLastTimestamp,
     timeseriesIntervalDuration,
-    groupByKey,
+    timeseriesIngestDelay,
+    groupBys,
     autoRefresh,
     timeseriesResult.data,
+    aggregate,
   ]);
 
   return useMemo(() => {
@@ -175,10 +194,12 @@ function createBufferFromTableData(
   timeseriesStartTimestamp: number | undefined,
   timeseriesLastTimestamp: number | undefined,
   timeseriesIntervalDuration: number | null,
-  groupBy: string | undefined,
+  timeseriesIngestDelay: bigint,
+  groupBys: readonly string[],
   groupBuffers: Record<string, BufferedTimeseriesGroup>,
   lastProcessedBucketRef: RefObject<number | null>,
   autoRefresh: boolean,
+  aggregateKey?: string,
   originalTimeseries?: TimeSeries[]
 ) {
   if (
@@ -188,7 +209,8 @@ function createBufferFromTableData(
     !timeseriesIntervalDuration ||
     !defined(timeseriesLastBucketIndex) ||
     !timeseriesValues ||
-    !autoRefresh
+    !autoRefresh ||
+    !aggregateKey
   ) {
     return groupBuffers;
   }
@@ -198,7 +220,7 @@ function createBufferFromTableData(
   }
 
   if (lastProcessedBucketRef.current === null) {
-    lastProcessedBucketRef.current = timeseriesLastBucketIndex - 2;
+    lastProcessedBucketRef.current = timeseriesLastBucketIndex - 1; // We always start with the last bucket since we are merging the timeseries bucket with table data.
   }
 
   const firstRowTimestamp = getLogRowTimestampMillis(tableRows[0]);
@@ -217,6 +239,12 @@ function createBufferFromTableData(
       continue;
     }
 
+    if (timestamp <= Number(timeseriesIngestDelay) / 1_000_000) {
+      // We don't want to count logs that are older than the ingest delay as they should already be in the timeseries.
+      // It's possible we undercount logs on the millisecond boundary.
+      continue;
+    }
+
     const rowBucketIndex = getLogTimestampBucketIndex(
       timestamp,
       timeseriesStartTimestamp,
@@ -227,7 +255,15 @@ function createBufferFromTableData(
       continue;
     }
 
-    const groupValue = groupBy ? String(row[groupBy] ?? '') : '';
+    const truthyGroupBys = groupBys.filter(Boolean);
+    const groupValue = truthyGroupBys.length
+      ? // TODO: confirm that the series name is indeed generated by joining the group bys with a comma
+        truthyGroupBys.map(groupBy => String(row[groupBy] ?? '')).join(',')
+      : aggregateKey;
+    if (!groupValue) {
+      // In the case that group value is still missing, we shouldn't construct a buffer group for it as it's not in the row.
+      continue;
+    }
 
     if (!groupBuffers[groupValue]) {
       groupBuffers[groupValue] = {
@@ -299,109 +335,122 @@ function createMergedDataFromBuffer(
   }
 
   const mergedData: typeof timeseriesResult.data = {};
-  const aggregateKey = Object.keys(timeseriesResult.data)[0];
 
-  if (!aggregateKey) {
-    return timeseriesResult.data;
-  }
+  for (const [aggregateKey, originalGroupedTimeSeries] of Object.entries(
+    timeseriesResult.data
+  )) {
+    mergedData[aggregateKey] = [];
+    const targetLength = originalGroupedTimeSeries?.[0]?.values.length;
 
-  mergedData[aggregateKey] = [];
-  const originalGroupedTimeSeries = timeseriesResult.data[aggregateKey];
-  const targetLength = originalGroupedTimeSeries?.[0]?.values.length;
-
-  if (!Array.isArray(originalGroupedTimeSeries) || !targetLength) {
-    return timeseriesResult.data;
-  }
-
-  const hasBufferData = Object.keys(groupBuffers).length > 0;
-  let maxBucketIndex = timeseriesLastBucketIndex;
-  let minBucketIndex = timeseriesLastBucketIndex;
-
-  if (hasBufferData) {
-    maxBucketIndex = Math.max(
-      ...Object.values(groupBuffers).flatMap(buffer =>
-        buffer.values.map(entry => entry.bucketIndex)
-      )
-    );
-    minBucketIndex = Math.min(
-      ...Object.values(groupBuffers).flatMap(buffer =>
-        buffer.values.map(entry => entry.bucketIndex)
-      )
-    );
-  }
-
-  const allGroupValues = new Set([
-    ...originalGroupedTimeSeries.map(series => series.yAxis),
-    ...Object.keys(groupBuffers),
-  ]);
-
-  Array.from(allGroupValues).forEach(groupValue => {
-    const originalSeries = originalGroupedTimeSeries.find(
-      series => series.yAxis === groupValue
-    );
-    const groupBuffer = groupBuffers[groupValue];
-
-    if (!hasBufferData && originalSeries) {
-      if (mergedData[aggregateKey]) {
-        mergedData[aggregateKey].push(originalSeries);
-      }
-      return;
+    if (!Array.isArray(originalGroupedTimeSeries) || !targetLength) {
+      return timeseriesResult.data;
     }
 
-    const mergedValues: TimeSeriesItem[] = [];
+    const hasBufferData =
+      Object.keys(groupBuffers).length > 0 &&
+      Object.keys(groupBuffers).some(
+        groupValue => (groupBuffers[groupValue]?.values?.length ?? 0) > 0
+      );
+    let maxBucketIndex = timeseriesLastBucketIndex;
+    let minBucketIndex = timeseriesLastBucketIndex;
 
-    for (
-      let i = maxBucketIndex;
-      i >= minBucketIndex && mergedValues.length < targetLength;
-      i--
-    ) {
-      const entry = groupBuffer?.values.find(e => e.bucketIndex === i);
+    if (hasBufferData) {
+      // Always consider the original timeseries last bucket to include 0-count buckets
+      maxBucketIndex = Math.max(
+        timeseriesLastBucketIndex,
+        ...Object.values(groupBuffers).flatMap(buffer =>
+          buffer.values.map(entry => entry.bucketIndex)
+        )
+      );
+      minBucketIndex = Math.min(
+        ...Object.values(groupBuffers).flatMap(buffer =>
+          buffer.values.map(entry => entry.bucketIndex)
+        )
+      );
+    }
 
-      const mergedValue: TimeSeriesItem = {
-        timestamp: timeseriesStartTimestamp + i * timeseriesIntervalDuration,
-        value: 0,
-      };
-      if (!entry) {
+    const allGroupValues = new Set([
+      ...originalGroupedTimeSeries.map(series => series.yAxis),
+      ...Object.keys(groupBuffers),
+    ]);
+
+    Array.from(allGroupValues).forEach(groupValue => {
+      const originalSeries = originalGroupedTimeSeries.find(
+        series => series.yAxis === groupValue
+      );
+      const groupBuffer = groupBuffers[groupValue];
+
+      if (!hasBufferData && originalSeries) {
+        if (mergedData[aggregateKey]) {
+          mergedData[aggregateKey].push({...originalSeries});
+        }
+        return;
+      }
+
+      const mergedValues: TimeSeriesItem[] = [];
+
+      for (
+        let i = maxBucketIndex;
+        i >= minBucketIndex && mergedValues.length < targetLength;
+        i--
+      ) {
+        const entry = groupBuffer?.values.find(e => e.bucketIndex === i);
+        const originalValue = originalSeries?.values[i];
+
+        const mergedValue: TimeSeriesItem = {
+          timestamp: timeseriesStartTimestamp + i * timeseriesIntervalDuration,
+          value: 0,
+        };
+
+        if (!entry) {
+          // Use original value if no buffer entry exists
+          mergedValue.value = originalValue?.value ?? 0;
+          if (i === maxBucketIndex) {
+            mergedValue.incomplete = true;
+          }
+          mergedValues.unshift(mergedValue);
+          continue;
+        }
+
+        // Merge buffer count with original value
+        mergedValue.value = entry.count + (originalValue?.value ?? 0);
         if (i === maxBucketIndex) {
           mergedValue.incomplete = true;
         }
         mergedValues.unshift(mergedValue);
-        continue;
       }
 
-      mergedValue.value = entry.count;
-      if (i === maxBucketIndex) {
-        mergedValue.incomplete = true;
+      for (
+        let i = minBucketIndex - 1;
+        i >= 0 && mergedValues.length < targetLength;
+        i--
+      ) {
+        const originalValue = originalSeries?.values[i] ?? {
+          timestamp: timeseriesStartTimestamp + i * timeseriesIntervalDuration,
+          value: 0,
+        }; // If original series is not found, it means it's either a new group that doesn't exist in the original timeseries, or we received empty table data for a period of time so we need to backfill with zeros.
+        if (originalValue) {
+          mergedValues.unshift(originalValue);
+        }
       }
-      mergedValues.unshift(mergedValue);
-    }
 
-    for (let i = minBucketIndex - 1; i >= 0 && mergedValues.length < targetLength; i--) {
-      const originalValue = originalSeries?.values[i] ?? {
-        timestamp: timeseriesStartTimestamp + i * timeseriesIntervalDuration,
-        value: 0,
-      }; // If original series is not found, it means it's either a new group that doesn't exist in the original timeseries, or we received empty table data for a period of time so we need to backfill with zeros.
-      if (originalValue) {
-        mergedValues.unshift(originalValue);
+      if (mergedData[aggregateKey] && originalGroupedTimeSeries[0]) {
+        mergedData[aggregateKey].push({
+          ...(originalSeries ?? {
+            ...pick(originalGroupedTimeSeries[0], ['dataScanned', 'confidence']),
+            meta: {
+              ...originalGroupedTimeSeries[0].meta,
+              order: groupBuffer?.stableIndex ?? 0,
+            },
+          }),
+          values: mergedValues,
+          yAxis: groupValue,
+        });
       }
-    }
+    });
 
-    if (mergedData[aggregateKey] && originalGroupedTimeSeries[0]) {
-      mergedData[aggregateKey].push({
-        ...(originalSeries ?? {
-          ...pick(originalGroupedTimeSeries[0], ['dataScanned', 'confidence']),
-          meta: {
-            ...originalGroupedTimeSeries[0].meta,
-            order: groupBuffer?.stableIndex ?? 0,
-          },
-        }),
-        values: mergedValues,
-        yAxis: groupValue,
-      });
-    }
-  });
-
-  mergedData[aggregateKey].sort((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0));
+    mergedData[aggregateKey].sort((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0));
+  }
 
   return mergedData;
 }

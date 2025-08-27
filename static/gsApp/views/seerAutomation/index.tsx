@@ -22,10 +22,7 @@ function SeerAutomationRoot() {
   const organization = useOrganization();
   const {isLoading, billing, setupAcknowledgement} = useOrganizationSeerSetup();
 
-  if (
-    !organization.features.includes('trigger-autofix-on-issue-summary') ||
-    organization.hideAiFeatures
-  ) {
+  if (organization.hideAiFeatures) {
     return <NoAccess />;
   }
 

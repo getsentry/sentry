@@ -11,8 +11,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useSpanMetrics, useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {EAPSpanProperty, SpanMetricsProperty} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -28,7 +28,7 @@ function Wrapper({children}: {children?: ReactNode}) {
 }
 
 describe('useDiscover', () => {
-  describe('useSpanMetrics', () => {
+  describe('useSpans', () => {
     const organization = OrganizationFixture();
 
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
@@ -47,11 +47,11 @@ describe('useDiscover', () => {
       });
 
       const {result} = renderHook(
-        ({fields, enabled}) => useSpanMetrics({fields, enabled}, 'span-metrics-series'),
+        ({fields, enabled}) => useSpans({fields, enabled}, 'span-metrics-series'),
         {
           wrapper: Wrapper,
           initialProps: {
-            fields: ['epm()'] as SpanMetricsProperty[],
+            fields: ['epm()'] as SpanProperty[],
             enabled: false,
           },
         }
@@ -78,7 +78,7 @@ describe('useDiscover', () => {
 
       const {result} = renderHook(
         ({filters, fields, sorts, limit, cursor, referrer}) =>
-          useSpanMetrics(
+          useSpans(
             {
               search: MutableSearch.fromQueryObject(filters),
               fields,
@@ -97,7 +97,7 @@ describe('useDiscover', () => {
               release: '0.0.1',
               environment: undefined,
             },
-            fields: ['epm()'] as SpanMetricsProperty[],
+            fields: ['epm()'] as SpanProperty[],
             sorts: [{field: 'epm()', kind: 'desc' as const}],
             limit: 10,
             referrer: 'api-spec',
@@ -113,7 +113,7 @@ describe('useDiscover', () => {
         expect.objectContaining({
           method: 'GET',
           query: {
-            dataset: 'spansMetrics',
+            dataset: 'spans',
             environment: [],
             field: ['epm()'],
             per_page: 10,
@@ -121,6 +121,7 @@ describe('useDiscover', () => {
             sort: '-epm()',
             query: `span.group:221aa7ebd216 transaction:/api/details release:0.0.1`,
             referrer: 'api-spec',
+            sampling: SAMPLING_MODE.NORMAL,
             statsPeriod: '10d',
           },
         })
@@ -177,7 +178,7 @@ describe('useDiscover', () => {
         {
           wrapper: Wrapper,
           initialProps: {
-            fields: [SpanFields.SPAN_DESCRIPTION] as EAPSpanProperty[],
+            fields: [SpanFields.SPAN_DESCRIPTION] as SpanProperty[],
             enabled: false,
           },
         }
@@ -234,7 +235,7 @@ describe('useDiscover', () => {
               SpanFields.SPAN_OP,
               SpanFields.SPAN_GROUP,
               SpanFields.SPAN_DESCRIPTION,
-            ] as EAPSpanProperty[],
+            ] as SpanProperty[],
             sorts: [{field: 'span.group', kind: 'desc' as const}],
             limit: 10,
             referrer: 'api-spec',

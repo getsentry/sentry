@@ -18,7 +18,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 def assert_fetch_type_for_tag_string_set(
     meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: set[str]
-):
+) -> None:
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 
@@ -138,7 +138,7 @@ class KeyResultsTest(TestCase):
 
         assert key_results.get_unmapped_keys(collection).mapping == {}
 
-    def test_merges_with_metadata(self):
+    def test_merges_with_metadata(self) -> None:
         org_id = 1
         cache_mappings = {"cache1": 1, "cache2": 2}
         read_mappings = {"read3": 3, "read4": 4}

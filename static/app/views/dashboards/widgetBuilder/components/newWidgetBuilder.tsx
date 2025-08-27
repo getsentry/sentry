@@ -1,8 +1,8 @@
-import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState, type CSSProperties} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
@@ -26,11 +26,11 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
+  DisplayType,
+  WidgetType,
   type DashboardDetails,
   type DashboardFilters,
-  DisplayType,
   type Widget,
-  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {
@@ -52,6 +52,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useNavContext} from 'sentry/views/nav/context';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
@@ -85,7 +86,7 @@ function TraceItemAttributeProviderFromDataset({children}: {children: React.Reac
   }
 
   if (state.dataset === WidgetType.LOGS) {
-    enabled = organization.features.includes('ourlogs-dashboards');
+    enabled = isLogsEnabled(organization);
     traceItemType = TraceItemDataset.LOGS;
   }
 
@@ -344,7 +345,7 @@ export function WidgetPreviewContainer({
     return PREVIEW_HEIGHT_PX;
   };
 
-  const animatedProps = {
+  const animatedProps: MotionNodeAnimationOptions = {
     initial: {opacity: 0, x: '100%', y: 0},
     animate: {opacity: 1, x: 0, y: 0},
     exit: {opacity: 0, x: '100%', y: 0},
@@ -370,15 +371,10 @@ export function WidgetPreviewContainer({
                 ref={setNodeRef}
                 id={WIDGET_PREVIEW_DRAG_ID}
                 style={draggableStyle}
-                aria-label={t('Draggable Widget Preview')}
+                aria-label={t('Draggable Preview')}
                 {...attributes}
                 {...listeners}
               >
-                {!isSmallScreen && (
-                  <WidgetPreviewTitle {...animatedProps}>
-                    {t('Widget Preview')}
-                  </WidgetPreviewTitle>
-                )}
                 <SampleWidgetCard
                   {...animatedProps}
                   style={{
@@ -562,13 +558,6 @@ const SurroundingWidgetContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-`;
-
-const WidgetPreviewTitle = styled(motion.h5)`
-  margin-bottom: ${space(1)};
-  margin-left: ${space(1)};
-  color: ${p => p.theme.white};
-  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const FilterBarContainer = styled(motion.div)`

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
@@ -9,12 +9,13 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   agentMonitoringOnboarding,
-  AlternativeConfiguration,
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
+  AlternativeConfiguration,
   getPythonInstallConfig,
+  getPythonLogsOnboarding,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -26,6 +27,12 @@ sentry_sdk.init(
   # Add data like request headers and IP for users,
   # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
   send_default_pii=True,${
+    params.isLogsSelected
+      ? `
+  # Enable sending logs to Sentry
+  enable_logs=True,`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
   # Set traces_sample_rate to 1.0 to capture 100%
@@ -231,11 +238,16 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const logsOnboarding = getPythonLogsOnboarding({
+  packageName: 'sentry-sdk[rq]',
+});
+
 const docs: Docs = {
   onboarding,
   profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[rq]'}),
   crashReportOnboarding: crashReportOnboardingPython,
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

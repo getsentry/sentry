@@ -83,16 +83,8 @@ function InternalInput({item, state, token}: InternalInputProps) {
   }, [updateSelectionIndex]);
 
   const onInputBlur = useCallback(() => {
-    const text = inputValue.trim();
-    if (validateLiteral(text)) {
-      dispatch({
-        type: 'REPLACE_TOKEN',
-        token,
-        text,
-      });
-    }
     resetInputValue();
-  }, [dispatch, inputValue, token, resetInputValue]);
+  }, [resetInputValue]);
 
   const onInputChange = useCallback(
     (evt: ChangeEvent<HTMLInputElement>) => {
@@ -153,6 +145,20 @@ function InternalInput({item, state, token}: InternalInputProps) {
     },
     [dispatch, state, token, resetInputValue]
   );
+
+  const onInputCommit = useCallback(() => {
+    const trimmed = inputValue.trim();
+    const text = validateLiteral(trimmed) ? trimmed : token.text;
+    dispatch({
+      text,
+      type: 'REPLACE_TOKEN',
+      token,
+      focusOverride: {
+        itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
+      },
+    });
+    resetInputValue();
+  }, [dispatch, state, token, inputValue, resetInputValue]);
 
   const onInputEscape = useCallback(() => {
     const text = inputValue.trim();
@@ -243,6 +249,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
         onClick={onClick}
         onInputBlur={onInputBlur}
         onInputChange={onInputChange}
+        onInputCommit={onInputCommit}
         onInputEscape={onInputEscape}
         onInputFocus={onInputFocus}
         onKeyDown={onKeyDown}

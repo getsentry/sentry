@@ -58,7 +58,7 @@ export async function fetchTeamKeyTransactions(
       } else {
         hasMore = false;
       }
-    } catch (err) {
+    } catch (err: any) {
       addErrorMessage(
         err.responseJSON?.detail ?? t('Error fetching team key transactions')
       );

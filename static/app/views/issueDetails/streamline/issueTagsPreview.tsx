@@ -1,6 +1,6 @@
 import type React from 'react';
 import {Fragment, useMemo, useState} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -16,7 +16,6 @@ import {
   frontend,
 } from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -299,12 +298,9 @@ export default function IssueTagsPreview({
 
   if (isPending || isHighlightPending) {
     return (
-      <Fragment>
-        <SectionDivider />
-        <IssueTagPreviewSection>
-          <Placeholder width="340px" height="90px" />
-        </IssueTagPreviewSection>
-      </Fragment>
+      <IssueTagPreviewSection>
+        <Placeholder width="340px" height="90px" />
+      </IssueTagPreviewSection>
     );
   }
 
@@ -313,20 +309,17 @@ export default function IssueTagsPreview({
   }
 
   return (
-    <Fragment>
-      <SectionDivider />
-      <IssueTagPreviewSection>
-        <TagsPreview>
-          {tagsToPreview.map(tag => (
-            <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
-          ))}
-        </TagsPreview>
-        <DistributionsDrawerButton
-          tags={tagsToPreview}
-          includeFeatureFlags={includeFeatureFlags}
-        />
-      </IssueTagPreviewSection>
-    </Fragment>
+    <IssueTagPreviewSection>
+      <TagsPreview>
+        {tagsToPreview.map(tag => (
+          <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
+        ))}
+      </TagsPreview>
+      <DistributionsDrawerButton
+        tags={tagsToPreview}
+        includeFeatureFlags={includeFeatureFlags}
+      />
+    </IssueTagPreviewSection>
   );
 }
 
@@ -334,8 +327,8 @@ const IssueTagPreviewSection = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: ${space(0.5)};
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;
 
 const TagsPreview = styled('div')`
@@ -345,7 +338,7 @@ const TagsPreview = styled('div')`
   align-items: center;
   align-content: center;
   gap: 1px;
-  column-gap: ${space(0.5)};
+  column-gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.fontSize.sm};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -367,7 +360,7 @@ const TagBarSegment = styled('div')`
   height: 100%;
   position: absolute;
   top: 0;
-  min-width: ${space(0.25)};
+  min-width: ${p => p.theme.space['2xs']};
   border-right: 1px solid ${p => p.theme.translucentBorder};
 
   &:last-child {
@@ -377,18 +370,18 @@ const TagBarSegment = styled('div')`
 
 const TopPercentage = styled('div')`
   text-align: right;
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space['2xs']};
   font-variant-numeric: tabular-nums;
 `;
 
 const TooltipLegend = styled('div')`
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
 `;
 
 const LegendGrid = styled('div')`
   display: grid;
   grid-template-columns: min-content auto min-content;
-  gap: ${space(0.5)} ${space(1)};
+  gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   align-items: center;
   text-align: left;
 `;
@@ -404,8 +397,8 @@ const TagPreviewGrid = styled(Link)`
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
   align-items: center;
-  padding: 0 ${space(0.75)};
-  margin: 0 -${space(0.75)};
+  padding: 0 ${p => p.theme.space.sm};
+  margin: 0 -${p => p.theme.space.sm};
   border-radius: ${p => p.theme.borderRadius};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSize.sm};
@@ -430,7 +423,7 @@ const LegendPercentage = styled('span')`
 
 const LegendTitle = styled('div')`
   font-weight: 600;
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space.sm};
 `;
 
 const DistributionsDrawerLink = styled(Link)`
@@ -445,21 +438,14 @@ const DistributionsDrawerLink = styled(Link)`
 const VerticalDistributionsDrawerButton = styled(LinkButton)`
   display: block;
   flex: 0;
-  margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
-  padding: ${space(1)} ${space(1.5)};
+  margin: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   text-align: center;
   height: unset;
   align-self: center;
   span {
     white-space: unset;
   }
-`;
-
-const SectionDivider = styled('div')`
-  border-left: 1px solid ${p => p.theme.translucentBorder};
-  display: flex;
-  align-items: center;
-  margin: ${space(1)};
 `;
 
 const TagKey = styled(TextOverflow)`

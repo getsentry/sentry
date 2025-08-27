@@ -12,8 +12,11 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
 
 import {
   DEFAULT_TIER,
@@ -33,12 +36,13 @@ import type {
 } from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
 import {getSlot, isTrialPlan} from 'getsentry/utils/billing';
+import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import {
+  SelectableProduct,
   type CheckoutAPIData,
   type CheckoutFormData,
-  SelectableProduct,
   type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
@@ -332,6 +336,9 @@ export function getShortInterval(billingInterval: string): string {
 }
 
 function getWithBytes(gigabytes: number): string {
+  if (gigabytes >= 1000) {
+    return `${(gigabytes / 1000).toLocaleString()} TB`;
+  }
   return `${gigabytes.toLocaleString()} GB`;
 }
 
@@ -346,7 +353,7 @@ export function getEventsWithUnit(
     return null;
   }
 
-  if (dataType === DataCategory.ATTACHMENTS || dataType === DataCategory.LOG_BYTE) {
+  if (isByteCategory(dataType)) {
     return getWithBytes(events).replace(' ', '');
   }
 
@@ -367,6 +374,10 @@ type CheckoutData = {
   plan: string;
 } & Partial<Record<DataCategory, number>>;
 
+type PreviousData = {
+  previous_plan: string;
+} & Partial<Record<`previous_${DataCategory}`, number>>;
+
 function recordAnalytics(
   organization: Organization,
   subscription: Subscription,
@@ -386,19 +397,25 @@ function recordAnalytics(
     }
   });
 
-  const previousData: CheckoutData = {
-    plan: subscription.plan,
+  const previousData: PreviousData = {
+    previous_plan: subscription.plan,
   };
 
-  Object.entries(subscription.categories).forEach(([category, value]) => {
-    (previousData as any)[category] = value?.reserved || undefined;
+  Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
+    if (
+      subscription.planDetails.checkoutCategories.includes(category as DataCategory) &&
+      metricHistory.reserved !== null &&
+      metricHistory.reserved !== undefined
+    ) {
+      (previousData as any)[`previous_${category}`] = metricHistory.reserved;
+    }
   });
 
   // TODO(reserved budgets): in future, we should just be able to pass data.selectedProducts
   const selectableProductData = {
     [SelectableProduct.SEER]: {
       enabled: data.seer ?? false,
-      previously_enabled: isTrialPlan(previousData.plan) // don't count trial budgets
+      previously_enabled: isTrialPlan(previousData.previous_plan) // don't count trial budgets
         ? false
         : (subscription.reservedBudgets?.some(
             budget =>
@@ -411,16 +428,7 @@ function recordAnalytics(
   trackGetsentryAnalytics('checkout.upgrade', {
     organization,
     subscription,
-    previous_plan: previousData.plan,
-    previous_errors: previousData.errors,
-    previous_transactions: previousData.transactions,
-    previous_attachments: previousData.attachments,
-    previous_replays: previousData.replays,
-    previous_monitorSeats: previousData.monitorSeats,
-    previous_profileDuration: previousData.profileDuration,
-    previous_spans: previousData.spans,
-    previous_uptime: previousData.uptime,
-    previous_logBytes: previousData.logBytes,
+    ...previousData,
     ...currentData,
   });
 
@@ -443,16 +451,17 @@ function recordAnalytics(
     );
   }
 
+  // TODO: remove this analytic event; this can be inferred from the `checkout.upgrade` event
   if (
     currentData.transactions &&
-    previousData.transactions &&
-    currentData.transactions > previousData.transactions
+    previousData.previous_transactions &&
+    currentData.transactions > previousData.previous_transactions
   ) {
     trackGetsentryAnalytics('checkout.transactions_upgrade', {
       organization,
       subscription,
       plan: data.plan,
-      previous_transactions: previousData.transactions,
+      previous_transactions: previousData.previous_transactions,
       transactions: currentData.transactions,
     });
   }
@@ -572,6 +581,152 @@ export async function fetchPreviewData(
   }
 }
 
+export function normalizeAndGetCheckoutAPIData({
+  formData,
+  previewToken,
+  paymentIntent,
+  referrer = 'billing',
+  shouldUpdateOnDemand = true,
+}: Pick<
+  APIDataProps,
+  'formData' | 'previewToken' | 'paymentIntent' | 'referrer' | 'shouldUpdateOnDemand'
+>): CheckoutAPIData {
+  let {onDemandBudget} = formData;
+  if (onDemandBudget) {
+    onDemandBudget = normalizeOnDemandBudget(onDemandBudget);
+  }
+  return getCheckoutAPIData({
+    formData,
+    onDemandBudget,
+    previewToken,
+    paymentIntent,
+    referrer,
+    shouldUpdateOnDemand,
+  });
+}
+
+export function useSubmitCheckout({
+  organization,
+  subscription,
+  onErrorMessage,
+  onSubmitting,
+  onHandleCardAction,
+  onFetchPreviewData,
+  referrer = 'billing',
+}: {
+  onErrorMessage: (message: string) => void;
+  onFetchPreviewData: () => void;
+  onHandleCardAction: ({intentDetails}: {intentDetails: IntentDetails}) => void;
+  onSubmitting: (b: boolean) => void;
+  organization: Organization;
+  subscription: Subscription;
+  referrer?: string;
+}) {
+  const api = useApi({});
+
+  // this is necessary for recording partner billing migration-specific analytics after
+  // the migration is successful (during which the flag is flipped off)
+  const isMigratingPartnerAccount = organization.features.includes(
+    'partner-billing-migration'
+  );
+
+  return useMutation({
+    mutationFn: ({data}: {data: CheckoutAPIData}) => {
+      return api.requestPromise(
+        `/customers/${organization.slug}/subscription/?expand=invoice`,
+        {
+          method: 'PUT',
+          data,
+        }
+      );
+    },
+    onSuccess: (_, _variables) => {
+      recordAnalytics(
+        organization,
+        subscription,
+        _variables.data,
+        isMigratingPartnerAccount
+      );
+
+      // seer automation alert
+      const alreadyHasSeer =
+        !isTrialPlan(subscription.plan) &&
+        subscription.reservedBudgets?.some(
+          budget =>
+            (budget.apiName as string as SelectableProduct) === SelectableProduct.SEER &&
+            budget.reservedBudget > 0
+        );
+      const justBoughtSeer = _variables.data.seer && !alreadyHasSeer;
+
+      // refresh org and subscription state
+      // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
+      // request doesn't get cancelled
+      fetchOrganizationDetails(new Client(), organization.slug);
+      SubscriptionStore.loadData(organization.slug);
+
+      // TODO(checkout v3): This should be changed to redirect to the success page
+      browserHistory.push(
+        normalizeUrl(
+          `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
+            justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
+          }`
+        )
+      );
+    },
+    onError: (error: RequestError, _variables) => {
+      const body = error.responseJSON;
+
+      if (body?.previewToken) {
+        onErrorMessage(
+          t('Your preview expired, please review changes and submit again.')
+        );
+        onFetchPreviewData?.();
+      } else if (body?.paymentIntent && body?.paymentSecret && body?.detail) {
+        // When an error response contains payment intent information
+        // we can retry the payment using the client-side confirmation flow
+        // in stripe.
+        // We don't re-enable the button here as we don't want users clicking it
+        // while there are UI transitions happening.
+        if (typeof body.detail === 'string') {
+          onErrorMessage(body.detail);
+        } else {
+          onErrorMessage(
+            body.detail.message ??
+              t('An unknown error occurred while saving your subscription')
+          );
+        }
+        const intent: IntentDetails = {
+          paymentIntent: body.paymentIntent as string,
+          paymentSecret: body.paymentSecret as string,
+        };
+        onHandleCardAction?.({intentDetails: intent});
+      } else {
+        if (typeof body?.detail === 'string') {
+          onErrorMessage(body.detail);
+        } else {
+          onErrorMessage(
+            body?.detail?.message ??
+              t('An unknown error occurred while saving your subscription')
+          );
+        }
+        onSubmitting?.(false);
+
+        // Don't capture 402 errors as that status code is used for
+        // customer credit card failures.
+        if (error.status !== 402) {
+          Sentry.withScope(scope => {
+            scope.setExtras({data: _variables.data});
+            Sentry.captureException(error);
+          });
+        }
+      }
+    },
+  });
+}
+
+/**
+ * @deprecated use useSubmitCheckout instead
+ */
 export async function submitCheckout(
   organization: Organization,
   subscription: Subscription,
@@ -587,20 +742,14 @@ export async function submitCheckout(
 ) {
   const endpoint = `/customers/${organization.slug}/subscription/`;
 
-  let {onDemandBudget} = formData;
-  if (onDemandBudget) {
-    onDemandBudget = normalizeOnDemandBudget(onDemandBudget);
-  }
-
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
   const isMigratingPartnerAccount = organization.features.includes(
     'partner-billing-migration'
   );
 
-  const data = getCheckoutAPIData({
+  const data = normalizeAndGetCheckoutAPIData({
     formData,
-    onDemandBudget,
     previewToken: previewData?.previewToken,
     paymentIntent: intentId,
     referrer,
@@ -640,7 +789,7 @@ export async function submitCheckout(
         }`
       )
     );
-  } catch (error) {
+  } catch (error: any) {
     const body = error.responseJSON;
 
     if (body?.previewToken) {
@@ -695,4 +844,8 @@ export function getToggleTier(checkoutTier: PlanTier | undefined) {
   }
 
   return SUPPORTED_TIERS[tierIndex + 1];
+}
+
+export function hasCheckoutV3(organization: Organization) {
+  return organization.features.includes('checkout-v3');
 }

@@ -55,9 +55,11 @@ function SelectedMonitors({
 function AllMonitors({
   connectedIds,
   toggleConnected,
+  footerContent,
 }: {
   connectedIds: Automation['detectorIds'];
   toggleConnected: (params: {detector: Detector}) => void;
+  footerContent?: React.ReactNode;
 }) {
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -71,6 +73,7 @@ function AllMonitors({
     cursor,
     limit: 10,
   });
+
   return (
     <Section title={t('All Monitors')}>
       <DetectorSearch initialQuery={query} onSearch={setQuery} />
@@ -84,17 +87,25 @@ function AllMonitors({
         emptyMessage={t('No monitors found')}
         numSkeletons={10}
       />
-      <Pagination onCursor={setCursor} pageLinks={getResponseHeader?.('Link')} />
+      <Flex justify="between">
+        <div>{footerContent}</div>
+        <PaginationWithoutMargin
+          onCursor={setCursor}
+          pageLinks={getResponseHeader?.('Link')}
+        />
+      </Flex>
     </Section>
   );
 }
 
-function ConnectMonitorsDrawer({
+export function ConnectMonitorsContent({
   initialIds,
   saveConnectedIds,
+  footerContent,
 }: {
   initialIds: Automation['detectorIds'];
   saveConnectedIds: (ids: Automation['detectorIds']) => void;
+  footerContent?: React.ReactNode;
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -119,7 +130,7 @@ function ConnectMonitorsDrawer({
         : [...oldDetectorsData, detector]
     )
       // API will return ID ascending, so this avoids re-ordering
-      .toSorted((a, b) => a.id.localeCompare(b.id));
+      .toSorted((a, b) => Number(a.id) - Number(b.id));
     const newDetectorIds = newDetectors.map(d => d.id);
 
     // Update the query cache to prevent the list from being fetched anew
@@ -138,17 +149,18 @@ function ConnectMonitorsDrawer({
 
   return (
     <Fragment>
-      <DrawerHeader hideBar />
-      <DrawerContent>
-        {connectedIds.length > 0 && (
-          <SelectedMonitors
-            data-test-id="drawer-connected-monitors-list"
-            connectedIds={connectedIds}
-            toggleConnected={toggleConnected}
-          />
-        )}
-        <AllMonitors connectedIds={connectedIds} toggleConnected={toggleConnected} />
-      </DrawerContent>
+      {connectedIds.length > 0 && (
+        <SelectedMonitors
+          data-test-id="drawer-connected-monitors-list"
+          connectedIds={connectedIds}
+          toggleConnected={toggleConnected}
+        />
+      )}
+      <AllMonitors
+        connectedIds={connectedIds}
+        toggleConnected={toggleConnected}
+        footerContent={footerContent}
+      />
     </Fragment>
   );
 }
@@ -165,10 +177,15 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
 
     openDrawer(
       () => (
-        <ConnectMonitorsDrawer
-          initialIds={connectedIds}
-          saveConnectedIds={setConnectedIds}
-        />
+        <Fragment>
+          <DrawerHeader hideBar />
+          <DrawerContent>
+            <ConnectMonitorsContent
+              initialIds={connectedIds}
+              saveConnectedIds={setConnectedIds}
+            />
+          </DrawerContent>
+        </Fragment>
       ),
       {
         ariaLabel: t('Connect Monitors'),
@@ -186,7 +203,7 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
     return (
       <Container>
         <SelectedMonitors connectedIds={connectedIds} />
-        <ButtonWrapper justify="space-between">
+        <ButtonWrapper justify="between">
           <Button size="sm" icon={<IconAdd />} onClick={toggleDrawer}>
             {t('Create New Monitor')}
           </Button>
@@ -227,4 +244,8 @@ const ButtonWrapper = styled(Flex)`
   border-top: 1px solid ${p => p.theme.border};
   padding: ${p => p.theme.space.xl};
   margin: -${p => p.theme.space.xl};
+`;
+
+const PaginationWithoutMargin = styled(Pagination)`
+  margin: ${p => p.theme.space['0']};
 `;

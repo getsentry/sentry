@@ -30,7 +30,7 @@ def incident_attachment_info_with_metric_value(incident, new_status, metric_valu
 
 
 class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
-    def test_returns_correct_info(self):
+    def test_returns_correct_info(self) -> None:
         alert_rule = self.create_alert_rule()
         date_started = self.now
         incident = self.create_incident(
@@ -71,7 +71,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )
 
     @with_feature("organizations:workflow-engine-trigger-actions")
-    def test_returns_correct_info_with_workflow_engine_dual_write(self):
+    def test_returns_correct_info_with_workflow_engine_dual_write(self) -> None:
         """
         This tests that we lookup the correct incident and alert rule during dual write ACI migration.
         """
@@ -142,7 +142,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )
 
     @with_feature("organizations:workflow-engine-ui-links")
-    def test_returns_correct_info_with_workflow_engine_ui_links(self):
+    def test_returns_correct_info_with_workflow_engine_ui_links(self) -> None:
         alert_rule = self.create_alert_rule()
         date_started = self.now
         incident = self.create_incident(
@@ -187,7 +187,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
-    def test_with_incident_trigger(self):
+    def test_with_incident_trigger(self) -> None:
         alert_rule = self.create_alert_rule()
         now = self.now
         date_started = now - timedelta(minutes=5)
@@ -265,7 +265,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
-    def test_percent_change_alert(self):
+    def test_percent_change_alert(self) -> None:
         # 1 hour comparison_delta
         alert_rule = self.create_alert_rule(
             comparison_delta=60,
@@ -294,7 +294,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             == "Events 123% higher in the last 10 minutes compared to the same time one hour ago"
         )
 
-    def test_percent_change_alert_rpc(self):
+    def test_percent_change_alert_rpc(self) -> None:
         # 1 hour comparison_delta
         alert_rule = self.create_alert_rule(
             comparison_delta=60,
@@ -325,7 +325,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             == "Events 123% higher in the last 10 minutes compared to the same time one hour ago"
         )
 
-    def test_percent_change_alert_custom_comparison_delta(self):
+    def test_percent_change_alert_custom_comparison_delta(self) -> None:
         alert_rule = self.create_alert_rule(
             # 1 month comparison_delta
             comparison_delta=720,
@@ -360,7 +360,7 @@ MOCK_NOW = timezone.now().replace(hour=13, minute=0, second=0, microsecond=0)
 
 @freeze_time(MOCK_NOW)
 class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
         self._5_min_ago = (self.now - timedelta(minutes=5)).timestamp()
@@ -410,7 +410,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         for _ in range(2):
             self.store_session(self.build_session(status="exited", started=self._5_min_ago))
 
-    def test_with_incident_trigger_sessions(self):
+    def test_with_incident_trigger_sessions(self) -> None:
         self.create_incident_and_related_objects()
         data = incident_attachment_info_with_metric_value(
             self.incident, IncidentStatus.CRITICAL, 92
@@ -424,7 +424,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
-    def test_with_incident_trigger_sessions_resolve(self):
+    def test_with_incident_trigger_sessions_resolve(self) -> None:
         self.create_incident_and_related_objects()
         data = incident_attachment_info_with_metric_value(
             self.incident, IncidentStatus.CLOSED, metric_value=100.0
@@ -437,7 +437,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
-    def test_with_incident_trigger_users(self):
+    def test_with_incident_trigger_users(self) -> None:
         self.create_incident_and_related_objects(field="users")
         data = incident_attachment_info_with_metric_value(
             self.incident, IncidentStatus.CRITICAL, 92
@@ -450,7 +450,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
-    def test_with_incident_trigger_users_resolve(self):
+    def test_with_incident_trigger_users_resolve(self) -> None:
         self.create_incident_and_related_objects(field="users")
         data = incident_attachment_info_with_metric_value(
             self.incident, IncidentStatus.CLOSED, metric_value=100.0
@@ -463,7 +463,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
-    def test_with_daily_incident_trigger_users_resolve(self):
+    def test_with_daily_incident_trigger_users_resolve(self) -> None:
         self.create_daily_incident_and_related_objects(field="users")
         data = incident_attachment_info_with_metric_value(
             self.daily_incident, IncidentStatus.CLOSED, metric_value=100.0
@@ -476,7 +476,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
-    def test_with_incident_where_no_sessions_exist(self):
+    def test_with_incident_where_no_sessions_exist(self) -> None:
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",

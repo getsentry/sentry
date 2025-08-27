@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
+import types from '!!type-loader!sentry/components/core/tooltip';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Storybook from 'sentry/stories';
-
-import types from '!!type-loader!sentry/components/core/tooltip';
 
 export default Storybook.story('Tooltip', (story, APIReference) => {
   APIReference(types.Tooltip);
@@ -58,7 +57,7 @@ export default Storybook.story('Tooltip', (story, APIReference) => {
           Tooltips can be positioned in different directions. Use the{' '}
           <Storybook.JSXNode name="position" /> prop to control placement.
         </p>
-        <Flex direction="column" gap={1} align="center">
+        <Flex direction="column" gap="md" align="center">
           <div
             style={{
               display: 'flex',

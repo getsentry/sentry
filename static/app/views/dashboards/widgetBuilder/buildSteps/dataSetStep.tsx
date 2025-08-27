@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +16,7 @@ import {DisplayType, type WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 import {BuildStep} from './buildStep';
 
@@ -32,7 +33,6 @@ function DiscoverSplitAlert({onDismiss, splitDecision}: any) {
     <Alert.Container>
       <Alert
         type="warning"
-        showIcon
         trailingItems={
           <StyledCloseButton
             icon={<IconClose size="sm" />}
@@ -90,7 +90,7 @@ export function DataSetStep({
     if (organization.features.includes('discover-saved-queries-deprecation')) {
       disabledChoices.push([
         DataSet.TRANSACTIONS,
-        t('This dataset is is no longer supported. Please use the Spans dataset.'),
+        t('This dataset is no longer supported. Please use the Spans dataset.'),
       ]);
     }
     datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
@@ -104,32 +104,16 @@ export function DataSetStep({
     datasetChoices.set(
       DataSet.SPANS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Spans')}>
-        {t('Spans')}{' '}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t(
-              'This feature is available for early adopters and the UX may change'
-            ),
-          }}
-        />
+        {t('Spans')} <FeatureBadge type="new" />
       </FeatureBadgeAlignmentWrapper>
     );
   }
 
-  if (organization.features.includes('ourlogs-dashboards')) {
+  if (isLogsEnabled(organization)) {
     datasetChoices.set(
       DataSet.LOGS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Logs')}>
-        {t('Logs')}{' '}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t(
-              'This feature is available for early adopters and the UX may change'
-            ),
-          }}
-        />
+        {t('Logs')} <FeatureBadge type="new" />
       </FeatureBadgeAlignmentWrapper>
     );
   }

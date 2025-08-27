@@ -7,7 +7,7 @@ from sentry.utils.http import absolute_uri
 
 
 class JiraCSPTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.issue_key = "APP-123"
         self.path = absolute_uri(f"extensions/jira/issue/{self.issue_key}/") + "?xdm_e=base_url"
@@ -19,7 +19,7 @@ class JiraCSPTest(APITestCase):
             csp[parts[0]] = parts[1:]
         return csp
 
-    def test_xframeoptions_path(self):
+    def test_xframeoptions_path(self) -> None:
         response = self.client.get(self.path)
         assert "Content-Security-Policy-Report-Only" in response
         assert "X-Frame-Options" not in response
@@ -30,14 +30,14 @@ class JiraCSPTest(APITestCase):
         assert "Content-Security-Policy-Report-Only" in response
         assert "X-Frame-Options" not in response
 
-    def test_csp_frame_ancestors(self):
+    def test_csp_frame_ancestors(self) -> None:
         response = self.client.get(self.path)
         csp = self._split_csp_policy(response["Content-Security-Policy-Report-Only"])
         assert "base_url" in csp["frame-ancestors"]
         assert "http://testserver" in csp["frame-ancestors"]
 
     @override_settings(STATIC_FRONTEND_APP_URL="https://sentry.io/_static/dist/")
-    def test_csp_remote_style(self):
+    def test_csp_remote_style(self) -> None:
         response = self.client.get(self.path)
         assert "Content-Security-Policy-Report-Only" in response
 
@@ -45,6 +45,6 @@ class JiraCSPTest(APITestCase):
         assert "https://sentry.io" in csp["style-src"]
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_csp_enforce(self):
+    def test_csp_enforce(self) -> None:
         response = self.client.get(self.path)
         assert "Content-Security-Policy" in response

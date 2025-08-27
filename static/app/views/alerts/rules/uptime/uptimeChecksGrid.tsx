@@ -2,11 +2,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
@@ -14,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {UptimeCheck, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
@@ -95,6 +95,7 @@ function CheckInBodyCell({
   uptimeRule: UptimeRule;
 }) {
   const theme = useTheme();
+  const organization = useOrganization();
 
   const {
     timestamp,
@@ -109,6 +110,10 @@ function CheckInBodyCell({
   if (check[column.key] === undefined) {
     return <Cell />;
   }
+
+  const alwaysShowTraceLink = organization.features.includes(
+    'uptime-eap-uptime-results-query'
+  );
 
   switch (column.key) {
     case 'timestamp': {
@@ -183,8 +188,18 @@ function CheckInBodyCell({
 
       return (
         <TraceCell>
-          {spanCount ? (
-            <Link to={`/performance/trace/${traceId}/`}>{getShortEventId(traceId)}</Link>
+          {alwaysShowTraceLink || spanCount ? (
+            <Link
+              to={{
+                pathname: `/performance/trace/${traceId}/`,
+                query: {
+                  includeUptime: '1',
+                  timestamp: new Date(timestamp).getTime() / 1000,
+                },
+              }}
+            >
+              {getShortEventId(traceId)}
+            </Link>
           ) : (
             getShortEventId(traceId)
           )}

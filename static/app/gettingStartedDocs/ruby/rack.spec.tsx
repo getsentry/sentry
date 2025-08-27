@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './rack';
 
-describe('getting started with rack', function () {
-  it('renders errors onboarding docs correctly', function () {
+describe('getting started with rack', () => {
+  it('renders errors onboarding docs correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -16,7 +16,7 @@ describe('getting started with rack', function () {
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
   });
 
-  it('renders performance onboarding docs correctly', async function () {
+  it('renders performance onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });
@@ -26,7 +26,7 @@ describe('getting started with rack', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders profiling onboarding docs correctly', async function () {
+  it('renders profiling onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.PERFORMANCE_MONITORING,
@@ -44,6 +44,19 @@ describe('getting started with rack', function () {
       await screen.findByText(
         textWithMarkupMatcher(/Make sure stackprof is loaded before sentry-ruby/)
       )
+    ).toBeInTheDocument();
+  });
+
+  it('enables logs by setting enable_logs to true', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/config.enable_logs = true/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/config.enabled_patches = \[:logger\]/))
     ).toBeInTheDocument();
   });
 });

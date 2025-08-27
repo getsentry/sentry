@@ -109,7 +109,7 @@ def get_exc_info(rust_info):
     return type(exc), exc, None
 
 
-def test_merge_rust_info():
+def test_merge_rust_info() -> None:
     event = get_event(STACKTRACE)
     exc_info = get_exc_info(STACKTRACE)
 
@@ -142,7 +142,7 @@ def test_merge_rust_info():
     assert frames[6]["lineno"] == 456
 
 
-def test_merge_rust_info_linux():
+def test_merge_rust_info_linux() -> None:
     event = get_event(STACKTRACE_SEMAPHORE_LINUX)
     exc_info = get_exc_info(STACKTRACE_SEMAPHORE_LINUX)
 
@@ -167,13 +167,13 @@ def test_merge_rust_info_linux():
     assert frames[-2]["function"] == "std::panic::catch_unwind"
 
 
-def test_without_exc_info():
+def test_without_exc_info() -> None:
     event = get_event(STACKTRACE)
     merge_rust_info_frames(event, {})
     assert event["platform"] == "python"
 
 
-def test_without_rust_info():
+def test_without_rust_info() -> None:
     event = get_event(STACKTRACE)
     exc_info = get_exc_info(None)
 
@@ -181,7 +181,7 @@ def test_without_rust_info():
     assert event["platform"] == "python"
 
 
-def test_without_stacktrace():
+def test_without_stacktrace() -> None:
     stacktrace = "stacktrace: stack backtrace:\n\n"
     event = get_event(stacktrace)
     exc_info = get_exc_info(stacktrace)
@@ -198,7 +198,7 @@ def test_without_stacktrace():
     assert len(frames) == 1
 
 
-def test_without_exception():
+def test_without_exception() -> None:
     event = get_event(STACKTRACE)
     exc_info = get_exc_info(STACKTRACE)
 
@@ -207,7 +207,7 @@ def test_without_exception():
     assert event["platform"] == "python"
 
 
-def test_starts_with():
+def test_starts_with() -> None:
     # Basic functions
     assert starts_with("__rust_maybe_catch_panic", "__rust")
     assert starts_with("futures::task_impl::std::set", "futures::")
@@ -227,7 +227,7 @@ def test_starts_with():
     assert starts_with("<T as core::convert::Into<U>>::into", "core::")
 
 
-def test_strip_symbol():
+def test_strip_symbol() -> None:
     assert strip_symbol("") == ""
     assert strip_symbol("_ffi_call_unix64") == "_ffi_call_unix64"
     assert (

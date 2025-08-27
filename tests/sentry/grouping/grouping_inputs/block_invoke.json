@@ -1,10 +1,6 @@
 {
   "platform": "cocoa",
   "message": "Foo",
-  "grouping_config": {
-    "enhancements": "eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeHsSRNXp_nkp6enFunl5KdPOcvCcJaZ4SwL41lmxkkTN6a5OAElQxKB8imuRUX5RWgK1kIUOJb4pJal5qBJLoNIooluAYo6FhenFpXgNnYnUI1zRmpyNiGFNxVwqvRNLS5OTE9F07Abm-0UK92S5paZk-qcmJyRijMsl6SlJFVMOcsKFmMFiQEAtd-T3A",
-    "id": "newstyle:2023-01-11"
-  },
   "threads": {
     "values": [
       {

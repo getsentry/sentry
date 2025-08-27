@@ -19,7 +19,7 @@ import {
 // eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {SubregionCode} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -56,7 +56,7 @@ export function WebVitalStatusLineChart({
     data: timeseriesData,
     isLoading: isTimeseriesLoading,
     error: timeseriesError,
-  } = useMetricsSeries(
+  } = useSpanSeries(
     {
       search,
       yAxis: webVital ? [`p75(measurements.${webVital})`] : [],

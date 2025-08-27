@@ -1,23 +1,24 @@
-from datetime import timedelta
 from functools import partial
 
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import SimpleEventSerializerResponse
+from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import CursorQueryParam, EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
+from sentry.services import eventstore
 from sentry.snuba.events import Columns
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -43,6 +44,9 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
             CursorQueryParam,
             EventParams.FULL_PAYLOAD,
             EventParams.SAMPLE,
@@ -68,11 +72,19 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         if query:
             conditions.append([["positionCaseInsensitive", ["message", f"'{query}'"]], "!=", 0])
 
+        try:
+            start, end = get_date_range_from_params(
+                request.GET, optional=True
+            )  # NB: this will always
+            # return timezone-aware datetimes, even if the parameters passed didn't have a timezone (will default to UTC)
+        except InvalidParams:
+            raise ParseError(detail="Invalid date range parameters provided")
+
         event_filter = eventstore.Filter(conditions=conditions, project_ids=[project.id])
-        if features.has(
-            "organizations:project-event-date-limit", project.organization, actor=request.user
-        ):
-            event_filter.start = timezone.now() - timedelta(days=7)
+
+        if start and end:
+            event_filter.start = start
+            event_filter.end = end
 
         full = request.GET.get("full", False)
         sample = request.GET.get("sample", False)

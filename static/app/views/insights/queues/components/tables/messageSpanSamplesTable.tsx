@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -16,7 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {MessageActorType} from 'sentry/views/insights/queues/settings';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
@@ -42,7 +42,7 @@ type ColumnKeys =
   | SpanFields.TRACE_STATUS
   | SpanFields.SPAN_DURATION;
 
-type DataRow = Pick<EAPSpanResponse, DataRowKeys>;
+type DataRow = Pick<SpanResponse, DataRowKeys>;
 
 type Column = GridColumnHeader<ColumnKeys>;
 

@@ -11,14 +11,14 @@ from sentry.testutils.helpers.notifications import AnotherDummyNotification
 
 
 class ClassManagerTest(TestCase):
-    def tearDown(self):
+    def tearDown(self) -> None:
         manager.classes.pop("AnotherDummyNotification", None)
 
-    def test_register(self):
+    def test_register(self) -> None:
         register()(AnotherDummyNotification)
         assert get("AnotherDummyNotification") == AnotherDummyNotification
 
-    def test_duplicate_register(self):
+    def test_duplicate_register(self) -> None:
         register()(AnotherDummyNotification)
         with pytest.raises(NotificationClassAlreadySetException):
             register()(AnotherDummyNotification)

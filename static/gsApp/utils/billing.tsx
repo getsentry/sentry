@@ -1,6 +1,7 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
+import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -26,8 +27,9 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {OnDemandBudgetMode, PlanName, PlanTier} from 'getsentry/types';
-import {isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {isByteCategory, isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
+import {SelectableProduct} from 'getsentry/views/amCheckout/types';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 export const MILLISECONDS_IN_HOUR = 3600_000;
@@ -138,10 +140,7 @@ export function formatReservedWithUnits(
   if (isReservedBudget) {
     return displayPriceWithCents({cents: reservedQuantity ?? 0});
   }
-  if (
-    dataCategory !== DataCategory.ATTACHMENTS &&
-    dataCategory !== DataCategory.LOG_BYTE
-  ) {
+  if (!isByteCategory(dataCategory)) {
     return formatReservedNumberToString(reservedQuantity, options);
   }
   // convert reservedQuantity to BYTES to check for unlimited
@@ -168,10 +167,7 @@ export function formatUsageWithUnits(
   dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
-  if (
-    dataCategory === DataCategory.ATTACHMENTS ||
-    dataCategory === DataCategory.LOG_BYTE
-  ) {
+  if (isByteCategory(dataCategory)) {
     if (options.useUnitScaling) {
       return formatByteUnits(usageQuantity);
     }
@@ -193,6 +189,19 @@ export function formatUsageWithUnits(
   return options.isAbbreviated
     ? displayNumber(usageQuantity, 0)
     : usageQuantity.toLocaleString();
+}
+
+export function convertUsageToReservedUnit(
+  usage: number,
+  category: DataCategory | string
+): number {
+  if (isByteCategory(category)) {
+    return usage / GIGABYTE;
+  }
+  if (isContinuousProfiling(category)) {
+    return usage / MILLISECONDS_IN_HOUR;
+  }
+  return usage;
 }
 
 /**
@@ -529,6 +538,27 @@ export function getFriendlyPlanName(subscription: Subscription) {
       return 'Business Trial';
     default:
       return name;
+  }
+}
+
+export function getPlanIcon(plan: Plan) {
+  if (isBizPlanFamily(plan)) {
+    return <IconBuilding />;
+  }
+
+  if (isTeamPlanFamily(plan)) {
+    return <IconGroup />;
+  }
+
+  return <IconUser />;
+}
+
+export function getProductIcon(product: SelectableProduct) {
+  switch (product) {
+    case SelectableProduct.SEER:
+      return <IconSeer />;
+    default:
+      return null;
   }
 }
 

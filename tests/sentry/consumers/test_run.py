@@ -7,7 +7,7 @@ from sentry.utils.imports import import_string
 
 
 @pytest.mark.parametrize("consumer_def", list(consumers.KAFKA_CONSUMERS.items()))
-def test_all_importable(consumer_def, settings):
+def test_all_importable(consumer_def, settings) -> None:
     name: str
     defn: ConsumerDefinition
     name, defn = consumer_def
@@ -31,7 +31,6 @@ def test_dlq(consumer_def) -> None:
         "transactions-subscription-results",
         "generic-metrics-subscription-results",
         "metrics-subscription-results",
-        "eap-spans-subscription-results",
         "subscription-results-eap-items",
     ]
     consumers_that_should_have_dlq_but_dont = [

@@ -1,5 +1,5 @@
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
@@ -31,6 +31,12 @@ const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
       ? `
   // Set a sampling rate for profiling - this is relative to traces_sample_rate
   'profiles_sample_rate' => 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  // Enable logs to be sent to Sentry
+  'enable_logs' => true,`
       : ''
   }
 ]);`;
@@ -105,7 +111,7 @@ const onboarding: OnboardingConfig = {
         {
           description: (
             <Alert.Container>
-              <Alert type="warning">
+              <Alert type="warning" showIcon={false}>
                 {tct(
                   'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
                   {
@@ -160,15 +166,22 @@ const performanceOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        'To capture all errors and transactions, even the one during the startup of your application, you should initialize the Sentry PHP SDK as soon as possible.'
-      ),
-      configurations: [
+      content: [
         {
-          description: tct(
+          type: 'text',
+          text: t(
+            'To capture all errors and transactions, even the one during the startup of your application, you should initialize the Sentry PHP SDK as soon as possible.'
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
             'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs] and make sure to import it in your apps entrypoint before anything else.',
             {code: <code />}
           ),
+        },
+        {
+          type: 'code',
           language: 'php',
           code: `
 \\Sentry\\init([
@@ -179,7 +192,10 @@ const performanceOnboarding: OnboardingConfig = {
   'traces_sample_rate' => 1.0,
 ]);
 `,
-          additionalInfo: tct(
+        },
+        {
+          type: 'text',
+          text: tct(
             'We recommend adjusting the value of [code:tracesSampleRate] in production. Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to do [linkSampleTransactions:sampling].',
             {
               code: <code />,
@@ -201,14 +217,19 @@ const performanceOnboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Node application.',
+      content: [
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/automatic-instrumentation/" />
+          type: 'text',
+          text: tct(
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Node application.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/automatic-instrumentation/" />
+              ),
+            }
           ),
-        }
-      ),
+        },
+      ],
     },
   ],
   nextSteps: () => [],
@@ -297,6 +318,100 @@ const profilingOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const logsOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To start using logs, install the latest version of the Sentry PHP SDK. Logs are supported in version [code:4.12.0] and above of the SDK.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'bash',
+          code: 'composer require sentry/sentry',
+        },
+        {
+          type: 'text',
+          text: tct(
+            'If you are on an older version of the SDK, follow our [link:migration guide] to upgrade.',
+            {
+              link: (
+                <ExternalLink href="https://github.com/getsentry/sentry-php/blob/master/UPGRADE-4.0.md" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To enable logging, you need to initialize the SDK with the [code:enable_logs] option set to [code:true].',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          language: 'php',
+          code: `\\Sentry\\init([
+  'dsn' => '${params.dsn.public}',
+  'enable_logs' => true,
+]);
+
+// Somewhere at the end of your execution, you should flush
+// the logger to send pending logs to Sentry.
+\\Sentry\\logger()->flush();`,
+        },
+        {
+          type: 'text',
+          text: tct(
+            'For more detailed configuration options, see the [link:logs documentation].',
+            {
+              link: <ExternalLink href={`https://docs.sentry.io/platforms/php/logs/`} />,
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Verify that logging is working correctly by sending logs via the Sentry logger.'
+          ),
+        },
+        {
+          type: 'code',
+          language: 'php',
+          code: `\\Sentry\\logger()->info('A test log message');
+
+// Somewhere at the end of your execution, you should flush
+// the logger to send pending logs to Sentry.
+\\Sentry\\logger()->flush();`,
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
@@ -304,6 +419,7 @@ const docs: Docs = {
   profilingOnboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
+  logsOnboarding,
 };
 
 export default docs;

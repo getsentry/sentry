@@ -1,15 +1,17 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 import orjson
 from django.core import mail
 
+from sentry.analytics.events.join_request_created import JoinRequestCreatedEvent
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -20,29 +22,29 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
     endpoint = "sentry-api-0-organization-join-request"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super(APITestCase, self).setUp()
         super(SlackActivityNotificationTest, self).setUp()
         self.email = "test@example.com"
 
     @cached_property
-    def owner(self):
+    def owner(self) -> OrganizationMember:
         return OrganizationMember.objects.get(user_id=self.user.id, organization=self.organization)
 
-    def test_invalid_org_slug(self):
+    def test_invalid_org_slug(self) -> None:
         self.get_error_response("invalid-slug", email=self.email, status_code=404)
 
-    def test_email_required(self):
+    def test_email_required(self) -> None:
         response = self.get_error_response(self.organization.slug, status_code=400)
         assert response.data["email"][0] == "This field is required."
 
-    def test_invalid_email(self):
+    def test_invalid_email(self) -> None:
         response = self.get_error_response(
             self.organization.slug, email="invalid-email", status_code=400
         )
         assert response.data["email"][0] == "Enter a valid email address."
 
-    def test_organization_setting_disabled(self):
+    def test_organization_setting_disabled(self) -> None:
         OrganizationOption.objects.create(
             organization_id=self.organization.id, key="sentry:join_requests", value=False
         )
@@ -53,14 +55,14 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         "sentry.api.endpoints.organization_member.requests.join.ratelimiter.backend.is_limited",
         return_value=True,
     )
-    def test_ratelimit(self, is_limited):
+    def test_ratelimit(self, is_limited: MagicMock) -> None:
         response = self.get_error_response(
             self.organization.slug, email=self.email, status_code=429
         )
         assert response.data["detail"] == "Rate limit exceeded."
 
     @patch("sentry.api.endpoints.organization_member.requests.join.logger")
-    def test_org_sso_enabled(self, mock_log):
+    def test_org_sso_enabled(self, mock_log: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             AuthProvider.objects.create(organization_id=self.organization.id, provider="google")
 
@@ -71,7 +73,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert not mock_log.info.called
 
     @patch("sentry.api.endpoints.organization_member.requests.join.logger")
-    def test_user_already_exists(self, mock_log):
+    def test_user_already_exists(self, mock_log: MagicMock) -> None:
         assert OrganizationMember.objects.filter(organization=self.organization).count() == 1
         self.get_success_response(self.organization.slug, email=self.user.email, status_code=204)
 
@@ -80,7 +82,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert not mock_log.info.called
 
     @patch("sentry.api.endpoints.organization_member.requests.join.logger")
-    def test_pending_member_already_exists(self, mock_log):
+    def test_pending_member_already_exists(self, mock_log: MagicMock) -> None:
         pending_email = "pending@example.com"
         original_pending = self.create_member(
             email=pending_email, organization=self.organization, role="admin"
@@ -96,7 +98,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
 
     @patch("sentry.analytics.record")
     @patch("sentry.api.endpoints.organization_member.requests.join.logger")
-    def test_already_requested_to_join(self, mock_log, mock_record):
+    def test_already_requested_to_join(self, mock_log: MagicMock, mock_record: MagicMock) -> None:
         join_request_email = "join-request@example.com"
         original_join_request = self.create_member(
             email=join_request_email,
@@ -116,7 +118,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert not any(c[0][0] == "join_request.created" for c in mock_record.call_args_list)
 
     @patch("sentry.analytics.record")
-    def test_request_to_join_email(self, mock_record):
+    def test_request_to_join_email(self, mock_record: MagicMock) -> None:
         self.organization = self.create_organization()
 
         user1 = self.create_user(email="manager@localhost")
@@ -136,11 +138,13 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert join_request.role == "member"
         assert not join_request.invite_approved
 
-        mock_record.assert_called_with(
-            "join_request.created",
-            member_id=join_request.id,
-            organization_id=self.organization.id,
-            referrer=None,
+        assert_last_analytics_event(
+            mock_record,
+            JoinRequestCreatedEvent(
+                member_id=join_request.id,
+                organization_id=self.organization.id,
+                referrer=None,
+            ),
         )
 
         self.assert_org_member_mapping(org_member=join_request)
@@ -153,7 +157,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
             assert mail.outbox[i].subject == expected_subject
 
     @with_feature("system:multi-region")
-    def test_request_to_join_email_customer_domains(self):
+    def test_request_to_join_email_customer_domains(self) -> None:
         manager = self.create_user(email="manager@localhost")
         self.create_member(organization=self.organization, user=manager, role="manager")
 
@@ -172,7 +176,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert mail.outbox[0].subject == f"Access request to {self.organization.name}"
         assert self.organization.absolute_url("/settings/members/") in mail.outbox[0].body
 
-    def test_request_to_join_slack(self):
+    def test_request_to_join_slack(self) -> None:
         with self.tasks():
             self.get_success_response(self.organization.slug, email=self.email, status_code=204)
 

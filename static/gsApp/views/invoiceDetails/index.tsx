@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -141,7 +141,7 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
   const contactInfo = invoice?.displayAddress || billingDetails?.displayAddress;
   const companyName = billingDetails?.companyName;
   const billingEmail = billingDetails?.billingEmail;
-  const taxNumber = invoice?.taxNumber || billingDetails?.taxNumber;
+  const taxNumber = invoice?.taxNumber;
   const countryCode = invoice?.countryCode || billingDetails?.countryCode;
   const taxNumberName = `${getTaxFieldInfo(countryCode).label}:`;
 

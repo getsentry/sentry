@@ -48,8 +48,6 @@ type Props = {
    */
   partial?: boolean;
 
-  upsellDefaultSelection?: string;
-
   /**
    * Replaces the default learn more button with a more subtle link text that
    * opens the upsell modal.
@@ -75,7 +73,6 @@ class PowerFeatureHovercard extends Component<Props> {
     openUpsellModal({
       organization,
       source: id ?? '',
-      defaultSelection: this.props.upsellDefaultSelection,
     });
   };
 
@@ -101,7 +98,7 @@ class PowerFeatureHovercard extends Component<Props> {
 
           return (
             <LearnMoreTextBody data-test-id="power-hovercard">
-              <Flex direction="column" gap={space(1)}>
+              <Flex direction="column" gap="md">
                 <div>
                   {partial
                     ? t('Better With %s Plan', planName)

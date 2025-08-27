@@ -10,13 +10,17 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, eventstream
+from sentry import audit_log
 from sentry.api.base import audit_logger
-from sentry.deletions.tasks.groups import delete_groups as delete_groups_task
+from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
+from sentry.deletions.tasks.groups import delete_groups_for_project
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
+from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
 from sentry.utils.audit import create_audit_entry
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
@@ -44,7 +48,17 @@ def delete_group_list(
     # deterministic sort for sanity, and for very large deletions we'll
     # delete the "smaller" groups first
     group_list.sort(key=lambda g: (g.times_seen, g.id))
-    group_ids = [g.id for g in group_list]
+
+    # Assert that all groups belong to the same project
+    if not all(g.project_id == project.id for g in group_list):
+        raise ValueError("All groups must belong to the same project")
+
+    group_ids = []
+    error_ids = []
+    for g in group_list:
+        group_ids.append(g.id)
+        if g.issue_category == GroupCategory.ERROR:
+            error_ids.append(g.id)
 
     transaction_id = uuid4().hex
     delete_logger.info(
@@ -65,28 +79,35 @@ def delete_group_list(
         },
     )
 
+    # Tell seer to delete grouping records for these groups
+    may_schedule_task_to_delete_hashes_from_seer(error_ids)
+
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
-
-    eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
 
     # The moment groups are marked as pending deletion, we create audit entries
     # so that we can see who requested the deletion. Even if anything after this point
     # fails, we will still have a record of who requested the deletion.
     create_audit_entries(request, project, group_list, delete_type, transaction_id)
 
+    # Removing GroupHash rows prevents new events from associating to the groups
+    # we just deleted.
+    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
+
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion
     GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
-    delete_groups_task.apply_async(
-        kwargs={
-            "object_ids": group_ids,
-            "transaction_id": str(transaction_id),
-            "eventstream_state": eventstream_state,
-        }
-    )
+    # Schedule a task per GROUP_CHUNK_SIZE batch of groups
+    for i in range(0, len(group_ids), GROUP_CHUNK_SIZE):
+        delete_groups_for_project.apply_async(
+            kwargs={
+                "project_id": project.id,
+                "object_ids": group_ids[i : i + GROUP_CHUNK_SIZE],
+                "transaction_id": str(transaction_id),
+            }
+        )
 
 
 def create_audit_entries(
@@ -110,22 +131,12 @@ def create_audit_entries(
             },
         )
 
-        delete_logger.info(
-            "object.delete.queued",
-            extra={
-                "object_id": group.id,
-                "project_id": group.project_id,
-                "transaction_id": transaction_id,
-                "model": type(group).__name__,
-            },
-        )
-
         issue_deleted.send_robust(
             group=group, user=request.user, delete_type=delete_type, sender=delete_group_list
         )
 
 
-def delete_groups(
+def schedule_tasks_to_delete_groups(
     request: Request,
     projects: Sequence[Project],
     organization_id: int,
@@ -164,7 +175,7 @@ def delete_groups(
     for group in group_list:
         groups_by_project_id[group.project_id].append(group)
 
-    for project in projects:
+    for project in sorted(projects, key=lambda p: p.id):
         delete_group_list(
             request, project, groups_by_project_id.get(project.id, []), delete_type="delete"
         )

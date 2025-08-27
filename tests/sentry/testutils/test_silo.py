@@ -3,11 +3,11 @@ import pytest
 from sentry.testutils.silo import strip_silo_mode_test_suffix, validate_protected_queries
 
 
-def test_validate_protected_queries__no_queries():
+def test_validate_protected_queries__no_queries() -> None:
     validate_protected_queries([])
 
 
-def test_validate_protected_queries__ok():
+def test_validate_protected_queries__ok() -> None:
     queries = [
         {"sql": "SELECT * FROM sentry_organization"},
         {"sql": "UPDATE sentry_project SET slug = 'best-team' WHERE id = 1"},
@@ -15,7 +15,7 @@ def test_validate_protected_queries__ok():
     validate_protected_queries(queries)
 
 
-def test_validate_protected_queries__missing_fences():
+def test_validate_protected_queries__missing_fences() -> None:
     queries = [
         {"sql": 'SAVEPOINT "s123abc"'},
         {"sql": 'UPDATE "sentry_useremail" SET "is_verified" = true WHERE "id" = 1'},
@@ -26,7 +26,7 @@ def test_validate_protected_queries__missing_fences():
         validate_protected_queries(queries)
 
 
-def test_validate_protected_queries__with_single_fence():
+def test_validate_protected_queries__with_single_fence() -> None:
     queries = [
         {"sql": 'SAVEPOINT "s123abc"'},
         {"sql": 'UPDATE "sentry_useremail" SET "is_verified" = true WHERE "id" = 1'},
@@ -38,7 +38,7 @@ def test_validate_protected_queries__with_single_fence():
     validate_protected_queries(queries)
 
 
-def test_validate_protected_queries__multiple_fences():
+def test_validate_protected_queries__multiple_fences() -> None:
     queries = [
         {"sql": 'SAVEPOINT "s123abc"'},
         {"sql": 'UPDATE "sentry_useremail" SET "is_verified" = true WHERE "id" = 1'},
@@ -53,7 +53,7 @@ def test_validate_protected_queries__multiple_fences():
     validate_protected_queries(queries)
 
 
-def test_validate_protected_queries__nested_fences():
+def test_validate_protected_queries__nested_fences() -> None:
     queries = [
         {"sql": 'SAVEPOINT "s123abc"'},
         {"sql": 'UPDATE "sentry_useremail" SET "is_verified" = true WHERE "id" = 1'},
@@ -86,7 +86,7 @@ def test_validate_protected_queries__nested_fences():
         validate_protected_queries(queries)
 
 
-def test_validate_protected_queries__fenced_and_not():
+def test_validate_protected_queries__fenced_and_not() -> None:
     queries = [
         {"sql": 'SAVEPOINT "s123abc"'},
         {"sql": 'UPDATE "sentry_useremail" SET "is_verified" = true WHERE "id" = 1'},
@@ -101,7 +101,7 @@ def test_validate_protected_queries__fenced_and_not():
         validate_protected_queries(queries)
 
 
-def test_strip_silo_mode_test_suffix():
+def test_strip_silo_mode_test_suffix() -> None:
     assert strip_silo_mode_test_suffix("SomeTest") == "SomeTest"
     assert strip_silo_mode_test_suffix("SomeTest__InMonolithMode") == "SomeTest"
     assert strip_silo_mode_test_suffix("SomeTest__InControlMode") == "SomeTest"

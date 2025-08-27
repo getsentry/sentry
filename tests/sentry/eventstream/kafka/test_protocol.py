@@ -12,19 +12,19 @@ from sentry.utils import json
 
 
 @override_options({"post-process-forwarder:rapidjson": False})
-def test_get_task_kwargs_for_message_invalid_payload():
+def test_get_task_kwargs_for_message_invalid_payload() -> None:
     with pytest.raises(InvalidPayload):
         get_task_kwargs_for_message(b'{"format": "invalid"}')
 
 
 @override_options({"post-process-forwarder:rapidjson": False})
-def test_get_task_kwargs_for_message_invalid_version():
+def test_get_task_kwargs_for_message_invalid_version() -> None:
     with pytest.raises(InvalidVersion):
         get_task_kwargs_for_message(json.dumps([0, "insert", {}]).encode())
 
 
 @pytest.mark.django_db
-def test_get_task_kwargs_for_message_version_1():
+def test_get_task_kwargs_for_message_version_1() -> None:
     event_data = {
         "project_id": 1,
         "group_id": 2,
@@ -67,7 +67,7 @@ def test_get_task_kwargs_for_message_version_1():
 
 
 @override_options({"post-process-forwarder:rapidjson": False})
-def test_get_task_kwargs_for_message_version_1_skip_consume():
+def test_get_task_kwargs_for_message_version_1_skip_consume() -> None:
     assert (
         get_task_kwargs_for_message(json.dumps([1, "insert", {}, {"skip_consume": True}]).encode())
         is None
@@ -75,18 +75,18 @@ def test_get_task_kwargs_for_message_version_1_skip_consume():
 
 
 @override_options({"post-process-forwarder:rapidjson": False})
-def test_get_task_kwargs_for_message_version_1_unsupported_operation():
+def test_get_task_kwargs_for_message_version_1_unsupported_operation() -> None:
     assert get_task_kwargs_for_message(json.dumps([1, "delete", {}]).encode()) is None
 
 
 @override_options({"post-process-forwarder:rapidjson": False})
-def test_get_task_kwargs_for_message_version_1_unexpected_operation():
+def test_get_task_kwargs_for_message_version_1_unexpected_operation() -> None:
     with pytest.raises(UnexpectedOperation):
         get_task_kwargs_for_message(json.dumps([1, "invalid", {}, {}]).encode())
 
 
 @pytest.mark.django_db
-def test_get_task_kwargs_for_message_version_1_kafka_headers():
+def test_get_task_kwargs_for_message_version_1_kafka_headers() -> None:
     kafka_headers = [
         ("Received-Timestamp", b"1626301534.910839"),
         ("event_id", b"00000000000010008080808080808080"),

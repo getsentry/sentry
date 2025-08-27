@@ -7,7 +7,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class ApiKeyTest(TestCase):
-    def test_enforces_scope_hierarchy(self):
+    def test_enforces_scope_hierarchy(self) -> None:
         org = self.create_organization()
         # Ensure hierarchy is enforced for all tokens
         for scope in SENTRY_SCOPES:
@@ -17,13 +17,13 @@ class ApiKeyTest(TestCase):
                 replica = ApiKeyReplica.objects.get(apikey_id=token.id)
                 assert replica.get_scopes() == token.get_scopes()
 
-    def test_default_string_serialization(self):
+    def test_default_string_serialization(self) -> None:
         org = self.create_organization()
         key = self.create_api_key(organization=org)
 
         assert f"{key} is cool" == f"api_key_id={key.id}, status={key.status} is cool"
 
-    def test_apikeyreplica_string_serialization(self):
+    def test_apikeyreplica_string_serialization(self) -> None:
         org = self.create_organization()
         key = self.create_api_key(organization=org)
         with assume_test_silo_mode(SiloMode.REGION):

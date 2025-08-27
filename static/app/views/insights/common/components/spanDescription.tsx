@@ -22,23 +22,13 @@ import {
   isValidJson,
   prettyPrintJsonString,
 } from 'sentry/views/insights/database/utils/jsonUtils';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
-  groupId: EAPSpanResponse[SpanFields.SPAN_GROUP];
-  op: EAPSpanResponse[SpanFields.SPAN_OP];
+  groupId: SpanResponse[SpanFields.SPAN_GROUP];
+  op: SpanResponse[SpanFields.SPAN_OP];
   preliminaryDescription?: string;
-}
-
-export function SpanDescription(props: Props) {
-  const {op, preliminaryDescription} = props;
-
-  if (op.startsWith('db')) {
-    return <DatabaseSpanDescription {...props} />;
-  }
-
-  return <WordBreak>{preliminaryDescription ?? ''}</WordBreak>;
 }
 
 const formatter = new SQLishFormatter();
@@ -70,7 +60,7 @@ export function DatabaseSpanDescription({
       ],
       sorts: [{field: SpanFields.CODE_FILEPATH, kind: 'desc'}],
     },
-    'api.starfish.span-description'
+    'api.insights.span-description'
   );
   const indexedSpan = indexedSpans?.[0];
 
@@ -184,7 +174,7 @@ function QueryClippedBox(props: any) {
   return <StyledClippedBox {...props} />;
 }
 
-export const Frame = styled('div')`
+const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
@@ -193,10 +183,6 @@ export const Frame = styled('div')`
 const WithPadding = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-`;
-
-const WordBreak = styled('div')`
-  word-break: break-word;
 `;
 
 const StyledClippedBox = styled(ClippedBox)`

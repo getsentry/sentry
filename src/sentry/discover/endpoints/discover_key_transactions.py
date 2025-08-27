@@ -18,6 +18,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.discover.endpoints import serializers
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
 
@@ -40,7 +41,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
     }
     permission_classes = (KeyTransactionPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -150,7 +151,7 @@ class KeyTransactionListEndpoint(KeyTransactionBase):
     }
     permission_classes = (KeyTransactionPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

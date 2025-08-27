@@ -1,6 +1,6 @@
 import datetime
 from io import BytesIO
-from unittest import mock
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from django.urls import reverse
@@ -10,9 +10,10 @@ from sentry.replays.lib import kafka
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
+from sentry.replays.usecases.delete import SEER_DELETE_SUMMARIES_ENDPOINT_PATH
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
-from sentry.utils import kafka_config
+from sentry.utils import json, kafka_config
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
@@ -20,7 +21,7 @@ REPLAYS_FEATURES = {"organizations:session-replay": True}
 class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.replay_id = uuid4().hex
@@ -28,16 +29,16 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 404
 
-    def test_no_replay_found(self):
+    def test_no_replay_found(self) -> None:
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
             assert response.status_code == 404
 
-    def test_get_one_replay(self):
+    def test_get_one_replay(self) -> None:
         """Test only one replay returned."""
         replay1_id = self.replay_id
         replay2_id = uuid4().hex
@@ -68,7 +69,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert response_data["data"]["id"] == replay2_id
 
-    def test_get_replay_schema(self):
+    def test_get_replay_schema(self) -> None:
         """Test replay schema is well-formed."""
         replay1_id = self.replay_id
         replay2_id = uuid4().hex
@@ -151,7 +152,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"], expected_response)
 
-    def test_delete_replay_from_filestore(self):
+    def test_delete_replay_from_filestore(self) -> None:
         """Test deleting files uploaded through the filestore interface."""
         # test deleting as a member, as they should be able to
         user = self.create_user(is_superuser=False)
@@ -174,8 +175,8 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             with (
                 TaskRunner(),
-                mock.patch.object(kafka_config, "get_kafka_producer_cluster_options"),
-                mock.patch.object(kafka, "KafkaPublisher"),
+                patch.object(kafka_config, "get_kafka_producer_cluster_options"),
+                patch.object(kafka, "KafkaPublisher"),
             ):
                 response = self.client.delete(self.url)
                 assert response.status_code == 204
@@ -192,7 +193,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         except File.DoesNotExist:
             pass
 
-    def test_delete_replay_from_clickhouse_data(self):
+    def test_delete_replay_from_clickhouse_data(self) -> None:
         """Test deleting files uploaded through the direct storage interface."""
         kept_replay_id = uuid4().hex
 
@@ -237,3 +238,31 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         assert storage.get(metadata1) is None
         assert storage.get(metadata2) is None
         assert storage.get(metadata3) is not None
+
+    @patch("sentry.replays.usecases.delete.make_signed_seer_api_request")
+    def test_delete_replay_from_seer(self, mock_seer_api_request) -> None:
+        """Test delete method deletes from Seer if summaries are enabled."""
+        kept_replay_id = uuid4().hex
+
+        t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        t2 = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(t1, self.project.id, self.replay_id, segment_id=0))
+        self.store_replays(mock_replay(t2, self.project.id, self.replay_id, segment_id=1))
+        self.store_replays(mock_replay(t1, self.project.id, kept_replay_id, segment_id=0))
+
+        mock_response = Mock()
+        mock_response.status = 204
+        mock_seer_api_request.return_value = mock_response
+
+        with self.feature({**REPLAYS_FEATURES, "organizations:replay-ai-summaries": True}):
+            with TaskRunner():
+                response = self.client.delete(self.url)
+                assert response.status_code == 204
+
+        mock_seer_api_request.assert_called_once()
+        call_args = mock_seer_api_request.call_args
+        assert call_args[1]["path"] == SEER_DELETE_SUMMARIES_ENDPOINT_PATH
+        request_body = json.loads(call_args[1]["body"].decode())
+        assert request_body == {
+            "replay_ids": [self.replay_id],
+        }

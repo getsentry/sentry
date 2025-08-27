@@ -27,6 +27,7 @@ from snuba_sdk import (
 from snuba_sdk import Request as SnubaRequest
 
 from sentry import analytics
+from sentry.analytics.events.open_pr_comment import OpenPRCommentCreatedEvent
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -248,7 +249,7 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
             provider_key=self.integration_name,
-            organization=project.organization,
+            organization_id=project.organization_id,
             project=project,
             commit=commit,
         ).capture() as lifecycle:
@@ -372,7 +373,7 @@ class CommitContextIntegration(ABC):
         metrics_base: str,
         comment_type: int = CommentType.MERGED_PR,
         language: str | None = None,
-    ):
+    ) -> None:
         client = self.get_client()
 
         pr_comment = PullRequestComment.objects.filter(
@@ -409,11 +410,12 @@ class CommitContextIntegration(ABC):
 
                 if comment_type == CommentType.OPEN_PR:
                     analytics.record(
-                        "open_pr_comment.created",
-                        comment_id=comment.id,
-                        org_id=repo.organization_id,
-                        pr_id=pr.id,
-                        language=(language or "not found"),
+                        OpenPRCommentCreatedEvent(
+                            comment_id=comment.id,
+                            org_id=repo.organization_id,
+                            pr_id=pr.id,
+                            language=(language or "not found"),
+                        )
                     )
             else:
                 resp = client.update_pr_comment(

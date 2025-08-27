@@ -38,7 +38,7 @@ export function DetectorQueryFilterBuilder() {
   }, [projectId]);
 
   return (
-    <Flex direction="column" gap={space(0.5)} flex={1}>
+    <Flex direction="column" gap="xs" flex={1}>
       <div>
         <Tooltip
           title={t(

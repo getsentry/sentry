@@ -1,20 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import invariant from 'invariant';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {TimeOffsetLocationQueryParams} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import ReplayDetailsProviders from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import ReplayDetailsHeaderActions from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
@@ -23,16 +24,12 @@ import ReplayDetailsPageBreadcrumbs from 'sentry/views/replays/detail/header/rep
 import ReplayDetailsUserBadge from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
 import ReplayDetailsPage from 'sentry/views/replays/detail/page';
 
-type Props = RouteComponentProps<
-  {replaySlug: string},
-  any,
-  TimeOffsetLocationQueryParams
->;
-
-export default function ReplayDetails({params: {replaySlug}}: Props) {
+export default function ReplayDetails() {
   const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
+  const {replaySlug} = useParams();
+  invariant(replaySlug, '`replaySlug` is required as part of the route params');
 
   const {slug: orgSlug} = organization;
 
@@ -70,17 +67,22 @@ export default function ReplayDetails({params: {replaySlug}}: Props) {
     </Fragment>
   );
   return (
-    <SentryDocumentTitle title={title}>
-      <FullViewport>
-        {replay ? (
-          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
-            {content}
-          </ReplayDetailsProviders>
-        ) : (
-          content
-        )}
-      </FullViewport>
-    </SentryDocumentTitle>
+    <AnalyticsArea name="details">
+      <SentryDocumentTitle title={title}>
+        <FullViewport>
+          {replay ? (
+            <ReplayDetailsProviders
+              replay={replay}
+              projectSlug={readerResult.projectSlug}
+            >
+              {content}
+            </ReplayDetailsProviders>
+          ) : (
+            content
+          )}
+        </FullViewport>
+      </SentryDocumentTitle>
+    </AnalyticsArea>
   );
 }
 

@@ -296,7 +296,7 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: validateDenyListColumns(
-          ['string', 'duration', 'number'],
+          ['string', 'duration', 'number', 'integer'],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',
@@ -353,6 +353,24 @@ export const AGGREGATIONS = {
   },
   [AggregationKey.EPM]: {
     ...getDocsAndOutputType(AggregationKey.EPM),
+    parameters: [],
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  [AggregationKey.SAMPLE_COUNT]: {
+    ...getDocsAndOutputType(AggregationKey.SAMPLE_COUNT),
+    parameters: [],
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  [AggregationKey.SAMPLE_EPS]: {
+    ...getDocsAndOutputType(AggregationKey.SAMPLE_EPS),
+    parameters: [],
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  [AggregationKey.SAMPLE_EPM]: {
+    ...getDocsAndOutputType(AggregationKey.SAMPLE_EPM),
     parameters: [],
     isSortable: true,
     multiPlotType: 'area',
@@ -707,7 +725,7 @@ export function getAggregations(dataset: DiscoverDatasets) {
         {
           kind: 'column',
           columnTypes: validateDenyListColumns(
-            ['string', 'duration', 'number'],
+            ['string', 'duration', 'number', 'integer'],
             ['id', 'issue', 'user.display']
           ),
           defaultValue:
@@ -820,6 +838,39 @@ export const ERRORS_AGGREGATION_FUNCTIONS = [
   AggregationKey.LAST_SEEN,
 ];
 
+export const ERROR_UPSAMPLING_AGGREGATION_FUNCTIONS = [
+  AggregationKey.SAMPLE_COUNT,
+  AggregationKey.SAMPLE_EPS,
+  AggregationKey.SAMPLE_EPM,
+];
+
+export const TRANSACTIONS_AGGREGATION_FUNCTIONS = [
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_IF,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.COUNT_MISERABLE,
+  AggregationKey.COUNT_WEB_VITALS,
+  AggregationKey.EPS,
+  AggregationKey.EPM,
+  AggregationKey.FAILURE_COUNT,
+  AggregationKey.MIN,
+  AggregationKey.MAX,
+  AggregationKey.SUM,
+  AggregationKey.ANY,
+  AggregationKey.P50,
+  AggregationKey.P75,
+  AggregationKey.P90,
+  AggregationKey.P95,
+  AggregationKey.P99,
+  AggregationKey.P100,
+  AggregationKey.PERCENTILE,
+  AggregationKey.AVG,
+  AggregationKey.APDEX,
+  AggregationKey.USER_MISERY,
+  AggregationKey.FAILURE_RATE,
+  AggregationKey.LAST_SEEN,
+];
+
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
 
@@ -849,7 +900,7 @@ export function getMeasurementSlug(field: string): string | null {
 
 const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
+export const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate

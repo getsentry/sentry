@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import zipfile
+from base64 import b64encode
 from io import BytesIO
 from os.path import join
 from typing import Any
@@ -28,12 +29,11 @@ from sentry.profiles.task import (
     _process_symbolicator_results_for_sample,
     _set_frames_platform,
     _symbolicate_profile,
-    encode_payload,
     process_profile_task,
 )
 from sentry.profiles.utils import Profile
 from sentry.signals import first_profile_received
-from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -302,7 +302,7 @@ def sample_v2_profile_samples_not_sorted():
 
 
 @django_db_all
-def test_normalize_sample_v1_profile(organization, sample_v1_profile):
+def test_normalize_sample_v1_profile(organization, sample_v1_profile) -> None:
     sample_v1_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=sample_v1_profile, organization=organization)
@@ -313,7 +313,7 @@ def test_normalize_sample_v1_profile(organization, sample_v1_profile):
 
 
 @django_db_all
-def test_normalize_ios_profile(organization, ios_profile):
+def test_normalize_ios_profile(organization, ios_profile) -> None:
     ios_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=ios_profile, organization=organization)
@@ -324,7 +324,7 @@ def test_normalize_ios_profile(organization, ios_profile):
 
 
 @django_db_all
-def test_normalize_android_profile(organization, android_profile):
+def test_normalize_android_profile(organization, android_profile) -> None:
     android_profile["transaction_tags"] = {"device.class": "1"}
 
     _normalize(profile=android_profile, organization=organization)
@@ -335,7 +335,7 @@ def test_normalize_android_profile(organization, android_profile):
     assert android_profile["device_classification"] == "low"
 
 
-def test_process_symbolicator_results_for_sample():
+def test_process_symbolicator_results_for_sample() -> None:
     profile: dict[str, Any] = {
         "version": 1,
         "platform": "rust",
@@ -426,7 +426,7 @@ def test_process_symbolicator_results_for_sample():
     assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4, 5]]
 
 
-def test_process_symbolicator_results_for_sample_js():
+def test_process_symbolicator_results_for_sample_js() -> None:
     profile: dict[str, Any] = {
         "version": 1,
         "platform": "javascript",
@@ -498,7 +498,7 @@ def test_process_symbolicator_results_for_sample_js():
 
 
 @django_db_all
-def test_decode_signature(project, android_profile):
+def test_decode_signature(project, android_profile) -> None:
     android_profile.update(
         {
             "project_id": project.id,
@@ -543,7 +543,7 @@ def test_decode_signature(project, android_profile):
         ("sample_v2_profile_samples_not_sorted", 66000),
     ],
 )
-def test_calculate_profile_duration(profile, duration_ms, request):
+def test_calculate_profile_duration(profile, duration_ms, request) -> None:
     assert _calculate_profile_duration_ms(request.getfixturevalue(profile)) == duration_ms
 
 
@@ -587,7 +587,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_basic_resolving(self):
+    def test_basic_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
         android_profile.update(
@@ -643,7 +643,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_inline_resolving(self):
+    def test_inline_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
         android_profile.update(
@@ -735,7 +735,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_error_on_resolving(self):
+    def test_error_on_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
         android_profile = load_profile("valid_android_profile.json")
         android_profile.update(
@@ -771,7 +771,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_js_symbolication_set_symbolicated_field(self):
+    def test_js_symbolication_set_symbolicated_field(self) -> None:
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="nodeprof123"
         )
@@ -807,7 +807,7 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
         assert js_profile["profile"]["frames"][0].get("data", {}).get("symbolicated", False)
 
 
-def test_set_frames_platform_sample():
+def test_set_frames_platform_sample() -> None:
     js_prof: Profile = {
         "version": "1",
         "platform": "javascript",
@@ -825,7 +825,7 @@ def test_set_frames_platform_sample():
     assert platforms == ["javascript", "cocoa", "javascript"]
 
 
-def test_set_frames_platform_android():
+def test_set_frames_platform_android() -> None:
     android_prof: Profile = {
         "platform": "android",
         "profile": {
@@ -1059,7 +1059,8 @@ def test_track_latest_sdk_with_payload(
         "received": "2024-01-02T03:04:05",
         "payload": json.dumps(profile),
     }
-    payload = encode_payload(kafka_payload)
+
+    payload = b64encode(msgpack.packb(kafka_payload)).decode("utf-8")
 
     with Feature("organizations:profiling-sdks"):
         process_profile_task(payload=payload)
@@ -1133,6 +1134,67 @@ def test_deprecated_sdks(
         _push_profile_to_vroom.assert_called()
 
 
+@patch("sentry.profiles.task._track_outcome")
+@patch("sentry.profiles.task._push_profile_to_vroom")
+@django_db_all
+@pytest.mark.parametrize(
+    ["profile", "category", "sdk_version", "dropped"],
+    [
+        pytest.param("sample_v1_profile", DataCategory.PROFILE, "2.23.0", True),
+        pytest.param("sample_v2_profile", DataCategory.PROFILE_CHUNK, "2.23.0", True),
+        pytest.param("sample_v2_profile", DataCategory.PROFILE_CHUNK, "2.24.0", False),
+        pytest.param("sample_v2_profile", DataCategory.PROFILE_CHUNK, "2.24.1", False),
+    ],
+)
+def test_rejected_sdks(
+    _push_profile_to_vroom,
+    _track_outcome,
+    profile,
+    category,
+    sdk_version,
+    dropped,
+    organization,
+    project,
+    request,
+):
+    profile = request.getfixturevalue(profile)
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+    profile["client_sdk"] = {
+        "name": "sentry.cocoa",
+        "version": sdk_version,
+    }
+
+    with Feature(
+        [
+            "organizations:profiling-sdks",
+            "organizations:profiling-deprecate-sdks",
+            "organizations:profiling-reject-sdks",
+        ]
+    ):
+        with override_options(
+            {
+                "sdk-deprecation.profile-chunk.cocoa": "2.24.1",
+                "sdk-deprecation.profile-chunk.cocoa.hard": "2.24.0",
+                "sdk-deprecation.profile-chunk.cocoa.reject": "2.23.1",
+                "sdk-deprecation.profile.cocoa.reject": "2.23.1",
+            }
+        ):
+            process_profile_task(profile=profile)
+
+    if dropped:
+        _push_profile_to_vroom.assert_not_called()
+        _track_outcome.assert_called_with(
+            profile=profile,
+            project=project,
+            outcome=Outcome.FILTERED,
+            categories=[category],
+            reason="rejected sdk",
+        )
+    else:
+        _push_profile_to_vroom.assert_called()
+
+
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._deobfuscate_profile")
 @patch("sentry.profiles.task._push_profile_to_vroom")
@@ -1172,103 +1234,3 @@ def test_process_profile_task_should_flip_project_flag(
     )
     project.refresh_from_db()
     assert project.flags.has_profiles
-
-
-class TestProcessProfileTaskDoubleCompression(TestCase):
-    """
-    TODO(taskworker): Remove this test once we have deleted zlib compression.
-    Test class for validating the double compression flow:
-    1. Consumer does zlib compression and calls process_profile_task.delay()
-    2. Taskworker does zstd compression on the task parameters
-    3. Task worker decompresses zstd and task decompresses zlib
-    """
-
-    @patch("sentry.profiles.task._track_outcome")
-    @patch("sentry.profiles.task._track_duration_outcome")
-    @patch("sentry.profiles.task._symbolicate_profile")
-    @patch("sentry.profiles.task._deobfuscate_profile")
-    @patch("sentry.profiles.task._push_profile_to_vroom")
-    def test_consumer_to_task_double_compression_flow(
-        self,
-        _push_profile_to_vroom,
-        _deobfuscate_profile,
-        _symbolicate_profile,
-        _track_duration_outcome,
-        _track_outcome,
-    ):
-        """
-        Test that the full consumer -> task flow works with double compression.
-
-        This test validates:
-        1. process_message in factory.py does zlib compression
-        2. taskworker layer does zstd compression
-        3. Both decompressions work correctly in the task execution
-        """
-        from datetime import datetime
-
-        from arroyo.backends.kafka import KafkaPayload
-        from arroyo.types import BrokerValue, Message, Partition, Topic
-        from django.utils import timezone
-
-        from sentry.profiles.consumers.process.factory import ProcessProfileStrategyFactory
-
-        # Mock the task functions
-        _push_profile_to_vroom.return_value = True
-        _deobfuscate_profile.return_value = True
-        _symbolicate_profile.return_value = True
-
-        # Get the profile fixture data
-        profile = generate_sample_v2_profile()
-
-        # Create a message dict like the consumer would receive from Kafka
-        message_dict = {
-            "organization_id": self.organization.id,
-            "project_id": self.project.id,
-            "key_id": 1,
-            "received": int(timezone.now().timestamp()),
-            "payload": json.dumps(profile),
-        }
-
-        # Pack the message with msgpack (like the consumer receives from Kafka)
-        payload = msgpack.packb(message_dict)
-
-        # Create the processing strategy (this will call process_message)
-        processing_strategy = ProcessProfileStrategyFactory().create_with_partitions(
-            commit=mock.Mock(), partitions={}
-        )
-
-        # Use self.tasks() to run the actual task with both compression layers
-        with self.tasks():
-            # Submit the message to the processing strategy
-            # This calls process_message which does:
-            # 1. zlib compression of the msgpack data
-            # 2. process_profile_task.delay() which adds zstd compression
-            processing_strategy.submit(
-                Message(
-                    BrokerValue(
-                        KafkaPayload(
-                            b"key",
-                            payload,
-                            [],
-                        ),
-                        Partition(Topic("profiles"), 1),
-                        1,
-                        datetime.now(),
-                    )
-                )
-            )
-            processing_strategy.poll()
-            processing_strategy.join(1)
-            processing_strategy.terminate()
-
-        # Verify the task was executed successfully
-        assert _push_profile_to_vroom.call_count == 1
-        assert _deobfuscate_profile.call_count == 1
-        assert _symbolicate_profile.call_count == 1
-        assert _track_duration_outcome.call_count == 1
-
-        # Verify the profile was processed with correct data
-        processed_profile = _push_profile_to_vroom.call_args[0][0]
-        assert processed_profile["organization_id"] == self.organization.id
-        assert processed_profile["project_id"] == self.project.id
-        assert processed_profile["platform"] == profile["platform"]

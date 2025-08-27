@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
@@ -82,7 +82,9 @@ def get_guarded_project_sample_rate(organization: Organization, project: Project
     # When using the boosted project sample rate, we want to fall back to the blended sample rate in case there are
     # any issues.
     sample_rate, _ = get_boost_low_volume_projects_sample_rate(
-        org_id=organization.id, project_id=project.id, error_sample_rate_fallback=sample_rate
+        org_id=organization.id,
+        project_id=project.id,
+        error_sample_rate_fallback=sample_rate,
     )
 
     return float(sample_rate)
@@ -127,6 +129,22 @@ def generate_rules(project: Project) -> list[PolymorphicRule]:
         rules = _get_rules_of_enabled_biases(
             project, base_sample_rate, enabled_user_biases, combined_biases
         )
+        if features.has("organizations:log-project-config", organization, actor=None):
+            try:
+                logger.info(
+                    "log-project-config - generate_rules: Generated %s rules for project %s in org %s.",
+                    len(rules),
+                    project.id,
+                    organization.id,
+                    extra={
+                        "enabled_user_biases": enabled_user_biases,
+                        "base_sample_rate": base_sample_rate,
+                        "num_rules": len(rules),
+                    },
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return []

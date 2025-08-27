@@ -247,8 +247,15 @@ export interface AutofixRepoDefinition {
   provider: string;
 }
 
+export interface BranchOverride {
+  branch_name: string;
+  tag_name: string;
+  tag_value: string;
+}
+
 export interface RepoSettings {
   branch: string;
+  branch_overrides: BranchOverride[];
   instructions: string;
 }
 
@@ -259,13 +266,14 @@ export interface SeerRepoDefinition {
   provider: string;
   base_commit_sha?: string;
   branch_name?: string;
+  branch_overrides?: BranchOverride[];
   instructions?: string;
   provider_raw?: string;
 }
 
 export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
-  automated_run_stopping_point?: 'solution' | 'code_changes' | 'open_pr';
+  automated_run_stopping_point?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr';
 }
 
 export const AUTOFIX_TTL_IN_DAYS = 30;

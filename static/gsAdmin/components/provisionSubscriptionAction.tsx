@@ -25,9 +25,9 @@ import withApi from 'sentry/utils/withApi';
 import {prettyDate} from 'admin/utils';
 import {CPE_MULTIPLIER_TO_CENTS, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {
+  ReservedBudgetCategoryType,
   type BillingConfig,
   type Plan,
-  ReservedBudgetCategoryType,
   type ReservedBudgetMetricHistory,
   type Subscription,
 } from 'getsentry/types';
@@ -42,6 +42,7 @@ import {
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
+  isByteCategory,
 } from 'getsentry/utils/dataCategory';
 
 const CPE_DECIMAL_PRECISION = 8;
@@ -839,8 +840,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                             title: true,
                             hadCustomDynamicSampling: isAm3Ds,
                           });
-                          const suffix =
-                            category === DataCategory.ATTACHMENTS ? ' (in GB)' : '';
+                          const suffix = isByteCategory(category) ? ' (in GB)' : '';
                           const capitalizedApiName = this.capitalizeForApiName(
                             categoryInfo.plural
                           );

@@ -6,10 +6,10 @@ import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 export default function BrowserOSIcons({
   showBrowser = true,
@@ -18,7 +18,7 @@ export default function BrowserOSIcons({
   isLoading?: boolean;
   showBrowser?: boolean;
 }) {
-  const {replay} = useReplayContext();
+  const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
 
   if (isLoading) {

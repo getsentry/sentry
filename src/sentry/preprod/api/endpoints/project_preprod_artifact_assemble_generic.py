@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.preprod.analytics import PreprodArtifactApiAssembleGenericEvent
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.tasks import (
     assemble_preprod_artifact_installable_app,
@@ -104,9 +105,10 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
             raise PermissionDenied
 
         analytics.record(
-            "preprod_artifact.api.assemble_generic",
-            organization_id=project.organization_id,
-            project_id=project.id,
+            PreprodArtifactApiAssembleGenericEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
         )
 
         with sentry_sdk.start_span(op="preprod_artifact.assemble_generic"):

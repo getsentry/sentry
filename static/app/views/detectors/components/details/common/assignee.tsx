@@ -3,7 +3,6 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import Section from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {parseActorIdentifier} from 'sentry/utils/parseActorIdentifier';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import useUserFromId from 'sentry/utils/useUserFromId';
@@ -14,7 +13,7 @@ function AssignToTeam({teamId}: {teamId: string}) {
 
   if (isLoading) {
     return (
-      <Flex align="center" gap={space(0.5)}>
+      <Flex align="center" gap="xs">
         {t('Assign to')} <Placeholder width="80px" height="16px" />
       </Flex>
     );
@@ -28,7 +27,7 @@ function AssignToUser({userId}: {userId: string}) {
 
   if (isPending) {
     return (
-      <Flex align="center" gap={space(0.5)}>
+      <Flex align="center" gap="xs">
         {t('Assign to')} <Placeholder width="80px" height="16px" />
       </Flex>
     );

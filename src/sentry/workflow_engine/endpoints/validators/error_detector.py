@@ -3,7 +3,8 @@ from rest_framework import serializers
 
 from sentry import audit_log
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+from sentry.grouping.fingerprinting import FingerprintingRules
+from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
@@ -24,6 +25,13 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
             raise serializers.ValidationError("Detector type must be error")
 
         return type
+
+    def validate_condition_group(self, value):
+        if value is not None:
+            raise serializers.ValidationError(
+                "Condition group is not supported for error detectors"
+            )
+        return value
 
     def validate_fingerprinting_rules(self, value):
         if not value:

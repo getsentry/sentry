@@ -58,7 +58,7 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
         return ret.returncode, ret.stdout
 
 
-def test_invalid_get_connection_call():
+def test_invalid_get_connection_call() -> None:
     code = """
 from django.db.transaction import get_connection
 
@@ -74,7 +74,7 @@ Found 1 error in 1 file (checked 1 source file)
     assert out == expected
 
 
-def test_ok_get_connection():
+def test_ok_get_connection() -> None:
     code = """
 from django.db.transaction import get_connection
 
@@ -85,7 +85,7 @@ with get_connection("default") as cursor:
     assert ret == 0
 
 
-def test_invalid_transaction_atomic():
+def test_invalid_transaction_atomic() -> None:
     code = """
 from django.db import transaction
 
@@ -104,7 +104,7 @@ Found 1 error in 1 file (checked 1 source file)
     assert out == expected
 
 
-def test_ok_transaction_atomic():
+def test_ok_transaction_atomic() -> None:
     code = """
 from django.db import transaction
 
@@ -115,7 +115,7 @@ with transaction.atomic("default"):
     assert ret == 0
 
 
-def test_ok_transaction_on_commit():
+def test_ok_transaction_on_commit() -> None:
     code = """
 from django.db import transaction
 
@@ -128,7 +128,7 @@ transaction.on_commit(completed, "default")
     assert ret == 0
 
 
-def test_invalid_transaction_on_commit():
+def test_invalid_transaction_on_commit() -> None:
     code = """
 from django.db import transaction
 
@@ -146,7 +146,7 @@ Found 1 error in 1 file (checked 1 source file)
     assert out == expected
 
 
-def test_invalid_transaction_set_rollback():
+def test_invalid_transaction_set_rollback() -> None:
     code = """
 from django.db import transaction
 
@@ -161,7 +161,7 @@ Found 1 error in 1 file (checked 1 source file)
     assert out == expected
 
 
-def test_ok_transaction_set_rollback():
+def test_ok_transaction_set_rollback() -> None:
     code = """
 from django.db import transaction
 
@@ -202,11 +202,11 @@ x: Request
 reveal_type(x.auth)
 """
     expected_no_plugins = """\
-<string>:3: note: Revealed type is "Union[rest_framework.authtoken.models.Token, Any]"
+<string>:3: note: Revealed type is "rest_framework.authtoken.models.Token | Any"
 Success: no issues found in 1 source file
 """
     expected_plugins = """\
-<string>:3: note: Revealed type is "Union[sentry.auth.services.auth.model.AuthenticatedToken, None]"
+<string>:3: note: Revealed type is "sentry.auth.services.auth.model.AuthenticatedToken | None"
 Success: no issues found in 1 source file
 """
     ret, out = call_mypy(src, plugins=[])

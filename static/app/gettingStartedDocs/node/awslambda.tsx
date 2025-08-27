@@ -1,4 +1,4 @@
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
@@ -17,6 +17,8 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeLogsOnboarding,
+  getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -65,7 +67,7 @@ const moduleFormatOnboarding: Record<ModuleFormat, OnboardingConfig<PlatformOpti
   [ModuleFormat.CJS]: {
     introduction: () =>
       tct(
-        'In this quick guide you’ll use set up Sentry for your AWS Lambda function. For more information visit [link:docs].',
+        "In this quick guide you'll use set up Sentry for your AWS Lambda function. For more information visit [link:docs].",
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/cjs-layer/" />
@@ -225,7 +227,14 @@ const docs: Docs<PlatformOptions> = {
   profilingOnboarding: getNodeProfilingOnboarding({
     basePackage: '@sentry/aws-serverless',
   }),
+  logsOnboarding: getNodeLogsOnboarding({
+    docsPlatform: 'aws-lambda',
+    sdkPackage: '@sentry/aws-serverless',
+  }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'aws-serverless',
+  }),
+  mcpOnboarding: getNodeMcpOnboarding({
     basePackage: 'aws-serverless',
   }),
   platformOptions,

@@ -11,7 +11,7 @@ from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse, SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
@@ -22,11 +22,13 @@ from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_compone
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.workflow_engine.models import (
     Action,
+    AlertRuleDetector,
     DataCondition,
     DataConditionGroup,
     DataSource,
     DataSourceDetector,
     Detector,
+    DetectorGroup,
     Workflow,
     WorkflowDataConditionGroup,
     WorkflowFireHistory,
@@ -192,10 +194,14 @@ class DataSourceSerializer(Serializer):
 @register(DataCondition)
 class DataConditionSerializer(Serializer):
     def serialize(self, obj: DataCondition, *args, **kwargs) -> dict[str, Any]:
+        comparison = obj.comparison
+        if isinstance(comparison, dict):
+            comparison = convert_dict_key_case(obj.comparison, snake_to_camel_case)
+
         return {
             "id": str(obj.id),
             "type": obj.type,
-            "comparison": obj.comparison,
+            "comparison": comparison,
             "conditionResult": obj.condition_result,
         }
 
@@ -310,6 +316,36 @@ class DetectorSerializer(Serializer):
         for detector_id, workflow_id in detector_workflows:
             workflows_map[detector_id].append(str(workflow_id))
 
+        # Fetch alert rule mappings
+        # TODO: Remove alert rule mappings as they're deprecated
+        alert_rule_mappings = list(AlertRuleDetector.objects.filter(detector__in=item_list))
+        alert_rule_map = {
+            mapping.detector_id: {
+                "alert_rule_id": mapping.alert_rule_id,
+                "rule_id": mapping.rule_id,
+            }
+            for mapping in alert_rule_mappings
+        }
+
+        latest_detector_groups = (
+            DetectorGroup.objects.filter(detector__in=item_list)
+            .select_related("group", "group__project")
+            .order_by("detector_id", "-date_added")
+            .distinct("detector_id")
+        )
+        latest_groups_map = {
+            dg.detector_id: (
+                None
+                if dg.group is None
+                else serialize(
+                    dg.group,
+                    user=user,
+                    serializer=SimpleGroupSerializer(),
+                )
+            )
+            for dg in latest_detector_groups
+        }
+
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
         project_ids = [item.project_id for item in filtered_item_list]
 
@@ -331,6 +367,14 @@ class DetectorSerializer(Serializer):
                 str(item.workflow_condition_group_id)
             )
             attrs[item]["workflow_ids"] = workflows_map[item.id]
+            attrs[item]["alert_rule_mapping"] = alert_rule_map.get(
+                item.id,
+                {
+                    "alert_rule_id": None,
+                    "rule_id": None,
+                },
+            )
+            attrs[item]["latest_group"] = latest_groups_map.get(item.id)
             if item.id in configs:
                 attrs[item]["config"] = configs[item.id]
             else:
@@ -342,6 +386,7 @@ class DetectorSerializer(Serializer):
         return attrs
 
     def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+        alert_rule_mapping = attrs.get("alert_rule_mapping", {})
         return {
             "id": str(obj.id),
             "projectId": str(obj.project_id),
@@ -356,6 +401,9 @@ class DetectorSerializer(Serializer):
             "conditionGroup": attrs.get("condition_group"),
             "config": convert_dict_key_case(attrs.get("config"), snake_to_camel_case),
             "enabled": obj.enabled,
+            "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
+            "ruleId": alert_rule_mapping.get("rule_id"),
+            "latestGroup": attrs.get("latest_group"),
         }
 
 
@@ -380,7 +428,9 @@ class WorkflowSerializer(Serializer):
         last_triggered_map: dict[int, datetime] = dict(
             WorkflowFireHistory.objects.filter(
                 workflow__in=item_list,
+                is_single_written=True,
             )
+            .values("workflow_id")
             .annotate(last_triggered=Max("date_added"))
             .values_list("workflow_id", "last_triggered")
         )
@@ -490,6 +540,7 @@ def fetch_workflow_groups_paginated(
         workflow=workflow,
         date_added__gte=start,
         date_added__lt=end,
+        is_single_written=True,
     )
 
     # subquery that retrieves row with the largest date in a group
@@ -521,6 +572,7 @@ def fetch_workflow_hourly_stats(
             workflow=workflow,
             date_added__gte=start,
             date_added__lt=end,
+            is_single_written=True,
         )
         .annotate(bucket=TruncHour("date_added"))
         .order_by("bucket")

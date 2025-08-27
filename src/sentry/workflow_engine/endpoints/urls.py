@@ -7,6 +7,7 @@ from .organization_detector_index import OrganizationDetectorIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
 from .organization_detector_workflow_details import OrganizationDetectorWorkflowDetailsEndpoint
 from .organization_detector_workflow_index import OrganizationDetectorWorkflowIndexEndpoint
+from .organization_open_periods import OrganizationOpenPeriodsEndpoint
 from .organization_test_fire_action import OrganizationTestFireActionsEndpoint
 from .organization_workflow_details import OrganizationWorkflowDetailsEndpoint
 from .organization_workflow_group_history import OrganizationWorkflowGroupHistoryEndpoint
@@ -51,7 +52,7 @@ organization_urlpatterns = [
         name="sentry-api-0-organization-workflow-group-history",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>[^/]+)/stats$",
+        r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>[^/]+)/stats/$",
         OrganizationWorkflowStatsEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-stats",
     ),
@@ -84,5 +85,10 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/test-fire-actions/$",
         OrganizationTestFireActionsEndpoint.as_view(),
         name="sentry-api-0-organization-test-fire-actions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/open-periods/$",
+        OrganizationOpenPeriodsEndpoint.as_view(),
+        name="sentry-api-0-organization-open-periods",
     ),
 ]

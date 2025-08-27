@@ -16,17 +16,18 @@ from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import I
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import (
     CheckInStatus,
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
 )
+from sentry.monitors.utils import get_detector_for_monitor
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -45,6 +46,7 @@ def _get_producer() -> KafkaProducer:
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
+    producer_config["client.id"] = "sentry.monitors.logic.incident_occurrence"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
@@ -143,6 +145,11 @@ def send_incident_occurrence(
     if last_successful_checkin:
         last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
 
+    detector = get_detector_for_monitor(monitor_env.monitor)
+    evidence_data = {}
+    if detector:
+        evidence_data["detector_id"] = detector.id
+
     occurrence = IssueOccurrence(
         id=uuid.uuid4().hex,
         resource_id=None,
@@ -169,7 +176,7 @@ def send_incident_occurrence(
                 important=False,
             ),
         ],
-        evidence_data={},
+        evidence_data=evidence_data,
         culprit="",
         detection_time=current_timestamp,
         level="error",
@@ -268,7 +275,7 @@ def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
     }
 
 
-def resolve_incident_group(incident: MonitorIncident, project_id: int):
+def resolve_incident_group(incident: MonitorIncident, project_id: int) -> None:
     status_change = StatusChangeMessage(
         fingerprint=[incident.grouphash],
         project_id=project_id,

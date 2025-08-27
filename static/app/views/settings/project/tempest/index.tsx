@@ -2,7 +2,9 @@ import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,10 +16,10 @@ import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
+import {RequestSdkAccessButton} from 'sentry/views/settings/project/tempest/RequestSdkAccessButton';
 
-import DevKitSettings, {getDevKitHeaderAction} from './DevKitSettings';
-import PlayStationSettings, {getPlayStationHeaderAction} from './PlayStationSettings';
+import DevKitSettings from './DevKitSettings';
+import PlayStationSettings from './PlayStationSettings';
 
 interface Props {
   organization: Organization;
@@ -34,7 +36,6 @@ const TAB_LABELS: Record<Tab, string> = {
 const PS5_WARNING_DISMISS_KEY = 'tempest-ps5-warning-dismissed';
 
 export default function TempestSettings({organization, project}: Props) {
-  const hasWriteAccess = useHasTempestWriteAccess();
   const location = useLocation();
   const navigate = useNavigate();
   const {dismiss: dismissPS5Warning, isDismissed: isPS5WarningDismissed} =
@@ -47,26 +48,33 @@ export default function TempestSettings({organization, project}: Props) {
     return (
       ['playstation', 'devkit-crashes'].includes(queryTab || '')
         ? queryTab
-        : 'playstation'
+        : 'devkit-crashes'
     ) as Tab;
   };
 
   const tab = getCurrentTab();
 
   const handleTabChange = (newTab: Tab) => {
+    const newQuery: any = {
+      ...location.query,
+      tab: newTab,
+    };
+    // Reset guided step when switching tabs to avoid cross-tab bleed
+    delete newQuery.guidedStep;
+    // setupInstructions is only available on the retail tab
+    delete newQuery.setupInstructions;
     navigate({
       pathname: location.pathname,
-      query: {
-        ...location.query,
-        tab: newTab,
-      },
+      query: newQuery,
     });
   };
 
   if (!hasTempestAccess(organization)) {
     return (
       <Alert.Container>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <Alert type="warning" showIcon={false}>
+          {t("You don't have access to this feature")}
+        </Alert>
       </Alert.Container>
     );
   }
@@ -100,20 +108,18 @@ export default function TempestSettings({organization, project}: Props) {
     }
   };
 
-  const getHeaderAction = () => {
-    switch (tab) {
-      case 'devkit-crashes':
-        return getDevKitHeaderAction(organization, project);
-      case 'playstation':
-      default:
-        return getPlayStationHeaderAction(hasWriteAccess, organization, project);
-    }
-  };
-
   return (
     <Fragment>
       <SentryDocumentTitle title={getPageTitle()} />
-      <SettingsPageHeader title={getPageTitle()} action={getHeaderAction()} />
+      <SettingsPageHeader
+        title={getPageTitle()}
+        action={
+          <ButtonBar gap="lg">
+            <FeedbackWidgetButton />
+            <RequestSdkAccessButton organization={organization} project={project} />
+          </ButtonBar>
+        }
+      />
 
       {!isPS5WarningDismissed && (
         <div>

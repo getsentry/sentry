@@ -38,7 +38,7 @@ class OAuth2ProviderTest(TestCase):
     def auth_provider(self):
         return AuthProvider.objects.create(provider="oauth2", organization_id=self.organization.id)
 
-    def test_refresh_identity_without_refresh_token(self):
+    def test_refresh_identity_without_refresh_token(self) -> None:
         auth_identity = AuthIdentity.objects.create(
             auth_provider=self.auth_provider,
             user=self.user,

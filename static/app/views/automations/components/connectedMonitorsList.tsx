@@ -100,13 +100,13 @@ export default function ConnectedMonitorsList({
               <DetectorTypeCell type={detector.type} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell data-column-name="last-issue">
-              <IssueCell group={undefined} />
+              <IssueCell group={detector.latestGroup} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell data-column-name="owner">
               <DetectorAssigneeCell assignee={detector.owner} />
             </SimpleTable.RowCell>
             {canEdit && (
-              <SimpleTable.RowCell data-column-name="connected" justify="flex-end">
+              <SimpleTable.RowCell data-column-name="connected" justify="end">
                 <Button onClick={() => toggleConnected?.({detector})} size="sm">
                   {connectedDetectorIds?.includes(detector.id)
                     ? t('Disconnect')

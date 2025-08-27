@@ -269,6 +269,11 @@ class AlertRuleSerializer(Serializer):
             allow_eap=obj.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value,
         )
 
+        # Apply transparency: Convert upsampled_count() back to count() for user-facing responses
+        # This hides the internal upsampling implementation from users
+        if aggregate == "upsampled_count()":
+            aggregate = "count()"
+
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
             "name": obj.name,

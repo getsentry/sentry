@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 
@@ -11,7 +11,9 @@ from sentry.tasks.autofix import check_autofix_status
 class TestCheckAutofixStatus(TestCase):
     @patch("sentry.tasks.autofix.get_autofix_state")
     @patch("sentry.tasks.autofix.logger.error")
-    def test_check_autofix_status_processing_too_long(self, mock_logger, mock_get_autofix_state):
+    def test_check_autofix_status_processing_too_long(
+        self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
+    ) -> None:
         # Mock the get_autofix_state function to return a state that's been processing for too long
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
@@ -49,7 +51,9 @@ class TestCheckAutofixStatus(TestCase):
 
     @patch("sentry.tasks.autofix.get_autofix_state")
     @patch("sentry.tasks.autofix.logger.error")
-    def test_check_autofix_status_completed(self, mock_logger, mock_get_autofix_state):
+    def test_check_autofix_status_completed(
+        self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
+    ) -> None:
         # Mock the get_autofix_state function to return a completed state
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
@@ -66,7 +70,9 @@ class TestCheckAutofixStatus(TestCase):
 
     @patch("sentry.tasks.autofix.get_autofix_state")
     @patch("sentry.tasks.autofix.logger.error")
-    def test_check_autofix_status_no_state(self, mock_logger, mock_get_autofix_state):
+    def test_check_autofix_status_no_state(
+        self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
+    ) -> None:
         # Mock the get_autofix_state function to return None (no state found)
         mock_get_autofix_state.return_value = None
 

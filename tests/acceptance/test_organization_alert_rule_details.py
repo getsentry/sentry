@@ -10,17 +10,17 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.rule = Rule.objects.get(project=self.project)
         self.path = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rule.id}/details/"
 
-    def test_empty_alert_rule_details(self):
+    def test_empty_alert_rule_details(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_alert_rule_with_issues(self):
+    def test_alert_rule_with_issues(self) -> None:
         group = self.create_group()
         RuleFireHistory.objects.create(
             project=self.project,

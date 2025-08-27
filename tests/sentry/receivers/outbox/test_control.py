@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.integration import Integration
 from sentry.models.apiapplication import ApiApplication
@@ -19,7 +19,7 @@ class ProcessControlOutboxTest(TestCase):
     identifier = 1
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
-    def test_process_integration_updates(self, mock_maybe_process):
+    def test_process_integration_updates(self, mock_maybe_process: MagicMock) -> None:
         process_integration_updates(
             object_identifier=self.identifier, region_name=_TEST_REGION.name
         )
@@ -28,7 +28,7 @@ class ProcessControlOutboxTest(TestCase):
         )
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
-    def test_process_api_application_updates(self, mock_maybe_process):
+    def test_process_api_application_updates(self, mock_maybe_process: MagicMock) -> None:
         process_api_application_updates(
             object_identifier=self.identifier, region_name=_TEST_REGION.name
         )
@@ -37,7 +37,7 @@ class ProcessControlOutboxTest(TestCase):
         )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.region_caching_service")
-    def test_process_sentry_app_updates(self, mock_caching):
+    def test_process_sentry_app_updates(self, mock_caching: MagicMock) -> None:
         org = self.create_organization()
         sentry_app = self.create_sentry_app()
         install = self.create_sentry_app_installation(slug=sentry_app.slug, organization=org)

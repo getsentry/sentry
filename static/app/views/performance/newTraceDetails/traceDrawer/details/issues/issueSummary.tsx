@@ -118,7 +118,7 @@ const LocationWrapper = styled('div')`
   }
 `;
 
-function Location(props: any) {
+function Location(props: React.ComponentProps<'div'>) {
   const {children, ...rest} = props;
   return (
     <LocationWrapper {...rest}>

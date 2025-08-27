@@ -1,3 +1,4 @@
+import type {Platform} from 'sentry/components/platformPicker';
 import {
   backend,
   desktop,
@@ -47,6 +48,8 @@ export function isNativePlatform(platform: string | undefined) {
     case 'swift':
     case 'c':
     case 'nintendo-switch':
+    case 'playstation':
+    case 'xbox':
       return true;
     default:
       return false;
@@ -63,4 +66,14 @@ export function isMobilePlatform(platform: string | undefined) {
   }
 
   return (mobile as string[]).includes(platform);
+}
+
+export function isDisabledGamingPlatform({
+  platform,
+  enabledConsolePlatforms,
+}: {
+  platform: Platform;
+  enabledConsolePlatforms?: string[];
+}) {
+  return platform.type === 'console' && !enabledConsolePlatforms?.includes(platform.id);
 }

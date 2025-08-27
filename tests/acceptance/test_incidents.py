@@ -13,17 +13,17 @@ event_time = before_now(days=3)
 
 @no_silo_test
 class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.path = f"/organizations/{self.organization.slug}/alerts/"
 
-    def test_empty_incidents(self):
+    def test_empty_incidents(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_incidents_list(self):
+    def test_incidents_list(self) -> None:
         alert_rule = self.create_alert_rule(name="Alert Rule #1")
         incident = self.create_incident(
             self.organization,

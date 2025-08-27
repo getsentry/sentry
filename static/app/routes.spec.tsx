@@ -2,7 +2,6 @@ import type {RouteObject} from 'react-router-dom';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/routes';
-import {buildReactRouter6Routes} from 'sentry/utils/reactRouter6Compat/router';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 // Setup a module mock so that we can replace
@@ -66,20 +65,20 @@ function extractRoutes(rootRoute: RouteObject[]): Set<string> {
   return routes;
 }
 
-describe('buildRoutes()', function () {
+describe('buildRoutes()', () => {
   // Until customer-domains is enabled for single-tenant, self-hosted and path
   // based slug routes are removed we need to ensure
   // that each orgId route also has slugless path.
-  test('orgId routes also have domain routes', function () {
+  test('orgId routes also have domain routes', () => {
     const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 
     // Get routes for with customer domains off.
     spy.mockReturnValue(false);
-    const routes = extractRoutes(buildReactRouter6Routes(buildRoutes()));
+    const routes = extractRoutes(buildRoutes());
 
     // Get routes with customer domains on.
     spy.mockReturnValue(true);
-    const domainRoutes = extractRoutes(buildReactRouter6Routes(buildRoutes()));
+    const domainRoutes = extractRoutes(buildRoutes());
 
     // All routes that exist under orgId path slugs should
     // have a sibling under customer-domains.

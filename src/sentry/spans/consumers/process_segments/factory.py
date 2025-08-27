@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Mapping
 from datetime import datetime
+from functools import partial
 
 import orjson
 from arroyo import Topic as ArroyoTopic
@@ -61,6 +62,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         # sime time, assuming some upper bound of spans per segment.
         self.kafka_queue_size = self.max_batch_size * self.num_processes * SPANS_PER_SEG_P95
         producer_config["queue.buffering.max.messages"] = self.kafka_queue_size
+        producer_config["client.id"] = "sentry.spans.consumers.process_segments"
 
         self.producer = KafkaProducer(
             build_kafka_producer_configuration(default_config=producer_config),
@@ -90,7 +92,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         unfold_step = Unfold(generator=_unfold_segment, next_step=produce_step)
 
         return run_task_with_multiprocessing(
-            function=_process_message,
+            function=partial(_process_message, skip_produce=self.skip_produce),
             next_step=unfold_step,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
@@ -103,7 +105,9 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.pool.close()
 
 
-def _process_message(message: Message[KafkaPayload]) -> list[Value[KafkaPayload]]:
+def _process_message(
+    message: Message[KafkaPayload], skip_produce: bool = False
+) -> list[Value[KafkaPayload]]:
     if not options.get("spans.process-segments.consumer.enable"):
         return []
 
@@ -112,7 +116,7 @@ def _process_message(message: Message[KafkaPayload]) -> list[Value[KafkaPayload]
     try:
         value = message.payload.value
         segment = orjson.loads(value)
-        processed = process_segment(segment["spans"])
+        processed = process_segment(segment["spans"], skip_produce=skip_produce)
         return [_serialize_payload(span, message.timestamp) for span in processed]
     except Exception:
         logger.exception("segments.invalid-message")

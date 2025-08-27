@@ -11,9 +11,8 @@ export function getDetectorEnvironment(detector: Detector): string | null {
       );
     case 'uptime_domain_failure':
       return detector.config.environment ?? null;
-    case 'uptime_subscription':
-      // TODO: Implement this when we know the shape of object
-      return null;
+    case 'monitor_check_in_failure':
+      return detector.config.environment ?? null;
     case 'error':
       return null;
     default:

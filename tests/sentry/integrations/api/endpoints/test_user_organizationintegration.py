@@ -41,11 +41,11 @@ class UserOrganizationIntegationTest(APITestCase):
     endpoint = "sentry-api-0-user-organization-integrations"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         integration = self.create_provider_integration(provider="github")
 
         self.create_organization_integration(
@@ -55,7 +55,7 @@ class UserOrganizationIntegationTest(APITestCase):
         response = self.get_success_response(self.user.id)
         assert response.data[0]["organizationId"] == self.organization.id
 
-    def test_billing_users_dont_see_integrations(self):
+    def test_billing_users_dont_see_integrations(self) -> None:
         integration = self.create_provider_integration(provider="github")
 
         self.create_organization_integration(

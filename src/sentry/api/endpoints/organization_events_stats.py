@@ -7,7 +7,8 @@ from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
+from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
@@ -26,15 +27,16 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    ourlogs,
     spans_indexed,
     spans_metrics,
-    spans_rpc,
     transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.utils import RPC_DATASETS
 from sentry.utils.snuba import SnubaError, SnubaTSResult
 
 SENTRY_BACKEND_REFERRERS = [
@@ -150,6 +152,17 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
 
+            if "agent-monitoring" in referrer:
+                try:
+                    analytics.record(
+                        AgentMonitoringQuery(
+                            organization_id=organization.id,
+                            referrer=referrer,
+                        )
+                    )
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+
             batch_features = self.get_features(organization, request)
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
@@ -180,8 +193,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         metrics_enhanced_performance,
                         spans_indexed,
                         spans_metrics,
-                        spans_rpc,
-                        ourlogs,
+                        Spans,
+                        OurLogs,
                         errors,
                         transactions,
                     ]
@@ -201,7 +214,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
-        use_rpc = dataset in {spans_rpc, ourlogs}
+        use_rpc = dataset in RPC_DATASETS
         transform_alias_to_input_format = (
             request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
         )

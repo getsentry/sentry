@@ -48,17 +48,17 @@ export function EventFrequencyPercentDetails({condition}: {condition: DataCondit
   return (
     <div>
       {tct(
-        'Number of events in an issue is [value]% higher [interval] compared to [comparison_interval] [where]',
+        'Number of events in an issue is [value]% higher [interval] compared to [comparisonInterval] [where]',
         {
           value: condition.comparison.value,
           interval:
             INTERVAL_CHOICES.find(
               choice => choice.value === condition.comparison.interval
             )?.label || condition.comparison.interval,
-          comparison_interval:
+          comparisonInterval:
             COMPARISON_INTERVAL_CHOICES.find(
-              choice => choice.value === condition.comparison.comparison_interval
-            )?.label || condition.comparison.comparison_interval,
+              choice => choice.value === condition.comparison.comparisonInterval
+            )?.label || condition.comparison.comparisonInterval,
           where: hasSubfilters ? t('where') : null,
         }
       )}
@@ -136,7 +136,7 @@ export function validateEventFrequencyCondition({
     !condition.comparison.value ||
     !condition.comparison.interval ||
     (condition.type === DataConditionType.EVENT_FREQUENCY_PERCENT &&
-      !condition.comparison.comparison_interval)
+      !condition.comparison.comparisonInterval)
   ) {
     return t('Ensure all fields are filled in.');
   }

@@ -11,6 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
 from sentry.snuba import discover
 from sentry.utils.hashlib import md5_text
 
@@ -54,7 +55,7 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 

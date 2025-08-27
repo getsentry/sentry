@@ -3,7 +3,7 @@ from unittest.mock import patch
 from sentry.llm.usecases import LLMUseCase, complete_prompt
 
 
-def test_complete_prompt(set_sentry_option):
+def test_complete_prompt(set_sentry_option) -> None:
     with (
         set_sentry_option(
             "llm.provider.options",

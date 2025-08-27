@@ -15,27 +15,27 @@ function ControlledCheckbox() {
   );
 }
 
-describe('Checkbox', function () {
-  it('default is unchecked', function () {
+describe('Checkbox', () => {
+  it('default is unchecked', () => {
     render(<Checkbox checked={false} onChange={jest.fn()} />);
 
     expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
 
-  it('checked', function () {
+  it('checked', () => {
     render(<Checkbox checked onChange={jest.fn()} />);
     expect(screen.getByRole('checkbox')).toBeChecked();
   });
 
-  it('indeterminate', function () {
+  it('indeterminate', () => {
     render(<Checkbox checked="indeterminate" onChange={jest.fn()} />);
     expect(screen.getByRole('checkbox')).not.toBeChecked();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
     expect(screen.getByRole<HTMLInputElement>('checkbox').indeterminate).toBe(true);
   });
 
-  describe('controlled checkbox', function () {
-    it('toggles on click', async function () {
+  describe('controlled checkbox', () => {
+    it('toggles on click', async () => {
       render(<ControlledCheckbox />);
 
       expect(screen.getByRole('checkbox')).not.toBeChecked();

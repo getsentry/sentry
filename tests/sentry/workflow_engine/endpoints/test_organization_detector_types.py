@@ -6,9 +6,9 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
-    MonitorIncidentType,
     PerformanceSlowDBQueryGroupType,
 )
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
@@ -28,7 +28,7 @@ from sentry.workflow_engine.types import (
 class OrganizationDetectorTypesAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-detector-type-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -112,11 +112,11 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             category_v2 = GroupCategory.DB_QUERY.value
             released = True
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self.registry_patcher.stop()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert response.data == [
             MetricIssue.slug,

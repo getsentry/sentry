@@ -3,10 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -21,6 +20,8 @@ import {Container, FieldShortId, OverflowLink} from 'sentry/utils/discover/style
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.
@@ -79,9 +80,15 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <Container>
-          <OverflowLink to={target} aria-label={issueID}>
-            <FieldShortId shortId={`${data.issue}`} />
-          </OverflowLink>
+          <QuickContextHoverWrapper
+            dataRow={data}
+            contextType={ContextType.ISSUE}
+            organization={organization}
+          >
+            <OverflowLink to={target} aria-label={issueID}>
+              <FieldShortId shortId={`${data.issue}`} />
+            </OverflowLink>
+          </QuickContextHoverWrapper>
         </Container>
       );
     },

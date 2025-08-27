@@ -8,7 +8,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class SentryAppDocsTest(APIDocsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.project = self.create_project(organization=self.org)
         self.group = self.create_group(project=self.project)
@@ -27,7 +27,7 @@ class SentryAppDocsTest(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_post(self):
+    def test_post(self) -> None:
         data = {
             "issueId": self.group.id,
             "webUrl": "https://somerandom.io/project/issue-id",

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {DateTimeField} from 'sentry/components/deprecatedforms/dateTimeField';
 import Form from 'sentry/components/deprecatedforms/form';
@@ -62,7 +62,7 @@ function ChangeDatesModal({
       });
 
       closeModal();
-    } catch (err) {
+    } catch (err: any) {
       onSubmitError({
         responseJSON: err.responseJSON,
       });
@@ -80,7 +80,7 @@ function ChangeDatesModal({
           cancelLabel="Cancel"
         >
           <Alert.Container>
-            <Alert type="warning">
+            <Alert type="warning" showIcon={false}>
               This overrides the current contract and on-demand period dates so the
               subscription may fall into a weird state.
             </Alert>

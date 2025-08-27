@@ -1,9 +1,8 @@
-import {Link} from 'sentry/components/core/link';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
 import {
-  type ProcessingError,
   ProcessingErrorType,
+  type ProcessingError,
 } from 'sentry/views/insights/crons/types';
 
 interface Props {

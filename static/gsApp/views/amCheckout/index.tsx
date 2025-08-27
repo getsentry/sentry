@@ -8,7 +8,7 @@ import moment from 'moment-timezone';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -35,14 +35,14 @@ import {
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
 import {
-  type BillingConfig,
   CheckoutType,
-  type EventBucket,
   OnDemandBudgetMode,
-  type OnDemandBudgets,
-  type Plan,
   PlanName,
   PlanTier,
+  type BillingConfig,
+  type EventBucket,
+  type OnDemandBudgets,
+  type Plan,
   type PromotionData,
   type Subscription,
 } from 'getsentry/types';
@@ -60,6 +60,7 @@ import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
 import {loadStripe} from 'getsentry/utils/stripe';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
+import Cart from 'getsentry/views/amCheckout/cart';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
@@ -93,6 +94,7 @@ type Props = {
   organization: Organization;
   queryClient: QueryClient;
   subscription: Subscription;
+  isNewCheckout?: boolean;
   promotionData?: PromotionData;
   refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
 } & RouteComponentProps<Record<PropertyKey, unknown>, unknown>;
@@ -229,7 +231,7 @@ class AMCheckout extends Component<Props, State> {
       const formData = this.getInitialData(billingConfig);
 
       this.setState({billingConfig, formData});
-    } catch (error) {
+    } catch (error: any) {
       this.setState({error, loading: false});
       if (error.status !== 401 && error.status !== 403) {
         Sentry.captureException(error);
@@ -255,7 +257,7 @@ class AMCheckout extends Component<Props, State> {
   }
 
   get checkoutSteps() {
-    const {organization, subscription, checkoutTier} = this.props;
+    const {organization, subscription, checkoutTier, isNewCheckout} = this.props;
     const OnDemandStep = hasOnDemandBudgetsFeature(organization, subscription)
       ? OnDemandBudgetsStep
       : OnDemandSpend;
@@ -273,15 +275,23 @@ class AMCheckout extends Component<Props, State> {
         AddPaymentMethod,
         AddBillingDetails,
         ReviewAndConfirm,
-      ];
+      ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
     }
     // Do not include Payment Method and Billing Details sections for subscriptions billed through partners
     if (subscription.isSelfServePartner) {
       if (hasActiveVCFeature(organization)) {
         // Don't allow VC customers to choose Annual plans
-        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm];
+        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm].filter(
+          step => !isNewCheckout || step !== ReviewAndConfirm
+        );
       }
-      return [PlanSelect, SetPayAsYouGo, AddDataVolume, ContractSelect, ReviewAndConfirm];
+      return [
+        PlanSelect,
+        SetPayAsYouGo,
+        AddDataVolume,
+        ContractSelect,
+        ReviewAndConfirm,
+      ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
     }
 
     // Display for AM3 tiers and above
@@ -293,7 +303,7 @@ class AMCheckout extends Component<Props, State> {
       AddPaymentMethod,
       AddBillingDetails,
       ReviewAndConfirm,
-    ];
+    ].filter(step => !isNewCheckout || step !== ReviewAndConfirm);
   }
 
   get activePlan() {
@@ -621,8 +631,14 @@ class AMCheckout extends Component<Props, State> {
   };
 
   renderSteps() {
-    const {organization, onToggleLegacy, subscription, checkoutTier, promotionData} =
-      this.props;
+    const {
+      organization,
+      onToggleLegacy,
+      subscription,
+      checkoutTier,
+      promotionData,
+      isNewCheckout,
+    } = this.props;
     const {currentStep, completedSteps, formData, billingConfig} = this.state;
 
     const promoClaimed = getCompletedOrActivePromotion(promotionData);
@@ -662,6 +678,7 @@ class AMCheckout extends Component<Props, State> {
           isCompleted={isCompleted}
           prevStepCompleted={prevStepCompleted}
           referrer={this.referrer}
+          isNewCheckout={isNewCheckout}
         />
       );
     });
@@ -676,7 +693,7 @@ class AMCheckout extends Component<Props, State> {
 
     return (
       <Alert.Container>
-        <Alert type="info" showIcon>
+        <Alert type="info">
           <PartnerAlertContent>
             <PartnerAlertTitle>
               {tct('Billing handled externally through [partnerName]', {
@@ -696,8 +713,14 @@ class AMCheckout extends Component<Props, State> {
   }
 
   render() {
-    const {subscription, organization, isLoading, promotionData, checkoutTier} =
-      this.props;
+    const {
+      subscription,
+      organization,
+      isLoading,
+      promotionData,
+      checkoutTier,
+      isNewCheckout,
+    } = this.props;
     const {loading, error, formData, billingConfig} = this.state;
 
     if (loading || isLoading) {
@@ -749,7 +772,7 @@ class AMCheckout extends Component<Props, State> {
         />
         {isOnSponsoredPartnerPlan && (
           <Alert.Container>
-            <Alert type="info" showIcon>
+            <Alert type="info">
               {t(
                 'Your promotional plan with %s ends on %s.',
                 subscription.partner?.partnership.displayName,
@@ -760,9 +783,7 @@ class AMCheckout extends Component<Props, State> {
         )}
         {promotionDisclaimerText && (
           <Alert.Container>
-            <Alert type="info" showIcon>
-              {promotionDisclaimerText}
-            </Alert>
+            <Alert type="info">{promotionDisclaimerText}</Alert>
           </Alert.Container>
         )}
         <SettingsPageHeader
@@ -778,7 +799,15 @@ class AMCheckout extends Component<Props, State> {
           </CheckoutMain>
           <SidePanel>
             <OverviewContainer>
-              {checkoutTier === PlanTier.AM3 ? (
+              {isNewCheckout ? (
+                <Cart
+                  {...overviewProps}
+                  referrer={this.referrer}
+                  // TODO(checkout v3): we'll also need to fetch billing details but
+                  // this will be done in a later PR
+                  hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
+                />
+              ) : checkoutTier === PlanTier.AM3 ? (
                 <CheckoutOverviewV2 {...overviewProps} />
               ) : (
                 <CheckoutOverview {...overviewProps} />

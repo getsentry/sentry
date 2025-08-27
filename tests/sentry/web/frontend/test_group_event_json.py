@@ -7,10 +7,10 @@ from sentry.utils import json
 
 class GroupEventJsonTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return f"/organizations/{self.organization.slug}/issues/{self.event.group_id}/events/{self.event.event_id}/json/"
 
-    def test_does_render(self):
+    def test_does_render(self) -> None:
         self.login_as(self.user)
         min_ago = before_now(minutes=1).isoformat()
         self.event = self.store_event(

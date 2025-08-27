@@ -53,11 +53,12 @@ from sentry.search.eap.columns import (
     ResolvedEquation,
     ResolvedFormula,
     ResolvedLiteral,
+    ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
+from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
@@ -101,7 +102,9 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_meta(
-        self, referrer: str, sampling_mode: SAMPLING_MODES | None = None
+        self,
+        referrer: str,
+        sampling_mode: SAMPLING_MODES | None = None,
     ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
@@ -477,6 +480,20 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
+        if value is None:
+            exists_filter = TraceItemFilter(
+                exists_filter=ExistsFilter(
+                    key=resolved_column.proto_definition,
+                )
+            )
+            if term.operator == "=":
+                not_exists_filter = TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
+                return not_exists_filter, context_definition
+            elif term.operator == "!=":
+                return exists_filter, context_definition
+            else:
+                raise InvalidSearchQuery(f"Unsupported operator for None {term.operator}")
+
         if value == "" and context_definition is None:
             exists_filter = TraceItemFilter(
                 exists_filter=ExistsFilter(
@@ -619,7 +636,8 @@ class SearchResolver:
         proto_definition = resolved_column.proto_definition
 
         if not isinstance(
-            proto_definition, (AttributeAggregation, AttributeConditionalAggregation)
+            proto_definition,
+            (AttributeAggregation, AttributeConditionalAggregation, Column.BinaryFormula),
         ):
             raise ValueError(f"{term.key.name} is not valid search term")
 
@@ -632,11 +650,15 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
         kwargs = {"op": operator, "val": value}
-        aggregation_key = (
-            "conditional_aggregation"
-            if isinstance(proto_definition, AttributeConditionalAggregation)
-            else "aggregation"
-        )
+        if isinstance(proto_definition, AttributeAggregation):
+            aggregation_key = "aggregation"
+        elif isinstance(proto_definition, AttributeConditionalAggregation):
+            aggregation_key = "conditional_aggregation"
+        elif isinstance(proto_definition, Column.BinaryFormula):
+            aggregation_key = "formula"
+        else:
+            raise InvalidSearchQuery(f"{term.key.name} is not a valid search")
+
         kwargs[aggregation_key] = proto_definition
         return (
             AggregationFilter(
@@ -865,6 +887,11 @@ class SearchResolver:
             if column.startswith("sentry_tags"):
                 field = f"sentry.{field}"
 
+            if self.definitions.alias_to_column is not None:
+                mapped_column = self.definitions.alias_to_column(field)
+                if mapped_column is not None:
+                    field = mapped_column
+
             search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedAttribute(
                 public_alias=alias, internal_name=field, search_type=search_type
@@ -938,8 +965,11 @@ class SearchResolver:
             # If there are missing arguments, and the argument definition has a default arg, use the default arg
             # this assumes the missing args are at the beginning or end of the arguments list
             if missing_args > 0 and argument_definition.default_arg:
-                parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
-                parsed_args.append(parsed_argument)
+                if isinstance(argument_definition, ValueArgumentDefinition):
+                    parsed_args.append(argument_definition.default_arg)
+                else:
+                    parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
+                    parsed_args.append(parsed_argument)
                 missing_args -= 1
                 continue
 

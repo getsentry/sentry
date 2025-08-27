@@ -1,10 +1,11 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
 from botocore.client import ClientError
 
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.amazon_sqs.plugin import AmazonSQSPlugin
 
@@ -15,10 +16,10 @@ def test_conf_key() -> None:
 
 class AmazonSQSPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self):
+    def plugin(self) -> AmazonSQSPlugin:
         return AmazonSQSPlugin()
 
-    def run_test(self):
+    def run_test(self) -> Event:
         self.plugin.set_option("access_key", "access-key", self.project)
         self.plugin.set_option("secret_key", "secret-key", self.project)
         self.plugin.set_option("region", "us-east-1", self.project)
@@ -41,7 +42,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         return event
 
     @patch("boto3.client")
-    def test_simple_notification(self, mock_client):
+    def test_simple_notification(self, mock_client: MagicMock) -> None:
         event = self.run_test()
         mock_client.assert_called_once_with(
             service_name="sqs",
@@ -57,7 +58,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         )
 
     @patch("boto3.client")
-    def test_token_error(self, mock_client):
+    def test_token_error(self, mock_client: MagicMock) -> None:
         mock_client.return_value.send_message.side_effect = ClientError(
             {"Error": {"Code": "Hello", "Message": "hello"}}, "SendMessage"
         )
@@ -70,7 +71,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         self.run_test()
 
     @patch("boto3.client")
-    def test_message_group_error(self, mock_client):
+    def test_message_group_error(self, mock_client: MagicMock) -> None:
         mock_client.return_value.send_message.side_effect = ClientError(
             {
                 "Error": {
@@ -85,7 +86,7 @@ class AmazonSQSPluginTest(PluginTestCase):
 
     @patch("uuid.uuid4")
     @patch("boto3.client")
-    def test_pass_message_group_id(self, mock_client, mock_uuid):
+    def test_pass_message_group_id(self, mock_client: MagicMock, mock_uuid: MagicMock) -> None:
         mock_uuid.return_value = self.get_mock_uuid()
 
         self.plugin.set_option("message_group_id", "my_group", self.project)
@@ -101,7 +102,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         )
 
     @patch("boto3.client")
-    def test_use_s3_bucket(self, mock_client):
+    def test_use_s3_bucket(self, mock_client: MagicMock) -> None:
         self.plugin.set_option("s3_bucket", "my_bucket", self.project)
         event = self.run_test()
         date = event.datetime.strftime("%Y-%m-%d")
@@ -128,7 +129,7 @@ class AmazonSQSPluginTest(PluginTestCase):
 
     @patch("boto3.client")
     @pytest.mark.skip(reason="https://github.com/getsentry/sentry/issues/44858")
-    def test_invalid_s3_bucket(self, mock_client, logger):
+    def test_invalid_s3_bucket(self, mock_client: MagicMock, logger: MagicMock) -> None:
         self.plugin.set_option("s3_bucket", "bad_bucket", self.project)
         mock_client.return_value.put_object.side_effect = ClientError(
             {"Error": {"Code": "NoSuchBucket"}},

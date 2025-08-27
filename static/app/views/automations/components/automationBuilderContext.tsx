@@ -1,4 +1,4 @@
-import {createContext, type Reducer, useCallback, useContext, useReducer} from 'react';
+import {createContext, useCallback, useContext, useReducer, type Reducer} from 'react';
 import {uuid4} from '@sentry/core';
 
 import type {
@@ -12,8 +12,8 @@ import {
   SentryAppIdentifier,
 } from 'sentry/types/workflowEngine/actions';
 import {
-  type DataConditionGroup,
   DataConditionGroupLogicType,
+  type DataConditionGroup,
   type DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
@@ -481,10 +481,10 @@ function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
     undefined;
 
   return {
-    target_type: targetType,
-    ...(targetIdentifier && {target_identifier: targetIdentifier}),
+    targetType,
+    ...(targetIdentifier && {targetIdentifier}),
     ...(actionHandler.sentryApp?.id && {
-      sentry_app_identifier: SentryAppIdentifier.SENTRY_APP_ID,
+      sentryAppIdentifier: SentryAppIdentifier.SENTRY_APP_ID,
     }),
   };
 }

@@ -34,7 +34,7 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
     from sentry.event_manager import Job
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -252,11 +252,19 @@ def get_or_create_grouphashes(
         if grouphash.metadata:
             record_grouphash_metadata_metrics(grouphash.metadata, event.platform)
         else:
-            # Collect a temporary metric to get a sense of how often we would be adding metadata to an
-            # existing hash. (Yes, this is an overestimate, because this will fire every time we see a given
-            # non-backfilled grouphash, not the once per non-backfilled grouphash we'd actually be doing a
-            # backfill, but it will give us a ceiling from which we can work down.)
-            metrics.incr("grouping.grouphashmetadata.backfill_needed")
+            # Now that the sample rate for grouphash metadata creation is 100%, we should never land
+            # here, and yet we still do. Log some data for debugging purposes.
+            logger.warning(
+                "grouphash_metadata.hash_without_metadata",
+                extra={
+                    "event_id": event.event_id,
+                    "project_id": project.id,
+                    "hash": hash_value,
+                    "is_new": created,
+                    "has_group": bool(grouphash.group_id),
+                },
+            )
+            metrics.incr("grouping.grouphashmetadata.backfill_needed", sample_rate=1.0)
 
         grouphashes.append(grouphash)
 

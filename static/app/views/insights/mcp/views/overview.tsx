@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -27,11 +26,10 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {useLocationSyncedState} from 'sentry/views/insights/agentMonitoring/hooks/useLocationSyncedState';
-import {McpInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {useLocationSyncedState} from 'sentry/views/insights/agents/hooks/useLocationSyncedState';
+import {McpInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -48,11 +46,12 @@ import McpToolDurationWidget from 'sentry/views/insights/mcp/components/mcpToolD
 import McpToolErrorRateWidget from 'sentry/views/insights/mcp/components/mcpToolErrorRateWidget';
 import {McpToolsTable} from 'sentry/views/insights/mcp/components/mcpToolsTable';
 import McpToolTrafficWidget from 'sentry/views/insights/mcp/components/mcpToolTrafficWidget';
+import McpTrafficByClientWidget from 'sentry/views/insights/mcp/components/mcpTrafficByClientWidget';
 import McpTransportWidget from 'sentry/views/insights/mcp/components/mcpTransportWidget';
-import {RequestsBySourceWidget} from 'sentry/views/insights/mcp/components/placeholders';
 import {WidgetGrid} from 'sentry/views/insights/mcp/components/styles';
-import {MODULE_TITLE} from 'sentry/views/insights/mcp/settings';
+import {Onboarding} from 'sentry/views/insights/mcp/views/onboarding';
 import {AgentsPageHeader} from 'sentry/views/insights/pages/agents/agentsPageHeader';
+import {getAIModuleTitle} from 'sentry/views/insights/pages/agents/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 const TableControl = SegmentedControl<ViewType>;
@@ -150,8 +149,17 @@ function McpOverviewPage() {
     [activeView, location, navigate, organization]
   );
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
+  const {tags: numberTags, secondaryAliases: numberSecondaryAliases} =
+    useTraceItemTags('number');
+  const {tags: stringTags, secondaryAliases: stringSecondaryAliases} =
+    useTraceItemTags('string');
+
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+  const hasMatchKeySuggestions = organization.features.includes(
+    'search-query-builder-match-key-suggestions'
+  );
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -162,9 +170,26 @@ function McpOverviewPage() {
       searchSource: 'mcp-monitoring',
       numberTags,
       stringTags,
-      replaceRawSearchKeys: ['span.description'],
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      matchKeySuggestions: hasMatchKeySuggestions
+        ? [
+            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+          ]
+        : undefined,
     }),
-    [searchQuery, numberTags, stringTags, setSearchQuery]
+    [
+      hasMatchKeySuggestions,
+      hasRawSearchReplacement,
+      numberSecondaryAliases,
+      numberTags,
+      searchQuery,
+      setSearchQuery,
+      stringSecondaryAliases,
+      stringTags,
+    ]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
@@ -180,12 +205,7 @@ function McpOverviewPage() {
     <SearchQueryBuilderProvider {...eapSpanSearchQueryProviderProps}>
       <AgentsPageHeader
         module={ModuleName.MCP}
-        headerTitle={
-          <Fragment>
-            {MODULE_TITLE}
-            <FeatureBadge type="beta" />
-          </Fragment>
-        }
+        headerTitle={<Fragment>{getAIModuleTitle(organization)}</Fragment>}
       />
       <ModuleBodyUpsellHook moduleName={ModuleName.MCP}>
         <Layout.Body>
@@ -208,7 +228,7 @@ function McpOverviewPage() {
 
               <ModuleLayout.Full>
                 {showOnboarding ? (
-                  <ModulesOnboardingPanel moduleName={ModuleName.MCP} />
+                  <Onboarding />
                 ) : (
                   <Fragment>
                     <WidgetGrid>
@@ -216,7 +236,7 @@ function McpOverviewPage() {
                         <McpTrafficWidget />
                       </WidgetGrid.Position1>
                       <WidgetGrid.Position2>
-                        <RequestsBySourceWidget />
+                        <McpTrafficByClientWidget />
                       </WidgetGrid.Position2>
                       <WidgetGrid.Position3>
                         <McpTransportWidget />

@@ -22,7 +22,11 @@ import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 type DetectorLinkProps = {
@@ -81,14 +85,17 @@ function DetailItem({children}: {children: React.ReactNode}) {
 }
 
 function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
-  const type = detector.config.detectionType;
+  const detectionType = detector.config.detectionType;
   const conditions = detector.conditionGroup?.conditions;
   if (!conditions?.length) {
     return null;
   }
 
-  const unit = getMetricDetectorSuffix(detector);
-  switch (type) {
+  const unit = getMetricDetectorSuffix(
+    detectionType,
+    detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+  );
+  switch (detectionType) {
     case 'static': {
       const text = conditions
         .map(condition => formatCondition({condition, unit}))
@@ -112,12 +119,18 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
     case 'dynamic':
       return <DetailItem>{t('Dynamic')}</DetailItem>;
     default:
-      unreachable(type);
+      unreachable(detectionType);
       return null;
   }
 }
 
 function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
+  const datasetConfig = getDatasetConfig(
+    getDetectorDataset(
+      detector.dataSources[0].queryObj?.snubaQuery.dataset || Dataset.ERRORS,
+      detector.dataSources[0].queryObj?.snubaQuery.eventTypes || []
+    )
+  );
   return (
     <Fragment>
       {detector.dataSources.map(dataSource => {
@@ -129,7 +142,10 @@ function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
             <DetailItem>{dataSource.queryObj.snubaQuery.environment}</DetailItem>
             <DetailItem>{dataSource.queryObj.snubaQuery.aggregate}</DetailItem>
             <DetailItem>
-              {middleEllipsis(dataSource.queryObj.snubaQuery.query, 40)}
+              {middleEllipsis(
+                datasetConfig.toSnubaQueryString(dataSource.queryObj.snubaQuery),
+                40
+              )}
             </DetailItem>
           </Fragment>
         );
@@ -162,7 +178,7 @@ function Details({detector}: {detector: Detector}) {
     case 'uptime_domain_failure':
       return <UptimeDetectorDetails detector={detector} />;
     // TODO: Implement details for Cron detectors
-    case 'uptime_subscription':
+    case 'monitor_check_in_failure':
     case 'error':
       return null;
     default:
@@ -180,7 +196,8 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
       className={className}
       name={detector.name}
       link={makeMonitorDetailsPathname(org.slug, detector.id)}
-      systemCreated={!detector.createdBy}
+      systemCreated={!detectorTypeIsUserCreateable(detector.type)}
+      disabled={!detector.enabled}
       details={
         <Fragment>
           {project && (

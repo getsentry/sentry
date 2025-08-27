@@ -628,6 +628,19 @@ class OrganizationMember(ReplicatedRegionModel):
         )
         return is_only_owner
 
+    def is_only_member_with_org_write(self) -> bool:
+        roles_with_org_write = [r.id for r in roles.with_scope("org:write")]
+
+        if self.role not in roles_with_org_write:
+            return False
+
+        is_only_member_with_org_write = not (
+            self.organization.get_members_with_org_roles(roles=roles_with_org_write)
+            .exclude(id=self.id)
+            .exists()
+        )
+        return is_only_member_with_org_write
+
     @classmethod
     def handle_async_deletion(
         cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None

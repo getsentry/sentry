@@ -9,6 +9,7 @@ import {
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -17,7 +18,6 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
 import Hook from 'sentry/components/hook';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
@@ -117,7 +117,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
       await transferProject(api, organization.slug, project, form.email);
       // Need to hard reload because lots of components do not listen to Projects Store
       window.location.assign('/');
-    } catch (err) {
+    } catch (err: any) {
       if (err.status >= 500) {
         handleXhrErrorResponse('Unable to transfer project', err);
       }
@@ -327,6 +327,12 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
           {...jsonFormProps}
           title={t('Event Settings')}
           fields={[fields.resolveAge]}
+        />
+
+        <JsonForm
+          {...jsonFormProps}
+          title={t('Membership')}
+          fields={[fields.debugFilesRole]}
         />
 
         <JsonForm

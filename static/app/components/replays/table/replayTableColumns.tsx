@@ -4,34 +4,28 @@ import styled from '@emotion/styled';
 import invariant from 'invariant';
 import {PlatformIcon} from 'platformicons';
 
-import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Flex} from 'sentry/components/core/layout/flex';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration/duration';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
+import ReplayBadge from 'sentry/components/replays/replayBadge';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import NumericDropdownFilter from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import OSBrowserDropdownFilter from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import ScoreBar from 'sentry/components/scoreBar';
-import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar} from 'sentry/icons/iconCalendar';
+import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconFire} from 'sentry/icons/iconFire';
-import {IconNot} from 'sentry/icons/iconNot';
+import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {getShortEventId} from 'sentry/utils/events';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
@@ -64,9 +58,34 @@ interface CellProps {
 }
 
 export interface ReplayTableColumn {
+  /**
+   * Render the content
+   * Content will be automatically wrapped with `<SimpleTable.RowCell>`
+   */
   Component: (props: CellProps) => ReactNode;
+
+  /**
+   * Render the header
+   * Header will be automatically wrapped with `<SimpleTable.HeaderCell>`
+   */
   Header: string | ((props: HeaderProps) => ReactNode);
+
+  /**
+   * If any columns in the table are interactive, we will add an
+   * `<InteractionStateLayer>` to each row.
+   */
+  interactive: boolean;
+
+  /**
+   * The `ReplayListRecord` key to sort by
+   * If `undefined`, the column header will not be clickable.
+   */
   sortKey: undefined | ReplayRecordNestedFieldName;
+
+  /**
+   * The width of the column
+   * Defaults to `max-content`
+   */
   width?: string;
 }
 
@@ -80,6 +99,7 @@ export const ReplayActivityColumn: ReplayTableColumn = {
       {t('Activity')}
     </Tooltip>
   ),
+  interactive: false,
   sortKey: 'activity',
   Component: ({replay, showDropdownFilters}) => {
     const theme = useTheme();
@@ -107,6 +127,7 @@ export const ReplayActivityColumn: ReplayTableColumn = {
 
 export const ReplayBrowserColumn: ReplayTableColumn = {
   Header: t('Browser'),
+  interactive: false,
   sortKey: 'browser.name',
   Component: ({replay, showDropdownFilters}) => {
     const theme = useTheme();
@@ -116,8 +137,16 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       return null;
     }
     const {name, version} = replay.browser;
-    if (name === null && version === null) {
-      return <IconNot size="xs" color="gray300" />;
+    if (!name && !version) {
+      return (
+        <DropdownContainer>
+          <Tooltip title={t('N/A')}>
+            <Flex justify="center" style={{width: '20px'}}>
+              <IconNot size="xs" color="gray300" />
+            </Flex>
+          </Tooltip>
+        </DropdownContainer>
+      );
     }
 
     const icon = generatePlatformIconName(
@@ -125,9 +154,12 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       version && isLargeBreakpoint ? version : undefined
     );
 
+    const nameOrUnknown = name ?? t('Unknown');
+    const versionOrBlank = version ?? '';
+
     return (
       <DropdownContainer key="browser">
-        <Tooltip title={`${name} ${version}`}>
+        <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
           <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="browser" name={name} version={version} />
@@ -152,6 +184,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
       {t('Dead clicks')}
     </Tooltip>
   ),
+  interactive: false,
   sortKey: 'count_dead_clicks',
   Component: ({replay, showDropdownFilters}) => {
     if (replay.is_archived) {
@@ -161,7 +194,7 @@ export const ReplayCountDeadClicksColumn: ReplayTableColumn = {
       <DropdownContainer key="countDeadClicks">
         <TabularNumber>
           {replay.count_dead_clicks ? (
-            <Flex gap={space(0.5)}>
+            <Flex gap="xs">
               <IconCursorArrow size="sm" color="yellow300" />
               {replay.count_dead_clicks}
             </Flex>
@@ -201,6 +234,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
       {t('Errors')}
     </Tooltip>
   ),
+  interactive: false,
   sortKey: 'count_errors',
   Component: ({replay, showDropdownFilters}) => {
     if (replay.is_archived) {
@@ -213,7 +247,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
       >
         <TabularNumber>
           {replay.count_errors ? (
-            <Flex gap={space(0.5)}>
+            <Flex gap="xs">
               <IconFire color="red300" />
               {replay.count_errors}
             </Flex>
@@ -243,6 +277,7 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
       {t('Rage clicks')}
     </Tooltip>
   ),
+  interactive: false,
   sortKey: 'count_rage_clicks',
   Component: ({replay, showDropdownFilters}) => {
     if (replay.is_archived) {
@@ -252,7 +287,7 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
       <DropdownContainer key="countRageClicks">
         <TabularNumber>
           {replay.count_rage_clicks ? (
-            <Flex gap={space(0.5)}>
+            <Flex gap="xs">
               <IconCursorArrow size="sm" color="red300" />
               {replay.count_rage_clicks}
             </Flex>
@@ -271,8 +306,25 @@ export const ReplayCountRageClicksColumn: ReplayTableColumn = {
   },
 };
 
+export const ReplayDetailsLinkColumn: ReplayTableColumn = {
+  Header: '',
+  interactive: true,
+  sortKey: undefined,
+  Component: ({replay}) => {
+    const organization = useOrganization();
+    return (
+      <DetailsLink to={makeReplaysPathname({path: `/${replay.id}/`, organization})}>
+        <Tooltip title={t('See Full Replay')}>
+          <IconOpen />
+        </Tooltip>
+      </DetailsLink>
+    );
+  },
+};
+
 export const ReplayDurationColumn: ReplayTableColumn = {
   Header: t('Duration'),
+  interactive: false,
   sortKey: 'duration',
   Component: ({replay, showDropdownFilters}) => {
     if (replay.is_archived) {
@@ -299,6 +351,7 @@ export const ReplayDurationColumn: ReplayTableColumn = {
 
 export const ReplayOSColumn: ReplayTableColumn = {
   Header: t('OS'),
+  interactive: false,
   sortKey: 'os.name',
   Component: ({replay, showDropdownFilters}) => {
     const theme = useTheme();
@@ -313,9 +366,12 @@ export const ReplayOSColumn: ReplayTableColumn = {
       version && isLargeBreakpoint ? version : undefined
     );
 
+    const nameOrUnknown = name ?? t('Unknown');
+    const versionOrBlank = version ?? '';
+
     return (
       <DropdownContainer key="os">
-        <Tooltip title={`${name ?? ''} ${version ?? ''}`}>
+        <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
           <PlatformIcon platform={icon} size="20px" />
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="os" name={name} version={version} />
@@ -328,8 +384,10 @@ export const ReplayOSColumn: ReplayTableColumn = {
 
 export const ReplayPlayPauseColumn: ReplayTableColumn = {
   Header: '',
+  interactive: true,
   sortKey: undefined,
   Component: ({replay, rowIndex}) => {
+    const location = useLocation();
     const {index: selectedReplayIndex, select: setSelectedReplayIndex} =
       useSelectedReplayIndex();
 
@@ -349,14 +407,17 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
       );
     }
     return (
-      <PlayPauseButtonContainer>
-        <Button
+      <PlayPauseButtonContainer onClick={() => setSelectedReplayIndex(rowIndex)}>
+        <LinkButton
           key="playPause-select"
           aria-label={t('Play')}
           borderless
           data-test-id="replay-table-play-button"
           icon={<IconPlay />}
-          onClick={() => setSelectedReplayIndex(rowIndex)}
+          to={{
+            pathname: location.pathname,
+            query: {...location.query, selected_replay_index: rowIndex},
+          }}
           priority="default"
           size="sm"
           title={t('Play')}
@@ -368,7 +429,13 @@ export const ReplayPlayPauseColumn: ReplayTableColumn = {
 
 export const ReplaySelectColumn: ReplayTableColumn = {
   Header: ({
-    listItemCheckboxState: {isAllSelected, deselectAll, knownIds, toggleSelected},
+    listItemCheckboxState: {
+      deselectAll,
+      isAllSelected,
+      knownIds,
+      selectedIds,
+      toggleSelected,
+    },
     replays,
   }) => {
     const organization = useOrganization();
@@ -382,19 +449,24 @@ export const ReplaySelectColumn: ReplayTableColumn = {
           checked={isAllSelected}
           disabled={knownIds.length === 0}
           onChange={() => {
-            if (isAllSelected === true) {
+            // If the replay is archived, don't include it in the selection
+            const eligibleIds = knownIds.filter(
+              id => !replays.find(r => r.id === id)?.is_archived
+            );
+
+            if (isAllSelected === true || selectedIds.length === eligibleIds.length) {
               deselectAll();
             } else {
-              // If the replay is archived, don't include it in the selection
-              toggleSelected(
-                knownIds.filter(id => !replays.find(r => r.id === id)?.is_archived)
-              );
+              // Make everything visible selected
+              const unselectedIds = eligibleIds.filter(id => !selectedIds.includes(id));
+              toggleSelected(unselectedIds);
             }
           }}
         />
       </CheckboxHeaderContainer>
     );
   },
+  interactive: true,
   sortKey: undefined,
   Component: ({replay}) => {
     const organization = useOrganization();
@@ -406,14 +478,16 @@ export const ReplaySelectColumn: ReplayTableColumn = {
       <CheckboxClickCapture onClick={e => e.stopPropagation()}>
         <CheckboxCellContainer>
           {organization.features.includes('replay-list-select') ? (
-            <Checkbox
-              id={`replay-table-select-${replay.id}`}
-              disabled={isSelected(replay.id) === 'all-selected'}
-              checked={isSelected(replay.id) !== false}
-              onChange={() => {
-                toggleSelected(replay.id);
-              }}
-            />
+            <CheckboxClickTarget htmlFor={`replay-table-select-${replay.id}`}>
+              <Checkbox
+                id={`replay-table-select-${replay.id}`}
+                disabled={isSelected(replay.id) === 'all-selected'}
+                checked={isSelected(replay.id) !== false}
+                onChange={() => {
+                  toggleSelected(replay.id);
+                }}
+              />
+            </CheckboxClickTarget>
           ) : null}
 
           <Tooltip title={t('Unread')} skipWrapper disabled={Boolean(replay.has_viewed)}>
@@ -431,37 +505,17 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       {t('Replay')}
     </Tooltip>
   ),
+  interactive: true,
   sortKey: 'started_at',
   width: 'minmax(150px, 1fr)',
   Component: ({replay}) => {
     const routes = useRoutes();
     const location = useLocation();
     const organization = useOrganization();
-    const analyticsArea = useAnalyticsArea();
     const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
-    // TODO(ryan953): This is a janky way to detect the current page.
-    const isIssuesReplayList = location.pathname.includes('issues');
-    const isSelectorWidget = analyticsArea.endsWith('example-replays-list');
-
     if (replay.is_archived) {
-      return (
-        <Flex gap={space(1)} align="center" justify="center">
-          <div style={{paddingInline: space(0.5)}}>
-            <IconDelete color="gray500" size="md" />
-          </div>
-
-          <Flex direction="column" gap={space(0.5)}>
-            <Flex gap={space(0.5)} align="center">
-              {t('Deleted Replay')}
-            </Flex>
-            <Flex gap={space(0.5)} align="center">
-              {project ? <ProjectAvatar size={12} project={project} /> : null}
-              <SmallFont>{getShortEventId(replay.id)}</SmallFont>
-            </Flex>
-          </Flex>
-        </Flex>
-      );
+      return <ReplayBadge replay={replay} />;
     }
 
     invariant(
@@ -481,7 +535,6 @@ export const ReplaySessionColumn: ReplayTableColumn = {
       query: {
         referrer,
         ...eventView.generateQueryStringObject(),
-        f_b_type: isSelectorWidget ? 'rageOrDead' : undefined,
       },
     });
     const trackNavigationEvent = () =>
@@ -490,60 +543,20 @@ export const ReplaySessionColumn: ReplayTableColumn = {
         platform: project?.platform,
         organization,
         referrer,
-        referrer_table: isSelectorWidget ? 'selector-widget' : 'main',
+        referrer_table: 'main',
       });
 
     return (
-      <Flex key="session" align="center" gap={space(1)}>
-        <UserAvatar
-          user={{
-            username: replay.user?.display_name || '',
-            email: replay.user?.email || '',
-            id: replay.user?.id || '',
-            ip_address: replay.user?.ip || '',
-            name: replay.user?.username || '',
-          }}
-          size={24}
-        />
-        <SubText>
-          <Flex gap={space(0.5)} align="flex-start">
-            <DisplayNameLink
-              data-underline-on-hover
-              to={
-                isIssuesReplayList
-                  ? // if on the issues replay list, don't redirect to the details tab. this causes URL flickering
-                    {
-                      pathname: location.pathname,
-                      query: location.query,
-                    }
-                  : detailsTab()
-              }
-              onClick={trackNavigationEvent}
-              data-has-viewed={replay.has_viewed}
-            >
-              {replay.user.display_name || t('Anonymous User')}
-            </DisplayNameLink>
-          </Flex>
-          <Flex gap={space(0.5)}>
-            {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
-            {project ? <ProjectAvatar size={12} project={project} /> : null}
-            {project ? project.slug : null}
-            <Link to={detailsTab()} onClick={trackNavigationEvent}>
-              {getShortEventId(replay.id)}
-            </Link>
-            <Flex gap={space(0.5)}>
-              <IconCalendar color="gray300" size="xs" />
-              <TimeSince date={replay.started_at} />
-            </Flex>
-          </Flex>
-        </SubText>
-      </Flex>
+      <CellLink to={detailsTab()} onClick={trackNavigationEvent}>
+        <ReplayBadge replay={replay} />
+      </CellLink>
     );
   },
 };
 
 export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
   Header: t('Slowest Transaction'),
+  interactive: false,
   sortKey: undefined,
   Component: ({replay}) => {
     const location = useLocation();
@@ -571,50 +584,56 @@ export const ReplaySlowestTransactionColumn: ReplayTableColumn = {
   },
 };
 
-const DropdownContainer = styled(Flex)`
-  flex-direction: column;
-  justify-content: center;
+const DetailsLink = styled(Link)`
+  z-index: 1;
+  margin: -${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md};
+  line-height: 0;
 `;
 
-const SmallFont = styled('div')`
-  font-size: ${p => p.theme.fontSize.sm};
+const DropdownContainer = styled(Flex)`
+  position: relative;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const TabularNumber = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-const SubText = styled('div')`
-  font-size: 0.875em;
-  line-height: normal;
-  color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis};
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.25)};
-  align-items: flex-start;
-`;
+const CellLink = styled(Link)`
+  margin: -${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
+  flex-grow: 1;
 
-const DisplayNameLink = styled(Link)`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSize.md};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  line-height: normal;
-  ${p => p.theme.overflowEllipsis};
-
-  &:hover {
-    color: ${p => p.theme.textColor};
-    text-decoration: underline;
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
   }
 `;
 
 const PlayPauseButtonContainer = styled(Flex)`
+  z-index: 1; /* Raise above any ReplaySessionColumn in the row */
   display: flex;
-  position: relative;
   flex-direction: column;
   justify-content: center;
 
   margin: 0 -${space(2)} 0 -${space(1)};
+
+  cursor: pointer;
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
 `;
 
 const CheckboxHeaderContainer = styled(Flex)`
@@ -629,6 +648,7 @@ const CheckboxHeaderContainer = styled(Flex)`
 `;
 
 const CheckboxClickCapture = styled('div')`
+  z-index: 1; /* Raise above any ReplaySessionColumn in the row */
   padding: ${space(2)};
   margin: -${space(2)};
 `;
@@ -643,6 +663,15 @@ const CheckboxCellContainer = styled('div')`
 
   padding: ${space(0.5)} 0 0 0;
   margin: 0 -${space(1)} 0 -${space(0.5)};
+`;
+
+const CheckboxClickTarget = styled('label')`
+  cursor: pointer;
+  display: block;
+  margin: -${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md};
+  max-width: unset;
+  line-height: 0;
 `;
 
 const UnreadIndicator = styled('div')`

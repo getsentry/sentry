@@ -10,6 +10,8 @@ from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 
+DATA_SOURCE_CRON_MONITOR = "cron_monitor"
+
 
 class CheckinTrace(TypedDict):
     trace_id: str
@@ -27,6 +29,10 @@ class CheckinPayload(TypedDict):
     duration: NotRequired[int]
     monitor_config: NotRequired[dict]
     contexts: NotRequired[CheckinContexts]
+
+
+def slugify_monitor_slug(slug: str) -> str:
+    return slugify(slug)[:DEFAULT_SLUG_MAX_LENGTH].strip("-")
 
 
 class CheckinItemData(TypedDict):
@@ -70,7 +76,7 @@ class CheckinItem:
 
     @cached_property
     def valid_monitor_slug(self):
-        return slugify(self.payload["monitor_slug"])[:DEFAULT_SLUG_MAX_LENGTH].strip("-")
+        return slugify_monitor_slug(self.payload["monitor_slug"])
 
     @property
     def processing_key(self):

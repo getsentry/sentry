@@ -8,10 +8,10 @@ import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {Hovercard} from 'sentry/components/hovercard';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -21,8 +21,8 @@ import {space} from 'sentry/styles/space';
 import type {Avatar} from 'sentry/types/core';
 import type {
   SentryApp,
-  SentryAppAvatar as SentryAppAvatarType,
   SentryAppAvatarPhotoType,
+  SentryAppAvatar as SentryAppAvatarType,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';

@@ -79,7 +79,9 @@ def link_slack_user_identities(
         update_identities(data, idp)
 
 
-def update_identities(slack_data_by_user: Mapping[User, SlackUserData], idp: IdentityProvider):
+def update_identities(
+    slack_data_by_user: Mapping[User, SlackUserData], idp: IdentityProvider
+) -> None:
     date_verified = timezone.now()
     identities_by_user = get_identities_by_user(idp, slack_data_by_user.keys())
 

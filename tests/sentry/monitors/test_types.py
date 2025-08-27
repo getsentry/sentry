@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class CheckinItemTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         checkin_item = build_checkin_item()
         recreated_checkin_item = CheckinItem.from_dict(checkin_item.to_dict())
         assert checkin_item.ts == recreated_checkin_item.ts

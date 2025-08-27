@@ -9,7 +9,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
-import {type CursorOffsets, useTimelineCursor} from './timelineCursor';
+import {useTimelineCursor, type CursorOffsets} from './timelineCursor';
 import {useTimelineZoom} from './timelineZoom';
 import type {TimeWindowConfig} from './types';
 
@@ -125,7 +125,35 @@ export function GridLineLabels({
           <TimeLabel date={date} {...dateTimeProps} />
         </TimeLabelContainer>
       ))}
+      {labelPosition && (
+        <GridLines timeWindowConfig={timeWindowConfig} labelPosition={labelPosition} />
+      )}
     </LabelsContainer>
+  );
+}
+
+interface GridLinesProps {
+  labelPosition: LabelPosition;
+  timeWindowConfig: TimeWindowConfig;
+}
+
+function GridLines({timeWindowConfig, labelPosition}: GridLinesProps) {
+  const {timelineUnderscanWidth} = timeWindowConfig.rollupConfig;
+
+  const gridLine = getTimeMarkersFromConfig(timeWindowConfig);
+
+  // Skip rendering of the first grid line marker when the underscan width is
+  // below the threshold to be displayed
+  if (timelineUnderscanWidth < UNDERSCAN_MARKER_LINE_THRESHOLD) {
+    gridLine.shift();
+  }
+
+  return (
+    <GridLineContainer>
+      {gridLine.map(({date, position}) => (
+        <Gridline key={date.getTime()} left={position} labelPosition={labelPosition} />
+      ))}
+    </GridLineContainer>
   );
 }
 
@@ -234,24 +262,13 @@ export function GridLineOverlay({
   });
 
   const overlayRef = mergeRefs(cursorContainerRef, selectionContainerRef);
-  const gridLine = getTimeMarkersFromConfig(timeWindowConfig);
-
-  // Skip rendering of the first grid line marker when the underscan width is
-  // below the threshold to be displayed
-  if (timelineUnderscanWidth < UNDERSCAN_MARKER_LINE_THRESHOLD) {
-    gridLine.shift();
-  }
 
   return (
     <Overlay aria-hidden ref={overlayRef} className={className}>
       {timelineCursor}
       {timelineSelector}
       {additionalUi}
-      <GridLineContainer>
-        {gridLine.map(({date, position}) => (
-          <Gridline key={date.getTime()} left={position} labelPosition={labelPosition} />
-        ))}
-      </GridLineContainer>
+      <GridLines timeWindowConfig={timeWindowConfig} labelPosition={labelPosition} />
     </Overlay>
   );
 }
@@ -266,7 +283,6 @@ const GridLineContainer = styled('div')`
   position: relative;
   overflow: hidden;
   height: 100%;
-  z-index: 1;
   pointer-events: none;
 `;
 
@@ -277,7 +293,7 @@ const LabelsContainer = styled('div')<{labelPosition: LabelPosition}>`
   ${p =>
     p.labelPosition === 'left-top' &&
     css`
-      height: 50px;
+      min-height: 50px;
     `}
   ${p =>
     p.labelPosition === 'center-bottom' &&

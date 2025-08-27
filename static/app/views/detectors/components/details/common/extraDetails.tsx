@@ -26,6 +26,7 @@ export function DetectorExtraDetails({children}: Props) {
 
 const StyledKeyValueTable = styled(KeyValueTable)`
   grid-template-columns: min-content auto;
+  margin-bottom: 0;
 `;
 
 DetectorExtraDetails.DateCreated = function DetectorExtraDetailsDateCreated({

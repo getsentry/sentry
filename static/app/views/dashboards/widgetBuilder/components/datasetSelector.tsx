@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
@@ -21,9 +22,11 @@ import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/
 import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
+  const location = useLocation();
   const {state} = useWidgetBuilderContext();
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
@@ -36,10 +39,21 @@ function WidgetBuilderDatasetSelector() {
   if (organization.features.includes('discover-saved-queries-deprecation')) {
     disabledChoices.push([
       WidgetType.TRANSACTIONS,
-      tct('This dataset is is no longer supported. Please use the [spans] dataset.', {
+      tct('This dataset is no longer supported. Please use the [spans] dataset.', {
         spans: (
           <Link
-            to=""
+            // We need to do this otherwise the dashboard filters will change
+            to={{
+              pathname: location.pathname,
+              query: {
+                project: location.query.project,
+                start: location.query.start,
+                end: location.query.end,
+                statsPeriod: location.query.statsPeriod,
+                environment: location.query.environment,
+                utc: location.query.utc,
+              },
+            }}
             onClick={() => {
               cacheBuilderState(state.dataset ?? WidgetType.ERRORS);
               setSegmentSpanBuilderState();
@@ -51,29 +65,21 @@ function WidgetBuilderDatasetSelector() {
       }),
     ]);
   }
-  datasetChoices.push([WidgetType.TRANSACTIONS, t('Transactions')]);
 
   if (organization.features.includes('visibility-explore-view')) {
     datasetChoices.push([WidgetType.SPANS, t('Spans')]);
   }
-  if (organization.features.includes('ourlogs-dashboards')) {
+  if (isLogsEnabled(organization)) {
     datasetChoices.push([
       WidgetType.LOGS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Logs')} key={'dataset-choice-logs'}>
-        {t('Logs')}{' '}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t(
-              'This feature is available for early adopters and the UX may change'
-            ),
-          }}
-        />
+        {t('Logs')} <FeatureBadge type="new" />
       </FeatureBadgeAlignmentWrapper>,
     ]);
   }
   datasetChoices.push([WidgetType.ISSUE, t('Issues')]);
   datasetChoices.push([WidgetType.RELEASE, t('Releases')]);
+  datasetChoices.push([WidgetType.TRANSACTIONS, t('Transactions')]);
 
   return (
     <Fragment>
@@ -131,7 +137,6 @@ const DatasetChoices = styled(RadioGroup<WidgetType>)`
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: ${space(2)};
 `;
 
 const StyledSectionHeader = styled(SectionHeader)`

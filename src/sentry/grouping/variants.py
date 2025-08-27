@@ -10,7 +10,7 @@ from sentry.grouping.component import (
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.fingerprinting import FingerprintRule
+from sentry.grouping.fingerprinting.rules import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 if TYPE_CHECKING:
@@ -96,34 +96,6 @@ class FallbackVariant(BaseVariant):
         return hash_from_values([])
 
 
-class PerformanceProblemVariant(BaseVariant):
-    """
-    Applies only to transaction events! Transactions are not subject to the
-    normal grouping pipeline. Instead, they are fingerprinted by
-    `PerformanceDetector` when the event is saved by `EventManager`. We detect
-    problems, generate some metadata called "evidence" and use that evidence
-    for fingerprinting. The evidence is then stored in `nodestore`. This
-        variant's hash is delegated to the `EventPerformanceProblem` that
-        contains the event and the evidence.
-    """
-
-    type = "performance_problem"
-    description = "performance problem"
-
-    def __init__(self, event_performance_problem: Any):
-        self.event_performance_problem = event_performance_problem
-        self.problem = event_performance_problem.problem
-
-    def get_hash(self) -> str | None:
-        return self.problem.fingerprint
-
-    def _get_metadata_as_dict(self) -> Mapping[str, Any]:
-        problem_data = self.problem.to_dict()
-        evidence_hashes = self.event_performance_problem.evidence_hashes
-
-        return {"evidence": {**problem_data, **evidence_hashes}}
-
-
 class ComponentVariant(BaseVariant):
     """A variant that produces a hash from the `BaseGroupingComponent` it encloses."""
 
@@ -193,7 +165,7 @@ class CustomFingerprintVariant(BaseVariant):
 
     def __init__(self, fingerprint: list[str], fingerprint_info: FingerprintInfo):
         self.values = fingerprint
-        self.info = fingerprint_info
+        self.fingerprint_info = fingerprint_info
 
     @property
     def description(self) -> str:
@@ -203,7 +175,7 @@ class CustomFingerprintVariant(BaseVariant):
         return hash_from_values(self.values)
 
     def _get_metadata_as_dict(self) -> FingerprintVariantMetadata:
-        return expose_fingerprint_dict(self.values, self.info)
+        return expose_fingerprint_dict(self.values, self.fingerprint_info)
 
 
 class BuiltInFingerprintVariant(CustomFingerprintVariant):
@@ -248,9 +220,9 @@ class SaltedComponentVariant(ComponentVariant):
         strategy_config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
-        ComponentVariant.__init__(self, component, contributing_component, strategy_config)
+        super().__init__(component, contributing_component, strategy_config)
         self.values = fingerprint
-        self.info = fingerprint_info
+        self.fingerprint_info = fingerprint_info
 
     @property
     def description(self) -> str:
@@ -272,7 +244,7 @@ class SaltedComponentVariant(ComponentVariant):
     def _get_metadata_as_dict(self) -> Mapping[str, Any]:
         return {
             **ComponentVariant._get_metadata_as_dict(self),
-            **expose_fingerprint_dict(self.values, self.info),
+            **expose_fingerprint_dict(self.values, self.fingerprint_info),
         }
 
 
