@@ -4,10 +4,13 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
+from datetime import datetime
+
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.services.issue.model import RpcExternalIssueGroupMetadata, RpcGroupShareMetadata
 from sentry.issues.services.issue.service import IssueService
 from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 
 
@@ -15,7 +18,6 @@ class DatabaseBackedIssueService(IssueService):
     def get_external_issue_groups(
         self, *, region_name: str, external_issue_key: str, integration_id: int
     ) -> list[RpcExternalIssueGroupMetadata] | None:
-        from sentry.integrations.jira.views.sentry_issue_details import build_context
         from sentry.integrations.services.integration import integration_service
 
         try:
@@ -47,12 +49,28 @@ class DatabaseBackedIssueService(IssueService):
 
         organization = Organization.objects.get(id=external_issue.organization_id)
 
-        groups = Group.objects.get_groups_by_external_issue(
-            integration=integration,
-            organizations=[organization],
-            external_issue_key=external_issue_key,
+        external_issue_subquery = ExternalIssue.objects.get_for_integration(
+            integration, external_issue_key
+        ).values_list("id", flat=True)
+
+        group_link_subquery: dict[int, datetime] = dict(
+            GroupLink.objects.filter(linked_id__in=external_issue_subquery).values_list(
+                "group_id", "datetime"
+            )
         )
-        return [RpcExternalIssueGroupMetadata(**build_context(group)) for group in groups]
+
+        groups = Group.objects.filter(
+            id__in=group_link_subquery.keys(),
+            project__organization_id=organization.id,
+        )
+
+        return [
+            RpcExternalIssueGroupMetadata(
+                title_url=group.get_absolute_url(params={"referrer": "sentry-issues-glance"}),
+                link_date=group_link_subquery[group.id],
+            )
+            for group in groups
+        ]
 
     def get_shared_for_org(self, *, slug: str, share_id: str) -> RpcGroupShareMetadata | None:
         try:
