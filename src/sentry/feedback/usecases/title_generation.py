@@ -27,7 +27,7 @@ class GenerateFeedbackTitleRequest(TypedDict):
 
 def truncate_feedback_title(title: str, max_words: int = 10) -> str:
     """
-    Clean, truncate, and format a title for user feedback issues.
+    Truncate and format a title for user feedback issues.
 
     Args:
         title: The title to truncate
