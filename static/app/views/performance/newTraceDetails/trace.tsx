@@ -73,6 +73,8 @@ import {
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
+  isUptimeCheckNode,
+  isUptimeCheckTimingNode,
 } from './traceGuards';
 import type {TraceReducerState} from './traceState';
 
@@ -657,7 +659,12 @@ function RenderTraceRow(props: {
     return <TraceTransactionRow {...rowProps} node={node} />;
   }
 
-  if (isSpanNode(node) || isEAPSpanNode(node)) {
+  if (
+    isSpanNode(node) ||
+    isEAPSpanNode(node) ||
+    isUptimeCheckNode(node) ||
+    isUptimeCheckTimingNode(node)
+  ) {
     return <TraceSpanRow {...rowProps} node={node} />;
   }
 
