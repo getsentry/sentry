@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from abc import ABC, abstractmethod
 
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.github.status_check import (
-    GITHUB_STATUS_CHECK_CONCLUSION_MAPPING,
-    GITHUB_STATUS_CHECK_STATUS_MAPPING,
-)
+from sentry.integrations.github.status_check import GitHubCheckConclusion, GitHubCheckStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
@@ -67,8 +63,8 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         or preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
     ):
         status = StatusCheckStatus.IN_PROGRESS
-        text = f"⏳ Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing... {uuid.uuid4()}"
-        summary = f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` is processing... {uuid.uuid4()}"
+        text = f"⏳ Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing..."
+        summary = f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` is processing..."
         target_url = None
     elif preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED:
         status = StatusCheckStatus.FAILURE
@@ -305,3 +301,22 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
             response = self.client.create_check_run(repo=repo, data=check_data)
             check_id = response.get("id")
             return str(check_id) if check_id else None
+
+
+GITHUB_STATUS_CHECK_STATUS_MAPPING: dict[StatusCheckStatus, GitHubCheckStatus] = {
+    StatusCheckStatus.ACTION_REQUIRED: GitHubCheckStatus.COMPLETED,
+    StatusCheckStatus.IN_PROGRESS: GitHubCheckStatus.IN_PROGRESS,
+    StatusCheckStatus.FAILURE: GitHubCheckStatus.COMPLETED,
+    StatusCheckStatus.NEUTRAL: GitHubCheckStatus.COMPLETED,
+    StatusCheckStatus.SUCCESS: GitHubCheckStatus.COMPLETED,
+    StatusCheckStatus.TIMED_OUT: GitHubCheckStatus.COMPLETED,
+}
+
+GITHUB_STATUS_CHECK_CONCLUSION_MAPPING: dict[StatusCheckStatus, GitHubCheckConclusion | None] = {
+    StatusCheckStatus.ACTION_REQUIRED: GitHubCheckConclusion.ACTION_REQUIRED,
+    StatusCheckStatus.IN_PROGRESS: None,
+    StatusCheckStatus.FAILURE: GitHubCheckConclusion.FAILURE,
+    StatusCheckStatus.NEUTRAL: GitHubCheckConclusion.NEUTRAL,
+    StatusCheckStatus.SUCCESS: GitHubCheckConclusion.SUCCESS,
+    StatusCheckStatus.TIMED_OUT: GitHubCheckConclusion.TIMED_OUT,
+}
