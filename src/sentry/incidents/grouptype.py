@@ -269,8 +269,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
 
     def _create_group_key(self, group_keys: dict[str, str]) -> str:
         """Create a deterministic group key from group keys"""
-        if not group_keys:
-            return None
 
         # Sort keys for deterministic fingerprint.
         sorted_items = sorted(group_keys.items())

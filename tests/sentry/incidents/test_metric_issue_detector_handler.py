@@ -7,7 +7,7 @@ from sentry.incidents.grouptype import (
     get_alert_type_from_aggregate_dataset,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import ProcessedSubscriptionUpdate, QuerySubscriptionUpdate
+from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -397,7 +397,7 @@ class TestEvaluateMetricDetectorGroupBy(BaseMetricIssueTest):
             values=self.detector_group_values,
             timestamp=datetime.now(timezone.utc),
         )
-        data_packet = DataPacket[QuerySubscriptionUpdate](
+        data_packet = DataPacket[ProcessedSubscriptionUpdate | AnomalyDetectionUpdate](
             source_id=str(self.query_subscription.id), packet=packet
         )
 

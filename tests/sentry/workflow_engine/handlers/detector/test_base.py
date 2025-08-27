@@ -72,6 +72,7 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict, int | None]):
         evaluation_result: ProcessedDataConditionGroup,
         data_packet: DataPacket[dict],
         priority: DetectorPriorityLevel,
+        group_key: DetectorGroupKey | None = None,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         value = self.extract_value(data_packet)
         return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
@@ -113,6 +114,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 evaluation_result: ProcessedDataConditionGroup,
                 data_packet: DataPacket[dict],
                 priority: DetectorPriorityLevel,
+                group_key: DetectorGroupKey | None = None,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:
                 value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
@@ -142,6 +144,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                 evaluation_result: ProcessedDataConditionGroup,
                 data_packet: DataPacket[dict],
                 priority: DetectorPriorityLevel,
+                group_key: DetectorGroupKey | None = None,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:
                 value = self.extract_value(data_packet)
                 return build_mock_occurrence_and_event(self, value, PriorityLevel(priority))
