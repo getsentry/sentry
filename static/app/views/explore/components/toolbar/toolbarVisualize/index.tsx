@@ -9,6 +9,10 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {
+  AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS,
+} from 'sentry/utils/fields';
+import {
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarLabel,
@@ -35,7 +39,7 @@ interface ToolbarVisualizeDropdownProps {
   canDelete: boolean;
   fieldOptions: Array<SelectOption<SelectKey>>;
   onChangeAggregate: (option: SelectOption<SelectKey>) => void;
-  onChangeArgument: (option: SelectOption<SelectKey>) => void;
+  onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
   onDelete: () => void;
   parsedFunction: ParsedFunction | null;
 }
@@ -49,6 +53,11 @@ export function ToolbarVisualizeDropdown({
   onDelete,
   parsedFunction,
 }: ToolbarVisualizeDropdownProps) {
+  const aggregateFunc = parsedFunction?.name;
+  const aggregateDefinition = aggregateFunc
+    ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS[aggregateFunc as AggregationKey]
+    : undefined;
+
   return (
     <ToolbarRow>
       <AggregateCompactSelect
@@ -57,13 +66,18 @@ export function ToolbarVisualizeDropdown({
         value={parsedFunction?.name ?? ''}
         onChange={onChangeAggregate}
       />
-      <FieldCompactSelect
-        searchable
-        options={fieldOptions}
-        value={parsedFunction?.arguments[0] ?? ''}
-        onChange={onChangeArgument}
-        disabled={fieldOptions.length === 1}
-      />
+      {aggregateDefinition?.parameters?.map((param, index) => {
+        return (
+          <FieldCompactSelect
+            key={param.name}
+            searchable
+            options={fieldOptions}
+            value={parsedFunction?.arguments[0] ?? ''}
+            onChange={option => onChangeArgument(index, option)}
+            disabled={fieldOptions.length === 1}
+          />
+        );
+      })}
       {canDelete ? (
         <Button
           borderless

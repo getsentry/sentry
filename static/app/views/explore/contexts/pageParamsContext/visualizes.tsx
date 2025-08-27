@@ -151,11 +151,11 @@ export function parseBaseVisualize(
 export function updateVisualizeAggregate({
   newAggregate,
   oldAggregate,
-  oldArgument,
+  oldArguments,
 }: {
   newAggregate: string;
   oldAggregate?: string;
-  oldArgument?: string;
+  oldArguments?: string[];
 }): string {
   // the default aggregate only has 1 allowed field
   if (newAggregate === DEFAULT_VISUALIZATION_AGGREGATE) {
@@ -183,7 +183,7 @@ export function updateVisualizeAggregate({
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }
 
-  return `${newAggregate}(${oldArgument})`;
+  return `${newAggregate}(${oldArguments?.join(',')})`;
 }
 
 const FUNCTION_TO_CHART_TYPE: Record<string, ChartType> = {
