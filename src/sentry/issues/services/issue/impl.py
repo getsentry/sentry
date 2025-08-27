@@ -20,17 +20,11 @@ class DatabaseBackedIssueService(IssueService):
     ) -> list[RpcExternalIssueGroupMetadata] | None:
         from sentry.integrations.services.integration import integration_service
 
-        try:
-            external_issue = ExternalIssue.objects.get(
-                integration_id=integration_id, key=external_issue_key
-            )
-        except (
-            ExternalIssue.DoesNotExist,
-            # Multiple ExternalIssues are returned if organizations share one integration.
-            # Since we cannot identify the organization from the request alone, for now, we just
-            # avoid crashing on the MultipleObjectsReturned error.
-            ExternalIssue.MultipleObjectsReturned,
-        ):
+        external_issues = ExternalIssue.objects.filter(
+            integration_id=integration_id, key=external_issue_key
+        )
+
+        if not external_issues.exists():
             return None
 
         if (
@@ -39,23 +33,30 @@ class DatabaseBackedIssueService(IssueService):
             return None
 
         if (
-            integration_service.get_organization_integration(
-                organization_id=external_issue.organization_id,
+            organization_integrations := integration_service.get_organization_integrations(
+                organization_ids={
+                    external_issue.organization_id for external_issue in external_issues
+                },
                 integration_id=integration_id,
             )
-            is None
-        ):
+        ) is None or len(organization_integrations) == 0:
             return None
 
-        organization = Organization.objects.get(id=external_issue.organization_id)
+        org_integration_org_ids = {
+            org_integration.organization_id for org_integration in organization_integrations
+        }
+
+        organization = Organization.objects.filter(id__in=org_integration_org_ids)
 
         external_issue_subquery = ExternalIssue.objects.get_for_integration(
             integration, external_issue_key
         ).values_list("id", flat=True)
 
+        # get the latest group link date for each group
         group_link_subquery: dict[int, datetime] = dict(
             GroupLink.objects.filter(
-                linked_id__in=external_issue_subquery, project__organization_id=organization.id
+                linked_id__in=external_issue_subquery,
+                project__organization__in=organization,
             )
             .order_by("datetime")
             .values_list("group_id", "datetime")
