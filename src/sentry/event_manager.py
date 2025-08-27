@@ -548,6 +548,7 @@ class EventManager:
                 increment_group_tombstone_hit_counter(
                     getattr(e, "tombstone_id", None), job["event"]
                 )
+            # TODO: make sure that already stored attachments are deleted
             discard_event(job, attachments)
             raise
 
@@ -566,6 +567,7 @@ class EventManager:
         _tsdb_record_all_metrics(jobs)
 
         if attachments:
+            # TODO: make sure that already stored attachments are deleted
             attachments = filter_attachments_for_group(attachments, job)
 
         # XXX: DO NOT MUTATE THE EVENT PAYLOAD AFTER THIS POINT
@@ -2315,9 +2317,6 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     :param attachments: The full list of attachments to filter.
     :param job:         The job context container.
     """
-    if not attachments:
-        return attachments
-
     event = job["event"]
     project = event.project
 
@@ -2429,7 +2428,7 @@ def save_attachment(
         timestamp = datetime.now(timezone.utc)
 
     try:
-        attachment.data
+        attachment.stored_id or attachment.data
     except MissingAttachmentChunks:
         track_outcome(
             org_id=project.organization_id,
