@@ -70,7 +70,7 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
           <CodeSnippet dark language="bash">
             {INSTALL_REQUIREMENTS_SNIPPETS[selectedFramework]}
           </CodeSnippet>
-          {selectedFramework === 'pytest' ? (
+          {GENERATE_FILE_SNIPPETS[selectedFramework] ? (
             <Fragment>
               <StyledInstruction>
                 {t(
@@ -78,7 +78,7 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
                 )}
               </StyledInstruction>
               <CodeSnippet dark language="bash">
-                {GENERATE_FILE_SNIPPETS.pytest}
+                {GENERATE_FILE_SNIPPETS[selectedFramework]}
               </CodeSnippet>
             </Fragment>
           ) : null}
