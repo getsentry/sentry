@@ -14,6 +14,7 @@ from sentry.replays.endpoints.project_replay_summary import (
     SEER_START_TASK_ENDPOINT_PATH,
 )
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
+from sentry.replays.lib.summarize import EventDict
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import SnubaTestCase, TransactionTestCase
 from sentry.testutils.skips import requires_snuba
@@ -437,8 +438,11 @@ class ProjectReplaySummaryTestCase(
         assert "Invalid input" in logs[2]
         assert "User experienced an error" in logs[2]
 
+    @patch("sentry.replays.lib.summarize.fetch_feedback_details")
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
-    def test_post_with_trace_errors_duplicate_feedback(self, mock_make_seer_api_request):
+    def test_post_with_trace_errors_duplicate_feedback(
+        self, mock_make_seer_api_request, mock_fetch_feedback_details
+    ):
         """Test that duplicate feedback events are filtered."""
         mock_response = MockSeerResponse(200, {"summary": "Test summary"})
         mock_make_seer_api_request.return_value = mock_response
@@ -516,6 +520,15 @@ class ProjectReplaySummaryTestCase(
         ]
         self.save_recording_segment(0, json.dumps(data).encode())
 
+        # mock fetch_feedback_details to return a dup of the first feedback event (in prod this is from nodestore)
+        mock_fetch_feedback_details.return_value = EventDict(
+            id=feedback_event_id,
+            title="User Feedback",
+            message=feedback_data["contexts"]["feedback"]["message"],
+            timestamp=feedback_data["timestamp"],
+            category="feedback",
+        )
+
         with self.feature(self.features):
             response = self.client.post(
                 self.url, data={"num_segments": 1}, content_type="application/json"
@@ -533,9 +546,9 @@ class ProjectReplaySummaryTestCase(
         # Verify that only the unique feedback logs are included
         assert len(logs) == 2
         assert "User submitted feedback" in logs[0]
+        assert "Great website" in logs[0]
         assert "User submitted feedback" in logs[1]
-        assert any("Great website" in log for log in logs)
-        assert any("Broken website" in log for log in logs)
+        assert "Broken website" in logs[1]
 
     @patch("sentry.replays.endpoints.project_replay_summary.MAX_SEGMENTS_TO_SUMMARIZE", 1)
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
