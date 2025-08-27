@@ -15,7 +15,7 @@ type HeaderParams = {
   enableToggle: boolean;
   fieldName: string;
   label: string;
-  sort: undefined | Sort;
+  sort?: Sort;
   tooltip?: string | ReactNode;
 };
 
