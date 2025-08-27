@@ -72,9 +72,11 @@ export default function BuildList() {
                 <SimpleTable.RowCell justify="flex-start">
                   <BuildInfo>
                     <BuildName>
-                      <PlatformIcon
-                        platform={getPlatformIconFromPlatform(build.app_info.platform)}
-                      />
+                      {build.app_info.platform && (
+                        <PlatformIcon
+                          platform={getPlatformIconFromPlatform(build.app_info.platform)}
+                        />
+                      )}
                       {build.app_info.name}
                     </BuildName>
                     <BuildDetails>{build.app_info.app_id}</BuildDetails>
