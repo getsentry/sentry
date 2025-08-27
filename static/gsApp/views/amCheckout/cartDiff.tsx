@@ -24,10 +24,7 @@ import {
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
-import {
-  isOnDemandBudgetsEqual,
-  parseOnDemandBudgets,
-} from 'getsentry/views/onDemandBudgets/utils';
+import {parseOnDemandBudgets} from 'getsentry/views/onDemandBudgets/utils';
 
 const DEFAULT_PAYG_BUDGET: SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED,
@@ -581,12 +578,9 @@ function CartDiff({
     };
   }, [freePlan, isOnTrialPlan, subscription]);
 
-  const isChanged = (key: keyof SubscriptionState, currentValue: any, newValue: any) => {
-    if (key === 'onDemandBudgets') {
-      return !isOnDemandBudgetsEqual(
-        currentValue as OnDemandBudgets,
-        newValue as OnDemandBudgets
-      );
+  const isChanged = (currentValue: any, newValue: any) => {
+    if (typeof currentValue === 'object' && typeof newValue === 'object') {
+      return !isEqual(currentValue, newValue);
     }
 
     return currentValue !== newValue;
@@ -595,11 +589,7 @@ function CartDiff({
   const changedKeys: Array<keyof SubscriptionState> = useMemo(() => {
     return Object.entries(newSubscriptionState)
       .filter(([key, value]) => {
-        return isChanged(
-          key as keyof SubscriptionState,
-          currentSubscriptionState[key as keyof SubscriptionState],
-          value
-        );
+        return isChanged(currentSubscriptionState[key as keyof SubscriptionState], value);
       })
       .map(([key]) => key as keyof SubscriptionState);
   }, [newSubscriptionState, currentSubscriptionState]);
@@ -608,33 +598,18 @@ function CartDiff({
     const naiveComparison = !isEqual(newSubscriptionState, currentSubscriptionState);
 
     if (!naiveComparison) {
-      return true;
+      return false; // if the two objects are exactly equal, there is no change
     }
 
     const someNonCategoryChange = Object.entries(newSubscriptionState)
-      .filter(([_, value]) => typeof value !== 'object')
+      .filter(([key, _]) => key !== 'reserved')
       .some(([key, value]) => {
-        return isChanged(
-          key as keyof SubscriptionState,
-          currentSubscriptionState[key as keyof SubscriptionState],
-          value
-        );
+        return isChanged(currentSubscriptionState[key as keyof SubscriptionState], value);
       });
 
     if (someNonCategoryChange) {
       return true;
     }
-
-    const someOnDemandChange = !isOnDemandBudgetsEqual(
-      newSubscriptionState.onDemandBudgets,
-      currentSubscriptionState.onDemandBudgets
-    );
-
-    if (someOnDemandChange) {
-      return true;
-    }
-
-    // TODO(ISABELLA): check products too
 
     const currentPlanCategories = subscription.planDetails.categories;
     const newPlanCategories = activePlan.categories;
@@ -691,7 +666,7 @@ function CartDiff({
             const currentOnDemandBudgets = currentSubscriptionState[key];
             const newOnDemandBudgets = newSubscriptionState[key];
 
-            if (!isChanged(key, currentOnDemandBudgets, newOnDemandBudgets)) {
+            if (!isChanged(currentOnDemandBudgets, newOnDemandBudgets)) {
               return null;
             }
 
