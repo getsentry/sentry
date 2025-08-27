@@ -54,14 +54,15 @@ class DatabaseBackedIssueService(IssueService):
         ).values_list("id", flat=True)
 
         group_link_subquery: dict[int, datetime] = dict(
-            GroupLink.objects.filter(linked_id__in=external_issue_subquery).values_list(
-                "group_id", "datetime"
+            GroupLink.objects.filter(
+                linked_id__in=external_issue_subquery, project__organization_id=organization.id
             )
+            .order_by("datetime")
+            .values_list("group_id", "datetime")
         )
 
         groups = Group.objects.filter(
             id__in=group_link_subquery.keys(),
-            project__organization_id=organization.id,
         )
 
         return [
