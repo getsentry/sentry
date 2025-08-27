@@ -463,7 +463,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 25,
     isBilledCategory: true,
     docsUrl:
-      'https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling',
+      'https://docs.sentry.io/product/explore/profiling/getting-started/#ui-profiling',
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
@@ -519,6 +519,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Logging'),
     uid: 24,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/explore/logs/getting-started/',
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
