@@ -25,10 +25,8 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {
-  PlatformOptionsControl,
-  useUrlPlatformOptions,
-} from 'sentry/components/onboarding/platformOptionsControl';
+import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
@@ -361,7 +359,7 @@ export function Onboarding() {
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       <OptionsWrapper>
-        <PlatformOptionsControl platformOptions={integrationOptions} />
+        <PlatformOptionDropdown platformOptions={integrationOptions} />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <GuidedSteps>
@@ -541,5 +539,9 @@ const AdditionalInfo = styled(DescriptionWrapper)`
 `;
 
 const OptionsWrapper = styled('div')`
-  margin: ${space(2)} 0;
+  display: flex;
+  gap: ${p => p.theme.space.md};
+  align-items: center;
+  flex-wrap: wrap;
+  padding-bottom: ${p => p.theme.space.md};
 `;
