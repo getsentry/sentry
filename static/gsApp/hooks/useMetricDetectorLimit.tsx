@@ -26,7 +26,7 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
   const {
     isLoading: isDetectorsLoading,
     isError: isDetectorsError,
-    getResponseHeader,
+    getResponseHeader: getDetectorsResponseHeader,
   } = useDetectorsQuery(
     {
       query: 'type:metric',
@@ -34,26 +34,27 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
     },
     {
       enabled: hasFlag && isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
+      staleTime: 1 * 60 * 1000, // Set stale time to 5 mins to avoid unnecessary re-fetching
     }
   );
 
   const {
-    isLoading: isCombinedRulesLoading,
-    isError: isCombinedRulesError,
-    getResponseHeader: getCombinedRulesResponseHeader,
+    isLoading: isMetricRulesLoading,
+    isError: isMetricRulesError,
+    getResponseHeader: getMetricRulesResponseHeader,
   } = useApiQuery<any[]>(
     [`/organizations/${organization.slug}/alert-rules/`, {query: {limit: 1}}],
     {
       enabled: hasFlag && !isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
-      staleTime: 3,
+      staleTime: 1 * 60 * 1000, // Set stale time to 5 mins to avoid unnecessary re-fetching
     }
   );
 
-  const isLoading = isWorkflowEngine ? isDetectorsLoading : isCombinedRulesLoading;
-  const isError = isWorkflowEngine ? isDetectorsError : isCombinedRulesError;
+  const isLoading = isWorkflowEngine ? isDetectorsLoading : isMetricRulesLoading;
+  const isError = isWorkflowEngine ? isDetectorsError : isMetricRulesError;
   const detectorHits = isWorkflowEngine
-    ? getResponseHeader?.('X-Hits')
-    : getCombinedRulesResponseHeader?.('X-Hits');
+    ? getDetectorsResponseHeader?.('X-Hits')
+    : getMetricRulesResponseHeader?.('X-Hits');
   const detectorCount = detectorHits ? parseInt(detectorHits, 10) : NO_COUNT;
 
   if (!hasFlag || detectorLimit === UNLIMITED_QUOTA) {
