@@ -240,5 +240,130 @@ describe('TokensPage', () => {
 
       expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
     });
+
+    describe('Sorting integration', () => {
+      it('renders with correct sort state when sort parameter is in URL', async () => {
+        mockApiCall();
+        render(
+          <PreventQueryParamsProvider>
+            <TokensPage />
+          </PreventQueryParamsProvider>,
+          {
+            initialRouterConfig: {
+              location: {
+                pathname: '/prevent/tokens/',
+                query: {
+                  integratedOrgId: '1',
+                  sort: 'name', // ascending sort
+                },
+              },
+            },
+          }
+        );
+
+        expect(await screen.findByRole('table')).toBeInTheDocument();
+
+        expect(
+          screen.getAllByRole('columnheader', {name: /repository name/i})[1]
+        ).toHaveAttribute('aria-sort', 'ascending');
+      });
+
+      it('renders with descending sort state when negative sort parameter is in URL', async () => {
+        mockApiCall();
+        render(
+          <PreventQueryParamsProvider>
+            <TokensPage />
+          </PreventQueryParamsProvider>,
+          {
+            initialRouterConfig: {
+              location: {
+                pathname: '/prevent/tokens/',
+                query: {
+                  integratedOrgId: '1',
+                  sort: '-name', // descending sort
+                },
+              },
+            },
+          }
+        );
+
+        expect(await screen.findByRole('table')).toBeInTheDocument();
+
+        expect(
+          screen.getAllByRole('columnheader', {name: /repository name/i})[1]
+        ).toHaveAttribute('aria-sort', 'descending');
+      });
+
+      it('renders with no sort state when no sort parameter is in URL', async () => {
+        mockApiCall();
+        render(
+          <PreventQueryParamsProvider>
+            <TokensPage />
+          </PreventQueryParamsProvider>,
+          {
+            initialRouterConfig: {
+              location: {
+                pathname: '/prevent/tokens/',
+                query: {
+                  integratedOrgId: '1',
+                  // no sort parameter
+                },
+              },
+            },
+          }
+        );
+
+        expect(await screen.findByRole('table')).toBeInTheDocument();
+
+        expect(
+          screen.getAllByRole('columnheader', {name: /repository name/i})[1]
+        ).toHaveAttribute('aria-sort', 'none');
+      });
+
+      it('passes sortBy parameter to API when valid sort is provided', async () => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/integrations/`,
+          method: 'GET',
+          body: mockIntegrations,
+        });
+
+        const mockTokensCall = MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/prevent/owner/1/repositories/tokens/`,
+          method: 'GET',
+          body: mockRepositoryTokensResponse,
+        });
+
+        render(
+          <PreventQueryParamsProvider>
+            <TokensPage />
+          </PreventQueryParamsProvider>,
+          {
+            initialRouterConfig: {
+              location: {
+                pathname: '/prevent/tokens/',
+                query: {
+                  integratedOrgId: '1',
+                  sort: '-name', // descending name sort
+                },
+              },
+            },
+          }
+        );
+
+        await screen.findByRole('table');
+
+        // API should be called with sortBy parameter
+        await waitFor(() => {
+          expect(mockTokensCall).toHaveBeenCalledWith(
+            '/organizations/org-slug/prevent/owner/1/repositories/tokens/',
+            expect.objectContaining({
+              query: expect.objectContaining({
+                sortBy: '-NAME',
+              }),
+            })
+          );
+        });
+      });
+    });
   });
 });

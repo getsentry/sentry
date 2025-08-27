@@ -55,11 +55,25 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
 
         sort_by = request.query_params.get("sortBy", "-COMMIT_DATE")
 
+        # Validate sort parameters
+        valid_sort_fields = {"COMMIT_DATE", "NAME"}
+
         if sort_by.startswith("-"):
-            sort_by = sort_by[1:]
+            sort_field = sort_by[1:]
             ordering_direction = OrderingDirection.DESC.value
         else:
+            sort_field = sort_by
             ordering_direction = OrderingDirection.ASC.value
+
+        if sort_field not in valid_sort_fields:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={
+                    "details": f"Invalid sortBy parameter. Allowed values: {', '.join(sorted(valid_sort_fields))}"
+                },
+            )
+
+        sort_by = sort_field
 
         owner_slug = owner.name
 

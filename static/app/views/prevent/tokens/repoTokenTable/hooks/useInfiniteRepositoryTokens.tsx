@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {
   fetchDataQuery,
   useInfiniteQuery,
@@ -9,6 +10,24 @@ import {
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+
+const TABLE_FIELD_NAME_TO_SORT_KEY = {
+  name: 'NAME',
+} as const;
+
+type SortableTokenOptions = keyof typeof TABLE_FIELD_NAME_TO_SORT_KEY;
+
+function sortToSortKey(sort: Sort): string | undefined {
+  const field = sort.field as SortableTokenOptions;
+
+  if (field in TABLE_FIELD_NAME_TO_SORT_KEY) {
+    const backendField = TABLE_FIELD_NAME_TO_SORT_KEY[field];
+    const sign = sort.kind === 'desc' ? '-' : '';
+    return `${sign}${backendField}`;
+  }
+
+  return undefined;
+}
 
 type RepositoryTokenItem = {
   name: string;
@@ -31,12 +50,16 @@ type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
 export function useInfiniteRepositoryTokens({
   cursor,
   navigation,
+  sort,
 }: {
   cursor: string | undefined;
   navigation: 'next' | 'prev' | undefined;
+  sort?: Sort;
 }) {
   const {integratedOrgId} = usePreventContext();
   const organization = useOrganization();
+
+  const sortBy = sort ? sortToSortKey(sort) : undefined;
 
   const {data, ...rest} = useInfiniteQuery<
     ApiResult<RepositoryTokens>,
@@ -50,6 +73,7 @@ export function useInfiniteRepositoryTokens({
         query: {
           cursor: cursor ?? undefined,
           navigation: navigation ?? undefined,
+          sortBy: sortBy ?? undefined,
         },
       },
     ],
@@ -67,6 +91,7 @@ export function useInfiniteRepositoryTokens({
               ...query,
               ...(cursor ? {cursor} : {}),
               ...(navigation ? {navigation} : {}),
+              ...(sortBy ? {sortBy} : {}),
             },
           },
         ],
