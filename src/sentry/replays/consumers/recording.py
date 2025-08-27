@@ -1,6 +1,6 @@
 import logging
 import zlib
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from typing import cast
 
@@ -38,7 +38,7 @@ class DropSilently(Exception):
     pass
 
 
-def _get_profiling_config():
+def _get_profiling_config() -> tuple[str | None, float, float, bool, bool]:
     """Get profiling configuration values from settings and options."""
     profiling_dsn = getattr(
         settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
@@ -62,7 +62,7 @@ def _get_profiling_config():
 
 
 @contextmanager
-def profiling():
+def profiling() -> Generator[None]:
     """Context manager for profiling replay recording operations.
 
     Only enables profiling if it's enabled in options and we have a DSN and sample rate > 0.
