@@ -38,6 +38,29 @@ class DropSilently(Exception):
     pass
 
 
+def _get_profiling_config():
+    """Get profiling configuration values from settings and options."""
+    profiling_dsn = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
+    )
+    profile_session_sample_rate = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
+    )
+    traces_sample_rate = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
+    )
+    profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
+    profiling_enabled = options.get("replay.consumer.recording.profiling.enabled")
+
+    return (
+        profiling_dsn,
+        profile_session_sample_rate,
+        traces_sample_rate,
+        profiling_active,
+        profiling_enabled,
+    )
+
+
 @contextmanager
 def profiling():
     """Context manager for profiling replay recording operations.
@@ -45,14 +68,7 @@ def profiling():
     Only enables profiling if it's enabled in options and we have a DSN and sample rate > 0.
     Yields nothing, just manages the profiler lifecycle.
     """
-    profiling_dsn = getattr(
-        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
-    )
-    profile_session_sample_rate = getattr(
-        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
-    )
-    profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
-    profiling_enabled = options.get("replay.consumer.recording.profiling.enabled")
+    _, _, _, profiling_active, profiling_enabled = _get_profiling_config()
 
     if profiling_active and profiling_enabled:
         sentry_sdk.profiler.start_profiler()
@@ -92,14 +108,13 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
     def _initialize_sentry_sdk_if_needed(self) -> None:
         """Initialize Sentry SDK once if profiling is enabled and SDK not already initialized."""
-        profiling_dsn = getattr(
-            settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
-        )
-        profile_session_sample_rate = getattr(
-            settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
-        )
-        profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
-        profiling_enabled = options.get("replay.consumer.recording.profiling.enabled")
+        (
+            profiling_dsn,
+            profile_session_sample_rate,
+            traces_sample_rate,
+            profiling_active,
+            profiling_enabled,
+        ) = _get_profiling_config()
 
         if profiling_active and profiling_enabled:
             try:
@@ -107,9 +122,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                     # Different DSN, reinitialize
                     sentry_sdk.init(
                         dsn=profiling_dsn,
-                        traces_sample_rate=getattr(
-                            settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
-                        ),
+                        traces_sample_rate=traces_sample_rate,
                         profile_session_sample_rate=profile_session_sample_rate,
                         profile_lifecycle="manual",
                     )
@@ -117,9 +130,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 # SDK not initialized, initialize it
                 sentry_sdk.init(
                     dsn=profiling_dsn,
-                    traces_sample_rate=getattr(
-                        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
-                    ),
+                    traces_sample_rate=traces_sample_rate,
                     profile_session_sample_rate=profile_session_sample_rate,
                     profile_lifecycle="manual",
                 )
