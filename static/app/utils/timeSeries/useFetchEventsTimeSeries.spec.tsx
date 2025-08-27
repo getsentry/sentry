@@ -1,14 +1,18 @@
 import type {ReactNode} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useFetchEventsTimeSeries} from './useFetchEventsTimeSeries';
+
+jest.mock('sentry/utils/usePageFilters');
 
 describe('useFetchEventsTimeSeries', () => {
   const organization = OrganizationFixture();
@@ -24,6 +28,23 @@ describe('useFetchEventsTimeSeries', () => {
   const hookOptions = {
     wrapper: Wrapper,
   };
+
+  beforeEach(() => {
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: ['prod'],
+          projects: [42],
+        },
+      })
+    );
+  });
 
   afterEach(() => {
     jest.resetAllMocks();
@@ -105,7 +126,7 @@ describe('useFetchEventsTimeSeries', () => {
     }).toThrow();
   });
 
-  it('makes requests for multiple Y axes', async () => {
+  it('attaches default query params', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
@@ -117,7 +138,7 @@ describe('useFetchEventsTimeSeries', () => {
         useFetchEventsTimeSeries(
           DiscoverDatasets.SPANS,
           {
-            yAxis: ['count(span.duration)', 'p50(span.duration)'],
+            yAxis: 'p50(span.duration)',
           },
           REFERRER
         ),
@@ -136,7 +157,10 @@ describe('useFetchEventsTimeSeries', () => {
           partial: 1,
           referrer: 'test-query',
           dataset: 'spans',
-          yAxis: ['count(span.duration)', 'p50(span.duration)'],
+          statsPeriod: '10d',
+          yAxis: 'p50(span.duration)',
+          environment: ['prod'],
+          project: [42],
         },
       })
     );

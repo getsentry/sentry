@@ -1,6 +1,8 @@
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {
   getRetryDelay,
@@ -19,6 +21,8 @@ export function useFetchEventsTimeSeries<T extends string>(
 ) {
   const organization = useOrganization();
 
+  const {isReady: arePageFiltersReady, selection} = usePageFilters();
+
   if (!referrer) {
     throw new Error(
       '`useFetchEventsTimeSeries` cannot accept an empty referrer string, please specify a referrer!'
@@ -35,6 +39,9 @@ export function useFetchEventsTimeSeries<T extends string>(
           dataset,
           referrer,
           yAxis,
+          ...normalizeDateTimeParams(selection.datetime),
+          project: selection.projects,
+          environment: selection.environments,
         },
       },
     ],
@@ -43,7 +50,7 @@ export function useFetchEventsTimeSeries<T extends string>(
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       refetchOnWindowFocus: false,
-      enabled,
+      enabled: enabled && arePageFiltersReady,
     }
   );
 }
