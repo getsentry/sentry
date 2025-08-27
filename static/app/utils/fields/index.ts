@@ -1024,6 +1024,29 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
 };
 
+// TODO: Extend the two lists below with more options upon backend support
+export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanFields[] = [
+  SpanFields.SPAN_DURATION, // DO NOT RE-ORDER: the first element is used as the default
+  SpanFields.SPAN_SELF_TIME,
+];
+
+export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
+  AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
+  AggregationKey.AVG,
+  AggregationKey.P50,
+  AggregationKey.P75,
+  AggregationKey.P90,
+  AggregationKey.P95,
+  AggregationKey.P99,
+  AggregationKey.P100,
+  AggregationKey.SUM,
+  AggregationKey.MIN,
+  AggregationKey.MAX,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.EPM,
+  AggregationKey.FAILURE_RATE,
+];
+
 const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   [AggregationKey.COUNT]: {
@@ -1228,48 +1251,6 @@ export const NO_ARGUMENT_SPAN_AGGREGATES: AggregationKey[] = Object.entries(
 )
   .filter(([_, field]) => field.parameters?.length === 0)
   .map(([key]) => key as AggregationKey);
-
-// TODO: Extend the two lists below with more options upon backend support
-export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanFields[] = [
-  SpanFields.SPAN_DURATION, // DO NOT RE-ORDER: the first element is used as the default
-  SpanFields.SPAN_SELF_TIME,
-];
-
-export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
-  AggregationKey.COUNT, // DO NOT RE-ORDER: the first element is used as the default
-  AggregationKey.AVG,
-  AggregationKey.P50,
-  AggregationKey.P75,
-  AggregationKey.P90,
-  AggregationKey.P95,
-  AggregationKey.P99,
-  AggregationKey.P100,
-  AggregationKey.SUM,
-  AggregationKey.MIN,
-  AggregationKey.MAX,
-  AggregationKey.COUNT_UNIQUE,
-  AggregationKey.EPM,
-  AggregationKey.FAILURE_RATE,
-];
-
-export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS: Readonly<
-  Partial<Record<AggregationKey, FieldDefinition>>
-> = {
-  [AggregationKey.COUNT]: SPAN_AGGREGATION_FIELDS[AggregationKey.COUNT],
-  [AggregationKey.AVG]: SPAN_AGGREGATION_FIELDS[AggregationKey.AVG],
-  [AggregationKey.P50]: SPAN_AGGREGATION_FIELDS[AggregationKey.P50],
-  [AggregationKey.P75]: SPAN_AGGREGATION_FIELDS[AggregationKey.P75],
-  [AggregationKey.P90]: SPAN_AGGREGATION_FIELDS[AggregationKey.P90],
-  [AggregationKey.P95]: SPAN_AGGREGATION_FIELDS[AggregationKey.P95],
-  [AggregationKey.P99]: SPAN_AGGREGATION_FIELDS[AggregationKey.P99],
-  [AggregationKey.P100]: SPAN_AGGREGATION_FIELDS[AggregationKey.P100],
-  [AggregationKey.SUM]: SPAN_AGGREGATION_FIELDS[AggregationKey.SUM],
-  [AggregationKey.MIN]: SPAN_AGGREGATION_FIELDS[AggregationKey.MIN],
-  [AggregationKey.MAX]: SPAN_AGGREGATION_FIELDS[AggregationKey.MAX],
-  [AggregationKey.COUNT_UNIQUE]: SPAN_AGGREGATION_FIELDS[AggregationKey.COUNT_UNIQUE],
-  [AggregationKey.EPM]: SPAN_AGGREGATION_FIELDS[AggregationKey.EPM],
-  [AggregationKey.FAILURE_RATE]: SPAN_AGGREGATION_FIELDS[AggregationKey.FAILURE_RATE],
-};
 
 export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition> = {
   [WebVital.FP]: {
