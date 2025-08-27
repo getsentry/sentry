@@ -413,34 +413,38 @@ function TotalSummary({
         <IconLock locked />
         {isSubmitting ? t('Checking out...') : t('Confirm and pay')}
       </StyledButton>
-      <Subtext>
-        {!!effectiveDate &&
-          tct('Your changes will apply on [effectiveDate]. ', {
-            effectiveDate: moment(effectiveDate).format('MMM D, YYYY'),
-          })}
-        {longInterval === 'yearly'
-          ? tct(
-              'Plan renews [longInterval] on [renewalDate]. Any additional usage will continue to be billed monthly.',
-              {
-                longInterval,
-                renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-              }
-            )
-          : tct(
-              'Plan renews [longInterval] on [renewalDate], plus any additional usage[onDemandLimit].',
-              {
-                longInterval,
-                renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-                onDemandLimit: totalOnDemandBudget
-                  ? tct(' (up to [onDemandMaxSpend]/month)', {
-                      onDemandMaxSpend: utils.displayPrice({
-                        cents: totalOnDemandBudget,
-                      }),
-                    })
-                  : '',
-              }
-            )}
-      </Subtext>
+      {previewDataLoading ? (
+        <Placeholder height="40px" />
+      ) : (
+        <Subtext>
+          {!!effectiveDate &&
+            tct('Your changes will apply on [effectiveDate]. ', {
+              effectiveDate: moment(effectiveDate).format('MMM D, YYYY'),
+            })}
+          {longInterval === 'yearly'
+            ? tct(
+                'Plan renews [longInterval] on [renewalDate]. Any additional usage will continue to be billed monthly.',
+                {
+                  longInterval,
+                  renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+                }
+              )
+            : tct(
+                'Plan renews [longInterval] on [renewalDate], plus any additional usage[onDemandLimit].',
+                {
+                  longInterval,
+                  renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+                  onDemandLimit: totalOnDemandBudget
+                    ? tct(' (up to [onDemandMaxSpend]/month)', {
+                        onDemandMaxSpend: utils.displayPrice({
+                          cents: totalOnDemandBudget,
+                        }),
+                      })
+                    : '',
+                }
+              )}
+        </Subtext>
+      )}
     </SummarySection>
   );
 }
