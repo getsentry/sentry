@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import MonitorsClockTasks
 
@@ -12,7 +12,7 @@ from sentry.utils.kafka_config import get_topic_definition
 MONITORS_CLOCK_TASKS_CODEC: Codec[MonitorsClockTasks] = get_topic_codec(Topic.MONITORS_CLOCK_TASKS)
 
 
-def _get_producer():
+def _get_producer() -> KafkaProducer:
     return get_arroyo_producer(
         name="sentry.monitors.clock_tasks.producer",
         topic=Topic.MONITORS_CLOCK_TASKS,
