@@ -95,3 +95,8 @@ class TestAssertNoneIntegration:
         # Verify event payload
         assert event["level"] == "warning"  # strict=False
         assert event["exception"]["values"][0]["mechanism"]["handled"] is True
+
+        # Verify thread target name is tagged for filtering/grouping
+        assert "tags" in event
+        assert "thread.target" in event["tags"]
+        assert event["tags"]["thread.target"] == "threading.Event.wait"
