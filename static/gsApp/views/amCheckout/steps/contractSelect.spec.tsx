@@ -25,9 +25,6 @@ describe('ContractSelect', () => {
   const warningText = /You are currently on an annual contract/;
 
   function renderView({isNewCheckout}: {isNewCheckout?: boolean} = {}) {
-    if (isNewCheckout) {
-      organization.features.push('checkout-v3');
-    }
     return render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -36,6 +33,7 @@ describe('ContractSelect', () => {
         onToggleLegacy={jest.fn()}
         checkoutTier={PlanTier.AM2}
         organization={organization}
+        isNewCheckout={isNewCheckout}
       />
     );
   }
@@ -62,6 +60,13 @@ describe('ContractSelect', () => {
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
       method: 'GET',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/subscription/preview/`,
+      method: 'GET',
+      body: {
+        invoiceItems: [],
+      },
     });
   });
 

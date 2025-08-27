@@ -6,6 +6,12 @@ import {
   transformEventsStatsComparisonSeries,
   transformEventsStatsToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
+import {
+  BASE_DYNAMIC_INTERVALS,
+  BASE_INTERVALS,
+  getEapTimePeriodsForInterval,
+  MetricDetectorInterval,
+} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
 import type {DetectorDatasetConfig} from './base';
 import {parseEventTypesFromQuery} from './eventTypes';
@@ -20,6 +26,13 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
   defaultField: SpansConfig.defaultField,
   getAggregateOptions: SpansConfig.getTableFieldOptions,
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
+  getIntervals: ({detectionType}) => {
+    const intervals =
+      detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
+    // EAP does not support minute intervals
+    return intervals.filter(interval => interval > MetricDetectorInterval.ONE_MINUTE);
+  },
+  getTimePeriods: interval => getEapTimePeriodsForInterval(interval),
   separateEventTypesFromQuery: query =>
     parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
   toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
