@@ -249,6 +249,11 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
     def extract_value(self, data_packet: DataPacket[MetricUpdate]) -> MetricResult:
         # this is a bit of a hack - anomaly detection data packets send extra data we need to pass along
         values = data_packet.packet.values
+
+        # Handle AnomalyDetectionUpdate packets specially
+        if isinstance(data_packet.packet, AnomalyDetectionUpdate):
+            return {None: values}
+
         # Check if this is grouped data returned in our data packet
         if "groups" in values:
             # Return grouped data as dict[DetectorGroupKey, int]
