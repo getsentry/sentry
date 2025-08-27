@@ -590,9 +590,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         error_data["level"] = "fatal"
         error = self.store_event(error_data, project_id=self.project.id)
 
-        with self.feature(
-            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
-        ):
+        with self.feature([*self.FEATURES]):
             response = self.client.get(
                 self.url,
                 data={"event_id": error.event_id, "project": -1},
@@ -630,9 +628,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         error_data1["level"] = "warning"
         self.store_event(error_data1, project_id=self.project.id)
 
-        with self.feature(
-            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
-        ):
+        with self.feature([*self.FEATURES]):
             response = self.client.get(
                 self.url,
                 data={"event_id": error.event_id, "project": -1},
@@ -642,9 +638,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         self.assert_orphan_error_response(response, error, span_id)
 
     def test_with_unknown_event(self) -> None:
-        with self.feature(
-            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
-        ):
+        with self.feature([*self.FEATURES]):
             response = self.client.get(
                 self.url,
                 data={"event_id": "766758c00ff54d8ab865369ecab53ae6", "project": "-1"},
@@ -1198,9 +1192,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         }
         error1 = self.store_event(error_data1, project_id=self.project.id)
 
-        with self.feature(
-            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
-        ):
+        with self.feature([*self.FEATURES]):
             response = self.client_get(
                 data={"project": -1},
             )
@@ -1257,9 +1249,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         }
         error1 = self.store_event(error_data, project_id=self.project.id)
 
-        with self.feature(
-            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
-        ):
+        with self.feature([*self.FEATURES]):
             response = self.client_get(
                 data={"project": -1},
             )
@@ -1315,9 +1305,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "span_id": span_id1,
         }
 
-        with self.feature(
-            [*self.FEATURES, "organizations:performance-tracing-without-performance"]
-        ):
+        with self.feature([*self.FEATURES]):
             response = self.client_get(
                 data={"project": -1},
             )

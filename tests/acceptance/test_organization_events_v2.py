@@ -18,7 +18,6 @@ FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
     "organizations:performance-view",
-    "organizations:performance-tracing-without-performance",
 ]
 
 
