@@ -8,6 +8,7 @@ import orjson
 from django.http import HttpResponse
 from django.http.response import HttpResponseBase
 
+import sentry.options as options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
@@ -17,6 +18,7 @@ from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import control_silo_function
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,12 @@ class GithubRequestParser(BaseRequestParser):
             return None
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
+    def try_forward_to_codecov(self, event: Mapping[str, Any]) -> None:
+        try:
+            self.forward_to_codecov(external_id=self._get_external_id(event=event))
+        except Exception:
+            metrics.incr("codecov.forward-webhooks.forward-error", sample_rate=0.01)
+
     def get_response(self) -> HttpResponseBase:
         if self.view_class != self.webhook_endpoint:
             return self.get_response_from_control_silo()
@@ -54,6 +62,7 @@ class GithubRequestParser(BaseRequestParser):
             return HttpResponse(status=400)
 
         if event.get("installation") and event.get("action") in {"created", "deleted"}:
+            self.try_forward_to_codecov(event=event)
             return self.get_response_from_control_silo()
 
         try:
@@ -67,6 +76,15 @@ class GithubRequestParser(BaseRequestParser):
 
         if len(regions) == 0:
             return self.get_default_missing_integration_response()
+
+        if options.get("codecov.forward-webhooks.regions"):
+            # if any of the regions are in the codecov.forward-webhooks.regions option, forward to codecov
+            codecov_regions = list(
+                {region.name for region in regions}
+                & set(options.get("codecov.forward-webhooks.regions"))
+            )
+            if codecov_regions:
+                self.try_forward_to_codecov(event=event)
 
         return self.get_response_from_webhookpayload(
             regions=regions, identifier=integration.id, integration_id=integration.id
