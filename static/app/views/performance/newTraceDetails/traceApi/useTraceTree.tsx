@@ -13,9 +13,9 @@ import type {TraceMetaQueryResults} from './useTraceMeta';
 import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
+  meta: TraceMetaQueryResults;
   replay: HydratedReplayRecord | null;
   trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
-  meta?: TraceMetaQueryResults;
   traceSlug?: string;
 };
 
@@ -54,8 +54,8 @@ export function useTraceTree({
       traceAnalytics.trackTraceErrorState(
         organization,
         traceWaterfallSource,
-        errorStatus,
-        metaSpansCount
+        metaSpansCount,
+        errorStatus
       );
       return;
     }
