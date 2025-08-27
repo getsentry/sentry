@@ -51,8 +51,8 @@ def format_feedback_title(title: str, max_words: int = 10, include_prefix: bool 
             summary += "..."
 
     # Truncate if necessary (keeping some buffer for external system limits)
-    if len(title) > 185:  # Conservative limit
-        title = title[:182] + "..."
+    if len(summary) > 185:  # Conservative limit
+        summary = summary[:182] + "..."
 
     return f"User Feedback: {summary}" if include_prefix else summary
 
