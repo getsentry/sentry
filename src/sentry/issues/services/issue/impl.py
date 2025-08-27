@@ -25,12 +25,23 @@ class DatabaseBackedIssueService(IssueService):
         )
 
         if not external_issues.exists():
+<<<<<<< HEAD
             return None
 
         if integration_service.get_integration(integration_id=integration_id) is None:
             return None
 
         if (
+=======
+            return None
+
+        if (
+            integration := integration_service.get_integration(integration_id=integration_id)
+        ) is None:
+            return None
+
+        if (
+>>>>>>> e252b9580bc (search for all external issues for the integration in the region)
             organization_integrations := integration_service.get_organization_integrations(
                 organization_ids={
                     external_issue.organization_id for external_issue in external_issues
@@ -43,15 +54,27 @@ class DatabaseBackedIssueService(IssueService):
         org_integration_org_ids = {
             org_integration.organization_id for org_integration in organization_integrations
         }
+<<<<<<< HEAD
+=======
+
+        organization = Organization.objects.filter(id__in=org_integration_org_ids)
+>>>>>>> e252b9580bc (search for all external issues for the integration in the region)
 
         organization = Organization.objects.filter(id__in=org_integration_org_ids)
 
+<<<<<<< HEAD
         external_issue_ids = external_issues.values_list("id", flat=True)
 
         # get the latest group link date for each group
         group_link_subquery = dict(
             GroupLink.objects.filter(
                 linked_id__in=external_issue_ids,
+=======
+        # get the latest group link date for each group
+        group_link_subquery: dict[int, datetime] = dict(
+            GroupLink.objects.filter(
+                linked_id__in=external_issue_subquery,
+>>>>>>> e252b9580bc (search for all external issues for the integration in the region)
                 project__organization__in=organization,
             )
             .values("group_id")
