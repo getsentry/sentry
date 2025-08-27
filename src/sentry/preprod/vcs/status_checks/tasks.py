@@ -19,6 +19,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.vcs.status_checks.templates import format_status_messages
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -26,8 +27,6 @@ from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
-
-SIZE_ANALYZER_TITLE = "Sentry Size Analysis"  # TODO(preprod): translate
 
 
 @instrumented_task(
@@ -55,31 +54,20 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         extra={"artifact_id": preprod_artifact.id},
     )
 
-    title = SIZE_ANALYZER_TITLE
-
-    # TODO(preprod): add real formatting
+    # Map artifact state to status check status
     if (
         preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADING
         or preprod_artifact.state == PreprodArtifact.ArtifactState.UPLOADED
     ):
         status = StatusCheckStatus.IN_PROGRESS
-        text = f"⏳ Build {preprod_artifact.id} for {preprod_artifact.app_id} is processing..."
-        summary = f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` is processing..."
-        target_url = None
     elif preprod_artifact.state == PreprodArtifact.ArtifactState.FAILED:
         status = StatusCheckStatus.FAILURE
-        text = f"❌ Build {preprod_artifact.id} failed. Error: {preprod_artifact.error_message}"
-        summary = f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` failed."
-        target_url = None
     elif preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED:
         status = StatusCheckStatus.SUCCESS
-        text = f"✅ Build {preprod_artifact.id} processed successfully."
-        summary = (
-            f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` processed successfully."
-        )
-        target_url = None
     else:
         raise ValueError(f"Invalid artifact state: {preprod_artifact.state}")
+
+    title, subtitle, summary, text = format_status_messages(preprod_artifact)
 
     if not preprod_artifact.commit_comparison:
         logger.info(
@@ -124,10 +112,11 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         sha=commit_comparison.head_sha,
         status=status,
         title=title,
+        subtitle=subtitle,
         text=text,
         summary=summary,
         external_id=str(preprod_artifact.id),
-        target_url=target_url,
+        target_url=None,
     )
     if check_id is None:
         logger.error(
@@ -254,7 +243,8 @@ class _StatusCheckProvider(ABC):
         sha: str,
         status: StatusCheckStatus,
         title: str,
-        text: str,
+        subtitle: str,
+        text: str | None,
         summary: str,
         external_id: str,
         target_url: str | None = None,
@@ -270,7 +260,8 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         sha: str,
         status: StatusCheckStatus,
         title: str,
-        text: str,
+        subtitle: str,
+        text: str | None,
         summary: str,
         external_id: str,
         target_url: str | None = None,
@@ -291,12 +282,14 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 "head_sha": sha,
                 "external_id": external_id,
                 "output": {
-                    "title": title,
+                    "title": subtitle,
                     "summary": summary,
-                    "text": text,
                 },
                 "status": mapped_status.value,
             }
+
+            if text:
+                check_data["output"]["text"] = text
 
             if mapped_conclusion:
                 check_data["conclusion"] = mapped_conclusion.value
