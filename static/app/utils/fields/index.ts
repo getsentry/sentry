@@ -1045,6 +1045,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.COUNT_UNIQUE,
   AggregationKey.EPM,
   AggregationKey.FAILURE_RATE,
+  AggregationKey.COUNT_IF,
 ];
 
 const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
@@ -1240,6 +1241,35 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.PERCENTAGE,
         ]),
         defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.COUNT_IF]: {
+    ...AGGREGATION_FIELDS[AggregationKey.COUNT_IF],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: () => {
+          return true;
+        },
+        defaultValue: 'span.op',
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
+        options: CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '300',
         required: true,
       },
     ],
@@ -2194,6 +2224,26 @@ const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+};
+
+export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS: Readonly<
+  Partial<Record<AggregationKey, FieldDefinition>>
+> = {
+  [AggregationKey.COUNT]: SPAN_AGGREGATION_FIELDS[AggregationKey.COUNT],
+  [AggregationKey.AVG]: SPAN_AGGREGATION_FIELDS[AggregationKey.AVG],
+  [AggregationKey.P50]: SPAN_AGGREGATION_FIELDS[AggregationKey.P50],
+  [AggregationKey.P75]: SPAN_AGGREGATION_FIELDS[AggregationKey.P75],
+  [AggregationKey.P90]: SPAN_AGGREGATION_FIELDS[AggregationKey.P90],
+  [AggregationKey.P95]: SPAN_AGGREGATION_FIELDS[AggregationKey.P95],
+  [AggregationKey.P99]: SPAN_AGGREGATION_FIELDS[AggregationKey.P99],
+  [AggregationKey.P100]: SPAN_AGGREGATION_FIELDS[AggregationKey.P100],
+  [AggregationKey.SUM]: SPAN_AGGREGATION_FIELDS[AggregationKey.SUM],
+  [AggregationKey.MIN]: SPAN_AGGREGATION_FIELDS[AggregationKey.MIN],
+  [AggregationKey.MAX]: SPAN_AGGREGATION_FIELDS[AggregationKey.MAX],
+  [AggregationKey.COUNT_UNIQUE]: SPAN_AGGREGATION_FIELDS[AggregationKey.COUNT_UNIQUE],
+  [AggregationKey.EPM]: SPAN_AGGREGATION_FIELDS[AggregationKey.EPM],
+  [AggregationKey.FAILURE_RATE]: SPAN_AGGREGATION_FIELDS[AggregationKey.FAILURE_RATE],
+  [AggregationKey.COUNT_IF]: SPAN_AGGREGATION_FIELDS[AggregationKey.COUNT_IF],
 };
 
 const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {};

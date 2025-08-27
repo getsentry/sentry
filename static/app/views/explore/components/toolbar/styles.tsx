@@ -53,3 +53,14 @@ export const ToolbarRow = styled('div')`
     margin-bottom: ${space(0.5)};
   }
 `;
+
+export const TwoColumnRow = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  ${p =>
+    p.theme.isChonk &&
+    css`
+      align-items: center;
+    `};
+  gap: ${space(1)};
+`;

@@ -7,12 +7,19 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
-import type {ParsedFunction} from 'sentry/utils/discover/fields';
+import type {ColumnType, ParsedFunction} from 'sentry/utils/discover/fields';
+import {
+  AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS,
+  type AggregateParameter,
+} from 'sentry/utils/fields';
+import {BufferedInput} from 'sentry/views/discover/table/queryField';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarLabel,
   ToolbarRow,
+  TwoColumnRow,
 } from 'sentry/views/explore/components/toolbar/styles';
 
 export function ToolbarVisualizeHeader() {
@@ -35,7 +42,7 @@ interface ToolbarVisualizeDropdownProps {
   canDelete: boolean;
   fieldOptions: Array<SelectOption<SelectKey>>;
   onChangeAggregate: (option: SelectOption<SelectKey>) => void;
-  onChangeArgument: (option: SelectOption<SelectKey>) => void;
+  onChangeArgument: (index: number, value: string) => void;
   onDelete: () => void;
   parsedFunction: ParsedFunction | null;
 }
@@ -49,21 +56,78 @@ export function ToolbarVisualizeDropdown({
   onDelete,
   parsedFunction,
 }: ToolbarVisualizeDropdownProps) {
+  const aggregateFunc = parsedFunction?.name;
+  const aggregateFuncArgs = parsedFunction?.arguments;
+  const aggregate = aggregateFunc
+    ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS[aggregateFunc as AggregationKey]
+    : undefined;
+  console.log(aggregate);
+
   return (
     <ToolbarRow>
-      <AggregateCompactSelect
-        searchable
-        options={aggregateOptions}
-        value={parsedFunction?.name ?? ''}
-        onChange={onChangeAggregate}
-      />
-      <FieldCompactSelect
-        searchable
-        options={fieldOptions}
-        value={parsedFunction?.arguments[0] ?? ''}
-        onChange={onChangeArgument}
-        disabled={fieldOptions.length === 1}
-      />
+      <TwoColumnRow>
+        <AggregateCompactSelect
+          searchable
+          options={aggregateOptions}
+          value={parsedFunction?.name ?? ''}
+          onChange={onChangeAggregate}
+        />
+        {aggregate?.parameters?.map((param, index) => {
+          if (param.kind === 'value') {
+            const inputProps = {
+              required: param.required,
+              value: aggregateFuncArgs?.[index] || param.defaultValue || '',
+              onUpdate: (value: string) => {
+                onChangeArgument(index, value);
+              },
+              placeholder: param.placeholder,
+            };
+            switch (param.dataType) {
+              case 'number':
+                return (
+                  <BufferedInput
+                    name="refinement"
+                    key={`parameter:number:${index}`}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*(\.[0-9]*)?"
+                    {...inputProps}
+                  />
+                );
+              case 'integer':
+                return (
+                  <BufferedInput
+                    name="refinement"
+                    key={`parameter:integer:${index}`}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    {...inputProps}
+                  />
+                );
+              default:
+                return (
+                  <BufferedInput
+                    name="refinement"
+                    key={`parameter:text:${index}`}
+                    type="text"
+                    {...inputProps}
+                  />
+                );
+            }
+          }
+          return (
+            <FieldCompactSelect
+              key={param.name}
+              searchable
+              options={fieldOptions}
+              value={parsedFunction?.arguments[0] ?? ''}
+              onChange={option => onChangeArgument(index, option.value as string)}
+              disabled={fieldOptions.length === 1}
+            />
+          );
+        })}
+      </TwoColumnRow>
       {canDelete ? (
         <Button
           borderless

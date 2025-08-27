@@ -135,6 +135,10 @@ function getSupportedAttributes({
       return stringTags;
     }
 
+    if (functionName === AggregationKey.COUNT_IF) {
+      return {...stringTags, ...numberTags};
+    }
+
     return numberTags;
   }
 

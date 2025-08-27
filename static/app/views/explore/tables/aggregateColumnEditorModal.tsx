@@ -340,7 +340,7 @@ function AggregateSelector({
       const newYAxis = updateVisualizeAggregate({
         newAggregate: option.value as string,
         oldAggregate: parsedFunction?.name,
-        oldArgument: parsedFunction?.arguments[0]!,
+        oldArguments: parsedFunction?.arguments,
       });
       onChange(visualize.replace({yAxis: newYAxis}));
     },

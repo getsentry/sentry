@@ -10,6 +10,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   ALLOWED_EXPLORE_VISUALIZE_FIELDS,
   NO_ARGUMENT_SPAN_AGGREGATES,
@@ -151,11 +152,11 @@ export function parseBaseVisualize(
 export function updateVisualizeAggregate({
   newAggregate,
   oldAggregate,
-  oldArgument,
+  oldArguments,
 }: {
   newAggregate: string;
   oldAggregate?: string;
-  oldArgument?: string;
+  oldArguments?: string[];
 }): string {
   // the default aggregate only has 1 allowed field
   if (newAggregate === DEFAULT_VISUALIZATION_AGGREGATE) {
@@ -183,7 +184,18 @@ export function updateVisualizeAggregate({
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }
 
-  return `${newAggregate}(${oldArgument})`;
+  const newAggregateDefinition =
+    ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS[newAggregate as AggregationKey];
+  const oldAggregateDefinition =
+    ALLOWED_EXPLORE_VISUALIZE_AGGREGATE_DEFINITIONS[oldAggregate as AggregationKey];
+  if (
+    newAggregateDefinition?.parameters?.length !==
+    oldAggregateDefinition?.parameters?.length
+  ) {
+    const params = newAggregateDefinition?.parameters?.map(p => p.defaultValue || '');
+    return `${newAggregate}(${params?.join(',')})`;
+  }
+  return `${newAggregate}(${oldArguments?.join(',')})`;
 }
 
 const FUNCTION_TO_CHART_TYPE: Record<string, ChartType> = {
