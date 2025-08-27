@@ -1,7 +1,6 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -121,16 +120,8 @@ function DetectorListTable({
       <DetectorListSimpleTable>
         {selected.size === 0 ? (
           <SimpleTable.Header>
-            <HeaderCell sort={sort}>
-              <Checkbox
-                checked={pageSelected || (selected.size > 0 ? 'indeterminate' : false)}
-                onChange={s => {
-                  togglePageSelected(s.target.checked);
-                }}
-              />
-            </HeaderCell>
             <HeaderCell sortKey="name" sort={sort}>
-              {t('Name')}
+              <NamePadding>{t('Name')}</NamePadding>
             </HeaderCell>
             <HeaderCell data-column-name="type" divider sortKey="type" sort={sort}>
               {t('Type')}
@@ -192,8 +183,12 @@ const Container = styled('div')`
   container-type: inline-size;
 `;
 
+const NamePadding = styled('div')`
+  padding-left: 28px;
+`;
+
 const DetectorListSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 30px 1fr;
+  grid-template-columns: 1fr;
 
   margin-bottom: ${space(2)};
 
@@ -205,7 +200,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 30px 3fr 0.8fr;
+    grid-template-columns: 3fr 0.8fr;
 
     [data-column-name='type'] {
       display: flex;
@@ -213,7 +208,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 30px 3fr 0.8fr 1.5fr 0.8fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     [data-column-name='last-issue'] {
       display: flex;
@@ -221,7 +216,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 30px 3fr 0.8fr 1.5fr 0.8fr;
+    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
 
     [data-column-name='assignee'] {
       display: flex;
@@ -229,7 +224,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 30px 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
+    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
 
     [data-column-name='connected-automations'] {
       display: flex;
