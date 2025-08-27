@@ -6,6 +6,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
+import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.eventattachment import EventAttachment
 from sentry.services import eventstore
@@ -31,6 +32,7 @@ pytestmark = [requires_symbolicator, requires_kafka]
 
 
 @pytest.mark.snuba
+@thread_leaks.allowlist(reason="kafka testutils", issue=97046)
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server, reset_snuba):

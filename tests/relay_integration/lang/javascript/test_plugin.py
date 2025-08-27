@@ -8,6 +8,7 @@ import pytest
 import responses
 from django.conf import settings
 
+import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -59,6 +60,7 @@ def load_fixture(name):
 
 
 @django_db_all(transaction=True)
+@thread_leaks.allowlist(reason="kafka testutils", issue=97046)
 class TestJavascriptIntegration(RelayStoreHelper):
     @pytest.fixture(autouse=True)
     def initialize(self, default_projectkey, default_project, set_sentry_option, live_server):
