@@ -13,6 +13,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.eap import constants
+from sentry.search.eap.ourlogs.attributes import ourlog_attribute_map
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba.ourlogs import OurLogs
@@ -61,23 +62,54 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         limit: int,
     ) -> EventsResponse:
         """Queries log data for a given trace"""
-        selected_columns = [
-            "sentry.item_id",
+
+        attribute_mapping = ourlog_attribute_map()
+
+        required_keys = [
+            "id",
             "project.id",
             "trace",
             "severity_number",
             "severity",
             "timestamp",
-            "tags[sentry.timestamp_precise,number]",
+            "timestamp_precise",
             "message",
         ]
+        allowed_attributes = []
+        for key in required_keys:
+            attr = attribute_mapping.get(key)
+            if attr is None:
+                raise ValueError(f"Required attribute '{key}' not found in attribute mapping")
+            allowed_attributes.append(attr)
+        allowed_aliases = [attr.public_alias for attr in allowed_attributes]
+        selected_columns = [attr.internal_name for attr in allowed_attributes]
+        precise_timestamp_internal_name = attribute_mapping["timestamp_precise"].internal_name
+
+        converted_orderby = []
         for column in orderby:
-            if column.lstrip("-") not in selected_columns:
+            prefix = "-" if column.startswith("-") else ""
+            directionless_column = column.lstrip("-")
+            if directionless_column not in allowed_aliases:
                 raise ParseError(
-                    f"{column.lstrip('-')} must be one of {','.join(selected_columns)}"
+                    f"{directionless_column} must be one of {','.join(sorted(allowed_aliases))}"
                 )
+            attr = attribute_mapping.get(directionless_column)
+            if attr is None:
+                raise ParseError(f"Unknown attribute: {directionless_column}")
+            converted_orderby.append(f"{prefix}{attr.internal_name}")
+            if directionless_column == "timestamp":
+                # Timestamp precise must also be added when sorting by timestamp as timestamp since timestamp should have been a DateTime64...
+                converted_orderby.append(f"{prefix}{precise_timestamp_internal_name}")
+
+        trace_attr = attribute_mapping.get("trace")
+        if trace_attr is None:
+            raise ParseError("trace attribute not found")
+        trace_alias = trace_attr.public_alias
+
         base_query = (
-            f"trace:{trace_ids[0]}" if len(trace_ids) == 1 else f"trace:[{','.join(trace_ids)}]"
+            f"{trace_alias}:{trace_ids[0]}"
+            if len(trace_ids) == 1
+            else f"{trace_alias}:[{','.join(trace_ids)}]"
         )
         if additional_query is not None:
             query = f"{base_query} and {additional_query}"
@@ -87,7 +119,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
             params=snuba_params,
             query_string=query,
             selected_columns=selected_columns,
-            orderby=orderby,
+            orderby=converted_orderby,
             offset=offset,
             limit=limit,
             referrer=Referrer.API_TRACE_VIEW_LOGS.value,
@@ -111,7 +143,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         if len(trace_ids) == 0:
             raise ParseError("Need to pass at least one traceId")
 
-        orderby = request.GET.getlist("orderby", ["-timestamp"])
+        orderby = request.GET.getlist("orderby", ["-timestamp", "-timestamp_precise"])
         additional_query = request.GET.get("query")
 
         update_snuba_params_with_timestamp(request, snuba_params)

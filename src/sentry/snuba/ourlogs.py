@@ -3,6 +3,7 @@ from datetime import timedelta
 
 import sentry_sdk
 
+from sentry.search.eap.ourlogs.attributes import ourlog_attribute_map
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.sampling import handle_downsample_meta
@@ -37,15 +38,23 @@ class OurLogs(rpc_dataset_common.RPCBase):
         search_resolver: SearchResolver | None = None,
         debug: bool = False,
     ) -> EAPResponse:
-        precise_timestamp = "tags[sentry.timestamp_precise,number]"
-        if orderby == ["-timestamp"]:
-            orderby = ["-timestamp", f"-{precise_timestamp}"]
-            if precise_timestamp not in selected_columns:
-                selected_columns.append(precise_timestamp)
-        if orderby == ["timestamp"]:
-            orderby = ["timestamp", precise_timestamp]
-            if precise_timestamp not in selected_columns:
-                selected_columns.append(precise_timestamp)
+        attribute_mapping = ourlog_attribute_map()
+
+        timestamp_attribute = attribute_mapping.get("timestamp")
+        timestamp_precise_attribute = attribute_mapping.get("timestamp_precise")
+        if timestamp_attribute is None or timestamp_precise_attribute is None:
+            raise ValueError("timestamp or timestamp_precise attribute not found")
+
+        timestamp_alias = timestamp_attribute.public_alias
+        precise_timestamp_alias = timestamp_precise_attribute.public_alias
+        if orderby == [f"-{timestamp_alias}"]:
+            orderby = [f"-{timestamp_alias}", f"-{precise_timestamp_alias}"]
+            if precise_timestamp_alias not in selected_columns:
+                selected_columns.append(precise_timestamp_alias)
+        if orderby == [timestamp_alias]:
+            orderby = [timestamp_alias, precise_timestamp_alias]
+            if precise_timestamp_alias not in selected_columns:
+                selected_columns.append(precise_timestamp_alias)
 
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(

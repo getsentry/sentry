@@ -92,7 +92,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
 
         for log, source in zip(data, logs):
             assert log["log.body"] == source.attributes["sentry.body"].string_value
-            assert "tags[sentry.timestamp_precise,number]" in log
+            assert "tags[sentry.timestamp_precise,number]" not in log
+            assert "timestamp_precise" in log
             assert "timestamp" in log
             ts = datetime.fromisoformat(log["timestamp"])
             assert ts.tzinfo == timezone.utc
@@ -393,7 +394,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                     "severity_number",
                     "severity",
                     "timestamp",
-                    "tags[sentry.timestamp_precise,number]",
                     "observed_timestamp",
                     "message",
                 ],
@@ -419,7 +419,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                 "timestamp": datetime.fromtimestamp(source.timestamp.seconds)
                 .replace(tzinfo=timezone.utc)
                 .isoformat(),
-                "tags[sentry.timestamp_precise,number]": pytest.approx(
+                "timestamp_precise": pytest.approx(
                     source.attributes["sentry.timestamp_precise"].int_value
                 ),
                 "observed_timestamp": source.attributes[
