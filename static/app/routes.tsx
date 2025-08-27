@@ -1734,6 +1734,20 @@ function buildRoutes(): RouteObject[] {
       path: ':replaySlug/',
       component: make(() => import('sentry/views/replays/details')),
     },
+    {
+      path: 'flows/',
+      component: make(() => import('sentry/views/replays/flows/index')),
+      children: [
+        {
+          path: 'table/',
+          component: make(() => import('sentry/views/replays/flows/table')),
+        },
+        {
+          path: 'details/:assertionId/',
+          component: make(() => import('sentry/views/replays/flows/details')),
+        },
+      ],
+    },
   ];
   const replayRoutes: SentryRouteObject = {
     path: '/replays/',

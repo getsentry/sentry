@@ -1,5 +1,5 @@
 import {useApiQuery} from 'sentry/utils/queryClient';
-import hydratedSelectorData from 'sentry/utils/replays/hydrateSelectorData';
+import hydrateSelectorData from 'sentry/utils/replays/hydrateSelectorData';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {
@@ -35,9 +35,9 @@ export default function useDeadRageSelectors(params: DeadRageSelectorQueryParams
     isLoading: isPending,
     isError,
     error,
-    data: hydratedSelectorData(
+    data: hydrateSelectorData(
       data ? data.data : [],
-      params.isWidgetData ? params.sort?.replace(/^-/, '') : null
+      params.isWidgetData ? params.sort : null
     ),
     pageLinks: getResponseHeader?.('Link') ?? undefined,
   };

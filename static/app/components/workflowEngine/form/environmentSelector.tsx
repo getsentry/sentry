@@ -3,17 +3,26 @@ import {useMemo} from 'react';
 import type {
   SelectOption,
   SelectOptionOrSection,
+  SingleSelectProps,
 } from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import useProjects from 'sentry/utils/useProjects';
 
-interface EnvironmentSelectorProps {
+interface EnvironmentSelectorProps
+  extends Omit<SingleSelectProps<string>, 'onChange' | 'options' | 'value'> {
   onChange: (value: string) => void;
   value: string;
+  allowAllEnvironments?: boolean;
 }
 
-export function EnvironmentSelector({value, onChange}: EnvironmentSelectorProps) {
+export function EnvironmentSelector({
+  value,
+  onChange,
+  allowAllEnvironments = true,
+  disabled = false,
+  ...props
+}: EnvironmentSelectorProps) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const options = useMemo<Array<SelectOptionOrSection<string>>>(() => {
@@ -28,12 +37,16 @@ export function EnvironmentSelector({value, onChange}: EnvironmentSelectorProps)
       }
     });
 
-    return [
-      {
+    const sections: Array<SelectOptionOrSection<string>> = [];
+    if (allowAllEnvironments) {
+      sections.push({
         key: 'all-environments',
         label: t('All Environments'),
         options: [{value: '', label: t('All Environments')}],
-      },
+      });
+    }
+
+    sections.push(
       {
         key: 'my-projects',
         label: t('Environments in My Projects'),
@@ -43,20 +56,22 @@ export function EnvironmentSelector({value, onChange}: EnvironmentSelectorProps)
         key: 'other-projects',
         label: t('Other Environments'),
         options: setToOptions(otherEnvs.difference(userEnvs)),
-      },
-    ];
-  }, [projects]);
+      }
+    );
+    return sections;
+  }, [projects, allowAllEnvironments]);
 
   return (
     <CompactSelect<string>
-      size="md"
-      options={options}
-      searchable
-      disabled={!projectsLoaded}
-      sizeLimit={20}
       multiple={false}
-      value={value}
+      searchable
+      size="md"
+      sizeLimit={20}
+      {...props}
+      disabled={disabled || !projectsLoaded}
       onChange={selected => onChange(selected.value)}
+      options={options}
+      value={value}
     />
   );
 }

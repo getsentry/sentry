@@ -42,6 +42,14 @@ interface EnvironmentPageFilterProps
     >
   > {
   /**
+   * Wether to allow multiple environments to be selected at a time.
+   *
+   * We always adhere to the `global-views` feature flag. So setting this to `true`
+   * will defer to that flag. Setting this to `false` will disable multi-select.
+   */
+  allowMultiple?: boolean;
+
+  /**
    * Message to show in the menu footer
    */
   footerMessage?: React.ReactNode;
@@ -53,6 +61,7 @@ interface EnvironmentPageFilterProps
 }
 
 export function EnvironmentPageFilter({
+  allowMultiple = true,
   onChange,
   onReset,
   disabled,
@@ -191,7 +200,7 @@ export function EnvironmentPageFilter({
       {...selectProps}
       checkboxPosition="leading"
       searchable
-      multiple
+      multiple={allowMultiple}
       options={options}
       value={value}
       defaultValue={[]}

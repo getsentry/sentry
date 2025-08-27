@@ -19,7 +19,7 @@ export default function constructSelector(element: ReplayClickElement) {
   const fullAlt = '[alt="' + element.alt + '"]';
   const alt = trimAttribute(element.alt, fullAlt);
 
-  const fullAriaLabel = '[aria="' + element.aria_label + '"]';
+  const fullAriaLabel = '[aria-label="' + element.aria_label + '"]';
   const ariaLabel = trimAttribute(element.aria_label, fullAriaLabel);
 
   const fullRole = '[role="' + element.role + '"]';
@@ -52,5 +52,19 @@ export default function constructSelector(element: ReplayClickElement) {
     alt +
     title;
 
-  return {fullSelector, selector};
+  return {
+    fullSelector,
+    selector,
+    parts: {
+      tag: element.tag?.trim() ?? '',
+      id: element.id?.trim() ?? '',
+      classes: element.class.map(c => c.trim()),
+      role: element.role?.trim() ?? '',
+      ariaLabel: element.aria_label?.trim() ?? '',
+      testId: element.testid?.trim() ?? '',
+      alt: element.alt?.trim() ?? '',
+      title: element.title?.trim() ?? '',
+      componentName: element.component_name?.trim() ?? '',
+    },
+  };
 }

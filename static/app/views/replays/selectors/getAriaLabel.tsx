@@ -1,5 +1,5 @@
 export default function getAriaLabel(str: string) {
-  const matches = str.match(/\[aria=(.*)\]/g);
+  const matches = str.match(/\[aria-label=(.*)\]/g);
   if (!matches) {
     return '';
   }
