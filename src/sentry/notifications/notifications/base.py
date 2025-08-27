@@ -10,7 +10,12 @@ import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
+from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent
+from sentry.integrations.opsgenie.analytics import OpsgenieIntegrationNotificationSent
+from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotificationSent
+from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.environment import Environment
 from sentry.notifications.types import FineTuningAPIKey, NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils.actions import MessageAction
@@ -50,7 +55,6 @@ class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it which is why it is optional
     notification_setting_type_enum: NotificationSettingEnum | None = None
-    analytics_event: str = ""
 
     def __init__(self, organization: Organization, notification_uuid: str | None = None):
         self.organization = organization
@@ -160,10 +164,9 @@ class BaseNotification(abc.ABC):
     def get_callback_data(self) -> Mapping[str, Any] | None:
         return None
 
-    @property
-    def analytics_instance(self) -> Any | None:
+    def get_specific_analytics_event(self, provider: ExternalProviders) -> analytics.Event | None:
         """
-        Returns an instance for that can be used for analytics such as an organization or project
+        Returns the specific analytics event for the provider.
         """
         return None
 
@@ -172,21 +175,65 @@ class BaseNotification(abc.ABC):
 
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         with sentry_sdk.start_span(op="notification.send", name="record_notification_sent"):
-            # may want to explicitly pass in the parameters for this event
-            self.record_analytics(
-                f"integrations.{provider.name}.notification_sent",
-                category=self.metrics_key,
-                notification_uuid=self.notification_uuid if self.notification_uuid else "",
-                **self.get_log_params(recipient),
-            )
-            # record an optional second event
-            if self.analytics_event:
-                self.record_analytics(
-                    self.analytics_event,
-                    self.analytics_instance,
-                    providers=provider.name.lower() if provider.name else "",
-                    **self.get_custom_analytics_params(recipient),
+
+            if provider == ExternalProviders.EMAIL:
+                event = EmailNotificationSent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id if self.project else None,
+                    category=self.metrics_key,
+                    actor_id=recipient.id if recipient.is_user else None,
+                    user_id=recipient.id if recipient.is_user else None,
+                    group_id=self.group.id if self.group else None,
+                    id=recipient.id,
+                    actor_type=recipient.actor_type,
+                    notification_uuid=self.notification_uuid,
+                    alert_id=self.alert_id if self.alert_id else None,
                 )
+            elif provider == ExternalProviders.SLACK:
+                event = SlackIntegrationNotificationSent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id if self.project else None,
+                    category=self.metrics_key,
+                    actor_id=recipient.id if recipient.is_user else None,
+                    user_id=recipient.id if recipient.is_user else None,
+                    group_id=self.group.id if self.group else None,
+                    notification_uuid=self.notification_uuid,
+                    alert_id=self.alert_id if self.alert_id else None,
+                    actor_type=recipient.actor_type,
+                )
+            elif provider == ExternalProviders.PAGERDUTY:
+                event = PagerdutyIntegrationNotificationSent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id if self.project else None,
+                    category=self.metrics_key,
+                    group_id=self.group.id if self.group else None,
+                    notification_uuid=self.notification_uuid,
+                    alert_id=self.alert_id if self.alert_id else None,
+                )
+            elif provider == ExternalProviders.DISCORD:
+                event = DiscordIntegrationNotificationSent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id if self.project else None,
+                    category=self.metrics_key,
+                    group_id=self.group.id if self.group else None,
+                    notification_uuid=self.notification_uuid,
+                    alert_id=self.alert_id if self.alert_id else None,
+                )
+            elif provider == ExternalProviders.OPSGENIE:
+                event = OpsgenieIntegrationNotificationSent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id if self.project else None,
+                    category=self.metrics_key,
+                    group_id=self.group.id if self.group else None,
+                    notification_uuid=self.notification_uuid,
+                    alert_id=self.alert_id if self.alert_id else None,
+                )
+
+            self.record_analytics(event)
+
+            # record an optional second event
+            if notification_event := self.get_specific_analytics_event(provider):
+                self.record_analytics(notification_event)
 
     def get_referrer(self, provider: ExternalProviders, recipient: Actor | None = None) -> str:
         # referrer needs the provider and recipient
