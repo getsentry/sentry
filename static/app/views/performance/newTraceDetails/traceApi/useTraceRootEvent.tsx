@@ -80,11 +80,17 @@ export function useTraceRootEvent({
       : rep.event.event_id
     : '';
 
+  const itemTypes = {
+    log: TraceItemDataset.LOGS,
+    span: TraceItemDataset.SPANS,
+    uptime_check: TraceItemDataset.UPTIME_RESULTS,
+  };
+
   const rootEvent = useTraceItemDetails({
     traceItemId: String(eventId),
     projectId: String(projectId),
     traceId,
-    traceItemType: rep?.type === 'log' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS,
+    traceItemType: itemTypes[rep.type],
     referrer: 'api.explore.log-item-details',
     enabled: enabledBase && isEAPQueryEnabled,
   });

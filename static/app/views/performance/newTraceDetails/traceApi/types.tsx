@@ -105,4 +105,5 @@ export type EAPTraceMeta = {
   span_count: number;
   span_count_map: Record<string, number>;
   transaction_child_count_map: Record<string, number>;
+  uptime_checks: number;
 };

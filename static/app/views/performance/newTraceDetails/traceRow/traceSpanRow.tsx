@@ -1,10 +1,13 @@
 import React from 'react';
 import {PlatformIcon} from 'platformicons';
 
+import {IconSentry, IconTimer} from 'sentry/icons';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {
   isEAPSpanNode,
   isEAPTransactionNode,
+  isUptimeCheckNode,
+  isUptimeCheckTimingNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import {
@@ -28,14 +31,32 @@ import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI
 const NO_PROFILES: any = [];
 
 export function TraceSpanRow(
-  props: TraceRowProps<TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>>
+  props: TraceRowProps<
+    | TraceTreeNode<TraceTree.Span>
+    | TraceTreeNode<TraceTree.EAPSpan>
+    | TraceTreeNode<TraceTree.UptimeCheck>
+    | TraceTreeNode<TraceTree.UptimeCheckTiming>
+  >
 ) {
-  const spanId = isEAPSpanNode(props.node)
-    ? props.node.value.event_id
-    : props.node.value.span_id;
+  const spanId =
+    isEAPSpanNode(props.node) ||
+    isUptimeCheckNode(props.node) ||
+    isUptimeCheckTimingNode(props.node)
+      ? props.node.value.event_id
+      : props.node.value.span_id;
 
   const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
   const childrenCount = getChildrenCount(props.node);
+
+  const icon = isUptimeCheckNode(props.node) ? (
+    <IconSentry size="xs" />
+  ) : isUptimeCheckTimingNode(props.node) ? (
+    <IconTimer size="xs" />
+  ) : (
+    <PlatformIcon
+      platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
+    />
+  );
 
   return (
     <div
@@ -79,9 +100,7 @@ export function TraceSpanRow(
               </TraceChildrenButton>
             ) : null}
           </div>
-          <PlatformIcon
-            platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
-          />
+          {icon}
           <React.Fragment>
             {props.node.value.op && props.node.value.op !== 'default' && (
               <React.Fragment>
@@ -136,8 +155,16 @@ export function TraceSpanRow(
 }
 
 function getChildrenCount(
-  node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
+  node:
+    | TraceTreeNode<TraceTree.Span>
+    | TraceTreeNode<TraceTree.EAPSpan>
+    | TraceTreeNode<TraceTree.UptimeCheck>
+    | TraceTreeNode<TraceTree.UptimeCheckTiming>
 ) {
+  if (isUptimeCheckTimingNode(node)) {
+    return 0;
+  }
+
   if (isEAPTransactionNode(node) && !node.expanded) {
     return node.children.length - TraceTree.DirectVisibleChildren(node).length;
   }

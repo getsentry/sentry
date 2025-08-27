@@ -47,10 +47,16 @@ export function isEAPSpanNode(
 export function isUptimeCheckNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.UptimeCheck> {
+  return isUptimeCheck(node.value);
+}
+
+export function isUptimeCheckTimingNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.UptimeCheckTiming> {
   return !!(
     node.value &&
     'event_type' in node.value &&
-    node.value.event_type === 'uptime'
+    node.value.event_type === 'uptime_check_timing'
   );
 }
 
@@ -67,8 +73,16 @@ export function isTransactionNode(
     !!(node.value && 'transaction' in node.value) &&
     !isAutogroupedNode(node) &&
     !isEAPSpanNode(node) &&
+    !isUptimeCheckNode(node) &&
+    !isUptimeCheckTimingNode(node) &&
     !isEAPErrorNode(node)
   );
+}
+
+export function isUptimeCheck(
+  value: TraceTree.NodeValue
+): value is TraceTree.UptimeCheck {
+  return !!(value && 'event_type' in value && value.event_type === 'uptime_check');
 }
 
 export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPError {

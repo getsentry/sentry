@@ -12,6 +12,8 @@ import {
   isSiblingAutogroupedNode,
   isSpanNode,
   isTransactionNode,
+  isUptimeCheckNode,
+  isUptimeCheckTimingNode,
 } from './../traceGuards';
 import type {ParentAutogroupNode} from './parentAutogroupNode';
 import {TraceTree} from './traceTree';
@@ -28,6 +30,7 @@ import {
   makeTraceError,
   makeTracePerformanceIssue,
   makeTransaction,
+  makeUptimeCheck,
 } from './traceTreeTestUtils';
 
 function mockSpansResponse(
@@ -2000,6 +2003,116 @@ describe('TraceTree', () => {
       );
 
       expect(tree.build().serialize()).toMatchSnapshot();
+    });
+  });
+
+  describe('uptime check integration', () => {
+    it('automatically creates timing nodes when uptime check node is created', () => {
+      const uptimeCheck = makeUptimeCheck({
+        additional_attributes: {
+          dns_lookup_duration_us: '50000',
+          dns_lookup_start_us: '0',
+          tcp_connection_duration_us: '100000',
+          tcp_connection_start_us: '50000',
+          tls_handshake_duration_us: '200000',
+          tls_handshake_start_us: '150000',
+          send_request_duration_us: '25000',
+          send_request_start_us: '350000',
+          time_to_first_byte_duration_us: '500000',
+          time_to_first_byte_start_us: '375000',
+          receive_response_duration_us: '100000',
+          receive_response_start_us: '875000',
+        },
+      });
+
+      const tree = TraceTree.FromTrace([uptimeCheck], traceOptions);
+
+      // Find the uptime check node in the tree
+      const uptimeNode = TraceTree.Find(tree.root, node => isUptimeCheckNode(node));
+      expect(uptimeNode).toBeDefined();
+
+      // Check that timing nodes were automatically added as children
+      const timingChildren = uptimeNode?.children.filter(child =>
+        isUptimeCheckTimingNode(child)
+      );
+      expect(timingChildren).toHaveLength(6);
+
+      // Verify each timing phase is present with correct metrics
+      const dnsNode = timingChildren?.find(
+        child => child.value.op === 'dns.lookup.duration'
+      );
+      expect(dnsNode).toBeDefined();
+      expect(dnsNode?.value.description).toBe('DNS lookup');
+      expect(dnsNode?.value.duration).toBe(0.05); // 50000us = 0.05s
+
+      const tcpNode = timingChildren?.find(
+        child => child.value.op === 'http.tcp_connection.duration'
+      );
+      expect(tcpNode).toBeDefined();
+      expect(tcpNode?.value.description).toBe('TCP connect');
+      expect(tcpNode?.value.duration).toBe(0.1); // 100000us = 0.1s
+
+      const tlsNode = timingChildren?.find(
+        child => child.value.op === 'tls.handshake.duration'
+      );
+      expect(tlsNode).toBeDefined();
+      expect(tlsNode?.value.description).toBe('TLS handshake');
+      expect(tlsNode?.value.duration).toBe(0.2); // 200000us = 0.2s
+
+      const requestNode = timingChildren?.find(
+        child => child.value.op === 'http.client.request.duration'
+      );
+      expect(requestNode).toBeDefined();
+      expect(requestNode?.value.description).toBe('Send request');
+      expect(requestNode?.value.duration).toBe(0.025); // 25000us = 0.025s
+
+      const ttfbNode = timingChildren?.find(
+        child => child.value.op === 'http.server.time_to_first_byte'
+      );
+      expect(ttfbNode).toBeDefined();
+      expect(ttfbNode?.value.description).toBe('Waiting for response');
+      expect(ttfbNode?.value.duration).toBe(0.5); // 500000us = 0.5s
+
+      const responseNode = timingChildren?.find(
+        child => child.value.op === 'http.client.response.duration'
+      );
+      expect(responseNode).toBeDefined();
+      expect(responseNode?.value.description).toBe('Receive response');
+      expect(responseNode?.value.duration).toBe(0.1); // 100000us = 0.1s
+    });
+
+    it('handles missing timing attributes gracefully', () => {
+      const uptimeCheck = makeUptimeCheck({
+        additional_attributes: {
+          dns_lookup_duration_us: '50000',
+          dns_lookup_start_us: '0',
+          // Missing other timing attributes
+        },
+      });
+
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              children: [uptimeCheck as any],
+            }),
+          ],
+        }),
+        traceOptions
+      );
+
+      const uptimeNode = TraceTree.Find(tree.root, node => isUptimeCheckNode(node));
+      const timingChildren = uptimeNode?.children.filter(child =>
+        isUptimeCheckTimingNode(child)
+      );
+
+      expect(timingChildren).toHaveLength(6);
+
+      // Should still create all nodes, but with 0 duration for missing attributes
+      const tcpNode = timingChildren?.find(
+        child => child.value.op === 'http.tcp_connection.duration'
+      );
+      expect(tcpNode?.value.duration).toBe(0);
     });
   });
 });

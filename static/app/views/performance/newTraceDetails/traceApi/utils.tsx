@@ -7,6 +7,7 @@ import {
   isRootEvent,
   isTraceNode,
   isTraceSplitResult,
+  isUptimeCheckNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
@@ -22,7 +23,7 @@ const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation', 'ui.load'];
 
 export type RepresentativeTraceEvent = {
   event: TraceTree.TraceEvent | OurLogsResponseItem | null;
-  type: 'trace' | 'log';
+  type: 'span' | 'log' | 'uptime_check';
 };
 
 export const getRepresentativeTraceEvent = (
@@ -42,12 +43,18 @@ export const getRepresentativeTraceEvent = (
   if (!traceNode) {
     return {
       event: null,
-      type: 'trace',
+      type: 'span',
     };
   }
 
   if (!isTraceNode(traceNode) && !isEAPTraceNode(traceNode)) {
     throw new TypeError('Not trace node');
+  }
+
+  const traceChild = traceNode.children[0];
+
+  if (traceChild && isUptimeCheckNode(traceChild)) {
+    return {type: 'uptime_check', event: traceChild.value};
   }
 
   let rootEvent: TraceTree.TraceEvent | null = null;
@@ -97,7 +104,7 @@ export const getRepresentativeTraceEvent = (
 
   return {
     event: rootEvent ?? candidateEvent ?? firstEvent,
-    type: 'trace',
+    type: 'span',
   };
 };
 
