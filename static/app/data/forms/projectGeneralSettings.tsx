@@ -220,8 +220,12 @@ export const fields = {
       const value = model.getValue(name);
       // empty value means that this project should inherit organization settings
       if (value === null || value === undefined) {
+        const orgRoleName =
+          organization.orgRoleList?.find(
+            (r: {id: string; name: string}) => r.id === organization.debugFilesRole
+          )?.name || organization.debugFilesRole;
         return tct('Inherit organization setting ([organizationValue])', {
-          organizationValue: organization.debugFilesRole,
+          organizationValue: orgRoleName,
         });
       }
       return value;
@@ -230,7 +234,10 @@ export const fields = {
       [
         '',
         tct('Inherit organization setting ([organizationValue])', {
-          organizationValue: organization.debugFilesRole,
+          organizationValue:
+            organization.orgRoleList?.find(
+              (r: {id: string; name: string}) => r.id === organization.debugFilesRole
+            )?.name || organization.debugFilesRole,
         }),
       ],
       ...(organization?.orgRoleList?.map((r: {id: string; name: string}) => [
