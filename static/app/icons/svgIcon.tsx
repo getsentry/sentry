@@ -48,7 +48,7 @@ export function SvgIcon(props: IconProps) {
   const size = legacySize ?? theme.iconSizes[providedSize];
 
   // Stroke based icons are only available in Chonk
-  if (props.kind === 'stroke' && theme.isChonk) {
+  if (props.kind === 'stroke') {
     return (
       <svg
         role="img"
@@ -59,7 +59,7 @@ export function SvgIcon(props: IconProps) {
         stroke={color}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="1.25px"
+        strokeWidth="1.5px"
         {...rest}
       />
     );
