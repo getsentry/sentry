@@ -5,8 +5,9 @@ import secrets
 import string
 
 import orjson
-import requests
 from django.conf import settings
+from rest_framework import serializers, status
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,19 +22,21 @@ from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
+from sentry.net.http import connection_from_url
 from sentry.seer.autofix.utils import (
     AutofixState,
     CodingAgentState,
     get_autofix_state,
     get_coding_agent_prompt,
 )
-from sentry.seer.signed_seer_api import sign_with_seer_secret
-from sentry.utils import metrics
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 logger = logging.getLogger(__name__)
 
 
-VALID_BRANCH_NAME_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-/"
+# Follows the GitHub branch name rules:
+# https://docs.github.com/en/get-started/using-git/dealing-with-special-characters-in-branch-and-tag-names#naming-branches-and-tags
+VALID_BRANCH_NAME_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_/"
 
 
 def sanitize_branch_name(branch_name: str) -> str:
@@ -51,11 +54,13 @@ def sanitize_branch_name(branch_name: str) -> str:
     words = branch_name.strip().split()[:3]
     truncated_name = " ".join(words)
 
+    # Although underscores are allowed, we standardize to kebab case.
     kebab_case = truncated_name.replace(" ", "-").replace("_", "-").lower()
     sanitized = "".join(c for c in kebab_case if c in VALID_BRANCH_NAME_CHARS)
     sanitized = sanitized.rstrip("/")
 
     # Generate 6 unique random characters (alphanumeric)
+    # This is to avoid potential branch name conflicts.
     random_suffix = "".join(
         secrets.choice(string.ascii_lowercase + string.digits) for _ in range(6)
     )
@@ -66,44 +71,40 @@ def sanitize_branch_name(branch_name: str) -> str:
 
 def store_coding_agent_state_to_seer(run_id: int, coding_agent_state: CodingAgentState) -> bool:
     """Store coding agent state via Seer API."""
-    try:
-        path = "/v1/automation/autofix/coding-agent/state"
-        body = orjson.dumps(
-            {
-                "run_id": run_id,
-                "coding_agent_state": coding_agent_state.dict(),
-            }
-        )
+    path = "/v1/automation/autofix/coding-agent/state"
+    body = orjson.dumps(
+        {
+            "run_id": run_id,
+            "coding_agent_state": coding_agent_state.dict(),
+        }
+    )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
-            timeout=30,
-        )
+    connection_pool = connection_from_url(settings.SEER_AUTOFIX_URL)
+    response = make_signed_seer_api_request(
+        connection_pool,
+        path,
+        body=body,
+        timeout=30,
+    )
 
-        response.raise_for_status()
-        logger.info(
-            "coding_agent.state_stored_to_seer",
-            extra={
-                "run_id": run_id,
-                "status_code": response.status_code,
-            },
-        )
-        return True
+    if response.status >= 400:
+        raise Exception(f"Seer API error: {response.status}")
 
-    except Exception as e:
-        logger.warning(
-            "coding_agent.seer_store_error",
-            extra={
-                "run_id": run_id,
-                "error": str(e),
-            },
-        )
-        return False
+    logger.info(
+        "coding_agent.state_stored_to_seer",
+        extra={
+            "run_id": run_id,
+            "status_code": response.status,
+        },
+    )
+
+
+class OrganizationCodingAgentLaunchSerializer(serializers.Serializer[dict[str, object]]):
+    integration_id = serializers.IntegerField(required=True)
+    run_id = serializers.IntegerField(required=True, min_value=1)
+    trigger_source = serializers.ChoiceField(
+        choices=["root_cause", "solution"], default="solution", required=False
+    )
 
 
 @region_silo_endpoint
@@ -141,17 +142,9 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
 
         return self.respond({"integrations": integrations_data})
 
-    def _validate_and_get_integration(self, request: Request, organization):
+    def _validate_and_get_integration(self, request: Request, organization, integration_id: int):
         """Validate request and get the coding agent integration."""
-        integration_id = request.data.get("integration_id")
-        if not integration_id:
-            return Response({"error": "integration_id is required"}, status=400)
-
-        # Get the integration using hybrid cloud service
-        try:
-            integration_id_int = int(integration_id)
-        except (ValueError, TypeError):
-            return Response({"error": "Invalid integration_id"}, status=400)
+        integration_id_int = integration_id
 
         org_integration = integration_service.get_organization_integration(
             organization_id=organization.id,
@@ -159,7 +152,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         )
 
         if not org_integration or org_integration.status != ObjectStatus.ACTIVE:
-            return Response({"error": "Integration not found"}, status=404)
+            raise NotFound("Integration not found")
 
         integration = integration_service.get_integration(
             organization_integration_id=org_integration.id,
@@ -167,16 +160,16 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         )
 
         if not integration:
-            return Response({"error": "Integration not found"}, status=404)
+            raise NotFound("Integration not found")
 
         # Verify it's a coding agent integration
         if integration.provider not in get_coding_agent_providers():
-            return Response({"error": "Not a coding agent integration"}, status=400)
+            raise ValidationError("Not a coding agent integration")
 
         # Get the installation
         installation = integration.get_installation(organization.id)
         if not isinstance(installation, CodingAgentIntegration):
-            return Response({"error": "Invalid coding agent integration"}, status=400)
+            raise ValidationError("Invalid coding agent integration")
 
         return integration, installation
 
@@ -296,20 +289,10 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                 coding_agent_state = installation.launch(launch_request)
 
                 # Store the coding agent state to Seer
-                repo_store_success = store_coding_agent_state_to_seer(
+                store_coding_agent_state_to_seer(
                     run_id=run_id,
                     coding_agent_state=coding_agent_state,
                 )
-
-                if not repo_store_success:
-                    logger.warning(
-                        "coding_agent.seer_store_failed",
-                        extra={
-                            "organization_id": organization.id,
-                            "run_id": run_id,
-                            "repo_name": repo_name,
-                        },
-                    )
 
                 results.append(
                     {
@@ -336,83 +319,62 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization) -> Response:
         """Launch a coding agent."""
         if not features.has("organizations:seer-coding-agent-integrations", organization):
-            return Response({"detail": "Feature not available"}, status=404)
+            return self.respond("Feature not available", status=status.HTTP_404_NOT_FOUND)
 
-        try:
-            # Validate request and get integration
-            validation_result = self._validate_and_get_integration(request, organization)
-            if isinstance(validation_result, Response):
-                return validation_result
-            integration, installation = validation_result
+        # Validate request payload with serializer
+        serializer = OrganizationCodingAgentLaunchSerializer(data=request.data)
+        if not serializer.is_valid():
+            raise ValidationError(serializer.errors)
 
-            # Get autofix state
-            run_id = request.data.get("run_id")
-            if run_id is None:
-                return Response({"error": "run_id is required"}, status=400)
+        validated = serializer.validated_data
 
-            try:
-                run_id = int(run_id)
-            except (ValueError, TypeError):
-                return Response({"error": "Invalid run_id"}, status=400)
+        # Validate request and get integration
+        integration, installation = self._validate_and_get_integration(
+            request, organization, validated["integration_id"]
+        )
 
-            autofix_state = self._get_autofix_state(run_id, organization)
-            if autofix_state is None:
-                return Response({"error": "Autofix state not found"}, status=400)
+        # Get autofix state
+        run_id = validated["run_id"]
+        autofix_state = self._get_autofix_state(run_id, organization)
+        if autofix_state is None:
+            return self.respond("Autofix state not found", status=status.HTTP_400_BAD_REQUEST)
 
-            # Get and validate trigger_source
-            trigger_source = request.data.get("trigger_source", "solution")
-            if trigger_source not in ["root_cause", "solution"]:
-                return Response(
-                    {"error": "Invalid trigger_source. Must be 'root_cause' or 'solution'"},
-                    status=400,
-                )
+        # Get and validate trigger_source
+        trigger_source = validated.get("trigger_source", "solution")
 
-            logger.info(
-                "coding_agent.launch_request",
-                extra={
-                    "organization_id": organization.id,
-                    "integration_id": integration.id,
-                    "run_id": run_id,
-                },
+        logger.info(
+            "coding_agent.launch_request",
+            extra={
+                "organization_id": organization.id,
+                "integration_id": integration.id,
+                "run_id": run_id,
+            },
+        )
+
+        # Launch agents for all repos
+        results = self._launch_agents_for_repos(
+            installation, autofix_state, run_id, organization, trigger_source
+        )
+
+        if not results:
+            return self.respond(
+                "No agents were successfully launched",
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-            # Launch agents for all repos
-            results = self._launch_agents_for_repos(
-                installation, autofix_state, run_id, organization, trigger_source
-            )
+        logger.info(
+            "coding_agent.launch_success",
+            extra={
+                "organization_id": organization.id,
+                "integration_id": integration.id,
+                "provider": integration.provider,
+                "run_id": run_id,
+                "repos_processed": len(results),
+            },
+        )
 
-            if not results:
-                return Response({"error": "No agents were successfully launched"}, status=500)
-
-            logger.info(
-                "coding_agent.launch_success",
-                extra={
-                    "organization_id": organization.id,
-                    "integration_id": integration.id,
-                    "provider": integration.provider,
-                    "run_id": run_id,
-                    "repos_processed": len(results),
-                },
-            )
-
-            metrics.incr("coding_agent.launch", tags={"provider": integration.provider})
-
-            return Response(
-                {
-                    "success": True,
-                }
-            )
-
-        except Exception as e:
-            logger.exception(
-                "coding_agent.launch_error",
-                extra={
-                    "organization_id": organization.id,
-                    "integration_id": request.data.get("integration_id"),
-                    "error": str(e),
-                },
-            )
-            metrics.incr("coding_agent.launch_error")
-            return Response(
-                {"error": "Failed to launch coding agent due to an internal error."}, status=500
-            )
+        return self.respond(
+            {
+                "success": True,
+            }
+        )
