@@ -310,6 +310,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'apple',
   'apple-ios',
   'apple-macos',
+  'bun',
   'dart',
   'flutter',
   'go',
@@ -380,6 +381,7 @@ export const withLoggingOnboarding: Set<PlatformKey> = new Set([
   'ruby',
   'ruby-rack',
   'ruby-rails',
+  'rust',
 ]);
 
 // List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
@@ -515,7 +517,6 @@ export const releaseHealth: PlatformKey[] = [
   'native-qt',
   'electron',
   'javascript-electron',
-  'rust',
   'php',
   'php-laravel',
   'php-symfony',

@@ -272,24 +272,6 @@ export const getBackendDataset = (dataset: DetectorDataset): Dataset => {
  * Creates the data source configuration for the detector
  */
 function createDataSource(data: MetricDetectorFormData): NewDataSource {
-  const getEventTypes = (dataset: DetectorDataset): string[] => {
-    switch (dataset) {
-      case DetectorDataset.ERRORS:
-        return ['error'];
-      case DetectorDataset.TRANSACTIONS:
-        return ['transaction'];
-      case DetectorDataset.SPANS:
-        return ['trace_item_span'];
-      case DetectorDataset.RELEASES:
-        return []; // Crash rate queries don't have event types
-      case DetectorDataset.LOGS:
-        return ['trace_item_log'];
-      default:
-        unreachable(dataset);
-        return ['error'];
-    }
-  };
-
   /**
    * This maps to the backend query_datasets_to_type mapping.
    */
@@ -310,15 +292,16 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
   };
 
   const datasetConfig = getDatasetConfig(data.dataset);
+  const {eventTypes, query} = datasetConfig.separateEventTypesFromQuery(data.query);
 
   return {
     queryType: getQueryType(data.dataset),
     dataset: getBackendDataset(data.dataset),
-    query: data.query,
+    query,
     aggregate: datasetConfig.toApiAggregate(data.aggregateFunction),
     timeWindow: data.interval,
     environment: data.environment ? data.environment : null,
-    eventTypes: getEventTypes(data.dataset),
+    eventTypes,
   };
 }
 
@@ -450,7 +433,7 @@ export function metricSavedDetectorToFormData(
     workflowIds: detector.workflowIds,
     environment: getDetectorEnvironment(detector) || '',
     owner: detector.owner || '',
-    query: snubaQuery?.query || '',
+    query: datasetConfig.toSnubaQueryString(snubaQuery),
     aggregateFunction:
       datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||
       DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction,

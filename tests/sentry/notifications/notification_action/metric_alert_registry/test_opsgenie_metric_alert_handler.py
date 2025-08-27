@@ -24,6 +24,7 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 )
 
 
+@with_feature("organizations:workflow-engine-single-process-metric-issues")
 @with_feature("organizations:issue-open-periods")
 class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self) -> None:
