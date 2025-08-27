@@ -97,7 +97,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
         ),
     ),
 )
-@retry(timeouts=True, exclude=(EventNotFoundError,))
+@retry(timeouts=True, exclude=(EventNotFoundError, Group.DoesNotExist))
 def process_workflows_event(
     project_id: int,
     event_id: str,
