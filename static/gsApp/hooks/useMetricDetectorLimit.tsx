@@ -34,7 +34,7 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
     },
     {
       enabled: hasFlag && isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
-      staleTime: 1 * 60 * 1000, // Set stale time to 5 mins to avoid unnecessary re-fetching
+      staleTime: 5 * 1000, // Set stale time to 5 sec to avoid unnecessary re-fetching
     }
   );
 
@@ -46,7 +46,7 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
     [`/organizations/${organization.slug}/alert-rules/`, {query: {limit: 1}}],
     {
       enabled: hasFlag && !isWorkflowEngine && detectorLimit !== UNLIMITED_QUOTA,
-      staleTime: 1 * 60 * 1000, // Set stale time to 5 mins to avoid unnecessary re-fetching
+      staleTime: 5 * 1000, // Set stale time to 5 sec to avoid unnecessary re-fetching
     }
   );
 
