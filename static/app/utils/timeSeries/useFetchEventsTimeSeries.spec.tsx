@@ -161,6 +161,7 @@ describe('useFetchEventsTimeSeries', () => {
           yAxis: 'p50(span.duration)',
           environment: ['prod'],
           project: [42],
+          interval: '1h',
         },
       })
     );

@@ -9,6 +9,8 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 
+import {getIntervalForTimeSeriesQuery} from './getIntervalForTimeSeriesQuery';
+
 interface UseFetchEventsTimeSeriesOptions<Field> {
   yAxis: Field | Field[];
   enabled?: boolean;
@@ -42,6 +44,7 @@ export function useFetchEventsTimeSeries<T extends string>(
           ...normalizeDateTimeParams(selection.datetime),
           project: selection.projects,
           environment: selection.environments,
+          interval: getIntervalForTimeSeriesQuery(yAxis, selection.datetime),
         },
       },
     ],
