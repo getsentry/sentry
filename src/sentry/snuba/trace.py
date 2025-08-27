@@ -76,6 +76,19 @@ class SerializedSpan(SerializedEvent):
     additional_attributes: NotRequired[dict[str, Any]]
 
 
+class SerializedUptimeCheck(SerializedEvent):
+    children: list["SerializedEvent"]
+    errors: list["SerializedIssue"]
+    occurrences: list["SerializedIssue"]
+    transaction_id: str
+    op: str
+    start_timestamp: float
+    end_timestamp: float
+    duration: float
+    name: str
+    additional_attributes: dict[str, Any]
+
+
 def _serialize_rpc_issue(event: dict[str, Any], group_cache: dict[int, Group]) -> SerializedIssue:
     def _qualify_short_id(project: str, short_id: int | None) -> str | None:
         """Logic for qualified_short_id is copied from property on the Group model
@@ -144,63 +157,72 @@ def _serialize_rpc_event(
     event: dict[str, Any],
     group_cache: dict[int, Group],
     additional_attributes: list[str] | None = None,
-) -> SerializedEvent | SerializedIssue:
-    if event.get("event_type") in ("span", "uptime"):
-        attribute_dict = {
-            attribute: event[attribute]
-            for attribute in additional_attributes or []
-            if attribute in event
-        }
-        children = [
-            _serialize_rpc_event(child, group_cache, additional_attributes)
-            for child in event["children"]
-        ]
-        errors = [_serialize_rpc_issue(error, group_cache) for error in event["errors"]]
-        occurrences = [_serialize_rpc_issue(error, group_cache) for error in event["occurrences"]]
+) -> SerializedEvent | SerializedIssue | SerializedUptimeCheck:
+    if event.get("event_type") not in ("span", "uptime_check"):
+        return _serialize_rpc_issue(event, group_cache)
 
-        if event.get("event_type") == "uptime":
-            uptime_data = {
-                k: v for k, v in event.items() if k not in ["children", "errors", "occurrences"]
-            }
-            return SerializedSpan(
-                children=children,
-                errors=errors,
-                occurrences=occurrences,
-                **uptime_data,  # type: ignore[typeddict-item]
-            )
+    attribute_dict = {
+        attribute: event[attribute]
+        for attribute in additional_attributes or []
+        if attribute in event
+    }
+    children = [
+        _serialize_rpc_event(child, group_cache, additional_attributes)
+        for child in event["children"]
+    ]
+    errors = [_serialize_rpc_issue(error, group_cache) for error in event["errors"]]
+    occurrences = [_serialize_rpc_issue(error, group_cache) for error in event["occurrences"]]
 
-        return SerializedSpan(
+    if event.get("event_type") == "uptime_check":
+        return SerializedUptimeCheck(
             children=children,
             errors=errors,
             occurrences=occurrences,
-            event_id=event["id"],
-            transaction_id=event["transaction.event_id"],
-            project_id=event["project.id"],
-            project_slug=event["project.slug"],
-            profile_id=event["profile.id"],
-            profiler_id=event["profiler.id"],
-            parent_span_id=(
-                None
-                if not event["parent_span"] or event["parent_span"] == "0" * 16
-                else event["parent_span"]
-            ),
-            start_timestamp=event["precise.start_ts"],
-            end_timestamp=event["precise.finish_ts"],
-            measurements={
-                key: value for key, value in event.items() if key.startswith("measurements.")
-            },
-            duration=event["span.duration"],
+            event_type="uptime_check",
+            event_id=event["event_id"],
+            project_id=event["project_id"],
+            project_slug=event["project_slug"],
             transaction=event["transaction"],
-            is_transaction=event["is_transaction"],
+            transaction_id=event["transaction_id"],
+            op=event["op"],
+            name=event["name"],
+            start_timestamp=event["start_timestamp"],
+            end_timestamp=event["end_timestamp"],
+            duration=event["duration"],
             description=event["description"],
-            sdk_name=event["sdk.name"],
-            op=event["span.op"],
-            name=event["span.name"],
-            event_type="span",
-            additional_attributes=attribute_dict,
+            additional_attributes=event["additional_attributes"],
         )
-    else:
-        return _serialize_rpc_issue(event, group_cache)
+
+    return SerializedSpan(
+        children=children,
+        errors=errors,
+        occurrences=occurrences,
+        event_id=event["id"],
+        transaction_id=event["transaction.event_id"],
+        project_id=event["project.id"],
+        project_slug=event["project.slug"],
+        profile_id=event["profile.id"],
+        profiler_id=event["profiler.id"],
+        parent_span_id=(
+            None
+            if not event["parent_span"] or event["parent_span"] == "0" * 16
+            else event["parent_span"]
+        ),
+        start_timestamp=event["precise.start_ts"],
+        end_timestamp=event["precise.finish_ts"],
+        measurements={
+            key: value for key, value in event.items() if key.startswith("measurements.")
+        },
+        duration=event["span.duration"],
+        transaction=event["transaction"],
+        is_transaction=event["is_transaction"],
+        description=event["description"],
+        sdk_name=event["sdk.name"],
+        op=event["span.op"],
+        name=event["span.name"],
+        event_type="span",
+        additional_attributes=attribute_dict,
+    )
 
 
 def _errors_query(
@@ -350,15 +372,12 @@ def _serialize_columnar_uptime_item(
     row_dict: dict[str, AttributeValue],
     project_slugs: dict[int, str],
 ) -> dict[str, Any]:
-    """Convert a columnar uptime row to a serialized span format"""
+    """Convert a columnar uptime row to a serialized uptime check span format"""
     columns_by_name = {col.internal_name: col for col in UPTIME_ATTRIBUTE_DEFINITIONS.values()}
     common_column_names = {col.internal_name for col in COMMON_COLUMNS}
 
     trace_id = row_dict["sentry.trace_id"].val_str
     check_status = row_dict["check_status"].val_str
-    http_status_code = (
-        row_dict["http_status_code"].val_int if "http_status_code" in row_dict else None
-    )
     request_url = row_dict["request_url"].val_str
     actual_check_time_us = row_dict["actual_check_time_us"].val_int
     check_duration_us = (
@@ -368,25 +387,6 @@ def _serialize_columnar_uptime_item(
     project_slug = project_slugs[project_id]
 
     item_id_str = row_dict["sentry.item_id"].val_str
-
-    span = {
-        "event_id": item_id_str,
-        "project_id": project_id,
-        "project_slug": project_slug,
-        "transaction_id": trace_id,
-        "transaction": "uptime.check",
-        "event_type": "uptime",
-        "children": [],
-        "errors": [],
-        "occurrences": [],
-        "measurements": {},
-        "op": "uptime.request",
-        "parent_span_id": None,
-        "profile_id": "",
-        "profiler_id": "",
-        "sdk_name": "uptime-monitor",
-        "is_transaction": False,
-    }
 
     def get_value(attr_name: str, attr_value: AttributeValue):
         if attr_value.is_null:
@@ -412,17 +412,26 @@ def _serialize_columnar_uptime_item(
             if resolved_val is not None:
                 additional_attrs[resolved_column.public_alias] = resolved_val
 
-    span["start_timestamp"] = actual_check_time_us / 1_000_000
-    span["end_timestamp"] = (actual_check_time_us + check_duration_us) / 1_000_000
-    span["duration"] = check_duration_us / 1_000.0
-    description = f"Uptime Check [{check_status}] - {request_url}"
-    if http_status_code:
-        description += f" ({http_status_code})"
-    span["description"] = description
+    uptime_check = {
+        "event_type": "uptime_check",
+        "event_id": item_id_str,
+        "project_id": project_id,
+        "project_slug": project_slug,
+        "transaction": "uptime.check",
+        "transaction_id": trace_id,
+        "name": request_url,
+        "op": "uptime.request",
+        "start_timestamp": actual_check_time_us / 1_000_000,
+        "end_timestamp": (actual_check_time_us + check_duration_us) / 1_000_000,
+        "duration": check_duration_us / 1_000.0,
+        "description": f"Uptime Check Request [{check_status}]",
+        "additional_attributes": additional_attrs,
+        "children": [],
+        "errors": [],
+        "occurrences": [],
+    }
 
-    span["name"] = request_url
-    span["additional_attributes"] = additional_attrs
-    return span
+    return uptime_check
 
 
 def query_trace_data(
@@ -473,8 +482,11 @@ def query_trace_data(
     errors_data = errors_future.result()
     occurrence_data = occurrence_future.result()
     uptime_data = uptime_future.result() if uptime_future else []
-    result = []
-    root_span = None
+    result: list[dict[str, Any]] = []
+    root_span: dict[str, Any] | None = None
+
+    # If uptime checks are present re-parent the existing root span to the
+    # uptime check that initiated the trace.
     if uptime_data:
         trace_items = []
         for response in uptime_data:
@@ -497,14 +509,14 @@ def query_trace_data(
                     "id", "slug"
                 )
             }
-            uptime_spans = [
+            uptime_checks = [
                 _serialize_columnar_uptime_item(item, project_slugs) for item in trace_items
             ]
-            uptime_spans.sort(
+            uptime_checks.sort(
                 key=lambda s: s.get("additional_attributes", {}).get("request_sequence", 0)
             )
-            root_span = uptime_spans[-1]
-            result.extend(uptime_spans)
+            root_span = uptime_checks[-1]
+            result.extend(uptime_checks)
 
     id_to_span = {event["id"]: event for event in spans_data}
     id_to_error: dict[str, Any] = {}
