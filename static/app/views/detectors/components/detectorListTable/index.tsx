@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import {hasEveryAccess} from 'sentry/components/acl/access';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -9,15 +9,13 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {DetectorsTableActions} from 'sentry/views/detectors/components/detectorListTable/actions';
 import {
   DetectorListRow,
   DetectorListRowSkeleton,
 } from 'sentry/views/detectors/components/detectorListTable/detectorListRow';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/constants';
-import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 type DetectorListTableProps = {
   allResultsVisible: boolean;
@@ -81,8 +79,6 @@ function DetectorListTable({
   queryCount,
   allResultsVisible,
 }: DetectorListTableProps) {
-  const organization = useOrganization();
-  const {projects} = useProjects();
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const detectorIds = new Set(detectors.map(d => d.id));
@@ -117,56 +113,24 @@ function DetectorListTable({
     [detectors, selected]
   );
 
-  const canEditDetectors = useMemo(() => {
-    const selectedDetectors = detectors.filter(d => selected.has(d.id));
-    const projectToDetectors: Record<string, Detector[]> = {};
-
-    if (
-      organization.access.includes('org:write') ||
-      organization.access.includes('org:admin')
-    ) {
-      return true;
-    }
-
-    for (const detector of selectedDetectors) {
-      const projectId = detector.projectId;
-      if (!projectToDetectors[projectId]) {
-        projectToDetectors[projectId] = [];
-      }
-      projectToDetectors[projectId]?.push(detector);
-    }
-
-    for (const projectId of Object.keys(projectToDetectors)) {
-      const project = projects.find(p => p.id === projectId) ?? undefined;
-      if (!project) {
-        return false;
-      }
-
-      if (hasEveryAccess(['alerts:write', 'project:read'], {organization, project})) {
-        // team admins can modify all detectors for projects they have admin access to
-        if (project.access.includes('project:write')) {
-          continue;
-        }
-        // members can modify only user-createable detectors for projects they have access to
-        if (
-          projectToDetectors[projectId]?.every(d => detectorTypeIsUserCreateable(d.type))
-        ) {
-          continue;
-        }
-      }
-      return false;
-    }
-
-    return true;
-  }, [selected, detectors, organization, projects]);
+  const selectedDetectors = detectors.filter(d => selected.has(d.id));
+  const canEditDetectors = useCanEditDetectors({detectors: selectedDetectors});
 
   return (
     <Container>
       <DetectorListSimpleTable>
         {selected.size === 0 ? (
           <SimpleTable.Header>
+            <HeaderCell sort={sort}>
+              <Checkbox
+                checked={pageSelected || (selected.size > 0 ? 'indeterminate' : false)}
+                onChange={s => {
+                  togglePageSelected(s.target.checked);
+                }}
+              />
+            </HeaderCell>
             <HeaderCell sortKey="name" sort={sort}>
-              <NamePadding>{t('Name')}</NamePadding>
+              {t('Name')}
             </HeaderCell>
             <HeaderCell data-column-name="type" divider sortKey="type" sort={sort}>
               {t('Type')}
@@ -228,12 +192,8 @@ const Container = styled('div')`
   container-type: inline-size;
 `;
 
-const NamePadding = styled('div')`
-  padding-left: 28px;
-`;
-
 const DetectorListSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr;
+  grid-template-columns: 30px 1fr;
 
   margin-bottom: ${space(2)};
 
@@ -245,7 +205,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 3fr 0.8fr;
+    grid-template-columns: 30px 3fr 0.8fr;
 
     [data-column-name='type'] {
       display: flex;
@@ -253,7 +213,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
+    grid-template-columns: 30px 3fr 0.8fr 1.5fr 0.8fr;
 
     [data-column-name='last-issue'] {
       display: flex;
@@ -261,7 +221,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 3fr 0.8fr 1.5fr 0.8fr;
+    grid-template-columns: 30px 3fr 0.8fr 1.5fr 0.8fr;
 
     [data-column-name='assignee'] {
       display: flex;
@@ -269,7 +229,7 @@ const DetectorListSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
+    grid-template-columns: 30px 4.5fr 0.8fr 1.5fr 0.8fr 2fr;
 
     [data-column-name='connected-automations'] {
       display: flex;
