@@ -802,6 +802,7 @@ class AMCheckout extends Component<Props, State> {
               {isNewCheckout ? (
                 <Cart
                   {...overviewProps}
+                  referrer={this.referrer}
                   // TODO(checkout v3): we'll also need to fetch billing details but
                   // this will be done in a later PR
                   hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
