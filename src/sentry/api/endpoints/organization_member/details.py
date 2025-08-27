@@ -48,6 +48,7 @@ ERR_MEMBER_INVITE = "You cannot modify invitations sent by someone else."
 ERR_EDIT_WHEN_REINVITING = (
     "You cannot modify member details when resending an invitation. Separate requests are required."
 )
+ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 ERR_ONLY_OWNER_OR_MANAGER = (
     "You cannot remove the only remaining owner or manager of the organization."
 )
