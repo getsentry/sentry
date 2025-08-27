@@ -957,6 +957,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     tempestFetchDumps: NotRequired[bool]
     autofixAutomationTuning: NotRequired[str]
     seerScannerAutomation: NotRequired[bool]
+    debugFilesRole: NotRequired[str | None]
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1105,6 +1106,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "seerScannerAutomation": self.get_value_with_default(
                 attrs, "sentry:seer_scanner_automation"
             ),
+            "debugFilesRole": attrs["options"].get("sentry:debug_files_role"),
         }
 
         if has_tempest_access(obj.organization, user):
