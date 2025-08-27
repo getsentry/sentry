@@ -140,7 +140,7 @@ describe('useFetchEventsTimeSeries', () => {
           DiscoverDatasets.SPANS,
           {
             yAxis: 'p50(span.duration)',
-            search: new MutableSearch('span.op:db*'),
+            query: new MutableSearch('span.op:db*'),
           },
           REFERRER
         ),
@@ -164,7 +164,7 @@ describe('useFetchEventsTimeSeries', () => {
           environment: ['prod'],
           project: [42],
           interval: '1h',
-          search: 'span.op:db*',
+          query: 'span.op:db*',
           sampling: 'NORMAL',
         },
       })
