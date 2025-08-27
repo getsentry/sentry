@@ -1,5 +1,4 @@
 import logging
-from unittest.mock import patch
 from uuid import uuid4
 
 from django.urls import reverse
@@ -268,42 +267,3 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         )
         assert response.status_code == 400
         assert response.data["detail"] == "Invalid per_page value. Must be between 1 and 9999."
-
-    def test_timestamp_precise_alias_and_orderby(self) -> None:
-        trace_id = "1" * 32
-        logs = [
-            self.create_ourlog(
-                {"body": "foo", "trace_id": trace_id},
-                timestamp=self.ten_mins_ago,
-            )
-        ]
-        self.store_ourlogs(logs)
-
-        with patch("sentry.snuba.ourlogs.OurLogs.run_table_query") as mock_run_query:
-            mock_run_query.return_value = {
-                "data": [
-                    {
-                        # Data not relevant for this test
-                    }
-                ],
-                "meta": {"fields": {}, "units": {}},
-            }
-
-            response = self.client.get(
-                self.url,
-                data={"traceId": trace_id, "orderby": "-timestamp"},
-                format="json",
-            )
-
-            assert response.status_code == 200, response.content
-            mock_run_query.assert_called_once()
-
-            call_args = mock_run_query.call_args
-            selected_columns = call_args.kwargs["selected_columns"]
-            orderby = call_args.kwargs["orderby"]
-
-            assert "sentry.timestamp_precise" in selected_columns
-            assert orderby == [
-                "-sentry.timestamp",
-                "-sentry.timestamp_precise",
-            ]

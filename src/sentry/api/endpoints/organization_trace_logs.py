@@ -65,41 +65,39 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
 
         attribute_mapping = ourlog_attribute_map()
 
-        required_keys = [
+        timestamp_precise_column = "timestamp_precise"
+
+        selected_columns = [
             "id",
             "project.id",
             "trace",
             "severity_number",
             "severity",
             "timestamp",
-            "timestamp_precise",
+            timestamp_precise_column,
             "message",
         ]
-        allowed_attributes = []
-        for key in required_keys:
+
+        for key in selected_columns:
             attr = attribute_mapping.get(key)
             if attr is None:
                 raise ValueError(f"Required attribute '{key}' not found in attribute mapping")
-            allowed_attributes.append(attr)
-        allowed_aliases = [attr.public_alias for attr in allowed_attributes]
-        selected_columns = [attr.internal_name for attr in allowed_attributes]
-        precise_timestamp_internal_name = attribute_mapping["timestamp_precise"].internal_name
 
         converted_orderby = []
         for column in orderby:
             prefix = "-" if column.startswith("-") else ""
             directionless_column = column.lstrip("-")
-            if directionless_column not in allowed_aliases:
+            if directionless_column not in selected_columns:
                 raise ParseError(
-                    f"{directionless_column} must be one of {','.join(sorted(allowed_aliases))}"
+                    f"{directionless_column} must be one of {','.join(sorted(selected_columns))}"
                 )
             attr = attribute_mapping.get(directionless_column)
             if attr is None:
                 raise ParseError(f"Unknown attribute: {directionless_column}")
-            converted_orderby.append(f"{prefix}{attr.internal_name}")
+            converted_orderby.append(f"{prefix}{attr.public_alias}")
             if directionless_column == "timestamp":
                 # Timestamp precise must also be added when sorting by timestamp as timestamp since timestamp should have been a DateTime64...
-                converted_orderby.append(f"{prefix}{precise_timestamp_internal_name}")
+                converted_orderby.append(f"{prefix}{timestamp_precise_column}")
 
         trace_attr = attribute_mapping.get("trace")
         if trace_attr is None:
@@ -143,7 +141,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         if len(trace_ids) == 0:
             raise ParseError("Need to pass at least one traceId")
 
-        orderby = request.GET.getlist("orderby", ["-timestamp", "-timestamp_precise"])
+        orderby = request.GET.getlist("orderby", ["-timestamp"])
         additional_query = request.GET.get("query")
 
         update_snuba_params_with_timestamp(request, snuba_params)

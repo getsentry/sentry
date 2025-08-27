@@ -32,7 +32,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="message",
+            public_alias="messsage",
             internal_name="sentry.body",
             search_type="string",
         ),
