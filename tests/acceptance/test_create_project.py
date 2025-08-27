@@ -1,4 +1,3 @@
-import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.models.project import Project
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
@@ -35,7 +34,6 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.click('[data-test-id="create-project"]')
         self.browser.wait_until(xpath="//h2[text()='Configure React SDK']")
 
-    @thread_leaks.allowlist(reason="taskworker", issue=97034)
     def test_project_deletion_on_going_back(self) -> None:
         self.create_team(organization=self.org, name="team three", members=[self.user])
         self.load_project_creation_page()
