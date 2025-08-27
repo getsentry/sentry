@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {loadStripe, type Stripe} from '@stripe/stripe-js';
 import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -10,13 +9,13 @@ import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
+import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 import {
   InvoiceItemType,
   OnDemandBudgetMode,
@@ -459,7 +458,7 @@ function Cart({
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [stripe, setStripe] = useState<Stripe | null>(null);
+  const stripe = useStripeInstance();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const api = useApi();
 
@@ -524,13 +523,6 @@ function Cart({
   useEffect(() => {
     fetchPreview();
   }, [fetchPreview]);
-
-  // TODO(checkout v3): This should be refactored with the new Stripe changes
-  useEffect(() => {
-    loadStripe(ConfigStore.get('getsentry.stripePublishKey')!).then(stripeInstance => {
-      setStripe(stripeInstance);
-    });
-  }, []);
 
   const handleCardAction = ({intentDetails}: {intentDetails: utils.IntentDetails}) => {
     utils.stripeHandleCardAction(
