@@ -874,6 +874,23 @@ def test_create_feedback_evidence_has_spam(
 
 
 @django_db_all
+def test_create_feedback_evidence_has_summary(
+    default_project, mock_produce_occurrence_to_kafka
+) -> None:
+    """Test that the summary field is properly set in evidence_data."""
+    event = mock_feedback_event(default_project.id)
+    event["contexts"]["feedback"]["message"] = "This is a test feedback message"
+    source = FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+
+    create_feedback_issue(event, default_project, source)
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_data
+    assert "summary" in evidence
+    assert evidence["summary"] == "This is a test feedback message"
+
+
+@django_db_all
 def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka) -> None:
     event = mock_feedback_event(default_project.id)
     create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
