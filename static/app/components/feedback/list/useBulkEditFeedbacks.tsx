@@ -54,6 +54,9 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
   const hasDelete = selectedIds !== 'all';
   const enableDelete = organization.access.includes('event:admin');
 
+  const selectedIdsLength =
+    selectedIds === 'all' ? Number.MAX_SAFE_INTEGER : selectedIds.length;
+
   const mutationOptions = useMemo(
     () => ({
       onError: () => {
@@ -61,18 +64,18 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
           tn(
             'An error occurred while updating the feedback item',
             'An error occurred while updating the feedback items',
-            selectedIds.length
+            selectedIdsLength
           )
         );
       },
       onSuccess: () => {
         addSuccessMessage(
-          tn('Updated feedback item', 'Updated feedback items', selectedIds.length)
+          tn('Updated feedback item', 'Updated feedback items', selectedIdsLength)
         );
         deselectAll();
       },
     }),
-    [deselectAll, selectedIds.length]
+    [deselectAll, selectedIdsLength]
   );
 
   const onToggleResolved = useCallback(
@@ -91,7 +94,7 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
             tn(
               'Updating feedback item...',
               'Updating feedback items...',
-              selectedIds.length
+              selectedIdsLength
             )
           );
           resolve(newMailbox, mutationOptions);
@@ -100,9 +103,9 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
           ? tn(
               'Are you sure you want to move this feedback item to the inbox?',
               'Are you sure you want to move these feedback items to the inbox?',
-              selectedIds.length
+              selectedIdsLength
             )
-          : selectedIds.length === 1
+          : selectedIdsLength === 1
             ? tct('Are you sure you want to mark this feedback item as [status]?', {
                 status: statusToText[newMailbox],
               })
@@ -112,7 +115,7 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
         confirmText: moveToInbox ? t('Move to Inbox') : statusToButtonLabel[newMailbox],
       });
     },
-    [selectedIds, resolve, mutationOptions, organization]
+    [selectedIds, selectedIdsLength, resolve, mutationOptions, organization]
   );
 
   const onMarkAsRead = useCallback(
@@ -124,7 +127,7 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
             tn(
               'Updating feedback item...',
               'Updating feedback items...',
-              selectedIds.length
+              selectedIdsLength
             )
           );
           markAsRead(true, mutationOptions);
@@ -132,11 +135,11 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
         message: tn(
           'Are you sure you want to mark this feedback item as read?',
           'Are you sure you want to mark these feedback items as read?',
-          selectedIds.length
+          selectedIdsLength
         ),
         confirmText: 'Mark read',
       }),
-    [markAsRead, mutationOptions, selectedIds]
+    [markAsRead, mutationOptions, selectedIds, selectedIdsLength]
   );
 
   const onMarkUnread = useCallback(
@@ -148,7 +151,7 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
             tn(
               'Updating feedback item...',
               'Updating feedback items...',
-              selectedIds.length
+              selectedIdsLength
             )
           );
           markAsRead(false, {
@@ -157,13 +160,13 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
                 tn(
                   'An error occurred while updating the feedback item',
                   'An error occurred while updating the feedback items',
-                  selectedIds.length
+                  selectedIdsLength
                 )
               );
             },
             onSuccess: () => {
               addSuccessMessage(
-                tn('Updated feedback item', 'Updated feedback items', selectedIds.length)
+                tn('Updated feedback item', 'Updated feedback items', selectedIdsLength)
               );
               deselectAll();
             },
@@ -172,11 +175,11 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
         message: tn(
           'Are you sure you want to mark this feedback item as unread?',
           'Are you sure you want to mark these feedback items as unread?',
-          selectedIds.length
+          selectedIdsLength
         ),
         confirmText: 'Mark unread',
       }),
-    [deselectAll, markAsRead, selectedIds]
+    [deselectAll, markAsRead, selectedIds, selectedIdsLength]
   );
 
   return {
