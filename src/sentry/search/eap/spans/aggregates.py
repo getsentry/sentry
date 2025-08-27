@@ -53,8 +53,27 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     aggregate_key = cast(AttributeKey, args[0])
     key = cast(AttributeKey, args[1])
     operator = cast(str, args[2])
-    value = cast(str, args[3])
-    attr_value = AttributeValue(val_str=value)
+
+    try:
+        if key.type == AttributeKey.Type.TYPE_DOUBLE:
+            value = float(args[3])
+            attr_value = AttributeValue(val_double=value)
+        elif key.type == AttributeKey.Type.TYPE_FLOAT:
+            value = float(args[3])
+            attr_value = AttributeValue(val_float=value)
+        elif key.type == AttributeKey.Type.TYPE_INT:
+            value = int(args[3])
+            attr_value = AttributeValue(val_int=value)
+        else:
+            value = cast(str, args[3])
+            attr_value = AttributeValue(val_str=value)
+    except ValueError:
+        expected_type = "string"
+        if key.type in [AttributeKey.Type.TYPE_FLOAT, AttributeKey.Type.TYPE_DOUBLE]:
+            expected_type = "number"
+        if key.type == AttributeKey.Type.TYPE_INT:
+            expected_type = "integer"
+        raise InvalidSearchQuery(f"Invalid parameter '{args[3]}'. Must be of type {expected_type}.")
 
     if key.type == AttributeKey.TYPE_BOOLEAN:
         lower_value = value.lower()
@@ -177,10 +196,28 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                 default_arg="span.self_time",
                 field_allowlist={"is_transaction"},
             ),
-            AttributeArgumentDefinition(attribute_types={"string"}),
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                }
+            ),
             ValueArgumentDefinition(
                 argument_types={"string"},
-                validator=literal_validator(["equals", "notEquals"]),
+                validator=literal_validator(
+                    [
+                        "equals",
+                        "notEquals",
+                        "lessOrEquals",
+                        "greaterOrEquals",
+                        "less",
+                        "greater",
+                    ]
+                ),
             ),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
