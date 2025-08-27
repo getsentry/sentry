@@ -625,6 +625,9 @@ register(
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("codecov.base-url", default="https://api.codecov.io")
 register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# if a region is in this list, it's safe to forward to codecov
+register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
