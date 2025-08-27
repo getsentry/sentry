@@ -13,6 +13,7 @@ import {
   getRetryDelay,
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
+import type {SpanProperty} from 'sentry/views/insights/types';
 
 import {getIntervalForTimeSeriesQuery} from './getIntervalForTimeSeriesQuery';
 
@@ -24,6 +25,13 @@ interface UseFetchEventsTimeSeriesOptions<Field> {
   search?: MutableSearch;
   sort?: Sort;
   topEvents?: number;
+}
+
+export function useSpanSeries<Field extends SpanProperty>(
+  options: UseFetchEventsTimeSeriesOptions<Field>,
+  referrer: string
+) {
+  return useFetchEventsTimeSeries(DiscoverDatasets.SPANS, options, referrer);
 }
 
 export function useFetchEventsTimeSeries<T extends string>(
