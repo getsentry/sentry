@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
@@ -66,7 +66,9 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
     ? tct(
         'You have reached the maximum number of Dashboards available on your plan. To add more, [link:upgrade your plan]',
         {
-          link: <Link to={`/settings/billing/checkout/`}>{t('upgrade your plan')}</Link>,
+          link: (
+            <Link to={`/settings/billing/checkout/?referrer=dashboards-limit-upsell`} />
+          ),
         }
       )
     : null;
