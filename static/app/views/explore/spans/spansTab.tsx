@@ -20,6 +20,7 @@ import {
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -176,7 +177,9 @@ function SpansSearchBar({
     const parsedQuery = parseQueryBuilderValue(committedQuery, getFieldDefinition);
     // Remove any tokens that include the user inputted value.
     const filteredCommittedQuery = parsedQuery
-      ?.filter(token => token.text.length > 0 && !token.text.includes(inputValue))
+      ?.filter(
+        token => !(token.type === Token.FREE_TEXT && token.text.includes(inputValue))
+      )
       ?.map(token => stringifyToken(token))
       .join(' ')
       .trim();
