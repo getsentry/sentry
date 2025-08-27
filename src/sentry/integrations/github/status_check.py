@@ -4,7 +4,10 @@ import enum
 
 
 class GitHubCheckStatus(enum.Enum):
-    """GitHub Check Run status values."""
+    """
+    GitHub Check Run status values.
+    https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#create-a-check-run
+    """
 
     QUEUED = "queued"
     IN_PROGRESS = "in_progress"
@@ -17,7 +20,10 @@ class GitHubCheckStatus(enum.Enum):
 
 
 class GitHubCheckConclusion(enum.Enum):
-    """GitHub Check Run conclusion values (when status is completed)."""
+    """
+    GitHub Check Run conclusion values (when status is completed).
+    https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#create-a-check-run
+    """
 
     ACTION_REQUIRED = "action_required"
     CANCELLED = "cancelled"

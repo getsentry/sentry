@@ -71,7 +71,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
         text = f"❌ Build {preprod_artifact.id} failed. Error: {preprod_artifact.error_message}"
         summary = f"Build {preprod_artifact.id} for `{preprod_artifact.app_id}` failed."
         target_url = None
-    elif preprod_artifact.state == PreprodArtifact.ArtifactState.COMPLETED:
+    elif preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED:
         status = StatusCheckStatus.SUCCESS
         text = f"✅ Build {preprod_artifact.id} processed successfully."
         summary = (
