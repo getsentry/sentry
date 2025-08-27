@@ -341,8 +341,8 @@ def create_feedback_issue(
     )
 
     # Set feedback summary to the title without the "User Feedback: " prefix
-    event_fixed["metadata"] = event_fixed.get("metadata", {})
-    event_fixed["metadata"]["summary"] = title
+    if "metadata" in event_fixed:
+        event_fixed["metadata"]["summary"] = title
 
     # Generating labels using Seer, which will later be used to categorize feedbacks
     if should_query_seer and features.has(
