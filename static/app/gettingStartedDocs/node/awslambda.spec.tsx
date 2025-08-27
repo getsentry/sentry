@@ -91,7 +91,7 @@ describe('awslambda onboarding docs', () => {
     });
 
     it('displays sample rates by default', () => {
-      renderWithOnboardingLayout(docs, {
+      renderWithOnboardingLayout(npmDocs, {
         selectedProducts: [
           ProductSolution.ERROR_MONITORING,
           ProductSolution.PERFORMANCE_MONITORING,
@@ -108,7 +108,7 @@ describe('awslambda onboarding docs', () => {
     });
 
     it('enables performance setting the sample rate set to 1', () => {
-      renderWithOnboardingLayout(docs, {
+      renderWithOnboardingLayout(npmDocs, {
         selectedProducts: [
           ProductSolution.ERROR_MONITORING,
           ProductSolution.PERFORMANCE_MONITORING,
