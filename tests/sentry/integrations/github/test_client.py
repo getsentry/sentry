@@ -400,7 +400,7 @@ class GitHubApiClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_get_comment_reactions_missing_reactions(self, get_jwt) -> None:
-        comment_reactions = {}
+        comment_reactions = {"other": "stuff"}
         responses.add(
             responses.GET,
             f"https://api.github.com/repos/{self.repo.name}/issues/comments/2",

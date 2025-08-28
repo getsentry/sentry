@@ -106,6 +106,7 @@ def github_comment_reactions() -> None:
             continue
 
         comment_count += 1
+        # TODO (nora): temporary log - remove after investigating bug
         if comment_count % 1000 == 0:
             logger.info("pr_comment.comment_reactions.progress", extra={"count": comment_count})
 
