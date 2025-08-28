@@ -413,3 +413,22 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query=snuba_query,
         )
+
+
+class QuerySubscriptionValidator(BaseDataSourceValidator[QuerySubscription]):
+    """
+    The QuerySubscriptionValidator is used to validate the entire QuerySubscription as a detector data source.
+    This is distinct from the SnubaQueryValidator which shares its validation with the AlertRuleSerializer.
+
+    When the AlertRule API is deprecated, we can remove the SnubaQueryValidator, and replace its usage with this.
+
+    TODO
+    - Add this on the MetricIsueDetectorHandler
+    """
+
+    id = serializers.IntegerField(required=False)
+    status = serializers.ChoiceField(choices=QuerySubscription.Status.choices, required=False)
+    subscription = serializers.CharField(required=False)
+    # TODO make sure the snubaQuery field is validated correctly, this should match: SnubaQuerySerializer
+    # -- in src/sentry/incidents/endpoints/serializers/query_subscription.py
+    snubaQuery = serializers.ListField(child=SnubaQueryValidator())
