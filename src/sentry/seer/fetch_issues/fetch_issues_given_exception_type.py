@@ -133,7 +133,7 @@ def get_issues_related_to_exception_type(
 
     # Add the message field from the Group model to each serialized group
     for i, group in enumerate(query_set_list):
-        if i < len(issues_full):
+        if i < len(issues_full) and issues_full[i] is not None:
             issues_full[i]["message"] = group.message
 
     return {
