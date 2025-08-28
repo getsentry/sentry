@@ -1,10 +1,11 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
@@ -31,12 +32,14 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {useWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {useCreateIssue} from 'sentry/views/insights/browser/webVitals/utils/useCreateIssue';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
 import type {SubregionCode} from 'sentry/views/insights/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
@@ -63,6 +66,8 @@ export function PageOverviewSidebar({
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
+
+  const {mutate: createIssue} = useCreateIssue();
 
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
@@ -133,6 +138,25 @@ export function PageOverviewSidebar({
     enabled: hasSeerWebVitalsSuggestions,
   });
 
+  const runSeerAnalysis = useCallback(() => {
+    if (!projectScore) {
+      return;
+    }
+
+    // Creates a new issue for each web vital that has a score under 90
+    ORDER.forEach(webVital => {
+      const score = projectScore[`${webVital}Score`];
+      if (score && score < 90) {
+        createIssue({
+          issueType: IssueType.WEB_VITALS,
+          vital: webVital,
+          score,
+          transaction,
+        });
+      }
+    });
+  }, [createIssue, projectScore, transaction]);
+
   return (
     <Fragment>
       <SectionHeading>
@@ -165,17 +189,36 @@ export function PageOverviewSidebar({
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}
       </SidebarPerformanceScoreRingContainer>
       <SidebarSpacer />
-      {hasSeerWebVitalsSuggestions && !isLoadingIssues && issues && issues.length > 0 && (
+      {hasSeerWebVitalsSuggestions && (
         <Fragment>
           <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
           <Content>
             <InsightGrid>
+              {/* Issues are still loading */}
               {isLoadingIssues && <Placeholder height="1.5rem" />}
-              {issues
+              {/* Issues are done loading and they exist */}
+              {!isLoadingIssues && issues && issues.length > 0
                 ? issues.map(issue => (
                     <IssueAutofixSuggestions key={issue.shortId} issue={issue} />
                   ))
                 : null}
+              {/* Issues are done loading and they don't exist */}
+              {!isLoadingIssues &&
+                issues &&
+                issues.length === 0 &&
+                !projectScoreIsLoading &&
+                projectScore && (
+                  <Button
+                    size="sm"
+                    icon={<StyledIconSeer size="md" />}
+                    onClick={runSeerAnalysis}
+                    title={t(
+                      'Create an issue for each underperforming web vital and run a root cause analysis.'
+                    )}
+                  >
+                    {t('Run Seer Analysis')}
+                  </Button>
+                )}
             </InsightGrid>
           </Content>
         </Fragment>
