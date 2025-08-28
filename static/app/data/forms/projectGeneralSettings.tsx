@@ -206,7 +206,6 @@ export const fields = {
     name: 'debugFilesRole',
     type: 'select',
     label: t('Debug Files Access'),
-    visible: ({features}) => features.has('organizations:debug-files-role-management'),
     help: ({organization}) =>
       tct(
         'Role required to download debug information files, proguard mappings and source maps. Overrides [organizationSettingsLink: organization settings].',
