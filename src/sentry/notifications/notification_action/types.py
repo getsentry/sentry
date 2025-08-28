@@ -428,6 +428,13 @@ class BaseMetricAlertHandler(ABC):
         if isinstance(event, GroupEvent):
             evidence_data, priority = cls._extract_from_group_event(event)
         elif isinstance(event, Activity):
+            # we only want to fire resolution activities if we are single processing
+            if not features.has(
+                "organizations:workflow-engine-single-process-metric-issues",
+                event_data.group.organization,
+            ):
+                return
+
             evidence_data, priority = cls._extract_from_activity(event)
         else:
             raise ValueError(

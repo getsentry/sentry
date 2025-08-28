@@ -10,6 +10,10 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {
+  MetricDetectorInterval,
+  MetricDetectorTimePeriod,
+} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 
 export interface DetectorSearchBarProps {
@@ -32,7 +36,7 @@ export interface DetectorSeriesQueryOptions {
   dataset: DiscoverDatasets;
   environment: string;
   /**
-   * example: `1h`
+   * Metric detector interval in seconds
    */
   interval: number;
   organization: Organization;
@@ -80,7 +84,19 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     tags?: TagCollection,
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
+  /**
+   * An array of intervals available for the current dataset.
+   */
+  getIntervals: (options: {
+    detectionType: MetricDetectorConfig['detectionType'];
+  }) => readonly MetricDetectorInterval[];
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  /**
+   * Based on the interval, returns an array of time periods.
+   */
+  getTimePeriods: (
+    interval: MetricDetectorInterval
+  ) => readonly MetricDetectorTimePeriod[];
   /**
    * Extracts event types from the query string
    */

@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -16,11 +15,8 @@ import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import SchemaHintsList, {
   SchemaHintsSection,
@@ -65,7 +61,6 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -87,7 +82,6 @@ import {
   useQueryParamsVisualizes,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -99,7 +93,6 @@ export function LogsTabContent({
   maxPickableDays,
   relativeOptions,
 }: LogsTabProps) {
-  const organization = useOrganization();
   const pageFilters = usePageFilters();
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
@@ -132,16 +125,7 @@ export function LogsTabContent({
     return sortBys.map(formatSort);
   }, [sortBys]);
 
-  const [sidebarOpen, setSidebarOpen] = useSidebarOpen(
-    !!(
-      groupBys.some(Boolean) ||
-      visualizes.some(
-        visualize =>
-          isVisualizeFunction(visualize) &&
-          visualize.parsedFunction?.name !== AggregationKey.COUNT
-      )
-    )
-  );
+  const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
 
   useEffect(() => {
     if (autorefreshEnabled) {
@@ -303,6 +287,7 @@ export function LogsTabContent({
                 defaultPeriod={defaultPeriod}
                 maxPickableDays={maxPickableDays}
                 relativeOptions={relativeOptions}
+                searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
               />
             </StyledPageFilterBar>
             <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
@@ -373,9 +358,7 @@ export function LogsTabContent({
                 </TabList>
               </Tabs>
               <TableActionsContainer>
-                <Feature features="organizations:ourlogs-live-refresh">
-                  <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
-                </Feature>
+                <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                 <Tooltip
                   title={t(
                     'Narrow your time range to 1hr or less for manually refreshing your logs.'
@@ -397,14 +380,8 @@ export function LogsTabContent({
             </LogsTableActionsContainer>
 
             <LogsItemContainer>
-              {tableTab === 'logs' &&
-              organization.features.includes('ourlogs-infinite-scroll') ? (
+              {tableTab === 'logs' ? (
                 <LogsInfiniteTable
-                  stringAttributes={stringAttributes}
-                  numberAttributes={numberAttributes}
-                />
-              ) : tableTab === 'logs' ? (
-                <LogsTable
                   stringAttributes={stringAttributes}
                   numberAttributes={numberAttributes}
                 />
@@ -417,19 +394,4 @@ export function LogsTabContent({
       </ToolbarAndBodyContainer>
     </SearchQueryBuilderProvider>
   );
-}
-
-function useSidebarOpen(defaultExpanded: boolean) {
-  const [sidebarOpen, _setSidebarOpen] = useLocalStorageState(
-    'explore-logs-toolbar',
-    defaultExpanded ? 'expanded' : ''
-  );
-
-  const setSidebarOpen = useCallback(
-    (expanded: boolean) => {
-      _setSidebarOpen(expanded ? 'expanded' : '');
-    },
-    [_setSidebarOpen]
-  );
-  return [sidebarOpen === 'expanded', setSidebarOpen] as const;
 }

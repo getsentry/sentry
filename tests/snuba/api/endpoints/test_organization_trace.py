@@ -2,9 +2,12 @@ import logging
 from unittest import mock
 from uuid import uuid4
 
+from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -19,6 +22,22 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue as Pr
 
 from sentry.snuba.trace import _serialize_columnar_uptime_item
 from sentry.testutils.cases import TestCase
+
+# Test regions for uptime item serialization tests
+TEST_UPTIME_REGIONS = [
+    UptimeRegionConfig(
+        slug="us-east-1",
+        name="US East (N. Virginia)",
+        config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+        config_redis_key_prefix="us1",
+    ),
+    UptimeRegionConfig(
+        slug="eu-west-1",
+        name="Europe (Ireland)",
+        config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+        config_redis_key_prefix="eu1",
+    ),
+]
 
 
 class TestSerializeColumnarUptimeItem(TestCase):
@@ -48,18 +67,20 @@ class TestSerializeColumnarUptimeItem(TestCase):
             "request_sequence": ProtoAttributeValue(val_int=0),
         }
 
-        result = _serialize_columnar_uptime_item(row_dict, self.project_slugs)
+        with override_settings(UPTIME_REGIONS=TEST_UPTIME_REGIONS):
+            result = _serialize_columnar_uptime_item(row_dict, self.project_slugs)
 
         assert result["event_id"] == "check-123"
         assert result["project_id"] == 1
         assert result["project_slug"] == "test-project"
         assert result["transaction_id"] == "a" * 32
         assert result["transaction"] == "uptime.check"
-        assert result["event_type"] == "uptime"
+        assert result["event_type"] == "uptime_check"
         assert result["op"] == "uptime.request"
         assert result["duration"] == 500.0
         assert result["name"] == "https://example.com"
-        assert result["description"] == "Uptime Check [success] - https://example.com (200)"
+        assert result["description"] == "Uptime Check Request [success]"
+        assert result["region_name"] == "US East (N. Virginia)"
         assert result["start_timestamp"] == 1700000000
         assert result["end_timestamp"] == 1700000000.5
         attrs = result["additional_attributes"]
@@ -88,12 +109,13 @@ class TestSerializeColumnarUptimeItem(TestCase):
             "original_url": ProtoAttributeValue(val_str="https://example.com"),
             "actual_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
             "check_duration_us": ProtoAttributeValue(val_int=300000),
+            "region": ProtoAttributeValue(val_str="eu-west-1"),
             "request_sequence": ProtoAttributeValue(val_int=1),
         }
 
         result = _serialize_columnar_uptime_item(row_dict, self.project_slugs)
 
-        assert result["description"] == "Uptime Check [success] - https://www.example.com (301)"
+        assert result["description"] == "Uptime Check Request [success]"
         assert result["name"] == "https://www.example.com"
         assert result["additional_attributes"]["request_url"] == "https://www.example.com"
         assert result["additional_attributes"]["original_url"] == "https://example.com"
@@ -112,18 +134,45 @@ class TestSerializeColumnarUptimeItem(TestCase):
             "actual_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
             "dns_lookup_duration_us": ProtoAttributeValue(val_int=50000),
             "tcp_connection_duration_us": ProtoAttributeValue(is_null=True),
+            "region": ProtoAttributeValue(val_str="us-east-1"),
         }
 
         result = _serialize_columnar_uptime_item(row_dict, self.project_slugs)
 
         assert result["duration"] == 0.0
         assert result["name"] == "https://test.com"
-        assert result["description"] == "Uptime Check [failure] - https://test.com"
+        assert result["description"] == "Uptime Check Request [failure]"
         attrs = result["additional_attributes"]
         assert "http_status_code" not in attrs
         assert "original_url" not in attrs
         assert attrs["dns_lookup_duration_us"] == 50000
         assert "tcp_connection_duration_us" not in attrs
+
+    def test_region_name_mapping(self):
+        """Test that region codes are properly mapped to region names."""
+        test_cases = [
+            ("us-east-1", "US East (N. Virginia)"),
+            ("eu-west-1", "Europe (Ireland)"),
+            ("nonexistent-region", "Unknown"),
+        ]
+
+        for region_code, expected_name in test_cases:
+            row_dict = {
+                "sentry.item_id": ProtoAttributeValue(val_str=f"check-{region_code}"),
+                "sentry.project_id": ProtoAttributeValue(val_int=1),
+                "guid": ProtoAttributeValue(val_str=f"check-{region_code}"),
+                "sentry.trace_id": ProtoAttributeValue(val_str="a" * 32),
+                "check_status": ProtoAttributeValue(val_str="success"),
+                "request_url": ProtoAttributeValue(val_str="https://example.com"),
+                "actual_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
+                "check_duration_us": ProtoAttributeValue(val_int=500000),
+                "region": ProtoAttributeValue(val_str=region_code),
+            }
+
+            with override_settings(UPTIME_REGIONS=TEST_UPTIME_REGIONS):
+                result = _serialize_columnar_uptime_item(row_dict, self.project_slugs)
+
+            assert result["region_name"] == expected_name
 
 
 class OrganizationEventsTraceEndpointTest(
@@ -441,13 +490,13 @@ class OrganizationEventsTraceEndpointTest(
             orphan = data[1]
         self.assert_event(orphan, orphan_event, "orphan")
 
-    def _find_uptime_spans(self, data):
-        """Helper to find all uptime spans in the response data"""
-        uptime_spans = []
+    def _find_uptime_checks(self, data):
+        """Helper to find all uptime checks in the response data"""
+        uptime_checks = []
         for item in data:
-            if item.get("event_type") == "uptime":
-                uptime_spans.append(item)
-        return uptime_spans
+            if item.get("event_type") == "uptime_check":
+                uptime_checks.append(item)
+        return uptime_checks
 
     def _create_uptime_result_with_original_url(self, original_url=None, **kwargs):
         """Helper to create uptime result with original_url attribute"""
@@ -460,7 +509,7 @@ class OrganizationEventsTraceEndpointTest(
 
     def assert_expected_results(self, response_data, input_trace_items, expected_children_ids=None):
         """Assert that API response matches expected results from input trace items."""
-        uptime_spans = [item for item in response_data if item.get("event_type") == "uptime"]
+        uptime_checks = [item for item in response_data if item.get("event_type") == "uptime_check"]
 
         def sort_key(item):
             guid = (
@@ -476,9 +525,9 @@ class OrganizationEventsTraceEndpointTest(
             return guid, seq
 
         sorted_items = sorted(input_trace_items, key=sort_key)
-        uptime_spans.sort(key=lambda s: sort_key(s))
+        uptime_checks.sort(key=lambda s: sort_key(s))
 
-        for i, (actual, expected_item) in enumerate(zip(uptime_spans, sorted_items)):
+        for i, (actual, expected_item) in enumerate(zip(uptime_checks, sorted_items)):
             expected = self._trace_item_to_api_span(expected_item)
             actual_without_children = {k: v for k, v in actual.items() if k != "children"}
             expected_without_children = {k: v for k, v in expected.items() if k != "children"}
@@ -488,7 +537,7 @@ class OrganizationEventsTraceEndpointTest(
 
         if expected_children_ids:
             final_span = max(
-                uptime_spans,
+                uptime_checks,
                 key=lambda s: s.get("additional_attributes", {}).get("request_sequence", -1),
             )
             actual_children = final_span.get("children", [])
@@ -610,8 +659,8 @@ class OrganizationEventsTraceEndpointTest(
         assert len(data) == 1
         self.assert_trace_data(data[0])
 
-        uptime_spans = self._find_uptime_spans(data)
-        assert len(uptime_spans) == 0
+        uptime_checks = self._find_uptime_checks(data)
+        assert len(uptime_checks) == 0
 
     def test_uptime_root_tree_with_orphaned_spans(self):
         """Test that orphaned spans are parented to the final uptime request"""
