@@ -99,7 +99,7 @@ function ReleaseActions({
 
   function getModalHeader(title: React.ReactNode) {
     return (
-      <h4>
+      <h4 style={{maxWidth: '100%'}}>
         <TextOverflow>{title}</TextOverflow>
       </h4>
     );
