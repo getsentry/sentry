@@ -477,8 +477,13 @@ class Fixtures:
         else:
             project_id = kwargs.pop("project").id
 
+        if "organization" in kwargs:
+            organization = kwargs.pop("organization")
+        else:
+            organization = self.organization
+
         return Monitor.objects.create(
-            organization_id=self.organization.id,
+            organization_id=organization.id,
             project_id=project_id,
             config={
                 "schedule": "* * * * *",
