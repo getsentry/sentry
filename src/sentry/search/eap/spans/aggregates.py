@@ -57,7 +57,7 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     value = args[3]
     assert isinstance(
         value, str
-    )  # This should always be a string. Assertion to deal with typing errors.
+    ), "Value must be a String"  # This should always be a string. Assertion to deal with typing errors.
 
     try:
         if key.type == AttributeKey.TYPE_DOUBLE:
