@@ -125,8 +125,8 @@ function VitalMeter({
   const {shortDescription} = VITAL_DESCRIPTIONS[webVitalKey];
 
   const headerText = WEB_VITALS_METERS_CONFIG[webVital].name;
-  const performanceIssues = WEB_VITAL_PERFORMANCE_ISSUES[webVital];
-  const {data: issues} = useWebVitalsIssuesQuery(performanceIssues);
+  const issueTypes = WEB_VITAL_PERFORMANCE_ISSUES[webVital];
+  const {data: issues} = useWebVitalsIssuesQuery({issueTypes});
   const hasIssues = issues && issues.length > 0;
   const meterBody = (
     <Fragment>
@@ -245,7 +245,9 @@ const getIssuesUrl = ({
   selection: PageFilters;
   webVital: WebVitals;
 }) => {
-  const query = getIssueQueryFilter(WEB_VITAL_PERFORMANCE_ISSUES[webVital]);
+  const query = getIssueQueryFilter({
+    issueTypes: WEB_VITAL_PERFORMANCE_ISSUES[webVital],
+  });
   return `/organizations/${organization.slug}/issues/?${qs.stringify({
     query,
     ...pageFiltersToQueryParams(selection),

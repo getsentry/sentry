@@ -18,7 +18,7 @@ import {CrumbLink} from '.';
 
 function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
-  const {projects} = useProjects();
+  const {projects, onSearch} = useProjects();
   const organization = useOrganization();
   const params = useParams();
   const handleSelect = (projectSlug: string) => {
@@ -65,10 +65,11 @@ function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
       }
       value={activeProject?.slug ?? ''}
       onCrumbSelect={handleSelect}
+      onSearch={onSearch}
       options={projects.map(project => ({
         value: project.slug,
         leadingItems: <ProjectAvatar project={project} size={20} />,
-        label: project.name,
+        label: project.slug,
       }))}
       {...props}
     />

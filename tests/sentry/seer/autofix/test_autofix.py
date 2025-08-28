@@ -653,8 +653,8 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
         assert result is not None
         assert "tags_overview" in result
 
-        # Should have environment, user_role, service, and level tags at minimum
-        assert len(result["tags_overview"]) >= 4
+        # Should have environment, user_role, and service tags, but not level since it's excluded
+        assert len(result["tags_overview"]) >= 3
 
         # Find specific tags
         tag_keys = {tag["key"]: tag for tag in result["tags_overview"]}

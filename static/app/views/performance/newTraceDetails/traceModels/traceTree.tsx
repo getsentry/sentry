@@ -4,15 +4,16 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import {t} from 'sentry/locale';
 import type {Event, EventTransaction, Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {uniqueId} from 'sentry/utils/guid';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
   TracePerformanceIssue as TracePerformanceIssueType,
   TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
-import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
+} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
@@ -32,13 +33,17 @@ import {
   isNonTransactionEAPSpanNode,
   isPageloadTransactionNode,
   isParentAutogroupedNode,
+  isRootEvent,
   isRootNode,
   isServerRequestHandlerTransactionNode,
   isSiblingAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
+  isTraceSplitResult,
   isTransactionNode,
+  isUptimeCheckNode,
+  isUptimeCheckTimingNode,
   shouldAddMissingInstrumentationSpan,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {
@@ -46,7 +51,6 @@ import {
   type RENDERABLE_MEASUREMENTS,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
@@ -184,14 +188,14 @@ export declare namespace TraceTree {
   };
 
   type UptimeCheck = {
-    children: Array<UptimeCheck | EAPSpan>;
+    children: EAPSpan[];
     duration: number;
     end_timestamp: number;
     errors: EAPError[];
     event_id: string;
-    event_type: 'uptime';
-    is_transaction: false;
+    event_type: 'uptime_check';
     name: string;
+    occurrences: EAPOccurrence[];
     op: string;
     project_id: number;
     project_slug: string;
@@ -199,6 +203,16 @@ export declare namespace TraceTree {
     transaction: string;
     transaction_id: string;
     additional_attributes?: Record<string, number | string>;
+    description?: string;
+  };
+
+  type UptimeCheckTiming = {
+    duration: number;
+    end_timestamp: number;
+    event_id: string;
+    event_type: 'uptime_check_timing';
+    op: string;
+    start_timestamp: number;
     description?: string;
   };
 
@@ -212,13 +226,14 @@ export declare namespace TraceTree {
     sdk_name: string;
   }
 
-  type EAPTrace = Array<EAPSpan | EAPError>;
+  type EAPTrace = Array<EAPSpan | EAPError | UptimeCheck>;
 
   type Trace = TraceSplitResults<Transaction> | EAPTrace;
 
-  // Represents events that we get from the trace endpoints and render an individual row for in the trace waterfall, on load.
-  // This excludes spans as they are rendered on-demand as the user zooms in.
-  type TraceEvent = Transaction | TraceError | EAPSpan | EAPError;
+  // Represents events that we get from the trace endpoints and render an
+  // individual row for in the trace waterfall, on load. This excludes spans as
+  // they are rendered on-demand as the user zooms in.
+  type TraceEvent = Transaction | TraceError | EAPSpan | EAPError | UptimeCheck;
 
   type TraceError = TraceErrorType;
   type TraceErrorIssue = TraceError | EAPError;
@@ -243,6 +258,7 @@ export declare namespace TraceTree {
     | Span
     | EAPSpan
     | UptimeCheck
+    | UptimeCheckTiming
     | MissingInstrumentationSpan
     | SiblingAutogroup
     | ChildrenAutogroup
@@ -287,7 +303,7 @@ export declare namespace TraceTree {
     | MissingInstrumentationNode;
 
   type NodePath =
-    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty'}-${string}`;
+    `${'txn' | 'span' | 'ag' | 'trace' | 'ms' | 'error' | 'empty' | 'uptime-check' | 'uptime-check-timing'}-${string}`;
 
   type Metadata = {
     event_id: string | undefined;
@@ -414,6 +430,94 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
   }
 
+  /**
+   * Generate uptime metric nodes for uptime check requests to show DNS, TCP,
+   * TLS, Request, Waiting, and Response phases in the trace waterfall.
+   */
+  static CreateUptimeCheckTimingNodes(
+    uptimeNode: TraceTreeNode<TraceTree.UptimeCheck>
+  ): Array<TraceTreeNode<TraceTree.UptimeCheckTiming>> {
+    const uptimeCheck = uptimeNode.value;
+    const attrs = uptimeCheck.additional_attributes || {};
+
+    // Create fake spans for each timing phase
+    const phases: Array<{
+      description: string;
+      durationUs: number;
+      op: string;
+      startUs: number;
+    }> = [
+      {
+        op: 'dns.lookup.duration',
+        description: t('DNS lookup'),
+        durationUs: Number(attrs.dns_lookup_duration_us || 0),
+        startUs: Number(attrs.dns_lookup_start_us || 0),
+      },
+      {
+        op: 'http.tcp_connection.duration',
+        description: t('TCP connect'),
+        durationUs: Number(attrs.tcp_connection_duration_us || 0),
+        startUs: Number(attrs.tcp_connection_start_us || 0),
+      },
+      {
+        op: 'tls.handshake.duration',
+        description: t('TLS handshake'),
+        durationUs: Number(attrs.tls_handshake_duration_us || 0),
+        startUs: Number(attrs.tls_handshake_start_us || 0),
+      },
+      {
+        op: 'http.client.request.duration',
+        description: t('Send request'),
+        durationUs: Number(attrs.send_request_duration_us || 0),
+        startUs: Number(attrs.send_request_start_us || 0),
+      },
+      {
+        op: 'http.server.time_to_first_byte',
+        description: t('Waiting for response'),
+        durationUs: Number(attrs.time_to_first_byte_duration_us || 0),
+        startUs: Number(attrs.time_to_first_byte_start_us || 0),
+      },
+      {
+        op: 'http.client.response.duration',
+        description: t('Receive response'),
+        durationUs: Number(attrs.receive_response_duration_us || 0),
+        startUs: Number(attrs.receive_response_start_us || 0),
+      },
+    ];
+
+    const fakeSpans = phases.map(phase => {
+      const startTimestamp = phase.startUs / 1_000_000;
+      const duration = phase.durationUs / 1_000_000;
+
+      const fakeSpan: TraceTree.UptimeCheckTiming = {
+        event_type: 'uptime_check_timing',
+        event_id: uniqueId(),
+        start_timestamp: startTimestamp,
+        end_timestamp: startTimestamp + duration,
+        duration,
+        op: phase.op,
+        description: phase.description,
+      };
+
+      const timingNode = new TraceTreeNode(uptimeNode, fakeSpan, {
+        project_slug: uptimeCheck.project_slug,
+        event_id: undefined,
+      });
+
+      // Calculate space bounds for the waterfall (start time in ms, duration in ms)
+      const startMs = startTimestamp * 1000;
+      const durationMs = duration * 1000;
+      timingNode.space = [startMs, durationMs];
+
+      return timingNode;
+    });
+
+    // Sort spans chronologically
+    fakeSpans.sort((a, b) => a.value.start_timestamp - b.value.start_timestamp);
+
+    return fakeSpans;
+  }
+
   static FromTrace(
     trace: TraceTree.Trace,
     options: {
@@ -444,6 +548,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         | TraceTree.TraceError
         | TraceTree.EAPSpan
         | TraceTree.EAPError
+        | TraceTree.UptimeCheck
     ) {
       tree.projects.set(value.project_id, {
         slug: value.project_slug,
@@ -490,6 +595,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       parentNode.children.push(node);
+
+      // Inject fake timing spans for uptime check nodes
+      if (isUptimeCheckNode(node)) {
+        const timingNodes = TraceTree.CreateUptimeCheckTimingNodes(node);
+        timingNodes.forEach(timingNode => node.children.push(timingNode));
+      }
 
       // Since we are reparenting EAP transactions at this stage, we need to sort the children
       if (isEAPTransactionNode(node)) {
@@ -2408,6 +2519,14 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
   if (isRootNode(n)) {
     throw new Error('A path to root node does not exist as the node is virtual');
   }
+  if (isUptimeCheckNode(n)) {
+    const checkId = n.value.event_id;
+    return `uptime-check-${checkId}`;
+  }
+  if (isUptimeCheckTimingNode(n)) {
+    const checkId = n.value.event_id;
+    return `uptime-check-timing-${checkId}`;
+  }
 
   if (isMissingInstrumentationNode(n)) {
     const previousSpanId = isSpanNode(n.previous)
@@ -2494,6 +2613,7 @@ function traceQueueIterator(
       | TraceTree.TraceError
       | TraceTree.EAPSpan
       | TraceTree.EAPError
+      | TraceTree.UptimeCheck
   ) => void
 ) {
   if (!isTraceSplitResult(trace)) {
@@ -2592,7 +2712,11 @@ function getRelatedPerformanceIssuesFromTransaction(
 }
 
 export function getNodeDescriptionPrefix(
-  node: TraceTreeNode<TraceTree.EAPSpan> | TraceTreeNode<TraceTree.Span>
+  node:
+    | TraceTreeNode<TraceTree.EAPSpan>
+    | TraceTreeNode<TraceTree.Span>
+    | TraceTreeNode<TraceTree.UptimeCheck>
+    | TraceTreeNode<TraceTree.UptimeCheckTiming>
 ) {
   // Check if span has http.request.prefetch attribute and add prefix if it does
   const isPrefetch =
