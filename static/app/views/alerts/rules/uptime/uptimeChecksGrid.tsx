@@ -189,7 +189,15 @@ function CheckInBodyCell({
       return (
         <TraceCell>
           {alwaysShowTraceLink || spanCount ? (
-            <Link to={`/performance/trace/${traceId}/?includeUptime=1`}>
+            <Link
+              to={{
+                pathname: `/performance/trace/${traceId}/`,
+                query: {
+                  includeUptime: '1',
+                  timestamp: new Date(timestamp).getTime() / 1000,
+                },
+              }}
+            >
               {getShortEventId(traceId)}
             </Link>
           ) : (
