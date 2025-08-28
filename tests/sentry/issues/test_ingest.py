@@ -755,6 +755,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
                 "message": "test",
                 "name": "Name Test",
                 "source": "crash report widget",
+                "summary": "test",
             },
         )
         event = self.store_event(data={}, project_id=self.project.id)
@@ -770,6 +771,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
+            "summary": "test",
             "initial_priority": occurrence.priority,
         }
 
@@ -781,6 +783,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
                 "message": "test",
                 "name": "Name Test",
                 "source": "crash report widget",
+                "summary": "test",
                 "associated_event_id": "55798fee4d21425c8689c980cde794f2",
             },
         )
@@ -797,6 +800,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
+            "summary": "test",
             "initial_priority": occurrence.priority,
             "associated_event_id": "55798fee4d21425c8689c980cde794f2",
         }

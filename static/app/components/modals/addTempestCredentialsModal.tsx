@@ -11,11 +11,12 @@ import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/
 
 interface Props extends ModalRenderProps {
   organization: Organization;
+  origin: 'onboarding' | 'project-creation' | 'project-settings';
   project: Project;
 }
 
 export default function AddCredentialsModal({Body, Header, ...props}: Props) {
-  const {closeModal, organization, project} = props;
+  const {closeModal, organization, project, origin} = props;
   const {invalidateCredentialsCache} = useFetchTempestCredentials(organization, project);
 
   const onSuccess = () => {
@@ -25,6 +26,7 @@ export default function AddCredentialsModal({Body, Header, ...props}: Props) {
     trackAnalytics('tempest.credentials.added', {
       organization,
       project_slug: project.slug,
+      origin,
     });
   };
 
