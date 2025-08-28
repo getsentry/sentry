@@ -280,7 +280,9 @@ class BitbucketServerIntegration(RepositoryIntegration):
 
     # RepositoryIntegration methods
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         if not query:
             resp = self.get_client().get_repos()
 

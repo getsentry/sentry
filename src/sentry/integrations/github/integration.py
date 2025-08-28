@@ -267,7 +267,9 @@ class GitHubIntegration(
         _, _, source_path = url.partition("/")
         return source_path
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """
         args:
         * query - a query to filter the repositories by
@@ -276,7 +278,7 @@ class GitHubIntegration(
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
         if not query:
-            all_repos = self.get_client().get_repos()
+            all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)
             return [
                 {
                     "name": i["name"],
