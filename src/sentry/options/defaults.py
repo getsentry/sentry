@@ -469,11 +469,25 @@ register(
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Globally disables replay-video.
+register(
+    "replay.replay-video.disabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Whether or not Relay replay-event publishing to Snuba is disabled.
 register(
     "replay.relay-snuba-publishing-disabled",
     type=Bool,
     default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Disables replay-video for a specific organization.
+register(
+    "replay.replay-video.slug-denylist",
+    type=Sequence,
+    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Disables viewed by queries for a list of project ids.
