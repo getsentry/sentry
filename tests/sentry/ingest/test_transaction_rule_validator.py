@@ -36,3 +36,13 @@ def test_schema_all_stars_invalid() -> None:
     assert not RuleValidator(ReplacementRule("ftp://*/*/*/**")).is_valid()
     assert RuleValidator(ReplacementRule("file:///example.txt")).is_valid()
     assert not RuleValidator(ReplacementRule("file:///*/*/**")).is_valid()
+
+
+def test_http_method_all_stars_invalid() -> None:
+    assert not RuleValidator(ReplacementRule("GET /*/*/**")).is_valid()
+    assert not RuleValidator(ReplacementRule("POST /*/*/**")).is_valid()
+    assert not RuleValidator(ReplacementRule("FOO /*/*/**")).is_valid()
+
+    assert RuleValidator(ReplacementRule("GET /a/*/**")).is_valid()
+    assert RuleValidator(ReplacementRule("POST /a/*/**")).is_valid()
+    assert RuleValidator(ReplacementRule("FOO /a/*/**")).is_valid()

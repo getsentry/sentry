@@ -1,3 +1,4 @@
+import re
 from urllib.parse import urlparse
 
 from .base import ReplacementRule
@@ -9,7 +10,11 @@ class RuleValidator:
         self._char_domain: set[str] = set(char_domain) if char_domain else set("*/")
 
     def is_valid(self) -> bool:
-        if self._is_all_stars() or self._is_schema_and_all_stars():
+        if (
+            self._is_all_stars()
+            or self._is_schema_and_all_stars()
+            or self._is_http_method_and_all_stars()
+        ):
             return False
         return True
 
@@ -52,3 +57,20 @@ class RuleValidator:
             return False
 
         return self._is_string_all_stars(url.path)
+
+    def _is_http_method_and_all_stars(self) -> bool:
+        """
+        Return true if the rule looks like an HTTP method and stars.
+
+        ## Examples
+        `GET /*/*/**` -> `True`
+        `GET /a/*/**` -> `False`
+
+        Transaction names with this pattern are commonly sent by SDKs and like
+        the all stars case, rules of this form provide no value.
+        """
+        match = re.match("[a-z]+ (.*)", self._rule, re.IGNORECASE)
+        if not match:
+            return False
+
+        return self._is_string_all_stars(match.groups()[0])
