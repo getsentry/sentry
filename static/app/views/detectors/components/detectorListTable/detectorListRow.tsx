@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
@@ -11,16 +13,28 @@ import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTa
 
 interface DetectorListRowProps {
   detector: Detector;
+  onSelect: (id: string) => void;
+  selected: boolean;
 }
 
-export function DetectorListRow({detector}: DetectorListRowProps) {
+export function DetectorListRow({detector, selected, onSelect}: DetectorListRowProps) {
   return (
     <DetectorSimpleTableRow
       variant={detector.enabled ? 'default' : 'faded'}
       data-test-id="detector-list-row"
     >
       <SimpleTable.RowCell>
-        <DetectorLink detector={detector} />
+        <Flex gap="md">
+          <CheckboxWrapper>
+            <Checkbox
+              checked={selected}
+              onChange={() => onSelect(detector.id)}
+              className="select-row"
+            />
+          </CheckboxWrapper>
+
+          <DetectorLink detector={detector} />
+        </Flex>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="type">
         <DetectorTypeCell type={detector.type} />
@@ -65,4 +79,20 @@ export function DetectorListRowSkeleton() {
 
 const DetectorSimpleTableRow = styled(SimpleTable.Row)`
   min-height: 76px;
+
+  @media (hover: hover) {
+    &:not(:has(:hover)):not(:has(input:checked)) {
+      .select-row {
+        ${p => p.theme.visuallyHidden}
+      }
+    }
+  }
+`;
+
+const CheckboxWrapper = styled('div')`
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 `;
