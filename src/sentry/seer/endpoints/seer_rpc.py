@@ -577,7 +577,6 @@ def get_attributes_and_values(
     return {"attributes_and_values": attributes_and_values}
 
 
-# TODO: Review and clean this up
 def _parse_spans_response(
     response, columns: list[ColumnDict], resolver: SearchResolver
 ) -> list[dict[str, Any]]:
@@ -628,25 +627,28 @@ def _parse_spans_response(
         except Exception:
             internal_to_user_name[user_column_name] = user_column_name
 
+    user_to_internal_name = {
+        user_name: internal_name for internal_name, user_name in internal_to_user_name.items()
+    }
+
+    ordered_column_data = []
+    for column in columns:
+        user_column_name = column["name"]
+        internal_column_name = user_to_internal_name.get(user_column_name)
+        if internal_column_name and internal_column_name in column_data:
+            ordered_column_data.append(column_data[internal_column_name])
+        else:
+            ordered_column_data.append([None] * num_rows)
+
     spans = []
-    for row_idx in range(num_rows):
-        span = {}
-        for column in columns:
-            user_column_name = column["name"]
-            internal_column_name = None
-            for internal_name, user_name in internal_to_user_name.items():
-                if user_name == user_column_name:
-                    internal_column_name = internal_name
-                    break
-            if (
-                internal_column_name
-                and internal_column_name in column_data
-                and row_idx < len(column_data[internal_column_name])
-            ):
-                span[user_column_name] = column_data[internal_column_name][row_idx]
-            else:
-                span[user_column_name] = None
-        spans.append(span)
+    if ordered_column_data:
+        from itertools import zip_longest
+
+        for row_values in zip_longest(*ordered_column_data, fillvalue=None):
+            span = {}
+            for column, value in zip(columns, row_values):
+                span[column["name"]] = value
+            spans.append(span)
 
     return spans
 
@@ -718,18 +720,30 @@ def get_spans(
             )
         )
 
-    descending = True
+    order_by_list = []
     if sort:
-        descending = sort[0]["descending"]
-        sort_column_name = sort[0]["name"]
-        resolved_column, _ = resolver.resolve_attribute(sort_column_name)
-        sort_column_name = resolved_column.internal_name
-        sort_column_type = (
-            AttributeKey.Type.TYPE_STRING
-            if sort[0]["type"] == "TYPE_STRING"
-            else AttributeKey.Type.TYPE_DOUBLE
-        )
-    else:
+        # Process all sort criteria in the order they are provided
+        for sort_item in sort:
+            sort_column_name = sort_item["name"]
+            resolved_column, _ = resolver.resolve_attribute(sort_column_name)
+            sort_column_name = resolved_column.internal_name
+            sort_column_type = (
+                AttributeKey.Type.TYPE_STRING
+                if sort_item["type"] == "TYPE_STRING"
+                else AttributeKey.Type.TYPE_DOUBLE
+            )
+            order_by_list.append(
+                TraceItemTableRequest.OrderBy(
+                    column=Column(
+                        key=AttributeKey(
+                            name=sort_column_name,
+                            type=sort_column_type,
+                        )
+                    ),
+                    descending=sort_item["descending"],
+                )
+            )
+    else:  # Default to first column if no sort is provided
         column_name = columns[0]["name"]
         resolved_column, _ = resolver.resolve_attribute(column_name)
         sort_column_name = resolved_column.internal_name
@@ -738,18 +752,17 @@ def get_spans(
             if columns[0]["type"] == "TYPE_STRING"
             else AttributeKey.Type.TYPE_DOUBLE
         )
-
-    order_by_list = [
-        TraceItemTableRequest.OrderBy(
-            column=Column(
-                key=AttributeKey(
-                    name=sort_column_name,
-                    type=sort_column_type,
-                )
-            ),
-            descending=descending,
-        )
-    ]
+        order_by_list = [
+            TraceItemTableRequest.OrderBy(
+                column=Column(
+                    key=AttributeKey(
+                        name=sort_column_name,
+                        type=sort_column_type,
+                    )
+                ),
+                descending=True,  # Default descending behavior
+            )
+        ]
 
     query_filter = None
     if query and query.strip():
@@ -770,7 +783,7 @@ def get_spans(
         columns=request_columns,
         order_by=order_by_list,
         filter=query_filter,
-        limit=min(limit, 100),  # Force the upper limit to 100 to avoid abuse
+        limit=min(max(limit, 1), 100),  # Force the upper limit to 100 to avoid abuse
     )
 
     responses = table_rpc([rpc_request])

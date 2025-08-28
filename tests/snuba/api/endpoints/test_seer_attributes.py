@@ -460,7 +460,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
     def test_get_spans_with_sort(self) -> None:
         """Test get_spans with sort string"""
-        for i, transaction in enumerate(["foo", "bar", "baz"]):
+        for i, transaction in enumerate(["foo", "bar", "zog", "baz"]):
             self.store_segment(
                 self.project.id,
                 uuid4().hex,
@@ -474,6 +474,19 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 exclusive_time=100,
                 is_eap=True,
             )
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="zag",
+            duration=200,
+            exclusive_time=100,
+            is_eap=True,
+        )
 
         result = get_spans(
             org_id=self.organization.id,
@@ -486,15 +499,28 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 {
                     "name": "span.duration",
                     "type": "TYPE_DOUBLE",
-                    "descending": False,
+                    "descending": True,
+                },
+                {
+                    "name": "transaction",
+                    "type": "TYPE_STRING",
+                    "descending": True,
                 },
             ],
         )
 
         assert result["data"] == [
-            {"transaction": "foo", "span.duration": 0},
-            {"transaction": "bar", "span.duration": 100},
-            {"transaction": "baz", "span.duration": 200},
+            {"transaction": "baz", "span.duration": 300.0},  # Highest duration first
+            {
+                "transaction": "zog",
+                "span.duration": 200.0,
+            },  # For duration=200, 'zog' > 'zag' in DESC order
+            {
+                "transaction": "zag",
+                "span.duration": 200.0,
+            },  # Same duration, secondary sort by transaction DESC
+            {"transaction": "bar", "span.duration": 100.0},  # Third highest duration
+            {"transaction": "foo", "span.duration": 0.0},  # Lowest duration last
         ]
 
         result_desc = get_spans(
@@ -513,9 +539,17 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             ],
         )
         assert result_desc["data"] == [
-            {"transaction": "baz", "span.duration": 200},
-            {"transaction": "bar", "span.duration": 100},
-            {"transaction": "foo", "span.duration": 0},
+            {"transaction": "baz", "span.duration": 300.0},
+            {
+                "transaction": "zag",
+                "span.duration": 200.0,
+            },
+            {
+                "transaction": "zog",
+                "span.duration": 200.0,
+            },
+            {"transaction": "bar", "span.duration": 100.0},
+            {"transaction": "foo", "span.duration": 0.0},
         ]
 
         result_string_asc = get_spans(
@@ -534,7 +568,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             ],
         )
         transaction_order = [span["transaction"] for span in result_string_asc["data"]]
-        assert transaction_order == ["bar", "baz", "foo"]  # Alphabetical ascending
+        assert transaction_order == ["bar", "baz", "foo", "zag", "zog"]  # Alphabetical ascending
 
         result_string_desc = get_spans(
             org_id=self.organization.id,
@@ -552,7 +586,13 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             ],
         )
         transaction_order_desc = [span["transaction"] for span in result_string_desc["data"]]
-        assert transaction_order_desc == ["foo", "baz", "bar"]  # Alphabetical descending
+        assert transaction_order_desc == [
+            "zog",
+            "zag",
+            "foo",
+            "baz",
+            "bar",
+        ]
 
     def test_get_spans_invalid_stats_period(self) -> None:
         """Test get_spans with invalid stats_period defaults to 7d"""
