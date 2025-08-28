@@ -1,7 +1,6 @@
 import pytest
 
 from sentry.constants import DataCategory, ObjectStatus
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.models import Monitor
@@ -13,36 +12,6 @@ from sentry.utils.outcomes import Outcome
 class QuotaTest(TestCase):
     def setUp(self) -> None:
         self.backend = Quota()
-
-    def test_get_project_quota(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        with self.settings(SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE=0):
-            with self.options({"system.rate-limit": 0}):
-                assert self.backend.get_project_quota(project) == (None, 60)
-
-            OrganizationOption.objects.set_value(org, "sentry:project-rate-limit", 80)
-
-            with self.options({"system.rate-limit": 100}):
-                assert self.backend.get_project_quota(project) == (80, 60)
-
-            with self.options({"system.rate-limit": 0}):
-                assert self.backend.get_project_quota(project) == (None, 60)
-
-    def test_get_project_quota_use_cache(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-
-        # Prime the organization options cache.
-        org.get_option("sentry:account-rate-limit")
-
-        with (
-            self.assertNumQueries(0),
-            self.settings(SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE=0),
-            self.options({"system.rate-limit": 0}),
-        ):
-            assert self.backend.get_project_quota(project) == (None, 60)
 
     def test_get_key_quota(self) -> None:
         key = ProjectKey.objects.create(
@@ -67,46 +36,6 @@ class QuotaTest(TestCase):
         )
         assert self.backend.get_key_quota(key) == (None, 0)
         assert self.backend.get_key_quota(rate_limited_key) == (86400, 200)
-
-    def test_get_organization_quota_with_account_limit_and_higher_system_limit(self) -> None:
-        org = self.create_organization()
-        OrganizationOption.objects.set_value(org, "sentry:account-rate-limit", 3600)
-        with self.options({"system.rate-limit": 61}):
-            assert self.backend.get_organization_quota(org) == (3600, 3600)
-
-    def test_get_organization_quota_with_account_limit_and_lower_system_limit(self) -> None:
-        org = self.create_organization()
-        OrganizationOption.objects.set_value(org, "sentry:account-rate-limit", 3600)
-        with self.options({"system.rate-limit": 59}):
-            assert self.backend.get_organization_quota(org) == (59, 60)
-
-    def test_get_organization_quota_with_account_limit_and_no_system_limit(self) -> None:
-        org = self.create_organization()
-        OrganizationOption.objects.set_value(org, "sentry:account-rate-limit", 3600)
-        with self.options({"system.rate-limit": 0}):
-            assert self.backend.get_organization_quota(org) == (3600, 3600)
-
-    def test_get_organization_quota_with_no_account_limit_and_system_limit(self) -> None:
-        org = self.create_organization()
-        with (
-            self.settings(
-                SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE="50%", SENTRY_SINGLE_ORGANIZATION=False
-            ),
-            self.options({"system.rate-limit": 10}),
-        ):
-            assert self.backend.get_organization_quota(org) == (5, 60)
-
-    def test_get_organization_quota_with_no_account_limit_and_relative_system_limit_single_org(
-        self,
-    ):
-        org = self.create_organization()
-        with (
-            self.settings(
-                SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE="50%", SENTRY_SINGLE_ORGANIZATION=True
-            ),
-            self.options({"system.rate-limit": 10}),
-        ):
-            assert self.backend.get_organization_quota(org) == (10, 60)
 
     def test_get_blended_sample_rate(self) -> None:
         org = self.create_organization()

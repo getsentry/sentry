@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, Literal
 
-from django.conf import settings
 from django.core.cache import cache
 
 from sentry import features, options
@@ -300,10 +299,7 @@ class Quota(Service):
     """
 
     __all__ = (
-        "get_maximum_quota",
         "get_abuse_quotas",
-        "get_project_quota",
-        "get_organization_quota",
         "is_rate_limited",
         "validate",
         "refund",
@@ -412,13 +408,6 @@ class Quota(Service):
         """
         Validates that the quota service is operational.
         """
-
-    def _translate_quota(self, quota, parent_quota):
-        if str(quota).endswith("%"):
-            pct = int(quota[:-1])
-            quota = int(parent_quota or 0) * pct / 100
-
-        return _limit_from_settings(quota or parent_quota)
 
     def get_key_quota(self, key):
         from sentry import features
@@ -531,61 +520,6 @@ class Quota(Service):
         from sentry.monitors.rate_limit import get_project_monitor_quota
 
         return get_project_monitor_quota(project)
-
-    def get_project_quota(self, project):
-        from sentry.models.options.organization_option import OrganizationOption
-        from sentry.models.organization import Organization
-
-        if not project.is_field_cached("organization"):
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-
-        org = project.organization
-
-        max_quota_share = int(
-            OrganizationOption.objects.get_value(org, "sentry:project-rate-limit", 100)
-        )
-
-        org_quota, window = self.get_organization_quota(org)
-
-        if max_quota_share != 100 and org_quota:
-            quota = self._translate_quota(f"{max_quota_share}%", org_quota)
-        else:
-            quota = None
-
-        return (quota, window)
-
-    def get_organization_quota(self, organization):
-        from sentry.models.options.organization_option import OrganizationOption
-
-        account_limit = _limit_from_settings(
-            OrganizationOption.objects.get_value(
-                organization=organization, key="sentry:account-rate-limit", default=0
-            )
-        )
-
-        system_limit = _limit_from_settings(options.get("system.rate-limit"))
-
-        # If there is only a single org, this one org should
-        # be allowed to consume the entire quota.
-        if settings.SENTRY_SINGLE_ORGANIZATION or account_limit:
-            if system_limit and (not account_limit or system_limit < account_limit / 60):
-                return (system_limit, 60)
-            # an account limit is enforced, which is set as a fixed value and cannot
-            # utilize percentage based limits
-            return (account_limit, 3600)
-
-        default_limit = self._translate_quota(
-            settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE, system_limit
-        )
-        return (default_limit, 60)
-
-    def get_maximum_quota(self, organization):
-        """
-        Return the maximum capable rate for an organization.
-        """
-        return (_limit_from_settings(options.get("system.rate-limit")), 60)
 
     def get_blended_sample_rate(
         self, project: Project | None = None, organization_id: int | None = None
