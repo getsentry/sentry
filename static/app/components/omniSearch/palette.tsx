@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {useListBox, useListBoxSection, useOption} from '@react-aria/listbox';
 import {isMac, mergeRefs} from '@react-aria/utils';
@@ -448,7 +456,7 @@ function OmniResultsList({
   const {listBoxProps} = useListBox(
     {
       'aria-label': 'Search results',
-      autoFocus: true,
+      autoFocus: 'first',
       shouldFocusOnHover: true,
       shouldUseVirtualFocus: true,
       shouldSelectOnPressUp: false,
@@ -459,6 +467,23 @@ function OmniResultsList({
     treeState,
     inputRef as React.RefObject<HTMLInputElement>
   );
+
+  const firstFocusableKey = useMemo(() => {
+    const firstItem = treeState.collection.at(0);
+    return firstItem?.type === 'section' ? [...firstItem.childNodes][0] : firstItem;
+  }, [treeState.collection]);
+
+  useEffect(() => {
+    if (query.length > 0) {
+      treeState.selectionManager.setFocusedKey(null);
+    }
+  }, [query, treeState.selectionManager]);
+
+  useEffect(() => {
+    if (treeState.selectionManager.focusedKey === null && firstFocusableKey) {
+      treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
+    }
+  }, [firstFocusableKey, treeState.selectionManager]);
 
   return (
     <Fragment>
