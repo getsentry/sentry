@@ -579,6 +579,7 @@ function CartDiff({
   }, [freePlan, isOnTrialPlan, subscription]);
 
   const isChanged = (currentValue: any, newValue: any) => {
+    // TODO(ISABELLA): NEED TO FILTER OUT 0 PER-CATEGORY
     if (typeof currentValue === 'object' && typeof newValue === 'object') {
       return !isEqual(currentValue, newValue);
     }
@@ -760,6 +761,11 @@ const Changes = styled('div')`
   grid-template-columns: 1fr 1fr;
   row-gap: ${p => p.theme.space.xs};
   column-gap: ${p => p.theme.space.xs};
+
+  &::before {
+    position: absolute;
+    left: ${p => p.theme.space['2xs']};
+  }
 `;
 
 const Change = styled('div')`
@@ -777,25 +783,25 @@ const Change = styled('div')`
 `;
 
 const Added = styled(Change)`
-  background: ${p => p.theme.green200};
+  background: #e0ffe3;
 
   &::before {
     content: '+';
   }
 
   span {
-    background: ${p => p.theme.success}50;
+    background: #a8ecaa;
   }
 `;
 
 const Removed = styled(Change)`
-  background: ${p => p.theme.red200};
+  background: ${p => p.theme.red100};
 
   &::before {
     content: '-';
   }
 
   span {
-    background: ${p => p.theme.error}50;
+    background: #f7d4d3;
   }
 `;
