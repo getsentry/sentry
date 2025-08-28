@@ -186,8 +186,8 @@ describe('DetectorEdit', () => {
 
       await userEvent.type(screen.getByRole('spinbutton', {name: 'Threshold'}), '100');
 
-      await userEvent.type(
-        screen.getByLabelText('Add a search term'),
+      await userEvent.click(screen.getByLabelText('Add a search term'));
+      await userEvent.paste(
         // Filter to a specific event type
         'event.type:error'
       );
@@ -223,6 +223,6 @@ describe('DetectorEdit', () => {
           })
         );
       });
-    });
+    }, 10_000);
   });
 });

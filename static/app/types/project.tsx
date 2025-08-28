@@ -67,8 +67,10 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
+  attachmentsRole?: string | null;
   autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
+  debugFilesRole?: string | null;
   defaultEnvironment?: string;
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
@@ -255,6 +257,7 @@ export type PlatformKey =
   | 'node-fastify'
   | 'node-gcpfunctions'
   | 'node-hapi'
+  | 'node-hono'
   | 'node-koa'
   | 'node-nestjs'
   | 'node-nodeawslambda'

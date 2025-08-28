@@ -127,24 +127,20 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
 
-  // Callback that is invoked when the trace loads and reaches its initialied state,
-  // that is when the trace tree data and any data that the trace depends on is loaded,
-  // but the trace is not yet rendered in the view.
-  const onTraceLoad = useCallback(() => {
-    const traceTimestamp = props.tree.root.children[0]?.space?.[0];
+  useEffect(() => {
+    if (props.tree.type !== 'trace') {
+      return;
+    }
+
+    const traceNode = props.tree.root.children[0];
+    const traceTimestamp = traceNode?.space?.[0];
     const traceAge = defined(traceTimestamp)
       ? getRelativeDate(traceTimestamp, 'ago')
       : 'unknown';
 
-    const traceNode = props.tree.root.children[0];
+    if (traceNode && !isLoadingSubscriptionDetails) {
+      const issuesCount = TraceTree.UniqueIssues(traceNode).length;
 
-    if (!traceNode) {
-      throw new Error('Trace is initialized but no trace node is found');
-    }
-
-    const issuesCount = TraceTree.UniqueIssues(traceNode).length;
-
-    if (!isLoadingSubscriptionDetails) {
       traceAnalytics.trackTraceShape(
         props.tree,
         projectsRef.current,
@@ -155,6 +151,22 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         issuesCount,
         props.tree.eap_spans_count
       );
+    }
+  }, [
+    props.tree,
+    hasExceededPerformanceUsageLimit,
+    isLoadingSubscriptionDetails,
+    props.organization,
+  ]);
+
+  // Callback that is invoked when the trace loads and reaches its initialied state,
+  // that is when the trace tree data and any data that the trace depends on is loaded,
+  // but the trace is not yet rendered in the view.
+  const onTraceLoad = useCallback(() => {
+    const traceNode = props.tree.root.children[0];
+
+    if (!traceNode) {
+      throw new Error('Trace is initialized but no trace node is found');
     }
 
     // Construct the visual representation of the tree
@@ -324,11 +336,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     viewManager,
     traceScheduler,
     props.tree,
-    props.organization,
     props.event,
-    hasExceededPerformanceUsageLimit,
     problemSpans.affectedSpanIds,
-    isLoadingSubscriptionDetails,
   ]);
 
   useTraceTimelineChangeSync({

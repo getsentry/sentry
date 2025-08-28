@@ -33,7 +33,7 @@ jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
 
 const ALL_AVAILABLE_FEATURES = [
-  'insights-entry-points',
+  'insight-modules',
   'discover',
   'discover-basic',
   'discover-query',

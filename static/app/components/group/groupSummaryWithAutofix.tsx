@@ -125,7 +125,7 @@ export function GroupSummaryWithAutofix({
   return <GroupSummary group={group} event={event} project={project} preview={preview} />;
 }
 
-function AutofixSummary({
+export function AutofixSummary({
   group,
   rootCauseDescription,
   solutionDescription,
