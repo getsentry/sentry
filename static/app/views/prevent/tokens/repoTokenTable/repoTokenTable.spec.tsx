@@ -9,7 +9,7 @@ import {
 import {openTokenRegenerationConfirmationModal} from 'sentry/actionCreators/modal';
 import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
 
-import RepoTokenTable, {DEFAULT_SORT} from './repoTokenTable';
+import RepoTokenTable, {type ValidSort} from './repoTokenTable';
 
 jest.mock('sentry/actionCreators/modal');
 jest.mock('sentry/components/confirm', () => {
@@ -44,7 +44,7 @@ const defaultProps = {
     isLoading: false,
     error: null,
   },
-  sort: DEFAULT_SORT,
+  sort: {field: 'name', kind: 'desc'} as ValidSort,
 };
 
 describe('RepoTokenTable', () => {
@@ -145,6 +145,73 @@ describe('RepoTokenTable', () => {
     // Verify that the modal is opened with the correct token
     expect(mockOpenTokenRegenerationConfirmationModal).toHaveBeenCalledWith({
       token: mockToken,
+    });
+  });
+
+  describe('Sorting functionality', () => {
+    it('renders with sort indicators when sort is provided', () => {
+      const sortedProps = {
+        ...defaultProps,
+        sort: {field: 'name', kind: 'desc'} as const,
+      };
+
+      renderWithContext(sortedProps);
+
+      expect(screen.getByRole('img')).toBeInTheDocument();
+      expect(
+        screen.getAllByRole('columnheader', {name: /repository name/i})[1]
+      ).toHaveAttribute('aria-sort', 'descending');
+    });
+
+    it('renders without sort indicators when no sort is provided', () => {
+      const unsortedProps = {
+        ...defaultProps,
+        sort: undefined as unknown as ValidSort,
+      };
+
+      renderWithContext(unsortedProps);
+
+      expect(screen.queryByRole('img')).not.toBeInTheDocument();
+      expect(
+        screen.getAllByRole('columnheader', {name: /repository name/i})[1]
+      ).toHaveAttribute('aria-sort', 'none');
+    });
+
+    it('shows ascending sort indicator correctly', () => {
+      const ascendingProps = {
+        ...defaultProps,
+        sort: {field: 'name', kind: 'asc'} as const,
+      };
+
+      renderWithContext(ascendingProps);
+
+      expect(screen.getByRole('img')).toBeInTheDocument();
+      expect(
+        screen.getAllByRole('columnheader', {name: /repository name/i})[1]
+      ).toHaveAttribute('aria-sort', 'ascending');
+    });
+
+    it('makes repository name column clickable for sorting', () => {
+      const unsortedProps = {
+        ...defaultProps,
+        sort: undefined as unknown as ValidSort,
+      };
+
+      renderWithContext(unsortedProps);
+
+      const nameHeader = screen.getAllByRole('columnheader', {
+        name: /repository name/i,
+      })[1];
+      expect(nameHeader).toHaveAttribute('href');
+      expect(nameHeader).toHaveAttribute('href', expect.stringContaining('sort=name'));
+    });
+
+    it('does not make token column clickable', () => {
+      renderWithContext();
+
+      const tokenHeader = screen.getByText('Token');
+      expect(tokenHeader.tagName).toBe('SPAN');
+      expect(tokenHeader).not.toHaveAttribute('href');
     });
   });
 });

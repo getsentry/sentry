@@ -219,6 +219,11 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
+  'node-hono': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'node-koa': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,

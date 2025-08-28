@@ -1,23 +1,43 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
+import {
+  makeAutofixQueryKey,
+  type AutofixResponse,
+} from 'sentry/components/events/autofix/useAutofix';
+import {
+  getRootCauseCopyText,
+  getRootCauseDescription,
+  getSolutionCopyText,
+  getSolutionDescription,
+  getSolutionIsLoading,
+} from 'sentry/components/events/autofix/utils';
+import {AutofixSummary} from 'sentry/components/group/groupSummaryWithAutofix';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
+import {IssueType, type Group} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
+import {useWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
 import type {SubregionCode} from 'sentry/views/insights/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -39,6 +59,7 @@ export function PageOverviewSidebar({
   browserTypes,
   subregions,
 }: Props) {
+  const hasSeerWebVitalsSuggestions = useHasSeerWebVitalsSuggestions();
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
@@ -106,6 +127,12 @@ export function PageOverviewSidebar({
   const ringSegmentColors = theme.chart.getColorPalette(4);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
+  const {data: issues, isLoading: isLoadingIssues} = useWebVitalsIssuesQuery({
+    issueTypes: [IssueType.WEB_VITALS],
+    transaction,
+    enabled: hasSeerWebVitalsSuggestions,
+  });
+
   return (
     <Fragment>
       <SectionHeading>
@@ -137,6 +164,22 @@ export function PageOverviewSidebar({
         )}
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}
       </SidebarPerformanceScoreRingContainer>
+      <SidebarSpacer />
+      {hasSeerWebVitalsSuggestions && !isLoadingIssues && issues && issues.length > 0 && (
+        <Fragment>
+          <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
+          <Content>
+            <InsightGrid>
+              {isLoadingIssues && <Placeholder height="1.5rem" />}
+              {issues
+                ? issues.map(issue => (
+                    <IssueAutofixSuggestions key={issue.shortId} issue={issue} />
+                  ))
+                : null}
+            </InsightGrid>
+          </Content>
+        </Fragment>
+      )}
       <SidebarSpacer />
       <SectionHeading>
         {t('Page Loads')}
@@ -225,6 +268,80 @@ export function PageOverviewSidebar({
   );
 }
 
+function IssueAutofixSuggestions({issue}: {issue: Group}) {
+  const organization = useOrganization();
+  const {data, isLoading: isLoadingAutofix} = useApiQuery<AutofixResponse>(
+    makeAutofixQueryKey(organization.slug, issue.id),
+    {
+      staleTime: Infinity,
+    }
+  );
+
+  const autofixData = data?.autofix;
+
+  const rootCauseDescription = useMemo(
+    () => (autofixData ? getRootCauseDescription(autofixData) : null),
+    [autofixData]
+  );
+
+  const rootCauseCopyText = useMemo(
+    () => (autofixData ? getRootCauseCopyText(autofixData) : null),
+    [autofixData]
+  );
+
+  const solutionDescription = useMemo(
+    () => (autofixData ? getSolutionDescription(autofixData) : null),
+    [autofixData]
+  );
+
+  const solutionCopyText = useMemo(
+    () => (autofixData ? getSolutionCopyText(autofixData) : null),
+    [autofixData]
+  );
+
+  const solutionIsLoading = useMemo(
+    () => (autofixData ? getSolutionIsLoading(autofixData) : false),
+    [autofixData]
+  );
+
+  if (isLoadingAutofix) {
+    return <Placeholder height="1.5rem" />;
+  }
+
+  return (
+    <InsightCard key={issue.shortId}>
+      <CardTitle>
+        <CardTitleIcon>
+          <StyledIconSeer size="md" />
+        </CardTitleIcon>
+        <SpanOp>{issue.title}</SpanOp>
+      </CardTitle>
+      <CardContentContainer>
+        <CardContent>
+          <AutofixSummary
+            group={issue}
+            rootCauseDescription={rootCauseDescription}
+            solutionDescription={solutionDescription}
+            codeChangesDescription={null}
+            codeChangesIsLoading={false}
+            rootCauseCopyText={rootCauseCopyText}
+            solutionCopyText={solutionCopyText}
+            solutionIsLoading={solutionIsLoading}
+          />
+          <ViewIssueButtonContainer>
+            <LinkButton
+              to={`/organizations/${organization.slug}/issues/${issue.id}?seerDrawer=true`}
+              size="sm"
+            >
+              {t('View Suggestion')}
+            </LinkButton>
+          </ViewIssueButtonContainer>
+        </CardContent>
+      </CardContentContainer>
+    </InsightCard>
+  );
+}
+
 const getChartSubText = (
   diff?: number,
   value?: string | number,
@@ -288,7 +405,7 @@ const SidebarPerformanceScoreRingContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ChartValue = styled('div')`
@@ -303,7 +420,7 @@ const ChartSubText = styled('div')<{color?: string}>`
 const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
@@ -313,4 +430,71 @@ const SectionHeading = styled('h4')`
 const ProjectScoreEmptyLoadingElement = styled('div')`
   width: 220px;
   height: 160px;
+`;
+
+const Content = styled(Flex)`
+  gap: ${p => p.theme.space.xs};
+  position: relative;
+  margin: ${p => p.theme.space.md} 0;
+`;
+
+const InsightGrid = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const InsightCard = styled('div')`
+  display: flex;
+  flex-direction: column;
+  border-radius: ${p => p.theme.borderRadius};
+  width: 100%;
+  min-height: 0;
+`;
+
+const CardTitle = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
+`;
+
+const SpanOp = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  display: block;
+`;
+
+const CardTitleIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
+`;
+
+const CardContentContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const CardContent = styled('div')`
+  overflow-wrap: break-word;
+  word-break: break-word;
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+  code {
+    word-break: break-all;
+  }
+  flex: 1;
+`;
+
+const StyledIconSeer = styled(IconSeer)`
+  color: ${p => p.theme.blue400};
+`;
+
+const ViewIssueButtonContainer = styled('div')`
+  margin: ${p => p.theme.space.lg} 0;
 `;

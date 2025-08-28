@@ -203,8 +203,8 @@ function IntervalPicker() {
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
-  const intervalChoices = useIntervalChoices({dataset, detectionType});
   const interval = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.interval);
+  const intervalChoices = useIntervalChoices({dataset, detectionType});
 
   useEffect(() => {
     if (!intervalChoices.some(choice => choice[0] === interval)) {
@@ -255,7 +255,7 @@ function useDatasetChoices() {
             {
               value: DetectorDataset.LOGS,
               label: t('Logs'),
-              trailingItems: <FeatureBadge type="beta" />,
+              trailingItems: <FeatureBadge type="new" />,
             },
           ]
         : []),

@@ -84,6 +84,7 @@ BACKEND = {
     "node-express",
     "node-fastify",
     "node-hapi",
+    "node-hono",
     "node-koa",
     "node-nestjs",
     "perl",

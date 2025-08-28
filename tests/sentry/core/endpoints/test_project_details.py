@@ -1027,6 +1027,29 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:store_crash_reports") is None
         assert resp.data["storeCrashReports"] is None
 
+    def test_debug_files_role(self) -> None:
+        # Test setting a valid role
+        resp = self.get_success_response(self.org_slug, self.proj_slug, debugFilesRole="admin")
+        assert self.project.get_option("sentry:debug_files_role") == "admin"
+        assert resp.data["debugFilesRole"] == "admin"
+
+        # Test setting another valid role
+        resp = self.get_success_response(self.org_slug, self.proj_slug, debugFilesRole="member")
+        assert self.project.get_option("sentry:debug_files_role") == "member"
+        assert resp.data["debugFilesRole"] == "member"
+
+        # Test setting to None (inherit from organization)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, debugFilesRole=None)
+        assert self.project.get_option("sentry:debug_files_role") is None
+        assert resp.data["debugFilesRole"] is None
+
+    def test_debug_files_role_invalid(self) -> None:
+        # Test with invalid role
+        self.get_error_response(
+            self.org_slug, self.proj_slug, debugFilesRole="invalid_role", status_code=400
+        )
+        assert self.project.get_option("sentry:debug_files_role") is None
+
     def test_react_hydration_errors(self) -> None:
         options = {"filters:react-hydration-errors": False}
         resp = self.get_success_response(self.org_slug, self.proj_slug, options=options)
@@ -2056,7 +2079,6 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         assert response.data["tempestFetchScreenshots"] is True
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
 
-    @with_feature("organizations:project-creation-games-tab")
     def test_put_tempest_fetch_screenshots_enabled_console_platforms(self) -> None:
         self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
         assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
@@ -2079,7 +2101,6 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         assert "tempestFetchScreenshots" in response.data
         assert response.data["tempestFetchScreenshots"] is False
 
-    @with_feature("organizations:project-creation-games-tab")
     def test_get_tempest_fetch_screenshots_options_enabled_console_platforms(self) -> None:
         self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
         response = self.get_success_response(
@@ -2104,7 +2125,6 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         assert response.data["tempestFetchDumps"] is True
         assert self.project.get_option("sentry:tempest_fetch_dumps") is True
 
-    @with_feature("organizations:project-creation-games-tab")
     def test_put_tempest_fetch_dumps_enabled_console_platforms(self) -> None:
         self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
         assert self.project.get_option("sentry:tempest_fetch_dumps") is False
@@ -2127,7 +2147,6 @@ class TestTempestProjectDetails(TestProjectDetailsBase):
         assert "tempestFetchDumps" in response.data
         assert response.data["tempestFetchDumps"] is False
 
-    @with_feature("organizations:project-creation-games-tab")
     def test_get_tempest_fetch_dumps_options_enabled_console_platforms(self) -> None:
         self.organization.update_option("sentry:enabled_console_platforms", ["playstation"])
         response = self.get_success_response(
