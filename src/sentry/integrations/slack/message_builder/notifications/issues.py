@@ -23,6 +23,7 @@ class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
 
     def build(self) -> SlackBlock:
         group = getattr(self.notification, "group", None)
+        assert group is not None, "Group is required to build an issue notification"
         return SlackIssuesMessageBuilder(
             group=group,
             event=getattr(self.notification, "event", None),
