@@ -167,6 +167,7 @@ export const projectPlatformToDocsMap: Record<string, string> = {
   'node-fastify': 'fastify',
   'node-gcpfunctions': 'gcp-functions',
   'node-hapi': 'hapi',
+  'node-hono': 'hono',
   'node-koa': 'koa',
   'node-nestjs': 'nestjs',
   'node-restify': 'restify',
