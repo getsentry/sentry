@@ -250,7 +250,7 @@ class ProjectCharts extends Component<Props, State> {
   get summaryHeading() {
     switch (this.displayMode) {
       case DisplayModes.ERRORS:
-        return t('Total Errors');
+        return t('Sample Count');
       case DisplayModes.STABILITY:
       case DisplayModes.SESSIONS:
         return t('Total Sessions');
