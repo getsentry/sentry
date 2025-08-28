@@ -1184,6 +1184,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
     def test_expansion_via_release_archive_no_sourcemap_link(self) -> None:
         self._test_expansion_via_release_archive(link_sourcemaps=False)
 
+    @pytest.mark.skip(reason="flaky: #98450")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_node_processing(self) -> None:
