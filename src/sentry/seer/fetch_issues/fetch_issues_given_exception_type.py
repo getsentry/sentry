@@ -127,13 +127,16 @@ def get_issues_related_to_exception_type(
         )
         .order_by("last_seen")[:max_num_issues]
     )
+
+    query_set_list = list(query_set)
+    issues_full = serialize(query_set_list, user=None)
+
+    # Add the message field from the Group model to each serialized group
+    for i, group in enumerate(query_set_list):
+        if i < len(issues_full):
+            issues_full[i]["message"] = group.message
+
     return {
-        "issues": [issue.id for issue in query_set],
-        "issues_with_message": [
-            {
-                "id": issue.id,
-                "message": issue.data.get("title") if issue.data else "",
-            }
-            for issue in query_set
-        ],
+        "issues": [issue.id for issue in query_set_list],
+        "issues_full": issues_full,
     }
