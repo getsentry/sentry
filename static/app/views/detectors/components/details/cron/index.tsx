@@ -19,7 +19,7 @@ type CronDetectorDetailsProps = {
 export function CronDetectorDetails({detector, project}: CronDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];
 
-  const {failureIssueThreshold, recoveryThreshold} = dataSource.queryObj;
+  const {failure_issue_threshold, recovery_threshold} = dataSource.queryObj.config;
 
   return (
     <DetailLayout>
@@ -37,21 +37,24 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             {tn(
               'One failed check-in.',
               '%s consecutive failed check-ins.',
-              failureIssueThreshold
+              failure_issue_threshold ?? 1
             )}
           </Section>
           <Section title={t('Resolve')}>
             {tn(
               'One successful check-in.',
               '%s consecutive successful check-ins.',
-              recoveryThreshold
+              recovery_threshold ?? 1
             )}
           </Section>
           <DetectorDetailsAssignee owner={detector.owner} />
           <DetectorExtraDetails>
+            <KeyValueTableRow
+              keyName={t('Monitor slug')}
+              value={dataSource.queryObj.slug}
+            />
             <KeyValueTableRow keyName={t('Next check-in')} value="TODO" />
             <KeyValueTableRow keyName={t('Last check-in')} value="TODO" />
-            <DetectorExtraDetails.Environment detector={detector} />
             <DetectorExtraDetails.DateCreated detector={detector} />
             <DetectorExtraDetails.CreatedBy detector={detector} />
             <DetectorExtraDetails.LastModified detector={detector} />
