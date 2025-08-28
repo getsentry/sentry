@@ -45,6 +45,7 @@ ${getImportInstrumentSnippet()}
 // All other imports below
 ${getSentryImportSnippet('node')}
 const { Hono } = require("hono");
+const { HTTPException } = require("hono/http-exception");
 
 
 const app = new Hono()
@@ -59,12 +60,21 @@ const app = new Hono()
     // Sentry.captureException(err);
     return c.json({ error: "Internal server error" }, 500);
   })
-  // Bind global context via Hono middleware
+  // Optional: Bind global context via Hono middleware
+  // Note: This requires session middleware to be configured
   .use((c, next) => {
-    Sentry.setUser({
-      email: c.session.user.email,
-    });
-    Sentry.setTag("project_id", c.session.projectId);
+    // Only set user context if session exists and has user data
+    if (c.session?.user?.email) {
+      Sentry.setUser({
+        email: c.session.user.email,
+      });
+    }
+
+    // Only set project tag if session has project data
+    if (c.session?.projectId !== undefined && c.session?.projectId !== null) {
+      Sentry.setTag("project_id", c.session.projectId);
+    }
+
     return next();
   })
   // Your routes...
@@ -195,10 +205,14 @@ const feedbackOnboardingNode: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: getCrashReportInstallDescription(),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: getCrashReportInstallDescription(),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'JavaScript',
               value: 'javascript',
@@ -233,9 +247,14 @@ const crashReportOnboarding: OnboardingConfig = {
   configure: () => [
     {
       type: StepType.CONFIGURE,
-      description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/hono/user-feedback/configuration/#crash-report-modal',
-      }),
+      content: [
+        {
+          type: 'text',
+          text: getCrashReportModalConfigDescription({
+            link: 'https://docs.sentry.io/platforms/javascript/guides/hono/user-feedback/configuration/#crash-report-modal',
+          }),
+        },
+      ],
     },
   ],
   verify: () => [],
