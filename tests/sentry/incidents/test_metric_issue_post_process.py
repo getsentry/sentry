@@ -415,7 +415,7 @@ class TestMetricIssueGroupByIntegration(BaseWorkflowTest, BaseMetricIssueTest):
         occurrences = {}
         for detector_id, group_results in results:
             for group_key, evaluation_result in group_results.items():
-                if isinstance(evaluation_result.result, IssueOccurrence):
+                if isinstance(evaluation_result.result, IssueOccurrence) and group_key is not None:
                     occurrences[group_key] = evaluation_result.result
         return occurrences
 

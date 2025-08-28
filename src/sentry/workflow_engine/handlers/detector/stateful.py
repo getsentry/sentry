@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import logging
+from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from typing import Any, Generic, cast
 from uuid import uuid4
@@ -298,6 +299,15 @@ class DetectorStateManager:
             )
         return results
 
+    def get_all_triggered_group_keys(self) -> list[DetectorGroupKey]:
+        """Get all group keys that are currently triggered for this detector"""
+        from sentry.workflow_engine.models.detector_state import DetectorState
+
+        triggered_states = DetectorState.objects.filter(
+            detector=self.detector, is_triggered=True
+        ).exclude(state=DetectorPriorityLevel.OK.value)
+        return [state.detector_group_key for state in triggered_states]
+
 
 DetectorThresholds = dict[DetectorPriorityLevel, int]
 
@@ -354,7 +364,7 @@ class StatefulDetectorHandler(
 
     def _build_workflow_engine_evidence_data(
         self,
-        evaluation_result: ProcessedDataConditionGroup,
+        evaluation_result: ProcessedDataConditionGroup | None,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
     ) -> dict[str, Any]:
@@ -366,9 +376,11 @@ class StatefulDetectorHandler(
             "detector_id": self.detector.id,
             "value": evaluation_value,
             "data_packet_source_id": str(data_packet.source_id),
-            "conditions": [
-                result.condition.get_snapshot() for result in evaluation_result.condition_results
-            ],
+            "conditions": (
+                [result.condition.get_snapshot() for result in evaluation_result.condition_results]
+                if evaluation_result is not None
+                else []
+            ),
         }
 
     def evaluate(
@@ -439,12 +451,59 @@ class StatefulDetectorHandler(
                 data_value,
             )
 
+        # Process missing groups that were previously triggered but are now absent from data
+        if self._is_detector_group_value(group_data_values):
+            missing_groups = self._get_missing_triggered_groups(group_data_values.keys())
+
+            if missing_groups:
+                missing_group_state = self.state_manager.get_state_data(missing_groups)
+
+                for missing_group_key in missing_groups:
+                    missing_state_data = missing_group_state[missing_group_key]
+
+                    # Only process if the group is currently triggered and not already resolved
+                    if (
+                        missing_state_data.is_triggered
+                        and missing_state_data.status != DetectorPriorityLevel.OK
+                    ):
+                        # Skip if we've already processed this update (dedupe check)
+                        if dedupe_value <= missing_state_data.dedupe_value:
+                            continue
+
+                        self.state_manager.enqueue_dedupe_update(missing_group_key, dedupe_value)
+
+                        # Create resolution message for the missing group
+                        resolution_message = self._create_resolve_message(
+                            condition_results=None,  # No conditions evaluated for missing groups
+                            data_packet=data_packet,
+                            evaluation_value=cast(
+                                DataPacketEvaluationType, 0
+                            ),  # Missing groups are treated as 0/below threshold
+                            group_key=missing_group_key,
+                        )
+
+                        # Update state to resolved
+                        self.state_manager.enqueue_state_update(
+                            missing_group_key,
+                            False,  # is_triggered = False
+                            DetectorPriorityLevel.OK,  # priority = OK (resolved)
+                        )
+
+                        # Add resolution to results
+                        results[missing_group_key] = DetectorEvaluationResult(
+                            group_key=missing_group_key,
+                            is_triggered=False,
+                            priority=DetectorPriorityLevel.OK,
+                            result=resolution_message,
+                            event_data=None,
+                        )
+
         self.state_manager.commit_state_updates()
         return results
 
     def _create_resolve_message(
         self,
-        condition_results: ProcessedDataConditionGroup,
+        condition_results: ProcessedDataConditionGroup | None,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
         group_key: DetectorGroupKey = None,
@@ -460,12 +519,17 @@ class StatefulDetectorHandler(
                 data_packet=data_packet,
                 evaluation_value=evaluation_value,
             ),
-            **self.build_detector_evidence_data(
-                condition_results,
-                data_packet,
-                DetectorPriorityLevel.OK,
-            ),
         }
+
+        # Only add detector-specific evidence data if we have condition results
+        if condition_results is not None:
+            evidence_data.update(
+                self.build_detector_evidence_data(
+                    condition_results,
+                    data_packet,
+                    DetectorPriorityLevel.OK,
+                )
+            )
 
         return StatusChangeMessage(
             fingerprint=fingerprint,
@@ -566,6 +630,13 @@ class StatefulDetectorHandler(
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
         conditions = self.detector.get_conditions()
         return list(DetectorPriorityLevel(condition.condition_result) for condition in conditions)
+
+    def _get_missing_triggered_groups(
+        self, present_group_keys: Iterable[DetectorGroupKey]
+    ) -> list[DetectorGroupKey]:
+        """Get triggered groups that are missing from the current data packet"""
+        all_triggered = self.state_manager.get_all_triggered_group_keys()
+        return [key for key in all_triggered if key not in present_group_keys]
 
     def _create_decorated_issue_occurrence(
         self,
