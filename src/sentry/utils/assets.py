@@ -11,12 +11,9 @@ from sentry.utils import json
 
 @dataclass
 class FrontendVersions:
-    commit_sha: str | None
+    commit_sha: str
     """
     The commit SHA of the currently deployed frontend version.
-
-    XXX(epuirkhiser): currently may be None while we transition to a
-    frontend-versions file that contains the version_sha.
     """
     entrypoints: dict[str, str]
     """
@@ -30,17 +27,9 @@ def _frontend_versions() -> FrontendVersions | None:
     config = os.path.join(settings.CONF_DIR, "settings", "frontend", "frontend-versions.json")
     try:
         with open(config) as f:
-            contents = json.load(f)  # getsentry path
+            return FrontendVersions(**json.load(f))  # getsentry path
     except OSError:
         return None  # common case for self-hosted
-
-    # XXX(epurkhiser): Shim code while we transition to a
-    # `frontend-versions.json` file that contains both a webpack entrypoint
-    # mapping as well as a commit SHA.
-    if "commit_sha" not in contents:
-        return FrontendVersions(commit_sha=None, entrypoints=contents)
-
-    return FrontendVersions(**contents)
 
 
 def get_frontend_commit_sha() -> str | None:
