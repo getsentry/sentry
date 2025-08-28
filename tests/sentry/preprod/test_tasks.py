@@ -2,7 +2,6 @@ from hashlib import sha1
 
 from django.core.files.base import ContentFile
 
-import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
@@ -23,10 +22,11 @@ from sentry.tasks.assemble import (
     delete_assemble_status,
     get_assemble_status,
 )
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
 
-@thread_leaks.allowlist(reason="preprod tasks", issue=97039)
+@thread_leak_allowlist(reason="preprod tasks", issue=97039)
 class AssemblePreprodArtifactTest(BaseAssembleTest):
     def tearDown(self) -> None:
         """Clean up assembly status and force garbage collection to close unclosed files"""
