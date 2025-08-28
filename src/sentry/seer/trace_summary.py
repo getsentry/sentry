@@ -89,7 +89,8 @@ def _call_seer(
                 **sign_with_seer_secret(body),
             },
         )
-    except Exception:
+        response.raise_for_status()
+    except requests.RequestException:
         # If the new pod fails, fall back to the autofix pod
         logger.warning("New Summarization pod connection failed for trace summary", exc_info=True)
         response = requests.post(
@@ -100,7 +101,6 @@ def _call_seer(
                 **sign_with_seer_secret(body),
             },
         )
-
-    response.raise_for_status()
+        response.raise_for_status()
 
     return SummarizeTraceResponse.validate(response.json())
