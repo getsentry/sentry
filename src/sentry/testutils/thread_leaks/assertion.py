@@ -6,7 +6,6 @@ does a bit of work to record and show exactly where the Thread came from, which
 proved essential when working to fix these things.
 """
 
-import os
 import threading
 import traceback
 from collections.abc import Generator
@@ -17,17 +16,15 @@ from typing import Any
 from unittest import mock
 
 from . import sentry
+from ._constants import CWD
 from .diff import diff
-
-_cwd = os.getcwd() + "/"
-del os  # hygiene
 
 
 class ThreadLeakAssertionError(AssertionError):
     pass
 
 
-def _where(cwd: str = _cwd) -> StackSummary:
+def _where(cwd: str = CWD) -> StackSummary:
     stack = traceback.extract_stack()
     for frame in stack:
         frame.filename = frame.filename.replace(cwd, "./")  # for readability

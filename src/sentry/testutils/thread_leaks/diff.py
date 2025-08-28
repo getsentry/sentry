@@ -5,6 +5,7 @@ from collections.abc import Generator, Iterable
 from threading import Thread
 from traceback import FrameSummary, StackSummary
 
+from ._constants import HERE
 from ._threading import get_thread_function_name
 
 
@@ -20,7 +21,7 @@ def get_relevant_frames(stack: Iterable[FrameSummary]) -> StackSummary:
 
     # Apply each filter independently, reverting if it would remove all frames
     for filter in (
-        lambda frame: frame.filename == __file__,  # Remove this very file
+        lambda frame: frame.filename.startswith(HERE),  # Remove thread leak detection frames
         lambda frame: frame.line is None,  # Remove "frozen" stdlib modules
         lambda frame: stdlib_dir
         and frame.filename.startswith(stdlib_dir + "/"),  # Remove Python stdlib
