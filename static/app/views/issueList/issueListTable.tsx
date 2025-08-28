@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
@@ -61,6 +61,26 @@ function IssueListTable({
   issuesSuccessfullyLoaded,
 }: IssueListTableProps) {
   const location = useLocation();
+
+  // Dogfooding: Add errors when issue list renders
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (Math.random() < 0.08) {
+        // 8% chance to trigger
+        // Simulate an error when processing issue data
+        const fakeIssueData = null;
+        try {
+          // @ts-ignore - intentional error for dogfooding
+          const processedData = fakeIssueData.map(item => item.id);
+          console.log(processedData);
+        } catch (e) {
+          throw new Error('Dogfooding test: TypeError when processing issue list data');
+        }
+      }
+    }, 1500);
+
+    return () => clearTimeout(timeout);
+  }, [groupIds]);
 
   const isNewViewEmptyStateActive =
     location.query.new === 'true' &&

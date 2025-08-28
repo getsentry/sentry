@@ -173,6 +173,46 @@ function IssueListOverview({
   const {selection} = usePageFilters();
   const api = useApi();
   const prefersStackedNav = usePrefersStackedNav();
+
+  // Dogfooding: Add various types of errors for testing Sentry
+  useEffect(() => {
+    // Add JavaScript runtime error after a small delay
+    const errorTimer = setTimeout(() => {
+      if (Math.random() < 0.1) {
+        // 10% chance to trigger
+        throw new Error('Dogfooding test: Unexpected runtime error in issues list');
+      }
+    }, 2000);
+
+    // Add unhandled promise rejection
+    const promiseTimer = setTimeout(() => {
+      if (Math.random() < 0.1) {
+        // 10% chance to trigger
+        Promise.reject(
+          new Error('Dogfooding test: Unhandled promise rejection in issues list')
+        );
+      }
+    }, 3000);
+
+    // Add console error with custom context
+    const consoleTimer = setTimeout(() => {
+      if (Math.random() < 0.1) {
+        // 10% chance to trigger
+        console.error('Dogfooding test: Console error with stack trace', {
+          component: 'IssueListOverview',
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          location: window.location.href,
+        });
+      }
+    }, 1000);
+
+    return () => {
+      clearTimeout(errorTimer);
+      clearTimeout(promiseTimer);
+      clearTimeout(consoleTimer);
+    };
+  }, []);
   const urlParams = useParams<{viewId?: string}>();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
@@ -536,6 +576,17 @@ function IssueListOverview({
 
       api.clear();
       pollerRef.current?.disable();
+
+      // Dogfooding: Randomly simulate network failures for testing
+      if (Math.random() < 0.05) {
+        // 5% chance to trigger
+        setTimeout(() => {
+          setError('Dogfooding test: Simulated network failure in issues API');
+          setIssuesLoading(false);
+          setIssuesSuccessfullyLoaded(false);
+        }, 1000);
+        return;
+      }
 
       api.request(`/organizations/${organization.slug}/issues/`, {
         method: 'GET',
