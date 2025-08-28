@@ -187,6 +187,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
 from social_auth.models import UserSocialAuth
 
@@ -2303,6 +2304,15 @@ class Factories:
         if workflow is None:
             workflow = Factories.create_workflow()
         return DetectorWorkflow.objects.create(detector=detector, workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector_group(
+        detector: Detector,
+        group: Group,
+        **kwargs,
+    ) -> DetectorGroup:
+        return DetectorGroup.objects.create(detector=detector, group=group, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
