@@ -46,7 +46,11 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
               {tct(
                 'Set this permission at the workflow or job level. For better security, define it at the job level as it limits access to only the job that needs the OIDC token. Learn more about [permissionsSettings].',
                 {
-                  permissionsSettings: <Link to="">{t('permissions settings')}</Link>,
+                  permissionsSettings: (
+                    <Link to="https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-cloud-providers#adding-permissions-settings">
+                      {t('permissions settings')}
+                    </Link>
+                  ),
                 }
               )}
             </Paragraph>
