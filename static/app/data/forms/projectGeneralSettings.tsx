@@ -231,7 +231,7 @@ export const fields = {
     },
     choices: ({organization}) => [
       [
-        '',
+        null,
         tct('Inherit organization setting ([organizationValue])', {
           organizationValue:
             organization.orgRoleList?.find(
@@ -244,12 +244,5 @@ export const fields = {
         r.name,
       ]) ?? []),
     ],
-    setValue: val => {
-      // If empty string is selected, return null to inherit from organization
-      if (val === '') {
-        return null;
-      }
-      return val;
-    },
   },
 } satisfies Record<string, Field>;
