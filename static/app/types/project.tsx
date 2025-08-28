@@ -257,6 +257,7 @@ export type PlatformKey =
   | 'node-fastify'
   | 'node-gcpfunctions'
   | 'node-hapi'
+  | 'node-hono'
   | 'node-koa'
   | 'node-nestjs'
   | 'node-nodeawslambda'
