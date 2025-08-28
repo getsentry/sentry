@@ -58,6 +58,9 @@ type TimeSeriesGroupBy = {
   value: string | Array<string | null> | Array<number | null>;
 };
 
+/**
+ * Time series data. Unlike other time series abstractions, this is tightly supported by both the backend and the frontend. The `/events-timeseries/` endpoint uses this as the respone data, and `TimeSeriesWidgetVisualization` plottable objects accept this as the backing data.
+ */
 export type TimeSeries = {
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
