@@ -9,6 +9,9 @@ import {IconUser} from 'sentry/icons/iconUser';
 
 export const Container = styled('div')`
   ${p => p.theme.overflowEllipsis};
+  span {
+    vertical-align: middle;
+  }
 `;
 
 export const VersionContainer = styled('div')`
@@ -20,6 +23,9 @@ export const NumberContainer = styled('div')`
   text-align: right;
   font-variant-numeric: tabular-nums;
   ${p => p.theme.overflowEllipsis};
+  span {
+    vertical-align: middle;
+  }
 `;
 
 export const FieldDateTime = styled(DateTime)`
