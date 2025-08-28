@@ -15,10 +15,8 @@ import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import SchemaHintsList, {
   SchemaHintsSection,
@@ -84,7 +82,6 @@ import {
   useQueryParamsVisualizes,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -128,16 +125,7 @@ export function LogsTabContent({
     return sortBys.map(formatSort);
   }, [sortBys]);
 
-  const [sidebarOpen, setSidebarOpen] = useSidebarOpen(
-    !!(
-      groupBys.some(Boolean) ||
-      visualizes.some(
-        visualize =>
-          isVisualizeFunction(visualize) &&
-          visualize.parsedFunction?.name !== AggregationKey.COUNT
-      )
-    )
-  );
+  const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
 
   useEffect(() => {
     if (autorefreshEnabled) {
@@ -406,19 +394,4 @@ export function LogsTabContent({
       </ToolbarAndBodyContainer>
     </SearchQueryBuilderProvider>
   );
-}
-
-function useSidebarOpen(defaultExpanded: boolean) {
-  const [sidebarOpen, _setSidebarOpen] = useLocalStorageState(
-    'explore-logs-toolbar',
-    defaultExpanded ? 'expanded' : ''
-  );
-
-  const setSidebarOpen = useCallback(
-    (expanded: boolean) => {
-      _setSidebarOpen(expanded ? 'expanded' : '');
-    },
-    [_setSidebarOpen]
-  );
-  return [sidebarOpen === 'expanded', setSidebarOpen] as const;
 }
