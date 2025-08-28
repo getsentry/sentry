@@ -1,6 +1,7 @@
 from sentry import analytics
 from sentry.analytics.events.join_request_created import JoinRequestCreatedEvent
 from sentry.analytics.events.join_request_link_viewed import JoinRequestLinkViewedEvent
+from sentry.analytics.events.user_signup import UserSignUpEvent
 from sentry.signals import join_request_created, join_request_link_viewed, user_signup
 
 
@@ -23,9 +24,10 @@ def record_join_request_link_viewed(organization, **kwargs):
 @user_signup.connect(weak=False)
 def record_user_signup(user, source, **kwargs):
     analytics.record(
-        "user.signup",
-        user_id=user.id,
-        source=source,
-        provider=kwargs.get("provider"),
-        referrer=kwargs.get("referrer"),
+        UserSignUpEvent(
+            user_id=user.id,
+            source=source,
+            provider=kwargs.get("provider"),
+            referrer=kwargs.get("referrer"),
+        )
     )
