@@ -678,6 +678,8 @@ def get_spans(
     Returns:
         Dictionary containing the spans data
     """
+    if not columns:
+        raise ValidationError("At least one column must be provided")
 
     period = parse_stats_period(stats_period)
     if period is None:
@@ -705,12 +707,16 @@ def get_spans(
         column_name = column["name"]
         column_type = column["type"]
 
-        resolved_column, _ = resolver.resolve_attribute(column_name)
+        try:
+            resolved_column, _ = resolver.resolve_attribute(column_name)
+            internal_name = resolved_column.internal_name
+        except (InvalidSearchQuery, Exception):
+            internal_name = column_name
 
         request_columns.append(
             Column(
                 key=AttributeKey(
-                    name=resolved_column.internal_name,
+                    name=internal_name,
                     type=(
                         AttributeKey.Type.TYPE_STRING
                         if column_type == "TYPE_STRING"
