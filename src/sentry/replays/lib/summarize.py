@@ -110,7 +110,7 @@ def fetch_trace_connected_errors(
             ],
             query=trace_ids_query,
             snuba_params=snuba_params,
-            orderby=["id"],
+            orderby=["-timestamp"],
             limit=100,
             referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
         )
@@ -127,7 +127,7 @@ def fetch_trace_connected_errors(
             ],
             query=trace_ids_query,
             snuba_params=snuba_params,
-            orderby=["event_id"],
+            orderby=["-timestamp"],
             limit=100,
             referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
         )
