@@ -2847,10 +2847,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
 
         assert response.status_code == 400, response.content
-        assert (
-            "Invalid parameter snequals. Must be one of ['equals', 'notEquals']"
-            == response.data["detail"]
-        )
+        assert "Invalid parameter snequals" in response.data["detail"]
 
     def test_ttif_ttfd_contribution_rate(self) -> None:
         spans = []
@@ -5642,6 +5639,65 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
         assert meta["dataset"] == "spans"
+
+    def test_count_if_numeric(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                    duration=400,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                    duration=400,
+                ),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "sentry_tags": {"status": "invalid_argument"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                    duration=200,
+                ),
+            ],
+            is_eap=True,
+        )
+        response = self.do_request(
+            {
+                "field": ["count_if(span.duration,greater,300)"],
+                "query": "",
+                "orderby": "count_if(span.duration,greater,300)",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "count_if(span.duration,greater,300)": 2,
+            },
+        ]
+        assert meta["dataset"] == "spans"
+
+    def test_count_if_numeric_raises_invalid_search_query_with_bad_value(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["count_if(span.duration,greater,three)"],
+                "query": "",
+                "orderby": "count_if(span.duration,greater,three)",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Invalid Parameter " in response.data["detail"].title()
 
     def test_apdex_function(self) -> None:
         """Test the apdex function with span.duration and threshold."""
