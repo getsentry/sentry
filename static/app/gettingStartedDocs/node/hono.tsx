@@ -89,6 +89,19 @@ const onboarding: OnboardingConfig = {
       type: StepType.INSTALL,
       content: [
         {
+          type: 'alert',
+          alertType: 'info',
+          showIcon: false,
+          text: tct(
+            "This guide assumes you're using the Node.js runtime for Hono. For setup instructions on Cloudflare Workers, see our [honoCloudFlareLink:Hono on Cloudflare guide].",
+            {
+              honoCloudFlareLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/cloudflare/frameworks/hono/" />
+              ),
+            }
+          ),
+        },
+        {
           type: 'text',
           text: t('Add the Sentry Node SDK as a dependency:'),
         },
