@@ -1,15 +1,27 @@
-import {Fragment, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
-import * as CommandPrimitive from 'cmdk';
+import {useListBox, useListBoxSection, useOption} from '@react-aria/listbox';
+import {isMac, mergeRefs} from '@react-aria/utils';
+import {Item, Section} from '@react-stately/collections';
+import type {TreeProps, TreeState} from '@react-stately/tree';
+import {useTreeState} from '@react-stately/tree';
+import type {Node} from '@react-types/shared';
 import type Fuse from 'fuse.js';
 
 import error from 'sentry-images/spot/cmd-k-error.svg';
 
 import {closeModal} from 'sentry/actionCreators/modal';
-import {Tag} from 'sentry/components/core/badge/tag';
+import {MenuListItem} from 'sentry/components/core/menuListItem';
 import {strGetFn} from 'sentry/components/search/sources/utils';
-import {IconArrow} from 'sentry/icons/iconArrow';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
+import {space} from 'sentry/styles/space';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -67,6 +79,13 @@ const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<OmniActionWithPriority> = {
   includeScore: true,
   threshold: 0.2,
   ignoreLocation: true,
+};
+
+type OmniSection = {
+  actions: OmniAction[];
+  key: string;
+  label: string;
+  'aria-label'?: string;
 };
 
 export function OmniSearchPalette() {
@@ -142,27 +161,30 @@ export function OmniSearchPalette() {
     });
   }, [filteredAvailableActions]);
 
-  const handleSelect = (action: OmniAction) => {
-    if (action.disabled) {
-      return;
-    }
-    if (action.children && action.children.length > 0) {
-      selectAction(action);
-      return;
-    }
-    if (action.onAction) {
-      action.onAction();
-    }
-    if (action.to) {
-      navigate(normalizeUrl(action.to));
-    }
+  const handleSelect = useCallback(
+    (action: OmniAction) => {
+      if (action.disabled) {
+        return;
+      }
+      if (action.children && action.children.length > 0) {
+        selectAction(action);
+        return;
+      }
+      if (action.onAction) {
+        action.onAction();
+      }
+      if (action.to) {
+        navigate(normalizeUrl(action.to));
+      }
 
-    // TODO: Any other action handlers?
+      // TODO: Any other action handlers?
 
-    if (!action.keepOpen) {
-      closeModal();
-    }
-  };
+      if (!action.keepOpen) {
+        closeModal();
+      }
+    },
+    [navigate, selectAction]
+  );
 
   // When an action has been selected, clear the query and focus the input
   useLayoutEffect(() => {
@@ -179,459 +201,385 @@ export function OmniSearchPalette() {
     return 'Type for actions…';
   }, [selectedAction]);
 
+  const resultsSections: OmniSection[] = useMemo(() => {
+    return grouped
+      .filter(group => group.items.length > 0)
+      .map(group => ({key: group.sectionKey, label: group.label, actions: group.items}));
+  }, [grouped]);
+
+  const handleActionByKey = useCallback(
+    (selectionKey: React.Key | null | undefined) => {
+      if (selectionKey === null || selectionKey === undefined) {
+        return;
+      }
+      const action = resultsSections
+        .flatMap(section => section.actions)
+        .find(a => a.key === selectionKey);
+      if (action) {
+        handleSelect(action);
+      }
+    },
+    [resultsSections, handleSelect]
+  );
+
   return (
     <Fragment>
-      <StyledCommand label="OmniSearch" shouldFilter={false} loop>
-        <Header>
-          {focusedArea && (
-            <FocusedAreaContainer>
-              <FocusedArea>{focusedArea.label}</FocusedArea>
-            </FocusedAreaContainer>
-          )}
-          <SearchInputContainer>
-            {selectedAction && (
-              <BackButton
-                onClick={() => {
-                  clearSelection();
-                }}
-              >
-                <IconArrow direction="left" size="sm" />
-              </BackButton>
-            )}
-            <SearchInput
-              autoFocus
-              ref={inputRef}
-              value={query}
-              onValueChange={setQuery}
-              onKeyDown={e => {
-                if (e.key === 'Backspace' && query === '') {
-                  clearSelection();
-                  e.preventDefault();
-                }
-              }}
-              placeholder={placeholder}
-            />
-          </SearchInputContainer>
-        </Header>
-        <CommandPrimitive.Command.List>
-          {grouped.every(g => g.items.length === 0) ? (
-            <CommandPrimitive.Command.Empty>
-              <img src={error} alt="No results" />
-              <p>Whoops… we couldn't find any results matching your search.</p>
-              <p>Try rephrasing your query maybe?</p>
-            </CommandPrimitive.Command.Empty>
-          ) : (
-            grouped.map(group => (
-              <Fragment key={group.sectionKey}>
-                {group.items.length > 0 && (
-                  <CommandPrimitive.Command.Group heading={group.label}>
-                    {group.items.map(item => (
-                      <CommandPrimitive.Command.Item
-                        key={item.key}
-                        value={item.key}
-                        onSelect={() => handleSelect(item)}
-                        disabled={item.disabled}
-                        hidden={item.hidden}
-                      >
-                        <ItemRow>
-                          {item.actionIcon && (
-                            <IconDefaultsProvider size="sm">
-                              <IconWrapper>{item.actionIcon}</IconWrapper>
-                            </IconDefaultsProvider>
-                          )}
-                          <OverflowHidden>
-                            <div>
-                              {item.label}
-                              {item.children && item.children.length > 0 && '…'}
-                            </div>
-                            {item.details && <ItemDetails>{item.details}</ItemDetails>}
-                          </OverflowHidden>
-                        </ItemRow>
-                      </CommandPrimitive.Command.Item>
-                    ))}
-                  </CommandPrimitive.Command.Group>
-                )}
-              </Fragment>
-            ))
-          )}
-        </CommandPrimitive.Command.List>
-      </StyledCommand>
+      <OmniHeader hasFocusedArea={!!focusedArea}>
+        {focusedArea && <OmniFocusedAreaLabel>{focusedArea.label}</OmniFocusedAreaLabel>}
+        <OmniInput
+          ref={inputRef}
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder={placeholder}
+          onKeyDown={e => {
+            if (e.key === 'Backspace' && query === '') {
+              clearSelection();
+              e.preventDefault();
+            }
+          }}
+        />
+      </OmniHeader>
+
+      {resultsSections.length === 0 ? (
+        <EmptyWrap>
+          <img src={error} alt="No results" />
+          <p>Whoops… we couldn't find any results matching your search.</p>
+          <p>Try rephrasing your query maybe?</p>
+        </EmptyWrap>
+      ) : null}
+      <OmniResultsList onActionKey={handleActionByKey} inputRef={inputRef}>
+        {resultsSections.map(({key: sectionKey, label, actions}) => (
+          <Section key={sectionKey} title={label}>
+            {actions.map(({key: actionKey, ...action}) => (
+              <Item<OmniAction> key={actionKey} {...action}>
+                {action.label}
+              </Item>
+            ))}
+          </Section>
+        ))}
+      </OmniResultsList>
     </Fragment>
   );
 }
 
-const Header = styled('div')`
-  position: relative;
-
-  [data-matrix-mode='true'] & {
-    background-color: #101e13;
-    color: #00ff00;
-  }
-`;
-
-const SearchInputContainer = styled('div')`
-  position: relative;
+const OmniHeader = styled('div')<{hasFocusedArea: boolean}>`
   display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 4px 16px;
-  border-bottom: 1px solid ${p => p.theme.border};
-
-  [data-matrix-mode='true'] & {
-    padding: 2px 10px;
-    gap: 4px;
-    border: 2px solid #1a5200;
-  }
-`;
-
-const BackButton = styled('button')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  color: ${p => p.theme.subText};
-  transition: all 0.1s ease-out;
-
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-    color: ${p => p.theme.textColor};
-  }
-
-  [data-matrix-mode='true'] & {
-    color: #00ff00;
-    transition: all 0.2s ease;
-    padding: 4px;
-    border-radius: 0;
-
-    &:hover {
-      background-color: rgba(0, 255, 0, 0.1);
-      color: #00ff00;
-    }
-  }
-`;
-
-const SearchInput = styled(CommandPrimitive.Command.Input)`
-  position: relative;
-  background-color: ${p => p.theme.background};
-  width: 100%;
-  outline: none;
-  border: none;
-  font-size: ${p => p.theme.fontSize.lg};
-  line-height: 1;
-  height: 40px;
-
-  &:disabled {
-    opacity: 0.5;
-  }
-
-  [data-matrix-mode='true'] & {
-    background-color: #101e13;
-    color: #00ff00;
-    font-family: 'Departure Mono', monospace;
-    text-transform: uppercase;
-    height: 40px;
-    font-size: 14px;
-
-    &::placeholder {
-      color: rgba(0, 255, 0, 0.6);
-    }
-
-    &:focus {
-      border-color: #00ff00;
-    }
-  }
-`;
-
-const FocusedAreaContainer = styled('div')`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  padding-bottom: 0;
-
-  [data-matrix-mode='true'] & {
-    padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  }
-`;
-
-const FocusedArea = styled(Tag)`
-  font-size: ${p => p.theme.fontSize.xs};
-  color: ${p => p.theme.subText};
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeight.bold};
-  border: 1px solid ${p => p.theme.border};
-  width: fit-content;
-  border-radius: ${p => p.theme.borderRadius};
-
-  [data-matrix-mode='true'] & {
-    background-color: #101e13;
-    color: #00ff00;
-    border-color: #00ff00;
-    font-family: 'Departure Mono', monospace;
-    text-transform: uppercase;
-
-    font-size: 10px;
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
-  }
-`;
-
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 18px;
-  width: 18px;
-
-  opacity: 0.75;
-  transition: all 0.1s ease-out;
-
-  [data-matrix-mode='true'] & {
-    opacity: 0.5;
-  }
-`;
-
-const StyledCommand = styled(CommandPrimitive.Command)`
-  &[cmdk-root] {
-    width: 100%;
-    background: ${p => p.theme.background};
-    border-radius: 6px;
-    overflow: hidden;
-
-    [data-matrix-mode='true'] & {
-      background: #101e13;
-      border-radius: 0;
-      font-family: 'Departure Mono', monospace;
-      text-transform: uppercase;
-
-      &:before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: calc(100% + 12px);
-        height: calc(100% + 12px);
-        background: #101e13;
-      }
-    }
-  }
-
-  [cmdk-list] {
-    position: relative;
-    padding: 6px;
-    height: 500px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scroll-padding-block-start: 64px;
-    scroll-padding-block-end: 64px;
-
-    &:focus {
-      outline: none;
-    }
-
-    background:
-      /* Shadow covers */
-      linear-gradient(${p => p.theme.background} 30%, rgba(255, 255, 255, 0)),
-      linear-gradient(rgba(255, 255, 255, 0), ${p => p.theme.background} 70%) 0 100%,
-      /* Shadows */ linear-gradient(to bottom, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0)),
-      linear-gradient(to top, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0)) 0 100%;
-
-    background-repeat: no-repeat;
-    background-size:
-      100% 40px,
-      100% 40px,
-      100% 20px,
-      100% 20px;
-
-    background-attachment: local, local, scroll, scroll;
-
-    [data-matrix-mode='true'] & {
-      background: #101e13;
-      color: #00ff00;
-      font-family: 'Departure Mono', monospace;
-      text-transform: uppercase;
-      padding: 6px;
-      height: 500px;
-
-      /* Custom scrollbar styling */
-      &::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      &::-webkit-scrollbar-track {
-        background: #0a150d;
-        border: 1px solid #1a5200;
-      }
-
-      &::-webkit-scrollbar-thumb {
-        background: #00ff00;
-        border: 1px solid #1a5200;
-      }
-
-      &::-webkit-scrollbar-thumb:hover {
-        background: #00cc00;
-      }
-
-      &::-webkit-scrollbar-corner {
-        background: #0a150d;
-        border: 1px solid #1a5200;
-      }
-
-      /* Firefox scrollbar */
-      scrollbar-width: thin;
-      scrollbar-color: #00ff00 #0a150d;
-    }
-  }
-
-  [cmdk-group] {
-    margin-top: 8px;
-
-    + * {
-      [cmdk-group-heading] {
-        padding-top: 12px;
-        border-top: 1px solid ${p => p.theme.border};
-      }
-    }
-
-    [data-matrix-mode='true'] & {
-      margin-top: 2px;
-
-      + * {
-        [cmdk-group-heading] {
-          padding-top: 12px;
-          border-top: 1px solid #1a5200;
-        }
-      }
-    }
-  }
-
-  [cmdk-group-heading] {
-    text-transform: uppercase;
-    font-size: ${p => p.theme.fontSize.xs};
-    letter-spacing: 0.02em;
-    font-weight: 600;
-    color: ${p => p.theme.subText};
-    padding-bottom: 4px;
-    margin: 0 12px;
-
-    [data-matrix-mode='true'] & {
-      color: #00ff00;
-      font-family: 'Departure Mono', monospace;
-      font-weight: bold;
-      font-size: 10px;
-      padding-bottom: 4px;
-      margin: 0 6px;
-    }
-  }
-
-  [cmdk-item] {
-    text-transform: none;
-    padding: 12px;
-    font-size: ${p => p.theme.fontSize.md};
-    color: ${p => p.theme.textColor};
-    cursor: pointer;
-    border-radius: 4px;
-    position: relative;
-
-    &[data-selected='true'] {
-      background-color: ${p => p.theme.backgroundSecondary};
-      color: ${p => p.theme.purple400};
-
-      ${IconWrapper} {
-        opacity: 1;
-        transform: scale(1.1);
-      }
-    }
-
-    [data-matrix-mode='true'] & {
-      color: #00ff00;
-      font-family: 'Departure Mono', monospace;
-      text-transform: uppercase;
-      border: 1px solid transparent;
-      padding: 6px 10px;
-      font-size: 12px;
-      border-radius: 0;
-      margin: 0 -6px;
-
-      ${IconWrapper} {
-        transition: none;
-      }
-
-      &[data-selected='true'] {
-        background-color: #00ff00;
-        color: black;
-        border-color: #00ff00;
-
-        ${IconWrapper} {
-          opacity: 1;
-          transform: scale(1);
-        }
-      }
-    }
-  }
-
-  [cmdk-empty] {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    font-size: ${p => p.theme.fontSize.md};
-    color: ${p => p.theme.subText};
-    text-align: center;
-    padding: 24px 12px;
-    height: 400px;
-
-    img {
-      width: 100%;
-      max-width: 400px;
-      margin-bottom: 12px;
-    }
-
-    p {
-      margin: 0;
-    }
-
-    [data-matrix-mode='true'] & {
-      color: #00ff00;
-      font-family: 'Departure Mono', monospace;
-      text-transform: uppercase;
-
-      img {
-        filter: hue-rotate(120deg) brightness(1.5) contrast(1.2);
-      }
-    }
-  }
-`;
-
-const ItemRow = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px;
+  flex-direction: column;
   align-items: start;
-  justify-content: start;
-  overflow: hidden;
+  box-shadow: 0 1px 0 0 ${p => p.theme.translucentInnerBorder};
+  z-index: 2;
+  ${p => p.hasFocusedArea && `padding-top: ${space(1.5)};`}
 `;
 
-const ItemDetails = styled('div')`
+const OmniInput = styled('input')`
+  width: 100%;
+  background: transparent;
+  padding: ${space(1)} ${space(2)};
+  border: none;
+
+  font-size: ${p => p.theme.fontSize.lg};
+  line-height: 2;
+
+  &:focus {
+    outline: none;
+  }
+`;
+
+const ResultsList = styled('ul')`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: min(calc(100vh - 128px - 4rem), 400px);
+  overflow: auto;
+  padding: ${space(0.5)} 0;
+  margin: 0;
+`;
+
+const ResultSection = styled('li')<{hasHeading?: boolean}>`
+  position: relative;
+  list-style-type: none;
+  padding: ${space(1)} 0;
+
+  &:first-of-type {
+    padding-top: calc(${space(0.5)} + 1px);
+  }
+
+  &:last-of-type {
+    padding-bottom: 0;
+  }
+
+  ${p =>
+    !p.hasHeading &&
+    `&& {
+      padding-top: 1px;
+    }`};
+
+  &:not(:last-of-type)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: ${space(1.5)};
+    right: ${space(1.5)};
+    border-bottom: solid 1px ${p => p.theme.translucentInnerBorder};
+  }
+`;
+
+const ResultSectionLabel = styled('label')`
+  display: block;
+  margin-left: ${space(2)};
+  margin-bottom: ${space(0.5)};
+
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  ${p => p.theme.overflowEllipsis}
+  font-weight: 600;
+  text-transform: uppercase;
+`;
 
-  [data-matrix-mode='true'] & {
-    color: #00ff00;
-    opacity: 0.75;
+const ResultSectionList = styled('ul')`
+  padding: 0;
+  margin: 0;
+`;
+
+const IconWrap = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-right: ${space(0.5)};
+  margin-bottom: ${space(0.25)};
+`;
+
+const KeyboardShortcutWrap = styled('div')`
+  display: flex;
+  gap: ${space(0.75)};
+  align-items: baseline;
+  color: ${p => p.theme.subText};
+`;
+
+const KeyboardShortcutKey = styled('kbd')<{isSymbol: boolean}>`
+  height: 1.2rem;
+  ${p =>
+    !p.isSymbol &&
+    `
+    width: 1.1rem;
+    text-transform: uppercase;
+  `}
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 ${space(0.5)};
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentInnerBorder};
+  background: ${p => p.theme.backgroundElevated}D9;
+
+  font-family: system-ui;
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  line-height: 1;
+`;
+
+const ItemDivider = styled('li')`
+  display: block;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  margin: ${space(0.5)} ${space(1.5)} ${space(0.5)} 45px;
+`;
+
+const OmniFocusedAreaLabel = styled('p')`
+  margin-bottom: 0;
+  margin-left: ${space(1.5)};
+  padding: 0 ${space(0.5)};
+  box-shadow: 0 0 0 1px ${p => p.theme.translucentInnerBorder};
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: 2px;
+
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  line-height: 1.5;
+`;
+
+const EmptyWrap = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.subText};
+  text-align: center;
+  padding: 24px 12px;
+  height: 400px;
+
+  img {
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 12px;
   }
 
-  [data-selected='true'] & {
-    [data-matrix-mode='true'] & {
-      color: black;
+  p {
+    margin: 0;
+  }
+`;
+
+// Keyboard glyphs
+const keyboardGlyphs = {
+  shift: '⇧',
+  backspace: '⌫',
+  ArrowLeft: '←',
+  ArrowUp: '↑',
+  ArrowRight: '→',
+  ArrowDown: '↓',
+};
+
+const macKeyboardGlyphs = {
+  ...keyboardGlyphs,
+  alt: '⌥',
+  control: '⌃',
+  cmd: '⌘',
+};
+
+const windowsKeyboardGlyphs = {
+  ...keyboardGlyphs,
+  Alt: 'Alt',
+  Control: 'Ctrl',
+  Meta: '❖',
+};
+
+interface OmniResultsProps extends TreeProps<OmniSection> {
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onActionKey?: (selectionKey: React.Key | null | undefined) => void;
+}
+
+function OmniResultsList({onActionKey, inputRef, ...treeProps}: OmniResultsProps) {
+  const listRef = useRef<HTMLUListElement>(null);
+
+  const treeState = useTreeState(treeProps);
+  const collection = [...treeState.collection];
+
+  const {listBoxProps} = useListBox(
+    {
+      'aria-label': 'Search results',
+      autoFocus: true,
+      shouldFocusOnHover: true,
+      shouldUseVirtualFocus: true,
+      shouldSelectOnPressUp: false,
+      shouldFocusWrap: true,
+      selectionMode: 'none',
+      onAction: key => onActionKey?.(key),
+    },
+    treeState,
+    inputRef as React.RefObject<HTMLInputElement>
+  );
+
+  const firstFocusableKey = useMemo(() => {
+    const firstItem = treeState.collection.at(0);
+    const firstFocusableItem =
+      firstItem?.type === 'section' ? [...firstItem.childNodes][0] : firstItem;
+    return firstFocusableItem?.key;
+  }, [treeState.collection]);
+
+  useEffect(() => {
+    if (firstFocusableKey) {
+      treeState.selectionManager.setFocusedKey(firstFocusableKey);
     }
-  }
-`;
+  }, [firstFocusableKey, treeState.selectionManager]);
 
-const OverflowHidden = styled('div')`
-  overflow: hidden;
-`;
+  return (
+    <ResultsList {...listBoxProps} ref={listRef}>
+      {collection.map(itemNode => (
+        <OmniResultSection key={itemNode.key} section={itemNode} state={treeState} />
+      ))}
+    </ResultsList>
+  );
+}
+
+interface OmniResultSectionProps {
+  section: Node<OmniSection>;
+  state: TreeState<OmniSection>;
+}
+
+function OmniResultSection({section, state}: OmniResultSectionProps) {
+  const {itemProps, headingProps, groupProps} = useListBoxSection({
+    heading: section.rendered,
+    'aria-label': (section as any)['aria-label'],
+  });
+
+  const actionItems = [...section.childNodes];
+
+  return (
+    <ResultSection {...itemProps} hasHeading={!!section.rendered}>
+      {section.rendered && (
+        <ResultSectionLabel {...headingProps}>{section.rendered}</ResultSectionLabel>
+      )}
+      <ResultSectionList {...groupProps}>
+        {actionItems.map((item, index) => {
+          const nextItem = actionItems[index + 1];
+          const nextActionTypeIsDifferent = nextItem
+            ? (item.props as OmniAction).actionType !==
+              (nextItem.props as OmniAction).actionType
+            : false;
+
+          return (
+            <Fragment key={item.key}>
+              <OmniResultOption item={item} state={state} />
+              {nextActionTypeIsDifferent && <ItemDivider role="separator" />}
+            </Fragment>
+          );
+        })}
+      </ResultSectionList>
+    </ResultSection>
+  );
+}
+
+interface OmniResultOptionProps {
+  item: Node<OmniSection>;
+  state: TreeState<OmniSection>;
+}
+
+function scrollIntoView(el: HTMLElement | null) {
+  el?.scrollIntoView({block: 'nearest'});
+}
+
+function OmniResultOption({item, state}: OmniResultOptionProps) {
+  const {actionIcon, actionHotkey, ...actionProps} = item.props as OmniAction;
+  const optionRef = useRef<HTMLLIElement>(null);
+  const {optionProps, isFocused, isPressed, isSelected, isDisabled} = useOption(
+    {key: item.key},
+    state,
+    optionRef
+  );
+
+  const keyboardShortcutGlyphs = isMac() ? macKeyboardGlyphs : windowsKeyboardGlyphs;
+  const keyboardShortcutIsChain = actionHotkey?.includes(',');
+  const keyboardShortcut = keyboardShortcutIsChain
+    ? actionHotkey?.split?.(',')
+    : actionHotkey?.split?.('+');
+
+  return (
+    <MenuListItem
+      ref={isFocused ? mergeRefs(optionRef, scrollIntoView) : optionRef}
+      disabled={isDisabled}
+      isFocused={isFocused}
+      isSelected={isSelected}
+      isPressed={isPressed}
+      label={item.rendered}
+      leadingItems={actionIcon && <IconWrap>{actionIcon}</IconWrap>}
+      trailingItems={
+        keyboardShortcut && (
+          <KeyboardShortcutWrap>
+            {keyboardShortcut.map((keyStr, index) => (
+              <Fragment key={index}>
+                <KeyboardShortcutKey
+                  isSymbol={Boolean((keyboardShortcutGlyphs as any)[keyStr])}
+                >
+                  {(keyboardShortcutGlyphs as any)[keyStr] ?? keyStr}
+                </KeyboardShortcutKey>
+                {keyboardShortcutIsChain && index < keyboardShortcut.length - 1 && 'then'}
+              </Fragment>
+            ))}
+          </KeyboardShortcutWrap>
+        )
+      }
+      {...(actionProps as any)}
+      {...(optionProps as any)}
+    />
+  );
+}
