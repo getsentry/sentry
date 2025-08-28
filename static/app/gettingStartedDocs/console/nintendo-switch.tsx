@@ -52,6 +52,7 @@ const onboarding: OnboardingConfig = {
                   projectId: params.project.id,
                   sdkName: 'Nintendo Switch',
                   gamingPlatform: 'nintendo-switch',
+                  origin: params.newOrg ? 'onboarding' : 'project-creation',
                 });
               }}
             >

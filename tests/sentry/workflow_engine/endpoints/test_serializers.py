@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
+from unittest import mock
 from uuid import uuid4
 
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.models.group import GroupStatus
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.snuba.dataset import Dataset
@@ -12,6 +14,7 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
+from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.endpoints.serializers import (
     TimeSeriesValueSerializer,
     WorkflowGroupHistory,
@@ -54,6 +57,7 @@ class TestDetectorSerializer(TestCase):
             "alertRuleId": None,
             "ruleId": None,
             "latestGroup": None,
+            "openIssues": 0,
         }
 
     def test_serialize_full(self) -> None:
@@ -107,6 +111,12 @@ class TestDetectorSerializer(TestCase):
             organization=self.organization,
         )
         self.create_detector_workflow(detector=detector, workflow=workflow)
+        group1 = self.create_group(
+            project=self.project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
+        )
+        group2 = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
+        self.create_detector_group(detector=detector, group=group1)
+        self.create_detector_group(detector=detector, group=group2)
 
         result = serialize(detector)
         assert result == {
@@ -170,7 +180,8 @@ class TestDetectorSerializer(TestCase):
             "enabled": detector.enabled,
             "alertRuleId": None,
             "ruleId": None,
-            "latestGroup": None,
+            "latestGroup": mock.ANY,
+            "openIssues": 1,
         }
 
     def test_serialize_latest_group(self) -> None:
