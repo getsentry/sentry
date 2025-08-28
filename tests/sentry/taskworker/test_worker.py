@@ -28,6 +28,7 @@ from sentry.taskworker.worker import TaskWorker
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded, child_process
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.redis import redis_clusters
 
 SIMPLE_TASK = InflightTaskActivation(
@@ -150,6 +151,7 @@ COMPRESSED_TASK = InflightTaskActivation(
 
 
 @pytest.mark.django_db
+@thread_leak_allowlist(reason="taskworker", issue=97034)
 class TestTaskWorker(TestCase):
     def test_tasks_exist(self) -> None:
         import sentry.taskworker.tasks.examples as example_tasks

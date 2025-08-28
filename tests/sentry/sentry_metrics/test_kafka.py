@@ -16,7 +16,7 @@ from sentry.utils import json
 
 class KafkaMetricsInterfaceTest(GenericMetricsTestMixIn, TestCase):
     @pytest.mark.django_db
-    @thread_leaks.allowlist(reason="kafka tests", issue=97031)
+    @thread_leaks.thread_leak_allowlist(reason="kafka tests", issue=97046)
     def test_produce_metrics(self) -> None:
         generic_metrics_backend = KafkaMetricsBackend()
         # For testing, we are calling close() here because we
