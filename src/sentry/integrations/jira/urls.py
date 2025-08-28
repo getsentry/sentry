@@ -1,11 +1,10 @@
 from django.urls import re_path
 
-from sentry.integrations.jira.views.sentry_issue_details import JiraSentryIssueDetailsControlView
-
 from .endpoints import JiraDescriptorEndpoint, JiraSearchEndpoint
 from .views import (
     JiraExtensionConfigurationView,
     JiraSentryInstallationView,
+    JiraSentryIssueDetailsControlView,
     JiraSentryIssueDetailsView,
 )
 from .webhooks import (
