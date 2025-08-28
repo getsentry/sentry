@@ -95,7 +95,9 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org.flags.early_adopter = True
         org.flags.codecov_access = True
         org.flags.require_2fa = True
-        org.flags.disable_member_project_creation = True
+        org.flags.disable_member_project_creation = (
+            False  # set to True by default for new orgs in save()
+        )
         org.flags.prevent_superuser_access = True
         org.flags.disable_member_invite = True
         assert flag_has_changed(org, "allow_joinleave") is False
