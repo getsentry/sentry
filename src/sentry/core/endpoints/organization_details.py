@@ -114,6 +114,18 @@ ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a publish
 ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
+    (
+        "projectRateLimit",
+        "sentry:project-rate-limit",
+        int,
+        100,
+    ),
+    (
+        "accountRateLimit",
+        "sentry:account-rate-limit",
+        int,
+        0,
+    ),
     ("dataScrubber", "sentry:require_scrub_data", bool, REQUIRE_SCRUB_DATA_DEFAULT),
     ("sensitiveFields", "sentry:sensitive_fields", list, None),
     ("safeFields", "sentry:safe_fields", list, None),
