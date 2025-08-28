@@ -258,13 +258,25 @@ def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]) -> N
             ["-equation|count() + 5"],
             ["-equation|count(span.duration) + 5"],
         ),
+        pytest.param(
+            ["-equation|(count_unique(title) / 4) * (count_unique(http.method) * 2)"],
+            ["-equation|(count_unique(transaction) / 4) * (count_unique(transaction.method) * 2)"],
+        ),
+        pytest.param(
+            ["-equation[0]", "equation[1]", "-equation[2]"], ["-equation[0]", "-equation[1]"]
+        ),
+        pytest.param(["equation[3453]"], []),
     ],
 )
 def test_mep_to_eap_simple_orderbys(input: list[str], expected: list[str]) -> None:
     old = QueryParts(
         selected_columns=["id"],
         query="",
-        equations=[],
+        equations=[
+            "equation|count() * 2",
+            "equation|count_miserable(user,300) + 3",
+            "equation|count_unique(http.method) / 2",
+        ],
         orderby=input,
     )
     translated = translate_mep_to_eap(old)
