@@ -46,6 +46,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
         by name.
 
         :qparam string search: Name fragment to search repositories by.
+        :qparam bool installableOnly: If true, return only repositories that can be installed.
         """
         integration = self.get_integration(organization.id, integration_id)
 
@@ -55,7 +56,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
         installed_repos = Repository.objects.filter(integration_id=integration.id).exclude(
             status=ObjectStatus.HIDDEN
         )
-        repo_names = {installed_repo.name for installed_repo in installed_repos}
+        installed_repo_names = {installed_repo.name for installed_repo in installed_repos}
 
         install = integration.get_installation(organization_id=organization.id)
 
@@ -65,6 +66,8 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
 
+            installable_only = request.GET.get("installableOnly", "false").lower() == "true"
+
             serialized_repositories = [
                 IntegrationRepository(
                     name=repo["name"],
@@ -72,7 +75,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
                     defaultBranch=repo.get("default_branch"),
                 )
                 for repo in repositories
-                if repo["identifier"] not in repo_names
+                if not installable_only or repo["identifier"] not in installed_repo_names
             ]
             return self.respond(
                 {"repos": serialized_repositories, "searchable": install.repo_search}
