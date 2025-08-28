@@ -7,7 +7,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -60,7 +60,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
     }
     permission_classes = (ReplaySummaryPermission,)
 
-    def __init__(self, **options) -> None:
+    def __init__(self, **kw) -> None:
         storage.initialize_client()
         self.sample_rate_post = options.get(
             "replay.endpoints.project_replay_summary.trace_sample_rate_post"
@@ -68,7 +68,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         self.sample_rate_get = options.get(
             "replay.endpoints.project_replay_summary.trace_sample_rate_get"
         )
-        super().__init__(**options)
+        super().__init__(**kw)
 
     def make_seer_request(self, path: str, post_body: dict[str, Any]) -> Response:
         """Make a POST request to a Seer endpoint. Raises HTTPError and logs non-200 status codes."""
