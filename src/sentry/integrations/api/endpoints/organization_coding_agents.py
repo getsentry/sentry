@@ -116,7 +116,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """Get all available coding agent integrations for the organization."""
         if not features.has("organizations:seer-coding-agent-integrations", organization):
             return Response({"detail": "Feature not available"}, status=404)
@@ -142,6 +142,64 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         )
 
         return self.respond({"integrations": integrations_data})
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        """Launch a coding agent."""
+        if not features.has("organizations:seer-coding-agent-integrations", organization):
+            return self.respond("Feature not available", status=status.HTTP_404_NOT_FOUND)
+
+        serializer = OrganizationCodingAgentLaunchSerializer(data=request.data)
+        if not serializer.is_valid():
+            raise ValidationError(serializer.errors)
+
+        validated = serializer.validated_data
+
+        integration, installation = self._validate_and_get_integration(
+            request, organization, validated["integration_id"]
+        )
+
+        run_id = validated["run_id"]
+        autofix_state = self._get_autofix_state(run_id, organization)
+        if autofix_state is None:
+            return self.respond("Autofix state not found", status=status.HTTP_400_BAD_REQUEST)
+
+        trigger_source = validated.get("trigger_source", AutofixTriggerSource.SOLUTION)
+
+        logger.info(
+            "coding_agent.launch_request",
+            extra={
+                "organization_id": organization.id,
+                "integration_id": integration.id,
+                "run_id": run_id,
+            },
+        )
+
+        results = self._launch_agents_for_repos(
+            installation, autofix_state, run_id, organization, trigger_source
+        )
+
+        if not results:
+            return self.respond(
+                "No agents were successfully launched",
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        logger.info(
+            "coding_agent.launch_success",
+            extra={
+                "organization_id": organization.id,
+                "integration_id": integration.id,
+                "provider": integration.provider,
+                "run_id": run_id,
+                "repos_processed": len(results),
+            },
+        )
+
+        return self.respond(
+            {
+                "success": True,
+            }
+        )
 
     def _validate_and_get_integration(self, request: Request, organization, integration_id: int):
         """Validate request and get the coding agent integration."""
@@ -298,66 +356,3 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                 continue
 
         return results
-
-    def post(self, request: Request, organization) -> Response:
-        """Launch a coding agent."""
-        if not features.has("organizations:seer-coding-agent-integrations", organization):
-            return self.respond("Feature not available", status=status.HTTP_404_NOT_FOUND)
-
-        # Validate request payload with serializer
-        serializer = OrganizationCodingAgentLaunchSerializer(data=request.data)
-        if not serializer.is_valid():
-            raise ValidationError(serializer.errors)
-
-        validated = serializer.validated_data
-
-        # Validate request and get integration
-        integration, installation = self._validate_and_get_integration(
-            request, organization, validated["integration_id"]
-        )
-
-        # Get autofix state
-        run_id = validated["run_id"]
-        autofix_state = self._get_autofix_state(run_id, organization)
-        if autofix_state is None:
-            return self.respond("Autofix state not found", status=status.HTTP_400_BAD_REQUEST)
-
-        # Get and validate trigger_source
-        trigger_source = validated.get("trigger_source", AutofixTriggerSource.SOLUTION)
-
-        logger.info(
-            "coding_agent.launch_request",
-            extra={
-                "organization_id": organization.id,
-                "integration_id": integration.id,
-                "run_id": run_id,
-            },
-        )
-
-        # Launch agents for all repos
-        results = self._launch_agents_for_repos(
-            installation, autofix_state, run_id, organization, trigger_source
-        )
-
-        if not results:
-            return self.respond(
-                "No agents were successfully launched",
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        logger.info(
-            "coding_agent.launch_success",
-            extra={
-                "organization_id": organization.id,
-                "integration_id": integration.id,
-                "provider": integration.provider,
-                "run_id": run_id,
-                "repos_processed": len(results),
-            },
-        )
-
-        return self.respond(
-            {
-                "success": True,
-            }
-        )
