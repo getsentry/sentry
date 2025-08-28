@@ -1,16 +1,10 @@
 import {useMemo, useState} from 'react';
 import sortBy from 'lodash/sortBy';
-import {PlatformIcon} from 'platformicons';
-
-import {useSeenIssues} from 'sentry/utils/seenIssuesStorage';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 
 import {useOmniSearchStore} from './context';
 import type {OmniAction, OmniArea} from './types';
 
 export function useOmniSearchState() {
-  const organization = useOrganization();
   const {actions, areaPriority, areasByKey} = useOmniSearchStore();
 
   const [focusedArea, setFocusedArea] = useState<OmniArea | null>(() => {
@@ -19,22 +13,6 @@ export function useOmniSearchState() {
     );
   });
   const [selectedAction, setSelectedAction] = useState<OmniAction | null>(null);
-
-  const {getSeenIssues} = useSeenIssues();
-  const {groupId} = useParams();
-
-  const allRecentIssueActions: OmniAction[] = useMemo(() => {
-    return getSeenIssues()
-      .filter(issue => groupId !== issue.issue.id)
-      .map(issue => ({
-        key: `recent-issue-${issue.id}`,
-        areaKey: 'recent',
-        section: 'Recently Viewed',
-        label: issue.issue.title || issue.issue.id,
-        actionIcon: <PlatformIcon platform={issue.issue.platform} size={16} />,
-        to: `/organizations/${organization.slug}/issues/${issue.id}/`,
-      }));
-  }, [getSeenIssues, groupId, organization.slug]);
 
   const areasByPriority = useMemo(
     () =>
@@ -59,8 +37,8 @@ export function useOmniSearchState() {
       return [...areaActions, ...globalActions];
     }
 
-    return [...allRecentIssueActions, ...globalActions];
-  }, [selectedAction, focusedArea, actions, allRecentIssueActions]);
+    return globalActions;
+  }, [selectedAction, focusedArea, actions]);
 
   return {
     actions: displayedActions,
