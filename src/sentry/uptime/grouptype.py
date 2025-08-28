@@ -271,6 +271,7 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         evaluation_result: ProcessedDataConditionGroup,
         data_packet: DataPacket[UptimePacketValue],
         priority: DetectorPriorityLevel,
+        group_key: DetectorGroupKey | None = None,
     ) -> tuple[DetectorOccurrence, EventData]:
         result = data_packet.packet.check_result
         uptime_subscription = data_packet.packet.subscription
