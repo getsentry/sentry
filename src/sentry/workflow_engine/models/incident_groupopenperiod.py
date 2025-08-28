@@ -14,10 +14,11 @@ from sentry.db.models import (
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import IncidentType
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,8 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             group: The Group that was created
             open_period: The GroupOpenPeriod for the group
         """
-        from sentry.incidents.logic import create_incident
+        from sentry.incidents.logic import create_incident, update_incident_status
+        from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
         from sentry.incidents.utils.process_update_helpers import (
             calculate_event_date_from_update_date,
         )
@@ -98,6 +100,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             calculated_start_date = calculate_event_date_from_update_date(
                 open_period.date_started, snuba_query
             )
+
             incident = create_incident(
                 organization=alert_rule.organization,
                 incident_type=IncidentType.ALERT_TRIGGERED,
@@ -108,6 +111,21 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 projects=[group.project],
                 subscription=subscription,
             )
+            # XXX: if this is the *very first* open period, manually add the first incident status change activity
+            # because the group never changed priority
+            if GroupOpenPeriod.objects.filter(group=group).count() == 1:
+                priority = occurrence.evidence_data.get("priority", DetectorPriorityLevel.HIGH)
+                severity = (
+                    IncidentStatus.CRITICAL
+                    if priority == DetectorPriorityLevel.HIGH
+                    else IncidentStatus.WARNING
+                )  # this assumes that LOW isn't used for metric issues
+
+                update_incident_status(
+                    incident,
+                    severity,
+                    status_method=IncidentStatusMethod.RULE_TRIGGERED,
+                )
 
             return self.create_relationship(incident, open_period)
 

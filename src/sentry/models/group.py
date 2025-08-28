@@ -451,7 +451,6 @@ class GroupManager(BaseManager["Group"]):
         from sentry.models.groupopenperiod import update_group_open_period
         from sentry.workflow_engine.models.incident_groupopenperiod import (
             dual_update_incident_and_open_period,
-            update_incident_activity_based_on_group_activity,
         )
 
         modified_groups_list = []
@@ -506,10 +505,6 @@ class GroupManager(BaseManager["Group"]):
                         "reason": PriorityChangeReason.ONGOING,
                     },
                 )
-                # if the group corresponds to a metric issue, then update its incident activity
-                # we will remove this once we've fully deprecated the Incident model
-                if group.type == MetricIssue.type_id:
-                    update_incident_activity_based_on_group_activity(group, new_priority)
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
             # The open period is only updated when a group is resolved or reopened. We don't want to
