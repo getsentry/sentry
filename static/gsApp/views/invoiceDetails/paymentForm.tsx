@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
+import {type PaymentIntentResult} from '@stripe/stripe-js';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -70,7 +71,7 @@ function InvoiceDetailsPaymentForm({
         payment_method: {card: cardElement},
         return_url: intentData.returnUrl,
       })
-      .then((result: stripe.PaymentIntentResponse) => {
+      .then((result: PaymentIntentResult) => {
         if (result.error) {
           setIntentError(result.error.message);
           return;
