@@ -434,7 +434,9 @@ class ProjectReplaySummaryTestCase(
     def test_post_with_trace_errors_duplicate_feedback(
         self, mock_make_seer_api_request, mock_fetch_feedback_details
     ):
-        """Test that duplicate feedback events are filtered."""
+        """Test that duplicate feedback events are filtered.
+        Duplicates may happen when the replay has a feedback breadcrumb,
+        and the feedback is also returned from the Snuba query for trace-connected errors."""
         mock_response = MockSeerResponse(200, {"hello": "world"})
         mock_make_seer_api_request.return_value = mock_response
 
