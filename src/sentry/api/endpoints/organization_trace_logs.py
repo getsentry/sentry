@@ -61,32 +61,40 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         limit: int,
     ) -> EventsResponse:
         """Queries log data for a given trace"""
-        selected_columns = [
-            "sentry.item_id",
+
+        required_keys = [
+            "id",
             "project.id",
-            "trace",
+            constants.TRACE_ALIAS,
             "severity_number",
             "severity",
-            "timestamp",
-            "tags[sentry.timestamp_precise,number]",
+            constants.TIMESTAMP_ALIAS,
+            constants.TIMESTAMP_PRECISE_ALIAS,
             "message",
         ]
+        # Validate that orderby values are also in required_keys
         for column in orderby:
-            if column.lstrip("-") not in selected_columns:
+            stripped_orderby = column.lstrip("-")
+            if stripped_orderby not in required_keys:
                 raise ParseError(
-                    f"{column.lstrip('-')} must be one of {','.join(selected_columns)}"
+                    f"{stripped_orderby} must be one of {','.join(sorted(required_keys))}"
                 )
+
+        # Create the query based on the trace ids
         base_query = (
-            f"trace:{trace_ids[0]}" if len(trace_ids) == 1 else f"trace:[{','.join(trace_ids)}]"
+            f"{constants.TRACE_ALIAS}:{trace_ids[0]}"
+            if len(trace_ids) == 1
+            else f"{constants.TRACE_ALIAS}:[{','.join(trace_ids)}]"
         )
         if additional_query is not None:
             query = f"{base_query} and {additional_query}"
         else:
             query = base_query
+
         results = OurLogs.run_table_query(
             params=snuba_params,
             query_string=query,
-            selected_columns=selected_columns,
+            selected_columns=required_keys,
             orderby=orderby,
             offset=offset,
             limit=limit,
@@ -111,7 +119,7 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
         if len(trace_ids) == 0:
             raise ParseError("Need to pass at least one traceId")
 
-        orderby = request.GET.getlist("orderby", ["-timestamp"])
+        orderby = request.GET.getlist("orderby", ["-timestamp", "-timestamp_precise"])
         additional_query = request.GET.get("query")
 
         update_snuba_params_with_timestamp(request, snuba_params)
