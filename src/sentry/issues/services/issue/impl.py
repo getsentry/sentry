@@ -65,6 +65,7 @@ class DatabaseBackedIssueService(IssueService):
 
         return [
             RpcExternalIssueGroupMetadata(
+                title=group.title,
                 title_url=group.get_absolute_url(params={"referrer": "sentry-issues-glance"}),
                 link_date=group_link_subquery[group.id],
             )
