@@ -55,6 +55,8 @@ const config: KnipConfig = {
     // helper files for stories - it's fine that they are only used in tests
     '!static/app/**/__stories__/*.{js,mjs,ts,tsx}!',
     '!static/app/stories/**/*.{js,mjs,ts,tsx}!',
+    // TEMPORARY!
+    '!static/app/utils/timeSeries/useFetchEventsTimeSeries.tsx',
   ],
   compilers: {
     mdx: async text => String(await compile(text)),
