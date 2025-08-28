@@ -328,13 +328,13 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
     file_id = BoundedBigIntegerField(db_index=True, null=True)
 
     class PreprodArtifactComparisonState(IntEnum):
-        """The comparison is in progress."""
 
         PROCESSING = 0
-        """The comparison completed successfully."""
+        """The comparison is in progress."""
         SUCCESS = 1
-        """The comparison failed. See error_code and error_message for details."""
+        """The comparison completed successfully."""
         FAILED = 2
+        """The comparison failed. See error_code and error_message for details."""
 
         @classmethod
         def as_choices(cls):
@@ -344,9 +344,28 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
                 (cls.FAILED, "failed"),
             )
 
+    # The state of the comparison
+    state = BoundedPositiveIntegerField(
+        default=PreprodArtifactComparisonState.PROCESSING,
+        choices=PreprodArtifactComparisonState.as_choices(),
+    )
+
+    class PreprodArtifactSizeComparisonErrorCode(IntEnum):
+        UNKNOWN = 0
+        """The error code is unknown. Try to use a descriptive error code if possible."""
+        TIMEOUT = 1
+        """The size analysis comparison timed out."""
+
+        @classmethod
+        def as_choices(cls):
+            return (
+                (cls.UNKNOWN, "unknown"),
+                (cls.TIMEOUT, "timeout"),
+            )
+
     # Set when state is FAILED
     error_code = BoundedPositiveIntegerField(
-        choices=PreprodArtifactComparisonState.as_choices(), null=True
+        choices=PreprodArtifactSizeComparisonErrorCode.as_choices(), null=True
     )
     error_message = models.TextField(null=True)
 

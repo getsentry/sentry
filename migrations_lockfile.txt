@@ -23,7 +23,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notifications: 0002_notificationmessage_jsonfield
 
-preprod: 0016_add_preprod_artifact_size_comparison_table
+preprod: 0015_add_preprod_artifact_size_metrics_identifier
 
 releases: 0001_release_models
 
