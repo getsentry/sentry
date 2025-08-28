@@ -1,7 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {ThresholdsConfig} from './thresholdsStep';
-import ThresholdsStep from './thresholdsStep';
+import {Thresholds, type ThresholdsConfig} from './thresholds';
 
 const exampleThresholdsConfig: ThresholdsConfig = {
   max_values: {
@@ -15,7 +14,7 @@ describe('Widget Builder > ThresholdsStep', () => {
   it('renders thresholds step', async () => {
     const onChange = jest.fn();
     render(
-      <ThresholdsStep
+      <Thresholds
         thresholdsConfig={exampleThresholdsConfig}
         onThresholdChange={onChange}
         onUnitChange={onChange}

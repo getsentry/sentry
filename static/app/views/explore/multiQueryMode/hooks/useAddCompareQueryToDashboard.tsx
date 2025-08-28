@@ -13,7 +13,7 @@ import {
   DEFAULT_WIDGET_NAME,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
+import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';

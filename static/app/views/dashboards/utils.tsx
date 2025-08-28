@@ -55,7 +55,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;

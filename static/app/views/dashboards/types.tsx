@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
 
-import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the
