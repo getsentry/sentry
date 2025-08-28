@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, ClassVar
+from datetime import datetime
+from typing import Any, ClassVar
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from django.db.models import Exists, OuterRef, Q
 from django.db.models.signals import post_save
 from django.utils import timezone
 
@@ -19,10 +21,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
 from sentry.utils.groupreference import find_referenced_groups
-
-if TYPE_CHECKING:
-    from sentry.models.group import Group
 
 
 class PullRequestManager(BaseManager["PullRequest"]):
@@ -104,12 +105,58 @@ class PullRequest(Model):
         provider = provider_cls(provider_id)
         return provider.pull_request_url(repository, self)
 
+    def is_unused(self, cutoff_date: datetime) -> bool:
+        """
+        Returns True if PR should be deleted, False if it should be kept.
+        """
+        grouplink_exists = GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=OuterRef("id"),
+            group__project__isnull=False,
+        )
+
+        # Check if there's a PullRequestComment with group_ids that exist in Group table
+        # Django ORM doesn't support array field operations with subqueries well,
+        # so we use raw SQL for the array overlap check with PostgreSQL's ANY operator
+        comment_has_valid_group = Exists(
+            PullRequestComment.objects.filter(
+                pull_request_id=OuterRef("id"),
+                group_ids__isnull=False,
+            )
+            .exclude(group_ids__len=0)
+            .extra(
+                where=[
+                    """EXISTS (
+                        SELECT 1 FROM sentry_groupedmessage g
+                        WHERE g.id = ANY(sentry_pullrequest_comment.group_ids)
+                    )"""
+                ]
+            )
+        )
+
+        keep_pr = (
+            PullRequest.objects.filter(id=self.id)
+            .filter(
+                Q(date_added__gte=cutoff_date)
+                | Q(pullrequestcomment__created_at__gte=cutoff_date)
+                | Q(pullrequestcomment__updated_at__gte=cutoff_date)
+                | Q(pullrequestcommit__commit__date_added__gte=cutoff_date)
+                | Q(pullrequestcommit__commit__releasecommit__isnull=False)
+                | Q(pullrequestcommit__commit__releaseheadcommit__isnull=False)
+                | Exists(grouplink_exists)
+                | comment_has_valid_group
+            )
+            .exists()
+        )
+
+        return not keep_pr
+
 
 @region_silo_model
 class PullRequestCommit(Model):
     __relocation_scope__ = RelocationScope.Excluded
     pull_request = FlexibleForeignKey("sentry.PullRequest")
-    commit = FlexibleForeignKey("sentry.Commit")
+    commit = FlexibleForeignKey("sentry.Commit", db_constraint=False)
 
     class Meta:
         app_label = "sentry"
