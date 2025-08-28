@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.github.status_check import GitHubCheckConclusion, GitHubCheckStatus
-from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
@@ -181,9 +183,10 @@ def _get_status_check_client(
         )
         return None, None
 
-    try:
-        integration: Integration = Integration.objects.get(id=repository.integration_id)
-    except Integration.DoesNotExist:
+    integration: RpcIntegration | None = integration_service.get_integration(
+        integration_id=repository.integration_id, status=ObjectStatus.ACTIVE
+    )
+    if not integration:
         logger.info(
             "preprod.status_checks.create.no_integration",
             extra={
