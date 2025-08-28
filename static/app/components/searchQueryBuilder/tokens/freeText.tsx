@@ -517,10 +517,7 @@ function SearchQueryBuilderInputInternal({
             type: 'UPDATE_FREE_TEXT',
             tokens: [token],
             text: value,
-            focusOverride: calculateNextFocusForCommittedCustomValue({
-              currentFocusedKey: item.key.toString(),
-              value,
-            }),
+            // Don't set focusOverride here - let the replacement logic handle it
             shouldCommitQuery: true,
           });
           resetInputValue();

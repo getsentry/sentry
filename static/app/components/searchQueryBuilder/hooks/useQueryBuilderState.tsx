@@ -692,16 +692,19 @@ export function replaceFreeTextTokens(
   }
 
   const actionTokens = parseQueryBuilderValue(action.text, getFieldDefinition) ?? [];
+  
   if (actionTokens.every(token => token.type !== Token.FREE_TEXT)) {
     return undefined;
   }
 
   const tokens = parseQueryBuilderValue(currentQuery, getFieldDefinition) ?? [];
+  
   if (tokens.length === 0) {
     return undefined;
   }
 
   const primarySearchKey = replaceRawSearchKeys[0] ?? '';
+  
   let replaceToken: TokenResult<Token.FILTER> | undefined;
   const freeTextToken = actionTokens.find(
     token => token.type === Token.FREE_TEXT && ALPHANUMERIC_REGEX.test(token.value)
@@ -747,15 +750,23 @@ export function replaceFreeTextTokens(
   const newQuery = Array.from(filteredTokens).join(' ');
 
   const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition) ?? [];
-  const cursorPosition = (tokens[0]?.location.start.offset ?? 0) + action.text.length; // TODO: Ensure this is sorted
-  const focusedToken = newParsedQuery?.findLast(
-    (token: any) =>
-      token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
-  );
+  
+  // When we do raw search replacement, we want to focus on the last free text token
+  // which should be after the newly created filter
+  const freeTextTokens = newParsedQuery?.filter(
+    (token: any) => token.type === Token.FREE_TEXT
+  ) ?? [];
 
-  const focusOverride = focusedToken
-    ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
-    : null;
+  let focusOverride: {itemKey: string} | null = null;
+  
+  if (freeTextTokens.length > 0) {
+    // Focus on the last free text token
+    const lastIndex = freeTextTokens.length - 1;
+    focusOverride = {itemKey: `${Token.FREE_TEXT}:${lastIndex}`};
+  } else {
+    // If no free text tokens, focus at the end
+    focusOverride = {itemKey: 'end'};
+  }
 
   return {newQuery, focusOverride};
 }
