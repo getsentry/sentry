@@ -4021,6 +4021,59 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('row', {name: 'span.description:"random value"'})
       ).toBeInTheDocument();
     });
+
+    it.only('replaces key on enter, and focuses the last item', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          replaceRawSearchKeys={['span.description']}
+        />,
+        {
+          organization: {
+            features: [
+              'search-query-builder-wildcard-operators',
+              'search-query-builder-raw-search-replacement',
+            ],
+          },
+        }
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), 'random value');
+      await userEvent.keyboard('{enter}');
+
+      // Wait for the raw search replacement to complete
+      await waitFor(() => {
+        const rows = screen.getAllByRole('row');
+        // Should have more than just the initial empty row
+        expect(rows.length).toBeGreaterThan(1);
+      });
+
+      // Look for the filter row
+      const filterRow = await screen.findByRole('row', {
+        name: /span\.description/,
+      });
+      expect(filterRow).toBeInTheDocument();
+
+      // Check if it has the right content - could be with or without wildcards
+      const rows = screen.getAllByRole('row');
+      const hasCorrectFilter = rows.some(
+        row =>
+          row.getAttribute('aria-label')?.includes('span.description') &&
+          row.getAttribute('aria-label')?.includes('random value')
+      );
+      expect(hasCorrectFilter).toBe(true);
+
+      // Check focus behavior
+      const inputs = await screen.findAllByRole('row');
+      const lastInput = inputs.at(-1);
+      expect(lastInput).toBeDefined();
+      expect(lastInput).toHaveAttribute('data-key', 'freeText:1');
+
+      // The focus should be on the input inside the last row
+      const focusedInput = screen.getByTestId('query-builder-input');
+      expect(focusedInput).toHaveFocus();
+    });
   });
 
   describe('matchKeySuggestions', () => {
