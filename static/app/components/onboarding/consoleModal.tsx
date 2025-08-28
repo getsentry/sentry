@@ -89,6 +89,7 @@ export const CONSOLE_PLATFORM_INSTRUCTIONS = {
 
 export interface ConsoleModalProps {
   organization: Organization;
+  origin: 'onboarding' | 'project-creation';
   selectedPlatform: OnboardingSelectedSDK;
 }
 
@@ -99,6 +100,7 @@ export function ConsoleModal({
   selectedPlatform,
   closeModal,
   organization,
+  origin,
 }: ConsoleModalProps & ModalRenderProps) {
   const platformKey = selectedPlatform.key;
   const config = CONSOLE_PLATFORM_INSTRUCTIONS[platformKey as ConsolePlatform];
@@ -107,8 +109,9 @@ export function ConsoleModal({
     trackAnalytics('gaming.partner_request_access_guidance_modal_opened', {
       platform: selectedPlatform.key,
       organization,
+      origin,
     });
-  }, [selectedPlatform.key, organization]);
+  }, [selectedPlatform.key, organization, origin]);
 
   if (!config) {
     return null;
@@ -132,6 +135,7 @@ export function ConsoleModal({
               {
                 platform: selectedPlatform.key,
                 organization,
+                origin,
               }
             );
             closeModal();
