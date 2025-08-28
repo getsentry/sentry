@@ -16,6 +16,7 @@ import {DisplayType, type WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
+import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 
 import {BuildStep} from './buildStep';
 
@@ -103,32 +104,16 @@ export function DataSetStep({
     datasetChoices.set(
       DataSet.SPANS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Spans')}>
-        {t('Spans')}{' '}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t(
-              'This feature is available for early adopters and the UX may change'
-            ),
-          }}
-        />
+        {t('Spans')} <FeatureBadge type="new" />
       </FeatureBadgeAlignmentWrapper>
     );
   }
 
-  if (organization.features.includes('ourlogs-dashboards')) {
+  if (isLogsEnabled(organization)) {
     datasetChoices.set(
       DataSet.LOGS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Logs')}>
-        {t('Logs')}{' '}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t(
-              'This feature is available for early adopters and the UX may change'
-            ),
-          }}
-        />
+        {t('Logs')} <FeatureBadge type="new" />
       </FeatureBadgeAlignmentWrapper>
     );
   }

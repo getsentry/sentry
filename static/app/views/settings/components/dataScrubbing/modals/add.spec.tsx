@@ -269,7 +269,7 @@ describe('Add Modal', () => {
 
 describe('Add Modal with ourlogs-enabled', () => {
   const organization = OrganizationFixture({
-    features: ['ourlogs-enabled', 'ourlogs-visualize-sidebar'],
+    features: ['ourlogs-enabled'],
   });
   const mockAttributeResults = defaultAttributeResults;
 

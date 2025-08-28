@@ -3,6 +3,7 @@ from uuid import UUID
 
 import pytest
 
+from sentry.search.eap import constants
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.cursors import Cursor
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -92,12 +93,13 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
 
         for log, source in zip(data, logs):
             assert log["log.body"] == source.attributes["sentry.body"].string_value
-            assert "tags[sentry.timestamp_precise,number]" in log
-            assert "timestamp" in log
+            assert "tags[sentry.timestamp_precise,number]" not in log
+            assert constants.TIMESTAMP_PRECISE_ALIAS in log
+            assert constants.TIMESTAMP_ALIAS in log
             ts = datetime.fromisoformat(log["timestamp"])
             assert ts.tzinfo == timezone.utc
             timestamp_from_nanos = (
-                source.attributes["sentry.timestamp_nanos"].int_value / 1_000_000_000
+                source.attributes["sentry.observed_timestamp_nanos"].int_value / 1_000_000_000
             )
             assert ts.timestamp() == pytest.approx(timestamp_from_nanos, abs=5), "timestamp"
 
@@ -364,12 +366,20 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         logs = [
             self.create_ourlog(
                 {"body": "foo"},
-                attributes={"sentry.observed_timestamp_nanos": str(self.ten_mins_ago.timestamp())},
+                attributes={
+                    "sentry.observed_timestamp_nanos": str(
+                        self.ten_mins_ago.timestamp() * 1_000_000_000
+                    )
+                },
                 timestamp=self.ten_mins_ago,
             ),
             self.create_ourlog(
                 {"body": "bar"},
-                attributes={"sentry.observed_timestamp_nanos": str(self.nine_mins_ago.timestamp())},
+                attributes={
+                    "sentry.observed_timestamp_nanos": str(
+                        self.nine_mins_ago.timestamp() * 1_000_000_000
+                    ),
+                },
                 timestamp=self.nine_mins_ago,
             ),
         ]
@@ -385,8 +395,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                     "severity_number",
                     "severity",
                     "timestamp",
-                    "tags[sentry.timestamp_precise,number]",
-                    "sentry.observed_timestamp_nanos",
+                    "observed_timestamp",
                     "message",
                 ],
                 "per_page": 1000,
@@ -411,10 +420,10 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
                 "timestamp": datetime.fromtimestamp(source.timestamp.seconds)
                 .replace(tzinfo=timezone.utc)
                 .isoformat(),
-                "tags[sentry.timestamp_precise,number]": pytest.approx(
+                constants.TIMESTAMP_PRECISE_ALIAS: pytest.approx(
                     source.attributes["sentry.timestamp_precise"].int_value
                 ),
-                "sentry.observed_timestamp_nanos": source.attributes[
+                "observed_timestamp": source.attributes[
                     "sentry.observed_timestamp_nanos"
                 ].string_value,
                 "message": source.attributes["sentry.body"].string_value,
