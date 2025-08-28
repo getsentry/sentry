@@ -302,14 +302,6 @@ class ProjectReplaySummaryTestCase(
                 "timestamp": float(now.timestamp()),
                 "data": {
                     "tag": "breadcrumb",
-                    "payload": {"category": "console", "message": "hello"},
-                },
-            },
-            {
-                "type": 5,
-                "timestamp": float(now.timestamp()),
-                "data": {
-                    "tag": "breadcrumb",
                     "payload": {
                         "category": "sentry.feedback",
                         "data": {"feedbackId": feedback_event_id},
@@ -330,8 +322,7 @@ class ProjectReplaySummaryTestCase(
         mock_make_seer_api_request.assert_called_once()
         request_body = json.loads(mock_make_seer_api_request.call_args[1]["body"].decode())
         logs = request_body["logs"]
-        assert any("Great website!" in log for log in logs)
-        assert any("User submitted feedback" in log for log in logs)
+        assert "User submitted feedback: 'Great website!'" in logs[0]
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_post_with_trace_errors_both_datasets(self, mock_make_seer_api_request):
