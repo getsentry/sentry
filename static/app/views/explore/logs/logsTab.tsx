@@ -350,7 +350,7 @@ export function LogsTabContent({
               }
               onClick={() => setSidebarOpen(!sidebarOpen)}
             />
-            {tableData.isPending && !tableData.lastPageLength && (
+            {!tableData.isPending && tableData.isEmpty && (
               <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             )}
             <LogsGraphContainer>
