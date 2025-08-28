@@ -159,7 +159,10 @@ type GetsentryEventParameters = {
     partner: undefined | string;
   } & HasSub;
   'past_due_modal.seen': HasSub;
-  'performance.quota_exceeded_alert.displayed': {referrer: string};
+  'performance.quota_exceeded_alert.displayed': {
+    referrer: string;
+    traceItemDataset: string;
+  };
   'power_icon.clicked': {
     source?: string;
   } & HasSub;

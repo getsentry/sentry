@@ -37,21 +37,35 @@ function getFormattedDateTime(dateTime: PageFilters['datetime']): string | null 
 
 function useQuotaExceededAlertMessage(
   subscription: Subscription,
-  organization: Organization
+  organization: Organization,
+  traceItemDataset: TraceItemDatasetGS,
+  referrer: string
 ) {
   const {selection} = usePageFilters();
 
-  let hasExceededPerformanceUsageLimit: boolean | null = null;
+  const exploreUsageHasExceeded: ExploreUsageHasExceeded = {
+    logs: {hasExceeded: false},
+    spans: {hasExceeded: false},
+  };
 
   const dataCategories = subscription?.categories;
   if (dataCategories) {
     if ('transactions' in dataCategories) {
-      hasExceededPerformanceUsageLimit =
+      exploreUsageHasExceeded.spans.hasExceeded =
         dataCategories.transactions?.usageExceeded || false;
-    } else if ('spans' in dataCategories) {
-      hasExceededPerformanceUsageLimit = dataCategories.spans?.usageExceeded || false;
+    }
+    if ('spans' in dataCategories) {
+      exploreUsageHasExceeded.spans.hasExceeded =
+        dataCategories.spans?.usageExceeded || false;
+    }
+    if ('logBytes' in dataCategories) {
+      exploreUsageHasExceeded.logs.hasExceeded =
+        dataCategories.logBytes?.usageExceeded || false;
     }
   }
+
+  const hasExceededPerformanceUsageLimit =
+    exploreUsageHasExceeded[traceItemDataset].hasExceeded;
 
   const {data: performanceUsageStats} = usePerformanceUsageStats({
     organization,
@@ -70,7 +84,7 @@ function useQuotaExceededAlertMessage(
   const billingPageLink = (
     <Link
       to={{
-        pathname: `/settings/billing/checkout/?referrer=trace-view`,
+        pathname: `/settings/billing/checkout/?referrer=${referrer}`,
         query: {
           skipBundles: true,
         },
@@ -82,21 +96,25 @@ function useQuotaExceededAlertMessage(
     .add(1, 'days')
     .format('ll');
 
+  const datasetType = traceItemDataset;
+
   if (!formattedDateRange) {
     return subscription?.onDemandBudgets?.enabled
       ? tct(
-          'You’ve exceeded your [budgetType] budget during this date range and results will be skewed. We can’t collect more spans until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your [budgetType] budget].',
+          "You've exceeded your [budgetType] budget during this date range and results will be skewed. We can't collect more [datasetType] until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your [budgetType] budget].",
           {
             budgetType: subscription.planDetails.budgetTerm,
             periodRenewalDate,
             billingPageLink,
+            datasetType,
           }
         )
       : tct(
-          'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. If you need more, [billingPageLink:increase your reserved volumes].',
+          "You've exceeded your reserved volumes during this date range and results will be skewed. We can't collect more [datasetType] until [periodRenewalDate]. If you need more, [billingPageLink:increase your reserved volumes].",
           {
             periodRenewalDate,
             billingPageLink,
+            datasetType,
           }
         );
   }
@@ -104,10 +122,11 @@ function useQuotaExceededAlertMessage(
   const {period} = selection.datetime;
   return subscription?.onDemandBudgets?.enabled
     ? tct(
-        'You’ve exceeded your [budgetType] budget during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
+        "You've exceeded your [budgetType] budget during this date range and results will be skewed. We can't collect more [datasetType] until [periodRenewalDate]. [rest]",
         {
           budgetType: subscription.planDetails.budgetTerm,
           periodRenewalDate,
+          datasetType,
           rest: period
             ? tct(
                 'If you need more, [billingPageLink: increase your [budgetType] budget] or adjust your date range prior to [formattedDateRange].',
@@ -128,9 +147,10 @@ function useQuotaExceededAlertMessage(
         }
       )
     : tct(
-        'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more spans until [periodRenewalDate]. [rest]',
+        "You've exceeded your reserved volumes during this date range and results will be skewed. We can't collect more [datasetType] until [periodRenewalDate]. [rest]",
         {
           periodRenewalDate,
+          datasetType,
           rest: period
             ? tct(
                 'If you need more, [billingPageLink: increase your reserved volumes] or adjust your date range prior to [formattedDateRange].',
@@ -150,14 +170,25 @@ function useQuotaExceededAlertMessage(
       );
 }
 
+type TraceItemDatasetGS = 'logs' | 'spans';
+
+type ExploreUsageHasExceeded = Record<TraceItemDatasetGS, {hasExceeded: boolean}>;
+
 type Props = {
   referrer: string;
   subscription: Subscription;
+  traceItemDataset: TraceItemDatasetGS;
 };
 
 export function QuotaExceededAlert(props: Props) {
   const organization = useOrganization();
-  const message = useQuotaExceededAlertMessage(props.subscription, organization);
+
+  const message = useQuotaExceededAlertMessage(
+    props.subscription,
+    organization,
+    props.traceItemDataset,
+    props.referrer
+  );
 
   useEffect(() => {
     if (!message) {
@@ -167,8 +198,9 @@ export function QuotaExceededAlert(props: Props) {
     trackGetsentryAnalytics('performance.quota_exceeded_alert.displayed', {
       organization,
       referrer: props.referrer,
+      traceItemDataset: props.traceItemDataset,
     });
-  }, [message, organization, props.referrer]);
+  }, [message, organization, props.referrer, props.traceItemDataset]);
 
   if (!message) {
     return null;
