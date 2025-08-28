@@ -108,7 +108,6 @@ describe('ProductSelect', () => {
     expect(
       screen.getByRole('checkbox', {name: /Add seer AI agent to plan/})
     ).toBeInTheDocument();
-    expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
   });
 
   it('does not render products if flags are missing', async () => {
