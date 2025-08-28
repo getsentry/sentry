@@ -6,7 +6,6 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.stacktraces.processing import find_stacktraces_in_data
@@ -14,6 +13,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
@@ -396,7 +396,7 @@ class AnotherClassInSameFile {
 
 
 @pytest.mark.django_db(transaction=True)
-@thread_leaks.allowlist(reason="kafka testutils", issue=97046)
+@thread_leak_allowlist(reason="kafka testutils", issue=97046)
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, set_sentry_option, live_server):
