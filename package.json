@@ -135,7 +135,6 @@
     "less": "4.3.0",
     "less-loader": "^12.2.0",
     "lodash": "^4.17.19",
-    "lottie-react": "^2.4.1",
     "marked": "15.0.9",
     "marked-highlight": "2.2.1",
     "mobx": "6.13.7",
