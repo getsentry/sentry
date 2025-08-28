@@ -25,7 +25,7 @@ export interface DetectorSearchBarProps {
   dataset?: DiscoverDatasets;
 }
 
-export interface DetectorSeriesQueryOptions {
+interface DetectorSeriesQueryOptions {
   /**
    * The aggregate to use for the series query. eg: `count()`
    */

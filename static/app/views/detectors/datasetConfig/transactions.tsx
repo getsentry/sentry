@@ -48,6 +48,7 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
         isOnDemandQueryString(options.query);
       const isOnDemand =
         hasMetricDataset && (isOnDemandAggregate(options.aggregate) || isOnDemandQuery);
+
       const query = DetectorTransactionsConfig.toSnubaQueryString({
         eventTypes: options.eventTypes,
         query: options.query,
