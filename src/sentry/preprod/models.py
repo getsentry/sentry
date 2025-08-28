@@ -218,6 +218,9 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
         choices=MetricsArtifactType.as_choices(), null=True
     )
 
+    # Some apps can have multiple ArtifactTypes (e.g. Android dynamic features) so need an identifier to differentiate.
+    identifier = models.CharField(max_length=255, null=True)
+
     # Size analysis processing state
     state = BoundedPositiveIntegerField(
         default=SizeAnalysisState.PENDING, choices=SizeAnalysisState.as_choices()
@@ -240,7 +243,20 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodartifactsizemetrics"
-        unique_together = ("preprod_artifact", "metrics_artifact_type")
+        constraints = [
+            # Unique constraint that properly handles NULL values
+            models.UniqueConstraint(
+                fields=["preprod_artifact", "metrics_artifact_type", "identifier"],
+                name="preprod_artifact_size_metrics_unique",
+                condition=models.Q(identifier__isnull=False),
+            ),
+            # Additional unique constraint for records without identifier
+            models.UniqueConstraint(
+                fields=["preprod_artifact", "metrics_artifact_type"],
+                name="preprod_artifact_size_metrics_unique_no_identifier",
+                condition=models.Q(identifier__isnull=True),
+            ),
+        ]
 
 
 @region_silo_model
