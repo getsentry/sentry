@@ -11,6 +11,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
 from sentry.models.project import Project
+from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
@@ -47,6 +48,7 @@ class EventContext(TypedDict):
     replay_id: str
     retention_days: int
     segment_id: int
+    should_publish_replay_event: bool | None
 
 
 class Event(TypedDict):
@@ -175,6 +177,13 @@ def commit_recording_message(recording: ProcessedEvent) -> None:
             recording.context["key_id"],
             recording.context["received"],
         )
+
+    metrics.incr(
+        "replays.should_publish_replay_event",
+        tags={"value": recording.context["should_publish_replay_event"]},
+    )
+    if recording.context["should_publish_replay_event"] and recording.replay_event:
+        publish_replay_event(json.dumps(recording.replay_event))
 
     # Write to replay-event consumer.
     if recording.actions_event:

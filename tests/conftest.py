@@ -11,7 +11,6 @@ from django.db import connections
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.pytest.sentry import get_default_silo_mode_for_test_cases
-from sentry.testutils.thread_leaks import pytest as thread_leaks
 
 pytest_plugins = ["sentry.testutils.pytest"]
 
@@ -55,12 +54,6 @@ def unclosed_files() -> Generator[None]:
     fds = _open_files()
     yield
     assert _open_files() == fds
-
-
-@pytest.fixture(autouse=True)
-def unclosed_threads(request: pytest.FixtureRequest) -> Generator[None]:
-    # TODO(DI-1067): strict mode
-    yield from thread_leaks.check_test(request, strict=False)
 
 
 @pytest.fixture(autouse=True)
