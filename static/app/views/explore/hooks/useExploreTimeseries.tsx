@@ -124,9 +124,11 @@ function shouldTriggerHighAccuracy(
   visualizes: Visualize[],
   isTopN: boolean
 ) {
-  const hasData = computeVisualizeSampleTotals(visualizes, data, isTopN).some(
-    total => total > 0
-  );
+  const hasData = computeVisualizeSampleTotals(
+    visualizes.map(visualize => visualize.yAxis),
+    data,
+    isTopN
+  ).some(total => total > 0);
   return !hasData && _checkCanQueryForMoreData(data, visualizes, isTopN);
 }
 
