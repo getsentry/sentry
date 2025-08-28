@@ -99,7 +99,7 @@ def fetch_trace_connected_errors(
         trace_ids_query = " OR ".join([f"trace:{trace_id}" for trace_id in trace_ids])
 
         # Query for errors dataset
-        error_query = query_trace_connected_events(
+        error_query_results = query_trace_connected_events(
             dataset_label="errors",
             selected_columns=[
                 "id",
@@ -116,7 +116,7 @@ def fetch_trace_connected_errors(
         )
 
         # Query for issuePlatform dataset
-        issue_query = query_trace_connected_events(
+        issue_query_results = query_trace_connected_events(
             dataset_label="issuePlatform",
             selected_columns=[
                 "event_id",
@@ -132,16 +132,13 @@ def fetch_trace_connected_errors(
             referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
         )
 
-        if not (error_query or issue_query):
-            return []
-
         # Process results and convert to EventDict objects
         error_events = []
         seen_event_ids = set()  # Track seen event IDs to avoid duplicates
 
         # Process error query results
-        if error_query and "data" in error_query:
-            for event in error_query["data"]:
+        if error_query_results and "data" in error_query_results:
+            for event in error_query_results["data"]:
                 event_id = event.get("id")
 
                 # Skip if we've already seen this event
@@ -167,8 +164,8 @@ def fetch_trace_connected_errors(
                     )
 
         # Process issuePlatform query results
-        if issue_query and "data" in issue_query:
-            for event in issue_query["data"]:
+        if issue_query_results and "data" in issue_query_results:
+            for event in issue_query_results["data"]:
                 event_id = event.get("event_id")
 
                 # Skip if we've already seen this event
