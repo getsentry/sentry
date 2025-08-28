@@ -46,6 +46,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         check_status,
         incident_status=IncidentStatus.NO_INCIDENT,
         scheduled_check_time=None,
+        check_duration_us=None,
     ):
         """
         Store a single uptime data row. Must be implemented by subclasses.
@@ -76,6 +77,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
             assert stats["failedChecks"] == 2  # failures without incident
             assert stats["downtimeChecks"] == 1  # failures with incident
             assert stats["missedWindowChecks"] == 2
+            assert "avgDurationUs" in stats
 
     def test_multiple_subscriptions(self) -> None:
         """
@@ -262,6 +264,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
             assert stats["failedChecks"] == 0
             assert stats["downtimeChecks"] == 0
             assert stats["missedWindowChecks"] == 0
+            assert "avgDurationUs" in stats
 
     def test_time_range_filtering(self) -> None:
         """
@@ -319,13 +322,36 @@ class OrganizationUptimeSummarySnubaTest(
         check_status,
         incident_status=IncidentStatus.NO_INCIDENT,
         scheduled_check_time=None,
+        check_duration_us=None,
     ):
+        duration_ms = None
+        if check_duration_us is not None:
+            duration_ms = check_duration_us // 1000
         self.store_snuba_uptime_check(
             subscription_id=subscription_id,
             check_status=check_status,
             incident_status=incident_status,
             scheduled_check_time=scheduled_check_time,
+            duration_ms=duration_ms,
         )
+
+    def test_average_duration_not_available(self) -> None:
+        """
+        Test that average duration is null for legacy uptime checks.
+        """
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
+                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+            )
+            assert response.data is not None
+            data = response.data
+
+            stats = data[self.project_uptime_subscription.id]
+            assert stats["avgDurationUs"] is None
 
 
 @freeze_time(MOCK_DATETIME)
@@ -345,13 +371,55 @@ class OrganizationUptimeSummaryEAPTest(OrganizationUptimeSummaryBaseTest, Uptime
         check_status,
         incident_status=IncidentStatus.NO_INCIDENT,
         scheduled_check_time=None,
+        check_duration_us=None,
     ):
-        uptime_result = self.create_eap_uptime_result(
-            subscription_id=uuid.UUID(subscription_id).hex,
-            guid=uuid.UUID(subscription_id).hex,
-            request_url="https://santry.io",
-            check_status=check_status,
-            incident_status=incident_status,
-            scheduled_check_time=scheduled_check_time,
-        )
+        kwargs = {
+            "subscription_id": uuid.UUID(subscription_id).hex,
+            "guid": uuid.UUID(subscription_id).hex,
+            "request_url": "https://santry.io",
+            "check_status": check_status,
+            "incident_status": incident_status,
+            "scheduled_check_time": scheduled_check_time,
+        }
+        if check_duration_us is not None:
+            kwargs["check_duration_us"] = check_duration_us
+
+        uptime_result = self.create_eap_uptime_result(**kwargs)
         self.store_uptime_results([uptime_result])
+
+    def test_average_duration_available(self) -> None:
+        """
+        Test that average duration is available and correctly calculated for EAP uptime results.
+        """
+        duration_subscription_id = uuid.uuid4().hex
+        duration_subscription = self.create_uptime_subscription(
+            url="https://duration-test.com", subscription_id=duration_subscription_id
+        )
+        duration_project_uptime_subscription = self.create_project_uptime_subscription(
+            uptime_subscription=duration_subscription
+        )
+
+        # Store checks with specific durations
+        durations = [100000, 200000, 300000]  # 100ms, 200ms, 300ms in microseconds
+        for duration in durations:
+            self.store_uptime_data(
+                duration_subscription_id,
+                "success",
+                check_duration_us=duration,
+            )
+
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                projectUptimeSubscriptionId=[str(duration_project_uptime_subscription.id)],
+                since=(datetime.now(timezone.utc) - timedelta(days=7)).timestamp(),
+                until=datetime.now(timezone.utc).timestamp(),
+            )
+            assert response.data is not None
+            data = response.data
+
+            stats = data[duration_project_uptime_subscription.id]
+            assert stats["totalChecks"] == 3
+            # Average should be (100000 + 200000 + 300000) / 3 = 200000
+            assert stats["avgDurationUs"] == 200000.0

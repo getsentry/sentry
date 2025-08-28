@@ -30,7 +30,7 @@ function createWrapper(organization: Organization) {
 }
 
 const mockOrganization = OrganizationFixture({
-  features: ['workflow-engine-metric-detector-limit'],
+  features: ['workflow-engine-metric-detector-limit', 'workflow-engine-ui'],
 });
 
 const mockOrganizationWithoutFeature = OrganizationFixture({
@@ -42,6 +42,12 @@ describe('useMetricDetectorLimit', () => {
     MockApiClient.clearMockResponses();
     queryClient.clear();
     SubscriptionStore.init();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rules/',
+      headers: {'X-Hits': '0'},
+      body: [],
+    });
   });
 
   it('handles feature flag is disabled', () => {

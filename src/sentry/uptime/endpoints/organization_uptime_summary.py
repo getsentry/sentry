@@ -106,6 +106,7 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                     end,
                     TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
                     "subscription_id",
+                    include_avg_duration=True,
                 )
             else:
                 eap_response = self._make_eap_request(
@@ -116,8 +117,9 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                     end,
                     TraceItemType.TRACE_ITEM_TYPE_UPTIME_CHECK,
                     "uptime_subscription_id",
+                    include_avg_duration=False,
                 )
-            formatted_response = self._format_response(eap_response)
+            formatted_response = self._format_response(eap_response, use_eap_results)
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check summary")
             return self.respond("error making request", status=400)
@@ -144,6 +146,7 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
         end: datetime,
         trace_item_type: TraceItemType.ValueType,
         subscription_key: str,
+        include_avg_duration: bool = False,
     ) -> TraceItemTableResponse:
         start_timestamp = Timestamp()
         start_timestamp.FromDatetime(start)
@@ -224,6 +227,19 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
             ),
         ]
 
+        # We're only recording duraitons in the uptime_results table
+        if include_avg_duration:
+            columns.append(
+                Column(
+                    label="avg_duration_us",
+                    aggregation=AttributeAggregation(
+                        aggregate=Function.FUNCTION_AVG,
+                        key=AttributeKey(name="check_duration_us", type=AttributeKey.Type.TYPE_INT),
+                        label="avg(check_duration_us)",
+                    ),
+                )
+            )
+
         request = TraceItemTableRequest(
             meta=RequestMeta(
                 organization_id=organization.id,
@@ -243,7 +259,9 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
         assert len(responses) == 1
         return responses[0]
 
-    def _format_response(self, response: TraceItemTableResponse) -> dict[str, UptimeSummary]:
+    def _format_response(
+        self, response: TraceItemTableResponse, include_avg_duration: bool = False
+    ) -> dict[str, UptimeSummary]:
         """
         Formats the response from the EAP RPC request into a dictionary mapping
         subscription ids to UptimeSummary
@@ -261,11 +279,17 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                 for col_idx, col_name in enumerate(column_names)
             }
 
+            # Get avg_duration_us if available, otherwise set to None
+            avg_duration_us = None
+            if include_avg_duration and "avg_duration_us" in row_dict:
+                avg_duration_us = row_dict["avg_duration_us"].val_double
+
             summary_stats = UptimeSummary(
                 total_checks=int(row_dict["total_checks"].val_double),
                 failed_checks=int(row_dict["failed_checks"].val_double),
                 downtime_checks=int(row_dict["downtime_checks"].val_double),
                 missed_window_checks=int(row_dict["missed_window_checks"].val_double),
+                avg_duration_us=avg_duration_us,
             )
 
             subscription_id = row_dict["uptime_subscription_id"].val_str

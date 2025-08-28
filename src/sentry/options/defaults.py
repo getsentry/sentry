@@ -483,6 +483,13 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Whether or not Relay replay-event publishing to Snuba is disabled.
+register(
+    "replay.relay-snuba-publishing-disabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Billing skip for mobile replay orgs.
 register(
     "replay.replay-video.billing-skip-org-ids",
@@ -3469,7 +3476,7 @@ register(
 register(
     "issues.suspect-commit-strategy",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -554,6 +554,34 @@ export const DATA_CATEGORY_INFO = {
       showExternalStats: true,
     },
   },
+  [DataCategoryExact.PREVENT_USER]: {
+    name: DataCategoryExact.PREVENT_USER,
+    plural: DataCategory.PREVENT_USER,
+    singular: 'preventUser',
+    displayName: 'Prevent user',
+    titleName: t('Prevent Users'),
+    productName: t('Prevent Users'),
+    uid: 29,
+    isBilledCategory: true,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: false, // TODO(prevent): add external stats when ready
+    },
+  },
+  [DataCategoryExact.PREVENT_REVIEW]: {
+    name: DataCategoryExact.PREVENT_REVIEW,
+    plural: DataCategory.PREVENT_REVIEW,
+    singular: 'preventReview',
+    displayName: 'Prevent review',
+    titleName: t('Prevent Reviews'),
+    productName: t('Prevent Reviews'),
+    uid: 30,
+    isBilledCategory: true,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: false, // TODO(prevent): add external stats when ready
+    },
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters

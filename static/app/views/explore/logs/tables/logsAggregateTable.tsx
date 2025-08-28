@@ -20,19 +20,23 @@ import {
   useLogsFields,
   useLogsSearch,
   useLogsSortBys,
-  useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
-import {SeverityLevel, viewLogsSamplesTarget} from 'sentry/views/explore/logs/utils';
+import {
+  getLogSeverityLevel,
+  viewLogsSamplesTarget,
+} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
+  useSetQueryParamsAggregateCursor,
 } from 'sentry/views/explore/queryParams/context';
 
 export function LogsAggregateTable() {
@@ -40,9 +44,9 @@ export function LogsAggregateTable() {
     limit: 50,
   });
 
-  const setLogsPageParams = useSetLogsPageParams();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
+  const setAggregateCursor = useSetQueryParamsAggregateCursor();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const search = useLogsSearch();
@@ -122,11 +126,19 @@ export function LogsAggregateTable() {
               typeof row[column.key] === 'undefined'
                 ? null
                 : (row[column.key] as string | number);
+            const level = getLogSeverityLevel(
+              typeof row?.[OurLogKnownFieldKey.SEVERITY_NUMBER] === 'number'
+                ? row?.[OurLogKnownFieldKey.SEVERITY_NUMBER]
+                : null,
+              typeof row?.[OurLogKnownFieldKey.SEVERITY] === 'string'
+                ? row?.[OurLogKnownFieldKey.SEVERITY]
+                : null
+            );
             const extra: RendererExtra = {
               attributes: row,
               attributeTypes: data?.meta?.fields ?? {},
               highlightTerms: [],
-              logColors: getLogColors(SeverityLevel.DEFAULT, theme),
+              logColors: getLogColors(level, theme),
               location,
               organization,
               theme,
@@ -177,10 +189,7 @@ export function LogsAggregateTable() {
           },
         }}
       />
-      <Pagination
-        pageLinks={pageLinks}
-        onCursor={cursor => setLogsPageParams({aggregateCursor: cursor})}
-      />
+      <Pagination pageLinks={pageLinks} onCursor={cursor => setAggregateCursor(cursor)} />
     </TableContainer>
   );
 }
