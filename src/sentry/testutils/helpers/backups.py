@@ -82,6 +82,7 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.options.option import ControlOption, Option
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
@@ -461,6 +462,10 @@ class ExhaustiveFixtures(Fixtures):
                     self.create_member(
                         organization=org, user=user, role="member", inviter_id=inviter.id
                     )
+
+        OrganizationOption.objects.create(
+            organization=org, key="sentry:scrape_javascript", value=True
+        )
 
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)
