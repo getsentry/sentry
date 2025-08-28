@@ -63,6 +63,14 @@ class Columns(Enum):
         issue_platform_name="occurrence_id",
         alias="occurrence_id",
     )
+    OCCURRENCE_TYPE_ID = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name="occurrence_type_id",
+        alias="occurrence_type_id",
+    )
     PROJECT_ID = Column(
         group_name="events.project_id",
         event_name="project_id",
@@ -149,6 +157,14 @@ class Columns(Enum):
         discover_name="title",
         issue_platform_name="search_title",
         alias="title",
+    )
+    SUBTITLE = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name="subtitle",
+        alias="subtitle",
     )
     TYPE = Column(
         group_name="events.type",
