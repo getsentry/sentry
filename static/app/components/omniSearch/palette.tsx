@@ -1,12 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useListBox, useListBoxSection, useOption} from '@react-aria/listbox';
 import {isMac, mergeRefs} from '@react-aria/utils';
@@ -28,7 +20,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 
-import type {OmniAction} from './types';
+import type {OmniAction, OmniArea} from './types';
 import {useApiDynamicActions} from './useApiDynamicActions';
 import {useCommandDynamicActions} from './useCommandDynamicActions';
 import {useFormDynamicActions} from './useFormDynamicActions';
@@ -224,30 +216,15 @@ export function OmniSearchPalette() {
 
   return (
     <Fragment>
-      <OmniHeader hasFocusedArea={!!focusedArea}>
-        {focusedArea && <OmniFocusedAreaLabel>{focusedArea.label}</OmniFocusedAreaLabel>}
-        <OmniInput
-          ref={inputRef}
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder={placeholder}
-          onKeyDown={e => {
-            if (e.key === 'Backspace' && query === '') {
-              clearSelection();
-              e.preventDefault();
-            }
-          }}
-        />
-      </OmniHeader>
-
-      {resultsSections.length === 0 ? (
-        <EmptyWrap>
-          <img src={error} alt="No results" />
-          <p>Whoops… we couldn't find any results matching your search.</p>
-          <p>Try rephrasing your query maybe?</p>
-        </EmptyWrap>
-      ) : null}
-      <OmniResultsList onActionKey={handleActionByKey} inputRef={inputRef}>
+      <OmniResultsList
+        onActionKey={handleActionByKey}
+        inputRef={inputRef}
+        query={query}
+        setQuery={setQuery}
+        placeholder={placeholder}
+        focusedArea={focusedArea}
+        clearSelection={clearSelection}
+      >
         {resultsSections.map(({key: sectionKey, label, actions}) => (
           <Section key={sectionKey} title={label}>
             {actions.map(({key: actionKey, ...action}) => (
@@ -444,11 +421,25 @@ const windowsKeyboardGlyphs = {
 };
 
 interface OmniResultsProps extends TreeProps<OmniSection> {
+  clearSelection: () => void;
+  focusedArea: OmniArea | null;
   inputRef: React.RefObject<HTMLInputElement | null>;
-  onActionKey?: (selectionKey: React.Key | null | undefined) => void;
+  onActionKey: (selectionKey: React.Key | null | undefined) => void;
+  placeholder: string;
+  query: string;
+  setQuery: (query: string) => void;
 }
 
-function OmniResultsList({onActionKey, inputRef, ...treeProps}: OmniResultsProps) {
+function OmniResultsList({
+  focusedArea,
+  clearSelection,
+  onActionKey,
+  inputRef,
+  query,
+  setQuery,
+  placeholder,
+  ...treeProps
+}: OmniResultsProps) {
   const listRef = useRef<HTMLUListElement>(null);
 
   const treeState = useTreeState(treeProps);
@@ -469,25 +460,42 @@ function OmniResultsList({onActionKey, inputRef, ...treeProps}: OmniResultsProps
     inputRef as React.RefObject<HTMLInputElement>
   );
 
-  const firstFocusableKey = useMemo(() => {
-    const firstItem = treeState.collection.at(0);
-    const firstFocusableItem =
-      firstItem?.type === 'section' ? [...firstItem.childNodes][0] : firstItem;
-    return firstFocusableItem?.key;
-  }, [treeState.collection]);
-
-  useEffect(() => {
-    if (firstFocusableKey) {
-      treeState.selectionManager.setFocusedKey(firstFocusableKey);
-    }
-  }, [firstFocusableKey, treeState.selectionManager]);
-
   return (
-    <ResultsList {...listBoxProps} ref={listRef}>
-      {collection.map(itemNode => (
-        <OmniResultSection key={itemNode.key} section={itemNode} state={treeState} />
-      ))}
-    </ResultsList>
+    <Fragment>
+      <OmniHeader hasFocusedArea={!!focusedArea}>
+        {focusedArea && <OmniFocusedAreaLabel>{focusedArea.label}</OmniFocusedAreaLabel>}
+        <OmniInput
+          ref={inputRef}
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder={placeholder}
+          onKeyDown={e => {
+            if (e.key === 'Backspace' && query === '') {
+              clearSelection();
+              e.preventDefault();
+            }
+
+            if (e.key === 'Enter' || e.key === 'Tab') {
+              onActionKey(treeState.selectionManager.focusedKey);
+            }
+
+            listBoxProps.onKeyDown?.(e);
+          }}
+        />
+      </OmniHeader>
+      {collection.length === 0 ? (
+        <EmptyWrap>
+          <img src={error} alt="No results" />
+          <p>Whoops… we couldn't find any results matching your search.</p>
+          <p>Try rephrasing your query maybe?</p>
+        </EmptyWrap>
+      ) : null}
+      <ResultsList {...listBoxProps} ref={listRef}>
+        {collection.map(itemNode => (
+          <OmniResultSection key={itemNode.key} section={itemNode} state={treeState} />
+        ))}
+      </ResultsList>
+    </Fragment>
   );
 }
 
