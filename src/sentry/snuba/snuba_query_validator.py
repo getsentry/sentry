@@ -15,6 +15,7 @@ from sentry.exceptions import (
     InvalidSearchQuery,
     UnsupportedQuerySubscription,
 )
+from sentry.explore.utils import is_logs_enabled
 from sentry.incidents.logic import (
     check_aggregate_column_support,
     get_column_from_aggregate,
@@ -156,10 +157,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 % [item.name.lower() for item in SnubaQueryEventType.EventType]
             )
 
-        if not features.has(
-            "organizations:ourlogs-alerts",
-            self.context["organization"],
-            actor=self.context.get("user", None),
+        if not is_logs_enabled(
+            self.context["organization"], actor=self.context.get("user", None)
         ) and any([v for v in validated if v == SnubaQueryEventType.EventType.TRACE_ITEM_LOG]):
             raise serializers.ValidationError("You do not have access to the log alerts feature.")
 
