@@ -89,65 +89,60 @@ def fetch_trace_connected_errors(
             Project.objects.filter(organization=project.organization, status=ObjectStatus.ACTIVE)
         )
 
-        queries = []
-        for trace_id in trace_ids:
-            snuba_params = SnubaParams(
-                projects=org_projects,
-                start=start,
-                end=end,
-                organization=project.organization,
-            )
+        snuba_params = SnubaParams(
+            projects=org_projects,
+            start=start,
+            end=end,
+            organization=project.organization,
+        )
 
-            # Query errors dataset
-            error_query = query_trace_connected_events(
-                dataset_label="errors",
-                selected_columns=[
-                    "id",
-                    "timestamp_ms",
-                    "timestamp",
-                    "title",
-                    "message",
-                ],
-                query=f"trace:{trace_id}",
-                snuba_params=snuba_params,
-                orderby=["id"],
-                limit=100,
-                referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
-            )
-            queries.append(error_query)
+        trace_ids_query = " OR ".join([f"trace:{trace_id}" for trace_id in trace_ids])
 
-            # Query issuePlatform dataset - this returns all other IP events,
-            # such as feedback and performance issues.
-            issue_query = query_trace_connected_events(
-                dataset_label="issuePlatform",
-                selected_columns=[
-                    "event_id",
-                    "title",
-                    "subtitle",
-                    "timestamp",
-                    "occurrence_type_id",
-                ],
-                query=f"trace:{trace_id}",
-                snuba_params=snuba_params,
-                orderby=["event_id"],
-                limit=100,
-                referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
-            )
-            queries.append(issue_query)
+        # Query for errors dataset
+        error_query = query_trace_connected_events(
+            dataset_label="errors",
+            selected_columns=[
+                "id",
+                "timestamp_ms",
+                "timestamp",
+                "title",
+                "message",
+            ],
+            query=trace_ids_query,
+            snuba_params=snuba_params,
+            orderby=["id"],
+            limit=100,
+            referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
+        )
 
-        if not queries:
+        # Query for issuePlatform dataset
+        issue_query = query_trace_connected_events(
+            dataset_label="issuePlatform",
+            selected_columns=[
+                "event_id",
+                "title",
+                "subtitle",
+                "timestamp",
+                "occurrence_type_id",
+            ],
+            query=trace_ids_query,
+            snuba_params=snuba_params,
+            orderby=["event_id"],
+            limit=100,
+            referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
+        )
+
+        if not (error_query or issue_query):
             return []
 
         # Process results and convert to EventDict objects
         error_events = []
         seen_event_ids = set()  # Track seen event IDs to avoid duplicates
 
-        for query in queries:
-            result = query
-            error_data = result["data"]
-
-            for event in error_data:
-                event_id = event.get("id") or event.get("event_id")
+        # Process error query results
+        if error_query and "data" in error_query:
+            for event in error_query["data"]:
+                event_id = event.get("id")
 
                 # Skip if we've already seen this event
                 if event_id in seen_event_ids:
@@ -158,6 +153,31 @@ def fetch_trace_connected_errors(
                 timestamp = _parse_iso_timestamp_to_ms(
                     event.get("timestamp_ms")
                 ) or _parse_iso_timestamp_to_ms(event.get("timestamp"))
+                message = event.get("message", "")
+
+                if timestamp:
+                    error_events.append(
+                        EventDict(
+                            category="error",
+                            id=event_id,
+                            title=event.get("title", ""),
+                            timestamp=timestamp,
+                            message=message,
+                        )
+                    )
+
+        # Process issuePlatform query results
+        if issue_query and "data" in issue_query:
+            for event in issue_query["data"]:
+                event_id = event.get("event_id")
+
+                # Skip if we've already seen this event
+                if event_id in seen_event_ids:
+                    continue
+
+                seen_event_ids.add(event_id)
+
+                timestamp = _parse_iso_timestamp_to_ms(event.get("timestamp"))
                 message = event.get("subtitle", "") or event.get("message", "")
 
                 if event.get("occurrence_type_id") == FeedbackGroup.type_id:
