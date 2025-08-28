@@ -1,6 +1,6 @@
 import {openPrivateGamingSdkAccessModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import {IconCode} from 'sentry/icons';
+import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -22,7 +22,7 @@ export function RequestSdkAccessButton({
       priority="default"
       size="sm"
       data-test-id="request-sdk-access"
-      icon={<IconCode />}
+      icon={<IconLock locked />}
       onClick={() => {
         openPrivateGamingSdkAccessModal({
           organization,
