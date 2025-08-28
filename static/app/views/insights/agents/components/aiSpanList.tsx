@@ -1,4 +1,4 @@
-import {Fragment, memo} from 'react';
+import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -27,15 +27,32 @@ import {
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
-function getTimeBounds(transactionNode: AITraceSpanNode | null) {
-  if (!transactionNode?.value) return {startTime: 0, endTime: 0, duration: 0};
-
-  const startTime = transactionNode.value.start_timestamp;
+function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
+  let startTime = 0;
   let endTime = 0;
-  if (isTransactionNode(transactionNode) || isSpanNode(transactionNode)) {
-    endTime = transactionNode.value.timestamp;
-  } else if (isEAPSpanNode(transactionNode)) {
-    endTime = transactionNode.value.end_timestamp;
+
+  if (Array.isArray(node)) {
+    const totalStartAndEndTime = node.reduce(
+      (acc, n) => {
+        const bounds = getNodeTimeBounds(n);
+        return {
+          startTime: Math.min(acc.startTime, bounds.startTime),
+          endTime: Math.max(acc.endTime, bounds.endTime),
+        };
+      },
+      {startTime: Infinity, endTime: 0}
+    );
+    startTime = totalStartAndEndTime.startTime;
+    endTime = totalStartAndEndTime.endTime;
+  } else {
+    if (!node.value) return {startTime: 0, endTime: 0, duration: 0};
+
+    startTime = node.value.start_timestamp;
+    if (isTransactionNode(node) || isSpanNode(node)) {
+      endTime = node.value.timestamp;
+    } else if (isEAPSpanNode(node)) {
+      endTime = node.value.end_timestamp;
+    }
   }
 
   if (endTime === 0) return {startTime: 0, endTime: 0, duration: 0};
@@ -47,14 +64,14 @@ function getTimeBounds(transactionNode: AITraceSpanNode | null) {
   };
 }
 
-function getClosestAiRunNode<T extends AITraceSpanNode>(
+function getClosestNode<T extends AITraceSpanNode>(
   node: AITraceSpanNode,
   predicate: (node: TraceTreeNode) => node is T
-): T {
+): T | null {
   if (predicate(node)) {
     return node;
   }
-  return TraceTree.ParentNode(node, predicate) as T;
+  return TraceTree.ParentNode(node, predicate) as T | null;
 }
 
 export function AISpanList({
@@ -72,17 +89,58 @@ export function AISpanList({
   let currentTransaction: TraceTreeNode<
     TraceTree.Transaction | TraceTree.EAPSpan
   > | null = null;
-  let currentAiRunNode: AITraceSpanNode | null = null;
+  let currentAiRunNode: AITraceSpanNode | undefined | null = null;
+  let currentTimeBounds: TraceBounds = {
+    startTime: 0,
+    endTime: 0,
+    duration: 0,
+  };
+
+  const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
+    const parents: Record<string, AITraceSpanNode> = {};
+    for (const node of nodes) {
+      const parent = getClosestNode(node, getIsAiRunNode);
+      if (parent) {
+        parents[getNodeId(node)] = parent;
+      }
+    }
+    return parents;
+  }, [nodes]);
+
+  const nextNodeMap = useMemo<Record<string, AITraceSpanNode>>(() => {
+    const nextNodes: Record<string, AITraceSpanNode> = {};
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const node = nodes[i];
+      const nextNode = nodes[i + 1];
+      if (node && nextNode) {
+        nextNodes[getNodeId(node)] = nextNode;
+      }
+    }
+    return nextNodes;
+  }, [nodes]);
+
+  function getOrphanedSiblings(node: AITraceSpanNode) {
+    const siblings: AITraceSpanNode[] = [];
+    let currentNode: AITraceSpanNode | undefined = node;
+    while (currentNode && !nodeAiRunParentsMap[getNodeId(currentNode)]) {
+      siblings.push(currentNode);
+      currentNode = nextNodeMap[getNodeId(currentNode)];
+    }
+    return siblings;
+  }
 
   return (
     <TraceListContainer>
       {nodes.map(node => {
         // find the closest transaction node
-        const transactionNode = getClosestAiRunNode(node, isTransactionNodeEquivalent);
-        const aiRunNode = getClosestAiRunNode(node, getIsAiRunNode);
+        const transactionNode = getClosestNode(node, isTransactionNodeEquivalent);
+        const aiRunNode = nodeAiRunParentsMap[getNodeId(node)];
 
         if (aiRunNode !== currentAiRunNode) {
           currentAiRunNode = aiRunNode;
+          currentTimeBounds = aiRunNode
+            ? getNodeTimeBounds(aiRunNode)
+            : getNodeTimeBounds(getOrphanedSiblings(node));
         }
 
         let transactionName: string | null = null;
@@ -106,7 +164,7 @@ export function AISpanList({
             {transactionName && <TransactionItem>{transactionName}</TransactionItem>}
             <TraceListItem
               indent={shouldIndent ? 1 : 0}
-              traceBounds={getTimeBounds(currentAiRunNode)}
+              traceBounds={currentTimeBounds}
               key={uniqueKey}
               node={node}
               onClick={() => onSelectNode(node)}
@@ -139,7 +197,7 @@ const TraceListItem = memo(function TraceListItem({
   const {icon, title, subtitle, color} = getNodeInfo(node, colors);
   const safeColor = color || colors[0] || '#9ca3af';
   const relativeTiming = calculateRelativeTiming(node, traceBounds);
-  const duration = getTimeBounds(node).duration;
+  const duration = getNodeTimeBounds(node).duration;
 
   return (
     <ListItemContainer
