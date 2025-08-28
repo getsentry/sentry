@@ -41,6 +41,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int) -> None:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=integrations_tasks,
+        processing_deadline_duration=1800,  # 30 minutes
     ),
 )
 def github_comment_reactions() -> None:
