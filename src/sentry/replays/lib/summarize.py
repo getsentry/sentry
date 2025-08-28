@@ -387,7 +387,7 @@ def _parse_url(s: str, trunc_length: int) -> str:
             if parsed_url.query:
                 url += f"?{parsed_url.query}"
             return url
-            
+
     except ValueError:
         pass
 
