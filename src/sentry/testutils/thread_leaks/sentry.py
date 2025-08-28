@@ -28,13 +28,18 @@ def get_scope() -> sentry_sdk.scope.Scope:
     if environ.get("GITHUB_ACTIONS") == "true":
         sha = environ["GITHUB_SHA"]
         branch = environ.get("GITHUB_HEAD_REF")
-        if branch:
+        repo = environ["GITHUB_REPOSITORY"]
+
+        if not repo.startswith("getsentry/"):
+            environment = "fork"
+        elif branch:
             environment = "PR"
         else:
             environment = "master"
             branch = environ["GITHUB_REF_NAME"]
     else:
         sha = branch = None
+        repo = "unknown"
         environment = "local"
 
     client = sentry_sdk.Client(
@@ -48,7 +53,7 @@ def get_scope() -> sentry_sdk.scope.Scope:
     scope.update_from_kwargs(
         # Don't set level - scope overrides event-level
         extras={"git-branch": branch, "git-sha": sha},
-        tags={"github.repo": environ.get("GITHUB_REPOSITORY", "unknown")},
+        tags={"github.repo": repo},
     )
     return scope
 
