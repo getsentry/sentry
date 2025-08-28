@@ -897,8 +897,8 @@ export function getContentForPlan(plan: Plan): PlanContent {
       spans: t('5M Spans'),
       attachments: t('1GB Attachments'),
       monitorSeats: t('1 Cron Monitor'),
-      upttime: t('1 Uptime Monitor'),
-      logs: t('5GB Logs'),
+      uptime: t('1 Uptime Monitor'),
+      logBytes: t('5GB Logs'),
     },
   };
 }
