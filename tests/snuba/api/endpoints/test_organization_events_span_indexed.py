@@ -5457,6 +5457,84 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
+    def test_tag_wildcards_with_in_filter(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "tags": {"foo": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "qux"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bux", "tags": {"foo": "bux"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qar", "tags": {"foo": "qar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["foo", "count()"],
+                "query": "foo:[b*,*ux]",
+                "project": self.project.id,
+                "orderby": "foo",
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        assert response.data["data"] == [
+            {"foo": "bar", "count()": 1},
+            {"foo": "bux", "count()": 1},
+            {"foo": "qux", "count()": 1},
+        ]
+
+    def test_tag_wildcards_with_not_in_filter(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "bar", "tags": {"foo": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "qux"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bux", "tags": {"foo": "bux"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qar", "tags": {"foo": "qar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["foo", "count()"],
+                "query": "!foo:[ba*,*ux]",
+                "project": self.project.id,
+                "orderby": "foo",
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"] == [
+            {"foo": "qar", "count()": 1},
+        ]
+
     def test_disable_extrapolation(self) -> None:
         spans = []
         spans.append(
