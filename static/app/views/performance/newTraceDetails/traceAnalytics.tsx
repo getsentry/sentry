@@ -194,10 +194,17 @@ const trackTraceEmptyState = (organization: Organization, source: TraceWaterFall
     source,
   });
 
-const trackTraceErrorState = (organization: Organization, source: TraceWaterFallSource) =>
+const trackTraceErrorState = (
+  organization: Organization,
+  source: TraceWaterFallSource,
+  span_count: number | null,
+  error_status: number | null
+) =>
   trackAnalytics('trace.load.error_state', {
     organization,
     source,
+    span_count,
+    error_status,
   });
 
 const trackQuotaExceededLearnMoreClicked = (
