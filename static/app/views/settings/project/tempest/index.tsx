@@ -116,7 +116,11 @@ export default function TempestSettings({organization, project}: Props) {
         action={
           <ButtonBar gap="lg">
             <FeedbackWidgetButton />
-            <RequestSdkAccessButton organization={organization} project={project} />
+            <RequestSdkAccessButton
+              organization={organization}
+              project={project}
+              origin="project-settings"
+            />
           </ButtonBar>
         }
       />
