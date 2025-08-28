@@ -1,5 +1,8 @@
 import type {EventsStats} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {isOnDemandAggregate, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
+import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
 import {
@@ -19,7 +22,7 @@ import {parseEventTypesFromQuery} from './eventTypes';
 
 type TransactionsSeriesResponse = EventsStats;
 
-const DEFAULT_EVENT_TYPES = ['transaction'];
+const DEFAULT_EVENT_TYPES = [EventTypes.TRANSACTION];
 
 export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSeriesResponse> =
   {
@@ -36,10 +39,27 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
           ? '9998m'
           : options.statsPeriod;
 
+      const hasMetricDataset =
+        hasOnDemandMetricAlertFeature(options.organization) ||
+        options.organization.features.includes('mep-rollout-flag') ||
+        options.organization.features.includes('dashboards-metrics-transition');
+      const isOnDemandQuery =
+        options.dataset === Dataset.GENERIC_METRICS &&
+        isOnDemandQueryString(options.query);
+      const isOnDemand =
+        hasMetricDataset && (isOnDemandAggregate(options.aggregate) || isOnDemandQuery);
+
+      const query = DetectorTransactionsConfig.toSnubaQueryString({
+        eventTypes: options.eventTypes,
+        query: options.query,
+      });
+
       return getDiscoverSeriesQueryOptions({
         ...options,
+        query,
         statsPeriod: timePeriod,
-        dataset: DiscoverDatasets.DISCOVER,
+        dataset: DetectorTransactionsConfig.getDiscoverDataset(),
+        ...(isOnDemand && {extra: {useOnDemandMetrics: 'true'}}),
       });
     },
     getIntervals: ({detectionType}) => {
@@ -48,7 +68,17 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     getTimePeriods: interval => getStandardTimePeriodsForInterval(interval),
     separateEventTypesFromQuery: query =>
       parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
-    toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
+    toSnubaQueryString: snubaQuery => {
+      if (!snubaQuery) {
+        return '';
+      }
+
+      if (snubaQuery.query.includes('event.type:transaction')) {
+        return snubaQuery.query;
+      }
+
+      return `event.type:transaction ${snubaQuery.query}`;
+    },
     transformSeriesQueryData: (data, aggregate) => {
       return [transformEventsStatsToSeries(data, aggregate)];
     },
@@ -58,4 +88,6 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     fromApiAggregate: aggregate => aggregate,
     toApiAggregate: aggregate => aggregate,
     supportedDetectionTypes: ['static', 'percent', 'dynamic'],
+    // TODO: This will need to fall back to the discover dataset if metrics enhanced is not available?
+    getDiscoverDataset: () => DiscoverDatasets.METRICS_ENHANCED,
   };

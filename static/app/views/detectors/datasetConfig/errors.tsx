@@ -3,6 +3,7 @@ import type {EventsStats} from 'sentry/types/organization';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {EventsSearchBar} from 'sentry/views/detectors/datasetConfig/components/eventSearchBar';
 import {
   getDiscoverSeriesQueryOptions,
@@ -66,18 +67,19 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
-const DEFAULT_EVENT_TYPES = ['error', 'default'];
+const DEFAULT_EVENT_TYPES = [EventTypes.ERROR, EventTypes.DEFAULT];
 
 export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> = {
   SearchBar: EventsSearchBar,
   defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: DEFAULT_FIELD,
   getAggregateOptions: () => AGGREGATE_OPTIONS,
-  getSeriesQueryOptions: options =>
-    getDiscoverSeriesQueryOptions({
+  getSeriesQueryOptions: options => {
+    return getDiscoverSeriesQueryOptions({
       ...options,
-      dataset: DiscoverDatasets.ERRORS,
-    }),
+      dataset: DetectorErrorsConfig.getDiscoverDataset(),
+    });
+  },
   getIntervals: ({detectionType}) => {
     return detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
   },
@@ -116,4 +118,6 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
   },
   separateEventTypesFromQuery: query =>
     parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
+  // TODO: This should use the discover dataset unless `is:unresolved` is in the query
+  getDiscoverDataset: () => DiscoverDatasets.ERRORS,
 };

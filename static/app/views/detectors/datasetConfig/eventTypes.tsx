@@ -4,13 +4,14 @@ import {
   parseSearch,
   Token,
 } from 'sentry/components/searchSyntax/parser';
+import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 // TODO: It is possible this creates a invalid query if they've used event.type inside parenthesis
 // eg - (something AND event.type:error)
 export function parseEventTypesFromQuery(
   query: string,
-  defaultEventTypes: string[]
-): {eventTypes: string[]; query: string} {
+  defaultEventTypes: EventTypes[]
+): {eventTypes: EventTypes[]; query: string} {
   if (!query) {
     return {query, eventTypes: defaultEventTypes};
   }
@@ -44,7 +45,7 @@ export function parseEventTypesFromQuery(
     }
   }
 
-  const filtered = extracted.filter(v => defaultEventTypes.includes(v));
+  const filtered = extracted.filter(v => defaultEventTypes.includes(v as EventTypes));
   const eventTypes =
     filtered.length > 0
       ? Array.from(new Set(filtered)).toSorted()
@@ -64,5 +65,5 @@ export function parseEventTypesFromQuery(
 
   const cleanedQuery = joinQuery(cleanedTokens, false, true).trim();
 
-  return {eventTypes, query: cleanedQuery};
+  return {eventTypes: eventTypes as EventTypes[], query: cleanedQuery};
 }
