@@ -137,6 +137,10 @@ def parse_recording_event(message: bytes) -> Event:
     else:
         replay_video = None
 
+    relay_snuba_publish_disabled = recording.get("relay_snuba_publish_disabled", False)
+    if not isinstance(relay_snuba_publish_disabled, bool):
+        relay_snuba_publish_disabled = False
+
     return {
         "context": {
             "key_id": recording.get("key_id"),
@@ -146,7 +150,7 @@ def parse_recording_event(message: bytes) -> Event:
             "replay_id": recording["replay_id"],
             "retention_days": recording["retention_days"],
             "segment_id": segment_id,
-            "should_publish_replay_event": recording.get("relay_snuba_publish_disabled"),
+            "should_publish_replay_event": relay_snuba_publish_disabled,
         },
         "payload_compressed": compressed,
         "payload": decompressed,
