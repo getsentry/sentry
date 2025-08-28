@@ -23,7 +23,7 @@ def thread_leak_allowlist(reason: str | None = None, *, issue: int) -> pytest.Ma
 
 
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_call(item: pytest.Item):
+def pytest_runtest_call(item: pytest.Item) -> Generator[None]:
     """Wrap the test call phase with thread leak detection."""
     if item.get_closest_marker("thread_leak_allowlist"):
         yield

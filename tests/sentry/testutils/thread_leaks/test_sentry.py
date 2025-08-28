@@ -13,8 +13,8 @@ def dict_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) -> 
     """Create Sentry event dict from stack (type-checker friendly wrapper)."""
     # Create mock thread with the desired repr and no target
     mock_thread = Mock(spec=Thread)
-    mock_thread.__repr__ = Mock(return_value=value)
-    mock_thread._target = None
+    mock_thread.configure_mock(__repr__=Mock(return_value=value))
+    mock_thread.configure_mock(_target=None)
     return dict(event_from_stack(mock_thread, stack, strict))
 
 
