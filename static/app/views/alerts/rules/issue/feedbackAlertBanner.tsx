@@ -23,7 +23,7 @@ export default function FeedbackAlertBanner({
   return filterFeedback ? (
     <StyledFeedbackAlert type="info">
       {tct(
-        'This issue category condition is ONLY for feedbacks from the [linkWidget:built-in widget]. [linkModal: Crash-report modal] alerts can be enabled in [link:Project Settings].',
+        'This issue category condition is ONLY for feedback from the [linkWidget:built-in widget]. [linkModal: Crash-report modal] alerts can be enabled in [link:Project Settings].',
         {
           link: (
             <Link
