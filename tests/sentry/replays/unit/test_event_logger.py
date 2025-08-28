@@ -5,7 +5,6 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
-import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.conf.types.kafka_definition import Topic
 from sentry.replays.usecases.ingest.event_logger import (
     emit_click_events,
@@ -13,6 +12,7 @@ from sentry.replays.usecases.ingest.event_logger import (
     gen_rage_clicks,
 )
 from sentry.replays.usecases.ingest.event_parser import ClickEvent, ParsedEventMeta
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
 def test_gen_rage_clicks() -> None:
@@ -41,7 +41,7 @@ def test_gen_rage_clicks() -> None:
     assert len(list(gen_rage_clicks(meta, 1, "1", None))) == 0
 
 
-@thread_leaks.allowlist(reason="replays", issue=97033)
+@thread_leak_allowlist(reason="replays", issue=97033)
 def test_emit_click_events_environment_handling() -> None:
     click_events = [
         ClickEvent(
@@ -79,7 +79,7 @@ def test_emit_click_events_environment_handling() -> None:
         assert producer.call_args.args[1].value is not None
 
 
-@thread_leaks.allowlist(reason="replays", issue=97033)
+@thread_leak_allowlist(reason="replays", issue=97033)
 @mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce")
 def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:
     timestamp = Timestamp()
