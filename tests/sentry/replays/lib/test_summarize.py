@@ -327,6 +327,42 @@ def test_as_log_message_ui_focus() -> None:
     assert as_log_message(event) is None
 
 
+def test_as_log_message_resource_img() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756400489.65,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.img",
+                "description": "https://us.sentry.io/img-link",
+                "startTimestamp": 1756400489.65,
+                "endTimestamp": 1756400489.869,
+                "data": {"size": 0, "statusCode": 0, "decodedBodySize": 0, "encodedBodySize": 0},
+            },
+        },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_resource_script() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756400490.308,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.script",
+                "description": "https://data.test.io/data/test",
+                "startTimestamp": 1756400490.308,
+                "endTimestamp": 1756400491.236,
+                "data": {"size": 0, "statusCode": 0, "decodedBodySize": 0, "encodedBodySize": 0},
+            },
+        },
+    }
+    assert as_log_message(event) is None
+
+
 def test_as_log_message_long_console_message() -> None:
     event = {
         "type": 5,
