@@ -1,11 +1,11 @@
 import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import type {Event} from 'sentry/types/event';
 
 export default function getStacktraceBody(
   event: Event,
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
+  newestFirst = false,
   includeJSContext = false
 ) {
   if (!event?.entries) {
@@ -45,16 +45,9 @@ export default function getStacktraceBody(
         value,
         hasSimilarityEmbeddingsFeature,
         includeLocation,
-        includeJSContext
+        includeJSContext,
+        newestFirst
       );
-
-      if (isStacktraceNewestFirst()) {
-        const lines = result.split('\n');
-        const exceptionLine = lines[0];
-        const frameLines = lines.slice(1);
-        frameLines.reverse();
-        return [exceptionLine, ...frameLines].join('\n');
-      }
 
       return result;
     })

@@ -6,6 +6,7 @@ import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
@@ -88,18 +89,21 @@ class IssueDiff extends Component<Props, State> {
           this.fetchEvent(targetIssueId, targetEventId ?? 'latest'),
         ]);
         const includeLocation = false;
+        const newestFirst = isStacktraceNewestFirst();
         const includeJSContext = true;
         const [baseEvent, targetEvent] = await Promise.all([
           getStacktraceBody(
             baseEventData,
             hasSimilarityEmbeddingsFeature,
             includeLocation,
+            newestFirst,
             includeJSContext
           ),
           getStacktraceBody(
             targetEventData,
             hasSimilarityEmbeddingsFeature,
             includeLocation,
+            newestFirst,
             includeJSContext
           ),
         ]);
