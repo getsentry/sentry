@@ -36,7 +36,6 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
-        self.group = None
         self.user_id_team_lookup: Mapping[int, list[int]] | None = None
         self.deploy = get_deploy(activity)
         self.release = get_release(activity, self.organization)

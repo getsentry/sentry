@@ -11,10 +11,14 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
+from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.projectownership import ProjectOwnership
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.analytics import (
+    assert_any_analytics_event,
+    assert_last_analytics_event,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -107,19 +111,27 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         assert isinstance(message, EmailMultiAlternatives)
         assert isinstance(message.alternatives[0][0], str)
         assert "notification_uuid" in message.alternatives[0][0]
-        mock_record.assert_any_call(
-            "integrations.email.notification_sent",
-            category="digest",
-            notification_uuid=ANY,
-            target_type="IssueOwners",
-            target_identifier=None,
-            alert_id=self.rule.id,
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            id=ANY,
-            actor_type="User",
-            group_id=None,
-            user_id=ANY,
+        assert_any_analytics_event(
+            mock_record,
+            EmailNotificationSent(
+                category="digest",
+                notification_uuid="ANY",
+                alert_id=self.rule.id,
+                project_id=self.project.id,
+                organization_id=self.organization.id,
+                id=0,
+                actor_type="User",
+                group_id=None,
+                user_id=0,
+            ),
+            exclude_fields=[
+                "id",
+                "project_id",
+                "actor_id",
+                "user_id",
+                "notification_uuid",
+                "alert_id",
+            ],
         )
         assert_last_analytics_event(
             mock_record,

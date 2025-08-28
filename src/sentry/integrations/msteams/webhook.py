@@ -80,28 +80,35 @@ from .utils import ACTION_TYPE, get_preinstall_client
 logger = logging.getLogger("sentry.integrations.msteams.webhooks")
 
 
+@analytics.eventclass()
 class MsTeamsIntegrationAnalytics(analytics.Event):
-    attributes = (analytics.Attribute("actor_id"), analytics.Attribute("organization_id"))
+    actor_id: int
+    organization_id: int
 
 
+@analytics.eventclass("integrations.msteams.assign")
 class MsTeamsIntegrationAssign(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.assign"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.resolve")
 class MsTeamsIntegrationResolve(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.resolve"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.archive")
 class MsTeamsIntegrationArchive(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.archive"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.unresolve")
 class MsTeamsIntegrationUnresolve(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.unresolve"
+    pass
 
 
+@analytics.eventclass("integrations.msteams.unassign")
 class MsTeamsIntegrationUnassign(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.unassign"
+    pass
 
 
 analytics.register(MsTeamsIntegrationAssign)
@@ -484,11 +491,24 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         action_data = self._make_action_data(data, identity.user_id)
         status, interaction_type = self._ACTION_TYPES[data["payload"]["actionType"]]
-        analytics_event = f"integrations.msteams.{status}"
+
+        event_type: type[MsTeamsIntegrationAnalytics]
+        if status == "assign":
+            event_type = MsTeamsIntegrationAssign
+        elif status == "resolve":
+            event_type = MsTeamsIntegrationResolve
+        elif status == "archive":
+            event_type = MsTeamsIntegrationArchive
+        elif status == "unresolve":
+            event_type = MsTeamsIntegrationUnresolve
+        elif status == "unassign":
+            event_type = MsTeamsIntegrationUnassign
+
         analytics.record(
-            analytics_event,
-            actor_id=identity.user_id,
-            organization_id=group.project.organization.id,
+            event_type(
+                actor_id=identity.user_id,
+                organization_id=group.project.organization.id,
+            ),
         )
 
         with MessagingInteractionEvent(
