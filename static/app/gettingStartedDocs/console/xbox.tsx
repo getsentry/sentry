@@ -54,6 +54,7 @@ const onboarding: OnboardingConfig = {
                   projectId: params.project.id,
                   sdkName: 'Xbox',
                   gamingPlatform: 'xbox',
+                  origin: params.newOrg ? 'onboarding' : 'project-creation',
                 });
               }}
             >

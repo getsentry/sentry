@@ -10,6 +10,7 @@ import type {
   Docs,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
@@ -354,7 +355,7 @@ export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
       ],
     },
-    getConsoleExtensions(params),
+    ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
     {
       title: t('Further Settings'),
       content: [

@@ -52,6 +52,36 @@ describe('PageOverviewSidebar', () => {
       },
       method: 'POST',
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [
+        {
+          id: '123',
+          shortId: '123',
+          title: 'LCP score needs improvement',
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/123/autofix/`,
+      body: {
+        autofix: {
+          steps: [
+            {
+              causes: [
+                {
+                  description:
+                    'Unoptimized screenshot images are directly embedded, causing large downloads and delaying Largest Contentful Paint on issue detail pages.',
+                },
+              ],
+              type: 'root_cause_analysis',
+            },
+          ],
+        },
+      },
+    });
   });
 
   afterEach(() => {
@@ -64,5 +94,18 @@ describe('PageOverviewSidebar', () => {
     expect(screen.getByText('Performance Score')).toBeInTheDocument();
     expect(screen.getByText('Page Loads')).toBeInTheDocument();
     expect(screen.getByText('Interactions')).toBeInTheDocument();
+  });
+
+  it('should render seer suggestions for LCP', async () => {
+    render(<PageOverviewSidebar transaction={TRANSACTION_NAME} />, {organization});
+
+    expect(await screen.findByText('Seer Suggestions')).toBeInTheDocument();
+    expect(screen.getByText('LCP score needs improvement')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Unoptimized screenshot images are directly embedded, causing large downloads and delaying Largest Contentful Paint on issue detail pages.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('View Suggestion')).toBeInTheDocument();
   });
 });

@@ -87,6 +87,7 @@ const server: Set<PlatformKey> = new Set([
   'node-express',
   'node-fastify',
   'node-hapi',
+  'node-hono',
   'node-koa',
   'node-nestjs',
   'php',
