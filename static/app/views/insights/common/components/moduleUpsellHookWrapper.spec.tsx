@@ -19,7 +19,7 @@ describe('ModulePageProviders', () => {
       </ModuleBodyUpsellHook>,
       {
         organization: OrganizationFixture({
-          features: ['insights-entry-points'],
+          features: [''],
         }),
       }
     );
