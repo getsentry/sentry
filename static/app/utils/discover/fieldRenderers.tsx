@@ -676,14 +676,14 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     sortField: 'project_id',
     renderFunc: (data, baggage) => {
       const projectId = data.project_id;
-      return getProjectIdLink(projectId, baggage);
+      return <NumberContainer>{getProjectIdLink(projectId, baggage)}</NumberContainer>;
     },
   },
   'project.id': {
     sortField: 'project.id',
     renderFunc: (data, baggage) => {
       const projectId = data['project.id'];
-      return getProjectIdLink(projectId, baggage);
+      return <Container>{getProjectIdLink(projectId, baggage)}</Container>;
     },
   },
   user: {
@@ -1000,27 +1000,25 @@ const getProjectIdLink = (
 ) => {
   const parsedId = typeof projectId === 'string' ? parseInt(projectId, 10) : projectId;
   if (!defined(parsedId) || isNaN(parsedId)) {
-    return <NumberContainer>{emptyValue}</NumberContainer>;
+    return emptyValue;
   }
 
   // TODO: Component has been deprecated in favour of hook, need to refactor this
   return (
-    <NumberContainer>
-      <Projects orgId={organization.slug} slugs={[]} projectIds={[parsedId]}>
-        {({projects}) => {
-          const project = projects.find(p => p.id === parsedId?.toString());
-          if (!project) {
-            return emptyValue;
-          }
-          const target = makeProjectsPathname({
-            path: `/${project?.slug}/?project=${parsedId}/`,
-            organization,
-          });
+    <Projects orgId={organization.slug} slugs={[]} projectIds={[parsedId]}>
+      {({projects}) => {
+        const project = projects.find(p => p.id === parsedId?.toString());
+        if (!project) {
+          return emptyValue;
+        }
+        const target = makeProjectsPathname({
+          path: `/${project?.slug}/?project=${parsedId}/`,
+          organization,
+        });
 
-          return <Link to={target}>{parsedId}</Link>;
-        }}
-      </Projects>
-    </NumberContainer>
+        return <Link to={target}>{parsedId}</Link>;
+      }}
+    </Projects>
   );
 };
 
