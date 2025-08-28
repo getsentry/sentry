@@ -1,6 +1,7 @@
 import uuid
 import zlib
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import Mock, patch
 
 import requests
@@ -447,7 +448,7 @@ class ProjectReplaySummaryTestCase(
         trace_id_2 = uuid.uuid4().hex
 
         # Create feedback event - issuePlatform dataset
-        feedback_data = {
+        feedback_data: dict[str, Any] = {
             "type": "feedback",
             "event_id": feedback_event_id,
             "timestamp": (now - timedelta(minutes=3)).timestamp(),
@@ -468,7 +469,7 @@ class ProjectReplaySummaryTestCase(
         }
 
         # Create another feedback event - issuePlatform dataset
-        feedback_data_2 = {
+        feedback_data_2: dict[str, Any] = {
             "type": "feedback",
             "event_id": feedback_event_id_2,
             "timestamp": (now - timedelta(minutes=2)).timestamp(),
@@ -518,7 +519,7 @@ class ProjectReplaySummaryTestCase(
             id=feedback_event_id,
             title="User Feedback",
             message=feedback_data["contexts"]["feedback"]["message"],
-            timestamp=feedback_data["timestamp"],
+            timestamp=float(feedback_data["timestamp"]),
             category="feedback",
         )
 

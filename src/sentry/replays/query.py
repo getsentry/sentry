@@ -952,4 +952,7 @@ def query_trace_connected_events(
 
     dataset = get_dataset(dataset_label)
 
+    if dataset is None:
+        raise ValueError(f"Unknown dataset: {dataset_label}")
+
     return dataset.query(**query_details)
