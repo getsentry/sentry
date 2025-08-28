@@ -52,6 +52,10 @@ export type GroupListColumn =
 
 type Props = WithRouterProps & {
   api: Client;
+  /**
+   * Number of placeholder rows to show during loading
+   */
+  numPlaceholderRows: number;
   organization: Organization;
   queryParams: Record<string, number | string | string[] | undefined | null>;
   customStatsPeriod?: TimePeriodType;
@@ -59,11 +63,6 @@ type Props = WithRouterProps & {
    * Defaults to `/organizations/${orgSlug}/issues/`
    */
   endpointPath?: string;
-  /**
-   * Number of placeholder rows to show during loading
-   * Defaults to queryParams.limit or 4
-   */
-  numPlaceholderRows?: number;
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
@@ -312,12 +311,7 @@ class GroupList extends Component<Props, State> {
           <GroupListHeader withChart={!!withChart} withColumns={columns} />
           <PanelBody>
             {loading
-              ? [
-                  ...new Array(
-                    numPlaceholderRows ??
-                      (typeof queryParams?.limit === 'number' ? queryParams?.limit : 4)
-                  ),
-                ].map((_, i) => (
+              ? [...new Array(numPlaceholderRows)].map((_, i) => (
                   <GroupPlaceholder key={i}>
                     <Placeholder height="50px" />
                   </GroupPlaceholder>
