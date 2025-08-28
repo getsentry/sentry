@@ -1,45 +1,21 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as CommandPrimitive from 'cmdk';
 import type Fuse from 'fuse.js';
-import serryLottieAnimation from 'getsentry-images/omni_search/seer-y.json';
 
 import error from 'sentry-images/spot/cmd-k-error.svg';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {Tag} from 'sentry/components/core/badge/tag';
-import SeeryCharacter, {
-  type SeeryCharacterRef,
-} from 'sentry/components/omniSearch/animation/seeryCharacter';
-import {SEER_ANIMATION_EXIT_DURATION} from 'sentry/components/omniSearch/constants';
-import {useOmniSearchStore} from 'sentry/components/omniSearch/context';
-import {SeerSearchAnimation} from 'sentry/components/omniSearch/seerSearchAnimation';
 import {strGetFn} from 'sentry/components/search/sources/utils';
-import {IconSeer} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
-import {getExploreUrl} from 'sentry/views/explore/utils';
 
-import brainhead from './brainhead.png';
 import type {OmniAction} from './types';
 import {useApiDynamicActions} from './useApiDynamicActions';
 import {useCommandDynamicActions} from './useCommandDynamicActions';
@@ -47,14 +23,6 @@ import {useFormDynamicActions} from './useFormDynamicActions';
 import {useOmniSearchState} from './useOmniSearchState';
 import {useOrganizationsDynamicActions} from './useOrganizationsDynamicActions';
 import {useRouteDynamicActions} from './useRouteDynamicActions';
-
-type TranslateResponse = {
-  environments: string[];
-  query: string;
-  route: 'issues';
-  sort: string;
-  statsPeriod: string;
-};
 
 /**
  * Recursively flattens an array of actions, including all their children
@@ -87,26 +55,8 @@ function flattenActions(actions: OmniAction[], parentLabel?: string): OmniAction
   return flattened;
 }
 
-export interface OmniSearchPaletteSeeryRef {
-  triggerSeeryBarrelRoll: () => void;
-  triggerSeeryCelebrate: () => void;
-  triggerSeeryError: () => void;
-  triggerSeeryImpatient: () => void;
-  triggerSeerySearchDone: () => void;
-  triggerSeeryWatching: () => void;
-}
-
 interface OmniActionWithPriority extends OmniAction {
   priority: number;
-}
-
-/**
- * Very basic palette UI using cmdk that lists all registered actions.
- *
- * NOTE: This is intentionally minimal and will be iterated on.
- */
-interface OmniSearchPaletteProps {
-  ref?: React.Ref<OmniSearchPaletteSeeryRef>;
 }
 
 const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<OmniActionWithPriority> = {
@@ -117,28 +67,9 @@ const FUZZY_SEARCH_CONFIG: Fuse.IFuseOptions<OmniActionWithPriority> = {
   includeScore: true,
   threshold: 0.2,
   ignoreLocation: true,
-  // // Prioritize items with priority === 0, then fallback to Fuse default ordering
-  // sortFn: (a, b) => {
-  //   const aItem = (a as unknown as {item: OmniActionWithPriority}).item;
-  //   const bItem = (b as unknown as {item: OmniActionWithPriority}).item;
-  //   const aPriority = aItem.priority;
-  //   const bPriority = bItem.priority;
-
-  //   if (aItem.priority !== bItem.priority) {
-  //     return aPriority - bPriority;
-  //   }
-
-  //   // Default Fuse.js ordering: lower score (better) first; tie-breaker by refIndex if present
-  //   return (a.score ?? 1) - (b.score ?? 1);
-  // },
 };
 
-export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
-  const organization = useOrganization();
-  const pageFilters = usePageFilters();
-  const {projects} = useProjects();
-  const memberProjects = useMemo(() => projects.filter(p => p.isMember), [projects]);
-  const {isSearchingSeer, setIsSearchingSeer} = useOmniSearchStore();
+export function OmniSearchPalette() {
   const {
     focusedArea,
     actions: availableActions,
@@ -147,11 +78,8 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     clearSelection,
   } = useOmniSearchState();
   const [query, setQuery] = useState('');
-  const [seerError, setSeerError] = useState<boolean>(false);
-  const [seerIsExiting, setSeerIsExiting] = useState<boolean>(false);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
-  const seeryRef = useRef<SeeryCharacterRef>(null);
   const debouncedQuery = useDebouncedValue(query, 300);
   useTraceExploreAiQuerySetup({enableAISearch: true});
 
@@ -161,169 +89,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   const routeActions = useRouteDynamicActions();
   const orgActions = useOrganizationsDynamicActions();
   const commandActions = useCommandDynamicActions();
-
-  // Store the current query in a ref so we can access it in the callback
-  const currentQueryRef = useRef<string>('');
-  currentQueryRef.current = debouncedQuery;
-
-  const executeSeer = useCallback(async () => {
-    const queryToSearch = currentQueryRef.current;
-    if (!queryToSearch) {
-      return;
-    }
-    setIsSearchingSeer(true);
-    triggerSeeryCelebrate();
-
-    try {
-      const url = 'https://cmdkllm-12459da2e71a.herokuapp.com/ask-seer';
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: queryToSearch,
-        }),
-      });
-      const data: {route: 'traces' | 'issues' | 'other'} = await res.json();
-
-      if (data.route === 'traces') {
-        try {
-          const selectedProjects =
-            pageFilters.selection.projects?.length > 0 &&
-            pageFilters.selection.projects?.[0] !== -1
-              ? pageFilters.selection.projects
-              : memberProjects.map(p => p.id);
-
-          const response: any = await fetchMutation({
-            url: `/organizations/${organization.slug}/trace-explorer-ai/query/`,
-            method: 'POST',
-            data: {
-              natural_language_query: queryToSearch,
-              project_ids: selectedProjects,
-              limit: 1,
-            },
-          });
-
-          if (response.queries && response.queries.length > 0) {
-            const result = response.queries[0];
-            const startFilter = pageFilters.selection.datetime.start?.valueOf();
-            const start = startFilter
-              ? new Date(startFilter).toISOString()
-              : pageFilters.selection.datetime.start;
-
-            const endFilter = pageFilters.selection.datetime.end?.valueOf();
-            const end = endFilter
-              ? new Date(endFilter).toISOString()
-              : pageFilters.selection.datetime.end;
-
-            const selection = {
-              ...pageFilters.selection,
-              datetime: {
-                start,
-                end,
-                utc: pageFilters.selection.datetime.utc,
-                period: result.stats_period || pageFilters.selection.datetime.period,
-              },
-            };
-
-            const mode =
-              result.group_by.length > 0
-                ? Mode.AGGREGATE
-                : result.mode === 'aggregates'
-                  ? Mode.AGGREGATE
-                  : Mode.SAMPLES;
-
-            const visualize =
-              result.visualization?.map((v: any) => ({
-                chartType: v?.chart_type,
-                yAxes: v?.y_axes,
-              })) ?? [];
-
-            const exploreUrl = getExploreUrl({
-              organization,
-              selection,
-              query: result.query,
-              visualize,
-              groupBy: result.group_by ?? [],
-              sort: result.sort,
-              mode,
-            });
-
-            setIsSearchingSeer(false);
-            setSeerIsExiting(true);
-
-            // Wait slightly to let the animation finish
-            setTimeout(() => {
-              closeModal();
-              navigate(exploreUrl);
-            }, SEER_ANIMATION_EXIT_DURATION);
-          }
-        } catch (_error) {
-          // Fallback to basic explore page if AI query fails
-          const exploreUrl = getExploreUrl({
-            organization,
-            selection: pageFilters.selection,
-            query: queryToSearch,
-            visualize: [],
-            groupBy: [],
-            sort: '',
-            mode: Mode.SAMPLES,
-          });
-
-          setIsSearchingSeer(false);
-          setSeerIsExiting(true);
-
-          // Wait slightly to let the animation finish
-          setTimeout(() => {
-            closeModal();
-            navigate(exploreUrl);
-          }, SEER_ANIMATION_EXIT_DURATION);
-        }
-      } else if (data.route === 'issues') {
-        const response = data as TranslateResponse;
-        const environmentsParam =
-          response.environments && response.environments.length > 0
-            ? `&environments=${response.environments.join(',')}`
-            : '';
-
-        setIsSearchingSeer(false);
-        setSeerIsExiting(true);
-
-        // Wait slightly to let the animation finish
-        setTimeout(() => {
-          closeModal();
-          navigate(
-            `/organizations/${organization.slug}/issues?query=${response.query}&statsPeriod=${response.statsPeriod}&sort=${response.sort}${environmentsParam}`
-          );
-        }, SEER_ANIMATION_EXIT_DURATION);
-      } else {
-        closeModal();
-      }
-    } catch (err) {
-      setSeerError(true);
-    } finally {
-      setIsSearchingSeer(false);
-    }
-  }, [memberProjects, navigate, organization, pageFilters.selection, setIsSearchingSeer]);
-
-  const askSeerAction = useMemo<OmniAction | null>(() => {
-    if (query.length < 8 && !query.includes(' ')) {
-      return null;
-    }
-
-    const baseAction: OmniAction = {
-      key: 'ask-seer',
-      label: `Ask Seer: "${query}"`,
-      areaKey: 'navigate',
-      actionIcon: <IconSeer />,
-      section: '', // Empty section so it appears at the top
-      keepOpen: true,
-      onAction: executeSeer,
-    };
-
-    return baseAction;
-  }, [executeSeer, query]);
 
   // Combine all dynamic actions (excluding recent issues for now)
   const dynamicActions = useMemo(() => {
@@ -336,18 +101,11 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     }
 
     return [
-      ...(askSeerAction ? [{...askSeerAction, priority: 1}] : []),
       ...flattenActions(availableActions).map(a => ({...a, priority: 1})),
       ...flattenActions(dynamicActions).map(a => ({...a, priority: 2})),
       ...flattenActions(apiActions).map(a => ({...a, priority: 3})),
     ];
-  }, [
-    selectedAction?.children,
-    askSeerAction,
-    availableActions,
-    dynamicActions,
-    apiActions,
-  ]);
+  }, [selectedAction?.children, availableActions, dynamicActions, apiActions]);
 
   const fuseSearch = useFuzzySearch(searchableActions, FUZZY_SEARCH_CONFIG);
   const filteredAvailableActions = useMemo(() => {
@@ -385,7 +143,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
   }, [filteredAvailableActions]);
 
   const handleSelect = (action: OmniAction) => {
-    resetInactivityTimer();
     if (action.disabled) {
       return;
     }
@@ -422,104 +179,8 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
     return 'Type for actions…';
   }, [selectedAction]);
 
-  const triggerSeeryImpatient = () => {
-    seeryRef.current?.triggerImpatient();
-  };
-
-  const triggerSeeryError = () => {
-    seeryRef.current?.triggerError();
-  };
-
-  const triggerSeeryCelebrate = () => {
-    seeryRef.current?.triggerCelebrate();
-  };
-
-  const triggerSeeryWatching = () => {
-    seeryRef.current?.triggerWatching();
-  };
-
-  const triggerSeerySearchDone = () => {
-    seeryRef.current?.triggerSearchDone();
-  };
-
-  const triggerSeeryBarrelRoll = () => {
-    seeryRef.current?.triggerBarrelRoll();
-  };
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      triggerSeeryBarrelRoll,
-      triggerSeeryImpatient,
-      triggerSeeryError,
-      triggerSeeryCelebrate,
-      triggerSeeryWatching,
-      triggerSeerySearchDone,
-    }),
-    []
-  );
-
-  // Call triggerSeeryError if results are empty, but avoid repeated calls for the same state
-  const lastResultWasEmpty = useRef<boolean | null>(null);
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      const isEmpty = query.length > 0 && grouped.every(g => g.items.length === 0);
-
-      if (isEmpty !== lastResultWasEmpty.current) {
-        if (isEmpty) {
-          triggerSeeryError();
-        } else if (query.length > 0) {
-          triggerSeerySearchDone();
-        }
-        lastResultWasEmpty.current = isEmpty;
-      }
-    }, 300); // 300ms debounce
-
-    return () => clearTimeout(handler);
-  }, [grouped, query]);
-
-  // Watch for user typing and trigger watching state
-  const lastQueryRef = useRef<string>('');
-  useEffect(() => {
-    // Only trigger when user starts typing (from empty to non-empty)
-    if (lastQueryRef.current.length === 0 && query.length > 0) {
-      triggerSeeryWatching();
-    }
-    lastQueryRef.current = query;
-  }, [query]);
-
-  // Inactivity timer for impatient animation
-  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastActivityTimeRef = useRef<number>(Date.now());
-
-  const resetInactivityTimer = useCallback(() => {
-    lastActivityTimeRef.current = Date.now();
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current);
-    }
-    inactivityTimerRef.current = setTimeout(() => {
-      triggerSeeryImpatient();
-    }, 5000);
-  }, []);
-
-  // Reset timer on any user interaction
-  useEffect(() => {
-    resetInactivityTimer();
-  }, [resetInactivityTimer]); // Empty dependency array - only run once on mount
-
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
-    };
-  }, []);
-
   return (
     <Fragment>
-      <SeeryCharacter ref={seeryRef} animationData={serryLottieAnimation} size={400} />
-      <SeerSearchAnimation />
       <StyledCommand label="OmniSearch" shouldFilter={false} loop>
         <Header>
           {focusedArea && (
@@ -531,7 +192,6 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
             {selectedAction && (
               <BackButton
                 onClick={() => {
-                  resetInactivityTimer();
                   clearSelection();
                 }}
               >
@@ -544,68 +204,57 @@ export function OmniSearchPalette({ref}: OmniSearchPaletteProps) {
               value={query}
               onValueChange={setQuery}
               onKeyDown={e => {
-                resetInactivityTimer();
                 if (e.key === 'Backspace' && query === '') {
                   clearSelection();
                   e.preventDefault();
-                  triggerSeeryImpatient();
-                  setSeerIsExiting(false);
                 }
               }}
               placeholder={placeholder}
-              disabled={isSearchingSeer || seerIsExiting}
             />
           </SearchInputContainer>
         </Header>
-        {isSearchingSeer || seerIsExiting ? (
-          <SeerLoadingContainer>
-            <BrainHead src={brainhead} alt="Loading..." />
-            <LoadingCaption>MAKING IT MAKE SENSE</LoadingCaption>
-          </SeerLoadingContainer>
-        ) : (
-          <CommandPrimitive.Command.List>
-            {grouped.every(g => g.items.length === 0) || seerError ? (
-              <CommandPrimitive.Command.Empty>
-                <img src={error} alt="No results" />
-                <p>Whoops… we couldn't find any results matching your search.</p>
-                <p>Try rephrasing your query maybe?</p>
-              </CommandPrimitive.Command.Empty>
-            ) : (
-              grouped.map(group => (
-                <Fragment key={group.sectionKey}>
-                  {group.items.length > 0 && (
-                    <CommandPrimitive.Command.Group heading={group.label}>
-                      {group.items.map(item => (
-                        <CommandPrimitive.Command.Item
-                          key={item.key}
-                          value={item.key}
-                          onSelect={() => handleSelect(item)}
-                          disabled={item.disabled}
-                          hidden={item.hidden}
-                        >
-                          <ItemRow>
-                            {item.actionIcon && (
-                              <IconDefaultsProvider size="sm">
-                                <IconWrapper>{item.actionIcon}</IconWrapper>
-                              </IconDefaultsProvider>
-                            )}
-                            <OverflowHidden>
-                              <div>
-                                {item.label}
-                                {item.children && item.children.length > 0 && '…'}
-                              </div>
-                              {item.details && <ItemDetails>{item.details}</ItemDetails>}
-                            </OverflowHidden>
-                          </ItemRow>
-                        </CommandPrimitive.Command.Item>
-                      ))}
-                    </CommandPrimitive.Command.Group>
-                  )}
-                </Fragment>
-              ))
-            )}
-          </CommandPrimitive.Command.List>
-        )}
+        <CommandPrimitive.Command.List>
+          {grouped.every(g => g.items.length === 0) ? (
+            <CommandPrimitive.Command.Empty>
+              <img src={error} alt="No results" />
+              <p>Whoops… we couldn't find any results matching your search.</p>
+              <p>Try rephrasing your query maybe?</p>
+            </CommandPrimitive.Command.Empty>
+          ) : (
+            grouped.map(group => (
+              <Fragment key={group.sectionKey}>
+                {group.items.length > 0 && (
+                  <CommandPrimitive.Command.Group heading={group.label}>
+                    {group.items.map(item => (
+                      <CommandPrimitive.Command.Item
+                        key={item.key}
+                        value={item.key}
+                        onSelect={() => handleSelect(item)}
+                        disabled={item.disabled}
+                        hidden={item.hidden}
+                      >
+                        <ItemRow>
+                          {item.actionIcon && (
+                            <IconDefaultsProvider size="sm">
+                              <IconWrapper>{item.actionIcon}</IconWrapper>
+                            </IconDefaultsProvider>
+                          )}
+                          <OverflowHidden>
+                            <div>
+                              {item.label}
+                              {item.children && item.children.length > 0 && '…'}
+                            </div>
+                            {item.details && <ItemDetails>{item.details}</ItemDetails>}
+                          </OverflowHidden>
+                        </ItemRow>
+                      </CommandPrimitive.Command.Item>
+                    ))}
+                  </CommandPrimitive.Command.Group>
+                )}
+              </Fragment>
+            ))
+          )}
+        </CommandPrimitive.Command.List>
       </StyledCommand>
     </Fragment>
   );
@@ -985,40 +634,4 @@ const ItemDetails = styled('div')`
 
 const OverflowHidden = styled('div')`
   overflow: hidden;
-`;
-
-const SeerLoadingContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  padding: 60px 20px;
-  min-height: 300px;
-`;
-
-const BrainHead = styled('img')`
-  width: 180px;
-  height: 180px;
-  animation: pulse 1.5s ease-in-out infinite;
-  margin-bottom: 24px;
-
-  @keyframes pulse {
-    0% {
-      opacity: 0.6;
-    }
-    50% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0.6;
-    }
-  }
-`;
-
-const LoadingCaption = styled('div')`
-  font-size: ${p => p.theme.fontSize.lg};
-  font-weight: 600;
-  color: ${p => p.theme.textColor};
-  letter-spacing: 0.5px;
 `;
