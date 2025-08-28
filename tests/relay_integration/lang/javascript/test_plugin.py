@@ -8,7 +8,6 @@ import pytest
 import responses
 from django.conf import settings
 
-import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -23,6 +22,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 from sentry.utils.safe import get_path
 
@@ -60,7 +60,7 @@ def load_fixture(name):
 
 
 @django_db_all(transaction=True)
-@thread_leaks.allowlist(reason="sentry sdk background worker", issue=97042)
+@thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class TestJavascriptIntegration(RelayStoreHelper):
     @pytest.fixture(autouse=True)
     def initialize(self, default_projectkey, default_project, set_sentry_option, live_server):
