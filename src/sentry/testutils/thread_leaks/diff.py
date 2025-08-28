@@ -5,6 +5,8 @@ from collections.abc import Generator, Iterable
 from threading import Thread
 from traceback import FrameSummary, StackSummary
 
+from ._threading import get_thread_function_name
+
 
 def get_relevant_frames(stack: Iterable[FrameSummary]) -> StackSummary:
     """Filter stack frames to show only test and testutil code relevant for debugging.
@@ -35,21 +37,6 @@ def get_relevant_frames(stack: Iterable[FrameSummary]) -> StackSummary:
     return StackSummary.from_list(stack)
 
 
-def _get_thread_function_name(thread: Thread) -> str:
-    """Extract fully qualified function name from thread target.
-
-    Handles cases where thread target is None or wrapped (e.g., functools.partial).
-    Returns a string representation suitable for debugging output.
-    """
-    func = getattr(thread, "_target", None)
-    if func is None:
-        return "None"
-
-    # Use __qualname__ if available, fallback to str() for complex objects like functools.partial
-    func_name = getattr(func, "__qualname__", str(func))
-    return f"{func.__module__}.{func_name}"
-
-
 def _threads_to_diffable(threads: list[Thread]) -> list[str]:
     """Convert threads to string representations suitable for diffing.
 
@@ -62,7 +49,7 @@ def _threads_to_diffable(threads: list[Thread]) -> list[str]:
     """
     result: list[str] = []
     for thread in sorted(threads, key=lambda t: t.ident or 0):
-        func_fqname = _get_thread_function_name(thread)
+        func_fqname = get_thread_function_name(thread)
         stack = getattr(thread, "_where", [])
         stack = get_relevant_frames(stack)
         stack = "".join(stack.format())
