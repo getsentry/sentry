@@ -45,6 +45,7 @@ from sentry.models.project import Project
 from sentry.uptime.endpoints.utils import (
     MAX_UPTIME_SUBSCRIPTION_IDS,
     authorize_and_map_project_uptime_subscription_ids,
+    authorize_and_map_uptime_detector_subscription_ids,
 )
 from sentry.uptime.types import IncidentStatus, UptimeSummary
 from sentry.utils.snuba_rpc import table_rpc
@@ -66,13 +67,32 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization, include_all_accessible=True)
 
         project_uptime_subscription_ids = request.GET.getlist("projectUptimeSubscriptionId")
+        uptime_detector_ids = request.GET.getlist("uptimeDetectorId")
 
-        if not project_uptime_subscription_ids:
-            return self.respond("No project uptime subscription ids provided", status=400)
-
-        if len(project_uptime_subscription_ids) > MAX_UPTIME_SUBSCRIPTION_IDS:
+        # Ensure exactly one type of ID is provided
+        if not project_uptime_subscription_ids and not uptime_detector_ids:
             return self.respond(
-                f"Too many project uptime subscription ids provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
+                "Either project uptime subscription ids or uptime detector ids must be provided",
+                status=400,
+            )
+
+        if project_uptime_subscription_ids and uptime_detector_ids:
+            return self.respond(
+                "Cannot provide both project uptime subscription ids and uptime detector ids",
+                status=400,
+            )
+
+        # Use whichever ID type was provided
+        ids_to_process = project_uptime_subscription_ids or uptime_detector_ids
+
+        if len(ids_to_process) > MAX_UPTIME_SUBSCRIPTION_IDS:
+            id_type = (
+                "project uptime subscription ids"
+                if project_uptime_subscription_ids
+                else "uptime detector ids"
+            )
+            return self.respond(
+                f"Too many {id_type} provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
                 status=400,
             )
 
@@ -88,13 +108,23 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
             else:
                 subscription_id_formatter = lambda sub_id: str(uuid.UUID(sub_id))
 
-            subscription_id_to_project_uptime_subscription_id, subscription_ids = (
-                authorize_and_map_project_uptime_subscription_ids(
-                    project_uptime_subscription_ids, projects, subscription_id_formatter
+            if project_uptime_subscription_ids:
+                subscription_id_to_original_id, subscription_ids = (
+                    authorize_and_map_project_uptime_subscription_ids(
+                        project_uptime_subscription_ids, projects, subscription_id_formatter
+                    )
                 )
-            )
+            else:
+                subscription_id_to_original_id, subscription_ids = (
+                    authorize_and_map_uptime_detector_subscription_ids(
+                        uptime_detector_ids, projects, subscription_id_formatter
+                    )
+                )
         except ValueError:
-            return self.respond("Invalid project uptime subscription ids provided", status=400)
+            if project_uptime_subscription_ids:
+                return self.respond("Invalid project uptime subscription ids provided", status=400)
+            else:
+                return self.respond("Invalid uptime detector ids provided", status=400)
 
         try:
             if use_eap_results:
@@ -119,14 +149,16 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
                     "uptime_subscription_id",
                     include_avg_duration=False,
                 )
-            formatted_response = self._format_response(eap_response, use_eap_results)
+            formatted_response = self._format_response(
+                eap_response, include_avg_duration=use_eap_results
+            )
         except Exception:
             logger.exception("Error making EAP RPC request for uptime check summary")
             return self.respond("error making request", status=400)
 
-        # Map the response back to project uptime subscription ids
-        mapped_response = self._map_response_to_project_uptime_subscription_ids(
-            subscription_id_to_project_uptime_subscription_id, formatted_response
+        # Map the response back to the original IDs (either project uptime subscription IDs or detector IDs)
+        mapped_response = self._map_response_to_original_ids(
+            subscription_id_to_original_id, formatted_response
         )
 
         # Serialize the UptimeSummary objects
@@ -297,15 +329,15 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
 
         return formatted_data
 
-    def _map_response_to_project_uptime_subscription_ids(
+    def _map_response_to_original_ids(
         self,
-        subscription_id_to_project_uptime_subscription_id: dict[str, int],
+        subscription_id_to_original_id: dict[str, int],
         formatted_response: dict[str, UptimeSummary],
     ) -> dict[int, UptimeSummary]:
         """
-        Map the response back to project uptime subscription ids
+        Map the response back to the original IDs (project uptime subscription IDs or detector IDs)
         """
         return {
-            subscription_id_to_project_uptime_subscription_id[subscription_id]: data
+            subscription_id_to_original_id[subscription_id]: data
             for subscription_id, data in formatted_response.items()
         }
