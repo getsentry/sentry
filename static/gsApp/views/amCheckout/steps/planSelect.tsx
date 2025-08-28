@@ -30,7 +30,7 @@ import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
 import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
-import type {StepProps} from 'getsentry/views/amCheckout/types';
+import type {PlanContent, StepProps} from 'getsentry/views/amCheckout/types';
 import {
   formatPrice,
   getContentForPlan,
@@ -205,8 +205,10 @@ function PlanSelect({
     const bizPlan = getPlanOptions({
       billingConfig,
       activePlan,
-    }).find(plan => isBizPlanFamily(plan))!;
-    const bizPlanContent = getContentForPlan(bizPlan);
+    }).find(plan => isBizPlanFamily(plan));
+    const bizPlanContent: PlanContent = bizPlan
+      ? getContentForPlan(bizPlan)
+      : {features: {}, description: ''};
 
     let missingFeatures: string[] = [];
 
@@ -220,7 +222,7 @@ function PlanSelect({
     return (
       <StepFooter data-test-id="footer-choose-your-plan">
         <div>
-          {missingFeatures.length > 0 ? (
+          {bizPlanContent.features && missingFeatures.length > 0 ? (
             <FooterWarningWrapper>
               <IconWarning />
               {tct('This plan does not include [missingFeatures]', {

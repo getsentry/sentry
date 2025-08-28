@@ -67,8 +67,8 @@ function PlanSubstep({
       ({contractInterval}) => contractInterval === activePlan.contractInterval
     );
 
-    if (!plans) {
-      throw new Error('Cannot get plan options by interval');
+    if (plans.length === 0) {
+      throw new Error('Cannot get plan options');
     }
 
     // sort by price ascending
@@ -213,7 +213,7 @@ function BillingCycleSubstep({
     const basePlan = formData.plan.replace('_auf', '');
     const plans = billingConfig.planList.filter(({id}) => id.indexOf(basePlan) === 0);
 
-    if (!plans) {
+    if (plans.length === 0) {
       throw new Error('Cannot get billing interval options');
     }
 
