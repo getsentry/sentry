@@ -420,6 +420,29 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     [onScrollToNode, setRowAsFocused]
   );
 
+  useEffect(() => {
+    if (props.tree.type !== 'trace' || props.meta.status !== 'success') {
+      return;
+    }
+
+    const traceNode = props.tree.root.children[0];
+
+    // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
+    // with the correct spans count for EAP traces.
+    if (
+      traceNode &&
+      isEAPTraceNode(traceNode) &&
+      props.tree.eap_spans_count !== props.meta?.data?.span_count
+    ) {
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['trace-eap-spans-count-mismatch']);
+        scope.captureMessage(
+          'EAP spans count from /trace/ and /trace-meta/ are not equal'
+        );
+      });
+    }
+  }, [props.tree, props.meta]);
+
   const {
     data: {hasExceededPerformanceUsageLimit},
     isLoading: isLoadingSubscriptionDetails,
@@ -427,23 +450,20 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const source: TraceWaterFallSource = props.replay ? 'replay_details' : 'trace_view';
 
-  // Callback that is invoked when the trace loads and reaches its initialied state,
-  // that is when the trace tree data and any data that the trace depends on is loaded,
-  // but the trace is not yet rendered in the view.
-  const onTraceLoad = useCallback(() => {
-    const traceNode = props.tree.root.children[0];
-
-    if (!traceNode) {
-      throw new Error('Trace is initialized but no trace node is found');
+  useEffect(() => {
+    if (props.tree.type !== 'trace') {
+      return;
     }
 
-    const traceTimestamp = traceNode?.space?.[0] ?? (timestamp ? timestamp * 1000 : null);
-    const traceAge = defined(traceTimestamp)
-      ? getRelativeDate(traceTimestamp, 'ago')
-      : 'unknown';
-    const issuesCount = TraceTree.UniqueIssues(traceNode).length;
+    const traceNode = props.tree.root.children[0];
 
-    if (!isLoadingSubscriptionDetails) {
+    if (traceNode && !isLoadingSubscriptionDetails) {
+      const traceTimestamp = traceNode.space[0] ?? (timestamp ? timestamp * 1000 : null);
+      const traceAge = defined(traceTimestamp)
+        ? getRelativeDate(traceTimestamp, 'ago')
+        : 'unknown';
+      const issuesCount = TraceTree.UniqueIssues(traceNode).length;
+
       traceAnalytics.trackTraceShape(
         props.tree,
         projectsRef.current,
@@ -454,6 +474,24 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         issuesCount,
         props.tree.eap_spans_count
       );
+    }
+  }, [
+    props.tree,
+    hasExceededPerformanceUsageLimit,
+    source,
+    isLoadingSubscriptionDetails,
+    timestamp,
+    props.organization,
+  ]);
+
+  // Callback that is invoked when the trace loads and reaches its initialied state,
+  // that is when the trace tree data and any data that the trace depends on is loaded,
+  // but the trace is not yet rendered in the view.
+  const onTraceLoad = useCallback(() => {
+    const traceNode = props.tree.root.children[0];
+
+    if (!traceNode) {
+      throw new Error('Trace is initialized but no trace node is found');
     }
 
     // The tree has the data fetched, but does not yet respect the user preferences.
@@ -541,23 +579,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         action_source: 'load',
       });
     });
-
-    // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
-    // with the correct spans count for EAP traces.
-    if (
-      traceNode &&
-      isEAPTraceNode(traceNode) &&
-      props.tree.eap_spans_count !== props.meta?.data?.span_count
-    ) {
-      Sentry.withScope(scope => {
-        scope.setFingerprint(['trace-eap-spans-count-mismatch']);
-        scope.captureMessage(
-          'EAP spans count from /trace/ and /trace-meta/ are not equal'
-        );
-      });
-    }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     setRowAsFocused,
     traceDispatch,
@@ -567,10 +588,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     scrollQueueRef,
     props.tree,
     props.organization,
-    hasExceededPerformanceUsageLimit,
-    source,
-    isLoadingSubscriptionDetails,
-    timestamp,
   ]);
 
   // Setup the middleware for the trace reducer

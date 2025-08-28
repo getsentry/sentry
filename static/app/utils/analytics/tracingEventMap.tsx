@@ -70,7 +70,9 @@ export type TracingEventParameters = {
     source: TraceWaterFallSource;
   };
   'trace.load.error_state': {
+    error_status: number | null;
     source: TraceWaterFallSource;
+    span_count: number | null;
   };
   'trace.metadata': {
     eap_spans_count: number;

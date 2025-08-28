@@ -9,15 +9,22 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
+import type {TraceMetaQueryResults} from './useTraceMeta';
 import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
+  meta: TraceMetaQueryResults;
   replay: HydratedReplayRecord | null;
   trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
   traceSlug?: string;
 };
 
-export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): TraceTree {
+export function useTraceTree({
+  trace,
+  replay,
+  traceSlug,
+  meta,
+}: UseTraceTreeParams): TraceTree {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
@@ -40,7 +47,16 @@ export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): Tr
               organization
             )
       );
-      traceAnalytics.trackTraceErrorState(organization, traceWaterfallSource);
+
+      const errorStatus: number | null = trace.error?.status ?? null;
+      const metaSpansCount: number | null = meta?.data?.span_count ?? null;
+
+      traceAnalytics.trackTraceErrorState(
+        organization,
+        traceWaterfallSource,
+        metaSpansCount,
+        errorStatus
+      );
       return;
     }
 
