@@ -8,7 +8,7 @@ from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByOrganizationSlug, ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
-from sentry.issues.services.issue.model import RpcGroupShareMetadata
+from sentry.issues.services.issue.model import RpcExternalIssueGroupMetadata, RpcGroupShareMetadata
 from sentry.silo.base import SiloMode
 
 
@@ -34,6 +34,13 @@ class IssueService(RpcService):
         from sentry.issues.services.issue.impl import DatabaseBackedIssueService
 
         return DatabaseBackedIssueService()
+
+    @regional_rpc_method(resolve=ByRegionName(), return_none_if_mapping_not_found=True)
+    @abstractmethod
+    def get_external_issue_groups(
+        self, *, region_name: str, external_issue_key: str, integration_id: int
+    ) -> list[RpcExternalIssueGroupMetadata] | None:
+        pass
 
     @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
