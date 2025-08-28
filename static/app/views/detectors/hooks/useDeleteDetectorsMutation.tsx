@@ -32,8 +32,8 @@ export function useDeleteDetectorsMutation() {
       });
       addSuccessMessage(t('Monitors deleted'));
     },
-    onError: error => {
-      addErrorMessage(t('Unable to delete monitors: %s', error.responseText));
+    onError: () => {
+      addErrorMessage(t('Unable to delete monitors'));
     },
   });
 }

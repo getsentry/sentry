@@ -35,13 +35,9 @@ export function useUpdateDetectorsMutation() {
         variables.enabled ? t('Monitors enabled') : t('Monitors disabled')
       );
     },
-    onError: (error, variables) => {
+    onError: (_, variables) => {
       addErrorMessage(
-        t(
-          'Unable to %s monitors: %2$s',
-          variables.enabled ? t('enable') : t('disable'),
-          error.responseText
-        )
+        t('Unable to %s monitors', variables.enabled ? t('enable') : t('disable'))
       );
     },
   });
