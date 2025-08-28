@@ -33,7 +33,7 @@ type ThresholdRowProp = {
   onUnitChange?: (maxKey: ThresholdMaxKeys, value: string) => void;
 };
 
-export enum ThresholdMaxKeys {
+enum ThresholdMaxKeys {
   MAX_1 = 'max1',
   MAX_2 = 'max2',
 }
