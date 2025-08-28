@@ -59,6 +59,11 @@ type Props = WithRouterProps & {
    * Defaults to `/organizations/${orgSlug}/issues/`
    */
   endpointPath?: string;
+  /**
+   * Number of placeholder rows to show during loading
+   * Defaults to queryParams.limit or 4
+   */
+  numPlaceholderRows?: number;
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
@@ -68,11 +73,6 @@ type Props = WithRouterProps & {
       pageDiff: number
     ) => void
   ) => void;
-  /**
-   * Number of placeholder rows to show during loading
-   * Defaults to queryParams.limit or 4
-   */
-  placeholderRows?: number;
   /**
    * Use `query` within `queryParams` for passing the parameter to the endpoint
    */
@@ -268,7 +268,7 @@ class GroupList extends Component<Props, State> {
       queryFilterDescription,
       source,
       query,
-      placeholderRows,
+      numPlaceholderRows,
     } = this.props;
     const {loading, error, errorData, groups, memberList, pageLinks} = this.state;
 
@@ -314,7 +314,7 @@ class GroupList extends Component<Props, State> {
             {loading
               ? [
                   ...new Array(
-                    placeholderRows ??
+                    numPlaceholderRows ??
                       (typeof queryParams?.limit === 'number' ? queryParams?.limit : 4)
                   ),
                 ].map((_, i) => (
