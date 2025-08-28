@@ -3,6 +3,7 @@ import type {
   Docs,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
@@ -115,7 +116,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
-    getConsoleExtensions(params),
+    ...([getConsoleExtensions(params)].filter(Boolean) as OnboardingStep[]),
   ],
 };
 

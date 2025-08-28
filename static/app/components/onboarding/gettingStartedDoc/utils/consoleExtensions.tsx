@@ -295,7 +295,11 @@ function ConsoleExtensionsContent(params: DocsParams) {
     />
   );
 }
-export function getConsoleExtensions(params: DocsParams): OnboardingStep {
+export function getConsoleExtensions(params: DocsParams): OnboardingStep | null {
+  if (!params.organization.features.includes('project-creation-games-tab')) {
+    return null;
+  }
+
   const platformData = platforms.find(p => p.id === params.platformKey);
   const platformName = platformData?.name ?? params.platformKey;
 
