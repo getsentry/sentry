@@ -25,7 +25,7 @@ from sentry.replays.query import query_replay_instance
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -195,15 +195,32 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             error_ids = processed_response[0].get("error_ids", []) if processed_response else []
             trace_ids = processed_response[0].get("trace_ids", []) if processed_response else []
 
-            # Fetch error details.
+            # Fetch errors linked in breadcrumbs.
             replay_errors = fetch_error_details(project_id=project.id, error_ids=error_ids)
+
+            # Fetch same-trace errors.
             trace_connected_errors = fetch_trace_connected_errors(
                 project=project,
                 trace_ids=trace_ids,
                 start=filter_params["start"],
                 end=filter_params["end"],
+                limit=100,
             )
+
             error_events = replay_errors + trace_connected_errors
+
+            metrics.distribution(
+                "replays.endpoints.project_replay_summary.breadcrumb_errors",
+                value=len(replay_errors),
+            )
+            metrics.distribution(
+                "replays.endpoints.project_replay_summary.trace_connected_errors",
+                value=len(trace_connected_errors),
+            )
+            metrics.distribution(
+                "replays.endpoints.project_replay_summary.num_trace_ids",
+                value=len(trace_ids),
+            )
 
             # Download segment data.
             # XXX: For now this is capped to 100 and blocking. DD shows no replays with >25 segments, but we should still stress test and figure out how to deal with large replays.
