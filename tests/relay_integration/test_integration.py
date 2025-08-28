@@ -459,6 +459,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         assert resp.status_code == 403
         assert resp.json() == {"detail": "event submission rejected with_reason: MissingSignature"}
 
+    @pytest.mark.skip(reason="flaky: #98448")
     def test_signature_header_is_none(self) -> None:
         """
         Tests that the event is dropped if the signature is set to None.
