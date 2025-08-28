@@ -183,7 +183,9 @@ export function updateVisualizeAggregate({
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
   }
 
-  return `${newAggregate}(${oldArguments?.join(',')})`;
+  return oldArguments
+    ? `${newAggregate}(${oldArguments?.join(',')})`
+    : `${newAggregate}()`;
 }
 
 const FUNCTION_TO_CHART_TYPE: Record<string, ChartType> = {
