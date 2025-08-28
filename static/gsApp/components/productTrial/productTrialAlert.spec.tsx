@@ -71,7 +71,7 @@ describe('ProductTrialAlert', () => {
         product={DataCategory.SPANS}
       />
     );
-    expect(screen.getByText('Tracing Trial')).toBeInTheDocument();
+    expect(screen.getByText('Tracing Trial is currently active')).toBeInTheDocument();
     expect(
       screen.getByText(`You have full access to unlimited Tracing until ${trial.endDate}`)
     ).toBeInTheDocument();
@@ -96,7 +96,9 @@ describe('ProductTrialAlert', () => {
         product={DataCategory.ERRORS}
       />
     );
-    expect(screen.getByText('Error Monitoring Trial')).toBeInTheDocument();
+    expect(
+      screen.getByText('Error Monitoring Trial is currently active')
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
         `You have full access to unlimited Error Monitoring until ${trial.endDate}`

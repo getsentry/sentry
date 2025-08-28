@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
-import {IconGroup, IconLightning, IconUser, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -16,6 +16,7 @@ import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 import {PlanTier, type Plan} from 'getsentry/types';
 import {
   getBusinessPlanOfTier,
+  getPlanIcon,
   isBizPlanFamily,
   isNewPayingCustomer,
   isTeamPlan,
@@ -225,13 +226,7 @@ function PlanSelect({
             planContent.features.deactivated_member_header = t('Unlimited members');
           }
 
-          const planIcon = isBizPlanFamily(plan) ? (
-            <IconLightning /> // TODO(checkout v3): replace with building icon
-          ) : isTeamPlanFamily(plan) ? (
-            <IconGroup />
-          ) : (
-            <IconUser />
-          );
+          const planIcon = getPlanIcon(plan);
 
           const commonProps = {
             plan,

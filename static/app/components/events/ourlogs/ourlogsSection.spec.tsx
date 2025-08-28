@@ -53,7 +53,7 @@ jest.mock('@tanstack/react-virtual', () => {
 });
 
 const organization = OrganizationFixture({
-  features: ['ourlogs-enabled', 'ourlogs-infinite-scroll'],
+  features: ['ourlogs-enabled'],
 });
 const project = ProjectFixture();
 const group = GroupFixture();

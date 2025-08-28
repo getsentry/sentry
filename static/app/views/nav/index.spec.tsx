@@ -24,7 +24,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 const ALL_AVAILABLE_FEATURES = [
-  'insights-entry-points',
+  'insight-modules',
   'discover',
   'discover-basic',
   'discover-query',
@@ -182,16 +182,18 @@ describe('Nav', () => {
       );
 
       // Section should be collapsed and no longer show starred view
-      expect(
-        within(container).queryByRole('link', {name: /Starred View 1/})
-      ).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          within(container).queryByRole('link', {name: /Starred View 1/})
+        ).not.toBeInTheDocument();
+      });
 
       // Can expand to show again
       await userEvent.click(
         within(container).getByRole('button', {name: 'Starred Views'})
       );
       expect(
-        within(container).getByRole('link', {name: /Starred View 1/})
+        await within(container).findByRole('link', {name: /Starred View 1/})
       ).toBeInTheDocument();
     });
 

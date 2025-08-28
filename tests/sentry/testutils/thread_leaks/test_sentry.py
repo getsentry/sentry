@@ -1,15 +1,21 @@
 """Tests for thread leak Sentry integration."""
 
 from collections.abc import Iterable
+from threading import Thread
 from traceback import FrameSummary
 from typing import Any
+from unittest.mock import Mock
 
 from sentry.testutils.thread_leaks.sentry import event_from_stack
 
 
 def dict_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) -> dict[str, Any]:
     """Create Sentry event dict from stack (type-checker friendly wrapper)."""
-    return dict(event_from_stack(value, stack, strict))
+    # Create mock thread with the desired repr and no target
+    mock_thread = Mock(spec=Thread)
+    mock_thread.configure_mock(__repr__=Mock(return_value=value))
+    mock_thread.configure_mock(_target=None)
+    return dict(event_from_stack(mock_thread, stack, strict))
 
 
 class TestEventFromStack:
@@ -56,6 +62,7 @@ class TestEventFromStack:
                     }
                 ]
             },
+            "tags": {"thread.target": "None"},
         }
 
     def test_empty_stack(self) -> None:

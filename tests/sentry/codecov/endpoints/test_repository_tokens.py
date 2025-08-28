@@ -177,3 +177,14 @@ class RepositoryTokensEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data == {"details": "provided `limit` parameter must be a positive integer"}
+
+    def test_get_with_invalid_sort_field_returns_bad_request(self) -> None:
+        """Test that invalid sort fields return 400 error."""
+        url = self.reverse_url()
+        query_params = {"sortBy": "INVALID_FIELD"}
+        response = self.client.get(url, query_params)
+
+        assert response.status_code == 400
+        assert response.data == {
+            "details": "Invalid sortBy parameter. Allowed values: COMMIT_DATE, NAME"
+        }

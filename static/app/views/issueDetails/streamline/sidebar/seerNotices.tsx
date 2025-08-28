@@ -198,7 +198,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                           {
                             integrationLink: (
                               <ExternalLink
-                                href={`/settings/${organization.slug}/integrations/github/`}
+                                href={`/settings/${organization.slug}/integrations/?category=source%20code%20management&search=github`}
                               />
                             ),
                           }
@@ -206,11 +206,8 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       </span>
                       <span>
                         {tct(
-                          'Support for other source code providers are coming soon. You can keep up with progress on these GitHub issues: [githubEnterpriseLink:GitHub Enterprise], [bitbucketLink:BitBucket], [gitlabLink:GitLab], and [azureDevopsLink:Azure DevOps].',
+                          'Support for other source code providers are coming soon. You can keep up with progress on these GitHub issues: [bitbucketLink:BitBucket], [gitlabLink:GitLab], and [azureDevopsLink:Azure DevOps].',
                           {
-                            githubEnterpriseLink: (
-                              <ExternalLink href="https://github.com/getsentry/sentry/issues/95790" />
-                            ),
                             bitbucketLink: (
                               <ExternalLink href="https://github.com/getsentry/sentry/issues/92317" />
                             ),
@@ -238,7 +235,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                   showSkip={false}
                 >
                   <LinkButton
-                    href={`/settings/${organization.slug}/integrations/github/`}
+                    href={`/settings/${organization.slug}/integrations/?category=source%20code%20management&search=github`}
                     size="sm"
                     priority="primary"
                   >
