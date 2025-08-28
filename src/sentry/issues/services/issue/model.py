@@ -9,5 +9,6 @@ class RpcGroupShareMetadata(RpcModel):
 
 
 class RpcExternalIssueGroupMetadata(RpcModel):
+    title: str
     title_url: str
     link_date: datetime
