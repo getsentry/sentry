@@ -138,7 +138,12 @@ def parse_recording_event(message: bytes) -> Event:
         replay_video = None
 
     relay_snuba_publish_disabled = recording.get("relay_snuba_publish_disabled", False)
-    if not isinstance(relay_snuba_publish_disabled, bool):
+
+    # No matter what value we receive "True" is the only value that can influence our behavior.
+    # Otherwise we default to "False" which means our consumer does nothing. Its only when Relay
+    # reports that it has disabled itself that we publish to the Snuba consumer. Any other value
+    # is invalid and means we should _not_ publish to Snuba.
+    if relay_snuba_publish_disabled is not True:
         relay_snuba_publish_disabled = False
 
     return {
