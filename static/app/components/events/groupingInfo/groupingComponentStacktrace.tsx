@@ -46,6 +46,7 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
       {getFrameGroups().map((group, index) => (
         <GroupingComponentFrames
           key={index}
+          maxVisibleItems={2}
           items={group.data.map((v, idx) => (
             <GroupingComponent
               key={idx}
@@ -53,6 +54,7 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
               showNonContributing={showNonContributing}
             />
           ))}
+          initialCollapsed={!showNonContributing}
         />
       ))}
     </Fragment>
