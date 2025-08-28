@@ -1,5 +1,4 @@
 import logging
-import uuid
 from collections.abc import Mapping
 from datetime import datetime
 from functools import partial
@@ -12,7 +11,6 @@ from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
-from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition, Value
 
@@ -91,21 +89,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         else:
             produce_step = commit_step
 
-        def add_routing_key(message: Message[KafkaPayload]) -> FilteredPayload | KafkaPayload:
-            # Randomize the routing key to create smaller bursts of produced
-            # messages on Snuba.
-            # We are doing something similar in Relay to make traffic smoother, at the expense of having smaller batches.
-            assert isinstance(message.value, Value)
-            return KafkaPayload(
-                key=str(uuid.uuid4().hex).encode("utf-8"),
-                value=message.value.payload.value,
-                headers=message.value.payload.headers,
-            )
-
-        add_routing_key_step: ProcessingStrategy[FilteredPayload | KafkaPayload] = RunTask(
-            add_routing_key, next_step=produce_step
-        )
-        unfold_step = Unfold(generator=_unfold_segment, next_step=add_routing_key_step)
+        unfold_step = Unfold(generator=_unfold_segment, next_step=produce_step)
 
         return run_task_with_multiprocessing(
             function=partial(_process_message, skip_produce=self.skip_produce),
