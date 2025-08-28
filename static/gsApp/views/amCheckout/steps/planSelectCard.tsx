@@ -6,11 +6,11 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {Flex} from 'sentry/components/core/layout';
 import {Radio} from 'sentry/components/core/radio';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {IconCheckmark, IconInfo, IconLightning} from 'sentry/icons';
+import {IconCheckmark, IconInfo, IconLightning, IconWarning} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import oxfordizeArray, {Oxfordize} from 'sentry/utils/oxfordizeArray';
 import type {Color} from 'sentry/utils/theme';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
@@ -18,10 +18,8 @@ import {OnDemandBudgetMode, type Plan} from 'getsentry/types';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {getSingularCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
 import MoreFeaturesLink from 'getsentry/views/amCheckout/moreFeaturesLink';
-import type {
-  PlanSelectRowProps,
-  PlanUpdateData,
-} from 'getsentry/views/amCheckout/steps/planSelectRow';
+import type {PlanSelectRowProps} from 'getsentry/views/amCheckout/steps/planSelectRow';
+import type {CheckoutFormData, PlanContent} from 'getsentry/views/amCheckout/types';
 import {displayUnitPrice, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
 interface PlanSelectCardProps
@@ -30,9 +28,17 @@ interface PlanSelectCardProps
     'isFeaturesCheckmarked' | 'discountInfo' | 'planWarning' | 'priceHeader'
   > {
   /**
+   * Missing features to highlight as a warning
+   */
+  missingFeatures: string[];
+  /**
    * Icon to use for the plan
    */
   planIcon: React.ReactNode;
+  /**
+   * Plan content to use for missing feature upsells
+   */
+  upsellPlanContent: PlanContent;
   /**
    * Prior plan to compare against (ie. prior plan for Business is Team)
    */
@@ -53,6 +59,8 @@ function PlanSelectCard({
   planIcon,
   shouldShowEventPrice,
   priorPlan,
+  missingFeatures,
+  upsellPlanContent,
 }: PlanSelectCardProps) {
   const theme = useTheme();
 
@@ -85,7 +93,7 @@ function PlanSelectCard({
   );
 
   const onPlanSelect = () => {
-    const data: PlanUpdateData = {plan: plan.id};
+    const data: Partial<CheckoutFormData> = {plan: plan.id};
     if (shouldShowDefaultPayAsYouGo) {
       data.onDemandMaxSpend = isBizPlanFamily(plan)
         ? PAYG_BUSINESS_DEFAULT
@@ -154,15 +162,17 @@ function PlanSelectCard({
               .map(([featureId, feature]) => (
                 <FeatureItem key={featureId}>
                   <FeatureIconContainer>
-                    <IconLightning size="sm" />
+                    <IconLightning size="sm" color={theme.activeText as Color} />
                   </FeatureIconContainer>
                   {
-                    // Only shows hovercard when one feature was highlighted
-                    highlightedFeatures.length === 1 ? (
-                      <Fragment>
+                    // only nudge user when they haven't selected the highlighted feature
+                    highlightedFeatures.length === 1 && !isSelected ? (
+                      <div>
                         <strong>{feature}</strong>
-                        <Tag>{t('Looking for this?')}</Tag>
-                      </Fragment>
+                        <HighlightedFeatureTag type="promotion">
+                          {t('Looking for this?')}
+                        </HighlightedFeatureTag>
+                      </div>
                     ) : (
                       <b>{feature}</b>
                     )
@@ -231,6 +241,22 @@ function PlanSelectCard({
           </Tooltip>
         </EventPriceWarning>
       )}
+      {missingFeatures.length > 0 && (
+        <Warning>
+          <IconWarning size="xs" />
+          <span>
+            {tct('This plan does not include [missingFeatures]', {
+              missingFeatures: (
+                <Oxfordize>
+                  {missingFeatures.map(feature => (
+                    <b key={feature}>{upsellPlanContent.features[feature]}</b>
+                  ))}
+                </Oxfordize>
+              ),
+            })}
+          </span>
+        </Warning>
+      )}
     </PlanOption>
   );
 }
@@ -297,18 +323,29 @@ const FeatureIconContainer = styled('div')`
   align-items: center;
 `;
 
+const HighlightedFeatureTag = styled(Tag)`
+  margin-left: ${p => p.theme.space.sm};
+`;
+
 const StyledRadio = styled(Radio)`
   background: ${p => p.theme.background};
 `;
 
-const EventPriceWarning = styled('div')`
+const Warning = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   gap: ${p => p.theme.space.md};
-  margin-top: ${p => p.theme.space['2xs']};
+  margin-top: auto;
+  line-height: normal;
 
+  > svg {
+    margin-top: ${p => p.theme.space['2xs']};
+  }
+`;
+
+const EventPriceWarning = styled(Warning)`
   > span {
     text-decoration: underline dotted;
     line-height: normal;
