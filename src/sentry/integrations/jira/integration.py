@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import re
+import sys
 from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, TypedDict
+from typing import Any, NoReturn, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -51,6 +52,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationInstallationConfigurationError,
 )
 from sentry.silo.base import all_silo_function
+from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -146,6 +148,19 @@ class JiraIntegration(IssueSyncIntegration):
     issues_ignored_fields_key = "issues_ignored_fields"
     resolution_strategy_key = "resolution_strategy"
     comment_key = "sync_comments"
+
+    def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
+        if isinstance(exc, ApiInvalidRequestError):
+            if exc.json:
+                error_fields = self.error_fields_from_json(exc.json)
+                if error_fields is not None:
+                    raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
+
+            # Even if Jira's error response isn't standard, we should still raise an error for the frontend
+            # TODO(iamrajjoshi): Rename this error to something better because we don't use it for what it's named for
+            raise IntegrationInstallationConfigurationError from exc
+
+        raise super().raise_error(exc=exc, identity=identity)
 
     @classproperty
     def use_email_scope(cls):

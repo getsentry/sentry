@@ -9,6 +9,7 @@ from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
+from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
@@ -16,7 +17,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
     IntegrationInstallationConfigurationError,
 )
-from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -143,16 +144,35 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             rule_object = Rule.objects.get(id=response.data["id"])
             event = self.get_event()
 
-            with pytest.raises(IntegrationError):
-                # Trigger its `after`, but with a broken client which should raise
-                # an ApiInvalidRequestError, which is reraised as an IntegrationError.
-                self.trigger(event, rule_object)
+            # Trigger its `after`, but with a broken client which should raise
+            # an ApiInvalidRequestError, which is reraised as an IntegrationInstallationFormError.
+            # This will not be raised unless its a test rule
+            self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
             start, failure = mock_record_event.call_args_list
             assert start.args == (EventLifecycleOutcome.STARTED,)
 
-            assert_failure_metric(
+            assert_halt_metric(
+                mock_record_event,
+                IntegrationError("Error Communicating with Jira (HTTP 400): unknown error"),
+            )
+
+            mock_record_event.reset_mock()
+
+            # Testing test rule behavior
+            # This should cover the Exception to an IntegrationFormError
+            # It should also raise the exception so the FE can show the error
+            with pytest.raises(IntegrationFormError):
+                rule = self.create_project_rule()
+                rule.id = TEST_NOTIFICATION_ID
+                self.trigger(event, rule)
+
+            assert mock_record_event.call_count == 2
+            start, failure = mock_record_event.call_args_list
+            assert start.args == (EventLifecycleOutcome.STARTED,)
+
+            assert_halt_metric(
                 mock_record_event,
                 IntegrationError("Error Communicating with Jira (HTTP 400): unknown error"),
             )
