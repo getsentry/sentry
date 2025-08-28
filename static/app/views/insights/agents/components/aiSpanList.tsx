@@ -18,6 +18,7 @@ import {
   getIsAiRunSpan,
 } from 'sentry/views/insights/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/agents/utils/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {
   isEAPSpanNode,
   isSpanNode,
@@ -304,10 +305,13 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
   nodeInfo.title = truncatedOp;
 
   if (getIsAiRunSpan({op})) {
-    const agentName = getNodeAttribute('gen_ai.agent.name') || '';
+    const agentName =
+      getNodeAttribute(SpanFields.GEN_AI_AGENT_NAME) ||
+      getNodeAttribute(SpanFields.GEN_AI_FUNCTION_ID) ||
+      '';
     const model =
-      getNodeAttribute('gen_ai.request.model') ||
-      getNodeAttribute('gen_ai.response.model') ||
+      getNodeAttribute(SpanFields.GEN_AI_REQUEST_MODEL) ||
+      getNodeAttribute(SpanFields.GEN_AI_RESPONSE_MODEL) ||
       '';
     nodeInfo.icon = <IconBot size="md" />;
     nodeInfo.subtitle = agentName;
@@ -322,8 +326,8 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     }
     nodeInfo.color = colors[0];
   } else if (getIsAiGenerationSpan({op})) {
-    const tokens = getNodeAttribute('gen_ai.usage.total_tokens');
-    const cost = getNodeAttribute('gen_ai.usage.total_cost');
+    const tokens = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
+    const cost = getNodeAttribute(SpanFields.GEN_AI_USAGE_TOTAL_COST);
     nodeInfo.icon = <IconSpeechBubble size="md" />;
     nodeInfo.subtitle = tokens ? (
       <Fragment>
@@ -343,7 +347,7 @@ function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]) {
     nodeInfo.color = colors[2];
   } else if (op === 'gen_ai.execute_tool') {
     nodeInfo.icon = <IconTool size="md" />;
-    nodeInfo.subtitle = getNodeAttribute('gen_ai.tool.name') || '';
+    nodeInfo.subtitle = getNodeAttribute(SpanFields.GEN_AI_TOOL_NAME) || '';
     nodeInfo.color = colors[5];
   } else if (op === 'gen_ai.handoff') {
     nodeInfo.icon = <IconChevron size="md" isDouble direction="right" />;
@@ -369,7 +373,7 @@ function hasError(node: AITraceSpanNode) {
 
   // spans with status unknown are errors
   if (isEAPSpanNode(node)) {
-    return node.value.additional_attributes?.['span.status'] === 'unknown';
+    return node.value.additional_attributes?.[SpanFields.SPAN_STATUS] === 'unknown';
   }
 
   return false;
