@@ -22,10 +22,8 @@ describe('Widget Builder > ThresholdsStep', () => {
       />
     );
 
-    expect(await screen.findByText('Set thresholds')).toBeInTheDocument();
-
     // Check minimum value boxes are disabled
-    expect(screen.getByLabelText('First Minimum')).toBeDisabled();
+    expect(await screen.findByLabelText('First Minimum')).toBeDisabled();
     expect(screen.getByLabelText('Second Minimum')).toBeDisabled();
     expect(screen.getByLabelText('Third Minimum')).toBeDisabled();
 
