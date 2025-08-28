@@ -10,7 +10,7 @@ from sentry import nodestore
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
-from sentry.replays.query import build_replay_events_query
+from sentry.replays.query import query_trace_connected_events
 from sentry.replays.usecases.ingest.event_parser import EventType
 from sentry.replays.usecases.ingest.event_parser import (
     get_timestamp_ms as get_replay_event_timestamp_ms,
@@ -19,7 +19,6 @@ from sentry.replays.usecases.ingest.event_parser import parse_network_content_le
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import Event
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.utils import get_dataset
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -100,8 +99,8 @@ def fetch_trace_connected_errors(
             )
 
             # Query errors dataset
-            error_query = build_replay_events_query(
-                dataset=get_dataset("errors"),
+            error_query = query_trace_connected_events(
+                dataset_label="errors",
                 selected_columns=[
                     "id",
                     "timestamp_ms",
@@ -119,8 +118,8 @@ def fetch_trace_connected_errors(
 
             # Query issuePlatform dataset - this returns all other IP events,
             # such as feedback and performance issues.
-            issue_query = build_replay_events_query(
-                dataset=get_dataset("issuePlatform"),
+            issue_query = query_trace_connected_events(
+                dataset_label="issuePlatform",
                 selected_columns=[
                     "event_id",
                     "title",

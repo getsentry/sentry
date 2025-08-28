@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from snuba_sdk import (
     Column,
@@ -35,6 +35,7 @@ from sentry.replays.usecases.query import (
     query_using_optimized_search,
 )
 from sentry.search.events.types import SnubaParams
+from sentry.snuba.utils import get_dataset
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -905,8 +906,8 @@ def compute_has_viewed(viewed_by_id: int | None) -> Function:
     )
 
 
-def build_replay_events_query(
-    dataset,
+def query_trace_connected_events(
+    dataset_label: Literal["errors", "issuePlatform", "discover"],
     selected_columns: list[str],
     query: str | None,
     snuba_params: SnubaParams,
@@ -917,7 +918,7 @@ def build_replay_events_query(
     referrer: str = "api.replay.details-page",
 ) -> dict[str, Any]:
     """
-    Build a reusable query configuration for replay events.
+    Query for trace-connected events, with a reusable query configuration for replays.
 
     Args:
         dataset: The Snuba dataset to query against
@@ -948,5 +949,7 @@ def build_replay_events_query(
         "allow_metric_aggregates": False,
         "transform_alias_to_input_format": True,
     }
+
+    dataset = get_dataset(dataset_label)
 
     return dataset.query(**query_details)
