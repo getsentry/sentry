@@ -303,6 +303,30 @@ def test_as_log_message_invalid_input() -> None:
     assert as_log_message({"blah": "wrong"}) is None
 
 
+def test_as_log_message_ui_blur() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756400752.714,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"timestamp": 1756400752.714, "type": "default", "category": "ui.blur"},
+        },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_ui_focus() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756401009.41,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"timestamp": 1756401009.41, "type": "default", "category": "ui.focus"},
+        },
+    }
+    assert as_log_message(event) is None
+
+
 def test_as_log_message_long_console_message() -> None:
     event = {
         "type": 5,
