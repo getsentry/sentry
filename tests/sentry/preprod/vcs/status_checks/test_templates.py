@@ -31,12 +31,11 @@ class FormatStatusMessagesTest(TestCase):
                     build_number=1,
                 )
 
-                title, subtitle, summary, target_url = format_status_check_messages(artifact)
+                title, subtitle, summary = format_status_check_messages(artifact)
 
                 # Check title and subtitle
                 assert title == "Size Analysis"
                 assert subtitle == "Processing..."
-                assert target_url is None
 
                 # Check summary contains processing indicators
                 assert "Processing..." in summary
@@ -55,12 +54,11 @@ class FormatStatusMessagesTest(TestCase):
             error_message="Build timeout",
         )
 
-        title, subtitle, summary, target_url = format_status_check_messages(artifact)
+        title, subtitle, summary = format_status_check_messages(artifact)
 
         # Check title and subtitle
         assert title == "Size Analysis"
         assert subtitle == "Error processing"
-        assert target_url is None
 
         # Check summary contains error information
         assert "Build timeout" in summary
@@ -78,12 +76,11 @@ class FormatStatusMessagesTest(TestCase):
             build_number=1,
         )
 
-        title, subtitle, summary, target_url = format_status_check_messages(artifact)
+        title, subtitle, summary = format_status_check_messages(artifact)
 
         # Check title and subtitle (fallback)
         assert title == "Size Analysis"
         assert subtitle == "Complete"  # Falls back to basic success message
-        assert target_url is None
 
         # Should be a simple success message
         assert "processed successfully" in summary
@@ -109,12 +106,11 @@ class FormatStatusMessagesTest(TestCase):
             max_install_size=2 * 1024 * 1024,
         )
 
-        title, subtitle, summary, target_url = format_status_check_messages(artifact)
+        title, subtitle, summary = format_status_check_messages(artifact)
 
         # Check title and subtitle
         assert title == "Size Analysis"
         assert subtitle == "1 build analyzed"  # Simplified subtitle
-        assert "sentry.io/preprod/builds" in target_url
 
         # Check summary contains size table
         assert "1.0 MB" in summary  # Download size
@@ -144,7 +140,7 @@ class FormatStatusMessagesTest(TestCase):
                     build_number=build_number,
                 )
 
-                title, subtitle, summary, target_url = format_status_check_messages(artifact)
+                title, subtitle, summary = format_status_check_messages(artifact)
 
                 assert expected in summary
 
@@ -165,6 +161,6 @@ class FormatStatusMessagesTest(TestCase):
                     error_message=input_error,
                 )
 
-                title, subtitle, summary, target_url = format_status_check_messages(artifact)
+                title, subtitle, summary = format_status_check_messages(artifact)
 
                 assert expected_error in summary
