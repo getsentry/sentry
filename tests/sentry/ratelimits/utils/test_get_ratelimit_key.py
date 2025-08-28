@@ -1,7 +1,10 @@
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
+from django.core.handlers.wsgi import WSGIRequest
 from django.test import RequestFactory
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.auth.services.auth import AuthenticatedToken
@@ -33,7 +36,7 @@ class APITestEndpoint(Endpoint):
         },
     )
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         raise NotImplementedError
 
 
@@ -47,7 +50,7 @@ class GetRateLimitKeyTest(TestCase):
             self.rate_limit_config.group if self.rate_limit_config else RateLimitConfig().group
         )
 
-    def _populate_public_integration_request(self, request) -> None:
+    def _populate_public_integration_request(self, request: WSGIRequest) -> None:
         install = self.create_sentry_app_installation(organization=self.organization)
         token = install.api_token
 
@@ -55,7 +58,7 @@ class GetRateLimitKeyTest(TestCase):
             request.user = User.objects.get(id=install.sentry_app.proxy_user_id)
             request.auth = AuthenticatedToken.from_token(token)
 
-    def _populate_internal_integration_request(self, request) -> None:
+    def _populate_internal_integration_request(self, request: WSGIRequest) -> None:
         internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
