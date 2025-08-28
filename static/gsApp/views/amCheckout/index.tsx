@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {QueryObserverResult} from '@tanstack/react-query';
@@ -797,13 +796,13 @@ class AMCheckout extends Component<Props, State> {
           data-test-id="change-subscription"
         />
 
-        <CheckoutContainer isNewCheckout={!!isNewCheckout}>
+        <CheckoutContainer>
           <CheckoutMain>
             {this.renderPartnerAlert()}
             <div data-test-id="checkout-steps">{this.renderSteps()}</div>
           </CheckoutMain>
           <SidePanel>
-            <OverviewContainer isNewCheckout={!!isNewCheckout}>
+            <OverviewContainer>
               {isNewCheckout ? (
                 <Cart
                   {...overviewProps}
@@ -860,13 +859,12 @@ class AMCheckout extends Component<Props, State> {
   }
 }
 
-const CheckoutContainer = styled('div')<{isNewCheckout: boolean}>`
+const CheckoutContainer = styled('div')`
   display: grid;
   gap: ${space(3)};
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: 58% auto;
 
-  @media (max-width: ${p =>
-      p.isNewCheckout ? p.theme.breakpoints.md : p.theme.breakpoints.lg}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: auto;
   }
 `;
@@ -879,18 +877,13 @@ const SidePanel = styled('div')`
 `;
 
 /**
- * Hide overview at smaller screen sizes in old checkout
- * Bring overview to bottom at smaller screen sizes in new checkout
- * Cancel subscription button is always visible
+ * Hide overview at smaller screen sizes
+ * but keep cancel subscription button
  */
-const OverviewContainer = styled('div')<{isNewCheckout: boolean}>`
-  ${p =>
-    !p.isNewCheckout &&
-    css`
-      @media (max-width: ${p.theme.breakpoints.lg}) {
-        display: none;
-      }
-    `}
+const OverviewContainer = styled('div')`
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+    display: none;
+  }
 `;
 
 const SupportPrompt = styled(Panel)`
