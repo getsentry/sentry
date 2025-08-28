@@ -716,7 +716,7 @@ module = [
     "tests.acceptance.*",
     "tests.apidocs.*",
     "tests.sentry.api.endpoints.issues.*",
-    "tests.sentry.api.endpoints.release_thresholds.utils.*",
+    "tests.sentry.api.endpoints.release_thresholds.*",
     "tests.sentry.api.endpoints.secret_scanning.*",
     "tests.sentry.api.endpoints.test_browser_reporting_collector",
     "tests.sentry.api.endpoints.test_project_repo_path_parsing",
