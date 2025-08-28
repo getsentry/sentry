@@ -1,491 +1,253 @@
-import React, {Fragment, useMemo} from 'react';
+import React, {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {t} from 'sentry/locale';
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {IconChevron} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {
   OnDemandBudgetMode,
-  ReservedBudgetCategoryType,
-  type OnDemandBudgets,
   type Plan,
   type SharedOnDemandBudget,
   type Subscription,
 } from 'getsentry/types';
-import {
-  formatReservedWithUnits,
-  isDeveloperPlan,
-  isTrialPlan,
-} from 'getsentry/utils/billing';
+import {formatReservedWithUnits, isTrialPlan} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
-import {parseOnDemandBudgets} from 'getsentry/views/onDemandBudgets/utils';
+import {parseOnDemandBudgetsFromSubscription} from 'getsentry/views/onDemandBudgets/utils';
 
 const DEFAULT_PAYG_BUDGET: SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED,
   sharedMaxBudget: 0,
 };
 
-type SubscriptionState = {
-  contractInterval: Plan['contractInterval'];
-  onDemandBudgets: OnDemandBudgets;
-  planName: string;
-  products: Partial<Record<SelectableProduct, boolean>>;
-  reserved: Partial<Record<DataCategory, number>>;
+type CheckoutChange<K, V> = {
+  currentValue: V | null;
+  key: K;
+  newValue: V | null;
 };
 
-function OnDemandDiff({
-  currentPlan,
-  newPlan,
-  currentOnDemandBudgets,
-  newOnDemandBudgets,
-}: {
-  currentOnDemandBudgets: OnDemandBudgets;
-  currentPlan: Plan;
-  newOnDemandBudgets: OnDemandBudgets;
-  newPlan: Plan;
-}) {
-  const currentBudgetMode = currentOnDemandBudgets.budgetMode;
-  const newBudgetMode = newOnDemandBudgets.budgetMode;
+type PlanChange = CheckoutChange<'plan' | 'contractInterval', string>;
 
-  if (currentBudgetMode !== newBudgetMode) {
-    const sharedToPerCategory =
-      currentBudgetMode === OnDemandBudgetMode.SHARED &&
-      newBudgetMode === OnDemandBudgetMode.PER_CATEGORY;
-    const perCategoryToShared =
-      currentBudgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-      newBudgetMode === OnDemandBudgetMode.SHARED;
+type ProductChange = CheckoutChange<SelectableProduct, boolean>;
 
-    if (sharedToPerCategory) {
-      const budgetsList = Object.entries(newOnDemandBudgets.budgets);
-      const combinedBudget = budgetsList.reduce((acc, [_, budget]) => acc + budget, 0);
+type ReservedChange = CheckoutChange<DataCategory, number>;
 
-      if (currentOnDemandBudgets.sharedMaxBudget === 0 && combinedBudget === 0) {
-        return null;
-      }
+type SharedOnDemandChange = CheckoutChange<'sharedMaxBudget', number>;
 
-      return (
-        <Fragment>
-          {budgetsList
-            .filter(([_, budget]) => budget > 0)
-            .map(([category, budget]) => {
-              const showOldBudget = budgetsList.indexOf([category, budget]) === 0;
-              const formattedCategory = getPlanCategoryName({
-                plan: newPlan,
-                category: category as DataCategory,
-                title: true,
-              });
+type PerCategoryOnDemandChange = CheckoutChange<DataCategory, number | null>;
 
-              return (
-                <Fragment key={category}>
-                  {showOldBudget ? (
-                    <Removed>
-                      {t('Shared spend cap')}
-                      <span>{utils.displayPrice({cents: budget})}</span>
-                    </Removed>
-                  ) : (
-                    <Change />
-                  )}
-                  <Added>
-                    {t('%s spend cap', formattedCategory)}
-                    <span>{utils.displayPrice({cents: budget})}</span>
-                  </Added>
-                </Fragment>
-              );
-            })}
-        </Fragment>
-      );
-    }
-
-    if (perCategoryToShared) {
-      const budgetsList = Object.entries(currentOnDemandBudgets.budgets);
-      return (
-        <Fragment>
-          {budgetsList
-            .filter(([_, budget]) => budget > 0)
-            .map(([category, budget]) => {
-              const showNewBudget = budgetsList.indexOf([category, budget]) === 0;
-              const formattedCategory = getPlanCategoryName({
-                plan: currentPlan,
-                category: category as DataCategory,
-                title: true,
-              });
-
-              return (
-                <Fragment key={category}>
-                  <Removed>
-                    {t('%s spend cap', formattedCategory)}
-                    <span>${utils.displayPrice({cents: budget})}</span>
-                  </Removed>
-                  {showNewBudget ? (
-                    <Added>
-                      {t('Shared spend cap')}
-                      <span>${utils.displayPrice({cents: budget})}</span>
-                    </Added>
-                  ) : (
-                    <Change />
-                  )}
-                </Fragment>
-              );
-            })}
-        </Fragment>
-      );
-    }
-  }
-
-  if (
-    currentBudgetMode === OnDemandBudgetMode.SHARED &&
-    newBudgetMode === OnDemandBudgetMode.SHARED
-  ) {
-    return (
-      <Fragment>
-        <Removed>
-          {t('Spend cap')}
-          <span>
-            {' '}
-            {utils.displayPrice({cents: currentOnDemandBudgets.sharedMaxBudget})}
-          </span>
-        </Removed>
-        <Added>
-          {t('Spend cap')}
-          <span> {utils.displayPrice({cents: newOnDemandBudgets.sharedMaxBudget})}</span>
-        </Added>
-      </Fragment>
-    );
-  }
-
-  if (
-    currentBudgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-    newBudgetMode === OnDemandBudgetMode.PER_CATEGORY
-  ) {
-    const currentBudgetsList = Object.entries(currentOnDemandBudgets.budgets);
-    const newBudgetsList = Object.entries(newOnDemandBudgets.budgets);
-    const hasNewCategories = newBudgetsList.length > currentBudgetsList.length;
-
-    if (hasNewCategories) {
-      return newBudgetsList.map(([category, budget]) => {
-        const formattedCategory = getPlanCategoryName({
-          plan: currentPlan,
-          category: category as DataCategory,
-          title: true,
-        });
-
-        const currentBudgetEquivalent = currentBudgetsList.find(
-          ([currentCategory, _]) => currentCategory === category
-        )?.[1];
-
-        if (
-          budget === currentBudgetEquivalent ||
-          (budget === 0 && !currentBudgetEquivalent)
-        ) {
-          return null;
-        }
-
-        return (
-          <Fragment key={category}>
-            {currentBudgetEquivalent ? (
-              <Removed>
-                {t('%s spend cap', formattedCategory)}
-                <span>{utils.displayPrice({cents: currentBudgetEquivalent})}</span>
-              </Removed>
-            ) : (
-              <Change />
-            )}
-            <Added>
-              {t('%s spend cap', formattedCategory)}
-              <span>{utils.displayPrice({cents: budget})}</span>
-            </Added>
-          </Fragment>
-        );
-      });
-    }
-
-    return currentBudgetsList.map(([category, budget]) => {
-      const formattedCategory = getPlanCategoryName({
-        plan: currentPlan,
-        category: category as DataCategory,
-        title: true,
-      });
-
-      const newBudgetEquivalent = newBudgetsList.find(
-        ([newCategory, _]) => newCategory === category
-      )?.[1];
-
-      if (budget === newBudgetEquivalent || (budget === 0 && !newBudgetEquivalent)) {
-        return null;
-      }
-
-      return (
-        <Fragment key={category}>
-          <Removed>
-            {t('%s spend cap', formattedCategory)}
-            <span>{utils.displayPrice({cents: budget})}</span>
-          </Removed>
-          {newBudgetEquivalent ? (
-            <Added>
-              {t('%s spend cap', formattedCategory)}
-              <span>{utils.displayPrice({cents: newBudgetEquivalent})}</span>
-            </Added>
-          ) : (
-            <Change />
-          )}
-        </Fragment>
-      );
-    });
-  }
-
-  return null; // shouldn't happen
+function AddedHighlight({value}: {value: string}) {
+  return (
+    <Added>
+      <span>{value}</span>
+    </Added>
+  );
 }
 
-function ProductDiff({
+function RemovedHighlight({value}: {value: string}) {
+  return (
+    <Removed>
+      <span>{value}</span>
+    </Removed>
+  );
+}
+
+function ChangeRow({
+  leftComponent,
+  currentValue,
+  newValue,
+}: {
+  currentValue: string | null;
+  leftComponent: React.ReactNode;
+  newValue: string | null;
+}) {
+  return (
+    <Fragment>
+      {leftComponent}
+      {currentValue === null ? <Change /> : <RemovedHighlight value={currentValue} />}
+      {newValue === null ? <Change /> : <AddedHighlight value={newValue} />}
+    </Fragment>
+  );
+}
+
+function PlanDiff({
   currentPlan,
   newPlan,
-  currentProducts,
-  newProducts,
+  planChanges,
+  productChanges,
 }: {
   currentPlan: Plan;
-  currentProducts: Partial<Record<SelectableProduct, boolean>>;
   newPlan: Plan;
-  newProducts: Partial<Record<SelectableProduct, boolean>>;
+  planChanges: PlanChange[];
+  productChanges: ProductChange[];
 }) {
-  const newProductsList: Array<[SelectableProduct, boolean]> = Object.entries(
-    newProducts
-  ).map(([product, enabled]) => [product as SelectableProduct, enabled]);
-  const currentProductsList: Array<[SelectableProduct, boolean]> = Object.entries(
-    currentProducts
-  ).map(([product, enabled]) => [product as SelectableProduct, enabled]);
-  const newPlanHasMoreProducts = newProductsList.length > currentProductsList.length;
-
-  if (newPlanHasMoreProducts) {
-    return newProductsList.map(([product, willBeEnabled]) => {
-      const currentProductEquivalent = currentProductsList.find(
-        ([currentProduct, _]) => currentProduct === product
-      );
-      const currentlyEnabled = !!currentProductEquivalent?.[1];
-
-      if (willBeEnabled === currentlyEnabled || (!willBeEnabled && !currentlyEnabled)) {
-        return null;
-      }
-
-      const newProductName =
-        newPlan.availableReservedBudgetTypes[
-          product as unknown as ReservedBudgetCategoryType
-        ]!.productCheckoutName;
-      const currentProductName =
-        currentPlan.availableReservedBudgetTypes[
-          product as unknown as ReservedBudgetCategoryType
-        ]?.productCheckoutName;
-
-      return (
-        <Fragment key={product}>
-          {currentlyEnabled ? (
-            <Removed>
-              <span>{toTitleCase(currentProductName!, {allowInnerUpperCase: true})}</span>
-            </Removed>
-          ) : (
-            <Change />
-          )}
-          {willBeEnabled && (
-            <Added>
-              <span>{toTitleCase(newProductName, {allowInnerUpperCase: true})}</span>
-            </Added>
-          )}
-        </Fragment>
-      );
-    });
-  }
-
-  return currentProductsList.map(([product, currentlyEnabled]) => {
-    const newProductEquivalent = newProductsList.find(
-      ([newProduct, _]) => newProduct === product
-    );
-    const willBeEnabled = !!newProductEquivalent?.[1];
-
-    if (currentlyEnabled === willBeEnabled || (!currentlyEnabled && !willBeEnabled)) {
-      return null;
-    }
-
-    const newProductName =
-      newPlan.availableReservedBudgetTypes[
-        product as unknown as ReservedBudgetCategoryType
-      ]?.productCheckoutName;
-    const currentProductName =
-      currentPlan.availableReservedBudgetTypes[
-        product as unknown as ReservedBudgetCategoryType
-      ]!.productCheckoutName;
-
-    return (
-      <Fragment key={product}>
-        {currentlyEnabled && (
-          <Removed>
-            <span>{toTitleCase(currentProductName, {allowInnerUpperCase: true})}</span>
-          </Removed>
-        )}
-        {willBeEnabled ? (
-          <Added>
-            <span>{toTitleCase(newProductName!, {allowInnerUpperCase: true})}</span>
-          </Added>
-        ) : (
-          <Change />
-        )}
-      </Fragment>
-    );
-  });
+  const changes = [...planChanges, ...productChanges];
+  return (
+    <ChangeSection>
+      <ChangeGrid>
+        {changes.map((change, index) => {
+          const {key, currentValue, newValue} = change;
+          let leftComponent = <div />;
+          if (index === 0) {
+            leftComponent = <ChangeSectionTitle>{t('Plan')}</ChangeSectionTitle>;
+          }
+          let formattingFunction = (value: any) => value;
+          if (key === 'plan' || key === 'contractInterval') {
+            formattingFunction = (value: any) => (value ? capitalize(value) : null);
+          } else {
+            formattingFunction = (value: any) =>
+              value
+                ? toTitleCase(
+                    newPlan.availableReservedBudgetTypes[key]?.productCheckoutName ??
+                      currentPlan.availableReservedBudgetTypes[key]
+                        ?.productCheckoutName ??
+                      key,
+                    {allowInnerUpperCase: true}
+                  )
+                : null;
+          }
+          return (
+            <ChangeRow
+              key={key}
+              leftComponent={leftComponent}
+              currentValue={formattingFunction(currentValue)}
+              newValue={formattingFunction(newValue)}
+            />
+          );
+        })}
+      </ChangeGrid>
+    </ChangeSection>
+  );
 }
 
 function ReservedDiff({
   currentPlan,
   newPlan,
-  currentReservedVolumes,
-  newReservedVolumes,
+  reservedChanges,
 }: {
   currentPlan: Plan;
-  currentReservedVolumes: Partial<Record<DataCategory, number>>;
   newPlan: Plan;
-  newReservedVolumes: Partial<Record<DataCategory, number>>;
+  reservedChanges: ReservedChange[];
 }) {
-  const currentReservedList = Object.entries(currentReservedVolumes);
-  const newReservedList = Object.entries(newReservedVolumes);
+  return (
+    <ChangeSection>
+      <ChangeSectionTitle hasBottomMargin>{t('Reserved volume')}</ChangeSectionTitle>
+      <ChangeGrid>
+        {reservedChanges.map(({key, currentValue, newValue}) => {
+          return (
+            <ChangeRow
+              key={key}
+              leftComponent={
+                <ChangedCategory>
+                  {getPlanCategoryName({
+                    category: key,
+                    plan: currentValue === null ? newPlan : currentPlan,
+                    title: true,
+                  })}
+                </ChangedCategory>
+              }
+              currentValue={
+                currentValue === null
+                  ? null
+                  : formatReservedWithUnits(currentValue, key, {isAbbreviated: true})
+              }
+              newValue={
+                newValue === null
+                  ? null
+                  : formatReservedWithUnits(newValue, key, {isAbbreviated: true})
+              }
+            />
+          );
+        })}
+      </ChangeGrid>
+    </ChangeSection>
+  );
+}
 
-  const hasNewCategories = newReservedList.length > currentReservedList.length;
-
-  if (hasNewCategories) {
-    return newReservedList.map(([category, newReserved]) => {
-      const currentEquivalent = currentReservedList.find(
-        ([currentCategory, _]) => currentCategory === category
-      );
-      const currentReserved = currentEquivalent?.[1] ?? 0;
-
-      if (currentReserved === newReserved) {
-        return null;
-      }
-
-      const currentPlanCategoryName = currentEquivalent
-        ? getPlanCategoryName({
-            plan: currentPlan,
-            category: category as DataCategory,
-            title: true,
-          })
-        : null;
-      const newPlanCategoryName = getPlanCategoryName({
-        plan: newPlan,
-        category: category as DataCategory,
-        title: true,
-      });
-
-      const currentFormattedReserved = formatReservedWithUnits(
-        currentReserved,
-        category as DataCategory,
-        {
-          isAbbreviated: true,
-          useUnitScaling: true,
-        }
-      );
-
-      const newFormattedReserved = formatReservedWithUnits(
-        newReserved,
-        category as DataCategory,
-        {
-          isAbbreviated: true,
-          useUnitScaling: true,
-        }
-      );
-
-      return (
-        <Fragment key={category}>
-          {currentPlanCategoryName ? (
-            <Removed>
-              <span>{currentFormattedReserved}</span> {currentPlanCategoryName}
-            </Removed>
-          ) : (
-            <Change />
-          )}
-          <Added>
-            {currentEquivalent ? (
-              <Fragment>
-                <span>{newFormattedReserved}</span> {newPlanCategoryName}
-              </Fragment>
-            ) : (
-              <span>
-                {newFormattedReserved} {newPlanCategoryName}
-              </span>
-            )}
-          </Added>
-        </Fragment>
-      );
-    });
-  }
-
-  return currentReservedList.map(([category, currentReserved]) => {
-    const newEquivalent = newReservedList.find(
-      ([newCategory, _]) => newCategory === category
-    );
-    const newReserved = newEquivalent?.[1] ?? 0;
-
-    if (currentReserved === newReserved) {
-      return null;
-    }
-
-    const currentPlanCategoryName = getPlanCategoryName({
-      plan: currentPlan,
-      category: category as DataCategory,
-      title: true,
-    });
-
-    const newPlanCategoryName = newEquivalent
-      ? getPlanCategoryName({
-          plan: newPlan,
-          category: category as DataCategory,
-          title: true,
-        })
-      : null;
-
-    const currentFormattedReserved = formatReservedWithUnits(
-      currentReserved,
-      category as DataCategory,
-      {
-        isAbbreviated: true,
-        useUnitScaling: true,
-      }
-    );
-
-    const newFormattedReserved = formatReservedWithUnits(
-      newReserved,
-      category as DataCategory,
-      {
-        isAbbreviated: true,
-        useUnitScaling: true,
-      }
-    );
-
-    return (
-      <Fragment key={category}>
-        <Removed>
-          {newEquivalent ? (
-            <Fragment>
-              <span>{currentFormattedReserved}</span> {currentPlanCategoryName}
-            </Fragment>
-          ) : (
-            <span>
-              {currentFormattedReserved} {currentPlanCategoryName}
-            </span>
-          )}
-        </Removed>
-        {newPlanCategoryName ? (
-          <Added>
-            <span>{newFormattedReserved}</span> {newPlanCategoryName}
-          </Added>
-        ) : (
-          <Change />
-        )}
-      </Fragment>
-    );
-  });
+function OnDemandDiff({
+  sharedOnDemandChanges,
+  perCategoryOnDemandChanges,
+  currentPlan,
+  newPlan,
+}: {
+  currentPlan: Plan;
+  newPlan: Plan;
+  perCategoryOnDemandChanges: PerCategoryOnDemandChange[];
+  sharedOnDemandChanges: SharedOnDemandChange[];
+}) {
+  return (
+    <Fragment>
+      {sharedOnDemandChanges.length > 0 && (
+        <ChangeSection>
+          <ChangeGrid>
+            {sharedOnDemandChanges.map((change, index) => {
+              const {key, currentValue, newValue} = change;
+              let leftComponent = <div />;
+              if (index === 0) {
+                leftComponent = (
+                  <ChangeSectionTitle>{t('Shared spend cap')}</ChangeSectionTitle>
+                );
+              }
+              return (
+                <ChangeRow
+                  key={key}
+                  leftComponent={leftComponent}
+                  currentValue={
+                    currentValue === null
+                      ? null
+                      : utils.displayPrice({cents: currentValue})
+                  }
+                  newValue={
+                    newValue === null ? null : utils.displayPrice({cents: newValue})
+                  }
+                />
+              );
+            })}
+          </ChangeGrid>
+        </ChangeSection>
+      )}
+      {perCategoryOnDemandChanges.length > 0 && (
+        <ChangeSection>
+          <ChangeSectionTitle hasBottomMargin>
+            {t('Per-category spend caps')}
+          </ChangeSectionTitle>
+          <ChangeGrid>
+            {perCategoryOnDemandChanges.map(({key, currentValue, newValue}) => {
+              return (
+                <ChangeRow
+                  key={key}
+                  leftComponent={
+                    <ChangedCategory>
+                      {getPlanCategoryName({
+                        category: key,
+                        plan: currentValue === null ? newPlan : currentPlan,
+                        title: true,
+                      })}
+                    </ChangedCategory>
+                  }
+                  currentValue={
+                    currentValue === null
+                      ? null
+                      : utils.displayPrice({cents: currentValue})
+                  }
+                  newValue={
+                    newValue === null ? null : utils.displayPrice({cents: newValue})
+                  }
+                />
+              );
+            })}
+          </ChangeGrid>
+        </ChangeSection>
+      )}
+    </Fragment>
+  );
 }
 
 function CartDiff({
@@ -499,244 +261,296 @@ function CartDiff({
   freePlan: Plan;
   subscription: Subscription;
 }) {
-  const newSubscriptionState: SubscriptionState = useMemo(() => {
-    return {
-      planName: activePlan.name,
-      contractInterval: activePlan.contractInterval,
-      onDemandBudgets: formData.onDemandBudget ?? DEFAULT_PAYG_BUDGET,
-      products: Object.entries(formData.selectedProducts ?? {}).reduce(
-        (acc, [product, data]) => {
-          acc[product as unknown as SelectableProduct] = data.enabled;
-          return acc;
-        },
-        {} as Partial<Record<SelectableProduct, boolean>>
-      ),
-      reserved: activePlan.categories.reduce(
-        (acc, category) => {
-          const isReservedBudgetCategory = Object.values(
-            activePlan.availableReservedBudgetTypes
-          ).some(budgetType => budgetType.dataCategories.includes(category));
-          if (
-            !isReservedBudgetCategory ||
-            (formData.reserved[category] &&
-              formData.reserved[category] !== RESERVED_BUDGET_QUOTA)
-          ) {
-            acc[category] = formData.reserved[category] ?? 0;
-          }
-          return acc;
-        },
-        {} as Partial<Record<DataCategory, number>>
-      ),
-    };
-  }, [activePlan, formData]);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const isOnTrialPlan = useMemo(() => {
-    return isTrialPlan(subscription.plan);
-  }, [subscription.plan]);
+  const currentPlan = isTrialPlan(subscription.plan)
+    ? freePlan
+    : subscription.planDetails;
+  const currentOnDemandBudget = parseOnDemandBudgetsFromSubscription(subscription);
+  const newOnDemandBudget = formData.onDemandBudget ?? DEFAULT_PAYG_BUDGET;
+  const currentBudgetMode = currentOnDemandBudget.budgetMode;
+  const newBudgetMode = newOnDemandBudget.budgetMode;
 
-  const currentSubscriptionState: SubscriptionState = useMemo(() => {
-    const plan = isOnTrialPlan ? freePlan : subscription.planDetails;
-    return {
-      planName: plan.name,
-      contractInterval: plan.contractInterval,
-      onDemandBudgets: subscription.onDemandBudgets
-        ? parseOnDemandBudgets(subscription.onDemandBudgets)
-        : DEFAULT_PAYG_BUDGET,
-      products: Object.entries(subscription.reservedBudgets ?? {}).reduce(
-        (acc, [_, reservedBudget]) => {
-          acc[reservedBudget.apiName as unknown as SelectableProduct] =
-            reservedBudget.reservedBudget > 0 && !isOnTrialPlan;
-          return acc;
-        },
-        {} as Partial<Record<SelectableProduct, boolean>>
-      ),
-      reserved: isOnTrialPlan
-        ? Object.entries(freePlan.planCategories).reduce(
-            (acc, [category, buckets]) => {
-              acc[category as DataCategory] = buckets[0]?.events ?? 0;
-              return acc;
-            },
-            {} as Partial<Record<DataCategory, number>>
-          )
-        : Object.entries(subscription.categories).reduce(
-            (acc, [category, history]) => {
-              const isReservedBudgetCategory = Object.values(
-                subscription.planDetails.availableReservedBudgetTypes
-              ).some(budgetType =>
-                budgetType.dataCategories.includes(category as DataCategory)
-              );
-              if (
-                !isReservedBudgetCategory ||
-                (history.reserved !== RESERVED_BUDGET_QUOTA && history.reserved !== 0)
-              ) {
-                acc[category as DataCategory] = history.reserved ?? 0;
-              }
-              return acc;
-            },
-            {} as Partial<Record<DataCategory, number>>
-          ),
-    };
-  }, [freePlan, isOnTrialPlan, subscription]);
-
-  const isChanged = (currentValue: any, newValue: any) => {
-    // TODO(ISABELLA): NEED TO FILTER OUT 0 PER-CATEGORY
-    if (typeof currentValue === 'object' && typeof newValue === 'object') {
-      return !isEqual(currentValue, newValue);
+  const getPlanChanges = (): PlanChange[] => {
+    const changes: PlanChange[] = [];
+    if (activePlan.name !== currentPlan.name) {
+      changes.push({
+        key: 'plan',
+        currentValue: currentPlan.name,
+        newValue: activePlan.name,
+      });
     }
 
-    return currentValue !== newValue;
+    if (activePlan.contractInterval !== currentPlan.contractInterval) {
+      changes.push({
+        key: 'contractInterval',
+        currentValue: currentPlan.contractInterval,
+        newValue: activePlan.contractInterval,
+      });
+    }
+
+    return changes;
   };
 
-  const changedKeys: Array<keyof SubscriptionState> = useMemo(() => {
-    return Object.entries(newSubscriptionState)
-      .filter(([key, value]) => {
-        return isChanged(currentSubscriptionState[key as keyof SubscriptionState], value);
-      })
-      .map(([key]) => key as keyof SubscriptionState);
-  }, [newSubscriptionState, currentSubscriptionState]);
+  const getProductChanges = (): ProductChange[] => {
+    // TODO(checkout v3): This will need to be updated to handle non-budget products
+    const currentProducts =
+      subscription.reservedBudgets
+        ?.filter(budget => budget.reservedBudget > 0)
+        .map(budget => budget.apiName as unknown as SelectableProduct) ?? [];
 
-  const hasAnyChange = useMemo(() => {
-    const naiveComparison = !isEqual(newSubscriptionState, currentSubscriptionState);
+    const newProducts = Object.entries(formData.selectedProducts ?? {})
+      .filter(([_, value]) => value.enabled)
+      .map(([key, _]) => key as unknown as SelectableProduct);
 
-    if (!naiveComparison) {
-      return false; // if the two objects are exactly equal, there is no change
-    }
+    // we need to iterate over both in case either state has more products
+    // than the other
+    const changes: ProductChange[] = [];
+    currentProducts?.forEach(product => {
+      if (!newProducts?.includes(product)) {
+        changes.push({
+          key: product,
+          currentValue: true,
+          newValue: false,
+        });
+      }
+    });
+    newProducts?.forEach(product => {
+      if (!currentProducts?.includes(product)) {
+        changes.push({
+          key: product,
+          currentValue: false,
+          newValue: true,
+        });
+      }
+    });
 
-    const someNonCategoryChange = Object.entries(newSubscriptionState)
-      .filter(([key, _]) => key !== 'reserved')
-      .some(([key, value]) => {
-        return isChanged(currentSubscriptionState[key as keyof SubscriptionState], value);
+    return changes;
+  };
+
+  const getReservedChanges = (): ReservedChange[] => {
+    const currentReserved: Partial<Record<DataCategory, number>> = {};
+    const newReserved: Partial<Record<DataCategory, number>> = {...formData.reserved};
+    const nodes: ReservedChange[] = [];
+
+    Object.entries(subscription.categories).forEach(([category, history]) => {
+      const reserved = history.reserved ?? 0;
+      if (
+        currentPlan.checkoutCategories.includes(category as DataCategory) &&
+        reserved >= 0
+      ) {
+        currentReserved[category as DataCategory] = reserved;
+      }
+    });
+
+    activePlan.checkoutCategories.forEach(category => {
+      if (!(category in newReserved)) {
+        const firstBucket = activePlan.planCategories[category]?.find(
+          bucket => bucket.events >= 0
+        );
+        newReserved[category] = firstBucket?.events ?? 0;
+      }
+    });
+
+    if (Object.keys(currentReserved).length > Object.keys(newReserved).length) {
+      Object.entries(currentReserved).forEach(([category, currentValue]) => {
+        let newValue = null;
+        if (category in newReserved) {
+          newValue = newReserved[category as DataCategory] ?? null;
+        }
+        if (newValue !== currentValue) {
+          nodes.push({
+            key: category as DataCategory,
+            currentValue,
+            newValue,
+          });
+        }
       });
-
-    if (someNonCategoryChange) {
-      return true;
+    } else {
+      Object.entries(newReserved).forEach(([category, newValue]) => {
+        let currentValue = null;
+        if (category in currentReserved) {
+          currentValue = currentReserved[category as DataCategory] ?? null;
+        }
+        if (newValue !== currentValue) {
+          nodes.push({
+            key: category as DataCategory,
+            currentValue,
+            newValue,
+          });
+        }
+      });
     }
 
-    const currentPlanCategories = subscription.planDetails.categories;
-    const newPlanCategories = activePlan.categories;
+    return nodes;
+  };
 
-    if (isEqual(currentPlanCategories, newPlanCategories)) {
-      return naiveComparison; // no new categories or removed categories, so the naive comparison is enough
+  const getSharedOnDemandChanges = (): SharedOnDemandChange[] => {
+    const changes: SharedOnDemandChange[] = [];
+    if (
+      isEqual(currentOnDemandBudget, newOnDemandBudget) ||
+      (currentBudgetMode !== OnDemandBudgetMode.SHARED &&
+        newBudgetMode !== OnDemandBudgetMode.SHARED)
+    ) {
+      return [];
     }
 
-    let hasSomeCategoryChange = false;
-    for (const category of newPlanCategories) {
-      if (currentPlanCategories.includes(category)) {
-        hasSomeCategoryChange =
-          currentSubscriptionState.reserved[category] !==
-          newSubscriptionState.reserved[category];
+    if (
+      currentBudgetMode === OnDemandBudgetMode.SHARED &&
+      newBudgetMode === OnDemandBudgetMode.SHARED
+    ) {
+      changes.push({
+        key: 'sharedMaxBudget',
+        currentValue: currentOnDemandBudget.sharedMaxBudget,
+        newValue: newOnDemandBudget.sharedMaxBudget,
+      });
+    } else if (currentBudgetMode === OnDemandBudgetMode.SHARED) {
+      changes.push({
+        key: 'sharedMaxBudget',
+        currentValue: currentOnDemandBudget.sharedMaxBudget,
+        newValue: null,
+      });
+    } else if (newBudgetMode === OnDemandBudgetMode.SHARED) {
+      changes.push({
+        key: 'sharedMaxBudget',
+        currentValue: null,
+        newValue: newOnDemandBudget.sharedMaxBudget,
+      });
+    }
+
+    return changes;
+  };
+
+  const getPerCategoryOnDemandChanges = (): PerCategoryOnDemandChange[] => {
+    const changes: PerCategoryOnDemandChange[] = [];
+    if (
+      isEqual(currentOnDemandBudget, newOnDemandBudget) ||
+      (currentBudgetMode !== OnDemandBudgetMode.SHARED &&
+        newBudgetMode !== OnDemandBudgetMode.SHARED)
+    ) {
+      return [];
+    }
+
+    if (
+      currentBudgetMode === OnDemandBudgetMode.PER_CATEGORY &&
+      newBudgetMode === OnDemandBudgetMode.PER_CATEGORY
+    ) {
+      const currentBudgetsList = Object.entries(currentOnDemandBudget.budgets);
+      const newBudgetsList = Object.entries(newOnDemandBudget.budgets);
+
+      if (currentBudgetsList.length > newBudgetsList.length) {
+        currentBudgetsList.forEach(([category, currentBudget]) => {
+          const newBudget = newOnDemandBudget.budgets[category as DataCategory];
+          if (!(category in newOnDemandBudget.budgets)) {
+            changes.push({
+              key: category as DataCategory,
+              currentValue: currentBudget,
+              newValue: null,
+            });
+          } else if (newBudget !== undefined && currentBudget !== newBudget) {
+            changes.push({
+              key: category as DataCategory,
+              currentValue: currentBudget,
+              newValue: newBudget,
+            });
+          }
+        });
       } else {
-        hasSomeCategoryChange = newSubscriptionState.reserved[category] !== 0;
+        newBudgetsList.forEach(([category, newBudget]) => {
+          const currentBudget = currentOnDemandBudget.budgets[category as DataCategory];
+          if (!(category in currentOnDemandBudget.budgets)) {
+            changes.push({
+              key: category as DataCategory,
+              currentValue: null,
+              newValue: newBudget,
+            });
+          } else if (currentBudget !== undefined && currentBudget !== newBudget) {
+            changes.push({
+              key: category as DataCategory,
+              currentValue: currentBudget,
+              newValue: newBudget,
+            });
+          }
+        });
       }
-
-      if (hasSomeCategoryChange) {
-        break;
-      }
+    } else if (currentBudgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+      Object.entries(currentOnDemandBudget.budgets).forEach(
+        ([category, currentBudget]) => {
+          changes.push({
+            key: category as DataCategory,
+            currentValue: currentBudget,
+            newValue: null,
+          });
+        }
+      );
+    } else if (newBudgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+      Object.entries(newOnDemandBudget.budgets).forEach(([category, newBudget]) => {
+        changes.push({
+          key: category as DataCategory,
+          currentValue: null,
+          newValue: newBudget,
+        });
+      });
     }
 
-    for (const category of currentPlanCategories) {
-      if (!newPlanCategories.includes(category)) {
-        hasSomeCategoryChange = currentSubscriptionState.reserved[category] !== 0;
-      }
+    return changes;
+  };
 
-      if (hasSomeCategoryChange) {
-        break;
-      }
-    }
+  const planChanges = getPlanChanges();
+  const productChanges = getProductChanges();
+  const reservedChanges = getReservedChanges();
+  const sharedOnDemandChanges = getSharedOnDemandChanges();
+  const perCategoryOnDemandChanges = getPerCategoryOnDemandChanges();
 
-    return hasSomeCategoryChange;
-  }, [
-    newSubscriptionState,
-    currentSubscriptionState,
-    activePlan.categories,
-    subscription.planDetails.categories,
-  ]);
+  const allChanges = [
+    ...planChanges,
+    ...productChanges,
+    ...reservedChanges,
+    ...sharedOnDemandChanges,
+    ...perCategoryOnDemandChanges,
+  ];
 
-  // TODO(checkout v3): this will need to be updated once
-  // things can be bought on developer
-  if (isDeveloperPlan(activePlan) || !hasAnyChange) {
+  const numChanges = allChanges.length;
+
+  if (numChanges === 0) {
     return null;
   }
 
   return (
     <CartDiffContainer>
-      <Title>{t('Changes')}</Title>
-      <Changes>
-        {changedKeys.map(key => {
-          if (key === 'onDemandBudgets') {
-            const currentOnDemandBudgets = currentSubscriptionState[key];
-            const newOnDemandBudgets = newSubscriptionState[key];
-
-            if (!isChanged(currentOnDemandBudgets, newOnDemandBudgets)) {
-              return null;
-            }
-
-            return (
-              <OnDemandDiff
-                key={key}
-                currentPlan={subscription.planDetails}
-                newPlan={activePlan}
-                currentOnDemandBudgets={currentOnDemandBudgets}
-                newOnDemandBudgets={newOnDemandBudgets}
-              />
-            );
-          }
-
-          if (key === 'products') {
-            return (
-              <ProductDiff
-                key={key}
-                currentPlan={subscription.planDetails}
-                newPlan={activePlan}
-                currentProducts={currentSubscriptionState.products}
-                newProducts={newSubscriptionState.products}
-              />
-            );
-          }
-
-          if (key === 'reserved') {
-            return (
-              <ReservedDiff
-                key={key}
-                currentPlan={subscription.planDetails}
-                newPlan={activePlan}
-                currentReservedVolumes={currentSubscriptionState.reserved}
-                newReservedVolumes={newSubscriptionState.reserved}
-              />
-            );
-          }
-
-          const currentValue: string = currentSubscriptionState[key];
-          const newValue: string = newSubscriptionState[key];
-          let formattingFunction = (value: any): React.ReactNode => value;
-          switch (key) {
-            case 'contractInterval':
-              formattingFunction = (value: SubscriptionState['contractInterval']) => (
-                <span>{capitalize(value)}</span>
-              );
-              break;
-            case 'planName':
-              formattingFunction = (value: SubscriptionState['planName']) => (
-                <Fragment>
-                  <span>{value}</span> {t('Plan')}
-                </Fragment>
-              );
-              break;
-            default:
-              break;
-          }
-
-          const formattedCurrentValue = formattingFunction(currentValue);
-          const formattedNewValue = formattingFunction(newValue);
-
-          return (
-            <Fragment key={key}>
-              <Removed>{formattedCurrentValue}</Removed>
-              <Added>{formattedNewValue}</Added>
-            </Fragment>
-          );
-        })}
-      </Changes>
+      <Flex justify="between" align="center">
+        <Title>{tct('Changes ([numChanges])', {numChanges})}</Title>
+        <Button onClick={() => setIsOpen(!isOpen)}>
+          <IconChevron direction={isOpen ? 'up' : 'down'} />
+        </Button>
+      </Flex>
+      {isOpen && (
+        <ChangesContainer>
+          {planChanges.length + productChanges.length > 0 && (
+            <PlanDiff
+              currentPlan={currentPlan}
+              newPlan={activePlan}
+              planChanges={planChanges}
+              productChanges={productChanges}
+            />
+          )}
+          {reservedChanges.length > 0 && (
+            <ReservedDiff
+              currentPlan={currentPlan}
+              newPlan={activePlan}
+              reservedChanges={reservedChanges}
+            />
+          )}
+          {sharedOnDemandChanges.length + perCategoryOnDemandChanges.length > 0 && (
+            <OnDemandDiff
+              currentPlan={currentPlan}
+              newPlan={activePlan}
+              perCategoryOnDemandChanges={perCategoryOnDemandChanges}
+              sharedOnDemandChanges={sharedOnDemandChanges}
+            />
+          )}
+        </ChangesContainer>
+      )}
     </CartDiffContainer>
   );
 }
@@ -746,32 +560,27 @@ export default CartDiff;
 const CartDiffContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: 0 ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
-  margin-bottom: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const ChangesContainer = styled('div')`
+  & > div:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.border};
+  }
+  max-height: 20vh;
+  overflow-y: scroll;
 `;
 
 const Title = styled('h1')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0 0 ${p => p.theme.space.xl};
-`;
-
-const Changes = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  row-gap: ${p => p.theme.space.xs};
-  column-gap: ${p => p.theme.space.xs};
-
-  &::before {
-    position: absolute;
-    left: ${p => p.theme.space['2xs']};
-  }
+  margin: 0;
 `;
 
 const Change = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: ${p => p.theme.space.sm};
   font-family: ${p => p.theme.text.familyMono};
   background: ${p => p.theme.backgroundSecondary};
@@ -797,11 +606,29 @@ const Added = styled(Change)`
 const Removed = styled(Change)`
   background: ${p => p.theme.red100};
 
-  &::before {
-    content: '-';
-  }
-
   span {
     background: #f7d4d3;
   }
+`;
+
+const ChangedCategory = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
+const ChangeSection = styled('div')`
+  padding: ${p => p.theme.space.lg} 0;
+`;
+
+const ChangeGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 3fr 2fr 2fr;
+  column-gap: ${p => p.theme.space.xs};
+  row-gap: ${p => p.theme.space.xs};
+  align-items: center;
+`;
+
+const ChangeSectionTitle = styled('h2')<{hasBottomMargin?: boolean}>`
+  font-size: ${p => p.theme.fontSize.md};
+  margin: 0;
+  margin-bottom: ${p => (p.hasBottomMargin ? p.theme.space.xs : 0)};
 `;

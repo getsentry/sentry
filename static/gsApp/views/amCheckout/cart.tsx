@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {IconLightning, IconLock} from 'sentry/icons';
+import {IconChevron, IconLightning, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
@@ -111,7 +111,7 @@ interface TotalSummaryProps extends BaseSummaryProps {
   subscription: Subscription;
 }
 
-function PlanSummary({activePlan, formData}: PlanSummaryProps) {
+function ItemsSummary({activePlan, formData}: PlanSummaryProps) {
   // TODO(checkout v3): This will need to be updated for non-budget products
   const additionalProductCategories = useMemo(
     () =>
@@ -125,7 +125,6 @@ function PlanSummary({activePlan, formData}: PlanSummaryProps) {
 
   return (
     <SummarySection>
-      <Title>{t('Plan Summary')}</Title>
       <ItemWithIcon data-test-id="summary-item-plan">
         <IconContainer>{getPlanIcon(activePlan)}</IconContainer>
         <Flex direction="column" gap="xs">
@@ -520,6 +519,7 @@ function Cart({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [stripe, setStripe] = useState<stripe.Stripe>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [summaryIsOpen, setSummaryIsOpen] = useState(true);
   const api = useApi();
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
@@ -656,13 +656,24 @@ function Cart({
         subscription={subscription}
         freePlan={freePlan}
       />
-      <PlanSummary activePlan={activePlan} formData={formData} />
-      <SubtotalSummary
-        activePlan={activePlan}
-        formData={formData}
-        previewDataLoading={previewState.isLoading}
-        renewalDate={previewState.renewalDate}
-      />
+      <PlanSummaryHeader isOpen={summaryIsOpen}>
+        <Title>{t('Plan Summary')}</Title>
+        <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
+        <Button onClick={() => setSummaryIsOpen(!summaryIsOpen)}>
+          <IconChevron direction={summaryIsOpen ? 'up' : 'down'} />
+        </Button>
+      </PlanSummaryHeader>
+      {summaryIsOpen && (
+        <PlanSummary>
+          <ItemsSummary activePlan={activePlan} formData={formData} />
+          <SubtotalSummary
+            activePlan={activePlan}
+            formData={formData}
+            previewDataLoading={previewState.isLoading}
+            renewalDate={previewState.renewalDate}
+          />
+        </PlanSummary>
+      )}
       <TotalSummary
         activePlan={activePlan}
         billedTotal={previewState.billedTotal}
@@ -687,12 +698,6 @@ export default Cart;
 const CartContainer = styled(Panel)`
   display: flex;
   flex-direction: column;
-  padding: ${p => p.theme.space['2xl']} 0 0;
-  gap: ${p => p.theme.space['2xl']};
-
-  & > *:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
 `;
 
 const SummarySection = styled('div')`
@@ -703,12 +708,35 @@ const SummarySection = styled('div')`
   & > *:not(:last-child) {
     margin-bottom: ${p => p.theme.space.xl};
   }
+
+  border-bottom: 1px solid ${p => p.theme.border};
+
+  &:not(:first-child) {
+    padding-top: ${p => p.theme.space['2xl']};
+  }
 `;
 
 const Title = styled('h1')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0 0 ${p => p.theme.space.xl};
+  margin: 0;
+`;
+
+const PlanSummary = styled('div')``;
+
+const PlanSummaryHeader = styled('div')<{isOpen: boolean}>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${p => p.theme.space.xl};
+  border-bottom: ${p => (p.isOpen ? 'none' : `1px solid ${p.theme.border}`)};
+`;
+
+const OrgSlug = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+  color: ${p => p.theme.subText};
+  flex-shrink: 1;
+  text-overflow: ellipsis;
 `;
 
 const Item = styled('div')`
