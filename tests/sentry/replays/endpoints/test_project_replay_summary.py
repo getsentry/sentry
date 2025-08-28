@@ -268,7 +268,10 @@ class ProjectReplaySummaryTestCase(
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_post_with_feedback_breadcrumb(self, mock_make_seer_api_request: Mock) -> None:
-        """Test handling of breadcrumbs with user feedback"""
+        """Test handling of a feedback breadcrumb when the feedback
+        is in nodestore, but hasn't reached Snuba yet.
+        If the feedback is in Snuba (guaranteed for SDK v8.0.0+),
+        it should be de-duped like in the duplicate_feedback test below."""
         mock_response = MockSeerResponse(
             200,
             json_data={"hello": "world"},
