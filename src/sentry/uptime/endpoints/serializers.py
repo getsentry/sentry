@@ -156,6 +156,7 @@ class UptimeSummarySerializerResponse(TypedDict):
     failedChecks: int
     downtimeChecks: int
     missedWindowChecks: int
+    avgDurationUs: float | None
 
 
 @register(UptimeSummary)
@@ -169,4 +170,5 @@ class UptimeSummarySerializer(Serializer):
             "failedChecks": obj.failed_checks,
             "downtimeChecks": obj.downtime_checks,
             "missedWindowChecks": obj.missed_window_checks,
+            "avgDurationUs": obj.avg_duration_us,
         }
