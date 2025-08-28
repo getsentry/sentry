@@ -13,7 +13,6 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models.files.file import File
@@ -39,6 +38,7 @@ from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_symbolicator
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
 
@@ -549,7 +549,7 @@ def test_calculate_profile_duration(profile, duration_ms, request) -> None:
 
 
 @pytest.mark.django_db(transaction=True)
-@thread_leaks.allowlist(reason="django dev server", issue=97036)
+@thread_leak_allowlist(reason="django dev server", issue=97036)
 class DeobfuscationViaSymbolicator(TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, set_sentry_option, live_server):

@@ -16,7 +16,6 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
 
-import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
     collect_span_metrics,
@@ -35,6 +34,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
 
@@ -332,7 +332,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
 @django_db_all
 @requires_symbolicator
 @pytest.mark.symbolicator
-@thread_leaks.allowlist(reason="django dev server", issue=97036)
+@thread_leak_allowlist(reason="django dev server", issue=97036)
 def test_deobfuscate_view_hierarchy(
     default_project, task_runner, set_sentry_option, live_server
 ) -> None:
