@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 # Follows the GitHub branch name rules:
 # https://docs.github.com/en/get-started/using-git/dealing-with-special-characters-in-branch-and-tag-names#naming-branches-and-tags
+# As our coding agent integration only supports launching on GitHub right now.
 VALID_BRANCH_NAME_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_/"
 
 
@@ -70,7 +71,7 @@ def sanitize_branch_name(branch_name: str) -> str:
     return f"{sanitized}-{random_suffix}" if sanitized else f"branch-{random_suffix}"
 
 
-def store_coding_agent_state_to_seer(run_id: int, coding_agent_state: CodingAgentState) -> bool:
+def store_coding_agent_state_to_seer(run_id: int, coding_agent_state: CodingAgentState) -> None:
     """Store coding agent state via Seer API."""
     path = "/v1/automation/autofix/coding-agent/state"
     body = orjson.dumps(
@@ -104,7 +105,9 @@ class OrganizationCodingAgentLaunchSerializer(serializers.Serializer[dict[str, o
     integration_id = serializers.IntegerField(required=True)
     run_id = serializers.IntegerField(required=True, min_value=1)
     trigger_source = serializers.ChoiceField(
-        choices=AutofixTriggerSource, default=AutofixTriggerSource.SOLUTION, required=False
+        choices=[AutofixTriggerSource.ROOT_CAUSE, AutofixTriggerSource.SOLUTION],
+        default=AutofixTriggerSource.SOLUTION,
+        required=False,
     )
 
 
@@ -288,8 +291,8 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                 },
             )
 
-            # Fallback to run on all repos
-            repos = [f"{repo['owner']}/{repo['name']}" for repo in autofix_state.request["repos"]]
+            # Fallback to run on all repos, specific to github's setup for now as our coding agent integrations only support github.
+            repos = [f"{repo.owner}/{repo.name}" for repo in autofix_state.request["repos"]]
 
             if not repos:
                 raise NotFound("No repos to run agents")
@@ -307,7 +310,7 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                     (
                         repo
                         for repo in autofix_state.request["repos"]
-                        if f"{repo['owner']}/{repo['name']}" == repo_name
+                        if f"{repo.owner}/{repo.name}" == repo_name
                     ),
                     None,
                 )

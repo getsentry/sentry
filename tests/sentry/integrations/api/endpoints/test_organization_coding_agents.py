@@ -11,6 +11,7 @@ from sentry.integrations.coding_agent.integration import (
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.seer.autofix.utils import CodingAgentState, CodingAgentStatus
+from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import APITestCase
 
 
@@ -122,7 +123,14 @@ class BaseOrganizationCodingAgentsTest(APITestCase):
     def _create_mock_autofix_state(self, repos=None):
         """Create a mock autofix state for testing."""
         if repos is None:
-            repos = [{"owner": "test", "name": "repo", "external_id": "123", "provider": "github"}]
+            repos = [
+                SeerRepoDefinition(
+                    owner="test",
+                    name="repo",
+                    external_id="123",
+                    provider="github",
+                )
+            ]
 
         mock_autofix_state = MagicMock()
         mock_autofix_state.steps = [
@@ -618,10 +626,19 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         mock_get_org_integration.return_value = self.rpc_org_integration
         mock_get_integration.return_value = mock_rpc_integration
 
-        # Create multi-repo autofix state
         multi_repo_list = [
-            {"owner": "owner1", "name": "repo1", "external_id": "123", "provider": "github"},
-            {"owner": "owner2", "name": "repo2", "external_id": "456", "provider": "github"},
+            SeerRepoDefinition(
+                owner="owner1",
+                name="repo1",
+                external_id="123",
+                provider="github",
+            ),
+            SeerRepoDefinition(
+                owner="owner2",
+                name="repo2",
+                external_id="456",
+                provider="github",
+            ),
         ]
         mock_autofix_state = self._create_mock_autofix_state(repos=multi_repo_list)
         mock_autofix_state.steps = [
@@ -686,10 +703,19 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         mock_get_org_integration.return_value = self.rpc_org_integration
         mock_get_integration.return_value = mock_rpc_integration
 
-        # Create multi-repo autofix state
         multi_repo_list = [
-            {"owner": "owner1", "name": "repo1", "external_id": "123", "provider": "github"},
-            {"owner": "owner2", "name": "repo2", "external_id": "456", "provider": "github"},
+            SeerRepoDefinition(
+                owner="owner1",
+                name="repo1",
+                external_id="123",
+                provider="github",
+            ),
+            SeerRepoDefinition(
+                owner="owner2",
+                name="repo2",
+                external_id="456",
+                provider="github",
+            ),
         ]
         mock_autofix_state = self._create_mock_autofix_state(repos=multi_repo_list)
         mock_autofix_state.steps = [
