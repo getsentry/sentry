@@ -50,6 +50,8 @@ def github_comment_reactions() -> None:
         created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
     ).select_related("pull_request")
 
+    logger.info("pr_comment.comment_reactions.count", extra={"count": comments.count()})
+
     comment_count = 0
 
     for comment in RangeQuerySetWrapper(comments):
@@ -87,9 +89,9 @@ def github_comment_reactions() -> None:
 
         try:
             reactions = client.get_comment_reactions(repo=repo.name, comment_id=comment.external_id)
-
-            comment.reactions = reactions
-            comment.save()
+            if reactions or comment.reactions:
+                comment.reactions = reactions
+                comment.save()
         except ApiError as e:
             if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
                 metrics.incr("pr_comment.comment_reactions.rate_limited_error")
@@ -103,6 +105,8 @@ def github_comment_reactions() -> None:
             continue
 
         comment_count += 1
+        if comment_count % 1000 == 0:
+            logger.info("pr_comment.comment_reactions.progress", extra={"count": comment_count})
 
         metrics.incr("pr_comment.comment_reactions.success")
 
