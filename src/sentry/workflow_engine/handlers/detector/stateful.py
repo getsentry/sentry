@@ -452,51 +452,10 @@ class StatefulDetectorHandler(
             )
 
         # Process missing groups that were previously triggered but are now absent from data
-        if self._is_detector_group_value(group_data_values):
-            missing_groups = self._get_missing_triggered_groups(group_data_values.keys())
-
-            if missing_groups:
-                missing_group_state = self.state_manager.get_state_data(missing_groups)
-
-                for missing_group_key in missing_groups:
-                    missing_state_data = missing_group_state[missing_group_key]
-
-                    # Only process if the group is currently triggered and not already resolved
-                    if (
-                        missing_state_data.is_triggered
-                        and missing_state_data.status != DetectorPriorityLevel.OK
-                    ):
-                        # Skip if we've already processed this update (dedupe check)
-                        if dedupe_value <= missing_state_data.dedupe_value:
-                            continue
-
-                        self.state_manager.enqueue_dedupe_update(missing_group_key, dedupe_value)
-
-                        # Create resolution message for the missing group
-                        resolution_message = self._create_resolve_message(
-                            condition_results=None,  # No conditions evaluated for missing groups
-                            data_packet=data_packet,
-                            evaluation_value=cast(
-                                DataPacketEvaluationType, 0
-                            ),  # Missing groups are treated as 0/below threshold
-                            group_key=missing_group_key,
-                        )
-
-                        # Update state to resolved
-                        self.state_manager.enqueue_state_update(
-                            missing_group_key,
-                            False,  # is_triggered = False
-                            DetectorPriorityLevel.OK,  # priority = OK (resolved)
-                        )
-
-                        # Add resolution to results
-                        results[missing_group_key] = DetectorEvaluationResult(
-                            group_key=missing_group_key,
-                            is_triggered=False,
-                            priority=DetectorPriorityLevel.OK,
-                            result=resolution_message,
-                            event_data=None,
-                        )
+        missing_results = self._process_missing_triggered_groups(
+            group_data_values, data_packet, dedupe_value
+        )
+        results.update(missing_results)
 
         self.state_manager.commit_state_updates()
         return results
@@ -630,6 +589,67 @@ class StatefulDetectorHandler(
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
         conditions = self.detector.get_conditions()
         return list(DetectorPriorityLevel(condition.condition_result) for condition in conditions)
+
+    def _process_missing_triggered_groups(
+        self,
+        group_data_values: dict[DetectorGroupKey, DataPacketEvaluationType],
+        data_packet: DataPacket[DataPacketType],
+        dedupe_value: int,
+    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+        """Process groups that were previously triggered but are now absent from data packet"""
+        if not self._is_detector_group_value(group_data_values):
+            return {}
+
+        missing_groups = self._get_missing_triggered_groups(group_data_values.keys())
+        if not missing_groups:
+            return {}
+
+        missing_group_state = self.state_manager.get_state_data(missing_groups)
+        results = {}
+
+        for missing_group_key in missing_groups:
+            missing_state_data = missing_group_state[missing_group_key]
+
+            # Only process if the group is currently triggered and not already resolved
+            if not (
+                missing_state_data.is_triggered
+                and missing_state_data.status != DetectorPriorityLevel.OK
+            ):
+                continue
+
+            # Skip if we've already processed this update (dedupe check)
+            if dedupe_value <= missing_state_data.dedupe_value:
+                continue
+
+            self.state_manager.enqueue_dedupe_update(missing_group_key, dedupe_value)
+
+            # Create resolution message for the missing group
+            resolution_message = self._create_resolve_message(
+                condition_results=None,  # No conditions evaluated for missing groups
+                data_packet=data_packet,
+                evaluation_value=cast(
+                    DataPacketEvaluationType, 0
+                ),  # Missing groups are treated as 0/below threshold
+                group_key=missing_group_key,
+            )
+
+            # Update state to resolved
+            self.state_manager.enqueue_state_update(
+                missing_group_key,
+                False,  # is_triggered = False
+                DetectorPriorityLevel.OK,  # priority = OK (resolved)
+            )
+
+            # Add resolution to results
+            results[missing_group_key] = DetectorEvaluationResult(
+                group_key=missing_group_key,
+                is_triggered=False,
+                priority=DetectorPriorityLevel.OK,
+                result=resolution_message,
+                event_data=None,
+            )
+
+        return results
 
     def _get_missing_triggered_groups(
         self, present_group_keys: Iterable[DetectorGroupKey]
