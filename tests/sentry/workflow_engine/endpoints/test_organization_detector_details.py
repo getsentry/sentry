@@ -25,7 +25,6 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
     DataSource,
-    DataSourceDetector,
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition
@@ -152,15 +151,17 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             "type": MetricIssue.slug,
             "dateCreated": self.detector.date_added,
             "dateUpdated": timezone.now(),
-            "dataSource": {
-                "queryType": self.snuba_query.type,
-                "dataset": self.snuba_query.dataset,
-                "query": "updated query",
-                "aggregate": self.snuba_query.aggregate,
-                "timeWindow": 300,
-                "environment": self.environment.name,
-                "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
-            },
+            "dataSources": [
+                {
+                    "queryType": self.snuba_query.type,
+                    "dataset": self.snuba_query.dataset,
+                    "query": "updated query",
+                    "aggregate": self.snuba_query.aggregate,
+                    "timeWindow": 300,
+                    "environment": self.environment.name,
+                    "eventTypes": [event_type.name for event_type in self.snuba_query.event_types],
+                }
+            ],
             "conditionGroup": {
                 "id": self.data_condition_group.id,
                 "organizationId": self.organization.id,
@@ -199,6 +200,8 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.time_window == 300
 
     def test_update(self) -> None:
+        self.valid_data["dataSources"][0]["id"] = self.data_source.id
+
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
@@ -219,8 +222,49 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         condition = conditions[0]
         self.assert_data_condition_updated(condition)
 
-        data_source_detector = DataSourceDetector.objects.get(detector=detector)
-        data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
+        # data_source_detectors = DataSourceDetector.objects.filter(detector=detector)
+        data_sources = DataSource.objects.filter(datasourcedetector__detector=detector)
+
+        # verify the count of data sources is correct to the input
+        assert data_sources.count() == self.valid_data["dataSources"].__len__()
+        data_source = data_sources[0]
+
+        # verify the old data source is removed
+        assert not self.detector.data_sources.filter(id=self.data_source.id).exists()
+
+        # verify the data_source has the correct attributes
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
+        self.assert_snuba_query_updated(snuba_query)
+
+    def test_update__new_data_source(self) -> None:
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **self.valid_data,
+                status_code=200,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert response.data == serialize([detector])[0]
+        self.assert_detector_updated(detector)
+
+        condition_group = detector.workflow_condition_group
+        self.assert_condition_group_updated(condition_group)
+
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+        condition = conditions[0]
+        self.assert_data_condition_updated(condition)
+
+        data_source = DataSource.objects.get(
+            datasourcedetector__detector=detector,
+        )
+
+        # make sure the data source was removed and a new one was created
+        assert data_source.id != self.data_source.id
+
         query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
         self.assert_snuba_query_updated(snuba_query)
