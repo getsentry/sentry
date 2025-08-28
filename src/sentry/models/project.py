@@ -128,6 +128,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-fastify",
     "node-gcpfunctions",
     "node-hapi",
+    "node-hono",
     "node-koa",
     "node-nestjs",
     "php",

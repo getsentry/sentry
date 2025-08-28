@@ -68,8 +68,8 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
-        assert len(response.data["timeseries"]) == 1
-        timeseries = response.data["timeseries"][0]
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
         assert len(timeseries["values"]) == 6
         assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == build_expected_timeseries(
@@ -103,8 +103,8 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
-        assert len(response.data["timeseries"]) == 1
-        timeseries = response.data["timeseries"][0]
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
         assert len(timeseries["values"]) == 7
         assert timeseries["values"] == build_expected_timeseries(
             self.start,

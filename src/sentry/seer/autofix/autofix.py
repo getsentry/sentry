@@ -17,7 +17,6 @@ from sentry import eventstore, features, quotas, tagstore
 from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import DataCategory, ObjectStatus
-from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
@@ -325,15 +324,9 @@ def _get_all_tags_overview(group: Group) -> dict[str, Any] | None:
     Get high-level overview of all tags for an issue.
     Returns aggregated tag data with percentages for all tags.
     """
-    environment_ids = list(
-        Environment.objects.filter(organization_id=group.project.organization_id).values_list(
-            "id", flat=True
-        )
-    )
-
     tag_keys = tagstore.backend.get_group_tag_keys_and_top_values(
         group,
-        environment_ids,
+        [],  # all environments
         keys=None,  # Get all tags
         value_limit=3,  # Get top 3 values per tag
         tenant_ids={"organization_id": group.project.organization_id},
@@ -341,9 +334,19 @@ def _get_all_tags_overview(group: Group) -> dict[str, Any] | None:
 
     all_tags: list[dict] = []
 
-    KEYS_TO_EXCLUDE = ["release"]  # tags we think are useless for Autofix
+    KEYS_TO_EXCLUDE = {
+        "release",
+        "browser.name",  # the 'browser' tag is better
+        "device.class",
+        "mechanism",
+        "os.name",  # the 'os' tag is better
+        "runtime.name",  # the 'runtime' tag is better
+        "replay_id",
+        "replayid",
+        "level",
+    }  # tags we think are useless for Autofix
     for tag in tag_keys:
-        if tag.key in KEYS_TO_EXCLUDE:
+        if tag.key.lower() in KEYS_TO_EXCLUDE:
             continue
 
         # Calculate percentages for each tag value
