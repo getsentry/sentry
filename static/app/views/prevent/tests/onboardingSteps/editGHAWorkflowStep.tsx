@@ -21,7 +21,7 @@ const ACTION_SNIPPET = `- name: Upload test results to Codecov
 `;
 
 export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
-  const headerText = tct('Step [step]: Edit your GitHub Action workflow', {
+  const headerText = tct('Step [step]: Edit your GitHub Actions workflow', {
     step,
   });
 
