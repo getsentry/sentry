@@ -51,9 +51,7 @@ def process_segment(unprocessed_spans: list[SegmentSpan], skip_produce: bool = F
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
-    segment_span.setdefault("measurements", {}).update(
-        compute_breakdowns(unprocessed_spans, project.get_option("sentry:breakdowns"))
-    )
+    _compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
@@ -85,6 +83,13 @@ def _enrich_spans(unprocessed_spans: list[SegmentSpan]) -> tuple[Span | None, li
     groupings.write_to_spans(spans)
 
     return segment, spans
+
+
+@metrics.wraps("spans.consumers.process_segments.compute_breakdowns")
+def _compute_breakdowns(segment: Span, spans: list[Span], project: Project) -> None:
+    config = project.get_option("sentry:breakdowns")
+    breakdowns = compute_breakdowns(spans, config)
+    segment.setdefault("measurements", {}).update(breakdowns)
 
 
 @metrics.wraps("spans.consumers.process_segments.create_models")
