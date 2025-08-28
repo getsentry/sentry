@@ -188,3 +188,8 @@ META_FIELD_PREFIX = f"{META_PREFIX}.fields"
 META_ATTRIBUTE_PREFIX = f"{META_FIELD_PREFIX}.attributes"
 
 SENTRY_INTERNAL_PREFIXES = ["__sentry_internal", "sentry._internal."]
+
+# public alias that we want to be sure are consistent
+TIMESTAMP_PRECISE_ALIAS = "timestamp_precise"
+TIMESTAMP_ALIAS = "timestamp"
+TRACE_ALIAS = "trace"
