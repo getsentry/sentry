@@ -36,6 +36,9 @@ class TestEventFromStack:
                             "type": "sentry.testutils.thread_leaks.sentry",
                             "handled": False,
                             "help_link": "https://www.notion.so/sentry/How-To-Thread-Leaks-2488b10e4b5d8049965cc057b5fb5f6b",
+                            "data": {
+                                "version": 2,
+                            },
                         },
                         "type": "ThreadLeakAssertionError",
                         "value": "test",
@@ -62,7 +65,10 @@ class TestEventFromStack:
                     }
                 ]
             },
-            "tags": {"thread.target": "None"},
+            "tags": {
+                "thread.target": "None",
+                "mechanism.version": "2",
+            },
         }
 
     def test_empty_stack(self) -> None:

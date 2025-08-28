@@ -83,6 +83,9 @@ def event_from_stack(thread: Thread, stack: Iterable[FrameSummary], strict: bool
             "type": __name__,
             "handled": not strict,
             "help_link": "https://www.notion.so/sentry/How-To-Thread-Leaks-2488b10e4b5d8049965cc057b5fb5f6b",
+            "data": {
+                "version": 2,
+            },
         },
         "type": "ThreadLeakAssertionError",
         "value": repr(thread),
@@ -104,5 +107,8 @@ def event_from_stack(thread: Thread, stack: Iterable[FrameSummary], strict: bool
         "level": "error" if strict else "warning",
         "message": "Thread leak detected",
         "exception": {"values": [exception]},
-        "tags": {"thread.target": get_thread_function_name(thread)},
+        "tags": {
+            "thread.target": get_thread_function_name(thread),
+            "mechanism.version": "2",
+        },
     }
