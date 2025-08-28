@@ -650,11 +650,11 @@ class MonitorParams:
 
 class UptimeParams:
     UPTIME_ALERT_ID = OpenApiParameter(
-        name="uptime_subscription_id",
+        name="uptime_project_subscription_id",
         location="path",
         required=True,
         type=int,
-        description="The ID of the uptime alert rule you'd like to query.",
+        description="The ID of the uptime alert rule you'd like to query. Can be either a project uptime subscription ID (default) or a detector ID (when useDetectorId=1 query parameter is provided).",
     )
     OWNER = OpenApiParameter(
         name="owner",

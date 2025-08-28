@@ -38,6 +38,7 @@ from sentry.uptime.endpoints.serializers import EapCheckEntrySerializerResponse
 from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.types import EapCheckEntry, IncidentStatus
 from sentry.utils import snuba_rpc
+from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         request: Request,
         project: Project,
         uptime_monitor: ProjectUptimeSubscription,
+        uptime_detector: Detector,
     ) -> Response:
 
         if uptime_monitor.uptime_subscription.subscription_id is None:
