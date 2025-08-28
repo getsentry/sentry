@@ -269,10 +269,6 @@ export default function displayRawContent(
     )
   );
 
-  if (platform !== 'python') {
-    frames.reverse();
-  }
-
   if (newestFirst) {
     frames.reverse();
   }
