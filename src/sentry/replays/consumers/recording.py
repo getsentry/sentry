@@ -146,6 +146,7 @@ def parse_recording_event(message: bytes) -> Event:
             "replay_id": recording["replay_id"],
             "retention_days": recording["retention_days"],
             "segment_id": segment_id,
+            "should_publish_replay_event": recording.get("replay_relay_snuba_publish_disabled"),
         },
         "payload_compressed": compressed,
         "payload": decompressed,
