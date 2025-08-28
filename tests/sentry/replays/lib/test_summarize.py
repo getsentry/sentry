@@ -21,7 +21,7 @@ def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
                 category="feedback",
                 id=feedback_id,
                 title="User Feedback",
-                timestamp=4.0,
+                timestamp=1756400490870,
                 message="Great website!",
             )
         return None
@@ -34,26 +34,42 @@ def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
                 [
                     {
                         "type": 5,
-                        "timestamp": 1.5,
-                        "data": {
-                            "tag": "breadcrumb",
-                            "payload": {"category": "console", "message": "hello"},
-                        },
-                    },
-                    {
-                        "type": 5,
-                        "timestamp": 2.0,
-                        "data": {
-                            "tag": "breadcrumb",
-                            "payload": {"category": "console", "message": "world"},
-                        },
-                    },
-                    {
-                        "type": 5,
-                        "timestamp": 4.0,
+                        "timestamp": 1756400489863,
                         "data": {
                             "tag": "breadcrumb",
                             "payload": {
+                                "timestamp": 1756400489.863,
+                                "type": "default",
+                                "category": "console",
+                                "data": {"logger": "replay"},
+                                "level": "log",
+                                "message": "hello",
+                            },
+                        },
+                    },
+                    {
+                        "type": 5,
+                        "timestamp": 1756400490866,
+                        "data": {
+                            "tag": "breadcrumb",
+                            "payload": {
+                                "timestamp": 1756400490.866,
+                                "type": "default",
+                                "category": "console",
+                                "data": {"logger": "replay"},
+                                "level": "log",
+                                "message": "world",
+                            },
+                        },
+                    },
+                    {
+                        "type": 5,
+                        "timestamp": 1756400490870,
+                        "data": {
+                            "tag": "breadcrumb",
+                            "payload": {
+                                "timestamp": 1756400490.870,
+                                "type": "default",
                                 "category": "sentry.feedback",
                                 "data": {"feedbackId": "12345678123456781234567812345678"},
                             },
@@ -68,25 +84,26 @@ def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
             category="error",
             id="123",
             title="ZeroDivisionError",
-            timestamp=3.0,
+            timestamp=1756400490869,
             message="division by zero",
         ),
         EventDict(
             category="error",
             id="234",
             title="BadError",
-            timestamp=1.0,
+            timestamp=1756400489849,
             message="something else bad",
         ),
     ]
 
     result = get_summary_logs(_faker(), error_events=error_events, project_id=1)
+
     assert result == [
-        "User experienced an error: 'BadError: something else bad' at 1.0",
-        "Logged: 'hello' at 1.5",
-        "Logged: 'world' at 2.0",
-        "User experienced an error: 'ZeroDivisionError: division by zero' at 3.0",
-        "User submitted feedback: 'Great website!' at 4.0",
+        "User experienced an error: 'BadError: something else bad' at 1756400489849",
+        "Logged: 'hello' at 1756400489863",
+        "Logged: 'world' at 1756400490866",
+        "User experienced an error: 'ZeroDivisionError: division by zero' at 1756400490869",
+        "User submitted feedback: 'Great website!' at 1756400490870",
     ]
 
 
@@ -245,16 +262,64 @@ def test_as_log_message() -> None:
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.mutations"}},
     }
     assert as_log_message(event) is None
+
+
+def test_as_log_message_click() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756400639566,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1756400639.566,
+                "type": "default",
+                "category": "ui.click",
+                "message": "TabsContainer > TabsWrap > BaseTabList > ChonkSwitch > FloatingTabWrap",
+                "data": {
+                    "nodeId": 3795,
+                    "node": {
+                        "id": 3795,
+                        "tagName": "li",
+                        "textContent": "",
+                        "attributes": {
+                            "id": "react-aria8333570968-tab-logs",
+                            "role": "tab",
+                            "class": "app-122pptr e1md5v960",
+                            "data-sentry-component": "FloatingTabWrap",
+                        },
+                    },
+                },
+            },
+        },
+    }
+    assert (
+        as_log_message(event)
+        == "User clicked on TabsContainer > TabsWrap > BaseTabList > ChonkSwitch > FloatingTabWrap at 1756400639566"
+    )
+
+
+def test_as_log_message_invalid_input() -> None:
     assert as_log_message({}) is None
+    assert as_log_message({"blah": "wrong"}) is None
 
 
 def test_as_log_message_long_console_message() -> None:
     event = {
         "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "console", "message": "a" * 2000}},
+        "timestamp": 1756406283937,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1756406283.937,
+                "type": "default",
+                "category": "console",
+                "data": {"logger": "replay"},
+                "level": "log",
+                "message": "a" * 2000,
+            },
+        },
     }
-    assert as_log_message(event) == f"Logged: '{'a' * 200} [truncated]' at 0.0"
+    assert as_log_message(event) == f"Logged: '{'a' * 200} [truncated]' at 1756406283937"
 
 
 @pytest.mark.parametrize("status_code", [200, 204, 404, 500])
@@ -262,18 +327,33 @@ def test_as_log_message_long_console_message() -> None:
 def test_as_log_message_resource_fetch(status_code: int, method: str) -> None:
     event = {
         "type": 5,
-        "timestamp": 4.0,
+        "timestamp": 1756401153.805,
         "data": {
             "tag": "performanceSpan",
             "payload": {
                 "op": "resource.fetch",
                 "description": "https://www.z.com/path?q=true",
-                "endTimestamp": 6.0,
-                "startTimestamp": 4.0,
+                "endTimestamp": 1756401154.178,
+                "startTimestamp": 1756401153.805,
                 "data": {
                     "method": method,
                     "statusCode": status_code,
-                    "response": {"size": 42},
+                    "request": {
+                        "headers": {
+                            "content-type": "application/json",
+                            "accept": "application/json; charset=utf-8",
+                            "sentry-trace": "12345678901234567890123456789012",
+                        }
+                    },
+                    "response": {
+                        "headers": {
+                            "content-length": "2",
+                            "content-type": "application/json",
+                            "link": "https://us.sentry.io/api/0/test-link",
+                        },
+                        "size": 42,
+                        "body": [],
+                    },
                 },
             },
         },
@@ -282,7 +362,7 @@ def test_as_log_message_resource_fetch(status_code: int, method: str) -> None:
     if status_code >= 300:
         assert (
             as_log_message(event)
-            == f'Fetch request "{method} www.z.com/path?q=true" failed with {status_code} (42 bytes) at 4000.0'
+            == f'Fetch request "{method} www.z.com/path?q=true" failed with {status_code} (42 bytes) at 1756401153805.0'
         )
     else:
         assert as_log_message(event) is None
@@ -299,18 +379,33 @@ def test_as_log_message_resource_fetch_invalid_url(too_long: bool) -> None:
 
     event = {
         "type": 5,
-        "timestamp": 4.0,
+        "timestamp": 1756401153.805,
         "data": {
             "tag": "performanceSpan",
             "payload": {
                 "op": "resource.fetch",
                 "description": url,
-                "endTimestamp": 6.0,
-                "startTimestamp": 4.0,
+                "endTimestamp": 1756401154.178,
+                "startTimestamp": 1756401153.805,
                 "data": {
                     "method": "GET",
                     "statusCode": 404,
-                    "response": {"size": 42},
+                    "request": {
+                        "headers": {
+                            "content-type": "application/json",
+                            "accept": "application/json; charset=utf-8",
+                            "sentry-trace": "12345678901234567890123456789012",
+                        }
+                    },
+                    "response": {
+                        "headers": {
+                            "content-length": "2",
+                            "content-type": "application/json",
+                            "link": "https://us.sentry.io/api/0/test-link",
+                        },
+                        "size": 42,
+                        "body": [],
+                    },
                 },
             },
         },
@@ -319,12 +414,12 @@ def test_as_log_message_resource_fetch_invalid_url(too_long: bool) -> None:
     if too_long:
         assert (
             as_log_message(event)
-            == f'Fetch request "GET {url[:200]} [truncated]" failed with 404 (42 bytes) at 4000.0'
+            == f'Fetch request "GET {url[:200]} [truncated]" failed with 404 (42 bytes) at 1756401153805.0'
         )
     else:
         assert (
             as_log_message(event)
-            == f'Fetch request "GET {url}" failed with 404 (42 bytes) at 4000.0'
+            == f'Fetch request "GET {url}" failed with 404 (42 bytes) at 1756401153805.0'
         )
 
 
@@ -333,18 +428,33 @@ def test_as_log_message_resource_fetch_invalid_url(too_long: bool) -> None:
 def test_as_log_message_resource_xhr(status_code: int, method: str) -> None:
     event = {
         "type": 5,
-        "timestamp": 4.0,
+        "timestamp": 1756401153.805,
         "data": {
             "tag": "performanceSpan",
             "payload": {
                 "op": "resource.xhr",
                 "description": "https://www.z.com/path?q=true",
-                "endTimestamp": 4.0,
-                "startTimestamp": 6.0,
+                "endTimestamp": 1756401154.178,
+                "startTimestamp": 1756401153.805,
                 "data": {
                     "method": method,
                     "statusCode": status_code,
-                    "response": {"size": 42},
+                    "request": {
+                        "headers": {
+                            "content-type": "application/json",
+                            "accept": "application/json; charset=utf-8",
+                            "sentry-trace": "12345678901234567890123456789012",
+                        }
+                    },
+                    "response": {
+                        "headers": {
+                            "content-length": "2",
+                            "content-type": "application/json",
+                            "link": "https://us.sentry.io/api/0/test-link",
+                        },
+                        "size": 42,
+                        "body": [],
+                    },
                 },
             },
         },
@@ -353,7 +463,7 @@ def test_as_log_message_resource_xhr(status_code: int, method: str) -> None:
     if status_code >= 300:
         assert (
             as_log_message(event)
-            == f'XHR request "{method} www.z.com/path?q=true" failed with {status_code} (42 bytes) at 4000.0'
+            == f'XHR request "{method} www.z.com/path?q=true" failed with {status_code} (42 bytes) at 1756401153805.0'
         )
     else:
         assert as_log_message(event) is None
@@ -370,18 +480,33 @@ def test_as_log_message_resource_xhr_invalid_url(too_long: bool) -> None:
 
     event = {
         "type": 5,
-        "timestamp": 4.0,
+        "timestamp": 1756401153.805,
         "data": {
             "tag": "performanceSpan",
             "payload": {
                 "op": "resource.xhr",
                 "description": url,
-                "endTimestamp": 4.0,
-                "startTimestamp": 6.0,
+                "endTimestamp": 1756401154.178,
+                "startTimestamp": 1756401153.805,
                 "data": {
                     "method": "GET",
                     "statusCode": 404,
-                    "response": {"size": 42},
+                    "request": {
+                        "headers": {
+                            "content-type": "application/json",
+                            "accept": "application/json; charset=utf-8",
+                            "sentry-trace": "12345678901234567890123456789012",
+                        }
+                    },
+                    "response": {
+                        "headers": {
+                            "content-length": "2",
+                            "content-type": "application/json",
+                            "link": "https://us.sentry.io/api/0/test-link",
+                        },
+                        "size": 42,
+                        "body": [],
+                    },
                 },
             },
         },
@@ -390,11 +515,12 @@ def test_as_log_message_resource_xhr_invalid_url(too_long: bool) -> None:
     if too_long:
         assert (
             as_log_message(event)
-            == f'XHR request "GET {url[:200]} [truncated]" failed with 404 (42 bytes) at 4000.0'
+            == f'XHR request "GET {url[:200]} [truncated]" failed with 404 (42 bytes) at 1756401153805.0'
         )
     else:
         assert (
-            as_log_message(event) == f'XHR request "GET {url}" failed with 404 (42 bytes) at 4000.0'
+            as_log_message(event)
+            == f'XHR request "GET {url}" failed with 404 (42 bytes) at 1756401153805.0'
         )
 
 
