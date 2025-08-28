@@ -300,3 +300,57 @@ class InstallablePreprodArtifact(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_installablepreprodartifact"
+
+
+@region_silo_model
+class PreprodArtifactSizeComparison(DefaultFieldsModel):
+    """
+    Represents a size comparison between two preprod artifacts.
+    This is created when a user manually compares builds or when Git based comparisons are run.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    head_artifact = FlexibleForeignKey(
+        "preprod.PreprodArtifact",
+        on_delete=models.CASCADE,
+        related_name="size_comparisons_head_artifact",
+    )
+    base_artifact = FlexibleForeignKey(
+        "preprod.PreprodArtifact",
+        on_delete=models.CASCADE,
+        related_name="size_comparisons_base_artifact",
+    )
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+
+    # File id of the size diff json in filestore
+    file_id = BoundedBigIntegerField(db_index=True, null=True)
+
+    class PreprodArtifactComparisonState(IntEnum):
+        """The comparison is in progress."""
+
+        PROCESSING = 0
+        """The comparison completed successfully."""
+        SUCCESS = 1
+        """The comparison failed. See error_code and error_message for details."""
+        FAILED = 2
+
+        @classmethod
+        def as_choices(cls):
+            return (
+                (cls.PROCESSING, "processing"),
+                (cls.SUCCESS, "success"),
+                (cls.FAILED, "failed"),
+            )
+
+    # Set when state is FAILED
+    error_code = BoundedPositiveIntegerField(
+        choices=PreprodArtifactComparisonState.as_choices(), null=True
+    )
+    error_message = models.TextField(null=True)
+
+    class Meta:
+        app_label = "preprod"
+        db_table = "sentry_preprodartifactsizecomparison"
+        unique_together = ("organization_id", "head_artifact", "base_artifact")
