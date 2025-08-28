@@ -1,11 +1,14 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import {Flex} from 'sentry/components/core/layout';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
@@ -15,6 +18,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
 import {ConfigForm} from 'sentry/views/settings/project/tempest/configForm';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
@@ -23,7 +28,6 @@ import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/ut
 
 import {CredentialRow} from './CredentialRow';
 import EmptyState from './EmptyState';
-import {RequestSdkAccessButton} from './RequestSdkAccessButton';
 
 interface Props {
   organization: Organization;
@@ -32,6 +36,9 @@ interface Props {
 
 export default function PlayStationSettings({organization, project}: Props) {
   const hasWriteAccess = useHasTempestWriteAccess();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const {
     data: tempestCredentials,
     isLoading,
@@ -80,7 +87,9 @@ export default function PlayStationSettings({organization, project}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credentialErrors]);
 
-  const isEmpty = !tempestCredentials?.length;
+  const isSetupInstructionsOpen = location.query.setupInstructions === 'true';
+  const hasCredentials = (tempestCredentials ?? []).length > 0;
+  const showEmptyState = isSetupInstructionsOpen || !hasCredentials;
 
   return (
     <Fragment>
@@ -101,39 +110,73 @@ export default function PlayStationSettings({organization, project}: Props) {
 
       <ConfigForm organization={organization} project={project} />
 
-      {!isLoading && isEmpty ? (
-        <Panel>
-          <EmptyState />
-        </Panel>
+      {isLoading ? (
+        <LoadingIndicator />
       ) : (
-        <PanelTable
-          headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
-          isLoading={isLoading}
-          isEmpty={isEmpty}
-        >
-          {tempestCredentials?.map(credential => (
-            <CredentialRow
-              key={credential.id}
-              credential={credential}
-              isRemoving={isRemoving && removingCredential?.id === credential.id}
-              removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
-            />
-          ))}
-        </PanelTable>
+        <Flex direction="column" gap="md" align="end">
+          <ButtonBar>
+            {hasCredentials && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      setupInstructions: !isSetupInstructionsOpen,
+                    },
+                  });
+                }}
+              >
+                {isSetupInstructionsOpen
+                  ? t('Close Setup Instructions')
+                  : t('Open Setup Instructions')}
+              </Button>
+            )}
+            <AddCredentialsButton project={project} origin="project-settings" />
+          </ButtonBar>
+          {showEmptyState ? (
+            <FullWidthPanel>
+              <EmptyState
+                project={project}
+                isRemoving={isRemoving}
+                hasWriteAccess={hasWriteAccess}
+                tempestCredentials={tempestCredentials}
+                onRemoveCredential={handleRemoveCredential}
+                removingCredentialId={removingCredential?.id}
+              />
+            </FullWidthPanel>
+          ) : (
+            <StyledPanelTable
+              headers={[
+                t('Client ID'),
+                t('Status'),
+                t('Created At'),
+                t('Created By'),
+                '',
+              ]}
+              isLoading={isLoading}
+            >
+              {tempestCredentials?.map(credential => (
+                <CredentialRow
+                  key={credential.id}
+                  credential={credential}
+                  isRemoving={isRemoving && removingCredential?.id === credential.id}
+                  removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
+                />
+              ))}
+            </StyledPanelTable>
+          )}
+        </Flex>
       )}
     </Fragment>
   );
 }
 
-export const getPlayStationHeaderAction = (
-  organization: Organization,
-  project: Project
-) => (
-  <Fragment>
-    <ButtonBar gap="lg">
-      <FeedbackWidgetButton />
-      <RequestSdkAccessButton organization={organization} project={project} />
-      <AddCredentialsButton project={project} />
-    </ButtonBar>
-  </Fragment>
-);
+const StyledPanelTable = styled(PanelTable)`
+  width: 100%;
+`;
+
+const FullWidthPanel = styled(Panel)`
+  width: 100%;
+`;

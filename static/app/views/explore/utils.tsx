@@ -27,6 +27,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
@@ -193,12 +194,14 @@ export function getExploreMultiQueryUrl({
   queries,
   title,
   id,
+  referrer,
 }: {
   interval: string;
   organization: Organization;
   queries: ReadableExploreQueryParts[];
   selection: PageFilters;
   id?: number;
+  referrer?: string;
   title?: string;
 }) {
   const {start, end, period: statsPeriod, utc} = selection.datetime;
@@ -223,22 +226,22 @@ export function getExploreMultiQueryUrl({
     title,
     id,
     utc,
+    referrer,
   };
 
   return `/organizations/${organization.slug}/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
-export function combineConfidenceForSeries(
-  series: Array<Pick<TimeSeries, 'confidence'>>
-): Confidence {
+export function combineConfidenceForSeries(series: TimeSeries[]): Confidence {
   let lows = 0;
   let highs = 0;
   let nulls = 0;
 
   for (const s of series) {
-    if (s.confidence === 'low') {
+    const confidence = determineTimeSeriesConfidence(s);
+    if (confidence === 'low') {
       lows += 1;
-    } else if (s.confidence === 'high') {
+    } else if (confidence === 'high') {
       highs += 1;
     } else {
       nulls += 1;
@@ -399,8 +402,8 @@ export function viewSamplesTarget({
   });
 }
 
-type MaxPickableDays = 7 | 14 | 30;
-type DefaultPeriod = '24h' | '7d' | '14d' | '30d';
+type MaxPickableDays = 7 | 14 | 30 | 90;
+type DefaultPeriod = '24h' | '7d' | '14d' | '30d' | '90d';
 
 export interface PickableDays {
   defaultPeriod: DefaultPeriod;
@@ -419,21 +422,21 @@ export function limitMaxPickableDays(organization: Organization): PickableDays {
     7: '7d',
     14: '14d',
     30: '30d',
+    90: '90d',
   };
 
   const relativeOptions: Array<[DefaultPeriod, ReactNode]> = [
     ['7d', t('Last 7 days')],
     ['14d', t('Last 14 days')],
     ['30d', t('Last 30 days')],
+    ['90d', t('Last 90 days')],
   ];
 
   const maxPickableDays: MaxPickableDays = organization.features.includes(
     'visibility-explore-range-high'
   )
-    ? 30
-    : organization.features.includes('visibility-explore-range-medium')
-      ? 14
-      : 7;
+    ? 90
+    : 30;
   const defaultPeriod: DefaultPeriod = defaultPeriods[maxPickableDays];
 
   const index = relativeOptions.findIndex(([period, _]) => period === defaultPeriod) + 1;

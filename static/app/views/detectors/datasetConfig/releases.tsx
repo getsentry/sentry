@@ -10,6 +10,12 @@ import {
   getReleasesSeriesQueryOptions,
   transformMetricsResponseToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/releasesSeries';
+import {
+  BASE_DYNAMIC_INTERVALS,
+  BASE_INTERVALS,
+  getStandardTimePeriodsForInterval,
+  MetricDetectorInterval,
+} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
@@ -97,6 +103,18 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
   getAggregateOptions: () => AGGREGATE_OPTIONS,
   SearchBar: ReleaseSearchBar,
   getSeriesQueryOptions: getReleasesSeriesQueryOptions,
+  getIntervals: ({detectionType}) => {
+    let intervals = detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
+    // Crash-free (releases) does not support sub-hour intervals
+    intervals = intervals.filter(interval => interval >= MetricDetectorInterval.ONE_HOUR);
+    return intervals;
+  },
+  getTimePeriods: interval => {
+    if (interval < MetricDetectorInterval.ONE_HOUR) {
+      return [];
+    }
+    return getStandardTimePeriodsForInterval(interval);
+  },
   toApiAggregate,
   fromApiAggregate,
   toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',

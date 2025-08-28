@@ -135,6 +135,8 @@ class UptimeSummary:
     failed_checks: int
     downtime_checks: int
     missed_window_checks: int
+    # TODO(epurkhiser): Remove None option once we're only using the uptime results table
+    avg_duration_us: float | None
 
 
 class UptimeMonitorMode(enum.IntEnum):
