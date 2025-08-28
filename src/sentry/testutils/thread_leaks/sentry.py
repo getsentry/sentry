@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 import sentry_sdk.scope
 
+from ._threading import get_thread_function_name
 from .diff import get_relevant_frames
 
 if TYPE_CHECKING:
@@ -47,6 +48,7 @@ def get_scope() -> sentry_sdk.scope.Scope:
     scope.update_from_kwargs(
         # Don't set level - scope overrides event-level
         extras={"git-branch": branch, "git-sha": sha},
+        tags={"github.repo": environ.get("GITHUB_REPOSITORY", "unknown")},
     )
     return scope
 
@@ -69,10 +71,10 @@ def capture_event(thread_leaks: set[Thread], strict: bool) -> dict[str, SentryEv
 def get_thread_leak_event(thread: Thread, strict: bool = True) -> SentryEvent:
     """Create Sentry event from leaked thread."""
     stack: Iterable[FrameSummary] = getattr(thread, "_where", [])
-    return event_from_stack(repr(thread), stack, strict)
+    return event_from_stack(thread, stack, strict)
 
 
-def event_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) -> SentryEvent:
+def event_from_stack(thread: Thread, stack: Iterable[FrameSummary], strict: bool) -> SentryEvent:
     relevant_frames = get_relevant_frames(stack)
 
     # https://develop.sentry.dev/sdk/data-model/event-payloads/exception/
@@ -83,7 +85,7 @@ def event_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) ->
             "help_link": "https://www.notion.so/sentry/How-To-Thread-Leaks-2488b10e4b5d8049965cc057b5fb5f6b",
         },
         "type": "ThreadLeakAssertionError",
-        "value": value,
+        "value": repr(thread),
         "stacktrace": {
             "frames": [
                 {
@@ -102,4 +104,5 @@ def event_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) ->
         "level": "error" if strict else "warning",
         "message": "Thread leak detected",
         "exception": {"values": [exception]},
+        "tags": {"thread.target": get_thread_function_name(thread)},
     }

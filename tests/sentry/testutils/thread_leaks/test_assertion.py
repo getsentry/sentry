@@ -95,3 +95,21 @@ class TestAssertNoneIntegration:
         # Verify event payload
         assert event["level"] == "warning"  # strict=False
         assert event["exception"]["values"][0]["mechanism"]["handled"] is True
+
+        # Verify tags for filtering/grouping
+        assert "tags" in event
+        assert "thread.target" in event["tags"]
+        assert event["tags"]["thread.target"] == "threading.Event.wait"
+        assert (
+            event["tags"]["pytest.file"] == "tests/sentry/testutils/thread_leaks/test_assertion.py"
+        )
+        assert event["tags"]["github.repo"] in ("getsentry/sentry", "unknown")
+
+        # verify "extras"
+        assert (
+            event["extra"]["pytest.nodeid"]
+            == "tests/sentry/testutils/thread_leaks/test_assertion.py::TestAssertNoneIntegration::test_thread_leak_non_strict_sends_to_sentry"
+        )
+        # git-branch and git-sha will be None locally, have values in CI
+        assert "git-branch" in event["extra"]
+        assert "git-sha" in event["extra"]
