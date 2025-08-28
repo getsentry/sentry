@@ -27,6 +27,14 @@ OPERATOR_MAP = {
     ">=": ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
     "<=": ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
 }
+LITERAL_OPERATOR_MAP = {
+    "equals": ComparisonFilter.OP_EQUALS,
+    "notEquals": ComparisonFilter.OP_NOT_EQUALS,
+    "greater": ComparisonFilter.OP_GREATER_THAN,
+    "less": ComparisonFilter.OP_LESS_THAN,
+    "greaterOrEquals": ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+    "lessOrEquals": ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
+}
 IN_OPERATORS = ["IN", "NOT IN"]
 
 AGGREGATION_OPERATOR_MAP = {
