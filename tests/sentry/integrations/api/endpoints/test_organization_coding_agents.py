@@ -720,6 +720,7 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_prompt")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -728,6 +729,7 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
         self,
         mock_get_integration,
         mock_get_org_integration,
+        mock_get_prompt,
         mock_get_autofix_state,
         mock_get_providers,
     ):
@@ -743,6 +745,7 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
 
         mock_get_org_integration.return_value = self.rpc_org_integration
         mock_get_integration.return_value = mock_rpc_integration
+        mock_get_prompt.return_value = None
 
         # Create multi-repo autofix state
         multi_repo_list = [
@@ -767,7 +770,7 @@ class OrganizationCodingAgentsPostLaunchTest(BaseOrganizationCodingAgentsTest):
             response = self.get_error_response(
                 self.organization.slug, method="post", status_code=500, **data
             )
-            assert response.data == "No agents were successfully launched"
+            assert response.data["detail"] == "No prompt to send to agents."
 
     @patch(
         "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
@@ -981,4 +984,4 @@ class OrganizationCodingAgentsPostTriggerSourceTest(BaseOrganizationCodingAgents
             response = self.get_error_response(
                 self.organization.slug, method="post", status_code=500, **data
             )
-            assert response.data == "No agents were successfully launched"
+            assert response.data["detail"] == "No prompt to send to agents."
