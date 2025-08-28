@@ -22,6 +22,7 @@ def thread_leak_allowlist(reason: str | None = None, *, issue: int) -> pytest.Ma
     return decorator
 
 
+# tag a test with this mark to ignore thread leak requirements
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_call(item: pytest.Item) -> Generator[None]:
     """Wrap the test call phase with thread leak detection."""
