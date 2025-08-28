@@ -102,6 +102,10 @@ const onboarding: OnboardingConfig = {
           ),
         },
         {
+          type: 'text',
+          text: t('Add the Sentry Node SDK as a dependency:'),
+        },
+        {
           type: 'code',
           tabs: getInstallConfig(params)[0]!.code,
         },
