@@ -94,7 +94,9 @@ export default function EmptyState({
                   ]}
                   isEmpty={!tempestCredentials?.length}
                   emptyMessage={t('No credentials found')}
-                  emptyAction={<AddCredentialsButton project={project} />}
+                  emptyAction={
+                    <AddCredentialsButton project={project} origin="project-settings" />
+                  }
                 >
                   {tempestCredentials?.map(credential => (
                     <CredentialRow

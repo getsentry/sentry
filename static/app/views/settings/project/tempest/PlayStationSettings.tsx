@@ -133,7 +133,7 @@ export default function PlayStationSettings({organization, project}: Props) {
                   : t('Open Setup Instructions')}
               </Button>
             )}
-            <AddCredentialsButton project={project} />
+            <AddCredentialsButton project={project} origin="project-settings" />
           </ButtonBar>
           {showEmptyState ? (
             <FullWidthPanel>

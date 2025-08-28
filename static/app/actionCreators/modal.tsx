@@ -426,6 +426,7 @@ export async function openInsightChartModal(options: InsightChartModalOptions) {
 
 export async function openAddTempestCredentialsModal(options: {
   organization: Organization;
+  origin: 'onboarding' | 'project-creation' | 'project-settings';
   project: Project;
 }) {
   const {default: Modal} = await import(
