@@ -270,7 +270,7 @@ class ProjectReplaySummaryTestCase(
         """Test handling of breadcrumbs with user feedback"""
         mock_response = MockSeerResponse(
             200,
-            json_data={"feedback": "Feedback was submitted"},
+            json_data={"hello": "world"},
         )
         mock_make_seer_api_request.return_value = mock_response
 
@@ -325,7 +325,7 @@ class ProjectReplaySummaryTestCase(
             )
 
         assert response.status_code == 200
-        assert response.json() == {"feedback": "Feedback was submitted"}
+        assert response.json() == {"hello": "world"}
 
         mock_make_seer_api_request.assert_called_once()
         request_body = json.loads(mock_make_seer_api_request.call_args[1]["body"].decode())
@@ -336,7 +336,7 @@ class ProjectReplaySummaryTestCase(
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_post_with_trace_errors_both_datasets(self, mock_make_seer_api_request):
         """Test that trace connected error snuba query works correctly with both datasets."""
-        mock_response = MockSeerResponse(200, {"summary": "Test summary"})
+        mock_response = MockSeerResponse(200, {"hello": "world"})
         mock_make_seer_api_request.return_value = mock_response
 
         now = datetime.now(UTC)
@@ -421,7 +421,7 @@ class ProjectReplaySummaryTestCase(
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert response.json() == {"summary": "Test summary"}
+        assert response.json() == {"hello": "world"}
 
         mock_make_seer_api_request.assert_called_once()
         call_args = mock_make_seer_api_request.call_args
@@ -444,7 +444,7 @@ class ProjectReplaySummaryTestCase(
         self, mock_make_seer_api_request, mock_fetch_feedback_details
     ):
         """Test that duplicate feedback events are filtered."""
-        mock_response = MockSeerResponse(200, {"summary": "Test summary"})
+        mock_response = MockSeerResponse(200, {"hello": "world"})
         mock_make_seer_api_request.return_value = mock_response
 
         now = datetime.now(UTC)
@@ -536,7 +536,7 @@ class ProjectReplaySummaryTestCase(
 
         assert response.status_code == 200
         assert response.get("Content-Type") == "application/json"
-        assert response.json() == {"summary": "Test summary"}
+        assert response.json() == {"hello": "world"}
 
         mock_make_seer_api_request.assert_called_once()
         call_args = mock_make_seer_api_request.call_args
