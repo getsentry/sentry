@@ -5,7 +5,6 @@ from .email import *  # noqa: F401,F403
 from .experiments import *  # noqa: F401,F403
 from .features import *  # noqa: F401,F403
 from .onboarding import *  # noqa: F401,F403
-from .organization import *  # noqa: F401,F403
 from .outbox.control import *  # noqa: F401,F403
 from .outbox.region import *  # noqa: F401,F403
 from .owners import *  # noqa: F401,F403
