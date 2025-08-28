@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import TypedDict
 
 import orjson
@@ -53,6 +54,29 @@ class AutofixState(BaseModel):
 
     class Config:
         extra = "allow"
+
+
+class CodingAgentStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class CodingAgentResult(BaseModel):
+    description: str
+    repo_external_id: str
+    branch_name: str | None = None
+    pr_url: str | None = None
+
+
+class CodingAgentState(BaseModel):
+    id: str
+    status: CodingAgentStatus = CodingAgentStatus.PENDING
+    agent_url: str | None = None
+    name: str
+    started_at: datetime
+    results: list[CodingAgentResult] = []
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:

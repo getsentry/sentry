@@ -9,7 +9,7 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
 from sentry.preprod.analytics import PreprodArtifactApiAdminBatchDeleteEvent
 from sentry.preprod.models import (
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 @region_silo_endpoint
 class PreprodArtifactAdminBatchDeleteEndpoint(Endpoint):
     owner = ApiOwner.EMERGE_TOOLS
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (StaffPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }

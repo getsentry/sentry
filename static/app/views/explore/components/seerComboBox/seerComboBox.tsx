@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
@@ -431,6 +431,10 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
     }
   }, [autoSubmitSeer, searchQuery, organization, submitQuery, setAutoSubmitSeer]);
 
+  const onMouseLeave = () => {
+    state.selectionManager.setFocusedKey(null);
+  };
+
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
       <PositionedSearchIconContainer>
@@ -472,19 +476,19 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
           overlayProps={overlayProps}
         >
           {isPending ? (
-            <Fragment>
+            <SeerContent>
               <SeerSearchHeader title={t('Let me think about that...')} loading />
               <SeerSearchSkeleton />
-            </Fragment>
+            </SeerContent>
           ) : rawResult && (rawResult?.length ?? 0) > 0 ? (
-            <Fragment>
+            <SeerContent onMouseLeave={onMouseLeave}>
               <SeerSearchHeader title={t('Do any of these look right to you?')} />
               <SeerSearchListBox
                 {...listBoxProps}
                 listBoxRef={listBoxRef}
                 state={state}
               />
-            </Fragment>
+            </SeerContent>
           ) : unsupportedReason ? (
             <SeerContent>
               <SeerSearchHeader
@@ -492,7 +496,7 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
               />
             </SeerContent>
           ) : (
-            <SeerContent>
+            <SeerContent onMouseLeave={onMouseLeave}>
               <SeerSearchHeader
                 title={t(
                   "Describe what you're looking for, or try one of these examples:"

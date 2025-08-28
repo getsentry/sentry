@@ -12,10 +12,7 @@ import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPag
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {
-  UseInfiniteLogsQueryResult,
-  UseLogsQueryResult,
-} from 'sentry/views/explore/logs/useLogsQuery';
+import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -80,7 +77,7 @@ describe('useStreamingTimeseriesResult', () => {
 
   function createMockTableData(
     logFixtures: OurLogsResponseItem[]
-  ): UseInfiniteLogsQueryResult | UseLogsQueryResult {
+  ): UseInfiniteLogsQueryResult {
     return {
       error: null,
       isError: false,
@@ -456,7 +453,7 @@ describe('useStreamingTimeseriesResult', () => {
       const mockTimeseriesData = getMockSingleAxisTimeseries();
 
       const {result, rerender} = renderHook(
-        (tableData: UseInfiniteLogsQueryResult | UseLogsQueryResult) =>
+        (tableData: UseInfiniteLogsQueryResult) =>
           useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
         {
           initialProps: createMockTableData([]),
@@ -530,7 +527,7 @@ describe('useStreamingTimeseriesResult', () => {
       const mockTimeseriesData = getMockMultiGroupTimeseries();
 
       const {result, rerender} = renderHook(
-        (tableData: UseInfiniteLogsQueryResult | UseLogsQueryResult) =>
+        (tableData: UseInfiniteLogsQueryResult) =>
           useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
         {
           initialProps: createMockTableData([]),
@@ -768,7 +765,7 @@ describe('useStreamingTimeseriesResult', () => {
       const ingestDelayMs = 8500n * 1_000_000n; // Set delay to match last bucket timestamp
 
       const {result, rerender} = renderHook(
-        (tableData: UseInfiniteLogsQueryResult | UseLogsQueryResult) =>
+        (tableData: UseInfiniteLogsQueryResult) =>
           useStreamingTimeseriesResult(tableData, mockTimeseriesData, ingestDelayMs),
         {
           initialProps: createMockTableData([]),
