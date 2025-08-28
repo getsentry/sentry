@@ -107,7 +107,9 @@ class OrganizationUpsertWithOutboxTest(TestCase):
         assert org_before_modification.slug == self.org.slug
         assert org_before_modification.name == self.org.name
         assert org_before_modification.status == self.org.status
-        assert_outbox_update_message_exists(org=db_created_org, expected_count=1)
+        assert_outbox_update_message_exists(
+            org=db_created_org, expected_count=2
+        )  # one to create org, one to update disable_member_project_creation flag
 
 
 class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCase):
