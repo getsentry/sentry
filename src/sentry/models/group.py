@@ -35,6 +35,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
@@ -43,6 +44,7 @@ from sentry.issues.priority import (
 )
 from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
+from sentry.models.groupopenperiod import update_incident_activity_based_on_group_activity
 from sentry.models.organization import Organization
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -501,6 +503,9 @@ class GroupManager(BaseManager["Group"]):
                         "reason": PriorityChangeReason.ONGOING,
                     },
                 )
+                # if the group has an open period (is for a metric issue), then update its incident activity
+                if group.type == MetricIssue.type_id:
+                    update_incident_activity_based_on_group_activity(group, new_priority)
                 record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
             # The open period is only updated when a group is resolved or reopened. We don't want to

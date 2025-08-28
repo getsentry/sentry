@@ -73,8 +73,9 @@ def save_issue_occurrence(
         _get_or_create_group_release(environment, release, event, [group_info])
 
         # Create IncidentGroupOpenPeriod relationship for metric issues
+        # Only necessary if the organization is flagged into metric issue single processing
         if occurrence.type == MetricIssue and features.has(
-            "organizations:incident-group-open-period-write", event.organization
+            "organizations:workflow-engine-single-process-metric-issues", event.organization
         ):
             open_period = get_latest_open_period(group_info.group)
             if open_period:

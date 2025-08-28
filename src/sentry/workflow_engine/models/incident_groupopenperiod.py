@@ -10,9 +10,10 @@ from sentry.db.models import (
     FlexibleForeignKey,
     region_silo_model,
 )
+from sentry.incidents.logic import create_incident
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.models.incident import Incident
-from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.incidents.models.incident import IncidentType
+from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 
 logger = logging.getLogger(__name__)
@@ -60,13 +61,15 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             else:
                 raise Exception("No detector_id found in evidence_data for metric issue")
 
-            # Try to find the active incident for this alert rule and project
+            # XXX: is the order of operations okay here? who knows.
+            # If the relationship was previously created, return it
+            relationship = self.get_relationship(open_period)
+            if relationship is not None:
+                return relationship
+
             try:
                 alert_rule = AlertRule.objects.get(id=alert_id)
-                incident = Incident.objects.get_active_incident(
-                    alert_rule=alert_rule,
-                    project=group.project,
-                )
+
             except AlertRule.DoesNotExist:
                 logger.warning(
                     "AlertRule not found for alert_id",
@@ -75,15 +78,26 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                         "group_id": group.id,
                     },
                 )
-                incident = None
 
-            if incident:
-                # Incident exists, create the relationship immediately
-                return self.create_relationship(incident, open_period)
+            # Extract query subscription id from evidence_data
+            source_id = occurrence.evidence_data.get("data_packet_source_id")
+            if source_id:
+                subscription = QuerySubscription.objects.get(id=int(source_id))
             else:
-                # Incident doesn't exist yet, create a placeholder relationship
-                # that will be updated when the incident is created
-                return self.create_placeholder_relationship(detector_id, open_period, group.project)
+                raise Exception("No source_id found in evidence_data for metric issue")
+
+            incident = create_incident(
+                organization=alert_rule.organization,
+                incident_type=IncidentType.ALERT_TRIGGERED,
+                title=alert_rule.name,
+                alert_rule=alert_rule,
+                date_started=open_period.date_started,  # XXX: this was detected_at in the legacy system; could add that here too
+                date_detected=open_period.date_started,
+                projects=[group.project],
+                subscription=subscription,
+            )
+
+            return self.create_relationship(incident, open_period)
 
         except Exception as e:
             logger.exception(
@@ -95,6 +109,13 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 },
             )
             return None
+
+    @classmethod
+    def get_relationship(self, open_period):
+        """
+        Returns the open period if it exists
+        """
+        return self.objects.filter(group_open_period=open_period).first()
 
     @classmethod
     def create_relationship(self, incident, open_period):
@@ -126,71 +147,3 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 },
             )
             return None
-
-    @classmethod
-    def create_placeholder_relationship(self, detector_id, open_period, project):
-        """
-        Creates a placeholder relationship when the incident doesn't exist yet.
-        This will be updated when the incident is created.
-
-        Args:
-            detector_id: The detector ID
-            open_period: The GroupOpenPeriod to link
-            project: The project for the group
-        """
-        try:
-            # Store the alert_id in the open_period data for later lookup
-            data = open_period.data or {}
-            data["pending_incident_detector_id"] = detector_id
-            open_period.update(data=data)
-
-            return None
-
-        except Exception as e:
-            logger.exception(
-                "Failed to create placeholder IncidentGroupOpenPeriod relationship",
-                extra={
-                    "detector_id": detector_id,
-                    "open_period_id": open_period.id,
-                    "error": str(e),
-                },
-            )
-            return None
-
-    @classmethod
-    def create_pending_relationships_for_incident(self, incident, alert_rule):
-        """
-        Creates IncidentGroupOpenPeriod relationships for any groups that were created
-        before the incident. This handles the timing issue where groups might be created
-        before incidents.
-
-        Args:
-            incident: The Incident that was just created
-            alert_rule: The AlertRule that triggered the incident
-        """
-        try:
-            # Find all open periods that have a pending incident detector_id for this alert rule
-            detector_id = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector_id
-            pending_open_periods = GroupOpenPeriod.objects.filter(
-                data__pending_incident_detector_id=detector_id,
-                group__project__in=list(incident.projects.all()),
-            )
-
-            for open_period in pending_open_periods:
-                # Create the relationship
-                relationship = self.create_relationship(incident, open_period)
-                if relationship:
-                    # Remove the pending flag from the open_period data
-                    data = open_period.data or {}
-                    data.pop("pending_incident_detector_id", None)
-                    open_period.update(data=data)
-
-        except Exception as e:
-            logger.exception(
-                "Failed to create pending IncidentGroupOpenPeriod relationships",
-                extra={
-                    "incident_id": incident.id,
-                    "alert_rule_id": alert_rule.id,
-                    "error": str(e),
-                },
-            )
