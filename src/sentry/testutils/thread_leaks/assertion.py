@@ -45,7 +45,7 @@ def threading_remembers_where() -> Generator[None]:
 
 
 @contextmanager
-def assert_none(strict: bool = True) -> Generator[dict[str, Any]]:
+def assert_none(strict: bool = True, allowlisted: bool = False) -> Generator[dict[str, Any]]:
     """Assert no thread leaks occurred during context execution."""
 
     with threading_remembers_where():
@@ -58,6 +58,6 @@ def assert_none(strict: bool = True) -> Generator[dict[str, Any]]:
         if not thread_leaks:
             return
 
-        result["events"] = sentry.capture_event(thread_leaks, strict)
-        if strict:
+        result["events"] = sentry.capture_event(thread_leaks, strict, allowlisted)
+        if strict and not allowlisted:
             raise ThreadLeakAssertionError(diff(old=expected, new=actual))

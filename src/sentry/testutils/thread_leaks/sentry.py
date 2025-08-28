@@ -6,7 +6,7 @@ import functools
 from collections.abc import Iterable
 from threading import Thread
 from traceback import FrameSummary
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk.scope
 
@@ -14,8 +14,8 @@ from ._threading import get_thread_function_name
 from .diff import get_relevant_frames
 
 if TYPE_CHECKING:
-    # this is *only* defined when TYPE_CHECKING =(
     from sentry_sdk._types import Event as SentryEvent
+    from sentry_sdk._types import LogLevelStr
 
 
 @functools.cache
@@ -53,14 +53,16 @@ def get_scope() -> sentry_sdk.scope.Scope:
     return scope
 
 
-def capture_event(thread_leaks: set[Thread], strict: bool) -> dict[str, SentryEvent]:
+def capture_event(
+    thread_leaks: set[Thread], strict: bool, allowlisted: bool
+) -> dict[str, SentryEvent]:
     """Report thread leaks to Sentry with proper event formatting."""
     # Report to Sentry
     scope = get_scope()
     events = {}
     with sentry_sdk.scope.use_scope(scope):
         for thread_leak in thread_leaks:
-            event = get_thread_leak_event(thread_leak, strict)
+            event = get_thread_leak_event(thread_leak, strict, allowlisted)
             event_id = scope.capture_event(event)
             if event_id is not None:
                 events[event_id] = event
@@ -68,24 +70,44 @@ def capture_event(thread_leaks: set[Thread], strict: bool) -> dict[str, SentryEv
     return events
 
 
-def get_thread_leak_event(thread: Thread, strict: bool = True) -> SentryEvent:
+def get_thread_leak_event(thread: Thread, strict: bool, allowlisted: bool) -> SentryEvent:
     """Create Sentry event from leaked thread."""
     stack: Iterable[FrameSummary] = getattr(thread, "_where", [])
-    return event_from_stack(thread, stack, strict)
+    return event_from_stack(thread, stack, strict, allowlisted)
 
 
-def event_from_stack(thread: Thread, stack: Iterable[FrameSummary], strict: bool) -> SentryEvent:
+def _mechanism_tags(mechanism_data: dict[str, Any]) -> dict[str, str]:
+    from sentry.utils import json
+
+    return {f"mechanism.{key}": json.dumps(val) for key, val in mechanism_data.items()}
+
+
+def event_from_stack(
+    thread: Thread, stack: Iterable[FrameSummary], strict: bool, allowlisted: bool
+) -> SentryEvent:
     relevant_frames = get_relevant_frames(stack)
 
+    level: LogLevelStr
+    if allowlisted:
+        level = "info"
+    elif strict:
+        level = "error"
+    else:
+        level = "warning"
+
+    # Mechanism data that will be both stored and converted to tags
     # https://develop.sentry.dev/sdk/data-model/event-payloads/exception/
+    mechanism_data = {
+        "version": 2,
+        "strict": strict,
+        "allowlisted": allowlisted,
+    }
     exception = {
         "mechanism": {
             "type": __name__,
             "handled": not strict,
             "help_link": "https://www.notion.so/sentry/How-To-Thread-Leaks-2488b10e4b5d8049965cc057b5fb5f6b",
-            "data": {
-                "version": 2,
-            },
+            "data": mechanism_data,
         },
         "type": "ThreadLeakAssertionError",
         "value": repr(thread),
@@ -103,12 +125,15 @@ def event_from_stack(thread: Thread, stack: Iterable[FrameSummary], strict: bool
             ]
         },
     }
+
+    tags = {
+        "thread.target": get_thread_function_name(thread),
+        **_mechanism_tags(mechanism_data),
+    }
+
     return {
-        "level": "error" if strict else "warning",
+        "level": level,
         "message": "Thread leak detected",
         "exception": {"values": [exception]},
-        "tags": {
-            "thread.target": get_thread_function_name(thread),
-            "mechanism.version": "2",
-        },
+        "tags": tags,
     }

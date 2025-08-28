@@ -9,13 +9,15 @@ from unittest.mock import Mock
 from sentry.testutils.thread_leaks.sentry import event_from_stack
 
 
-def dict_from_stack(value: str, stack: Iterable[FrameSummary], strict: bool) -> dict[str, Any]:
+def dict_from_stack(
+    value: str, stack: Iterable[FrameSummary], strict: bool, allowlisted: bool = False
+) -> dict[str, Any]:
     """Create Sentry event dict from stack (type-checker friendly wrapper)."""
     # Create mock thread with the desired repr and no target
     mock_thread = Mock(spec=Thread)
     mock_thread.configure_mock(__repr__=Mock(return_value=value))
     mock_thread.configure_mock(_target=None)
-    return dict(event_from_stack(mock_thread, stack, strict))
+    return dict(event_from_stack(mock_thread, stack, strict, allowlisted))
 
 
 class TestEventFromStack:
@@ -38,6 +40,8 @@ class TestEventFromStack:
                             "help_link": "https://www.notion.so/sentry/How-To-Thread-Leaks-2488b10e4b5d8049965cc057b5fb5f6b",
                             "data": {
                                 "version": 2,
+                                "strict": True,
+                                "allowlisted": False,
                             },
                         },
                         "type": "ThreadLeakAssertionError",
@@ -68,6 +72,8 @@ class TestEventFromStack:
             "tags": {
                 "thread.target": "None",
                 "mechanism.version": "2",
+                "mechanism.strict": "true",
+                "mechanism.allowlisted": "false",
             },
         }
 
