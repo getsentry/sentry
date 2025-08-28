@@ -69,6 +69,11 @@ type Props = WithRouterProps & {
     ) => void
   ) => void;
   /**
+   * Number of placeholder rows to show during loading
+   * Defaults to queryParams.limit or 4
+   */
+  placeholderRows?: number;
+  /**
    * Use `query` within `queryParams` for passing the parameter to the endpoint
    */
   query?: string;
@@ -263,6 +268,7 @@ class GroupList extends Component<Props, State> {
       queryFilterDescription,
       source,
       query,
+      placeholderRows,
     } = this.props;
     const {loading, error, errorData, groups, memberList, pageLinks} = this.state;
 
@@ -308,7 +314,8 @@ class GroupList extends Component<Props, State> {
             {loading
               ? [
                   ...new Array(
-                    typeof queryParams?.limit === 'number' ? queryParams?.limit : 4
+                    placeholderRows ??
+                      (typeof queryParams?.limit === 'number' ? queryParams?.limit : 4)
                   ),
                 ].map((_, i) => (
                   <GroupPlaceholder key={i}>
