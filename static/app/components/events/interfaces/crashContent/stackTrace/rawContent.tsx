@@ -248,6 +248,7 @@ export default function displayRawContent(
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
   newestFirst = false,
+  issueDiff = false,
   includeJSContext = false
 ) {
   const rawFrames = data?.frames || [];
@@ -269,7 +270,13 @@ export default function displayRawContent(
     )
   );
 
-  if (newestFirst) {
+  const shouldReverse =
+    (platform !== 'python') !==
+    (issueDiff &&
+      ((!newestFirst && platform !== 'python') ||
+        (newestFirst && platform === 'python')));
+
+  if (shouldReverse) {
     frames.reverse();
   }
 

@@ -92,6 +92,7 @@ class IssueDiff extends Component<Props, State> {
         ]);
         const includeLocation = false;
         const newestFirst = isStacktraceNewestFirst();
+        const issueDiff = true;
         const includeJSContext = true;
         const [baseEvent, targetEvent] = await Promise.all([
           getStacktraceBody(
@@ -99,6 +100,7 @@ class IssueDiff extends Component<Props, State> {
             hasSimilarityEmbeddingsFeature,
             includeLocation,
             newestFirst,
+            issueDiff,
             includeJSContext
           ),
           getStacktraceBody(
@@ -106,6 +108,7 @@ class IssueDiff extends Component<Props, State> {
             hasSimilarityEmbeddingsFeature,
             includeLocation,
             newestFirst,
+            issueDiff,
             includeJSContext
           ),
         ]);

@@ -6,6 +6,7 @@ export default function getStacktraceBody(
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,
   newestFirst = false,
+  issueDiff = false,
   includeJSContext = false
 ) {
   if (!event?.entries) {
@@ -46,7 +47,8 @@ export default function getStacktraceBody(
         hasSimilarityEmbeddingsFeature,
         includeLocation,
         includeJSContext,
-        newestFirst
+        newestFirst,
+        issueDiff
       )
     )
     .reduce((acc: any, value: any) => acc.concat(value), []);
