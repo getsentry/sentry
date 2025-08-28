@@ -38,8 +38,8 @@ export default function getStacktraceBody(
   // TODO(ts): This should be verified when EntryData has the correct type
   return exc.data.values
     .filter((value: any) => !!value.stacktrace)
-    .map((value: any) => {
-      const result = rawStacktraceContent(
+    .map((value: any) =>
+      rawStacktraceContent(
         value.stacktrace,
         event.platform,
         value,
@@ -47,9 +47,7 @@ export default function getStacktraceBody(
         includeLocation,
         includeJSContext,
         newestFirst
-      );
-
-      return result;
-    })
+      )
+    )
     .reduce((acc: any, value: any) => acc.concat(value), []);
 }
