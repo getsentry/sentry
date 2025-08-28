@@ -21,6 +21,7 @@ const organizationOptions = [
 
 const repositoryOptions = [
   {value: 'enigma', label: 'enigma'},
+  {value: 'all repositories', label: 'All repositories'},
   {value: 'example-repo-1', label: 'example-repo-1'},
   {value: 'example-repo-2', label: 'example-repo-2'},
 ];
@@ -91,9 +92,11 @@ export default function AIPage() {
               <SetupHeader>
                 <SetupTitle>{t('Manage Repositories')}</SetupTitle>
                 <SetupDescription>
-                  {t(
-                    'To install more repositories, manage your Seer by Sentry app on GitHub. To uninstall the app, go to your GitHub Apps settings.'
-                  )}
+                  {t('To install more repositories or uninstall the app, go to your')}{' '}
+                  <ExternalLink href="https://github.com/settings/installations/73320269">
+                    {t('Seer by Sentry app')}
+                  </ExternalLink>{' '}
+                  {t('on GitHub.')}
                 </SetupDescription>
               </SetupHeader>
 
@@ -114,7 +117,7 @@ export default function AIPage() {
                     </InfoListItem>
                     <InfoListItem>
                       {t(
-                        'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with '
+                        'It predicts which errors your code will cause. This happens automatically when you mark a PR ready for review, and when you trigger a PR review with '
                       )}{' '}
                       <PurpleText>@sentry review</PurpleText>.
                     </InfoListItem>
