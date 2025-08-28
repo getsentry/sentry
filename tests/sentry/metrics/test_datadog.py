@@ -3,11 +3,11 @@ from unittest.mock import MagicMock, patch
 
 from datadog.util.hostname import get_hostname
 
-import sentry.testutils.thread_leaks.pytest as thread_leaks
 from sentry.metrics.datadog import DatadogMetricsBackend
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
-@thread_leaks.allowlist(reason="datadog metrics", issue=97035)
+@thread_leak_allowlist(reason="datadog metrics", issue=97035)
 class DatadogMetricsBackendTest(TestCase):
     def setUp(self) -> None:
         self.backend = DatadogMetricsBackend(prefix="sentrytest.")
