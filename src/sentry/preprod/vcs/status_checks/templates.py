@@ -51,7 +51,7 @@ def format_status_check_messages(
 
     base_data = _StatusCheckData(
         build_id=preprod_artifact.id,
-        app_id=preprod_artifact.app_id,
+        app_id=preprod_artifact.app_id or "--",
         version=version_string,
     )
 
@@ -64,7 +64,7 @@ def format_status_check_messages(
         case PreprodArtifact.ArtifactState.FAILED:
             failure_data = _FailureStatusCheckData(
                 build_id=preprod_artifact.id,
-                app_id=preprod_artifact.app_id,
+                app_id=preprod_artifact.app_id or "--",
                 version=version_string,
                 error_message=preprod_artifact.error_message or "Unknown error",
             )
@@ -82,7 +82,7 @@ def format_status_check_messages(
             if current_metrics:
                 success_data = _SuccessStatusCheckData(
                     build_id=preprod_artifact.id,
-                    app_id=preprod_artifact.app_id,
+                    app_id=preprod_artifact.app_id or "--",
                     version=version_string,
                     download_size=_format_file_size(current_metrics.min_download_size),
                     download_change="N/A",
@@ -117,20 +117,20 @@ _SIZE_ANALYZER_SUBTITLE_COMPLETE_FIRST_BUILD = _("1 build analyzed")
 _SIZE_ANALYZER_PROCESSING_SUMMARY_TEMPLATE = _(
     """| Name | Version | Download | Change | Install | Change | Approval |
 |------|---------|----------|--------|---------|--------|----------|
-| %(app_id)s | %(version)s | Processing... | - | Processing... | - | N/A |
+| `%(app_id)s` | %(version)s | Processing... | - | Processing... | - | N/A |
 
 Analysis will be updated when processing completes."""
 )
 _SIZE_ANALYZER_FAILURE_SUMMARY_TEMPLATE = _(
     """| Name | Version | Error |
 |------|---------|-------|
-| %(app_id)s | %(version)s | %(error_message)s |
+| `%(app_id)s` | %(version)s | %(error_message)s |
 """
 )
 _SIZE_ANALYZER_SUCCESS_SUMMARY_TEMPLATE = _(
     """| Name | Version | Download | Change | Install | Change | Approval |
 |------|---------|----------|--------|---------|--------|----------|
-| %(app_id)s | %(version)s | %(download_size)s | %(download_change)s | %(install_size)s | %(install_change)s | N/A |
+| `%(app_id)s` | %(version)s | %(download_size)s | %(download_change)s | %(install_size)s | %(install_change)s | N/A |
 """
 )
 

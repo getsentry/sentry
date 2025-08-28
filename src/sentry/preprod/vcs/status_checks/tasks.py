@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from typing import Any
 
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.github.status_check import GitHubCheckConclusion, GitHubCheckStatus
-from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
@@ -19,7 +20,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.url_utils import get_preprod_artifact_url_2
 from sentry.preprod.vcs.status_checks.templates import format_status_check_messages
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -68,11 +69,7 @@ def create_preprod_status_check_task(preprod_artifact_id: int) -> None:
 
     title, subtitle, summary = format_status_check_messages(preprod_artifact)
 
-    target_url = get_preprod_artifact_url(
-        preprod_artifact.project.organization_id,
-        preprod_artifact.project.slug,
-        preprod_artifact.id,
-    )
+    target_url = get_preprod_artifact_url_2(preprod_artifact)
 
     if not preprod_artifact.commit_comparison:
         logger.info(
@@ -282,7 +279,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
                 )
                 return None
 
-            check_data = {
+            check_data: dict[str, Any] = {
                 "name": title,
                 "head_sha": sha,
                 "external_id": external_id,
