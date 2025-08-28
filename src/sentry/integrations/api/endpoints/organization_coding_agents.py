@@ -7,7 +7,7 @@ import string
 import orjson
 from django.conf import settings
 from rest_framework import serializers, status
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import APIException, NotFound, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -234,14 +234,12 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
             repos = [f"{repo['owner']}/{repo['name']}" for repo in autofix_state.request["repos"]]
 
             if not repos:
-                logger.error(
-                    "coding_agent.post.no_repos_found_in_request",
-                    extra={
-                        "organization_id": organization.id,
-                        "run_id": run_id,
-                    },
-                )
-                return []
+                raise NotFound("No repos to run agents")
+
+        prompt = get_coding_agent_prompt(run_id, trigger_source)
+
+        if not prompt:
+            raise APIException("No prompt to send to agents.")
 
         results = []
 
@@ -266,19 +264,6 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                     )
                     # Continue with other repos instead of failing entirely
                     continue
-                prompt = get_coding_agent_prompt(run_id, trigger_source)
-
-                if not prompt:
-                    logger.warning(
-                        "coding_agent.prompt_not_available",
-                        extra={
-                            "organization_id": organization.id,
-                            "run_id": run_id,
-                            "repo_name": repo_name,
-                            "trigger_source": trigger_source,
-                        },
-                    )
-                    continue
 
                 launch_request = CodingAgentLaunchRequest(
                     prompt=prompt,
@@ -286,10 +271,8 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                     branch_name=sanitize_branch_name(autofix_state.request["issue"]["title"]),
                 )
 
-                # Launch the agent
                 coding_agent_state = installation.launch(launch_request)
 
-                # Store the coding agent state to Seer
                 store_coding_agent_state_to_seer(
                     run_id=run_id,
                     coding_agent_state=coding_agent_state,
@@ -302,14 +285,13 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
                     }
                 )
 
-            except Exception as e:
+            except Exception:
                 logger.exception(
                     "coding_agent.repo_launch_error",
                     extra={
                         "organization_id": organization.id,
                         "run_id": run_id,
                         "repo_name": repo_name,
-                        "error": str(e),
                     },
                 )
                 # Continue with other repos instead of failing entirely
