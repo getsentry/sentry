@@ -84,9 +84,6 @@ export default function EmptyState({
                 )}
               </DescriptionWrapper>
               <Flex direction="column" align="end" gap="xl">
-                {!tempestCredentials?.length && (
-                  <AddCredentialsButton project={project} />
-                )}
                 <StyledPanelTable
                   headers={[
                     t('Client ID'),
@@ -97,7 +94,9 @@ export default function EmptyState({
                   ]}
                   isEmpty={!tempestCredentials?.length}
                   emptyMessage={t('No credentials found')}
-                  emptyAction={<AddCredentialsButton project={project} />}
+                  emptyAction={
+                    <AddCredentialsButton project={project} origin="project-settings" />
+                  }
                 >
                   {tempestCredentials?.map(credential => (
                     <CredentialRow

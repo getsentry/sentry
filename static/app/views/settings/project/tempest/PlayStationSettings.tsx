@@ -133,10 +133,10 @@ export default function PlayStationSettings({organization, project}: Props) {
                   : t('Open Setup Instructions')}
               </Button>
             )}
-            <AddCredentialsButton project={project} />
+            <AddCredentialsButton project={project} origin="project-settings" />
           </ButtonBar>
           {showEmptyState ? (
-            <Panel>
+            <FullWidthPanel>
               <EmptyState
                 project={project}
                 isRemoving={isRemoving}
@@ -145,7 +145,7 @@ export default function PlayStationSettings({organization, project}: Props) {
                 onRemoveCredential={handleRemoveCredential}
                 removingCredentialId={removingCredential?.id}
               />
-            </Panel>
+            </FullWidthPanel>
           ) : (
             <StyledPanelTable
               headers={[
@@ -174,5 +174,9 @@ export default function PlayStationSettings({organization, project}: Props) {
 }
 
 const StyledPanelTable = styled(PanelTable)`
+  width: 100%;
+`;
+
+const FullWidthPanel = styled(Panel)`
   width: 100%;
 `;

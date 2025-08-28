@@ -106,6 +106,7 @@ export function useConfigureSdk({
         openConsoleModal({
           organization,
           selectedPlatform,
+          origin: 'onboarding',
         });
         return;
       }

@@ -15,8 +15,8 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import type {TraceFullDetailed} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
@@ -143,7 +143,7 @@ const mockedTrace = (project: Project) => {
     timestamp: 1678290375.150561,
     start_timestamp: 1678290374.150561,
     children: [],
-  } as QuickTraceEvent;
+  } as Partial<TraceFullDetailed>;
 };
 
 const mockGroupApis = (
@@ -152,7 +152,7 @@ const mockGroupApis = (
   group: Group,
   event: Event,
   replayId?: string,
-  trace?: QuickTraceEvent
+  trace?: Partial<TraceFullDetailed>
 ) => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/issues/1/events/',

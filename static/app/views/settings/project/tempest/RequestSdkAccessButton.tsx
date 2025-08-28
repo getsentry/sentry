@@ -8,12 +8,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 interface RequestSdkAccessButtonProps {
   organization: Organization;
+  origin: 'onboarding' | 'project-creation' | 'project-settings';
   project: Project;
 }
 
 export function RequestSdkAccessButton({
   organization,
   project,
+  origin,
 }: RequestSdkAccessButtonProps) {
   return (
     <Button
@@ -28,16 +30,19 @@ export function RequestSdkAccessButton({
           projectId: project.id,
           sdkName: 'PlayStation',
           gamingPlatform: 'playstation',
+          origin,
           onSubmit: () => {
             trackAnalytics('tempest.sdk_access_modal_submitted', {
               organization,
               project_slug: project.slug,
+              origin,
             });
           },
         });
         trackAnalytics('tempest.sdk_access_modal_opened', {
           organization,
           project_slug: project.slug,
+          origin,
         });
       }}
     >
