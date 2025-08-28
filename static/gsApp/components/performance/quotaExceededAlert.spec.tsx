@@ -33,7 +33,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
         spans: {
           usageExceeded: spansUsageExceeded,
         },
-        logs: {
+        logBytes: {
           usageExceeded: logsUsageExceeded,
         },
       } as any,
@@ -136,7 +136,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
         groups: [
           {
             by: {
-              reason: 'span_usage_exceeded',
+              reason: 'log_bytes_usage_exceeded',
             },
             totals: {
               'sum(quantity)': 1000,
@@ -149,8 +149,8 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
     render(
       <QuotaExceededAlert
         subscription={getSubscription({
-          logsUsageExceeded: false,
-          spansUsageExceeded: true,
+          logsUsageExceeded: true,
+          spansUsageExceeded: false,
         })}
         traceItemDataset="logs"
         referrer="trace-view"
@@ -167,7 +167,7 @@ describe('Renders QuotaExceededAlert correctly for spans', () => {
 
     expect(
       screen.getByText(
-        /during this date range and results will be skewed. We can’t collect more spans until/
+        /during this date range and results will be skewed. We can’t collect more logs until/
       )
     ).toBeInTheDocument();
     expect(screen.getByText(/Dec 31, 2024/)).toBeInTheDocument();

@@ -43,29 +43,21 @@ function useQuotaExceededAlertMessage(
 ) {
   const {selection} = usePageFilters();
 
-  const exploreUsageHasExceeded: ExploreUsageHasExceeded = {
-    logs: {hasExceeded: false},
-    spans: {hasExceeded: false},
-  };
+  let hasExceededExploreItemUsageLimit = false;
 
   const dataCategories = subscription?.categories;
-  if (dataCategories) {
-    if ('transactions' in dataCategories) {
-      exploreUsageHasExceeded.spans.hasExceeded =
-        dataCategories.transactions?.usageExceeded || false;
-    }
-    if ('spans' in dataCategories) {
-      exploreUsageHasExceeded.spans.hasExceeded =
-        dataCategories.spans?.usageExceeded || false;
-    }
+  if (traceItemDataset === 'logs') {
     if ('logBytes' in dataCategories) {
-      exploreUsageHasExceeded.logs.hasExceeded =
-        dataCategories.logBytes?.usageExceeded || false;
+      hasExceededExploreItemUsageLimit = dataCategories.logBytes?.usageExceeded || false;
+    }
+  } else if (traceItemDataset === 'spans') {
+    if ('transactions' in dataCategories) {
+      hasExceededExploreItemUsageLimit =
+        dataCategories.transactions?.usageExceeded || false;
+    } else if ('spans' in dataCategories) {
+      hasExceededExploreItemUsageLimit = dataCategories.spans?.usageExceeded || false;
     }
   }
-
-  const hasExceededPerformanceUsageLimit =
-    exploreUsageHasExceeded[traceItemDataset].hasExceeded;
 
   const {data: performanceUsageStats} = usePerformanceUsageStats({
     organization,
@@ -76,7 +68,7 @@ function useQuotaExceededAlertMessage(
   // Check if events were dropped due to exceeding the transaction/spans quota
   const droppedEventsCount = performanceUsageStats?.totals['sum(quantity)'] || 0;
 
-  if (droppedEventsCount === 0 || !hasExceededPerformanceUsageLimit || !subscription) {
+  if (droppedEventsCount === 0 || !hasExceededExploreItemUsageLimit || !subscription) {
     return null;
   }
 
@@ -101,7 +93,7 @@ function useQuotaExceededAlertMessage(
   if (!formattedDateRange) {
     return subscription?.onDemandBudgets?.enabled
       ? tct(
-          "You've exceeded your [budgetType] budget during this date range and results will be skewed. We can't collect more [datasetType] until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your [budgetType] budget].",
+          "You've exceeded your [budgetType] budget during this date range and results will be skewed. We can’t collect more [datasetType] until [subscriptionRenewalDate]. If you need more, [billingPageLink:increase your [budgetType] budget].",
           {
             budgetType: subscription.planDetails.budgetTerm,
             periodRenewalDate,
@@ -110,7 +102,7 @@ function useQuotaExceededAlertMessage(
           }
         )
       : tct(
-          "You've exceeded your reserved volumes during this date range and results will be skewed. We can't collect more [datasetType] until [periodRenewalDate]. If you need more, [billingPageLink:increase your reserved volumes].",
+          "You've exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more [datasetType] until [periodRenewalDate]. If you need more, [billingPageLink:increase your reserved volumes].",
           {
             periodRenewalDate,
             billingPageLink,
@@ -122,7 +114,7 @@ function useQuotaExceededAlertMessage(
   const {period} = selection.datetime;
   return subscription?.onDemandBudgets?.enabled
     ? tct(
-        "You've exceeded your [budgetType] budget during this date range and results will be skewed. We can't collect more [datasetType] until [periodRenewalDate]. [rest]",
+        'You’ve exceeded your [budgetType] budget during this date range and results will be skewed. We can’t collect more [datasetType] until [periodRenewalDate]. [rest]',
         {
           budgetType: subscription.planDetails.budgetTerm,
           periodRenewalDate,
@@ -147,7 +139,7 @@ function useQuotaExceededAlertMessage(
         }
       )
     : tct(
-        "You've exceeded your reserved volumes during this date range and results will be skewed. We can't collect more [datasetType] until [periodRenewalDate]. [rest]",
+        'You’ve exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more [datasetType] until [periodRenewalDate]. [rest]',
         {
           periodRenewalDate,
           datasetType,
@@ -171,8 +163,6 @@ function useQuotaExceededAlertMessage(
 }
 
 type TraceItemDatasetGS = 'logs' | 'spans';
-
-type ExploreUsageHasExceeded = Record<TraceItemDatasetGS, {hasExceeded: boolean}>;
 
 type Props = {
   referrer: string;
