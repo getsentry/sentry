@@ -340,6 +340,7 @@ def _get_all_tags_overview(group: Group) -> dict[str, Any] | None:
         "device.class",
         "mechanism",
         "os.name",  # the 'os' tag is better
+        "runtime.name",  # the 'runtime' tag is better
         "replay_id",
         "replayid",
         "level",
