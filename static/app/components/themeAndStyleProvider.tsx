@@ -8,6 +8,7 @@ import color from 'color';
 import {loadPreferencesState} from 'sentry/actionCreators/preferences';
 import {Flex} from 'sentry/components/core/layout';
 import {Text} from 'sentry/components/core/text';
+import {Overlay} from 'sentry/components/overlay';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import GlobalStyles from 'sentry/styles/global';
@@ -91,6 +92,11 @@ function SentryInspector({theme}: {theme: Theme}) {
           return;
         }
 
+        if (tooltipRef.current) {
+          tooltipRef.current.style.top = `${event.clientY}px`;
+          tooltipRef.current.style.left = `${event.clientX}px`;
+        }
+
         if (!trace) {
           document
             .querySelectorAll('[data-sentry-component-trace]')
@@ -161,7 +167,7 @@ function SentryInspector({theme}: {theme: Theme}) {
     <Fragment>
       {state.enabled ? (
         <Fragment>
-          <div
+          <Overlay
             ref={tooltipRef}
             className="sentry-component-trace-tooltip"
             style={{
@@ -176,12 +182,16 @@ function SentryInspector({theme}: {theme: Theme}) {
             <Flex direction="column-reverse" gap="md" style={{padding: theme.space.md}}>
               {state.trace?.slice(0, 6).map((el, index) => (
                 <Flex key={index} direction="row" gap="md">
-                  <Text>{el.dataset.sentryComponent}</Text>
-                  <Text>{el.dataset.sentrySourcePath}</Text>
+                  {el.dataset.sentryComponent ? (
+                    <Text>{el.dataset.sentryComponent}</Text>
+                  ) : null}
+                  {el.dataset.sentrySourcePath ? (
+                    <Text>{el.dataset.sentrySourcePath}</Text>
+                  ) : null}
                 </Flex>
               ))}
             </Flex>
-          </div>
+          </Overlay>
           <style>
             {`
 
