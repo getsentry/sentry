@@ -7,7 +7,7 @@ from unittest import mock
 
 import pytest
 
-import sentry.testutils.thread_leaks.pytest as thread_leaks
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.concurrent import (
     FutureSet,
     SynchronousExecutor,
@@ -200,7 +200,7 @@ def test_synchronous_executor() -> None:
         future.result()
 
 
-@thread_leaks.allowlist(reason="sentry threaded executor", issue=97043)
+@thread_leak_allowlist(reason="sentry threaded executor", issue=97043)
 def test_threaded_same_priority_Tasks() -> None:
     executor = ThreadedExecutor(worker_count=1)
 
@@ -212,7 +212,7 @@ def test_threaded_same_priority_Tasks() -> None:
     executor.submit(callable)
 
 
-@thread_leaks.allowlist(reason="sentry threaded executor", issue=97043)
+@thread_leak_allowlist(reason="sentry threaded executor", issue=97043)
 def test_threaded_executor() -> None:
     executor = ThreadedExecutor(worker_count=1, maxsize=3)
 
