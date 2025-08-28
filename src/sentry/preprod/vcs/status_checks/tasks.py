@@ -4,9 +4,11 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.github.status_check import GitHubCheckConclusion, GitHubCheckStatus
-from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
@@ -172,9 +174,10 @@ def _get_status_check_client(
         )
         return None, None
 
-    try:
-        integration: Integration = Integration.objects.get(id=repository.integration_id)
-    except Integration.DoesNotExist:
+    integration: RpcIntegration | None = integration_service.get_integration(
+        integration_id=repository.integration_id, status=ObjectStatus.ACTIVE
+    )
+    if not integration:
         logger.info(
             "preprod.status_checks.create.no_integration",
             extra={
@@ -268,7 +271,7 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
         external_id: str,
         target_url: str | None = None,
     ) -> str | None:
-        with self._create_scm_interaction_event().capture() as _:
+        with self._create_scm_interaction_event().capture() as lifecycle:
             mapped_status = GITHUB_STATUS_CHECK_STATUS_MAPPING.get(status)
             mapped_conclusion = GITHUB_STATUS_CHECK_CONCLUSION_MAPPING.get(status)
 
@@ -299,9 +302,13 @@ class _GitHubStatusCheckProvider(_StatusCheckProvider):
             if target_url:
                 check_data["details_url"] = target_url
 
-            response = self.client.create_check_run(repo=repo, data=check_data)
-            check_id = response.get("id")
-            return str(check_id) if check_id else None
+            try:
+                response = self.client.create_check_run(repo=repo, data=check_data)
+                check_id = response.get("id")
+                return str(check_id) if check_id else None
+            except Exception as e:
+                lifecycle.record_failure(e)
+                return None
 
 
 GITHUB_STATUS_CHECK_STATUS_MAPPING: dict[StatusCheckStatus, GitHubCheckStatus] = {
