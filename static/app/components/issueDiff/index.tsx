@@ -6,6 +6,7 @@ import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
@@ -41,6 +42,7 @@ type Props = {
 type State = {
   baseEvent: string[];
   loading: boolean;
+  newestFirst: boolean;
   targetEvent: string[];
   SplitDiffAsync?: typeof SplitDiff;
 };
@@ -51,6 +53,7 @@ class IssueDiff extends Component<Props, State> {
   state: State = {
     loading: true,
     baseEvent: [],
+    newestFirst: false,
     targetEvent: [],
 
     // `SplitDiffAsync` is an async-loaded component
@@ -88,18 +91,24 @@ class IssueDiff extends Component<Props, State> {
           this.fetchEvent(targetIssueId, targetEventId ?? 'latest'),
         ]);
         const includeLocation = false;
+        const newestFirst = isStacktraceNewestFirst();
+        const issueDiff = true;
         const includeJSContext = true;
         const [baseEvent, targetEvent] = await Promise.all([
           getStacktraceBody(
             baseEventData,
             hasSimilarityEmbeddingsFeature,
             includeLocation,
+            newestFirst,
+            issueDiff,
             includeJSContext
           ),
           getStacktraceBody(
             targetEventData,
             hasSimilarityEmbeddingsFeature,
             includeLocation,
+            newestFirst,
+            issueDiff,
             includeJSContext
           ),
         ]);
@@ -108,6 +117,7 @@ class IssueDiff extends Component<Props, State> {
           SplitDiffAsync,
           baseEvent,
           targetEvent,
+          newestFirst,
           loading: false,
         });
         if (organization && hasSimilarityEmbeddingsFeature) {
@@ -170,14 +180,20 @@ class IssueDiff extends Component<Props, State> {
         {loading && <LoadingIndicator />}
         {!loading &&
           DiffComponent &&
-          baseEvent.map((value, i) => (
-            <DiffComponent
-              key={i}
-              base={value}
-              target={targetEvent[i] ?? ''}
-              type="lines"
-            />
-          ))}
+          (this.state.newestFirst ? [...baseEvent].reverse() : baseEvent).map(
+            (value, i) => (
+              <DiffComponent
+                key={i}
+                base={value}
+                target={
+                  this.state.newestFirst
+                    ? (targetEvent[targetEvent.length - 1 - i] ?? '')
+                    : (targetEvent[i] ?? '')
+                }
+                type="lines"
+              />
+            )
+          )}
       </StyledIssueDiff>
     );
   }
