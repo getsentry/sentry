@@ -32,7 +32,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.uptime.endpoints.utils import (
     MAX_UPTIME_SUBSCRIPTION_IDS,
-    authorize_and_map_project_uptime_subscription_ids,
     authorize_and_map_uptime_detector_subscription_ids,
 )
 from sentry.uptime.types import IncidentStatus
@@ -54,33 +53,17 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         timerange_args = self._parse_args(request, restrict_rollups=False)
         projects = self.get_projects(request, organization, include_all_accessible=True)
 
-        project_uptime_subscription_ids = request.GET.getlist("projectUptimeSubscriptionId")
         uptime_detector_ids = request.GET.getlist("uptimeDetectorId")
 
-        # Ensure exactly one type of ID is provided
-        if not project_uptime_subscription_ids and not uptime_detector_ids:
+        if not uptime_detector_ids:
             return self.respond(
-                "Either project uptime subscription ids or uptime detector ids must be provided",
+                "Uptime detector ids must be provided",
                 status=400,
             )
 
-        if project_uptime_subscription_ids and uptime_detector_ids:
+        if len(uptime_detector_ids) > MAX_UPTIME_SUBSCRIPTION_IDS:
             return self.respond(
-                "Cannot provide both project uptime subscription ids and uptime detector ids",
-                status=400,
-            )
-
-        # Use whichever ID type was provided
-        ids_to_process = project_uptime_subscription_ids or uptime_detector_ids
-
-        if len(ids_to_process) > MAX_UPTIME_SUBSCRIPTION_IDS:
-            id_type = (
-                "project uptime subscription ids"
-                if project_uptime_subscription_ids
-                else "uptime detector ids"
-            )
-            return self.respond(
-                f"Too many {id_type} provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
+                f"Too many uptime detector ids provided. Maximum is {MAX_UPTIME_SUBSCRIPTION_IDS}",
                 status=400,
             )
 
@@ -96,23 +79,13 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             else:
                 subscription_id_formatter = lambda sub_id: str(uuid.UUID(sub_id))
 
-            if project_uptime_subscription_ids:
-                subscription_id_to_id_mapping, subscription_ids = (
-                    authorize_and_map_project_uptime_subscription_ids(
-                        project_uptime_subscription_ids, projects, subscription_id_formatter
-                    )
+            subscription_id_to_id_mapping, subscription_ids = (
+                authorize_and_map_uptime_detector_subscription_ids(
+                    uptime_detector_ids, projects, subscription_id_formatter
                 )
-            else:
-                subscription_id_to_id_mapping, subscription_ids = (
-                    authorize_and_map_uptime_detector_subscription_ids(
-                        uptime_detector_ids, projects, subscription_id_formatter
-                    )
-                )
+            )
         except ValueError:
-            if project_uptime_subscription_ids:
-                return self.respond("Invalid project uptime subscription ids provided", status=400)
-            else:
-                return self.respond("Invalid uptime detector ids provided", status=400)
+            return self.respond("Invalid uptime detector ids provided", status=400)
 
         maybe_cutoff = self._get_date_cutoff_epoch_seconds()
         epoch_cutoff = (
@@ -149,7 +122,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
             logger.exception("Error making EAP RPC request for uptime check stats")
             return self.respond("error making request", status=400)
 
-        # Map the response back to the original IDs (either project uptime subscription IDs or detector IDs)
+        # Map the response back to the original detector IDs
         mapped_response = self._map_response_to_original_ids(
             subscription_id_to_id_mapping, formatted_response
         )
@@ -301,7 +274,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         formatted_response: dict[str, list[tuple[int, dict[str, int]]]],
     ) -> dict[int, list[tuple[int, dict[str, int]]]]:
         """
-        Map the response back to the original IDs (project uptime subscription IDs or detector IDs)
+        Map the response back to the original detector IDs
         """
         return {
             subscription_id_to_original_id[subscription_id]: data
