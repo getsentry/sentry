@@ -22,18 +22,18 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
   platform: Platform;
-  project: Project;
+  projectSlug: Project['slug'];
   title?: string;
 };
 
-export function PlatformDocHeader({platform, title, project}: Props) {
+export function PlatformDocHeader({platform, title, projectSlug}: Props) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const router = useRouter();
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
-    projectSlug: project.slug,
+    projectSlug,
   });
 
   const handleGoBack = useCallback(async () => {

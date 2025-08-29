@@ -103,7 +103,7 @@ export function ProjectInstallPlatform({
       {!isSelfHosted && showDocsWithProductSelection && (
         <ProductUnavailableCTAHook organization={organization} />
       )}
-      <PlatformDocHeader project={project} platform={platform} />
+      <PlatformDocHeader projectSlug={project.slug} platform={platform} />
       {platform.key === 'other' ? (
         <OtherPlatformsInfo
           projectSlug={project.slug}
