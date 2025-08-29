@@ -1138,9 +1138,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event1.culprit == "foobar"
 
     def test_culprit_after_stacktrace_processing(self) -> None:
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:in_app_function +app
             function:not_in_app_function -app
@@ -2461,9 +2461,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         Regression test to ensure that grouping in-app enhancements work in
         principle.
         """
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:foo category=bar
             function:foo2 category=bar
@@ -2537,9 +2537,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         Regression test to ensure categories are applied consistently and don't
         produce hash mismatches.
         """
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.grouping.enhancer import EnhancementsConfig
 
-        enhancements_str = Enhancements.from_rules_text(
+        enhancements_str = EnhancementsConfig.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group

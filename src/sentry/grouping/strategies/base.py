@@ -9,7 +9,11 @@ from sentry.grouping.component import (
     FrameGroupingComponent,
     StacktraceGroupingComponent,
 )
-from sentry.grouping.enhancer import DEFAULT_ENHANCEMENTS_BASE, ENHANCEMENT_BASES, Enhancements
+from sentry.grouping.enhancer import (
+    DEFAULT_ENHANCEMENTS_BASE,
+    ENHANCEMENT_BASES,
+    EnhancementsConfig,
+)
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import DEFAULT_GROUPING_FINGERPRINTING_BASES
 from sentry.interfaces.base import Interface
@@ -322,23 +326,23 @@ class StrategyConfiguration:
     enhancements_base: str | None = DEFAULT_ENHANCEMENTS_BASE
     fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
-    def __init__(self, enhancements: str | None = None):
-        if enhancements is None:
-            enhancements_instance = Enhancements.from_rules_text("", referrer="strategy_config")
+    def __init__(self, base64_enhancements: str | None = None):
+        if base64_enhancements is None:
+            enhancements_config = EnhancementsConfig.from_rules_text("", referrer="strategy_config")
         else:
             # If the enhancements string has been loaded from an existing event, it may be from an
             # obsolete enhancements version, in which case we just use the default enhancements for
             # this grouping config
             try:
-                enhancements_instance = Enhancements.from_base64_string(
-                    enhancements, referrer="strategy_config"
+                enhancements_config = EnhancementsConfig.from_base64_string(
+                    base64_enhancements, referrer="strategy_config"
                 )
             except InvalidEnhancerConfig:
-                enhancements_instance = ENHANCEMENT_BASES[
+                enhancements_config = ENHANCEMENT_BASES[
                     self.enhancements_base or DEFAULT_ENHANCEMENTS_BASE
                 ]
 
-        self.enhancements = enhancements_instance
+        self.enhancements = enhancements_config
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.id!r}>"
