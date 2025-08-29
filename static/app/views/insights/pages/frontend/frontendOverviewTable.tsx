@@ -25,7 +25,7 @@ import {SPAN_OP_QUERY_PARAM} from 'sentry/views/insights/pages/frontend/settings
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-type Row = Pick<
+export type Row = Pick<
   SpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
@@ -117,7 +117,6 @@ const SORTABLE_FIELDS = [
   'p50_if(span.duration,is_transaction,equals,true)',
   'p75_if(span.duration,is_transaction,equals,true)',
   'p95_if(span.duration,is_transaction,equals,true)',
-  'failure_rate_if(is_transaction,equals,true)',
   'count_unique(user)',
   'sum_if(span.duration,is_transaction,equals,true)',
   'performance_score(measurements.score.total)',
