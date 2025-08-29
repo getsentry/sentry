@@ -26,7 +26,7 @@ type Props = {
   title?: string;
 };
 
-export function PlatformDocHeader({platform, title, projectSlug}: Props) {
+export function PlatformDocHeader({platform, projectSlug, title}: Props) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const router = useRouter();
