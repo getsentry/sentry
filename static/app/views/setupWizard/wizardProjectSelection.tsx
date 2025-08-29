@@ -94,12 +94,16 @@ export function WizardProjectSelection({
   const orgDetailsRequest = useOrganizationDetails({organization: selectedOrg});
   const teamsRequest = useOrganizationTeams({organization: selectedOrg});
 
+  const accessTeams = teamsRequest.data?.filter(team =>
+    team.access.includes('team:admin')
+  );
+
   const selectableTeams = useMemo(() => {
     if (orgDetailsRequest.data?.access.includes('org:admin')) {
       return teamsRequest.data;
     }
-    return teamsRequest.data?.filter(team => team.teamRole === 'admin');
-  }, [orgDetailsRequest.data, teamsRequest.data]);
+    return accessTeams;
+  }, [orgDetailsRequest.data, teamsRequest.data, accessTeams]);
 
   const orgProjectsRequest = useOrganizationProjects({
     organization: selectedOrg,
@@ -107,9 +111,6 @@ export function WizardProjectSelection({
   });
 
   const canCreateTeam = orgDetailsRequest.data?.access.includes('project:admin') ?? false;
-  const accessTeams = teamsRequest.data?.filter(team =>
-    team.access.includes('team:admin')
-  );
   const isOrgMemberWithNoAccess = (accessTeams ?? []).length === 0 && !canCreateTeam;
   const canUserCreateProject = orgDetailsRequest.data
     ? canCreateProject(orgDetailsRequest.data, selectableTeams)
