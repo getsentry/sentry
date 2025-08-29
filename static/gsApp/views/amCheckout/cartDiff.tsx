@@ -329,10 +329,46 @@ function CartDiff({
     return changes;
   }, [formData.selectedProducts, subscription.reservedBudgets]);
 
+  const getCategoryChanges = ({
+    currentValues,
+    newValues,
+  }: {
+    currentValues: Partial<Record<DataCategory, number>>;
+    newValues: Partial<Record<DataCategory, number>>;
+  }): ReservedChange[] | PerCategoryOnDemandChange[] => {
+    const nodes: ReservedChange[] | PerCategoryOnDemandChange[] = [];
+
+    Object.entries(newValues).forEach(([category, newValue]) => {
+      let currentValue = null;
+      if (category in currentValues) {
+        currentValue = currentValues[category as DataCategory] ?? null;
+      }
+      if (newValue !== currentValue) {
+        nodes.push({
+          key: category as DataCategory,
+          currentValue,
+          newValue,
+        });
+      }
+    });
+
+    // in case there are categories in the current plan that are not in the new plan
+    Object.entries(currentValues).forEach(([category, currentValue]) => {
+      if (!(category in newValues)) {
+        nodes.push({
+          key: category as DataCategory,
+          currentValue,
+          newValue: null,
+        });
+      }
+    });
+
+    return nodes;
+  };
+
   const getReservedChanges = useCallback((): ReservedChange[] => {
     const currentReserved: Partial<Record<DataCategory, number>> = {};
     const newReserved: Partial<Record<DataCategory, number>> = {...formData.reserved};
-    const nodes: ReservedChange[] = [];
 
     // XXX(isabella): For some reason we populate formData with reserved volumes
     // for non-checkout categories, so for now we need to compare all reserved
@@ -355,37 +391,10 @@ function CartDiff({
       }
     });
 
-    if (Object.keys(currentReserved).length > Object.keys(newReserved).length) {
-      Object.entries(currentReserved).forEach(([category, currentValue]) => {
-        let newValue = null;
-        if (category in newReserved) {
-          newValue = newReserved[category as DataCategory] ?? null;
-        }
-        if (newValue !== currentValue) {
-          nodes.push({
-            key: category as DataCategory,
-            currentValue,
-            newValue,
-          });
-        }
-      });
-    } else {
-      Object.entries(newReserved).forEach(([category, newValue]) => {
-        let currentValue = null;
-        if (category in currentReserved) {
-          currentValue = currentReserved[category as DataCategory] ?? null;
-        }
-        if (newValue !== currentValue) {
-          nodes.push({
-            key: category as DataCategory,
-            currentValue,
-            newValue,
-          });
-        }
-      });
-    }
-
-    return nodes;
+    return getCategoryChanges({
+      currentValues: currentReserved,
+      newValues: newReserved,
+    });
   }, [activePlan, formData.reserved, subscription.categories]);
 
   const getSharedOnDemandChanges = useCallback((): SharedOnDemandChange[] => {
@@ -425,7 +434,6 @@ function CartDiff({
   }, [currentOnDemandBudget, newOnDemandBudget, currentBudgetMode, newBudgetMode]);
 
   const getPerCategoryOnDemandChanges = useCallback((): PerCategoryOnDemandChange[] => {
-    const changes: PerCategoryOnDemandChange[] = [];
     if (
       isEqual(currentOnDemandBudget, newOnDemandBudget) ||
       (currentBudgetMode !== OnDemandBudgetMode.PER_CATEGORY &&
@@ -433,70 +441,14 @@ function CartDiff({
     ) {
       return [];
     }
-
-    if (
-      currentBudgetMode === OnDemandBudgetMode.PER_CATEGORY &&
-      newBudgetMode === OnDemandBudgetMode.PER_CATEGORY
-    ) {
-      const currentBudgetsList = Object.entries(currentOnDemandBudget.budgets);
-      const newBudgetsList = Object.entries(newOnDemandBudget.budgets);
-
-      if (currentBudgetsList.length > newBudgetsList.length) {
-        currentBudgetsList.forEach(([category, currentBudget]) => {
-          const newBudget = newOnDemandBudget.budgets[category as DataCategory];
-          if (!(category in newOnDemandBudget.budgets)) {
-            changes.push({
-              key: category as DataCategory,
-              currentValue: currentBudget,
-              newValue: null,
-            });
-          } else if (newBudget !== undefined && currentBudget !== newBudget) {
-            changes.push({
-              key: category as DataCategory,
-              currentValue: currentBudget,
-              newValue: newBudget,
-            });
-          }
-        });
-      } else {
-        newBudgetsList.forEach(([category, newBudget]) => {
-          const currentBudget = currentOnDemandBudget.budgets[category as DataCategory];
-          if (!(category in currentOnDemandBudget.budgets)) {
-            changes.push({
-              key: category as DataCategory,
-              currentValue: null,
-              newValue: newBudget,
-            });
-          } else if (currentBudget !== undefined && currentBudget !== newBudget) {
-            changes.push({
-              key: category as DataCategory,
-              currentValue: currentBudget,
-              newValue: newBudget,
-            });
-          }
-        });
-      }
-    } else if (currentBudgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-      Object.entries(currentOnDemandBudget.budgets).forEach(
-        ([category, currentBudget]) => {
-          changes.push({
-            key: category as DataCategory,
-            currentValue: currentBudget,
-            newValue: null,
-          });
-        }
-      );
-    } else if (newBudgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-      Object.entries(newOnDemandBudget.budgets).forEach(([category, newBudget]) => {
-        changes.push({
-          key: category as DataCategory,
-          currentValue: null,
-          newValue: newBudget,
-        });
-      });
-    }
-
-    return changes;
+    const parsedCurrentOnDemandBudget =
+      'budgets' in currentOnDemandBudget ? currentOnDemandBudget.budgets : {};
+    const parsedNewOnDemandBudget =
+      'budgets' in newOnDemandBudget ? newOnDemandBudget.budgets : {};
+    return getCategoryChanges({
+      currentValues: parsedCurrentOnDemandBudget,
+      newValues: parsedNewOnDemandBudget,
+    });
   }, [currentOnDemandBudget, newOnDemandBudget, currentBudgetMode, newBudgetMode]);
 
   const planChanges = useMemo(() => getPlanChanges(), [getPlanChanges]);
