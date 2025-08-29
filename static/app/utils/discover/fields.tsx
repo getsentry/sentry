@@ -1192,36 +1192,6 @@ export function getColumnsAndAggregates(fields: string[]): {
   return {columns, aggregates};
 }
 
-export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
-  aggregates: string[];
-  columns: string[];
-  fieldAliases: string[];
-} {
-  // TODO(dam): distinguish between metrics, derived metrics and tags
-  const aggregateFields: string[] = [];
-  const nonAggregateFields: string[] = [];
-  const fieldAliases: string[] = [];
-
-  for (const field of fields) {
-    const fieldString = generateFieldAsString(field);
-    if (field.kind === 'function' || field.kind === 'calculatedField') {
-      aggregateFields.push(fieldString);
-    } else if (field.kind === 'equation') {
-      if (isAggregateEquation(fieldString)) {
-        aggregateFields.push(fieldString);
-      } else {
-        nonAggregateFields.push(fieldString);
-      }
-    } else {
-      nonAggregateFields.push(fieldString);
-    }
-
-    fieldAliases.push(field.alias ?? '');
-  }
-
-  return {aggregates: aggregateFields, columns: nonAggregateFields, fieldAliases};
-}
-
 /**
  * Convert a function string into type it will output.
  * This is useful when you need to format values in tooltips,

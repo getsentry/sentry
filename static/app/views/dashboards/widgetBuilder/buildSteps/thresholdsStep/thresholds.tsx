@@ -7,10 +7,9 @@ import type {NumberFieldProps} from 'sentry/components/forms/fields/numberField'
 import NumberField from 'sentry/components/forms/fields/numberField';
 import type {SelectFieldProps} from 'sentry/components/forms/fields/selectField';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
-import {BuildStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/buildStep';
 
 type ThresholdErrors = Partial<Record<ThresholdMaxKeys, string>>;
 
@@ -34,7 +33,7 @@ type ThresholdRowProp = {
   onUnitChange?: (maxKey: ThresholdMaxKeys, value: string) => void;
 };
 
-export enum ThresholdMaxKeys {
+enum ThresholdMaxKeys {
   MAX_1 = 'max1',
   MAX_2 = 'max2',
 }
@@ -175,39 +174,6 @@ export function Thresholds({
   );
 }
 
-function ThresholdsStep({
-  thresholdsConfig,
-  onThresholdChange,
-  onUnitChange,
-  errors,
-  dataType = '',
-  dataUnit = '',
-}: ThresholdsStepProps) {
-  return (
-    <BuildStep
-      title={t('Set thresholds')}
-      description={tct(
-        'Set thresholds to identify problematic widgets. For example: setting the max values, [thresholdValues] will display a green indicator for results in the range [greenRange], a yellow indicator for results in the range [yellowRange] and a red indicator for results above [redValue].',
-        {
-          thresholdValues: <HighlightedText>(green: 100, yellow: 200)</HighlightedText>,
-          greenRange: <HighlightedText>[0 - 100]</HighlightedText>,
-          yellowRange: <HighlightedText>(100 - 200]</HighlightedText>,
-          redValue: <HighlightedText>200</HighlightedText>,
-        }
-      )}
-    >
-      <Thresholds
-        thresholdsConfig={thresholdsConfig}
-        onThresholdChange={onThresholdChange}
-        onUnitChange={onUnitChange}
-        errors={errors}
-        dataType={dataType}
-        dataUnit={dataUnit}
-      />
-    </BuildStep>
-  );
-}
-
 const ThresholdRowWrapper = styled('div')`
   display: flex;
   align-items: center;
@@ -238,5 +204,3 @@ export const HighlightedText = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   color: ${p => p.theme.pink300};
 `;
-
-export default ThresholdsStep;

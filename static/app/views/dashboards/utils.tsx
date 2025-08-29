@@ -55,8 +55,6 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
-
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
 };
@@ -118,10 +116,6 @@ export function getThresholdUnitSelectOptions(
   }
 
   return [];
-}
-
-export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolean {
-  return Object.keys(thresholdsConfig.max_values).length > 0;
 }
 
 export function normalizeUnit(value: number, unit: string, dataType: string): number {
