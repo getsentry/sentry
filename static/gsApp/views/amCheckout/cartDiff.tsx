@@ -568,7 +568,7 @@ const ChangesContainer = styled('div')`
   & > div:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.border};
   }
-  max-height: 20vh;
+  max-height: 300px;
   overflow-y: scroll;
 `;
 
