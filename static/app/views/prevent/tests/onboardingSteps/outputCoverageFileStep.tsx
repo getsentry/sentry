@@ -15,17 +15,18 @@ interface OutputCoverageFileStepProps {
 type Frameworks = 'jest' | 'vitest' | 'pytest' | 'phpunit';
 
 const INSTALL_REQUIREMENTS_SNIPPETS: Record<Frameworks, string> = {
-  jest: `pytest --cov --junitxml=junit.xml -o junit_family=legacy`,
-  vitest: `vitest --reporter=junit --outputFile=test-report.junit.xml`,
-  pytest: `npm i --save-dev jest-junit`,
-  phpunit: `./vendor/bin/phpunit --log-junit junit.xml`,
+  jest: 'npm install --save-dev jest',
+  vitest: 'npm install --save-dev vitest @vitest/coverage-v8',
+  pytest: 'pip install pytest pytest-cov',
+  phpunit: 'composer require --dev phpunit/phpunit',
 };
 
 const GENERATE_FILE_SNIPPETS: Record<Frameworks, string> = {
-  jest: '',
-  vitest: '',
-  pytest: `JEST_JUNIT_CLASSNAME="{filepath}" jest --reporters=jest-junit`,
-  phpunit: '',
+  jest: `npm i --save-dev jest-junit
+JEST_JUNIT_CLASSNAME="{filepath}" jest --reporters=jest-junit`,
+  vitest: 'vitest --reporter=junit --outputFile=test-report.junit.xml',
+  pytest: 'pytest --cov --junitxml=junit.xml -o junit_family=legacy',
+  phpunit: './vendor/bin/phpunit --log-junit junit.xml',
 };
 
 export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
@@ -69,7 +70,7 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
           <CodeSnippet dark language="bash">
             {INSTALL_REQUIREMENTS_SNIPPETS[selectedFramework]}
           </CodeSnippet>
-          {selectedFramework === 'pytest' ? (
+          {GENERATE_FILE_SNIPPETS[selectedFramework] ? (
             <Fragment>
               <StyledInstruction>
                 {t(
@@ -77,7 +78,7 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
                 )}
               </StyledInstruction>
               <CodeSnippet dark language="bash">
-                {GENERATE_FILE_SNIPPETS.pytest}
+                {GENERATE_FILE_SNIPPETS[selectedFramework]}
               </CodeSnippet>
             </Fragment>
           ) : null}

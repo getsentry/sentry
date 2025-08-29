@@ -18,13 +18,16 @@ export default Storybook.story('Input', (story, APIReference) => {
         </p>
         <Grid>
           <Label>
-            <code>md (default):</code> <Input size="md" defaultValue="" />
+            <Storybook.JSXProperty name="size" value="md" />
+            <Input size="md" defaultValue="" />
           </Label>
           <Label>
-            <code>sm:</code> <Input size="sm" defaultValue="value" />
+            <Storybook.JSXProperty name="size" value="sm" />
+            <Input size="sm" defaultValue="value" />
           </Label>
           <Label>
-            <code>xs:</code> <Input size="xs" defaultValue="" placeholder="placeholder" />
+            <Storybook.JSXProperty name="size" value="xs" />
+            <Input size="xs" defaultValue="" placeholder="placeholder" />
           </Label>
         </Grid>
       </Fragment>
@@ -45,7 +48,7 @@ export default Storybook.story('Input', (story, APIReference) => {
         </p>
         <Grid>
           <Label>
-            <code>disabled:</code>{' '}
+            <Storybook.JSXProperty name="disabled" value="true" />
             <Input
               disabled
               value={disabledValue}
@@ -53,7 +56,7 @@ export default Storybook.story('Input', (story, APIReference) => {
             />
           </Label>
           <Label>
-            <code>aria-disabled:</code>{' '}
+            <Storybook.JSXProperty name="aria-disabled" value="true" />
             <Input
               aria-disabled
               value={value}
@@ -63,7 +66,7 @@ export default Storybook.story('Input', (story, APIReference) => {
             />
           </Label>
           <Label>
-            <code>readonly:</code>{' '}
+            <Storybook.JSXProperty name="readOnly" value="true" />
             <Input
               readOnly
               value={readonlyValue}
