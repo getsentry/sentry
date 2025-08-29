@@ -366,6 +366,8 @@ function EditAccessSelector({
       }}
       menuFooter={dropdownFooterButtons}
       onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
+      strategy="fixed"
+      preventOverflowOptions={{mainAxis: false}}
     />
   );
 
