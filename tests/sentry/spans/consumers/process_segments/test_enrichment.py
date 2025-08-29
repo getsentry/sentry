@@ -367,10 +367,10 @@ def test_emit_ops_breakdown() -> None:
     _ = Enricher.enrich_spans(spans)
     updates = compute_breakdowns(spans, breakdowns_config)
 
-    assert updates["span_ops.ops.http"]["value"] == 3600000.0
-    assert updates["span_ops.ops.db"]["value"] == 7200000.0
-    assert updates["span_ops_2.ops.http"]["value"] == 3600000.0
-    assert updates["span_ops_2.ops.db"]["value"] == 7200000.0
+    assert updates["span_ops.ops.http"] == 3600000.0
+    assert updates["span_ops.ops.db"] == 7200000.0
+    assert updates["span_ops_2.ops.http"] == 3600000.0
+    assert updates["span_ops_2.ops.db"] == 7200000.0
 
     # NOTE: Relay used to extract a total.time breakdown, which is no longer
     # included in span breakdowns.

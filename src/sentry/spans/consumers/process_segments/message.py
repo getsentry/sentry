@@ -91,7 +91,7 @@ def _enrich_spans(unprocessed_spans: list[SegmentSpan]) -> tuple[Span | None, li
 def _compute_breakdowns(segment: Span, spans: list[Span], project: Project) -> None:
     config = project.get_option("sentry:breakdowns")
     breakdowns = compute_breakdowns(spans, config)
-    segment.setdefault("measurements", {}).update(breakdowns)
+    segment.setdefault("data", {}).update(breakdowns)
 
 
 @metrics.wraps("spans.consumers.process_segments.create_models")
