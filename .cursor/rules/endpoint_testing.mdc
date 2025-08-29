@@ -1,0 +1,46 @@
+---
+description: Sentry Endpoint testing rules
+globs: tests/sentry/api/test_*.py,tests/sentry/*/endpoints/test_*.py
+alwaysApply: true
+---
+# Sentry API Testing Rules
+
+**Filepaths:** `tests/sentry/*/test_*.py`
+
+## Test Structure
+
+```python
+@region_silo_test  # or @control_silo_test
+class OrganizationResourceTest(APITestCase):
+    endpoint = "sentry-api-0-organization-resource"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+```
+
+## Required Test Coverage
+
+### Success Cases
+- `test_list_resources()` - Test GET with data
+- `test_list_empty()` - Test GET with no data
+- `test_create_resource_minimal()` - Test POST with required fields only
+- `test_create_resource_full()` - Test POST with all fields
+
+### Error Cases
+- `test_missing_required_fields()` - Test validation errors (400)
+- `test_permission_denied()` - Test access control (403)
+- `test_cross_organization_isolation()` - Test data isolation
+
+### Edge Cases
+- `test_pagination()` - Test pagination when applicable
+- `test_ordering()` - Test result ordering
+- `test_field_validation()` - Test field constraints
+
+## Test Patterns
+
+- Use `self.get_success_response()` for expected success
+- Use `self.get_error_response()` for expected errors
+- Verify database state after operations
+- Test both minimal and full data scenarios
+- Include descriptive docstrings
