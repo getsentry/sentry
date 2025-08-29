@@ -55,55 +55,6 @@ function ProfileFlamegraph(): React.ReactElement {
   return <Flamegraph />;
 }
 
-// This only exists because we need to call useFlamegraphPreferences
-// to get the type of visualization that the user is looking at and
-// we cannot do it in the component above as it is not a child of the
-// FlamegraphStateProvider.
-function ProfileGroupTypeProvider({
-  children,
-  input,
-  traceID,
-}: {
-  children: React.ReactNode;
-  input: Profiling.ProfileInput | null;
-  traceID: string;
-}) {
-  const preferences = useFlamegraphPreferences();
-  return (
-    <ProfileGroupProvider
-      input={input}
-      traceID={traceID}
-      type={preferences.sorting === 'call order' ? 'flamechart' : 'flamegraph'}
-    >
-      {children}
-    </ProfileGroupProvider>
-  );
-}
-
-const LoadingIndicatorContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-`;
-
-const FlamegraphContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
-
-  /*
-   * The footer component is a sibling of this div.
-   * Remove it so the flamegraph can take up the
-   * entire screen.
-   */
-  ~ footer {
-    display: none;
-  }
-`;
-
 export default function ProfileFlamegraphWrapper() {
   const organization = useOrganization();
   const profiles = useProfiles();
@@ -173,3 +124,52 @@ export default function ProfileFlamegraphWrapper() {
     </SentryDocumentTitle>
   );
 }
+
+// This only exists because we need to call useFlamegraphPreferences
+// to get the type of visualization that the user is looking at and
+// we cannot do it in the component above as it is not a child of the
+// FlamegraphStateProvider.
+function ProfileGroupTypeProvider({
+  children,
+  input,
+  traceID,
+}: {
+  children: React.ReactNode;
+  input: Profiling.ProfileInput | null;
+  traceID: string;
+}) {
+  const preferences = useFlamegraphPreferences();
+  return (
+    <ProfileGroupProvider
+      input={input}
+      traceID={traceID}
+      type={preferences.sorting === 'call order' ? 'flamechart' : 'flamegraph'}
+    >
+      {children}
+    </ProfileGroupProvider>
+  );
+}
+
+const LoadingIndicatorContainer = styled('div')`
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+`;
+
+const FlamegraphContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+
+  /*
+   * The footer component is a sibling of this div.
+   * Remove it so the flamegraph can take up the
+   * entire screen.
+   */
+  ~ footer {
+    display: none;
+  }
+`;
