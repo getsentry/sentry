@@ -116,7 +116,7 @@
     "dompurify": "3.2.5",
     "downsample": "1.4.0",
     "echarts": "6.0.0",
-    "echarts-for-react": "3.0.2",
+    "echarts-for-react": "3.0.4",
     "esbuild": "0.25.3",
     "focus-trap": "7.6.5",
     "framer-motion": "12.23.12",
