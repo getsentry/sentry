@@ -1,4 +1,5 @@
 import moment from 'moment-timezone';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
@@ -282,5 +283,74 @@ describe('Cart', () => {
       />
     );
     expect(await screen.findByRole('button', {name: 'Confirm and pay'})).toBeDisabled();
+  });
+
+  it('renders buttons and subtext for migrating partner customers', async () => {
+    const partnerOrg = OrganizationFixture({features: ['partner-billing-migration']});
+    const partnerSub = SubscriptionFixture({
+      organization: partnerOrg,
+      partner: {
+        externalId: 'whateva',
+        isActive: true,
+        partnership: {
+          displayName: 'Partner',
+          id: '123',
+          supportNote: 'Support note',
+        },
+        name: 'partner',
+      },
+      contractPeriodEnd: moment(MOCK_TODAY).add(7, 'days').toISOString(),
+    });
+
+    render(
+      <Cart
+        activePlan={businessPlan!}
+        formData={defaultFormData}
+        hasCompleteBillingDetails
+        organization={partnerOrg}
+        subscription={partnerSub}
+      />
+    );
+
+    expect(await screen.findByRole('button', {name: 'Migrate Now'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Schedule changes'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Confirm and pay'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /These changes will take effect at the end of your current Partner sponsored plan on Jun 14, 2022/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders subtext for self-serve partner customers', async () => {
+    const partnerSub = SubscriptionFixture({
+      organization,
+      isSelfServePartner: true,
+      partner: {
+        externalId: 'whateva',
+        isActive: true,
+        partnership: {
+          displayName: 'Partner',
+          id: '123',
+          supportNote: 'Support note',
+        },
+        name: 'partner',
+      },
+    });
+
+    render(
+      <Cart
+        activePlan={businessPlan!}
+        formData={defaultFormData}
+        hasCompleteBillingDetails
+        organization={organization}
+        subscription={partnerSub}
+      />
+    );
+
+    expect(await screen.findByText(/you will be billed by Partner/)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Confirm and pay'})).toBeInTheDocument();
   });
 });
