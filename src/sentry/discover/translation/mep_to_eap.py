@@ -241,7 +241,7 @@ def translate_equations(equations):
     This is used to translate arithmetic equations to EAP compatible equations.
     It ideally takes in equations with equation notation and returns the EAP equation with equation notation.
     @param equations: list of equations to translate
-    @return: (translated_equations, dropped_equations, dropped_fields)
+    @return: (translated_equations, dropped_equations)
     """
     if equations is None:
         return None, None
