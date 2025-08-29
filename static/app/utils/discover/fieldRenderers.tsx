@@ -625,17 +625,15 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       };
 
       return (
-        <Container>
-          <QuickContextHoverWrapper
-            dataRow={data}
-            contextType={ContextType.ISSUE}
-            organization={organization}
-          >
-            <StyledLink to={target} aria-label={issueID}>
-              <OverflowFieldShortId shortId={`${data.issue}`} />
-            </StyledLink>
-          </QuickContextHoverWrapper>
-        </Container>
+        <QuickContextHoverWrapper
+          dataRow={data}
+          contextType={ContextType.ISSUE}
+          organization={organization}
+        >
+          <StyledLink to={target} aria-label={issueID}>
+            <OverflowFieldShortId shortId={`${data.issue}`} />
+          </StyledLink>
+        </QuickContextHoverWrapper>
       );
     },
   },
