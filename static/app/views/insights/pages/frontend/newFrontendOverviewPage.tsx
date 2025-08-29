@@ -66,7 +66,7 @@ export function NewFrontendOverviewPage() {
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const search = useFrontendQuery();
+  const search = useFrontendQuery({includeWebVitalOps: true});
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
   const spanOp: PageSpanOps = getSpanOpFromQuery(

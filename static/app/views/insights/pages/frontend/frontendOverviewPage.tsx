@@ -48,10 +48,10 @@ import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
   DEFAULT_SORT,
   DEFAULT_SPAN_OP_SELECTION,
-  EAP_OVERVIEW_PAGE_ALLOWED_OPS,
   FRONTEND_LANDING_TITLE,
   PAGE_SPAN_OPS,
   SPAN_OP_QUERY_PARAM,
+  WEB_VITALS_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
@@ -129,7 +129,7 @@ function EAPOverviewPage() {
   existingQuery.addOp('(');
 
   if (spanOp === 'all') {
-    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload', 'navigation'];
+    const spanOps = [...WEB_VITALS_OPS, 'navigation'];
     existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
     // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
     if (selectedFrontendProjects.length > 0) {
@@ -140,7 +140,7 @@ function EAPOverviewPage() {
       );
     }
   } else if (spanOp === 'pageload') {
-    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload'];
+    const spanOps = [...WEB_VITALS_OPS];
     existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
   } else if (spanOp === 'navigation') {
     // navigation span ops doesn't work for web vitals, so we do need to filter for web vital spans
