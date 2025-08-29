@@ -25,7 +25,7 @@ import {SPAN_OP_QUERY_PARAM} from 'sentry/views/insights/pages/frontend/settings
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-type Row = Pick<
+export type Row = Pick<
   SpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
