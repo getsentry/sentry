@@ -1,15 +1,8 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
 
 const TRANSACTION_NAME = 'transaction';
 
@@ -19,10 +12,6 @@ describe('PageOverviewSidebar', () => {
   });
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
-
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {
@@ -100,12 +89,12 @@ describe('PageOverviewSidebar', () => {
     render(<PageOverviewSidebar transaction={TRANSACTION_NAME} />, {organization});
 
     expect(await screen.findByText('Seer Suggestions')).toBeInTheDocument();
-    expect(screen.getByText('LCP score needs improvement')).toBeInTheDocument();
+    expect(await screen.findByText('LCP score needs improvement')).toBeInTheDocument();
     expect(
-      screen.getByText(
+      await screen.findByText(
         'Unoptimized screenshot images are directly embedded, causing large downloads and delaying Largest Contentful Paint on issue detail pages.'
       )
     ).toBeInTheDocument();
-    expect(screen.getByText('View Suggestion')).toBeInTheDocument();
+    expect(await screen.findByText('View Suggestion')).toBeInTheDocument();
   });
 });
