@@ -12,6 +12,7 @@ from sentry.integrations.aws_lambda.utils import (
     get_index_of_sentry_layer,
     get_latest_layer_for_function,
     get_latest_layer_version,
+    get_node_options_for_layer,
     get_option_value,
     get_supported_functions,
     get_version_of_arn,
@@ -199,3 +200,37 @@ class GetOptionValueTest(TestCase):
                 match="Could not find cache value with key aws-layer:node",
             ):
                 get_option_value(self.node_fn, OPTION_VERSION)
+
+
+class GetNodeOptionsForLayerTest(TestCase):
+    """Test the get_node_options_for_layer function for different layer scenarios."""
+
+    def test_v7_layer_name(self) -> None:
+        """Test SentryNodeServerlessSDKv7 returns v7 SDK options."""
+        result = get_node_options_for_layer("SentryNodeServerlessSDKv7", None)
+        assert result == "-r @sentry/serverless/dist/awslambda-auto"
+
+    def test_sentry_node_serverless_sdk_version_236_boundary(self) -> None:
+        """Test SentryNodeServerlessSDK at version boundary 236 returns v8 SDK options."""
+        result = get_node_options_for_layer("SentryNodeServerlessSDK", 236)
+        assert result == "-r @sentry/aws-serverless/awslambda-auto"
+
+    def test_v8_layer_name(self) -> None:
+        """Test SentryNodeServerlessSDKv8 returns v8 SDK options with -r."""
+        result = get_node_options_for_layer("SentryNodeServerlessSDKv8", None)
+        assert result == "-r @sentry/aws-serverless/awslambda-auto"
+
+    def test_v10_layer_name(self) -> None:
+        """Test SentryNodeServerlessSDKv10 at version boundary 13 returns v8 SDK options with -r."""
+        result = get_node_options_for_layer("SentryNodeServerlessSDKv10", 13)
+        assert result == "-r @sentry/aws-serverless/awslambda-auto"
+
+    def test_v10_layer_version_14_boundary(self) -> None:
+        """Test SentryNodeServerlessSDKv10 at version boundary 14 returns v10+ SDK options with --import."""
+        result = get_node_options_for_layer("SentryNodeServerlessSDKv10", 14)
+        assert result == "--import @sentry/aws-serverless/awslambda-auto"
+
+    def test_v11_layer_name(self) -> None:
+        """Test SentryNodeServerlessSDKv11 returns v10+ SDK options with --import."""
+        result = get_node_options_for_layer("SentryNodeServerlessSDKv11", None)
+        assert result == "--import @sentry/aws-serverless/awslambda-auto"

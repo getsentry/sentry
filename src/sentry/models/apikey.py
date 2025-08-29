@@ -61,7 +61,7 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
             api_key=serialize_api_key(self), region_name=region_name
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"api_key_id={self.id}, status={self.status}"
 
     @classmethod

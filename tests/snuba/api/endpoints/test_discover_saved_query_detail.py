@@ -7,12 +7,13 @@ from sentry.discover.models import (
     DiscoverSavedQueryTypes,
 )
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     feature_name = "organizations:discover"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
@@ -153,6 +154,8 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
                 {
                     "name": "New query",
                     "projects": self.project_ids,
+                    "start": before_now(hours=1).isoformat(),
+                    "end": before_now().isoformat(),
                     "fields": [],
                     "range": "24h",
                     "limit": 20,
@@ -501,7 +504,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
 
 class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)

@@ -50,10 +50,10 @@ interface EventDetailsHeaderProps {
 }
 
 export function EventDetailsHeader({group, event, project}: EventDetailsHeaderProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({groupId: group.id});
   const issueTypeConfig = getConfigForIssueType(group, project);
@@ -96,6 +96,8 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     return null;
   }
 
+  const FilterBar = theme.isChonk ? PageFilterBar : StyledPageFilterBar;
+
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
       <DetailsContainer
@@ -120,7 +122,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                 columns="auto minmax(100px, 1fr) auto"
                 rows={`minmax(${theme.form.md.height}, auto)`}
               >
-                <PageFilterBar condensed>
+                <FilterBar>
                   <EnvironmentSelector group={group} event={event} project={project} />
                   <TimeRangeSelector
                     menuTitle={t('Filter Time Range')}
@@ -164,8 +166,13 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                         ? t('Since First Seen')
                         : undefined
                     }
+                    triggerProps={{
+                      style: {
+                        padding: `${theme.space.md} ${theme.space.lg}`,
+                      },
+                    }}
                   />
-                </PageFilterBar>
+                </FilterBar>
                 <EventSearch
                   group={group}
                   handleSearch={query => {
@@ -222,6 +229,10 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   const issueTypeConfig = getConfigForIssueType(group, project);
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
+  const theme = useTheme();
+  const style = {
+    padding: `${theme.space.md} ${theme.space.lg}`,
+  };
 
   return isFixedEnvironment ? (
     <EnvironmentPageFilter
@@ -229,10 +240,11 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
       triggerProps={{
         label: eventEnvironment ?? t('All Envs'),
         title: t('This issue only occurs in a single environment'),
+        style,
       }}
     />
   ) : (
-    <EnvironmentPageFilter />
+    <EnvironmentPageFilter triggerProps={{style}} />
   );
 }
 
@@ -242,20 +254,24 @@ const DetailsContainer = styled('div')<{
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.lg};
   background: ${p => p.theme.backgroundSecondary};
-  padding-left: ${p => p.theme.space.lg};
-  padding-right: ${p => p.theme.space.lg};
-  padding-top: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space['2xl']};
+  padding-right: ${p => p.theme.space['2xl']};
+  padding-top: ${p => p.theme.space.lg};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     border-right: 1px solid ${p => p.theme.translucentBorder};
   }
 `;
 
+const StyledPageFilterBar = styled(PageFilterBar)`
+  background: ${p => p.theme.tokens.background.primary};
+`;
+
 const GraphSection = styled('div')`
   display: flex;
-  gap: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.lg};
   & > * {
     background: ${p => p.theme.background};
     border-radius: ${p => p.theme.borderRadius};

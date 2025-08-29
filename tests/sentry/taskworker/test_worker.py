@@ -28,6 +28,7 @@ from sentry.taskworker.worker import TaskWorker
 from sentry.taskworker.workerchild import ProcessingDeadlineExceeded, child_process
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.redis import redis_clusters
 
 SIMPLE_TASK = InflightTaskActivation(
@@ -150,6 +151,7 @@ COMPRESSED_TASK = InflightTaskActivation(
 
 
 @pytest.mark.django_db
+@thread_leak_allowlist(reason="taskworker", issue=97034)
 class TestTaskWorker(TestCase):
     def test_tasks_exist(self) -> None:
         import sentry.taskworker.tasks.examples as example_tasks
@@ -160,7 +162,7 @@ class TestTaskWorker(TestCase):
 
     def test_fetch_task(self) -> None:
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=100, process_type="fork"
         )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = SIMPLE_TASK
@@ -173,7 +175,7 @@ class TestTaskWorker(TestCase):
 
     def test_fetch_no_task(self) -> None:
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=100, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=100, process_type="fork"
         )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = None
@@ -185,7 +187,7 @@ class TestTaskWorker(TestCase):
     def test_run_once_no_next_task(self) -> None:
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
@@ -218,7 +220,7 @@ class TestTaskWorker(TestCase):
         # be processed.
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -257,8 +259,7 @@ class TestTaskWorker(TestCase):
         # Cover the scenario where taskworker.fetch_next.disabled_pools is defined
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051",
-            num_brokers=1,
+            broker_hosts=["127.0.0.1:50051"],
             max_child_task_count=1,
             process_type="fork",
             processing_pool_name="testing",
@@ -294,7 +295,7 @@ class TestTaskWorker(TestCase):
         # We should retain the result until RPC succeeds.
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -337,7 +338,7 @@ class TestTaskWorker(TestCase):
         # to raise and catch a NoRetriesRemainingError
         max_runtime = 5
         taskworker = TaskWorker(
-            rpc_host="127.0.0.1:50051", num_brokers=1, max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 

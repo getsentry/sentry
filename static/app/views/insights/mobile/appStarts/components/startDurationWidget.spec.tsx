@@ -23,7 +23,7 @@ describe('StartDurationWidget', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(usePageFilters).mockReturnValue(
       PageFilterStateFixture({
         selection: {
@@ -67,7 +67,7 @@ describe('StartDurationWidget', () => {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

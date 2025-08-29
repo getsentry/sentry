@@ -32,7 +32,6 @@ from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -141,6 +140,7 @@ from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
+from sentry.services.eventstore.models import Event
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -187,6 +187,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
 from social_auth.models import UserSocialAuth
 
@@ -1993,7 +1994,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_webhook_payload(mailbox_name: str, region_name: str, **kwargs) -> WebhookPayload:
+    def create_webhook_payload(
+        mailbox_name: str, region_name: str | None, **kwargs
+    ) -> WebhookPayload:
         payload_kwargs = {
             "request_method": "POST",
             "request_path": "/extensions/github/webhook/",
@@ -2301,6 +2304,15 @@ class Factories:
         if workflow is None:
             workflow = Factories.create_workflow()
         return DetectorWorkflow.objects.create(detector=detector, workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector_group(
+        detector: Detector,
+        group: Group,
+        **kwargs,
+    ) -> DetectorGroup:
+        return DetectorGroup.objects.create(detector=detector, group=group, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

@@ -219,8 +219,8 @@ class ProjectBoostedReleases:
         lrb_release = None
         active_releases = 0
         keys_to_delete = []
-        for boosted_release_key, timestamp in boosted_releases.items():
-            timestamp = float(timestamp)
+        for boosted_release_key, ts in boosted_releases.items():
+            timestamp = float(ts)
 
             # For efficiency reasons we don't parse the release and extend it with information, therefore we have to
             # check timestamps in the following way.
@@ -385,8 +385,8 @@ def record_latest_release(project: Project, release: Release, environment: str |
             "dynamic_sampling.observe_release_status",
             "(release, environment) pair observed and boosted",
         )
-        span.set_attribute("release", release.id)
-        span.set_attribute("environment", environment)
+        span.set_data("release", release.id)
+        span.set_data("environment", environment)
 
         schedule_invalidate_project_config(
             project_id=project.id,

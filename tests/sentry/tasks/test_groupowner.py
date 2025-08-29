@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
@@ -306,6 +306,8 @@ class TestGroupOwners(TestCase):
         )
 
         date_added_before_update = go.date_added
+        assert go.context == {"suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED}
+
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
@@ -315,6 +317,7 @@ class TestGroupOwners(TestCase):
         )
         go.refresh_from_db()
         assert go.date_added > date_added_before_update
+        assert go.context == {"suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED}
         assert GroupOwner.objects.filter(group=self.event.group).count() == 1
         assert GroupOwner.objects.get(
             group=self.event.group,

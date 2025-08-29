@@ -22,10 +22,10 @@ import type {
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
+import ReactEchartsCore from 'echarts-for-react/lib/core';
 import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
-import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {space} from 'sentry/styles/space';

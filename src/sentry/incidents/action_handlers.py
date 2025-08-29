@@ -509,12 +509,16 @@ def generate_incident_trigger_email_context(
     trigger_threshold: float,
     user: User | RpcUser | None = None,
     notification_uuid: str | None = None,
-):
+) -> dict[str, Any]:
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+    from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 
     snuba_query = metric_issue_context.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
-    is_threshold_type_above = alert_context.threshold_type == AlertRuleThresholdType.ABOVE
+    is_threshold_type_above = (
+        alert_context.threshold_type == AlertRuleThresholdType.ABOVE
+        or alert_context.threshold_type == AnomalyDetectionThresholdType.ABOVE
+    )
     subscription = metric_issue_context.subscription
     alert_link_params = {
         "referrer": "metric_alert_email",

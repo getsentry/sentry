@@ -84,6 +84,7 @@ BACKEND = {
     "node-express",
     "node-fastify",
     "node-hapi",
+    "node-hono",
     "node-koa",
     "node-nestjs",
     "perl",
@@ -158,14 +159,18 @@ DESKTOP = {
     "unreal",
 }
 
+CONSOLES = {
+    "nintendo-switch",
+    "playstation",
+    "xbox",
+}
+
 GAMING = {
     "godot",
     "native",
-    "nintendo-switch",
-    "playstation",
     "unity",
     "unreal",
-    "xbox",
+    *CONSOLES,
 }
 
 CATEGORY_LIST = [

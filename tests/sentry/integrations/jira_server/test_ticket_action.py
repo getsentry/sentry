@@ -2,10 +2,10 @@ import responses
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -46,7 +46,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(user=self.user)
 
-    def trigger(self, event: GroupEvent, rule_object: Rule):
+    def trigger(self, event: GroupEvent, rule_object: Rule) -> object:
         action = rule_object.data.get("actions", ())[0]
         action_inst = self.get_rule(data=action, rule=rule_object)
         results = list(action_inst.after(event=event))
@@ -55,7 +55,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
-    def get_key(self, event: GroupEvent):
+    def get_key(self, event: GroupEvent) -> str:
         return ExternalIssue.objects.get_linked_issues(event, self.integration).values_list(
             "key", flat=True
         )[0]

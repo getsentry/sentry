@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 
-describe('PerformanceScoreRingWithTooltips', function () {
+describe('PerformanceScoreRingWithTooltips', () => {
   it('renders segment labels', async () => {
     const projectScore = {
       lcpScore: 74,

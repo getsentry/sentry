@@ -325,7 +325,7 @@ class ActivityTest(TestCase):
     @patch("sentry.tasks.activity.send_activity_notifications.delay")
     def test_skips_status_change_notifications_if_disabled(
         self, mock_send_activity_notifications: MagicMock
-    ):
+    ) -> None:
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)
 
@@ -344,6 +344,38 @@ class ActivityTest(TestCase):
         with patch.object(MetricIssue, "enable_status_change_workflow_notifications", False):
             _ = Activity.objects.create_group_activity(
                 group=group, type=ActivityType.SET_RESOLVED, data=None, send_notification=True
+            )
+
+        mock_send_activity_notifications.assert_not_called()
+
+    @patch("sentry.tasks.activity.send_activity_notifications.delay")
+    def test_skips_workflow_notifications_if_disabled(
+        self, mock_send_activity_notifications: MagicMock
+    ) -> None:
+        project = self.create_project(name="test_activities_group")
+        group = self.create_group(project)
+
+        # Create an assignment activity that would normally trigger a notification
+        activity = Activity.objects.create_group_activity(
+            group=group,
+            type=ActivityType.ASSIGNED,
+            data={"assignee": self.user},
+            send_notification=True,
+        )
+
+        mock_send_activity_notifications.assert_called_once_with(activity.id)
+        mock_send_activity_notifications.reset_mock()
+
+        group.type = MetricIssue.type_id
+        group.save()
+
+        # Mock the MetricIssue to disable workflow notifications
+        with patch.object(MetricIssue, "enable_workflow_notifications", False):
+            _ = Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": self.user},
+                send_notification=True,
             )
 
         mock_send_activity_notifications.assert_not_called()

@@ -50,6 +50,9 @@ class ProfileData(BaseModel):
     transaction_name: str | None
     execution_tree: list[ExecutionTreeNode]
     project_id: int
+    start_ts: float | None = None
+    end_ts: float | None = None
+    is_continuous: bool = False
 
 
 class TraceProfiles(BaseModel):
@@ -59,7 +62,7 @@ class TraceProfiles(BaseModel):
 
 
 class IssueDetails(BaseModel):
-    issue_id: int
+    id: int
     title: str
     culprit: str | None
     transaction: str | None

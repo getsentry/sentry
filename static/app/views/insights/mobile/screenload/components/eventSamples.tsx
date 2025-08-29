@@ -18,6 +18,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 import {SpanFields} from 'sentry/views/insights/types';
+
 // test
 const DEFAULT_SORT = {
   kind: 'desc',
@@ -124,7 +125,7 @@ export function ScreenLoadEventSamples({
         'measurements.time_to_full_display',
       ],
     },
-    'api.starfish.mobile-event-samples'
+    'api.insights.mobile-event-samples'
   );
 
   return (

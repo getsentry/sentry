@@ -1,3 +1,5 @@
+from typing import Any
+
 from drf_spectacular.utils import OpenApiExample
 
 KEY_RATE_LIMIT = {
@@ -262,6 +264,7 @@ DETAILED_PROJECT = {
     "symbolSources": "[]",
     "tempestFetchScreenshots": False,
     "tempestFetchDumps": False,
+    "debugFilesRole": None,
     "isDynamicallySampled": True,
     "autofixAutomationTuning": "off",
     "seerScannerAutomation": True,
@@ -375,7 +378,7 @@ SYMBOL_SOURCES = [
 ]
 
 
-def project_with_team(extra_team: bool = False):
+def project_with_team(extra_team: bool = False) -> dict[str, Any]:
     teams = [
         {
             "id": "2349234102",

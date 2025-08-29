@@ -1,4 +1,4 @@
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 import {expectTypeOf} from 'expect-type';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -66,6 +66,20 @@ describe('apiOptions', () => {
     });
 
     expect(options.queryKey).toEqual(['/projects/456/123']);
+  });
+
+  test('should allow skipToken as path', () => {
+    function getOptions(id: string | null) {
+      return apiOptions.as<unknown>()('/projects/$id/', {
+        staleTime: 0,
+        path: id ? {id} : skipToken,
+      });
+    }
+
+    expect(getOptions('123').queryFn).toEqual(expect.any(Function));
+    expect(getOptions('123').queryKey).toEqual(['/projects/123/']);
+    expect(getOptions(null).queryFn).toEqual(skipToken);
+    expect(getOptions(null).queryKey).toEqual(['/projects/$id/']);
   });
 
   test('should extract content data per default', async () => {

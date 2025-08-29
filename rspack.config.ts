@@ -1,5 +1,9 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+import path from 'node:path';
+
 import remarkCallout from '@r4ai/remark-callout';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
@@ -13,9 +17,6 @@ import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import fs from 'node:fs';
-import {createRequire} from 'node:module';
-import path from 'node:path';
 import rehypeExpressiveCode from 'rehype-expressive-code';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
@@ -188,7 +189,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
   env: {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
-    coreJs: '3.41.0',
+    coreJs: '3.45.0',
     targets: packageJson.browserslist.production,
     shippedProposals: true,
   },

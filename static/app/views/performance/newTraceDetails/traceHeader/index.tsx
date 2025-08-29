@@ -22,6 +22,7 @@ import {PlaceHolder} from 'sentry/views/performance/newTraceDetails/traceHeader/
 import Projects from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
@@ -43,6 +44,10 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
   const {projects} = useProjects();
+  const {hasLogs} = useTraceContextSections({
+    tree: props.tree,
+    logs: props.logs,
+  });
 
   const isLoading =
     props.metaResults.status === 'pending' ||
@@ -54,7 +59,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     props.rootEventResults.status === 'error' ||
     props.tree.type === 'error';
 
-  if (isLoading || isError) {
+  const noEvents = props.tree.type === 'empty' && !hasLogs;
+  if (isLoading || isError || noEvents) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
 

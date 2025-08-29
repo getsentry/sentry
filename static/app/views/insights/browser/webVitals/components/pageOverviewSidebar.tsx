@@ -1,25 +1,39 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {ExternalLink, Link} from 'sentry/components/core/link';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {
+  makeAutofixQueryKey,
+  type AutofixResponse,
+} from 'sentry/components/events/autofix/useAutofix';
+import {
+  getRootCauseCopyText,
+  getRootCauseDescription,
+  getSolutionCopyText,
+  getSolutionDescription,
+  getSolutionIsLoading,
+} from 'sentry/components/events/autofix/utils';
+import {AutofixSummary} from 'sentry/components/group/groupSummaryWithAutofix';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconFocus, IconSeer} from 'sentry/icons';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
+import {IssueType, type Group} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
-import {usePageSummary} from 'sentry/views/insights/browser/webVitals/queries/usePageSummary';
-import {useSpanSamplesWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useSpanSamplesWebVitalsQuery';
+import {useWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
@@ -46,7 +60,6 @@ export function PageOverviewSidebar({
   subregions,
 }: Props) {
   const hasSeerWebVitalsSuggestions = useHasSeerWebVitalsSuggestions();
-  const organization = useOrganization();
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
@@ -114,28 +127,11 @@ export function PageOverviewSidebar({
   const ringSegmentColors = theme.chart.getColorPalette(4);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
-  // Query for 3 trace samples, targetting pageloads
-  const {data: traceSamples} = useSpanSamplesWebVitalsQuery({
+  const {data: issues, isLoading: isLoadingIssues} = useWebVitalsIssuesQuery({
+    issueTypes: [IssueType.WEB_VITALS],
     transaction,
-    limit: 3,
-    webVital: 'ttfb', // Using TTFB as a proxy for pageloads
     enabled: hasSeerWebVitalsSuggestions,
   });
-
-  const traceIds = traceSamples?.map(sample => sample.trace);
-
-  const {data: pageSummary, isLoading: isLoadingPageSummary} = usePageSummary(traceIds, {
-    enabled: hasSeerWebVitalsSuggestions && traceIds && traceIds.length > 0,
-  });
-
-  const insightCards = [
-    {
-      id: 'suggestions',
-      title: t('Suggestions'),
-      insight: pageSummary?.suggestedInvestigations,
-      icon: <IconFocus size="sm" />,
-    },
-  ];
 
   return (
     <Fragment>
@@ -169,57 +165,17 @@ export function PageOverviewSidebar({
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}
       </SidebarPerformanceScoreRingContainer>
       <SidebarSpacer />
-      {hasSeerWebVitalsSuggestions && (
+      {hasSeerWebVitalsSuggestions && !isLoadingIssues && issues && issues.length > 0 && (
         <Fragment>
           <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
           <Content>
             <InsightGrid>
-              {isLoadingPageSummary && <Placeholder height="1.5rem" />}
-              {insightCards.map(card => {
-                if (!card.insight || typeof card.insight !== 'object') {
-                  return null;
-                }
-                return card.insight.map(insight => (
-                  <InsightCard key={card.id}>
-                    <CardTitle>
-                      <CardTitleIcon>
-                        <StyledIconSeer size="md" />
-                      </CardTitleIcon>
-                      <div>
-                        <SpanOp>{insight.spanOp}</SpanOp>
-                        <Summary>
-                          {' \u2014 '}
-                          {insight.explanation}
-                        </Summary>
-                      </div>
-                    </CardTitle>
-                    <CardContentContainer>
-                      <CardLineDecorationWrapper>
-                        <CardLineDecoration />
-                      </CardLineDecorationWrapper>
-                      <CardContent>
-                        <SuggestionsList>
-                          {insight.suggestions.map((suggestion, i) => (
-                            <li key={i}>{suggestion}</li>
-                          ))}
-                        </SuggestionsList>
-                        <SuggestionLinks>
-                          <Link
-                            to={`/organizations/${organization.slug}/insights/frontend/trace/${insight.traceId}/?node=span-${insight.spanId}`}
-                          >
-                            {t('Example')}
-                          </Link>
-                          {insight.referenceUrl && (
-                            <ExternalLink href={insight.referenceUrl}>
-                              {t('Reference')}
-                            </ExternalLink>
-                          )}
-                        </SuggestionLinks>
-                      </CardContent>
-                    </CardContentContainer>
-                  </InsightCard>
-                ));
-              })}
+              {isLoadingIssues && <Placeholder height="1.5rem" />}
+              {issues
+                ? issues.map(issue => (
+                    <IssueAutofixSuggestions key={issue.shortId} issue={issue} />
+                  ))
+                : null}
             </InsightGrid>
           </Content>
         </Fragment>
@@ -312,6 +268,80 @@ export function PageOverviewSidebar({
   );
 }
 
+function IssueAutofixSuggestions({issue}: {issue: Group}) {
+  const organization = useOrganization();
+  const {data, isLoading: isLoadingAutofix} = useApiQuery<AutofixResponse>(
+    makeAutofixQueryKey(organization.slug, issue.id),
+    {
+      staleTime: Infinity,
+    }
+  );
+
+  const autofixData = data?.autofix;
+
+  const rootCauseDescription = useMemo(
+    () => (autofixData ? getRootCauseDescription(autofixData) : null),
+    [autofixData]
+  );
+
+  const rootCauseCopyText = useMemo(
+    () => (autofixData ? getRootCauseCopyText(autofixData) : null),
+    [autofixData]
+  );
+
+  const solutionDescription = useMemo(
+    () => (autofixData ? getSolutionDescription(autofixData) : null),
+    [autofixData]
+  );
+
+  const solutionCopyText = useMemo(
+    () => (autofixData ? getSolutionCopyText(autofixData) : null),
+    [autofixData]
+  );
+
+  const solutionIsLoading = useMemo(
+    () => (autofixData ? getSolutionIsLoading(autofixData) : false),
+    [autofixData]
+  );
+
+  if (isLoadingAutofix) {
+    return <Placeholder height="1.5rem" />;
+  }
+
+  return (
+    <InsightCard key={issue.shortId}>
+      <CardTitle>
+        <CardTitleIcon>
+          <StyledIconSeer size="md" />
+        </CardTitleIcon>
+        <SpanOp>{issue.title}</SpanOp>
+      </CardTitle>
+      <CardContentContainer>
+        <CardContent>
+          <AutofixSummary
+            group={issue}
+            rootCauseDescription={rootCauseDescription}
+            solutionDescription={solutionDescription}
+            codeChangesDescription={null}
+            codeChangesIsLoading={false}
+            rootCauseCopyText={rootCauseCopyText}
+            solutionCopyText={solutionCopyText}
+            solutionIsLoading={solutionIsLoading}
+          />
+          <ViewIssueButtonContainer>
+            <LinkButton
+              to={`/organizations/${organization.slug}/issues/${issue.id}?seerDrawer=true`}
+              size="sm"
+            >
+              {t('View Suggestion')}
+            </LinkButton>
+          </ViewIssueButtonContainer>
+        </CardContent>
+      </CardContentContainer>
+    </InsightCard>
+  );
+}
+
 const getChartSubText = (
   diff?: number,
   value?: string | number,
@@ -375,7 +405,7 @@ const SidebarPerformanceScoreRingContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ChartValue = styled('div')`
@@ -390,7 +420,7 @@ const ChartSubText = styled('div')<{color?: string}>`
 const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSize.md};
@@ -402,18 +432,16 @@ const ProjectScoreEmptyLoadingElement = styled('div')`
   height: 160px;
 `;
 
-const Content = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
+const Content = styled(Flex)`
+  gap: ${p => p.theme.space.xs};
   position: relative;
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
 `;
 
 const InsightGrid = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const InsightCard = styled('div')`
@@ -427,20 +455,15 @@ const InsightCard = styled('div')`
 const CardTitle = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  padding-bottom: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 const SpanOp = styled('p')`
   margin: 0;
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
-  display: inline;
-`;
-const Summary = styled('p')`
-  margin: 0;
-  font-size: ${p => p.theme.fontSize.md};
-  display: inline;
+  display: block;
 `;
 
 const CardTitleIcon = styled('div')`
@@ -452,22 +475,7 @@ const CardTitleIcon = styled('div')`
 const CardContentContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-`;
-
-const CardLineDecorationWrapper = styled('div')`
-  display: flex;
-  width: 14px;
-  align-self: stretch;
-  justify-content: center;
-  flex-shrink: 0;
-  padding: 0.275rem 0;
-`;
-
-const CardLineDecoration = styled('div')`
-  width: 1px;
-  align-self: stretch;
-  background-color: ${p => p.theme.border};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const CardContent = styled('div')`
@@ -483,21 +491,10 @@ const CardContent = styled('div')`
   flex: 1;
 `;
 
-const SuggestionsList = styled('ul')`
-  margin: ${space(0.5)} 0;
-`;
-
-const SuggestionLinks = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-
-  > *:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.border};
-    padding-right: ${space(1)};
-  }
-`;
-
 const StyledIconSeer = styled(IconSeer)`
   color: ${p => p.theme.blue400};
+`;
+
+const ViewIssueButtonContainer = styled('div')`
+  margin: ${p => p.theme.space.lg} 0;
 `;

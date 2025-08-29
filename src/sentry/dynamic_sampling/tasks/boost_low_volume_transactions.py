@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections.abc import Callable, Iterator, Sequence
 from datetime import datetime
-from typing import TypedDict, cast
+from typing import TypedDict
 
 import sentry_sdk
 from snuba_sdk import (
@@ -72,23 +74,19 @@ class ProjectIdentity(TypedDict, total=True):
     org_id: int
 
 
-class ProjectTransactions(TypedDict, total=True):
+class ProjectTransactions(ProjectIdentity, total=True):
     """
     Information about the project transactions
     """
 
-    project_id: int
-    org_id: int
     transaction_counts: list[tuple[str, float]]
     total_num_transactions: float | None
     total_num_classes: int | None
 
 
-class ProjectTransactionsTotals(TypedDict, total=True):
-    project_id: int
-    org_id: int
+class ProjectTransactionsTotals(ProjectIdentity, total=True):
     total_num_transactions: float
-    total_num_classes: int
+    total_num_classes: int | float
 
 
 @instrumented_task(
@@ -121,7 +119,14 @@ def boost_low_volume_transactions(context: TaskContext) -> None:
     get_volumes_small = "GetTransactionVolumes(small)"
     get_volumes_big = "GetTransactionVolumes(big)"
 
-    orgs_iterator = TimedIterator(context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY))
+    if options.get("dynamic-sampling.query-granularity-60s.active-orgs", None):
+        granularity = Granularity(60)
+    else:
+        granularity = Granularity(3600)
+
+    orgs_iterator = TimedIterator(
+        context, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY, granularity=granularity)
+    )
     for orgs in orgs_iterator:
         # get the low and high transactions
         totals_it = TimedIterator(
@@ -299,10 +304,10 @@ class FetchProjectTransactionTotals:
         self.cache: list[dict[str, int | float]] = []
         self.last_org_id: int | None = None
 
-    def __iter__(self):
+    def __iter__(self) -> FetchProjectTransactionTotals:
         return self
 
-    def __next__(self):
+    def __next__(self) -> ProjectTransactionsTotals:
 
         self._ensure_log_state()
         assert self.log_state is not None
@@ -311,6 +316,11 @@ class FetchProjectTransactionTotals:
 
         if not self._cache_empty():
             return self._get_from_cache()
+
+        if options.get("dynamic-sampling.query-granularity-60s.fetch-transaction-totals", None):
+            granularity = Granularity(60)
+        else:
+            granularity = Granularity(3600)
 
         if self.has_more_results:
             query = (
@@ -336,7 +346,7 @@ class FetchProjectTransactionTotals:
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                         Condition(Column("org_id"), Op.IN, self.org_ids),
                     ],
-                    granularity=Granularity(3600),
+                    granularity=granularity,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
                         OrderBy(Column("project_id"), Direction.ASC),
@@ -369,7 +379,7 @@ class FetchProjectTransactionTotals:
 
         return self._get_from_cache()
 
-    def _get_from_cache(self):
+    def _get_from_cache(self) -> ProjectTransactionsTotals:
 
         if self._cache_empty():
             raise StopIteration()
@@ -379,15 +389,15 @@ class FetchProjectTransactionTotals:
         assert self.log_state is not None
 
         row = self.cache.pop(0)
-        proj_id = row["project_id"]
-        org_id = row["org_id"]
+        proj_id = int(row["project_id"])
+        org_id = int(row["org_id"])
         num_transactions = row["num_transactions"]
-        num_classes = row["num_classes"]
+        num_classes = int(row["num_classes"])
 
         self.log_state.num_projects += 1
 
         if self.last_org_id != org_id:
-            self.last_org_id = cast(int, org_id)
+            self.last_org_id = org_id
             self.log_state.num_orgs += 1
 
         return {
@@ -397,14 +407,14 @@ class FetchProjectTransactionTotals:
             "total_num_classes": num_classes,
         }
 
-    def _cache_empty(self):
+    def _cache_empty(self) -> bool:
         return not self.cache
 
-    def _ensure_log_state(self):
+    def _ensure_log_state(self) -> None:
         if self.log_state is None:
             self.log_state = DynamicSamplingLogState()
 
-    def get_current_state(self):
+    def get_current_state(self) -> DynamicSamplingLogState:
         """
         Returns the current state of the iterator (how many orgs and projects it has iterated over)
 
@@ -412,10 +422,13 @@ class FetchProjectTransactionTotals:
 
         """
         self._ensure_log_state()
+        assert (
+            self.log_state is not None
+        )  # XXX: putting the assertion in _ensure_log_state doesn't satisfy mypy
 
         return self.log_state
 
-    def set_current_state(self, log_state: DynamicSamplingLogState) -> None:
+    def set_current_state(self, log_state: DynamicSamplingLogState | None) -> None:
         """
         Set the log state from outside (typically immediately after creation)
 
@@ -464,7 +477,7 @@ class FetchProjectTransactionVolumes:
         else:
             self.transaction_ordering = Direction.ASC
 
-    def __iter__(self):
+    def __iter__(self) -> FetchProjectTransactionVolumes:
         return self
 
     def __next__(self) -> ProjectTransactions:
@@ -481,6 +494,11 @@ class FetchProjectTransactionVolumes:
         if not self._cache_empty():
             # data in cache no need to go to the db
             return self._get_from_cache()
+
+        if options.get("dynamic-sampling.query-granularity-60s.fetch-transaction-totals", None):
+            granularity = Granularity(60)
+        else:
+            granularity = Granularity(3600)
 
         if self.has_more_results:
             # still data in the db, load cache
@@ -508,7 +526,7 @@ class FetchProjectTransactionVolumes:
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                         Condition(Column("org_id"), Op.IN, self.org_ids),
                     ],
-                    granularity=Granularity(3600),
+                    granularity=granularity,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
                         OrderBy(Column("project_id"), Direction.ASC),
@@ -550,7 +568,7 @@ class FetchProjectTransactionVolumes:
         # return from cache if empty stops iteration
         return self._get_from_cache()
 
-    def _add_results_to_cache(self, data):
+    def _add_results_to_cache(self, data: list[dict[str, int | float | str]]) -> None:
         transaction_counts: list[tuple[str, float]] = []
         current_org_id: int | None = None
         current_proj_id: int | None = None
@@ -559,10 +577,10 @@ class FetchProjectTransactionVolumes:
         assert self.log_state is not None
 
         for row in data:
-            proj_id = row["project_id"]
-            org_id = row["org_id"]
-            transaction_name = row["transaction_name"]
-            num_transactions = row["num_transactions"]
+            proj_id = int(row["project_id"])
+            org_id = int(row["org_id"])
+            transaction_name = str(row["transaction_name"])
+            num_transactions = float(row["num_transactions"])
             if current_proj_id != proj_id or current_org_id != org_id:
                 if (
                     transaction_counts
@@ -603,7 +621,7 @@ class FetchProjectTransactionVolumes:
                 }
             )
 
-    def _cache_empty(self):
+    def _cache_empty(self) -> bool:
         return not self.cache
 
     def _get_from_cache(self) -> ProjectTransactions:
@@ -612,11 +630,11 @@ class FetchProjectTransactionVolumes:
 
         return self.cache.pop(0)
 
-    def _ensure_log_state(self):
+    def _ensure_log_state(self) -> None:
         if self.log_state is None:
             self.log_state = DynamicSamplingLogState()
 
-    def get_current_state(self):
+    def get_current_state(self) -> DynamicSamplingLogState:
         """
         Returns the current state of the iterator (how many orgs and projects it has iterated over)
 
@@ -624,10 +642,13 @@ class FetchProjectTransactionVolumes:
 
         """
         self._ensure_log_state()
+        assert (
+            self.log_state is not None
+        )  # XXX: putting the assertion in _ensure_log_state doesn't satisfy mypy
 
         return self.log_state
 
-    def set_current_state(self, log_state: DynamicSamplingLogState) -> None:
+    def set_current_state(self, log_state: DynamicSamplingLogState | None) -> None:
         """
         Set the log state from outside (typically immediately after creation)
 
@@ -640,7 +661,7 @@ class FetchProjectTransactionVolumes:
 
 
 def merge_transactions(
-    left: ProjectTransactions,
+    left: ProjectTransactions | None,
     right: ProjectTransactions | None,
     totals: ProjectTransactionsTotals | None,
 ) -> ProjectTransactions:
@@ -657,10 +678,12 @@ def merge_transactions(
         )
 
     if totals is not None and not is_same_project(left, totals):
+        left_tuple = (left["org_id"], left["project_id"]) if left is not None else None
+        totals_tuple = (totals["org_id"], totals["project_id"]) if totals is not None else None
         raise ValueError(
             "mismatched projectTransaction and projectTransactionTotals",
-            (left["org_id"], left["project_id"]),
-            (totals["org_id"], totals["project_id"]),
+            left_tuple,
+            totals_tuple,
         )
 
     assert left is not None
@@ -679,6 +702,8 @@ def merge_transactions(
                 # not already in left, add it
                 merged_transactions.append((transaction_name, count))
 
+    total_num_classes = totals.get("total_num_classes") if totals is not None else None
+
     return {
         "org_id": left["org_id"],
         "project_id": left["project_id"],
@@ -686,7 +711,7 @@ def merge_transactions(
         "total_num_transactions": (
             totals.get("total_num_transactions") if totals is not None else None
         ),
-        "total_num_classes": totals.get("total_num_classes") if totals is not None else None,
+        "total_num_classes": int(total_num_classes) if total_num_classes is not None else None,
     }
 
 

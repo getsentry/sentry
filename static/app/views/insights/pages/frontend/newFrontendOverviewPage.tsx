@@ -22,34 +22,34 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {OverviewIssuesWidget} from 'sentry/views/insights/common/components/overviewIssuesWidget';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import OverviewAssetsByTimeSpentWidget from 'sentry/views/insights/common/components/widgets/overviewSlowAssetsWidget';
+import OverviewTimeConsumingRequestsWidget from 'sentry/views/insights/common/components/widgets/overviewTimeConsumingRequestsWidget';
+import OverviewTransactionDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewTransactionDurationChartWidget';
+import OverviewTransactionThroughputChartWidget from 'sentry/views/insights/common/components/widgets/overviewTransactionThroughputChartWidget';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {
-  StackedWidgetWrapper,
-  TripleRowWidgetWrapper,
-} from 'sentry/views/insights/pages/backend/backendOverviewPage';
-import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
+import {TripleRowWidgetWrapper} from 'sentry/views/insights/pages/backend/backendOverviewPage';
 import {
   FrontendOverviewTable,
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {useFrontendTableData} from 'sentry/views/insights/pages/frontend/queries/useFrontendTableData';
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
   DEFAULT_SORT,
   DEFAULT_SPAN_OP_SELECTION,
-  EAP_OVERVIEW_PAGE_ALLOWED_OPS,
   FRONTEND_LANDING_TITLE,
   PAGE_SPAN_OPS,
   SPAN_OP_QUERY_PARAM,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {useFrontendQuery} from 'sentry/views/insights/pages/frontend/useFrontendQuery';
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
-import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
+import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
@@ -64,6 +64,8 @@ export function NewFrontendOverviewPage() {
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const search = useFrontendQuery({includeWebVitalOps: true});
+
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
   const spanOp: PageSpanOps = getSpanOpFromQuery(
     decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM])
@@ -79,34 +81,6 @@ export function NewFrontendOverviewPage() {
     frontendProjects: selectedFrontendProjects,
     otherProjects: selectedOtherProjects,
   } = categorizeProjects(getSelectedProjectList(selection.projects, projects));
-
-  const existingQuery = new MutableSearch(searchBarQuery);
-
-  // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
-  existingQuery.addOp('(');
-
-  if (spanOp === 'all') {
-    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload', 'navigation'];
-    existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
-    // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
-    if (selectedFrontendProjects.length > 0) {
-      existingQuery.addOp('OR');
-      existingQuery.addFilterValue(
-        'project.id',
-        `[${selectedFrontendProjects.map(({id}) => id).join(',')}]`
-      );
-    }
-  } else if (spanOp === 'pageload') {
-    const spanOps = [...EAP_OVERVIEW_PAGE_ALLOWED_OPS, 'pageload'];
-    existingQuery.addFilterValue('span.op', `[${spanOps.join(',')}]`);
-  } else if (spanOp === 'navigation') {
-    // navigation span ops doesn't work for web vitals, so we do need to filter for web vital spans
-    existingQuery.addFilterValue('span.op', 'navigation');
-  }
-
-  existingQuery.addOp(')');
-
-  existingQuery.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -148,29 +122,7 @@ export function NewFrontendOverviewPage() {
 
   const displayPerfScore = ['pageload', 'all'].includes(spanOp);
 
-  const response = useSpans(
-    {
-      search: existingQuery,
-      sorts,
-      cursor,
-      useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
-      fields: [
-        'is_starred_transaction',
-        'transaction',
-        'project',
-        'tpm()',
-        'p50_if(span.duration,is_transaction,equals,true)',
-        'p95_if(span.duration,is_transaction,equals,true)',
-        'failure_rate_if(is_transaction,equals,true)',
-        ...(displayPerfScore
-          ? (['performance_score(measurements.score.total)'] as const)
-          : []),
-        'count_unique(user)',
-        'sum_if(span.duration,is_transaction,equals,true)',
-      ],
-    },
-    'api.performance.landing-table'
-  );
+  const response = useFrontendTableData(search, sorts, displayPerfScore, spanOp, cursor);
 
   const searchBarProjectsIds = [
     ...selectedFrontendProjects,
@@ -231,25 +183,29 @@ export function NewFrontendOverviewPage() {
               <LegacyOnboarding project={onboardingProject} organization={organization} />
             ) : (
               <Fragment>
-                <ModuleLayout.Third>
-                  <StackedWidgetWrapper>
-                    <span>Throughput chart</span>
-                    <span>Duration chart</span>
-                  </StackedWidgetWrapper>
-                </ModuleLayout.Third>
-                <ModuleLayout.TwoThirds>
-                  <IssuesWidget />
-                </ModuleLayout.TwoThirds>
                 <ModuleLayout.Full>
                   <TripleRowWidgetWrapper>
                     <ModuleLayout.Third>
-                      <div>Web perf score chart</div>
+                      <OverviewTransactionThroughputChartWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <div>Assets by time spent</div>
+                      <OverviewTransactionDurationChartWidget />
                     </ModuleLayout.Third>
                     <ModuleLayout.Third>
-                      <div>Requests by time spent</div>
+                      <OverviewIssuesWidget />
+                    </ModuleLayout.Third>
+                  </TripleRowWidgetWrapper>
+                </ModuleLayout.Full>
+                <ModuleLayout.Full>
+                  <TripleRowWidgetWrapper>
+                    <ModuleLayout.Third>
+                      <WebVitalsWidget />
+                    </ModuleLayout.Third>
+                    <ModuleLayout.Third>
+                      <OverviewAssetsByTimeSpentWidget />
+                    </ModuleLayout.Third>
+                    <ModuleLayout.Third>
+                      <OverviewTimeConsumingRequestsWidget />
                     </ModuleLayout.Third>
                   </TripleRowWidgetWrapper>
                 </ModuleLayout.Full>

@@ -6,6 +6,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEd
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {defined} from 'sentry/utils';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -20,6 +21,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularColumn,
   TabularData,
@@ -29,10 +31,9 @@ import type {
 import CellAction, {
   Actions,
   copyToClipboard,
-  openExternalLink,
 } from 'sentry/views/discover/table/cellAction';
 
-type FieldRendererGetter = (
+export type FieldRendererGetter = (
   field: string,
   data: TabularRow,
   meta: TabularMeta
@@ -105,7 +106,11 @@ interface TableWidgetVisualizationProps {
   /**
    * A callback function that is invoked when a user clicks an option in the cell action dropdown.
    */
-  onTriggerCellAction?: (action: Actions, value: string | number) => void;
+  onTriggerCellAction?: (
+    action: Actions,
+    value: string | number,
+    dataRow: TabularRow
+  ) => void;
   /**
    * If true, will allow table columns to be resized, otherwise no resizing. By default this is true
    */
@@ -145,7 +150,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     onResizeColumn,
     resizable = true,
     onTriggerCellAction,
-    allowedCellActions = [Actions.COPY_TO_CLIPBOARD, Actions.OPEN_EXTERNAL_LINK],
+    allowedCellActions = ALLOWED_CELL_ACTIONS,
   } = props;
 
   const theme = useTheme();
@@ -279,16 +284,12 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
             <CellAction
               key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}
               column={formattedColumn}
-              // id is not used by CellAction, but is required for the TableDataRow type
-              dataRow={{...dataRow, id: ''}}
+              dataRow={dataRow as TableDataRow}
               handleCellAction={(action: Actions, value: string | number) => {
-                onTriggerCellAction?.(action, value);
+                onTriggerCellAction?.(action, value, dataRow);
                 switch (action) {
                   case Actions.COPY_TO_CLIPBOARD:
                     copyToClipboard(value);
-                    break;
-                  case Actions.OPEN_EXTERNAL_LINK:
-                    openExternalLink(value);
                     break;
                   default:
                     break;

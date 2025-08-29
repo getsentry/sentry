@@ -5,16 +5,16 @@ import random
 import uuid
 from collections.abc import Callable, Iterator, MutableMapping
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
-from typing import Any, TypedDict, TypeVar
+from typing import Any, Literal, TypedDict, TypeVar
 
 import sentry_sdk
-from google.protobuf.timestamp_pb2 import Timestamp
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry import options
 from sentry.logging.handlers import SamplingFilter
+from sentry.replays.lib.eap.write import new_trace_item
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.replays.event_parser")
@@ -93,7 +93,7 @@ class EventType(Enum):
     CLICK = 1
     CONSOLE = 2
     DEAD_CLICK = 3
-    FCP = 4
+    # FCP = 4 deprecated
     FEEDBACK = 5
     HYDRATION_ERROR = 6
     LCP = 7
@@ -191,8 +191,6 @@ def which(event: dict[str, Any]) -> EventType:
                 elif op == "web-vital":
                     if payload["description"] == "largest-contentful-paint":
                         return EventType.LCP
-                    elif payload["description"] == "first-contentful-paint":
-                        return EventType.FCP
                     elif payload["description"] == "cumulative-layout-shift":
                         return EventType.CLS
                     else:
@@ -219,6 +217,51 @@ def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[s
         yield (which(event), event)
 
 
+def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
+    """
+    Returns the time unit of event["timestamp"] for a replay event.
+    This is not guaranteed to match event.data.payload.timestamp.
+
+    We do not allow wildcard or default cases. Please be explicit when adding new types.
+    Beware that EventType.UNKNOWN returns "ms" but there's no way to know the actual unit.
+    """
+    match event_type:
+        case (
+            EventType.CLS
+            | EventType.LCP
+            | EventType.FEEDBACK
+            | EventType.MEMORY
+            | EventType.MUTATIONS
+            | EventType.NAVIGATION_SPAN
+            | EventType.RESOURCE_FETCH
+            | EventType.RESOURCE_IMAGE
+            | EventType.RESOURCE_SCRIPT
+            | EventType.RESOURCE_XHR
+            | EventType.UI_BLUR
+            | EventType.UI_FOCUS
+        ):
+            return "s"
+        case (
+            EventType.CANVAS
+            | EventType.CONSOLE
+            | EventType.CLICK
+            | EventType.DEAD_CLICK
+            | EventType.RAGE_CLICK
+            | EventType.SLOW_CLICK
+            | EventType.HYDRATION_ERROR
+            | EventType.NAVIGATION
+            | EventType.OPTIONS
+            | EventType.UNKNOWN
+        ):
+            return "ms"
+
+
+def get_timestamp_ms(event: dict[str, Any], event_type: EventType) -> float:
+    if get_timestamp_unit(event_type) == "s":
+        return event.get("timestamp", 0) * 1000
+    return event.get("timestamp", 0)
+
+
 #
 # EAP Trace Item Processor
 #
@@ -226,7 +269,7 @@ def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[s
 
 class EAPEventsBuilder:
 
-    def __init__(self, context: EventContext):
+    def __init__(self, context: EventContext) -> None:
         self.context = context
         self.events: list[TraceItem] = []
 
@@ -258,46 +301,29 @@ def parse_trace_item(
 def as_trace_item(
     context: EventContext, event_type: EventType, event: dict[str, Any]
 ) -> TraceItem | None:
-    def _anyvalue(value: bool | str | int | float) -> AnyValue:
-        if isinstance(value, bool):
-            return AnyValue(bool_value=value)
-        elif isinstance(value, str):
-            return AnyValue(string_value=value)
-        elif isinstance(value, int):
-            return AnyValue(int_value=value)
-        elif isinstance(value, float):
-            return AnyValue(double_value=value)
-        else:
-            raise ValueError(f"Invalid value type for AnyValue: {type(value)}")
-
-    trace_item_context = as_trace_item_context(event_type, event)
-
     # Not every event produces a trace-item.
-    if trace_item_context is None:
+    trace_item_context = as_trace_item_context(event_type, event)
+    if not trace_item_context:
         return None
 
     # Extend the attributes with the replay_id to make it queryable by replay_id after we
     # eventually use the trace_id in its rightful position.
     trace_item_context["attributes"]["replay_id"] = context["replay_id"]
 
-    timestamp = Timestamp()
-    timestamp.FromMilliseconds(int(trace_item_context["timestamp"] * 1000))
-
-    received = Timestamp()
-    received.FromSeconds(int(context["received"]))
-
-    return TraceItem(
-        organization_id=context["organization_id"],
-        project_id=context["project_id"],
-        trace_id=context["trace_id"] or context["replay_id"],
-        item_id=trace_item_context["event_hash"],
-        item_type=TraceItemType.TRACE_ITEM_TYPE_REPLAY,
-        timestamp=timestamp,
-        attributes={k: _anyvalue(v) for k, v in trace_item_context["attributes"].items()},
-        client_sample_rate=1.0,
-        server_sample_rate=1.0,
-        retention_days=context["retention_days"],
-        received=received,
+    return new_trace_item(
+        {
+            "attributes": trace_item_context["attributes"],  # type: ignore[typeddict-item]
+            "client_sample_rate": 1.0,
+            "organization_id": context["organization_id"],
+            "project_id": context["project_id"],
+            "received": datetime.fromtimestamp(int(context["received"])),
+            "retention_days": context["retention_days"],
+            "server_sample_rate": 1.0,
+            "timestamp": datetime.fromtimestamp(int(trace_item_context["timestamp"] * 1000) / 1000),
+            "trace_id": context["trace_id"] or context["replay_id"],
+            "trace_item_id": trace_item_context["event_hash"],
+            "trace_item_type": "replay",
+        }
     )
 
 
@@ -430,13 +456,11 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["startTimestamp"]),
             }
-        case EventType.LCP | EventType.FCP | EventType.CLS:
+        case EventType.LCP | EventType.CLS:
             payload = event["data"]["payload"]
 
             if event_type == EventType.CLS:
                 category = "web-vital.cls"
-            elif event_type == EventType.FCP:
-                category = "web-vital.fcp"
             else:
                 category = "web-vital.lcp"
 
@@ -560,7 +584,7 @@ class HighlightedEvents(TypedDict, total=False):
 
 class HighlightedEventsBuilder:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.events: HighlightedEvents = {
             "canvas_sizes": [],
             "clicks": [],

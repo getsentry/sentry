@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import cloneDeep from 'lodash/cloneDeep';
 
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {EQUATION_PREFIX, parseFunction} from 'sentry/utils/discover/fields';
@@ -159,7 +160,7 @@ function VisualizeDropdown({
         const yAxis = updateVisualizeAggregate({
           newAggregate: option.value,
           oldAggregate: parsedFunction?.name,
-          oldArgument: parsedFunction?.arguments[0],
+          oldArguments: parsedFunction?.arguments,
         });
         onReplace(visualize.replace({yAxis}));
       }
@@ -168,9 +169,15 @@ function VisualizeDropdown({
   );
 
   const onChangeArgument = useCallback(
-    (option: SelectOption<SelectKey>) => {
+    (index: number, option: SelectOption<SelectKey>) => {
       if (typeof option.value === 'string') {
-        const yAxis = `${parsedFunction?.name}(${option.value})`;
+        let args = cloneDeep(parsedFunction?.arguments);
+        if (args) {
+          args[index] = option.value;
+        } else {
+          args = [option.value];
+        }
+        const yAxis = `${parsedFunction?.name}(${args.join(',')})`;
         onReplace(visualize.replace({yAxis}));
       }
     },

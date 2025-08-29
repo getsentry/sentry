@@ -17,9 +17,9 @@ from sentry.api.helpers.group_index.update import (
     handle_is_subscribed,
 )
 from sentry.api.helpers.group_index.validators import ValidationError
-from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.issues.issue_search import parse_search_query
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -1276,7 +1276,7 @@ class DeleteGroupsTest(TestCase):
     @patch("sentry.signals.issue_deleted.send_robust")
     def test_delete_groups_deletes_seer_records_by_hash(
         self, send_robust: Mock, mock_delete_seer_grouping_records_by_hash: MagicMock
-    ):
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         groups = [self.create_group(), self.create_group()]

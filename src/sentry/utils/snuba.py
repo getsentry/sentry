@@ -18,6 +18,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import sentry_sdk
+import sentry_sdk.scope
 import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
@@ -26,7 +27,6 @@ from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
 
-from sentry import options
 from sentry.api.helpers.error_upsampling import (
     UPSAMPLED_ERROR_AGGREGATION,
     are_any_projects_error_upsampled,
@@ -1112,8 +1112,8 @@ def _apply_cache_and_build_results(
 ) -> ResultSet:
     parent_api: str = "<missing>"
     scope = sentry_sdk.get_current_scope()
-    if scope.root_span and scope.root_span.name:
-        parent_api = scope.root_span.name
+    if scope.transaction:
+        parent_api = scope.transaction.name
 
     # Store the original position of the query so that we can maintain the order
     snuba_requests_list: list[tuple[int, SnubaRequest]] = []
@@ -1232,7 +1232,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             allocation_policy_prefix = "allocation_policy."
             bytes_scanned = body.get("profile", {}).get("progress_bytes", None)
             if bytes_scanned is not None:
-                span.set_attribute(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
+                span.set_data(f"{allocation_policy_prefix}.bytes_scanned", bytes_scanned)
             if _is_rejected_query(body):
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 for k, v in quota_allowance_summary.items():
@@ -1255,34 +1255,33 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                 if body.get("error"):
                     error = body["error"]
                     if response.status == 429:
-                        if options.get("issues.use-snuba-error-data"):
-                            try:
-                                if (
-                                    "quota_allowance" not in error
-                                    or "summary" not in error["quota_allowance"]
-                                ):
-                                    # Should not hit this - snuba gives us quota_allowance with a 429
-                                    raise RateLimitExceeded(error["message"])
-                                quota_allowance_summary = error["quota_allowance"]["summary"]
-                                rejected_by = quota_allowance_summary["rejected_by"]
-                                throttled_by = quota_allowance_summary["throttled_by"]
+                        try:
+                            if (
+                                "quota_allowance" not in body
+                                or "summary" not in body["quota_allowance"]
+                            ):
+                                # Should not hit this - snuba gives us quota_allowance with a 429
+                                raise RateLimitExceeded(error["message"])
+                            quota_allowance_summary = body["quota_allowance"]["summary"]
+                            rejected_by = quota_allowance_summary["rejected_by"]
+                            throttled_by = quota_allowance_summary["throttled_by"]
 
-                                policy_info = rejected_by or throttled_by
+                            policy_info = rejected_by or throttled_by
 
-                                if policy_info:
-                                    raise RateLimitExceeded(
-                                        error["message"],
-                                        policy=policy_info["policy"],
-                                        quota_unit=policy_info["quota_unit"],
-                                        storage_key=policy_info["storage_key"],
-                                        quota_used=policy_info["quota_used"],
-                                        rejection_threshold=policy_info["rejection_threshold"],
-                                    )
-                            except KeyError:
-                                logger.warning(
-                                    "Failed to parse rate limit error details from Snuba response",
-                                    extra={"error": error["message"]},
+                            if policy_info:
+                                raise RateLimitExceeded(
+                                    error["message"],
+                                    policy=policy_info["policy"],
+                                    quota_unit=policy_info["quota_unit"],
+                                    storage_key=policy_info["storage_key"],
+                                    quota_used=policy_info["quota_used"],
+                                    rejection_threshold=policy_info["rejection_threshold"],
                                 )
+                        except KeyError:
+                            logger.warning(
+                                "Failed to parse rate limit error details from Snuba response",
+                                extra={"error": error["message"]},
+                            )
 
                         raise RateLimitExceeded(error["message"])
 
@@ -1339,8 +1338,8 @@ def _snuba_query(
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function. (bc of thread .map)
     thread_isolation_scope, thread_current_scope, snuba_request = params
-    with sentry_sdk.use_isolation_scope(thread_isolation_scope):
-        with sentry_sdk.use_scope(thread_current_scope):
+    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
+        with sentry_sdk.scope.use_scope(thread_current_scope):
             headers = snuba_request.headers
             request = snuba_request.request
             try:
@@ -1746,6 +1745,16 @@ def aliased_query_params(
             else:
                 new_aggs.append(aggregation)
         aggregations = new_aggs
+
+    # Apply error upsampling conversion for Events dataset when project_ids are present.
+    # This mirrors the behavior in query(), ensuring aliased_query paths also convert count()
+    # to sum(sample_weight) for allowlisted projects.
+    if dataset == Dataset.Events and filter_keys and filter_keys.get("project_id") and aggregations:
+        project_filter = filter_keys.get("project_id")
+        project_ids = (
+            project_filter if isinstance(project_filter, (list, tuple)) else [project_filter]
+        )
+        _convert_count_aggregations_for_error_upsampling(aggregations, project_ids)
 
     if conditions:
         if condition_resolver:

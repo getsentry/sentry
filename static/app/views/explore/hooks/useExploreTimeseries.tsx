@@ -15,8 +15,8 @@ import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/vi
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  type SpansRPCQueryExtras,
   useProgressiveQuery,
+  type SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
@@ -124,9 +124,11 @@ function shouldTriggerHighAccuracy(
   visualizes: Visualize[],
   isTopN: boolean
 ) {
-  const hasData = computeVisualizeSampleTotals(visualizes, data, isTopN).some(
-    total => total > 0
-  );
+  const hasData = computeVisualizeSampleTotals(
+    visualizes.map(visualize => visualize.yAxis),
+    data,
+    isTopN
+  ).some(total => total > 0);
   return !hasData && _checkCanQueryForMoreData(data, visualizes, isTopN);
 }
 

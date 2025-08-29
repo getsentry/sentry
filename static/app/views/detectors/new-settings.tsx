@@ -9,8 +9,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {NewDetectorForm} from 'sentry/views/detectors/components/forms';
 import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
-import {DETECTOR_TYPE_LABELS} from 'sentry/views/detectors/constants';
-import {isValidDetectorType} from 'sentry/views/detectors/utils/detectorTypeConfig';
+import {
+  getDetectorTypeLabel,
+  isValidDetectorType,
+} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export default function DetectorNewSettings() {
   const location = useLocation();
@@ -42,7 +44,7 @@ export default function DetectorNewSettings() {
   return (
     <DetectorFormProvider detectorType={detectorType} project={project}>
       <SentryDocumentTitle
-        title={t('New %s Monitor', DETECTOR_TYPE_LABELS[detectorType])}
+        title={t('New %s Monitor', getDetectorTypeLabel(detectorType))}
       />
       <NewDetectorForm detectorType={detectorType} />
     </DetectorFormProvider>

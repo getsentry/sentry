@@ -1,6 +1,6 @@
 import {ExternalLink} from 'sentry/components/core/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  StepType,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
@@ -10,7 +10,10 @@ import {
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
-import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
+import {
+  getPythonInstallConfig,
+  getPythonLogsOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -26,11 +29,20 @@ sentry_sdk.init(
 
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    send_default_pii=True,${
+      params.isLogsSelected
+        ? `
+    # Enable sending logs to Sentry
+    enable_logs=True,`
+        : ''
+    }${
+      params.isPerformanceSelected
+        ? `
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for tracing.
-    # We recommend adjusting this value in production,
-    traces_sample_rate=1.0,
+    traces_sample_rate=1.0,`
+        : ''
+    }
 )`;
 
 const onboarding: OnboardingConfig = {
@@ -71,14 +83,24 @@ const onboarding: OnboardingConfig = {
       ),
     },
   ],
-  verify: () => [],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'To verify that everything is working, run some queries and check Sentry for performance traces.'
+      ),
+      configurations: [],
+    },
+  ],
 };
+
+const logsOnboarding = getPythonLogsOnboarding();
 
 const docs: Docs = {
   onboarding,
-
   crashReportOnboarding: crashReportOnboardingPython,
   agentMonitoringOnboarding,
+  logsOnboarding,
 };
 
 export default docs;

@@ -69,7 +69,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ) -> ProcessingStrategy[KafkaPayload]:
         # TODO: remove once span buffer is live in all regions
         scope = sentry_sdk.get_isolation_scope()
-        scope.set_level("warning")
+        scope.level = "warning"
 
         self.rebalancing_count += 1
         sentry_sdk.set_tag("sentry_spans_rebalancing_count", str(self.rebalancing_count))
@@ -182,6 +182,7 @@ def process_batch(
                 trace_id=val["trace_id"],
                 span_id=val["span_id"],
                 parent_span_id=val.get("parent_span_id"),
+                segment_id=cast(str | None, val.get("segment_id")),
                 project_id=val["project_id"],
                 payload=payload.value,
                 end_timestamp_precise=val["end_timestamp_precise"],

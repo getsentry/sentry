@@ -34,6 +34,7 @@ const popularPlatformCategories: Set<PlatformKey> = new Set([
 ]);
 
 const browser: Set<PlatformKey> = new Set([
+  'dart',
   'flutter',
   'javascript',
   'javascript-angular',
@@ -58,6 +59,7 @@ const browser: Set<PlatformKey> = new Set([
 
 const server: Set<PlatformKey> = new Set([
   'bun',
+  'dart',
   'deno',
   'dotnet',
   'dotnet-aspnet',
@@ -85,6 +87,7 @@ const server: Set<PlatformKey> = new Set([
   'node-express',
   'node-fastify',
   'node-hapi',
+  'node-hono',
   'node-koa',
   'node-nestjs',
   'php',
@@ -122,6 +125,7 @@ const mobile: Set<PlatformKey> = new Set([
   'cordova',
   'dotnet-maui',
   'dotnet-xamarin',
+  'dart',
   'flutter',
   'ionic',
   'react-native',
@@ -136,6 +140,7 @@ const desktop: Set<PlatformKey> = new Set([
   'dotnet-winforms',
   'dotnet-wpf',
   'electron',
+  'dart',
   'flutter',
   'godot',
   'java',

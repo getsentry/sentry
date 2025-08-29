@@ -13,8 +13,8 @@ import {updateVisualizeAggregate} from 'sentry/views/explore/contexts/pageParams
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
-  type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
+  type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   Section,
@@ -73,7 +73,7 @@ export function VisualizeSection({query, index}: Props) {
               const newYAxis = updateVisualizeAggregate({
                 newAggregate: newAggregate.value,
                 oldAggregate: parsedFunction!.name,
-                oldArgument: parsedFunction!.arguments[0]!,
+                oldArguments: parsedFunction!.arguments,
               });
               updateYAxis({yAxes: [newYAxis]});
             }}

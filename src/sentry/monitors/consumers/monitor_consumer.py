@@ -70,6 +70,7 @@ from sentry.monitors.processing_errors.manager import handle_processing_errors
 from sentry.monitors.system_incidents import update_check_in_volume
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
+    ensure_cron_detector,
     get_new_timeout_at,
     get_timeout_at,
     signal_first_checkin,
@@ -165,6 +166,7 @@ def _ensure_monitor_with_config(
                 "is_upserting": True,
             },
         )
+        ensure_cron_detector(monitor)
         if created:
             signal_monitor_created(project, None, True, monitor, None)
 
@@ -1006,7 +1008,7 @@ def process_checkin(item: CheckinItem) -> None:
     Process an individual check-in
     """
     try:
-        with sentry_sdk.start_span(
+        with sentry_sdk.start_transaction(
             op="_process_checkin",
             name="monitors.monitor_consumer",
         ) as txn:
@@ -1076,7 +1078,7 @@ def process_batch(
     metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
 
     # Submit check-in groups for processing
-    with sentry_sdk.start_span(op="process_batch", name="monitors.monitor_consumer"):
+    with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
         futures = [
             executor.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]

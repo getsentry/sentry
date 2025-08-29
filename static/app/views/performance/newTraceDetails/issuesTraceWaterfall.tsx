@@ -29,7 +29,7 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 
@@ -42,7 +42,6 @@ import {
   traceNodeAdjacentAnalyticsProperties,
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
-import TraceTypeWarnings from './traceTypeWarnings';
 import type {TraceWaterfallProps} from './traceWaterfall';
 import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
@@ -128,24 +127,46 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
 
-  // Callback that is invoked when the trace loads and reaches its initialied state,
-  // that is when the trace tree data and any data that the trace depends on is loaded,
-  // but the trace is not yet rendered in the view.
-  const onTraceLoad = useCallback(() => {
-    const traceTimestamp = props.tree.root.children[0]?.space?.[0];
+  useEffect(() => {
+    if (props.tree.type !== 'trace') {
+      return;
+    }
+
+    const traceNode = props.tree.root.children[0];
+    const traceTimestamp = traceNode?.space?.[0];
     const traceAge = defined(traceTimestamp)
       ? getRelativeDate(traceTimestamp, 'ago')
       : 'unknown';
 
-    if (!isLoadingSubscriptionDetails) {
+    if (traceNode && !isLoadingSubscriptionDetails) {
+      const issuesCount = TraceTree.UniqueIssues(traceNode).length;
+
       traceAnalytics.trackTraceShape(
         props.tree,
         projectsRef.current,
         props.organization,
         hasExceededPerformanceUsageLimit,
         'issue_details',
-        traceAge
+        traceAge,
+        issuesCount,
+        props.tree.eap_spans_count
       );
+    }
+  }, [
+    props.tree,
+    hasExceededPerformanceUsageLimit,
+    isLoadingSubscriptionDetails,
+    props.organization,
+  ]);
+
+  // Callback that is invoked when the trace loads and reaches its initialied state,
+  // that is when the trace tree data and any data that the trace depends on is loaded,
+  // but the trace is not yet rendered in the view.
+  const onTraceLoad = useCallback(() => {
+    const traceNode = props.tree.root.children[0];
+
+    if (!traceNode) {
+      throw new Error('Trace is initialized but no trace node is found');
     }
 
     // Construct the visual representation of the tree
@@ -315,10 +336,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     viewManager,
     traceScheduler,
     props.tree,
-    props.organization,
     props.event,
-    isLoadingSubscriptionDetails,
-    hasExceededPerformanceUsageLimit,
     problemSpans.affectedSpanIds,
   ]);
 
@@ -343,11 +361,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
   return (
     <Fragment>
-      <TraceTypeWarnings
-        tree={props.tree}
-        traceSlug={props.traceSlug}
-        organization={organization}
-      />
       <IssuesTraceGrid
         layout={traceState.preferences.layout}
         rowCount={
@@ -383,9 +396,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         </IssuesTraceContainer>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
-          <TraceWaterfallState.Loading />
+          <TraceWaterfallState.Loading trace={props.trace} />
         ) : props.tree.type === 'error' ? (
-          <TraceWaterfallState.Error />
+          <TraceWaterfallState.Error trace={props.trace} />
         ) : props.tree.type === 'empty' ? (
           <TraceWaterfallState.Empty />
         ) : null}

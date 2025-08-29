@@ -102,7 +102,7 @@ def test_merge_symbolicator_image_remove_unknown_arch() -> None:
         ),
     ],
 )
-def test_merge_symbolicator_image_errors(code_file, error) -> None:
+def test_merge_symbolicator_image_errors(code_file: str, error: EventError) -> None:
     raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo", "code_file": code_file}
     sdk_info = {"sdk_name": "macos"}
     complete_image = {

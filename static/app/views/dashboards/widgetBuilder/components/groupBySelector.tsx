@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -8,7 +8,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {type ValidateWidgetResponse, WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType, type ValidateWidgetResponse} from 'sentry/views/dashboards/types';
 import {GroupBySelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -28,17 +28,24 @@ function WidgetBuilderGroupBySelector({
 
   const organization = useOrganization();
 
-  let tags: TagCollection = useTags();
+  const tags: TagCollection = useTags();
   const {tags: numericSpanTags} = useTraceItemTags('number');
   const {tags: stringSpanTags} = useTraceItemTags('string');
-  if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
-    tags = {...numericSpanTags, ...stringSpanTags};
-  }
 
-  const datasetConfig = getDatasetConfig(state.dataset);
-  const groupByOptions = datasetConfig.getGroupByFieldOptions
-    ? datasetConfig.getGroupByFieldOptions(organization, tags)
-    : {};
+  const groupByOptions = useMemo(() => {
+    const datasetConfig = getDatasetConfig(state.dataset);
+    if (!datasetConfig.getGroupByFieldOptions) {
+      return {};
+    }
+
+    if (state.dataset === WidgetType.SPANS || state.dataset === WidgetType.LOGS) {
+      return datasetConfig.getGroupByFieldOptions(organization, {
+        ...numericSpanTags,
+        ...stringSpanTags,
+      });
+    }
+    return datasetConfig.getGroupByFieldOptions(organization, tags);
+  }, [numericSpanTags, organization, state.dataset, stringSpanTags, tags]);
 
   const handleGroupByChange = (newValue: QueryFieldValue[]) => {
     dispatch({type: BuilderStateAction.SET_FIELDS, payload: newValue});

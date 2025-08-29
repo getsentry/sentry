@@ -36,7 +36,7 @@ class _EventDataDict(TypedDict):
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.authed_user = self.user
@@ -81,7 +81,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def do_request(self, data, url=None, features=None):
         if features is None:
@@ -1248,7 +1248,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
 
 class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -2827,7 +2827,7 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
 ):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -2934,7 +2934,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 ):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -3020,7 +3020,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 
 class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTestCase):
     # This is implemented almost exactly the same as spans, add a simple test case for a sanity check
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -3125,7 +3125,7 @@ class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTe
 
 
 class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -3278,6 +3278,48 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         other = data["Other"]
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
+
+    def test_top_event_with_null_value(self):
+        self.store_event(
+            {
+                "message": "null-value",
+                "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
+                "user": {"email": self.user.email},
+                "tags": {"shared-tag": "yup", "env": "prod"},
+                "exception": {
+                    "values": [
+                        {"type": "NameError", "value": "name"},
+                        {"type": "FooError", "value": None},
+                    ]
+                },
+                "fingerprint": ["group1"],
+            },
+            project_id=self.project.id,
+        )
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": self.day_ago.isoformat(),
+                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "error.value"],
+                    "query": "message:null-value",
+                    "dataset": "errors",
+                    "topEvents": "1",
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(data) == 1
+        assert "[name,(no value)]" in data
+        results = data["[name,(no value)]"]
+        assert results["order"] == 0
+        assert [x[1][0]["count"] for x in results["data"]] == [1, 0]
 
     def test_top_events_with_array_field(self) -> None:
         """
@@ -3535,7 +3577,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
 class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.authed_user = self.user

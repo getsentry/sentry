@@ -2,8 +2,8 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
-  type DiscoverQueryProps,
   useGenericDiscoverQuery,
+  type DiscoverQueryProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -50,6 +50,9 @@ export const useSpanSeries = <Fields extends SpanProperty[]>(
   );
 };
 
+/**
+ * Fetch time series data from the `/events-stats/` endpoint. Consider using `useFetchEventsTimeSeries` instead, if you are able to. `useFetchEventsTimeSeries` uses the more modern `/events-timeseries/` API, which has a friendlier response format.
+ */
 const useDiscoverSeries = <T extends string[]>(
   options: UseMetricsSeriesOptions<T> = {},
   dataset: DiscoverDatasets,

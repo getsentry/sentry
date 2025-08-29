@@ -15,8 +15,8 @@ const ORG_ENDPOINT = '/organizations/';
 const INVITE_COOKIE = 'pending-invite';
 const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';
 
-describe('TwoFactorRequired', function () {
-  beforeEach(function () {
+describe('TwoFactorRequired', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -46,7 +46,7 @@ describe('TwoFactorRequired', function () {
     ...routerProps,
   };
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: [],
@@ -62,7 +62,7 @@ describe('TwoFactorRequired', function () {
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
-  it('does not render when 2FA is disabled and no pendingInvite cookie', async function () {
+  it('does not render when 2FA is disabled and no pendingInvite cookie', async () => {
     render(
       <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
@@ -73,7 +73,7 @@ describe('TwoFactorRequired', function () {
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
-  it('does not render when 2FA is enrolled and no pendingInvite cookie', async function () {
+  it('does not render when 2FA is enrolled and no pendingInvite cookie', async () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [AuthenticatorsFixture().Totp({isEnrolled: true})],
@@ -89,7 +89,7 @@ describe('TwoFactorRequired', function () {
     expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
-  it('does not render when 2FA is enrolled and has pendingInvite cookie', async function () {
+  it('does not render when 2FA is enrolled and has pendingInvite cookie', async () => {
     const cookieData = {
       memberId: 5,
       token: 'abcde',
@@ -116,7 +116,7 @@ describe('TwoFactorRequired', function () {
     Cookies.remove(INVITE_COOKIE);
   });
 
-  it('renders when 2FA is disabled and has pendingInvite cookie', async function () {
+  it('renders when 2FA is disabled and has pendingInvite cookie', async () => {
     Cookies.set(INVITE_COOKIE, '/accept/5/abcde/');
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,

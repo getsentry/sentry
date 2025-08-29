@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 from django.utils.datastructures import OrderedSet
@@ -36,6 +36,9 @@ from sentry.utils.event_frames import EventFrame
 logger = logging.getLogger("sentry.tasks.process_commit_context")
 
 
+MAX_COMMIT_AGE_DAYS = 60
+
+
 def find_commit_context_for_event_all_frames(
     code_mappings: Sequence[RepositoryProjectPathConfig],
     frames: Sequence[Mapping[str, Any]],
@@ -43,11 +46,13 @@ def find_commit_context_for_event_all_frames(
     project_id: int,
     platform: str,
     sdk_name: str | None,
+    group_first_seen: datetime,
     extra: dict[str, Any],
 ) -> tuple[FileBlameInfo | None, IntegrationInstallation | None]:
     """
     Given a list of event frames and code mappings, finds the most recent commit.
     Will also emit analytics events for success or failure.
+    This is the logic behind SuspectCommitStrategy.SCM_BASED
     """
     valid_frames = list(
         OrderedSet(
@@ -78,13 +83,23 @@ def find_commit_context_for_event_all_frames(
         extra=extra,
     )
 
-    most_recent_blame = max(file_blames, key=lambda blame: blame.commit.committedDate, default=None)
-    # Only return suspect commits that are less than a year old
-    selected_blame = (
-        most_recent_blame
-        if most_recent_blame and is_date_less_than_year(most_recent_blame.commit.committedDate)
-        else None
-    )
+    # We want the most recent commit that is within MAX_COMMIT_AGE_DAYS of group_first_seen
+    earliest_valid_date = group_first_seen - timedelta(days=MAX_COMMIT_AGE_DAYS)
+    selected_blame = None
+    selected_date = earliest_valid_date
+    has_too_old_blames = False
+    has_too_recent_blames = False
+    for blame in file_blames:
+        commit_date = blame.commit.committedDate
+        # Track outside-of-window commits for analytics
+        if commit_date < earliest_valid_date:
+            has_too_old_blames = True
+        elif commit_date > group_first_seen:
+            has_too_recent_blames = True
+        # Select best valid commit
+        if selected_date < commit_date < group_first_seen:
+            selected_blame = blame
+            selected_date = commit_date
 
     selected_install, selected_provider = (
         integration_to_install_mapping[selected_blame.code_mapping.organization_integration_id]
@@ -94,7 +109,6 @@ def find_commit_context_for_event_all_frames(
 
     _record_commit_context_all_frames_analytics(
         selected_blame=selected_blame,
-        most_recent_blame=most_recent_blame,
         organization_id=organization_id,
         project_id=project_id,
         extra=extra,
@@ -104,13 +118,11 @@ def find_commit_context_for_event_all_frames(
         selected_provider=selected_provider,
         platform=platform,
         sdk_name=sdk_name,
+        has_too_old_blames=has_too_old_blames,
+        has_too_recent_blames=has_too_recent_blames,
     )
 
     return (selected_blame, selected_install)
-
-
-def is_date_less_than_year(date: datetime) -> bool:
-    return date > datetime.now(tz=timezone.utc) - timedelta(days=365)
 
 
 def get_or_create_commit_from_blame(
@@ -336,7 +348,6 @@ def _get_blames_from_all_integrations(
 
 def _record_commit_context_all_frames_analytics(
     selected_blame: FileBlameInfo | None,
-    most_recent_blame: FileBlameInfo | None,
     organization_id: int,
     project_id: int,
     extra: Mapping[str, Any],
@@ -346,11 +357,14 @@ def _record_commit_context_all_frames_analytics(
     selected_provider: str | None,
     platform: str,
     sdk_name: str | None,
-):
+    has_too_old_blames: bool,
+    has_too_recent_blames: bool,
+) -> None:
     if not selected_blame:
         reason = _get_failure_reason(
             num_successfully_mapped_frames=num_successfully_mapped_frames,
-            has_old_blames=most_recent_blame is not None and not selected_blame,
+            has_too_old_blames=has_too_old_blames,
+            has_too_recent_blames=has_too_recent_blames,
         )
         metrics.incr(
             "tasks.process_commit_context_all_frames.aborted",
@@ -376,7 +390,7 @@ def _record_commit_context_all_frames_analytics(
                 reason=reason,
             )
         )
-        return
+        return None
 
     unique_commit_ids = {blame.commit.commitId for blame in file_blames}
     unique_author_emails = {blame.commit.commitAuthorEmail for blame in file_blames}
@@ -413,9 +427,17 @@ def _record_commit_context_all_frames_analytics(
     )
 
 
-def _get_failure_reason(num_successfully_mapped_frames: int, has_old_blames: bool):
+def _get_failure_reason(
+    num_successfully_mapped_frames: int,
+    has_too_old_blames: bool,
+    has_too_recent_blames: bool,
+) -> str:
     if num_successfully_mapped_frames < 1:
         return "no_successful_code_mapping"
-    if has_old_blames:
-        return "commit_too_old"
-    return "no_commit_found"
+    if has_too_old_blames and has_too_recent_blames:
+        return "no_valid_commits"
+    if has_too_recent_blames:
+        return "commits_too_recent"
+    if has_too_old_blames:
+        return "commits_too_old"
+    return "no_commits_found"
