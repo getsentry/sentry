@@ -23,8 +23,9 @@ const settingsRoutes = (): SentryRouteObject => ({
           redirectTo: 'overview/',
         },
         {
+          // TODO(checkout v3): This should be removed
           path: 'checkout/',
-          name: 'Change', // TODO(checkout v3): Should this be renamed?
+          name: 'Change',
           component: errorHandler(SubscriptionContext),
           deprecatedRouteProps: true,
           children: [

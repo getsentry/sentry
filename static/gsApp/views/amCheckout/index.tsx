@@ -8,17 +8,21 @@ import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import LogoSentry from 'sentry/components/logoSentry';
 import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextOverflow from 'sentry/components/textOverflow';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {QueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
@@ -119,6 +123,12 @@ class AMCheckout extends Component<Props, State> {
       !hasPartnerMigrationFeature(props.organization)
     ) {
       props.onToggleLegacy(props.subscription.planTier);
+    }
+    // TODO(checkout v3): remove this once all customers are on the new checkout flow
+    if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
+      browserHistory.push(`/settings/${props.organization.slug}/billing/checkout/`);
+    } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
+      browserHistory.push(`/checkout-v3/`);
     }
     let step = 1;
     if (props.location?.hash) {
@@ -769,12 +779,21 @@ class AMCheckout extends Component<Props, State> {
     const isOnSponsoredPartnerPlan =
       (subscription.partner?.isActive && subscription.isSponsored) || false;
 
+    const ParentComponent = isNewCheckout ? FullScreenContainer : Fragment;
+
     return (
-      <Fragment>
+      <ParentComponent>
         <SentryDocumentTitle
           title={t('Change Subscription')}
           orgSlug={organization.slug}
         />
+        {isNewCheckout && (
+          <FullScreenHeader>
+            <HeaderContent>
+              <LogoSentry />
+            </HeaderContent>
+          </FullScreenHeader>
+        )}
         {isOnSponsoredPartnerPlan && (
           <Alert.Container>
             <Alert type="info">
@@ -798,9 +817,20 @@ class AMCheckout extends Component<Props, State> {
             data-test-id="change-subscription"
           />
         )}
-
         <CheckoutContainer isNewCheckout={!!isNewCheckout}>
           <CheckoutMain>
+            {isNewCheckout && (
+              <BackButton
+                borderless
+                aria-label={t('Back to Subscription Overview')}
+                onClick={() => {
+                  browserHistory.push(`/settings/${organization.slug}/billing/`);
+                }}
+              >
+                <IconArrow direction="left" />
+                <span>{t('Back')}</span>
+              </BackButton>
+            )}
             {this.renderPartnerAlert()}
             <div data-test-id="checkout-steps">{this.renderSteps()}</div>
           </CheckoutMain>
@@ -856,10 +886,42 @@ class AMCheckout extends Component<Props, State> {
             )}
           </SidePanel>
         </CheckoutContainer>
-      </Fragment>
+      </ParentComponent>
     );
   }
 }
+
+const FullScreenHeader = styled('header')`
+  background: ${p => p.theme.background};
+  width: 100%;
+  border-bottom: 1px solid ${p => p.theme.border};
+  display: flex;
+  justify-content: center;
+`;
+
+const HeaderContent = styled('div')`
+  max-width: 1360px;
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  padding: ${p => p.theme.space['2xl']};
+`;
+
+const FullScreenContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: ${p => p.theme.background};
+`;
+
+const BackButton = styled(Button)`
+  align-self: flex-start;
+  padding: 0;
+
+  & span {
+    margin-left: ${p => p.theme.space.sm};
+  }
+`;
 
 const CheckoutContainer = styled('div')<{isNewCheckout: boolean}>`
   display: grid;
@@ -870,6 +932,13 @@ const CheckoutContainer = styled('div')<{isNewCheckout: boolean}>`
       p.isNewCheckout ? p.theme.breakpoints.md : p.theme.breakpoints.lg}) {
     grid-template-columns: auto;
   }
+
+  ${p =>
+    p.isNewCheckout &&
+    css`
+      max-width: 1360px;
+      padding: ${p.theme.space['2xl']};
+    `}
 `;
 
 const SidePanel = styled('div')`
