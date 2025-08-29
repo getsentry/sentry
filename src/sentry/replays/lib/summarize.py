@@ -29,7 +29,7 @@ class EventDict(TypedDict):
     id: str
     title: str
     message: str
-    timestamp: float
+    timestamp: float  # this should be in milliseconds
     category: str
 
 
@@ -145,7 +145,7 @@ def fetch_trace_connected_errors(
                             category="error",
                             id=event["id"],
                             title=event.get("title", ""),
-                            timestamp=timestamp,
+                            timestamp=timestamp,  # this should be in milliseconds
                             message=event.get("message", ""),
                         )
                     )

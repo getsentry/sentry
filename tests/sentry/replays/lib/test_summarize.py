@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -9,6 +10,7 @@ from sentry.replays.lib.summarize import (
     as_log_message,
     get_summary_logs,
 )
+from sentry.replays.usecases.ingest.event_parser import get_timestamp_unit, which
 from sentry.utils import json
 
 """
@@ -147,6 +149,7 @@ def test_as_log_message_rage_click() -> None:
         as_log_message(event)
         == "User rage clicked on TabsWrap > BaseTabList > ChonkSwitch > ChonkSwitch > InnerWrap but the triggered action was slow to complete at 1756175998029.0"
     )
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
 def test_as_log_message_dead_click() -> None:
@@ -184,6 +187,7 @@ def test_as_log_message_dead_click() -> None:
         as_log_message(event)
         == "User clicked on Body > Section > div.app-z8xaty.exdtrvw0 > div > ChonkSwitch but the triggered action was slow to complete at 1756176027605.0"
     )
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
 def test_as_log_message_click() -> None:
@@ -218,6 +222,7 @@ def test_as_log_message_click() -> None:
         as_log_message(event)
         == "User clicked on TabsContainer > TabsWrap > BaseTabList > ChonkSwitch > FloatingTabWrap at 1756400639566.0"
     )
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
 def test_as_log_message_lcp() -> None:
@@ -240,6 +245,7 @@ def test_as_log_message_lcp() -> None:
         as_log_message(event)
         == "Application largest contentful paint: 623 ms and has a good rating at 1756400489048.0"
     )
+    assert get_timestamp_unit(which(event)) == "s"
 
 
 def test_as_log_message_hydration_error() -> None:
@@ -257,6 +263,7 @@ def test_as_log_message_hydration_error() -> None:
         },
     }
     assert as_log_message(event) == "There was a hydration error on the page at 1756444686898.0"
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
 def test_as_log_message_navigation_span() -> None:
@@ -275,6 +282,7 @@ def test_as_log_message_navigation_span() -> None:
         },
     }
     assert as_log_message(event) == "User navigated to: https://url-example.com at 1756400579304.0"
+    assert get_timestamp_unit(which(event)) == "s"
 
 
 def test_as_log_message_long_console_message() -> None:
@@ -294,6 +302,7 @@ def test_as_log_message_long_console_message() -> None:
         },
     }
     assert as_log_message(event) == f"Logged: '{'a' * 200} [truncated]' at 1756406283937.0"
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
 @pytest.mark.parametrize("status_code", [200, 204, 404, 500])
@@ -340,6 +349,8 @@ def test_as_log_message_resource_fetch(status_code: int, method: str) -> None:
         )
     else:
         assert as_log_message(event) is None
+
+    assert get_timestamp_unit(which(event)) == "s"
 
 
 @pytest.mark.parametrize("too_long", [True, False])
@@ -442,6 +453,8 @@ def test_as_log_message_resource_xhr(status_code: int, method: str) -> None:
     else:
         assert as_log_message(event) is None
 
+    assert get_timestamp_unit(which(event)) == "s"
+
 
 @pytest.mark.parametrize("too_long", [True, False])
 def test_as_log_message_resource_xhr_invalid_url(too_long: bool) -> None:
@@ -535,6 +548,7 @@ def test_as_log_message_slow_click() -> None:
         },
     }
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
 def test_as_log_message_navigation() -> None:
@@ -555,6 +569,7 @@ def test_as_log_message_navigation() -> None:
         },
     }
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
 def test_as_log_message_feedback() -> None:
@@ -572,23 +587,13 @@ def test_as_log_message_feedback() -> None:
         },
     }
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
-def test_as_log_message_invalid_input() -> None:
-    assert as_log_message({}) is None
-    assert as_log_message({"blah": "wrong"}) is None
-
-
-def test_as_log_message_ui_blur() -> None:
-    event = {
-        "type": 5,
-        "timestamp": 1756400752.714,
-        "data": {
-            "tag": "breadcrumb",
-            "payload": {"timestamp": 1756400752.714, "type": "default", "category": "ui.blur"},
-        },
-    }
+@pytest.mark.parametrize("event", [{}, {"blah": "wrong"}])
+def test_as_log_message_unknown(event: dict[str, Any]) -> None:
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
 def test_as_log_message_mutations() -> None:
@@ -606,6 +611,7 @@ def test_as_log_message_mutations() -> None:
         },
     }
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "s"
 
 
 def test_as_log_message_memory() -> None:
@@ -630,6 +636,7 @@ def test_as_log_message_memory() -> None:
         },
     }
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "s"
 
 
 def test_as_log_message_cls() -> None:
@@ -654,6 +661,20 @@ def test_as_log_message_cls() -> None:
         },
     }
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "s"
+
+
+def test_as_log_message_ui_blur() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756400752.714,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"timestamp": 1756400752.714, "type": "default", "category": "ui.blur"},
+        },
+    }
+    assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "s"
 
 
 def test_as_log_message_ui_focus() -> None:
@@ -666,6 +687,7 @@ def test_as_log_message_ui_focus() -> None:
         },
     }
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "s"
 
 
 def test_as_log_message_options() -> None:
@@ -691,6 +713,7 @@ def test_as_log_message_options() -> None:
         },
     }
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
 def test_as_log_message_canvas() -> None:
@@ -731,6 +754,7 @@ def test_as_log_message_canvas() -> None:
         "timestamp": 1756214056166,
     }
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "ms"
 
 
 def test_as_log_message_resource_img() -> None:
@@ -749,6 +773,7 @@ def test_as_log_message_resource_img() -> None:
         },
     }
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "s"
 
 
 def test_as_log_message_resource_script() -> None:
@@ -767,6 +792,7 @@ def test_as_log_message_resource_script() -> None:
         },
     }
     assert as_log_message(event) is None
+    assert get_timestamp_unit(which(event)) == "s"
 
 
 def test_parse_iso_timestamp_to_ms() -> None:
