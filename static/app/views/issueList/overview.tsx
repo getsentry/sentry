@@ -1153,6 +1153,8 @@ function IssueListOverview({
             onCursor={onCursorChange}
             paginationAnalyticsEvent={paginationAnalyticsEvent}
             issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
+            isInitiallyLoading={!issuesSuccessfullyLoaded && issuesLoading}
+            pageSize={MAX_ITEMS}
           />
         </StyledMain>
         <SavedIssueSearches
