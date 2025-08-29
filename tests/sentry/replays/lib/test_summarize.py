@@ -11,6 +11,10 @@ from sentry.replays.lib.summarize import (
 )
 from sentry.utils import json
 
+"""
+Tests for event types that do not return None for the log message
+"""
+
 
 @patch("sentry.replays.lib.summarize.fetch_feedback_details")
 def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
@@ -99,68 +103,87 @@ def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
     result = get_summary_logs(_faker(), error_events=error_events, project_id=1)
 
     assert result == [
-        "User experienced an error: 'BadError: something else bad' at 1756400489849",
-        "Logged: 'hello' at 1756400489863",
-        "Logged: 'world' at 1756400490866",
-        "User experienced an error: 'ZeroDivisionError: division by zero' at 1756400490869",
-        "User submitted feedback: 'Great website!' at 1756400490870",
+        "User experienced an error: 'BadError: something else bad' at 1756400489849.0",
+        "Logged: 'hello' at 1756400489863.0",
+        "Logged: 'world' at 1756400490866.0",
+        "User experienced an error: 'ZeroDivisionError: division by zero' at 1756400490869.0",
+        "User submitted feedback: 'Great website!' at 1756400490870.0",
     ]
 
 
-def test_as_log_message() -> None:
-    """Basic coverage for events that do not have dedicated test cases yet."""
-
+def test_as_log_message_rage_click() -> None:
     event = {
         "type": 5,
-        "timestamp": 0.0,
+        "timestamp": 1756175998029,
         "data": {
             "tag": "breadcrumb",
             "payload": {
+                "type": "default",
+                "message": "TabsWrap > BaseTabList > ChonkSwitch > ChonkSwitch > InnerWrap",
+                "timestamp": 1756175998.029,
                 "category": "ui.slowClickDetected",
-                "message": "div",
                 "data": {
-                    "clickCount": 4,
-                    "endReason": "timeout",
+                    "nodeId": 3868,
+                    "node": {
+                        "id": 3868,
+                        "tagName": "a",
+                        "textContent": "",
+                        "attributes": {
+                            "data-sentry-component": "InnerWrap",
+                            "class": "app-bawkde e1md5v962",
+                        },
+                    },
+                    "url": "https://test.sentry.io/insights/frontend/sessions/",
+                    "route": "/insights/frontend/sessions/",
                     "timeAfterClickMs": 7000,
-                    "node": {"tagName": "button"},
-                },
-            },
-        },
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "breadcrumb",
-            "payload": {
-                "category": "ui.slowClickDetected",
-                "message": "div",
-                "data": {
+                    "endReason": "timeout",
                     "clickCount": 5,
-                    "endReason": "timeout",
-                    "timeAfterClickMs": 7000,
-                    "node": {"tagName": "button"},
                 },
             },
         },
     }
-    assert as_log_message(event) is not None
 
+    assert (
+        as_log_message(event)
+        == "User rage clicked on TabsWrap > BaseTabList > ChonkSwitch > ChonkSwitch > InnerWrap but the triggered action was slow to complete at 1756175998029.0"
+    )
+
+
+def test_as_log_message_dead_click() -> None:
     event = {
         "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
+        "timestamp": 1756176027605,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "message": "Body > Section > div.app-z8xaty.exdtrvw0 > div > ChonkSwitch",
+                "timestamp": 1756176027.605,
+                "category": "ui.slowClickDetected",
+                "data": {
+                    "nodeId": 860,
+                    "node": {
+                        "id": 860,
+                        "tagName": "a",
+                        "textContent": "",
+                        "attributes": {
+                            "class": "ehp4qnd0 app-bxjpl0 e1fo43l910",
+                            "data-sentry-component": "ChonkSwitch",
+                        },
+                    },
+                    "url": "https://test.sentry.io/insights/frontend/http/",
+                    "route": "/insights/frontend/http/",
+                    "timeAfterClickMs": 7000,
+                    "endReason": "timeout",
+                    "clickCount": 1,
+                },
+            },
+        },
     }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "replay.mutations"}},
-    }
-    assert as_log_message(event) is None
+    assert (
+        as_log_message(event)
+        == "User clicked on Body > Section > div.app-z8xaty.exdtrvw0 > div > ChonkSwitch but the triggered action was slow to complete at 1756176027605.0"
+    )
 
 
 def test_as_log_message_click() -> None:
@@ -193,7 +216,7 @@ def test_as_log_message_click() -> None:
     }
     assert (
         as_log_message(event)
-        == "User clicked on TabsContainer > TabsWrap > BaseTabList > ChonkSwitch > FloatingTabWrap at 1756400639566"
+        == "User clicked on TabsContainer > TabsWrap > BaseTabList > ChonkSwitch > FloatingTabWrap at 1756400639566.0"
     )
 
 
@@ -217,108 +240,6 @@ def test_as_log_message_lcp() -> None:
         as_log_message(event)
         == "Application largest contentful paint: 623 ms and has a good rating at 1756400489048.0"
     )
-
-
-def test_as_log_message_navigation() -> None:
-    event = {
-        "type": 5,
-        "timestamp": 1756400579304,
-        "data": {
-            "tag": "breadcrumb",
-            "payload": {
-                "timestamp": 1756400579.304,
-                "type": "default",
-                "category": "navigation",
-                "data": {
-                    "from": "https://url-example-previous.com",
-                    "to": "https://url-example.com",
-                },
-            },
-        },
-    }
-    assert as_log_message(event) is None
-
-
-def test_as_log_message_feedback() -> None:
-    event = {
-        "type": 5,
-        "timestamp": 1756400970768,
-        "data": {
-            "tag": "breadcrumb",
-            "payload": {
-                "timestamp": 1756400970.768,
-                "type": "default",
-                "category": "sentry.feedback",
-                "data": {"feedbackId": "332f05068b2d43e6b5c5557ffecfcd0f"},
-            },
-        },
-    }
-    assert as_log_message(event) is None
-
-
-def test_as_log_message_invalid_input() -> None:
-    assert as_log_message({}) is None
-    assert as_log_message({"blah": "wrong"}) is None
-
-
-def test_as_log_message_ui_blur() -> None:
-    event = {
-        "type": 5,
-        "timestamp": 1756400752.714,
-        "data": {
-            "tag": "breadcrumb",
-            "payload": {"timestamp": 1756400752.714, "type": "default", "category": "ui.blur"},
-        },
-    }
-    assert as_log_message(event) is None
-
-
-def test_as_log_message_ui_focus() -> None:
-    event = {
-        "type": 5,
-        "timestamp": 1756401009.41,
-        "data": {
-            "tag": "breadcrumb",
-            "payload": {"timestamp": 1756401009.41, "type": "default", "category": "ui.focus"},
-        },
-    }
-    assert as_log_message(event) is None
-
-
-def test_as_log_message_resource_img() -> None:
-    event = {
-        "type": 5,
-        "timestamp": 1756400489.65,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "resource.img",
-                "description": "https://us.sentry.io/img-link",
-                "startTimestamp": 1756400489.65,
-                "endTimestamp": 1756400489.869,
-                "data": {"size": 0, "statusCode": 0, "decodedBodySize": 0, "encodedBodySize": 0},
-            },
-        },
-    }
-    assert as_log_message(event) is None
-
-
-def test_as_log_message_resource_script() -> None:
-    event = {
-        "type": 5,
-        "timestamp": 1756400490.308,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "resource.script",
-                "description": "https://data.test.io/data/test",
-                "startTimestamp": 1756400490.308,
-                "endTimestamp": 1756400491.236,
-                "data": {"size": 0, "statusCode": 0, "decodedBodySize": 0, "encodedBodySize": 0},
-            },
-        },
-    }
-    assert as_log_message(event) is None
 
 
 def test_as_log_message_navigation_span() -> None:
@@ -355,7 +276,7 @@ def test_as_log_message_long_console_message() -> None:
             },
         },
     }
-    assert as_log_message(event) == f"Logged: '{'a' * 200} [truncated]' at 1756406283937"
+    assert as_log_message(event) == f"Logged: '{'a' * 200} [truncated]' at 1756406283937.0"
 
 
 @pytest.mark.parametrize("status_code", [200, 204, 404, 500])
@@ -558,6 +479,147 @@ def test_as_log_message_resource_xhr_invalid_url(too_long: bool) -> None:
             as_log_message(event)
             == f'XHR request "GET {url}" failed with 404 (42 bytes) at 1756401153805.0'
         )
+
+
+"""
+Tests for events that return None for the log message
+"""
+
+
+def test_as_log_message_slow_click() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756176027605,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "message": "Body > Section > div.app-z8xaty.exdtrvw0 > div > ChonkSwitch",
+                "timestamp": 1756176027.605,
+                "category": "ui.slowClickDetected",
+                "data": {
+                    "nodeId": 860,
+                    "node": {
+                        "id": 860,
+                        "tagName": "a",
+                        "textContent": "",
+                        "attributes": {
+                            "class": "ehp4qnd0 app-bxjpl0 e1fo43l910",
+                            "data-sentry-component": "ChonkSwitch",
+                        },
+                    },
+                    "url": "https://test.sentry.io/insights/frontend/http/",
+                    "route": "/insights/frontend/http/",
+                    "timeAfterClickMs": 5884.000062942505,
+                    "endReason": "mutation",
+                    "clickCount": 1,
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_navigation() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756400579304,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1756400579.304,
+                "type": "default",
+                "category": "navigation",
+                "data": {
+                    "from": "https://url-example-previous.com",
+                    "to": "https://url-example.com",
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_feedback() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756400970768,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1756400970.768,
+                "type": "default",
+                "category": "sentry.feedback",
+                "data": {"feedbackId": "332f05068b2d43e6b5c5557ffecfcd0f"},
+            },
+        },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_invalid_input() -> None:
+    assert as_log_message({}) is None
+    assert as_log_message({"blah": "wrong"}) is None
+
+
+def test_as_log_message_ui_blur() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756400752.714,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"timestamp": 1756400752.714, "type": "default", "category": "ui.blur"},
+        },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_ui_focus() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756401009.41,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {"timestamp": 1756401009.41, "type": "default", "category": "ui.focus"},
+        },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_resource_img() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756400489.65,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.img",
+                "description": "https://us.sentry.io/img-link",
+                "startTimestamp": 1756400489.65,
+                "endTimestamp": 1756400489.869,
+                "data": {"size": 0, "statusCode": 0, "decodedBodySize": 0, "encodedBodySize": 0},
+            },
+        },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_resource_script() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756400490.308,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.script",
+                "description": "https://data.test.io/data/test",
+                "startTimestamp": 1756400490.308,
+                "endTimestamp": 1756400491.236,
+                "data": {"size": 0, "statusCode": 0, "decodedBodySize": 0, "encodedBodySize": 0},
+            },
+        },
+    }
+    assert as_log_message(event) is None
 
 
 def test_parse_iso_timestamp_to_ms() -> None:

@@ -189,14 +189,14 @@ def fetch_feedback_details(feedback_id: str | None, project_id) -> EventDict | N
 def generate_error_log_message(error: EventDict) -> str:
     title = error["title"]
     message = error["message"]
-    timestamp = error["timestamp"]
+    timestamp = float(error["timestamp"])
 
     return f"User experienced an error: '{title}: {message}' at {timestamp}"
 
 
 def generate_feedback_log_message(feedback: EventDict) -> str:
     message = feedback["message"]
-    timestamp = feedback["timestamp"]
+    timestamp = float(feedback["timestamp"])
 
     return f"User submitted feedback: '{message}' at {timestamp}"
 
