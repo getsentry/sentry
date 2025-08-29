@@ -34,13 +34,13 @@ export function useFetchEventsTimeSeries<T extends string>(
   dataset: DiscoverDatasets,
   {
     yAxis,
+    enabled,
+    groupBy,
     interval,
     query,
     sampling,
-    topEvents,
-    groupBy,
     sort,
-    enabled,
+    topEvents,
   }: UseFetchEventsTimeSeriesOptions<T>,
   referrer: string
 ) {
