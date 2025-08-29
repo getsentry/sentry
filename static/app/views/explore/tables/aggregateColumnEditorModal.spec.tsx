@@ -319,6 +319,56 @@ describe('AggregateColumnEditorModal', () => {
       {yAxes: ['equation|avg(tags[foo,number]) * 5']},
     ]);
   });
+
+  it('supports multi-argument visualize count_if', async () => {
+    const onColumnsChange = jest.fn();
+    const user = userEvent.setup();
+
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <AggregateColumnEditorModal
+            {...modalProps}
+            columns={[new Visualize(DEFAULT_VISUALIZATION)]}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTags}
+            numberTags={numberTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    const rows = await screen.findAllByTestId('editor-row');
+    expect(rows).toHaveLength(1);
+    const row = rows[0]!;
+
+    const funcSelect = within(row).getByTestId('editor-visualize-function');
+    await userEvent.click(within(funcSelect).getByRole('button'));
+    await userEvent.click(screen.getByRole('option', {name: 'count_if'}));
+
+    const argSelect = within(row).getByTestId('editor-visualize-argument');
+    await userEvent.click(within(argSelect).getByRole('button'));
+    await userEvent.click(screen.getByRole('option', {name: 'span.duration'}));
+
+    const dropdown = within(row).getByTestId('editor-visualize-dropdown-argument');
+    await userEvent.click(within(dropdown).getByRole('button', {name: 'is equal to'}));
+    await userEvent.click(screen.getByRole('option', {name: 'is greater than'}));
+
+    const inputs = within(row).getAllByRole('textbox');
+    const valueInput = inputs[inputs.length - 1]!;
+    await userEvent.tripleClick(valueInput);
+    await user.keyboard('400');
+    await user.keyboard('{Enter}');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(onColumnsChange).toHaveBeenCalledWith([
+      {yAxes: ['count_if(span.duration,greater,400)']},
+    ]);
+  });
 });
 
 function expectRows(rows: HTMLElement[]) {
