@@ -7,6 +7,7 @@ import {Flex} from 'sentry/components/core/layout';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -16,7 +17,7 @@ import {
   type SharedOnDemandBudget,
   type Subscription,
 } from 'getsentry/types';
-import {formatReservedWithUnits, isTrialPlan} from 'getsentry/utils/billing';
+import {formatReservedWithUnits, isNewPayingCustomer} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -90,7 +91,7 @@ function PlanDiff({
 }) {
   const changes = [...planChanges, ...productChanges];
   return (
-    <ChangeSection>
+    <ChangeSection data-test-id="plan-diff">
       <ChangeGrid>
         {changes.map((change, index) => {
           const {key, currentValue, newValue} = change;
@@ -137,7 +138,7 @@ function ReservedDiff({
   reservedChanges: ReservedChange[];
 }) {
   return (
-    <ChangeSection>
+    <ChangeSection data-test-id="reserved-diff">
       <ChangeSectionTitle hasBottomMargin>{t('Reserved volume')}</ChangeSectionTitle>
       <ChangeGrid>
         {reservedChanges.map(({key, currentValue, newValue}) => {
@@ -185,7 +186,7 @@ function OnDemandDiff({
   return (
     <Fragment>
       {sharedOnDemandChanges.length > 0 && (
-        <ChangeSection>
+        <ChangeSection data-test-id="shared-spend-cap-diff">
           <ChangeGrid>
             {sharedOnDemandChanges.map((change, index) => {
               const {key, currentValue, newValue} = change;
@@ -214,7 +215,7 @@ function OnDemandDiff({
         </ChangeSection>
       )}
       {perCategoryOnDemandChanges.length > 0 && (
-        <ChangeSection>
+        <ChangeSection data-test-id="per-category-spend-cap-diff">
           <ChangeSectionTitle hasBottomMargin>
             {t('Per-category spend caps')}
           </ChangeSectionTitle>
@@ -254,20 +255,18 @@ function CartDiff({
   activePlan,
   formData,
   subscription,
-  freePlan,
   isOpen,
   onToggle,
+  organization,
 }: {
   activePlan: Plan;
   formData: CheckoutFormData;
-  freePlan: Plan;
   isOpen: boolean;
   onToggle: (isOpen: boolean) => void;
+  organization: Organization;
   subscription: Subscription;
 }) {
-  const currentPlan = isTrialPlan(subscription.plan)
-    ? freePlan
-    : subscription.planDetails;
+  const currentPlan = subscription.planDetails;
   const currentOnDemandBudget = parseOnDemandBudgetsFromSubscription(subscription);
   const newOnDemandBudget = formData.onDemandBudget ?? DEFAULT_PAYG_BUDGET;
   const currentBudgetMode = currentOnDemandBudget.budgetMode;
@@ -336,23 +335,23 @@ function CartDiff({
     const nodes: ReservedChange[] = [];
 
     Object.entries(subscription.categories).forEach(([category, history]) => {
-      const reserved = history.reserved ?? 0;
-      if (
-        currentPlan.checkoutCategories.includes(category as DataCategory) &&
-        reserved >= 0
-      ) {
+      const reserved = history.reserved;
+      if (reserved !== null) {
         currentReserved[category as DataCategory] = reserved;
       }
     });
 
-    activePlan.checkoutCategories.forEach(category => {
-      if (!(category in newReserved)) {
-        const firstBucket = activePlan.planCategories[category]?.find(
-          bucket => bucket.events >= 0
-        );
-        newReserved[category] = firstBucket?.events ?? 0;
-      }
-    });
+    // iterate through new plan's checkout categories
+    // activePlan.checkoutCategories.forEach(category => {
+    //   if (!(category in newReserved)) {
+    //     const firstBucket = activePlan.planCategories[category]?.find(
+    //       bucket => bucket.events >= 0
+    //     );
+    //     if (firstBucket !== undefined) {
+    //       newReserved[category] = firstBucket.events;
+    //     }
+    //   }
+    // });
 
     if (Object.keys(currentReserved).length > Object.keys(newReserved).length) {
       Object.entries(currentReserved).forEach(([category, currentValue]) => {
@@ -514,15 +513,19 @@ function CartDiff({
 
   const numChanges = allChanges.length;
 
-  if (numChanges === 0) {
+  if (numChanges === 0 || isNewPayingCustomer(subscription, organization)) {
     return null;
   }
 
   return (
-    <CartDiffContainer>
+    <CartDiffContainer data-test-id="cart-diff">
       <Flex justify="between" align="center">
         <Title>{tct('Changes ([numChanges])', {numChanges})}</Title>
-        <Button onClick={() => onToggle(!isOpen)} borderless>
+        <Button
+          aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
+          onClick={() => onToggle(!isOpen)}
+          borderless
+        >
           <IconChevron direction={isOpen ? 'up' : 'down'} />
         </Button>
       </Flex>

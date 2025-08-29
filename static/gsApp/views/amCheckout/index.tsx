@@ -242,10 +242,6 @@ class AMCheckout extends Component<Props, State> {
     this.setState({loading: false});
   }
 
-  getFreePlan(billingConfig: BillingConfig) {
-    return billingConfig.planList.find(plan => plan.id === billingConfig.freePlan)!;
-  }
-
   getPaidPlans(billingConfig: BillingConfig) {
     const paidPlans = billingConfig.planList.filter(
       plan =>
@@ -817,7 +813,6 @@ class AMCheckout extends Component<Props, State> {
                   // TODO(checkout v3): we'll also need to fetch billing details but
                   // this will be done in a later PR
                   hasCompleteBillingDetails={!!subscription.paymentSource?.last4}
-                  freePlan={this.getFreePlan(billingConfig)}
                 />
               ) : checkoutTier === PlanTier.AM3 ? (
                 <CheckoutOverviewV2 {...overviewProps} />

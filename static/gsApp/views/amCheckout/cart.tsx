@@ -48,7 +48,6 @@ const NULL_PREVIEW_STATE: CartPreviewState = {
 interface CartProps {
   activePlan: Plan;
   formData: CheckoutFormData;
-  freePlan: Plan;
   hasCompleteBillingDetails: boolean;
   organization: Organization;
   subscription: Subscription;
@@ -513,14 +512,13 @@ function Cart({
   organization,
   referrer,
   hasCompleteBillingDetails,
-  freePlan,
 }: CartProps) {
   const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [stripe, setStripe] = useState<stripe.Stripe>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [summaryIsOpen, setSummaryIsOpen] = useState(true);
-  const [changesIsOpen, setChangesIsOpen] = useState(false);
+  const [changesIsOpen, setChangesIsOpen] = useState(true);
   const api = useApi();
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
@@ -655,21 +653,25 @@ function Cart({
         activePlan={activePlan}
         formData={formData}
         subscription={subscription}
-        freePlan={freePlan}
         isOpen={changesIsOpen}
         onToggle={setChangesIsOpen}
+        organization={organization}
       />
       <PlanSummaryHeader isOpen={summaryIsOpen} shouldShadow={changesIsOpen}>
         <Title>{t('Plan Summary')}</Title>
         <Flex gap="xs" align="center">
           <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
-          <Button onClick={() => setSummaryIsOpen(!summaryIsOpen)} borderless>
+          <Button
+            aria-label={`${summaryIsOpen ? 'Hide' : 'Show'} plan summary`}
+            onClick={() => setSummaryIsOpen(!summaryIsOpen)}
+            borderless
+          >
             <IconChevron direction={summaryIsOpen ? 'up' : 'down'} />
           </Button>
         </Flex>
       </PlanSummaryHeader>
       {summaryIsOpen && (
-        <PlanSummary>
+        <div data-test-id="plan-summary">
           <ItemsSummary activePlan={activePlan} formData={formData} />
           <SubtotalSummary
             activePlan={activePlan}
@@ -677,7 +679,7 @@ function Cart({
             previewDataLoading={previewState.isLoading}
             renewalDate={previewState.renewalDate}
           />
-        </PlanSummary>
+        </div>
       )}
       <TotalSummary
         activePlan={activePlan}
@@ -727,8 +729,6 @@ const Title = styled('h1')`
   margin: 0;
   text-wrap: nowrap;
 `;
-
-const PlanSummary = styled('div')``;
 
 const PlanSummaryHeader = styled('div')<{isOpen: boolean; shouldShadow: boolean}>`
   display: flex;
