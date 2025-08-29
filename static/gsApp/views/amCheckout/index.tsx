@@ -124,7 +124,7 @@ class AMCheckout extends Component<Props, State> {
     ) {
       props.onToggleLegacy(props.subscription.planTier);
     }
-    // TODO(checkout v3): remove this once all customers are on the new checkout flow
+    // TODO(checkout v3): remove these checks once checkout v3 is GA'd
     if (props.location?.pathname.includes('checkout-v3') && !props.isNewCheckout) {
       browserHistory.push(`/settings/${props.organization.slug}/billing/checkout/`);
     } else if (!props.location?.pathname.includes('checkout-v3') && props.isNewCheckout) {
@@ -891,8 +891,14 @@ class AMCheckout extends Component<Props, State> {
   }
 }
 
-const FullScreenHeader = styled('header')`
+const FullScreenContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   background: ${p => p.theme.background};
+`;
+
+const FullScreenHeader = styled('header')`
   width: 100%;
   border-bottom: 1px solid ${p => p.theme.border};
   display: flex;
@@ -900,18 +906,11 @@ const FullScreenHeader = styled('header')`
 `;
 
 const HeaderContent = styled('div')`
-  max-width: 1360px;
   width: 100%;
   display: flex;
   justify-content: flex-start;
   padding: ${p => p.theme.space['2xl']};
-`;
-
-const FullScreenContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: ${p => p.theme.background};
+  max-width: ${p => p.theme.breakpoints.xl};
 `;
 
 const BackButton = styled(Button)`
@@ -936,7 +935,7 @@ const CheckoutContainer = styled('div')<{isNewCheckout: boolean}>`
   ${p =>
     p.isNewCheckout &&
     css`
-      max-width: 1360px;
+      max-width: ${p.theme.breakpoints.xl};
       padding: ${p.theme.space['2xl']};
     `}
 `;
