@@ -133,12 +133,16 @@ function useWidgetBuilderState(): {
     decoder: decodeList,
     deserializer: deserializeQuery,
   });
+
+  const deserializeSortsCallback = useMemo(() => deserializeSorts(dataset), [dataset]);
+  const serializeSortsCallback = useMemo(() => serializeSorts(dataset), [dataset]);
   const [sort, setSort] = useQueryParamState<Sort[]>({
     fieldName: 'sort',
     decoder: decodeSorts,
-    deserializer: deserializeSorts(dataset),
-    serializer: serializeSorts(dataset),
+    deserializer: deserializeSortsCallback,
+    serializer: serializeSortsCallback,
   });
+
   const [limit, setLimit] = useQueryParamState<number>({
     fieldName: 'limit',
     decoder: decodeScalar,
@@ -160,6 +164,13 @@ function useWidgetBuilderState(): {
     serializer: serializeThresholds,
   });
 
+  const computedSelectedAggregate = useMemo(() => {
+    if (displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1) {
+      return selectedAggregate ?? fields.length - 1;
+    }
+    return undefined;
+  }, [displayType, fields, selectedAggregate]);
+
   const state = useMemo(
     () => ({
       title,
@@ -176,10 +187,7 @@ function useWidgetBuilderState(): {
 
       // The selected aggregate is the last aggregate for big number widgets
       // if it hasn't been explicitly set
-      selectedAggregate:
-        displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
-          ? (selectedAggregate ?? fields.length - 1)
-          : undefined,
+      selectedAggregate: computedSelectedAggregate,
     }),
     [
       title,
@@ -192,8 +200,8 @@ function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
-      selectedAggregate,
       thresholds,
+      computedSelectedAggregate,
     ]
   );
 
