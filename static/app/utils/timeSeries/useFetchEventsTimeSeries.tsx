@@ -1,4 +1,5 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -21,6 +22,10 @@ interface UseFetchEventsTimeSeriesOptions<Field> {
   enabled?: boolean;
   groupBy?: Field[];
   interval?: string;
+  /**
+   * NOTE: If `pageFilters` are passed in, the implication is that these filters are ready, and have valid data. If present, the query is enabled immediately!
+   */
+  pageFilters?: PageFilters;
   query?: MutableSearch | string;
   sampling?: SamplingMode;
   sort?: Sort;
@@ -39,6 +44,7 @@ export function useFetchEventsTimeSeries<T extends string>(
     interval,
     query,
     sampling,
+    pageFilters,
     sort,
     topEvents,
   }: UseFetchEventsTimeSeriesOptions<T>,
@@ -46,7 +52,10 @@ export function useFetchEventsTimeSeries<T extends string>(
 ) {
   const organization = useOrganization();
 
-  const {isReady: arePageFiltersReady, selection} = usePageFilters();
+  const {isReady: arePageFiltersReady, selection: defaultSelection} = usePageFilters();
+
+  const hasCustomPageFilters = Boolean(pageFilters);
+  const selection = pageFilters ?? defaultSelection;
 
   if (!referrer) {
     throw new Error(
@@ -85,7 +94,7 @@ export function useFetchEventsTimeSeries<T extends string>(
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       refetchOnWindowFocus: false,
-      enabled: enabled && arePageFiltersReady,
+      enabled: enabled && (hasCustomPageFilters ? true : arePageFiltersReady),
     }
   );
 }
