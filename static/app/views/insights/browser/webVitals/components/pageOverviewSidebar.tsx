@@ -412,7 +412,9 @@ function SeerSuggestion({issue}: {issue: Group}) {
       </CardTitle>
       <CardContentContainer>
         <CardContent>
-          {isLoadingAutofix || autofixData === undefined ? (
+          {isLoadingAutofix ||
+          autofixData === undefined ||
+          rootCauseDescription === null ? (
             <Placeholder height="1.5rem" width="100%" />
           ) : (
             <AutofixSummary
