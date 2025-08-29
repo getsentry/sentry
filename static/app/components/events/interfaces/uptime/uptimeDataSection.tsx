@@ -105,7 +105,7 @@ export function UptimeDataSection({group, event, project}: Props) {
   const now = useMemo(() => new Date(), []);
 
   const isResolved = group.status === GroupStatus.RESOLVED;
-  const alertRuleId = event.tags.find(tag => tag.key === 'uptime_rule')?.value;
+  const detectorId: number | undefined = event.occurrence?.evidenceData.detectorId;
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
@@ -122,19 +122,19 @@ export function UptimeDataSection({group, event, project}: Props) {
   }, [timeWindow, timelineWidth, since, until, event, now]);
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
-    ruleIds: alertRuleId ? [alertRuleId] : [],
+    detectorIds: detectorId ? [String(detectorId)] : [],
     timeWindowConfig,
   });
-  const bucketedData = alertRuleId ? (uptimeStats?.[alertRuleId] ?? []) : [];
+  const bucketedData = detectorId ? (uptimeStats?.[detectorId] ?? []) : [];
 
   const actions = (
     <ButtonBar>
-      {defined(alertRuleId) && (
+      {defined(detectorId) && (
         <LinkButton
           icon={<IconSettings />}
           size="xs"
           to={makeAlertsPathname({
-            path: `/rules/uptime/${project.slug}/${alertRuleId}/details/`,
+            path: `/rules/uptime/${project.slug}/${detectorId}/details/`,
             organization,
           })}
         >

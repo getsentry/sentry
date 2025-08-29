@@ -107,12 +107,9 @@ describe('DetectorSection', () => {
 
   it('displays the detector details for an uptime monitor', () => {
     const event = EventFixture({
-      tags: [
-        {
-          key: 'uptime_rule',
-          value: detectorId,
-        },
-      ],
+      occurrence: {
+        evidenceData: {detectorId},
+      },
     });
     const group = GroupFixture({
       issueCategory: IssueCategory.UPTIME,

@@ -28,7 +28,11 @@ import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/useIssueTimeWindowConfig';
 import {getGroupEventQueryKey} from 'sentry/views/issueDetails/utils';
 
-export function useUptimeIssueAlertId({groupId}: {groupId: string}): string | undefined {
+export function useUptimeIssueDetectorId({
+  groupId,
+}: {
+  groupId: string;
+}): string | undefined {
   /**
    * This should be removed once the uptime rule value is set on the issue.
    * This will fetch an event from the max range if the detector details
@@ -55,28 +59,30 @@ export function useUptimeIssueAlertId({groupId}: {groupId: string}): string | un
     }
   );
 
+  const evidenceDetectorId = event?.occurrence?.evidenceData.detectorId
+    ? String(event?.occurrence?.evidenceData.detectorId)
+    : undefined;
+
   // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
-  return hasUptimeDetector
-    ? detectorId
-    : event?.tags?.find(tag => tag.key === 'uptime_rule')?.value;
+  return hasUptimeDetector ? detectorId : evidenceDetectorId;
 }
 
 export function IssueUptimeCheckTimeline({group}: {group: Group}) {
-  const uptimeAlertId = useUptimeIssueAlertId({groupId: group.id});
+  const detectorId = useUptimeIssueDetectorId({groupId: group.id});
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
   const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
-    ruleIds: uptimeAlertId ? [uptimeAlertId] : [],
+    detectorIds: detectorId ? [detectorId] : [],
     timeWindowConfig,
   });
 
   const legendStatuses = useMemo(() => {
     const hasUnknownStatus =
-      uptimeAlertId &&
-      uptimeStats?.[uptimeAlertId]?.some(
+      detectorId &&
+      uptimeStats?.[detectorId]?.some(
         ([_, stats]) => stats[CheckStatus.MISSED_WINDOW] > 0
       );
 
@@ -91,7 +97,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
     }
 
     return statuses;
-  }, [uptimeAlertId, uptimeStats]);
+  }, [detectorId, uptimeStats]);
 
   return (
     <ChartContainer>
@@ -117,7 +123,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
           <CheckInPlaceholder />
         ) : (
           <CheckInTimeline
-            bucketedData={uptimeAlertId ? (uptimeStats?.[uptimeAlertId] ?? []) : []}
+            bucketedData={detectorId ? (uptimeStats?.[detectorId] ?? []) : []}
             statusLabel={statusToText}
             statusStyle={tickStyle}
             statusPrecedent={checkStatusPrecedent}

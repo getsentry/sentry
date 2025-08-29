@@ -8,7 +8,7 @@ interface Options {
    * The list of uptime monitor IDs to fetch stats for. These are the numeric
    * IDs of the UptimeRukle id's
    */
-  ruleIds: string[];
+  detectorIds: string[];
   /**
    * The window configuration object
    */
@@ -18,7 +18,7 @@ interface Options {
 /**
  * Fetches Uptime Monitor stats
  */
-export function useUptimeMonitorStats({ruleIds, timeWindowConfig}: Options) {
+export function useUptimeMonitorStats({detectorIds, timeWindowConfig}: Options) {
   const {start, end, rollupConfig} = timeWindowConfig;
 
   const selectionQuery = {
@@ -35,7 +35,7 @@ export function useUptimeMonitorStats({ruleIds, timeWindowConfig}: Options) {
       monitorStatsQueryKey,
       {
         query: {
-          projectUptimeSubscriptionId: ruleIds,
+          uptimeDetectorId: detectorIds,
           ...selectionQuery,
         },
       },

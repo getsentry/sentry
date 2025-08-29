@@ -17,14 +17,11 @@ import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
 import GroupUptimeChecks from 'sentry/views/issueDetails/groupUptimeChecks';
 
 describe('GroupUptimeChecks', () => {
-  const uptimeRuleId = '123';
+  const detectorId = '123';
   const event = EventFixture({
-    tags: [
-      {
-        key: 'uptime_rule',
-        value: uptimeRuleId,
-      },
-    ],
+    occurrence: {
+      evidenceData: {detectorId},
+    },
   });
   const group = GroupFixture({
     issueCategory: IssueCategory.UPTIME,
@@ -66,7 +63,7 @@ describe('GroupUptimeChecks', () => {
 
   it('renders the empty uptime check table', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRuleId}/checks/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${detectorId}/checks/`,
       body: [],
     });
 
@@ -85,7 +82,7 @@ describe('GroupUptimeChecks', () => {
   it('renders the uptime check table with data', async () => {
     const uptimeCheck = UptimeCheckFixture();
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRuleId}/checks/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${detectorId}/checks/`,
       body: [uptimeCheck],
     });
     MockApiClient.addMockResponse({
@@ -121,7 +118,7 @@ describe('GroupUptimeChecks', () => {
   it('indicates when there are spans in a trace', async () => {
     const uptimeCheck = UptimeCheckFixture();
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/uptime/${uptimeRuleId}/checks/`,
+      url: `/projects/${organization.slug}/${project.slug}/uptime/${detectorId}/checks/`,
       body: [uptimeCheck],
     });
     MockApiClient.addMockResponse({

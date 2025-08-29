@@ -105,13 +105,13 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
         const projectSlug = formModel.getValue<string>('projectSlug');
         const selectedProject = projects.find(p => p.slug === projectSlug);
         const apiEndpoint = rule
-          ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
-          : `/projects/${organization.slug}/${projectSlug}/uptime/`;
+          ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.detectorId}/?useDetectorId=1`
+          : `/projects/${organization.slug}/${projectSlug}/uptime/?useDetectorId=1`;
 
         function onSubmitSuccess(response: any) {
           navigate(
             makeAlertsPathname({
-              path: `/rules/uptime/${projectSlug}/${response.id}/details/`,
+              path: `/rules/uptime/${projectSlug}/${response.detectorId}/details/`,
               organization,
             })
           );
