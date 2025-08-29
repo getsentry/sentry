@@ -11,10 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {
-  useLogsFields,
-  useLogsSearch,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useLogsSearch} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   useExploreDataset,
   useExploreFields,
@@ -32,6 +29,7 @@ import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {type useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
 import {
   combineConfidenceForSeries,
   computeVisualizeSampleTotals,
@@ -461,7 +459,7 @@ export function useLogAnalytics({
   const dataScanned = logsTableResult.meta?.dataScanned ?? '';
   const search = useLogsSearch();
   const query = search.formatString();
-  const fields = useLogsFields();
+  const fields = useQueryParamsFields();
   const page_source = source;
 
   const tableError = logsTableResult.error?.message ?? '';

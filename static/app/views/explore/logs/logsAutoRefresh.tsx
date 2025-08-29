@@ -4,6 +4,7 @@ import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -15,15 +16,13 @@ import {
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {
-  useLogsAnalyticsPageSource,
-  useLogsSortBys,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useLogsAnalyticsPageSource} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {AutoRefreshLabel} from 'sentry/views/explore/logs/styles';
 import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
 import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsMode,
+  useQueryParamsSortBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -61,7 +60,7 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
   const {autoRefresh} = useLogsAutoRefresh();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
-  const sortBys = useLogsSortBys();
+  const sortBys = useQueryParamsSortBys();
   const mode = useQueryParamsMode();
   const visualizes = useQueryParamsVisualizes();
   const {selection} = usePageFilters();
@@ -143,7 +142,7 @@ function getPreFlightDisableReason({
 }: {
   hasAbsoluteDates: boolean;
   mode: Mode;
-  sortBys: ReturnType<typeof useLogsSortBys>;
+  sortBys: readonly Sort[];
   visualizes: readonly Visualize[];
   averageLogsPerSecond?: number | null;
   initialIsError?: boolean;

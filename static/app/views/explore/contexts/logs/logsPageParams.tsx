@@ -378,16 +378,6 @@ export function usePersistedLogsPageParams() {
   });
 }
 
-export function useLogsSortBys() {
-  const {sortBys} = useLogsPageParams();
-  return sortBys;
-}
-
-export function useLogsFields() {
-  const {fields} = useLogsPageParams();
-  return fields;
-}
-
 export function useLogsId() {
   const {id} = useLogsPageParams();
   return id;
@@ -436,7 +426,7 @@ interface ToggleableSortBy {
 export function useSetLogsSortBys() {
   const setPageParams = useSetLogsPageParams();
   const [_, setPersistentParams] = usePersistedLogsPageParams();
-  const currentPageSortBys = useLogsSortBys();
+  const {sortBys: currentPageSortBys} = useLogsPageParams();
 
   return useCallback(
     (desiredSortBys: ToggleableSortBy[]) => {
