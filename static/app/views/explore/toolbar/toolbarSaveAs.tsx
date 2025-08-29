@@ -77,30 +77,35 @@ export function ToolbarSaveAs() {
 
   const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
 
-  const alertsUrls = visualizeYAxes.map((yAxis, index) => {
-    const func = parseFunction(yAxis);
-    const label = func ? prettifyParsedFunction(func) : yAxis;
-    return {
-      key: `${yAxis}-${index}`,
-      label,
-      to: getAlertsUrl({
-        project,
-        query,
-        pageFilters: pageFilters.selection,
-        aggregate: yAxis,
-        organization,
-        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-        interval,
-      }),
-      onAction: () => {
-        trackAnalytics('trace_explorer.save_as', {
-          save_type: 'alert',
-          ui_source: 'toolbar',
+  const alertsUrls = visualizeYAxes
+    .filter(yAxis => {
+      const func = parseFunction(yAxis);
+      return func ? func.arguments.length <= 1 : false;
+    })
+    .map((yAxis, index) => {
+      const func = parseFunction(yAxis);
+      const label = func ? prettifyParsedFunction(func) : yAxis;
+      return {
+        key: `${yAxis}-${index}`,
+        label,
+        to: getAlertsUrl({
+          project,
+          query,
+          pageFilters: pageFilters.selection,
+          aggregate: yAxis,
           organization,
-        });
-      },
-    };
-  });
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          interval,
+        }),
+        onAction: () => {
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'alert',
+            ui_source: 'toolbar',
+            organization,
+          });
+        },
+      };
+    });
 
   const items: MenuItemProps[] = [];
 

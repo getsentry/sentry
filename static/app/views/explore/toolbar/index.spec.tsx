@@ -675,6 +675,39 @@ describe('ExploreToolbar', () => {
     });
   });
 
+  it('disables alert for multi param functions', async () => {
+    let visualizes: any;
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <Wrapper>
+        <Component />
+      </Wrapper>
+    );
+
+    const visualizesSection = screen.getByTestId('section-visualizes');
+
+    expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
+
+    await userEvent.click(within(visualizesSection).getByRole('button', {name: 'count'}));
+    await userEvent.click(
+      within(visualizesSection).getByRole('option', {name: 'count_if'})
+    );
+
+    const section = screen.getByTestId('section-save-as');
+    await userEvent.click(within(section).getByText(/Save as/));
+
+    const alertItem = within(section).getByRole('menuitemradio', {name: 'An Alert for'});
+    expect(alertItem).toHaveAttribute('aria-disabled', 'true');
+
+    expect(
+      within(section).queryByRole('menuitemradio', {name: /count_if/})
+    ).not.toBeInTheDocument();
+  });
+
   it('add to dashboard options correctly', async () => {
     const router = RouterFixture({
       location: {
