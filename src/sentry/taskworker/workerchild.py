@@ -338,6 +338,7 @@ def child_process(
                 execution_start_time,
                 execution_complete_time,
                 processing_pool_name,
+                inflight.host,
             )
 
     def _execute_activation(task_func: Task[Any, Any], activation: TaskActivation) -> None:
@@ -407,6 +408,7 @@ def child_process(
         start_time: float,
         completion_time: float,
         processing_pool_name: str,
+        taskbroker_host: str,
     ) -> None:
         task_added_time = activation.received_at.ToDatetime().timestamp()
         execution_duration = completion_time - start_time
@@ -428,6 +430,7 @@ def child_process(
                 "taskname": activation.taskname,
                 "status": status_name(status),
                 "processing_pool": processing_pool_name,
+                "taskbroker_host": taskbroker_host,
             },
         )
         metrics.distribution(
@@ -437,6 +440,7 @@ def child_process(
                 "namespace": activation.namespace,
                 "taskname": activation.taskname,
                 "processing_pool": processing_pool_name,
+                "taskbroker_host": taskbroker_host,
             },
         )
         metrics.distribution(
@@ -446,6 +450,7 @@ def child_process(
                 "namespace": activation.namespace,
                 "taskname": activation.taskname,
                 "processing_pool": processing_pool_name,
+                "taskbroker_host": taskbroker_host,
             },
         )
 
