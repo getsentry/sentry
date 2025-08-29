@@ -94,9 +94,9 @@ export function WizardProjectSelection({
   const orgDetailsRequest = useOrganizationDetails({organization: selectedOrg});
   const teamsRequest = useOrganizationTeams({organization: selectedOrg});
 
-  const accessTeams = teamsRequest.data?.filter(team =>
-    team.access.includes('team:admin')
-  );
+  const accessTeams = useMemo(() => {
+    return teamsRequest.data?.filter(team => team.access.includes('team:admin'));
+  }, [teamsRequest.data]);
 
   const selectableTeams = useMemo(() => {
     if (orgDetailsRequest.data?.access.includes('org:admin')) {
