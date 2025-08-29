@@ -446,8 +446,12 @@ class GroupManager(BaseManager["Group"]):
         from_substatus: int | None = None,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
+        from sentry.incidents.grouptype import MetricIssue
         from sentry.models.activity import Activity
         from sentry.models.groupopenperiod import update_group_open_period
+        from sentry.workflow_engine.models.incident_groupopenperiod import (
+            dual_update_incident_and_open_period,
+        )
 
         modified_groups_list = []
         selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
@@ -517,6 +521,9 @@ class GroupManager(BaseManager["Group"]):
                     group=group,
                     new_status=GroupStatus.UNRESOLVED,
                 )
+
+            if group.type == MetricIssue.type_id:
+                dual_update_incident_and_open_period(group, status)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
