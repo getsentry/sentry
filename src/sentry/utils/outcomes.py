@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import time
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -32,6 +33,11 @@ class OutcomeAggregator:
         self._buffer: dict[OutcomeKey, AggregatedOutcome] = {}
         self._lock = Lock()
         self._last_flush_time = time.time()
+
+        # since 3.13 we can rely on child processes of
+        # RunTaskWithMultiprocessing to also work correctly with atexit:
+        # https://github.com/python/cpython/pull/114279
+        atexit.register(self._atexit_flush)
 
     def flush(self, force: bool = False) -> None:
         if not force:
@@ -119,6 +125,9 @@ class OutcomeAggregator:
                 )
 
         self.flush()
+
+    def _atexit_flush(self) -> None:
+        self.flush(force=True)
 
 
 # valid values for outcome

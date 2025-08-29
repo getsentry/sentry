@@ -18,7 +18,7 @@ from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.convert import convert_span_to_item
 from sentry.spans.consumers.process_segments.enrichment import Span
-from sentry.spans.consumers.process_segments.message import outcome_aggregator, process_segment
+from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -102,8 +102,6 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         )
 
     def shutdown(self) -> None:
-        if options.get("spans.process-segments.outcome-aggregator.enable"):
-            outcome_aggregator.flush(force=True)
         self.pool.close()
 
 
