@@ -23,7 +23,7 @@ export function getIssueQueryFilter({
   return `is:unresolved issue.type:[${issueTypes?.join(',')}]${defined(transaction) ? ` transaction:${transaction}` : ''}`;
 }
 
-export function useWebVitalsIssuesQueryKey({
+function useWebVitalsIssuesQueryKey({
   issueTypes = DEFAULT_ISSUE_TYPES,
   transaction,
 }: QueryProps): ApiQueryKey {
