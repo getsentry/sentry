@@ -1267,14 +1267,14 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
         columnTypes: () => {
           return true;
         },
-        defaultValue: 'span.op',
+        defaultValue: 'span.duration',
         required: true,
       },
       {
         name: 'value',
         kind: 'dropdown',
         dataType: FieldValueType.STRING,
-        defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
+        defaultValue: 'greater',
         options: CONDITIONS_ARGUMENTS,
         required: true,
       },
