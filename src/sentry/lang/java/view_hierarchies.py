@@ -10,20 +10,22 @@ from sentry.utils.cache import cache_key_for_event
 class ViewHierarchies:
     def __init__(self, data: Any):
         self._cache_key = cache_key_for_event(data)
-        self._attachments = list(attachment_cache.get(self._cache_key))
-        self._loaded_view_hierarchies: list[tuple[CachedAttachment, Any]] = []
+        self._view_hierarchies: list[tuple[CachedAttachment, Any]] = []
+        self._other_attachments: list[CachedAttachment] = []
 
-        for attachment in self._attachments:
+        for attachment in attachment_cache.get(self._cache_key):
             if attachment.type == "event.view_hierarchy":
                 view_hierarchy = orjson.loads(attachment.data)
-                self._loaded_view_hierarchies.append((attachment, view_hierarchy))
+                self._view_hierarchies.append((attachment, view_hierarchy))
+            else:
+                self._other_attachments.append(attachment)
 
     def get_window_class_names(self) -> list[str]:
         """
         Returns the class names of all windows in all view hierarchies.
         """
         windows_to_deobfuscate = []
-        for _, view_hierarchy in self._loaded_view_hierarchies:
+        for _, view_hierarchy in self._view_hierarchies:
             windows_to_deobfuscate.extend(view_hierarchy.get("windows"))
 
         class_names = []
@@ -41,18 +43,25 @@ class ViewHierarchies:
         Deobfuscates all view hierarchies by applying the `deobfuscation_fn` to
         them in-place and persists any changes made.
         """
-        if not self._loaded_view_hierarchies:
+        if not self._view_hierarchies:
             return
 
-        for attachment, view_hierarchy in self._loaded_view_hierarchies:
+        new_attachments: list[CachedAttachment] = []
+        for attachment, view_hierarchy in self._view_hierarchies:
             _deobfuscate_view_hierarchy(view_hierarchy, class_names)
+            new_attachments.append(
+                CachedAttachment(
+                    type=attachment.type,
+                    id=attachment.id,
+                    name=attachment.name,
+                    content_type=attachment.content_type,
+                    data=orjson.dumps(view_hierarchy),
+                    chunks=None,
+                )
+            )
 
-            attachment.chunks = None
-            attachment._data = orjson.dumps(view_hierarchy)
-            attachment.size = len(attachment.data)
-            attachment._has_initial_data = True
-
-        attachment_cache.set(self._cache_key, attachments=self._attachments, timeout=CACHE_TIMEOUT)
+        attachments = self._other_attachments + new_attachments
+        attachment_cache.set(self._cache_key, attachments, timeout=CACHE_TIMEOUT)
 
 
 def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]):
