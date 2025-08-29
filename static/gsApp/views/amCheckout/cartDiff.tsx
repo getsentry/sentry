@@ -1,4 +1,4 @@
-import React, {Fragment, useState} from 'react';
+import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -255,14 +255,16 @@ function CartDiff({
   formData,
   subscription,
   freePlan,
+  isOpen,
+  onToggle,
 }: {
   activePlan: Plan;
   formData: CheckoutFormData;
   freePlan: Plan;
+  isOpen: boolean;
+  onToggle: (isOpen: boolean) => void;
   subscription: Subscription;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const currentPlan = isTrialPlan(subscription.plan)
     ? freePlan
     : subscription.planDetails;
@@ -520,7 +522,7 @@ function CartDiff({
     <CartDiffContainer>
       <Flex justify="between" align="center">
         <Title>{tct('Changes ([numChanges])', {numChanges})}</Title>
-        <Button onClick={() => setIsOpen(!isOpen)}>
+        <Button onClick={() => onToggle(!isOpen)} borderless>
           <IconChevron direction={isOpen ? 'up' : 'down'} />
         </Button>
       </Flex>

@@ -520,6 +520,7 @@ function Cart({
   const [stripe, setStripe] = useState<stripe.Stripe>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [summaryIsOpen, setSummaryIsOpen] = useState(true);
+  const [changesIsOpen, setChangesIsOpen] = useState(false);
   const api = useApi();
 
   const resetPreviewState = () => setPreviewState(NULL_PREVIEW_STATE);
@@ -655,13 +656,17 @@ function Cart({
         formData={formData}
         subscription={subscription}
         freePlan={freePlan}
+        isOpen={changesIsOpen}
+        onToggle={setChangesIsOpen}
       />
-      <PlanSummaryHeader isOpen={summaryIsOpen}>
+      <PlanSummaryHeader isOpen={summaryIsOpen} shouldShadow={changesIsOpen}>
         <Title>{t('Plan Summary')}</Title>
-        <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
-        <Button onClick={() => setSummaryIsOpen(!summaryIsOpen)}>
-          <IconChevron direction={summaryIsOpen ? 'up' : 'down'} />
-        </Button>
+        <Flex gap="xs" align="center">
+          <OrgSlug>{organization.slug.toUpperCase()}</OrgSlug>
+          <Button onClick={() => setSummaryIsOpen(!summaryIsOpen)} borderless>
+            <IconChevron direction={summaryIsOpen ? 'up' : 'down'} />
+          </Button>
+        </Flex>
       </PlanSummaryHeader>
       {summaryIsOpen && (
         <PlanSummary>
@@ -720,16 +725,19 @@ const Title = styled('h1')`
   font-size: ${p => p.theme.fontSize.xl};
   font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0;
+  text-wrap: nowrap;
 `;
 
 const PlanSummary = styled('div')``;
 
-const PlanSummaryHeader = styled('div')<{isOpen: boolean}>`
+const PlanSummaryHeader = styled('div')<{isOpen: boolean; shouldShadow: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: ${p => p.theme.space.xl};
   border-bottom: ${p => (p.isOpen ? 'none' : `1px solid ${p.theme.border}`)};
+  box-shadow: ${p => (p.shouldShadow ? '0 -5px 5px #00000010' : 'none')};
+  gap: ${p => p.theme.space.sm};
 `;
 
 const OrgSlug = styled('div')`
@@ -737,6 +745,7 @@ const OrgSlug = styled('div')`
   color: ${p => p.theme.subText};
   flex-shrink: 1;
   text-overflow: ellipsis;
+  text-wrap: nowrap;
 `;
 
 const Item = styled('div')`
