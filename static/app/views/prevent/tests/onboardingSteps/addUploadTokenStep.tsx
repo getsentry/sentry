@@ -9,8 +9,10 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
+import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface AddUploadTokenStepProps {
@@ -26,15 +28,18 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
   // this value is only used when showing token details
   const [showFullToken, setShowFullToken] = useState(true);
   const [showWarning, setShowWarning] = useState(true);
+  const organization = useOrganization();
+  const {repository} = usePreventContext();
 
   const theme = useTheme();
   const isDarkMode = theme.type === 'dark';
 
   const headerText = tct(`Step [step]: Add token as [repositorySecret]`, {
     step,
-    // TODO: replace with actual link
     repositorySecret: (
-      <Link to="https://github.com/codecov/codecov-test-repo">
+      <Link
+        to={`https://github.com/${organization.slug}/${repository}/settings/secrets/actions`}
+      >
         {t('repository secret')}
       </Link>
     ),

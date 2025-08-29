@@ -1,17 +1,32 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {PreventContext} from 'sentry/components/prevent/context/preventContext';
 import TestsOnboardingPage from 'sentry/views/prevent/tests/onboarding';
+
+const mockPreventContext = {
+  repository: 'test-repo',
+  changeContextValue: jest.fn(),
+  preventPeriod: '7d',
+  branch: 'main',
+  integratedOrgId: '123',
+  lastVisitedOrgId: '123',
+};
 
 describe('TestsOnboardingPage', () => {
   it('renders with GitHub Actions selected by default if no query param is provided', () => {
-    render(<TestsOnboardingPage />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/prevent/tests/new',
-          query: {},
+    render(
+      <PreventContext.Provider value={mockPreventContext}>
+        <TestsOnboardingPage />
+      </PreventContext.Provider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/prevent/tests/new',
+            query: {},
+          },
         },
-      },
-    });
+      }
+    );
 
     const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
     expect(githubRadio).toBeChecked();
@@ -23,14 +38,19 @@ describe('TestsOnboardingPage', () => {
   });
 
   it('renders with GitHub Actions selected by default if empty opt query param is provided', () => {
-    render(<TestsOnboardingPage />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/prevent/tests/new',
-          query: {opt: ''},
+    render(
+      <PreventContext.Provider value={mockPreventContext}>
+        <TestsOnboardingPage />
+      </PreventContext.Provider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/prevent/tests/new',
+            query: {opt: ''},
+          },
         },
-      },
-    });
+      }
+    );
 
     const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
     expect(githubRadio).toBeChecked();
@@ -42,14 +62,19 @@ describe('TestsOnboardingPage', () => {
   });
 
   it('renders with CLI selected when opt=cli in URL', () => {
-    render(<TestsOnboardingPage />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/prevent/tests/new',
-          query: {opt: 'cli'},
+    render(
+      <PreventContext.Provider value={mockPreventContext}>
+        <TestsOnboardingPage />
+      </PreventContext.Provider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/prevent/tests/new',
+            query: {opt: 'cli'},
+          },
         },
-      },
-    });
+      }
+    );
 
     const cliRadio = screen.getByLabelText(
       "Use Sentry Prevent's CLI to upload testing reports"
@@ -61,14 +86,19 @@ describe('TestsOnboardingPage', () => {
   });
 
   it('updates URL when GitHub Actions option is selected', async () => {
-    const {router} = render(<TestsOnboardingPage />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/prevent/tests/new',
-          query: {opt: 'cli'},
+    const {router} = render(
+      <PreventContext.Provider value={mockPreventContext}>
+        <TestsOnboardingPage />
+      </PreventContext.Provider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/prevent/tests/new',
+            query: {opt: 'cli'},
+          },
         },
-      },
-    });
+      }
+    );
 
     const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
     expect(githubRadio).not.toBeChecked();
@@ -79,14 +109,19 @@ describe('TestsOnboardingPage', () => {
   });
 
   it('updates URL when CLI option is selected', async () => {
-    const {router} = render(<TestsOnboardingPage />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/prevent/tests/new',
-          query: {opt: ''},
+    const {router} = render(
+      <PreventContext.Provider value={mockPreventContext}>
+        <TestsOnboardingPage />
+      </PreventContext.Provider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/prevent/tests/new',
+            query: {opt: ''},
+          },
         },
-      },
-    });
+      }
+    );
 
     const cliRadio = screen.getByLabelText(
       "Use Sentry Prevent's CLI to upload testing reports"
@@ -101,14 +136,19 @@ describe('TestsOnboardingPage', () => {
   describe('Step rendering based on SetupOption', () => {
     describe('GitHub Actions setup option', () => {
       it('renders correct steps for GitHub Actions with OIDC upload permission by default', () => {
-        render(<TestsOnboardingPage />, {
-          initialRouterConfig: {
-            location: {
-              pathname: '/prevent/tests/new',
-              query: {opt: 'githubAction'},
+        render(
+          <PreventContext.Provider value={mockPreventContext}>
+            <TestsOnboardingPage />
+          </PreventContext.Provider>,
+          {
+            initialRouterConfig: {
+              location: {
+                pathname: '/prevent/tests/new',
+                query: {opt: 'githubAction'},
+              },
             },
-          },
-        });
+          }
+        );
 
         expect(
           screen.getByText('Step 1: Output a JUnit XML file in your CI')
@@ -140,14 +180,19 @@ describe('TestsOnboardingPage', () => {
       });
 
       it('renders correct steps for GitHub Actions with Upload Token permission when selected', async () => {
-        render(<TestsOnboardingPage />, {
-          initialRouterConfig: {
-            location: {
-              pathname: '/prevent/tests/new',
-              query: {opt: 'githubAction'},
+        render(
+          <PreventContext.Provider value={mockPreventContext}>
+            <TestsOnboardingPage />
+          </PreventContext.Provider>,
+          {
+            initialRouterConfig: {
+              location: {
+                pathname: '/prevent/tests/new',
+                query: {opt: 'githubAction'},
+              },
             },
-          },
-        });
+          }
+        );
 
         // Change upload permission to Upload Token
         const uploadTokenRadio = screen.getByLabelText('Use Sentry Prevent Upload Token');
@@ -184,14 +229,19 @@ describe('TestsOnboardingPage', () => {
       });
 
       it('switches between OIDC and Upload Token steps when permission changes', async () => {
-        render(<TestsOnboardingPage />, {
-          initialRouterConfig: {
-            location: {
-              pathname: '/prevent/tests/new',
-              query: {opt: 'githubAction'},
+        render(
+          <PreventContext.Provider value={mockPreventContext}>
+            <TestsOnboardingPage />
+          </PreventContext.Provider>,
+          {
+            initialRouterConfig: {
+              location: {
+                pathname: '/prevent/tests/new',
+                query: {opt: 'githubAction'},
+              },
             },
-          },
-        });
+          }
+        );
 
         // Initially should show OIDC steps
         expect(
@@ -226,14 +276,19 @@ describe('TestsOnboardingPage', () => {
 
     describe('CLI setup option', () => {
       it('renders correct steps for CLI setup option', () => {
-        render(<TestsOnboardingPage />, {
-          initialRouterConfig: {
-            location: {
-              pathname: '/prevent/tests/new',
-              query: {opt: 'cli'},
+        render(
+          <PreventContext.Provider value={mockPreventContext}>
+            <TestsOnboardingPage />
+          </PreventContext.Provider>,
+          {
+            initialRouterConfig: {
+              location: {
+                pathname: '/prevent/tests/new',
+                query: {opt: 'cli'},
+              },
             },
-          },
-        });
+          }
+        );
         expect(
           screen.getByText('Step 1: Output a JUnit XML file in your CI')
         ).toBeInTheDocument();
@@ -265,14 +320,19 @@ describe('TestsOnboardingPage', () => {
       });
 
       it('CLI setup option is not affected by upload permission changes', async () => {
-        render(<TestsOnboardingPage />, {
-          initialRouterConfig: {
-            location: {
-              pathname: '/prevent/tests/new',
-              query: {opt: 'cli'},
+        render(
+          <PreventContext.Provider value={mockPreventContext}>
+            <TestsOnboardingPage />
+          </PreventContext.Provider>,
+          {
+            initialRouterConfig: {
+              location: {
+                pathname: '/prevent/tests/new',
+                query: {opt: 'cli'},
+              },
             },
-          },
-        });
+          }
+        );
 
         // Should show CLI steps regardless of upload permission
         expect(
