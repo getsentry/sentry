@@ -4022,7 +4022,7 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
-    it.only('replaces key on enter, and focuses the last item', async () => {
+    it('replaces key on enter, and focuses the last item', async () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -4042,37 +4042,17 @@ describe('SearchQueryBuilder', () => {
       await userEvent.type(screen.getByRole('textbox'), 'random value');
       await userEvent.keyboard('{enter}');
 
-      // Wait for the raw search replacement to complete
-      await waitFor(() => {
-        const rows = screen.getAllByRole('row');
-        // Should have more than just the initial empty row
-        expect(rows.length).toBeGreaterThan(1);
-      });
+      await waitFor(() => expect(screen.getAllByRole('row').length).toBeGreaterThan(1));
 
-      // Look for the filter row
-      const filterRow = await screen.findByRole('row', {
-        name: /span\.description/,
-      });
-      expect(filterRow).toBeInTheDocument();
+      expect(
+        await screen.findByRole('row', {name: /span\.description/})
+      ).toBeInTheDocument();
 
-      // Check if it has the right content - could be with or without wildcards
-      const rows = screen.getAllByRole('row');
-      const hasCorrectFilter = rows.some(
-        row =>
-          row.getAttribute('aria-label')?.includes('span.description') &&
-          row.getAttribute('aria-label')?.includes('random value')
-      );
-      expect(hasCorrectFilter).toBe(true);
+      expect(
+        screen.getByRole('row', {name: 'span.description:"*random value*"'})
+      ).toBeInTheDocument();
 
-      // Check focus behavior
-      const inputs = await screen.findAllByRole('row');
-      const lastInput = inputs.at(-1);
-      expect(lastInput).toBeDefined();
-      expect(lastInput).toHaveAttribute('data-key', 'freeText:1');
-
-      // The focus should be on the input inside the last row
-      const focusedInput = screen.getByTestId('query-builder-input');
-      expect(focusedInput).toHaveFocus();
+      expect(getLastInput()).toHaveFocus();
     });
   });
 
