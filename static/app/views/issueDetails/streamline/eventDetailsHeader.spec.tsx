@@ -33,7 +33,11 @@ describe('EventDetailsHeader', () => {
     // first seen 19 days ago
     firstSeen: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000).toISOString(),
   });
-  const event = EventFixture({id: 'event-id'});
+  const event = EventFixture({
+    id: 'event-id',
+    occurrence: {evidenceData: {}},
+  });
+
   const defaultProps = {group, event, project};
   const router = RouterFixture();
 
@@ -167,6 +171,7 @@ describe('EventDetailsHeader', () => {
         })}
         event={EventFixture({
           occurrence: {
+            evidenceData: {},
             evidenceDisplay: [
               {name: 'Status Code', value: '500'},
               {name: 'Failure reason', value: 'bad things'},

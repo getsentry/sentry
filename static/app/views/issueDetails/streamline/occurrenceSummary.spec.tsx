@@ -61,12 +61,9 @@ describe('OccurrenceSummary', () => {
       issueType: IssueType.UPTIME_DOMAIN_FAILURE,
     });
     const event = EventFixture({
-      tags: [
-        {
-          key: 'uptime_rule',
-          value: '123',
-        },
-      ],
+      occurrence: {
+        evidenceData: {detectorId: 123},
+      },
     });
     render(<OccurrenceSummary group={group} event={event} />, {organization});
     expect(screen.getByText('Monitor ID')).toBeInTheDocument();
@@ -83,6 +80,7 @@ describe('OccurrenceSummary', () => {
     });
     const event = EventFixture({
       occurrence: {
+        evidenceData: {},
         evidenceDisplay: [
           {
             name: 'Environment',
@@ -124,6 +122,7 @@ describe('OccurrenceSummary', () => {
     });
     const event = EventFixture({
       occurrence: {
+        evidenceData: {},
         evidenceDisplay: [
           {
             name: 'Last successful check-in',

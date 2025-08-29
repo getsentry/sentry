@@ -7,7 +7,7 @@ interface Options {
    * The list of uptime monitor IDs to fetch summaries for. These are the numeric
    * IDs of the UptimeRule id's
    */
-  ruleIds: string[];
+  detectorIds: string[];
   /**
    * Optional end time for calculating the summary
    */
@@ -21,7 +21,7 @@ interface Options {
 /**
  * Fetches Uptime Monitor summaries
  */
-export function useUptimeMonitorSummaries({ruleIds, start, end}: Options) {
+export function useUptimeMonitorSummaries({detectorIds, start, end}: Options) {
   const selectionQuery: Record<string, any> = {};
 
   if (start) {
@@ -39,7 +39,7 @@ export function useUptimeMonitorSummaries({ruleIds, start, end}: Options) {
       monitorStatsQueryKey,
       {
         query: {
-          projectUptimeSubscriptionId: ruleIds,
+          uptimeDetectorId: detectorIds,
           ...selectionQuery,
         },
       },

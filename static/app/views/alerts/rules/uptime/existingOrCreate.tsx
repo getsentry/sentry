@@ -34,7 +34,7 @@ export default function ExistingOrCreate() {
     // Has one single alert rule
     if (existingRules.length === 1) {
       const url = makeAlertsPathname({
-        path: `/uptime-rules/${existingRules[0]?.projectSlug}/${existingRules[0]?.id}/`,
+        path: `/uptime-rules/${existingRules[0]?.projectSlug}/${existingRules[0]?.detectorId}/`,
         organization,
       });
       navigate(url, {replace: true});
