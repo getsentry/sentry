@@ -9,7 +9,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission, ProjectPermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import GroupType, WebVitalsGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -152,13 +152,16 @@ class WebVitalsIssueDataSerializer(ProjectUserIssueRequestSerializer):
 
 class ProjectUserIssuePermission(ProjectPermission):
     scope_map = {
+        "GET": [],
         "POST": ["event:read", "event:write", "event:admin"],
+        "PUT": [],
+        "DELETE": [],
     }
 
 
 @region_silo_endpoint
 class ProjectUserIssueEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectEventPermission,)
+    permission_classes = (ProjectUserIssuePermission,)
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
