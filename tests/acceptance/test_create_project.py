@@ -2,9 +2,11 @@ from sentry.models.project import Project
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 
 @no_silo_test
+@thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class CreateProjectTest(AcceptanceTestCase):
     def setUp(self) -> None:
         super().setUp()
