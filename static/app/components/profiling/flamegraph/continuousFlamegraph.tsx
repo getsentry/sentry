@@ -1442,7 +1442,7 @@ export function ContinuousFlamegraph(): ReactElement {
         />
         <FlamegraphOptionsMenu
           canvasPoolManager={canvasPoolManager}
-          profileType="transaction profile"
+          profileType="continuous profile"
         />
       </FlamegraphToolbar>
 
