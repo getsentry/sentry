@@ -38,6 +38,7 @@ import {
 import {
   getAmPlanTier,
   getSlot,
+  hasPartnerMigrationFeature,
   isBizPlanFamily,
   isTeamPlanFamily,
   isTrialPlan,
@@ -633,9 +634,7 @@ export function useSubmitCheckout({
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
-  const isMigratingPartnerAccount = organization.features.includes(
-    'partner-billing-migration'
-  );
+  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
 
   return useMutation({
     mutationFn: ({data}: {data: CheckoutAPIData}) => {
@@ -751,9 +750,7 @@ export async function submitCheckout(
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
-  const isMigratingPartnerAccount = organization.features.includes(
-    'partner-billing-migration'
-  );
+  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
 
   const data = normalizeAndGetCheckoutAPIData({
     formData,

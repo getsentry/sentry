@@ -5,6 +5,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {PlanTier} from 'getsentry/types';
+import {hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import AMCheckout from 'getsentry/views/amCheckout';
 import {hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
 
@@ -22,10 +23,8 @@ function DecideCheckout(props: Props) {
   };
 
   const hasAm3Feature = organization.features?.includes('am3-billing');
-  const hasPartnerMigrationFeature = organization.features.includes(
-    'partner-billing-migration'
-  );
-  if (hasAm3Feature || hasPartnerMigrationFeature) {
+  const isMigratingPartner = hasPartnerMigrationFeature(organization);
+  if (hasAm3Feature || isMigratingPartner) {
     return (
       <ErrorBoundary errorTag={{checkout: PlanTier.AM3}}>
         <AMCheckout checkoutTier={PlanTier.AM3} {...checkoutProps} />
