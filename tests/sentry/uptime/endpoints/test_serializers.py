@@ -1,5 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.testutils.cases import UptimeTestCase
+from sentry.uptime.models import get_detector
 
 
 class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
@@ -7,8 +8,11 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
         uptime_monitor = self.create_project_uptime_subscription()
         result = serialize(uptime_monitor)
 
+        detector = get_detector(uptime_monitor.uptime_subscription)
+
         assert result == {
             "id": str(uptime_monitor.id),
+            "detectorId": detector.id,
             "projectSlug": self.project.slug,
             "name": uptime_monitor.name,
             "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
@@ -32,8 +36,11 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
         uptime_monitor = self.create_project_uptime_subscription(name="")
         result = serialize(uptime_monitor)
 
+        detector = get_detector(uptime_monitor.uptime_subscription)
+
         assert result == {
             "id": str(uptime_monitor.id),
+            "detectorId": detector.id,
             "projectSlug": self.project.slug,
             "name": f"Uptime Monitoring for {uptime_monitor.uptime_subscription.url}",
             "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
@@ -54,8 +61,11 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
         uptime_monitor = self.create_project_uptime_subscription(owner=self.user)
         result = serialize(uptime_monitor)
 
+        detector = get_detector(uptime_monitor.uptime_subscription)
+
         assert result == {
             "id": str(uptime_monitor.id),
+            "detectorId": detector.id,
             "projectSlug": self.project.slug,
             "name": uptime_monitor.name,
             "environment": uptime_monitor.environment.name if uptime_monitor.environment else None,
@@ -83,3 +93,22 @@ class ProjectUptimeSubscriptionSerializerTest(UptimeTestCase):
         result = serialize(uptime_monitor)
 
         assert result["traceSampling"] is True
+
+    def test_bulk_detector_id_lookup(self) -> None:
+        """Test that detector IDs are properly included when serializing multiple monitors."""
+        # Create multiple monitors
+        monitors = [
+            self.create_project_uptime_subscription(name="Monitor 1"),
+            self.create_project_uptime_subscription(name="Monitor 2"),
+            self.create_project_uptime_subscription(name="Monitor 3"),
+        ]
+
+        # Serialize all at once (this should trigger bulk lookup)
+        results = serialize(monitors)
+
+        # Verify each has a detector ID
+        for i, result in enumerate(results):
+            detector = get_detector(monitors[i].uptime_subscription)
+            assert result["detectorId"] == detector.id
+            assert result["id"] == str(monitors[i].id)
+            assert result["name"] == f"Monitor {i + 1}"
