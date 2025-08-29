@@ -21,6 +21,7 @@ interface UseFetchEventsTimeSeriesOptions<Field> {
   enabled?: boolean;
   groupBy?: Field[];
   query?: MutableSearch;
+  interval?: string;
   sampling?: SamplingMode;
   sort?: Sort;
   topEvents?: number;
@@ -33,6 +34,7 @@ export function useFetchEventsTimeSeries<T extends string>(
   dataset: DiscoverDatasets,
   {
     yAxis,
+    interval,
     query,
     sampling,
     topEvents,
@@ -65,7 +67,7 @@ export function useFetchEventsTimeSeries<T extends string>(
           ...normalizeDateTimeParams(selection.datetime),
           project: selection.projects,
           environment: selection.environments,
-          interval: getIntervalForTimeSeriesQuery(yAxis, selection.datetime),
+          interval: interval ?? getIntervalForTimeSeriesQuery(yAxis, selection.datetime),
           query: query ? query.formatString() : undefined,
           sampling: sampling ?? DEFAULT_SAMPLING_MODE,
           topEvents,
