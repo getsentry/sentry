@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {IconLock} from 'sentry/icons';
+import {IconLightning, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
@@ -28,6 +28,7 @@ import {
   formatReservedWithUnits,
   getPlanIcon,
   getProductIcon,
+  hasPartnerMigrationFeature,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import {loadStripe} from 'getsentry/utils/stripe';
@@ -104,11 +105,13 @@ interface TotalSummaryProps extends BaseSummaryProps {
   buttonDisabled: boolean;
   effectiveDate: Date | null;
   isSubmitting: boolean;
-  onSubmit: () => void;
+  onSubmit: (applyNow?: boolean) => void;
+  organization: Organization;
   originalBilledTotal: number;
   previewData: PreviewData | null;
   previewDataLoading: boolean;
   renewalDate: Date | null;
+  subscription: Subscription;
 }
 
 function PlanSummary({activePlan, formData}: PlanSummaryProps) {
@@ -339,7 +342,10 @@ function TotalSummary({
   renewalDate,
   activePlan,
   formData,
+  organization,
+  subscription,
 }: TotalSummaryProps) {
+  const isMigratingPartner = hasPartnerMigrationFeature(organization);
   const isDueToday = effectiveDate === null;
   const longInterval =
     activePlan.billingInterval === 'annual' ? 'yearly' : activePlan.billingInterval;
@@ -351,6 +357,71 @@ function TotalSummary({
           (acc, budget) => acc + budget,
           0
         );
+
+  const getSubtext = () => {
+    if (isMigratingPartner) {
+      return tct(
+        'These changes will take effect at the end of your current [partnerName] sponsored plan on [newPeriodStart]. If you want these changes to apply immediately, select Migrate Now.',
+        {
+          partnerName: subscription.partner?.partnership.displayName,
+          newPeriodStart: moment(subscription.contractPeriodEnd)
+            .add(1, 'days')
+            .format('ll'),
+        }
+      );
+    }
+
+    if (subscription.isSelfServePartner) {
+      return tct(
+        'These changes will apply [applyDate], and you will be billed by [partnerName] monthly for any recurring subscription fees and incurred [budgetType] fees.',
+        {
+          applyDate: effectiveDate
+            ? tct('on [effectiveDate]', {
+                effectiveDate: moment(effectiveDate).format('MMM D, YYYY'),
+              })
+            : t('immediately'),
+          partnerName: subscription.partner?.partnership.displayName,
+          budgetType: subscription.planDetails.budgetTerm,
+        }
+      );
+    }
+
+    let effectiveDateSubtext = null;
+    if (effectiveDate) {
+      effectiveDateSubtext = tct('Your changes will apply on [effectiveDate]. ', {
+        effectiveDate: moment(effectiveDate).format('MMM D, YYYY'),
+      });
+    }
+
+    let subtext = null;
+    if (longInterval === 'yearly') {
+      subtext = tct(
+        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate]. Any additional usage will continue to be billed monthly.',
+        {
+          effectiveDateSubtext,
+          longInterval,
+          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+        }
+      );
+    } else {
+      subtext = tct(
+        '[effectiveDateSubtext]Plan renews [longInterval] on [renewalDate], plus any additional usage[onDemandLimit].',
+        {
+          effectiveDateSubtext,
+          longInterval,
+          renewalDate: moment(renewalDate).format('MMM D, YYYY'),
+          onDemandLimit: totalOnDemandBudget
+            ? tct(' (up to [onDemandMaxSpend]/month)', {
+                onDemandMaxSpend: utils.displayPrice({
+                  cents: totalOnDemandBudget,
+                }),
+              })
+            : '',
+        }
+      );
+    }
+    return subtext;
+  };
 
   return (
     <SummarySection>
@@ -404,46 +475,36 @@ function TotalSummary({
           )}
         </ItemFlex>
       </Item>
-      <StyledButton
-        aria-label={t('Confirm and pay')}
-        priority="primary"
-        onClick={onSubmit}
-        disabled={buttonDisabled || previewDataLoading}
-      >
-        <IconLock locked />
-        {isSubmitting ? t('Checking out...') : t('Confirm and pay')}
-      </StyledButton>
+      <ButtonContainer>
+        {isMigratingPartner && (
+          <StyledButton
+            aria-label={t('Migrate Now')}
+            priority="danger"
+            onClick={() => onSubmit(true)}
+            disabled={buttonDisabled || previewDataLoading}
+          >
+            <IconLightning />
+            {isSubmitting ? t('Checking out...') : t('Migrate Now')}
+          </StyledButton>
+        )}
+        <StyledButton
+          aria-label={isMigratingPartner ? t('Schedule changes') : t('Confirm and pay')}
+          priority="primary"
+          onClick={() => onSubmit()}
+          disabled={buttonDisabled || previewDataLoading}
+        >
+          <IconLock locked />
+          {isSubmitting
+            ? t('Checking out...')
+            : isMigratingPartner
+              ? t('Schedule changes')
+              : t('Confirm and pay')}
+        </StyledButton>
+      </ButtonContainer>
       {previewDataLoading ? (
         <Placeholder height="40px" />
       ) : (
-        <Subtext>
-          {!!effectiveDate &&
-            tct('Your changes will apply on [effectiveDate]. ', {
-              effectiveDate: moment(effectiveDate).format('MMM D, YYYY'),
-            })}
-          {longInterval === 'yearly'
-            ? tct(
-                'Plan renews [longInterval] on [renewalDate]. Any additional usage will continue to be billed monthly.',
-                {
-                  longInterval,
-                  renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-                }
-              )
-            : tct(
-                'Plan renews [longInterval] on [renewalDate], plus any additional usage[onDemandLimit].',
-                {
-                  longInterval,
-                  renewalDate: moment(renewalDate).format('MMM D, YYYY'),
-                  onDemandLimit: totalOnDemandBudget
-                    ? tct(' (up to [onDemandMaxSpend]/month)', {
-                        onDemandMaxSpend: utils.displayPrice({
-                          cents: totalOnDemandBudget,
-                        }),
-                      })
-                    : '',
-                }
-              )}
-        </Subtext>
+        <Subtext>{getSubtext()}</Subtext>
       )}
     </SummarySection>
   );
@@ -609,7 +670,9 @@ function Cart({
         previewDataLoading={previewState.isLoading}
         renewalDate={previewState.renewalDate}
         effectiveDate={previewState.effectiveDate}
-        onSubmit={() => handleConfirmAndPay()}
+        onSubmit={handleConfirmAndPay}
+        organization={organization}
+        subscription={subscription}
       />
     </CartContainer>
   );
@@ -698,6 +761,14 @@ const Credit = styled('div')`
 const StyledButton = styled(Button)`
   display: flex;
   gap: ${p => p.theme.space.sm};
+  flex-grow: 1;
+`;
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const Subtext = styled('div')`

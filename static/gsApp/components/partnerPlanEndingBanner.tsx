@@ -9,7 +9,11 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
-import {getContractDaysLeft, isTeamPlanFamily} from 'getsentry/utils/billing';
+import {
+  getContractDaysLeft,
+  hasPartnerMigrationFeature,
+  isTeamPlanFamily,
+} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 function PartnerPlanEndingBanner({
@@ -26,7 +30,7 @@ function PartnerPlanEndingBanner({
   if (
     hasPendingUpgrade ||
     !subscription.partner ||
-    !organization.features.includes('partner-billing-migration') ||
+    !hasPartnerMigrationFeature(organization) ||
     daysLeft > 30 ||
     daysLeft < 0
   ) {

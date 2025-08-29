@@ -116,7 +116,7 @@ class AMCheckout extends Component<Props, State> {
     if (
       props.checkoutTier === PlanTier.AM3 &&
       !props.subscription.plan.startsWith('am3') &&
-      !props.organization.features.includes('partner-billing-migration')
+      !hasPartnerMigrationFeature(props.organization)
     ) {
       props.onToggleLegacy(props.subscription.planTier);
     }
