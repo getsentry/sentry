@@ -204,3 +204,81 @@ def test_mep_to_eap_simple_equations(input: list[str], expected: list[str]) -> N
     translated = translate_mep_to_eap(old)
 
     assert translated["equations"] == expected
+
+
+@pytest.mark.parametrize(
+    "input,expected",
+    [
+        pytest.param(
+            None,
+            None,
+        ),
+        pytest.param(
+            ["-count()"],
+            ["-count(span.duration)"],
+        ),
+        pytest.param(
+            [
+                "-http.method",
+                "transaction.duration",
+                "-title",
+                "url",
+            ],
+            ["-transaction.method", "span.duration", "-transaction", "request.url"],
+        ),
+        pytest.param(
+            ["-span.op", "browser.name"],
+            ["-span.op", "browser.name"],
+        ),
+        pytest.param(
+            ["geo.city", "-geo.country_code"],
+            ["user.geo.city", "-user.geo.country_code"],
+        ),
+        pytest.param(
+            ["-apdex(300)", "user_misery(300)", "count_unique(http.method)"],
+            [
+                "-apdex(span.duration,300)",
+                "user_misery(span.duration,300)",
+                "count_unique(transaction.method)",
+            ],
+        ),
+        pytest.param(
+            ["-percentile(transaction.duration,0.5000)", "percentile(transaction.duration,0.94)"],
+            ["-p50(span.duration)", "p95(span.duration)"],
+        ),
+        pytest.param(
+            [
+                "-count_miserable(user,300)",
+                "count_web_vitals(user,300)",
+                "any(transaction.duration)",
+            ],
+            [],
+        ),
+        pytest.param(
+            ["-equation|count() + 5"],
+            ["-equation|count(span.duration) + 5"],
+        ),
+        pytest.param(
+            ["-equation|(count_unique(title) / 4) * (count_unique(http.method) * 2)"],
+            ["-equation|(count_unique(transaction) / 4) * (count_unique(transaction.method) * 2)"],
+        ),
+        pytest.param(
+            ["-equation[0]", "equation[1]", "-equation[2]"], ["-equation[0]", "-equation[1]"]
+        ),
+        pytest.param(["equation[3453]"], []),
+    ],
+)
+def test_mep_to_eap_simple_orderbys(input: list[str], expected: list[str]) -> None:
+    old = QueryParts(
+        selected_columns=["id"],
+        query="",
+        equations=[
+            "equation|count() * 2",
+            "equation|count_miserable(user,300) + 3",
+            "equation|count_unique(http.method) / 2",
+        ],
+        orderby=input,
+    )
+    translated = translate_mep_to_eap(old)
+
+    assert translated["orderby"] == expected

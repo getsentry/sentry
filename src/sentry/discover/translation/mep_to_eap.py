@@ -237,6 +237,12 @@ def translate_columns(columns):
 
 
 def translate_equations(equations):
+    """
+    This is used to translate arithmetic equations to EAP compatible equations.
+    It ideally takes in equations with equation notation and returns the EAP equation with equation notation.
+    @param equations: list of equations to translate
+    @return: (translated_equations, dropped_equations)
+    """
     if equations is None:
         return None, None
 
@@ -281,6 +287,76 @@ def translate_equations(equations):
     return translated_equations, dropped_equations
 
 
+def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
+    """
+    This is used to translate orderbys to EAP compatible orderbys.
+    It ideally takes in orderbys with equation notation, function notation or fields and returns the EAP orderby with the same notation.
+    @return: (translated_orderbys, dropped_orderbys)
+    """
+    if orderbys is None:
+        return None, None
+
+    translated_orderbys = []
+    dropped_orderbys = []
+
+    for orderby in orderbys:
+        is_negated = False
+        if orderby.startswith("-"):
+            is_negated = True
+            orderby_without_neg = orderby[1:]
+        else:
+            orderby_without_neg = orderby
+
+        dropped_orderby_reason = []
+        # if orderby is a predefined equation (these are usually in the format equation[index])
+        if orderby_without_neg.startswith("equation["):
+            equation_index = int(orderby_without_neg.split("[")[1].split("]")[0])
+
+            # checks if equation index is out of bounds
+            if len(equations) < equation_index + 1:
+                dropped_orderby_reason = ["equation at this index doesn't exist"]
+
+            # if there are equations
+            elif len(equations) > 0:
+                # if equation was dropped, drop the orderby too
+                if equations[equation_index] in dropped_equations:
+                    dropped_orderby_reason = [equations[equation_index]]
+                else:
+                    # check where equation is in list of new equations
+                    translated_equation_list, _ = translate_equations([equations[equation_index]])
+                    try:
+                        translated_equation = translated_equation_list[0]
+                        new_equation_index = new_equations.index(translated_equation)
+                        translated_orderby = [f"equation[{new_equation_index}]"]
+                    except (IndexError, ValueError):
+                        dropped_orderby_reason = [equations[equation_index]]
+            else:
+                dropped_orderby_reason = ["no equations in this query"]
+
+        # if orderby is an equation
+        elif arithmetic.is_equation(orderby_without_neg):
+            translated_orderby, dropped_orderby_equation = translate_equations(
+                [orderby_without_neg]
+            )
+            if len(dropped_orderby_equation) > 0:
+                dropped_orderby_reason = dropped_orderby_equation[0]["reason"]
+
+        # if orderby is a field/function
+        else:
+            translated_orderby, dropped_orderby_reason = translate_columns([orderby_without_neg])
+
+        # add translated orderby to the list and record dropped orderbys
+        if len(dropped_orderby_reason) == 0:
+            translated_orderbys.append(
+                translated_orderby[0] if not is_negated else f"-{translated_orderby[0]}"
+            )
+        else:
+            dropped_orderbys.append({"orderby": orderby, "reason": dropped_orderby_reason})
+            continue
+
+    return translated_orderbys, dropped_orderbys
+
+
 def translate_mep_to_eap(query_parts: QueryParts):
     """
     This is a utility used to translate transactions/metrics/mep
@@ -293,12 +369,21 @@ def translate_mep_to_eap(query_parts: QueryParts):
     new_query = translate_query(query_parts["query"])
     new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
     new_equations, dropped_equations = translate_equations(query_parts["equations"])
+    equations = query_parts["equations"] if query_parts["equations"] is not None else []
+    dropped_equations_without_reasons = (
+        [dropped_equation["equation"] for dropped_equation in dropped_equations]
+        if dropped_equations is not None
+        else []
+    )
+    new_orderbys, dropped_orderbys = translate_orderbys(
+        query_parts["orderby"], equations, dropped_equations_without_reasons, new_equations
+    )
 
     eap_query = QueryParts(
         query=new_query,
         selected_columns=new_columns,
         equations=new_equations,
-        orderby=query_parts["orderby"],
+        orderby=new_orderbys,
     )
 
     return eap_query
