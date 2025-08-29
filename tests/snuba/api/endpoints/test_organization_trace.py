@@ -2,9 +2,12 @@ import logging
 from unittest import mock
 from uuid import uuid4
 
+from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -19,6 +22,22 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue as Pr
 
 from sentry.snuba.trace import _serialize_columnar_uptime_item
 from sentry.testutils.cases import TestCase
+
+# Test regions for uptime item serialization tests
+TEST_UPTIME_REGIONS = [
+    UptimeRegionConfig(
+        slug="us-east-1",
+        name="US East (N. Virginia)",
+        config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+        config_redis_key_prefix="us1",
+    ),
+    UptimeRegionConfig(
+        slug="eu-west-1",
+        name="Europe (Ireland)",
+        config_redis_cluster=settings.SENTRY_UPTIME_DETECTOR_CLUSTER,
+        config_redis_key_prefix="eu1",
+    ),
+]
 
 
 class TestSerializeColumnarUptimeItem(TestCase):
@@ -48,7 +67,8 @@ class TestSerializeColumnarUptimeItem(TestCase):
             "request_sequence": ProtoAttributeValue(val_int=0),
         }
 
-        result = _serialize_columnar_uptime_item(row_dict, self.project_slugs)
+        with override_settings(UPTIME_REGIONS=TEST_UPTIME_REGIONS):
+            result = _serialize_columnar_uptime_item(row_dict, self.project_slugs)
 
         assert result["event_id"] == "check-123"
         assert result["project_id"] == 1
@@ -60,6 +80,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
         assert result["duration"] == 500.0
         assert result["name"] == "https://example.com"
         assert result["description"] == "Uptime Check Request [success]"
+        assert result["region_name"] == "US East (N. Virginia)"
         assert result["start_timestamp"] == 1700000000
         assert result["end_timestamp"] == 1700000000.5
         attrs = result["additional_attributes"]
@@ -88,6 +109,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
             "original_url": ProtoAttributeValue(val_str="https://example.com"),
             "actual_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
             "check_duration_us": ProtoAttributeValue(val_int=300000),
+            "region": ProtoAttributeValue(val_str="eu-west-1"),
             "request_sequence": ProtoAttributeValue(val_int=1),
         }
 
@@ -112,6 +134,7 @@ class TestSerializeColumnarUptimeItem(TestCase):
             "actual_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
             "dns_lookup_duration_us": ProtoAttributeValue(val_int=50000),
             "tcp_connection_duration_us": ProtoAttributeValue(is_null=True),
+            "region": ProtoAttributeValue(val_str="us-east-1"),
         }
 
         result = _serialize_columnar_uptime_item(row_dict, self.project_slugs)
@@ -124,6 +147,32 @@ class TestSerializeColumnarUptimeItem(TestCase):
         assert "original_url" not in attrs
         assert attrs["dns_lookup_duration_us"] == 50000
         assert "tcp_connection_duration_us" not in attrs
+
+    def test_region_name_mapping(self):
+        """Test that region codes are properly mapped to region names."""
+        test_cases = [
+            ("us-east-1", "US East (N. Virginia)"),
+            ("eu-west-1", "Europe (Ireland)"),
+            ("nonexistent-region", "Unknown"),
+        ]
+
+        for region_code, expected_name in test_cases:
+            row_dict = {
+                "sentry.item_id": ProtoAttributeValue(val_str=f"check-{region_code}"),
+                "sentry.project_id": ProtoAttributeValue(val_int=1),
+                "guid": ProtoAttributeValue(val_str=f"check-{region_code}"),
+                "sentry.trace_id": ProtoAttributeValue(val_str="a" * 32),
+                "check_status": ProtoAttributeValue(val_str="success"),
+                "request_url": ProtoAttributeValue(val_str="https://example.com"),
+                "actual_check_time_us": ProtoAttributeValue(val_int=1700000000000000),
+                "check_duration_us": ProtoAttributeValue(val_int=500000),
+                "region": ProtoAttributeValue(val_str=region_code),
+            }
+
+            with override_settings(UPTIME_REGIONS=TEST_UPTIME_REGIONS):
+                result = _serialize_columnar_uptime_item(row_dict, self.project_slugs)
+
+            assert result["region_name"] == expected_name
 
 
 class OrganizationEventsTraceEndpointTest(

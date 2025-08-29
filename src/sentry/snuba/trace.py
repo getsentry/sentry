@@ -4,6 +4,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
+from sentry.uptime.subscriptions.regions import get_region_config
+
 logger = logging.getLogger(__name__)
 
 import sentry_sdk
@@ -86,6 +88,7 @@ class SerializedUptimeCheck(SerializedEvent):
     end_timestamp: float
     duration: float
     name: str
+    region_name: str
     additional_attributes: dict[str, Any]
 
 
@@ -190,6 +193,7 @@ def _serialize_rpc_event(
             end_timestamp=event["end_timestamp"],
             duration=event["duration"],
             description=event["description"],
+            region_name=event["region_name"],
             additional_attributes=event["additional_attributes"],
         )
 
@@ -388,6 +392,9 @@ def _serialize_columnar_uptime_item(
 
     item_id_str = row_dict["sentry.item_id"].val_str
 
+    region_config = get_region_config(row_dict["region"].val_str)
+    region_name = region_config.name if region_config else "Unknown"
+
     def get_value(attr_name: str, attr_value: AttributeValue):
         if attr_value.is_null:
             return None
@@ -425,6 +432,7 @@ def _serialize_columnar_uptime_item(
         "end_timestamp": (actual_check_time_us + check_duration_us) / 1_000_000,
         "duration": check_duration_us / 1_000.0,
         "description": f"Uptime Check Request [{check_status}]",
+        "region_name": region_name,
         "additional_attributes": additional_attrs,
         "children": [],
         "errors": [],

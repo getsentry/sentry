@@ -1,13 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
+import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import Hook from 'sentry/components/hook';
 import {IconSentry, IconSentryPrideLogo} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -33,6 +36,8 @@ type Props = {
 function BaseFooter({className}: Props) {
   const {isSelfHosted, version, privacyUrl, termsUrl, demoMode} =
     useLegacyStore(ConfigStore);
+
+  const {state: appState} = useFrontendVersion();
   const organization = useOrganization({allowNull: true});
 
   return (
@@ -55,6 +60,19 @@ function BaseFooter({className}: Props) {
         />
       </SentryLogoLink>
       <RightLinks>
+        {appState === 'stale' && (
+          <Button
+            borderless
+            size="xs"
+            onClick={() => window.location.reload()}
+            title={t(
+              "An improved version of Sentry's Frontend Application is now available. Click to update now."
+            )}
+            aria-label={t('Reload frontend')}
+          >
+            <WaitingIndicator />
+          </Button>
+        )}
         {!isSelfHosted && (
           <FooterLink href="https://status.sentry.io/">{t('Service Status')}</FooterLink>
         )}
@@ -71,6 +89,11 @@ function BaseFooter({className}: Props) {
     </footer>
   );
 }
+
+const WaitingIndicator = styled('div')`
+  --pulsingIndicatorRing: ${p => p.theme.gray200};
+  ${pulsingIndicatorStyles};
+`;
 
 const LeftLinks = styled('div')`
   display: grid;

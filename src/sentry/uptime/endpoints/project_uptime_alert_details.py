@@ -22,9 +22,10 @@ from sentry.uptime.endpoints.serializers import (
     ProjectUptimeSubscriptionSerializerResponse,
 )
 from sentry.uptime.endpoints.validators import UptimeMonitorValidator
-from sentry.uptime.models import ProjectUptimeSubscription, get_detector
+from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import delete_uptime_detector
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.models import Detector
 
 
 @region_silo_endpoint
@@ -57,6 +58,7 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         request: Request,
         project: Project,
         uptime_monitor: ProjectUptimeSubscription,
+        uptime_detector: Detector,
     ) -> Response:
         serialized_uptime_alert: ProjectUptimeSubscriptionSerializerResponse = serialize(
             uptime_monitor,
@@ -81,7 +83,11 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         },
     )
     def put(
-        self, request: Request, project: Project, uptime_monitor: ProjectUptimeSubscription
+        self,
+        request: Request,
+        project: Project,
+        uptime_monitor: ProjectUptimeSubscription,
+        uptime_detector: Detector,
     ) -> Response:
         """
         Update an uptime monitor.
@@ -117,14 +123,17 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         },
     )
     def delete(
-        self, request: Request, project: Project, uptime_monitor: ProjectUptimeSubscription
+        self,
+        request: Request,
+        project: Project,
+        uptime_monitor: ProjectUptimeSubscription,
+        uptime_detector: Detector,
     ) -> Response:
         """
         Delete an uptime monitor.
         """
-        detector = get_detector(uptime_monitor.uptime_subscription)
         audit_log_data = uptime_monitor.get_audit_log_data()
-        delete_uptime_detector(detector)
+        delete_uptime_detector(uptime_detector)
         create_audit_entry(
             request=request,
             organization=project.organization,

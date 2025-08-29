@@ -477,8 +477,13 @@ class Fixtures:
         else:
             project_id = kwargs.pop("project").id
 
+        if "organization" in kwargs:
+            organization = kwargs.pop("organization")
+        else:
+            organization = self.organization
+
         return Monitor.objects.create(
-            organization_id=self.organization.id,
+            organization_id=organization.id,
             project_id=project_id,
             config={
                 "schedule": "* * * * *",
@@ -692,6 +697,9 @@ class Fixtures:
 
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)
+
+    def create_detector_group(self, *args, **kwargs):
+        return Factories.create_detector_group(*args, **kwargs)
 
     def create_alert_rule_detector(self, *args, **kwargs):
         # TODO: this is only needed during the ACI migration

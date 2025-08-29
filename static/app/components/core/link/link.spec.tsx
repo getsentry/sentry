@@ -1,6 +1,7 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ExternalLink, Link} from 'sentry/components/core/link';
+import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
 
 describe('Link', () => {
   // Note: Links should not support a disabled option, as disabled links are just text elements
@@ -18,6 +19,38 @@ describe('Link', () => {
   it('links render as <a> with href', () => {
     render(<Link to="https://www.sentry.io/">Link</Link>);
     expect(screen.getByText('Link')).toHaveAttribute('href', 'https://www.sentry.io/');
+  });
+
+  it('links do not do a full page reload when the frontend version is current', async () => {
+    const {router} = render(
+      <FrontendVersionProvider releaseVersion="frontend@abc123" force="current">
+        <Link to="/issues/">Link</Link>
+      </FrontendVersionProvider>
+    );
+
+    // Normal router navigation
+    await userEvent.click(screen.getByRole('link'));
+    expect(router.location.pathname).toBe('/issues/');
+  });
+
+  it('links do full page reload when frontend is outdated', () => {
+    render(
+      <FrontendVersionProvider releaseVersion="frontend@abc123" force="stale">
+        <Link to="/issues/">Link</Link>
+      </FrontendVersionProvider>
+    );
+
+    const link = screen.getByRole('link');
+
+    const event = new MouseEvent('click', {
+      view: window,
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => link.dispatchEvent(event));
+
+    // react router did not prevent default, the link was clicked as normal
+    expect(event.defaultPrevented).toBe(false);
   });
 });
 
