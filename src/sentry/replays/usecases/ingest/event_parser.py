@@ -229,7 +229,6 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
         case (
             EventType.CLS
             | EventType.LCP
-            | EventType.FEEDBACK
             | EventType.MEMORY
             | EventType.MUTATIONS
             | EventType.NAVIGATION_SPAN
@@ -252,14 +251,15 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
             | EventType.NAVIGATION
             | EventType.OPTIONS
             | EventType.UNKNOWN
+            | EventType.FEEDBACK  # feedback breadcrumbs from the SDK have MS timestamps.
         ):
             return "ms"
 
 
 def get_timestamp_ms(event: dict[str, Any], event_type: EventType) -> float:
     if get_timestamp_unit(event_type) == "s":
-        return event.get("timestamp", 0) * 1000
-    return event.get("timestamp", 0)
+        return float(event.get("timestamp", 0) * 1000)
+    return float(event.get("timestamp", 0))
 
 
 #
