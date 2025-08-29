@@ -2,7 +2,6 @@ import {Component} from 'react';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
-import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -550,20 +549,4 @@ export function getAnalyicsDataForProject(
     project_id: project ? parseInt(project.id, 10) : -1,
     project_platform: project?.platform ?? '',
   };
-}
-
-/**
- * Determines if a project is active based on having received events or being older than one hour
- */
-export function isProjectActive(project: Project): boolean {
-  const olderThanOneHour = project
-    ? moment.duration(moment().diff(project.dateCreated)).asHours() > 1
-    : false;
-  return !!(
-    project?.firstTransactionEvent ||
-    project?.hasReplays ||
-    project?.hasSessions ||
-    project?.firstEvent ||
-    olderThanOneHour
-  );
 }
