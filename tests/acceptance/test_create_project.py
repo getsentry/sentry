@@ -40,11 +40,17 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.click("[data-test-id='platform-php-laravel']")
         self.browser.click('[data-test-id="create-project"]')
         self.browser.wait_until(xpath="//h2[text()='Configure Laravel SDK']")
+        # This gives time for the useRecentCreatedProject hook to load the project data
+        self.browser.wait_until('[data-test-id="toast-success"]')
+        self.browser.wait_until_not('[data-test-id="toast-success"]')
         project1 = Project.objects.get(organization=self.org, slug="php-laravel")
         self.browser.click('[aria-label="Back to Platform Selection"]')
         self.browser.click("[data-test-id='platform-javascript-nextjs']")
         self.browser.click('[data-test-id="create-project"]')
         self.browser.wait_until(xpath="//h2[text()='Configure Next.js SDK']")
+        # This gives time for the useRecentCreatedProject hook to load the project data
+        self.browser.wait_until('[data-test-id="toast-success"]')
+        self.browser.wait_until_not('[data-test-id="toast-success"]')
         project2 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
         self.browser.back()
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
