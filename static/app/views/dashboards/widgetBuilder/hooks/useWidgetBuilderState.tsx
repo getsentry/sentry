@@ -19,8 +19,7 @@ import {
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
-import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
+import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
@@ -35,6 +34,8 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 // For issues dataset, events and users are sorted descending and do not use '-'
 // All other issues fields are sorted ascending
 const REVERSED_ORDER_FIELD_SORT_LIST = ['freq', 'user'];
+
+export const MAX_NUM_Y_AXES = 3;
 
 export type WidgetBuilderStateQueryParams = {
   dataset?: WidgetType;
