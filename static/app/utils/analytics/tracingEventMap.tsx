@@ -37,7 +37,9 @@ export type TracingEventParameters = {
     columns: string[];
     columns_count: number;
     confidences: string[];
+    dataScanned: string;
     dataset: string;
+    empty_buckets_percentage: number[];
     gave_seer_consent: 'given' | 'not_given' | 'gen_ai_features_disabled';
     has_exceeded_performance_usage_limit: boolean | null;
     interval: string;
@@ -52,7 +54,6 @@ export type TracingEventParameters = {
     user_queries_count: number;
     visualizes: BaseVisualize[];
     visualizes_count: number;
-    empty_buckets_percentage?: number[];
   };
   'trace.explorer.schema_hints_click': {
     source: 'list' | 'drawer';
