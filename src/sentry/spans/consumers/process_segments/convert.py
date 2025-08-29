@@ -48,11 +48,6 @@ def convert_span_to_item(span: Span) -> TraceItem:
 
             attributes[k] = AnyValue(string_value=str(v))
 
-    # 2. tags second
-    for k, v in (span.get("tags") or {}).items():
-        if v is not None:
-            attributes[k] = AnyValue(string_value=str(v))
-
     # 3. data last (can overwrite previous values)
     for k, v in (span.get("data") or {}).items():
         if v is not None:
