@@ -2,6 +2,7 @@ import 'echarts/lib/component/grid';
 import 'echarts/lib/component/graphic';
 import 'echarts/lib/component/toolbox';
 import 'echarts/lib/component/brush';
+import 'echarts/theme/v5';
 import 'zrender/lib/svg/svg';
 
 import {useId, useMemo} from 'react';
@@ -691,7 +692,7 @@ function BaseChart({
         echarts={echarts}
         notMerge={notMerge}
         lazyUpdate={lazyUpdate}
-        theme={echartsTheme}
+        theme={echartsTheme ?? 'v5'}
         onChartReady={onChartReady}
         onEvents={eventsMap}
         style={chartStyles}
