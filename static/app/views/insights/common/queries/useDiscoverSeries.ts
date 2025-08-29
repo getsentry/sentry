@@ -236,8 +236,10 @@ function useIsSampled(rate: number) {
   const [isSampled, setIsSampled] = useState<boolean>(false);
 
   useEffect(() => {
-    const rand = Math.random();
-    setIsSampled(rand <= rate);
+    if (process.env.NODE_ENV !== 'test') {
+      const rand = Math.random();
+      setIsSampled(rand <= rate);
+    }
   }, [rate]);
 
   return isSampled;
