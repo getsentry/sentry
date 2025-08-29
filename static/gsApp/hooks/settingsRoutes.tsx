@@ -24,7 +24,7 @@ const settingsRoutes = (): SentryRouteObject => ({
         },
         {
           path: 'checkout/',
-          name: 'Change',
+          name: 'Change', // TODO(checkout v3): Should this be renamed?
           component: errorHandler(SubscriptionContext),
           deprecatedRouteProps: true,
           children: [
