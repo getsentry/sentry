@@ -242,6 +242,23 @@ def test_as_log_message_lcp() -> None:
     )
 
 
+def test_as_log_message_hydration_error() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756444686898,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1756444686.898,
+                "type": "default",
+                "category": "replay.hydrate-error",
+                "data": {"url": "https://docs.sentry.io/platforms/javascript/feature-flags/"},
+            },
+        },
+    }
+    assert as_log_message(event) == "There was a hydration error on the page at 1756444686898.0"
+
+
 def test_as_log_message_navigation_span() -> None:
     event = {
         "type": 5,
@@ -574,6 +591,71 @@ def test_as_log_message_ui_blur() -> None:
     assert as_log_message(event) is None
 
 
+def test_as_log_message_mutations() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756176180.945,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1756176180.945,
+                "type": "default",
+                "category": "replay.mutations",
+                "data": {"count": 981, "limit": False},
+            },
+        },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_memory() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756176181.81,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "memory",
+                "description": "memory",
+                "startTimestamp": 1756176181.81,
+                "endTimestamp": 1756176181.81,
+                "data": {
+                    "memory": {
+                        "jsHeapSizeLimit": 2248146944,
+                        "totalJSHeapSize": 189315135,
+                        "usedJSHeapSize": 95611483,
+                    }
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_cls() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756176012.496,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "web-vital",
+                "description": "cumulative-layout-shift",
+                "startTimestamp": 1756176012.496,
+                "endTimestamp": 1756176012.496,
+                "data": {
+                    "value": 0,
+                    "size": 0,
+                    "rating": "good",
+                    "nodeIds": [],
+                    "attributions": [],
+                },
+            },
+        },
+    }
+    assert as_log_message(event) is None
+
+
 def test_as_log_message_ui_focus() -> None:
     event = {
         "type": 5,
@@ -582,6 +664,71 @@ def test_as_log_message_ui_focus() -> None:
             "tag": "breadcrumb",
             "payload": {"timestamp": 1756401009.41, "type": "default", "category": "ui.focus"},
         },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_options() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756444686855,
+        "data": {
+            "tag": "options",
+            "payload": {
+                "shouldRecordCanvas": False,
+                "sessionSampleRate": 0.1,
+                "errorSampleRate": 1,
+                "useCompressionOption": True,
+                "blockAllMedia": False,
+                "maskAllText": False,
+                "maskAllInputs": True,
+                "useCompression": False,
+                "networkDetailHasUrls": False,
+                "networkCaptureBodies": True,
+                "networkRequestHasHeaders": True,
+                "networkResponseHasHeaders": True,
+            },
+        },
+    }
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_canvas() -> None:
+    event = {
+        "type": 3,
+        "data": {
+            "source": 9,
+            "id": 118,
+            "type": 0,
+            "commands": [
+                {"property": "clearRect", "args": [0, 0, 402, 380]},
+                {
+                    "property": "drawImage",
+                    "args": [
+                        {
+                            "rr_type": "ImageBitmap",
+                            "args": [
+                                {
+                                    "rr_type": "Blob",
+                                    "data": [
+                                        {
+                                            "rr_type": "ArrayBuffer",
+                                            "base64": "some-insanely-long-value",
+                                        }
+                                    ],
+                                    "type": "image/webp",
+                                }
+                            ],
+                        },
+                        0,
+                        0,
+                        402,
+                        380,
+                    ],
+                },
+            ],
+        },
+        "timestamp": 1756214056166,
     }
     assert as_log_message(event) is None
 
