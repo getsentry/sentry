@@ -13,6 +13,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka
+from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 pytestmark = [requires_kafka]
 
@@ -32,6 +33,7 @@ def create_trusted_relay_signature(secret_key: SecretKey) -> str | bytes:
     return signature
 
 
+@thread_leak_allowlist(reason="kafka testutils", issue=97046)
 class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
     def setup_for_trusted_relay_signature(self) -> tuple[str, SecretKey]:
         """
