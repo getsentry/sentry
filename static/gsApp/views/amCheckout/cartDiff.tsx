@@ -334,6 +334,9 @@ function CartDiff({
     const newReserved: Partial<Record<DataCategory, number>> = {...formData.reserved};
     const nodes: ReservedChange[] = [];
 
+    // XXX(isabella): For some reason we populate formData with reserved volumes
+    // for non-checkout categories, so for now we need to compare all reserved
+    // volumes so that non-checkout categories are not shown as changes.
     Object.entries(subscription.categories).forEach(([category, history]) => {
       const reserved = history.reserved;
       if (reserved !== null) {
@@ -341,17 +344,16 @@ function CartDiff({
       }
     });
 
-    // iterate through new plan's checkout categories
-    // activePlan.checkoutCategories.forEach(category => {
-    //   if (!(category in newReserved)) {
-    //     const firstBucket = activePlan.planCategories[category]?.find(
-    //       bucket => bucket.events >= 0
-    //     );
-    //     if (firstBucket !== undefined) {
-    //       newReserved[category] = firstBucket.events;
-    //     }
-    //   }
-    // });
+    activePlan.categories.forEach(category => {
+      if (category in currentReserved && !(category in newReserved)) {
+        const firstBucket = activePlan.planCategories[category]?.find(
+          bucket => bucket.events >= 0
+        );
+        if (firstBucket !== undefined) {
+          newReserved[category] = firstBucket.events;
+        }
+      }
+    });
 
     if (Object.keys(currentReserved).length > Object.keys(newReserved).length) {
       Object.entries(currentReserved).forEach(([category, currentValue]) => {
