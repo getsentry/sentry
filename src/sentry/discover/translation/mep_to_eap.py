@@ -364,9 +364,12 @@ def translate_mep_to_eap(query_parts: QueryParts):
     new_query = translate_query(query_parts["query"])
     new_columns, dropped_columns = translate_columns(query_parts["selected_columns"])
     new_equations, dropped_equations = translate_equations(query_parts["equations"])
-    equations = query_parts["equations"] if not None else []
+    equations = query_parts["equations"] if query_parts["equations"] is not None else []
+    dropped_equations_without_reasons = [
+        dropped_equation["equation"] for dropped_equation in dropped_equations
+    ]
     new_orderbys, dropped_orderbys = translate_orderbys(
-        query_parts["orderby"], equations, dropped_equations, new_equations
+        query_parts["orderby"], equations, dropped_equations_without_reasons, new_equations
     )
 
     eap_query = QueryParts(
