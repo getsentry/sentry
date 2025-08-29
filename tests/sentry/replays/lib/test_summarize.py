@@ -198,66 +198,61 @@ def test_as_log_message_click() -> None:
 
 
 def test_as_log_message_lcp() -> None:
-    event = (
-        {
-            "type": 5,
-            "timestamp": 1756400489.048,
-            "data": {
-                "tag": "performanceSpan",
-                "payload": {
-                    "op": "web-vital",
-                    "description": "largest-contentful-paint",
-                    "startTimestamp": 1756400489.048,
-                    "endTimestamp": 1756400489.048,
-                    "data": {"value": 623, "size": 623, "rating": "good"},
-                },
+    event = {
+        "type": 5,
+        "timestamp": 1756400489.048,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "web-vital",
+                "description": "largest-contentful-paint",
+                "startTimestamp": 1756400489.048,
+                "endTimestamp": 1756400489.048,
+                "data": {"value": 623, "size": 623, "rating": "good"},
             },
         },
-    )
+    }
+
     assert (
         as_log_message(event)
-        == "Application largest contentful paint: 623 ms and has a good rating at 1756400489048"
+        == "Application largest contentful paint: 623 ms and has a good rating at 1756400489048.0"
     )
 
 
 def test_as_log_message_navigation() -> None:
-    event = (
-        {
-            "type": 5,
-            "timestamp": 1756400579304,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {
-                    "timestamp": 1756400579.304,
-                    "type": "default",
-                    "category": "navigation",
-                    "data": {
-                        "from": "https://url-example-previous.com",
-                        "to": "https://url-example.com",
-                    },
+    event = {
+        "type": 5,
+        "timestamp": 1756400579304,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1756400579.304,
+                "type": "default",
+                "category": "navigation",
+                "data": {
+                    "from": "https://url-example-previous.com",
+                    "to": "https://url-example.com",
                 },
             },
         },
-    )
+    }
     assert as_log_message(event) is None
 
 
 def test_as_log_message_feedback() -> None:
-    event = (
-        {
-            "type": 5,
-            "timestamp": 1756400970768,
-            "data": {
-                "tag": "breadcrumb",
-                "payload": {
-                    "timestamp": 1756400970.768,
-                    "type": "default",
-                    "category": "sentry.feedback",
-                    "data": {"feedbackId": "332f05068b2d43e6b5c5557ffecfcd0f"},
-                },
+    event = {
+        "type": 5,
+        "timestamp": 1756400970768,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": 1756400970.768,
+                "type": "default",
+                "category": "sentry.feedback",
+                "data": {"feedbackId": "332f05068b2d43e6b5c5557ffecfcd0f"},
             },
         },
-    )
+    }
     assert as_log_message(event) is None
 
 
@@ -327,23 +322,21 @@ def test_as_log_message_resource_script() -> None:
 
 
 def test_as_log_message_navigation_span() -> None:
-    event = (
-        {
-            "type": 5,
-            "timestamp": 1756400579.304,
-            "data": {
-                "tag": "performanceSpan",
-                "payload": {
-                    "op": "navigation.push",
-                    "description": "https://url-example.com",
-                    "startTimestamp": 1756400579.304,
-                    "endTimestamp": 1756400579.304,
-                    "data": {"previous": "https://url-example-prev.com"},
-                },
+    event = {
+        "type": 5,
+        "timestamp": 1756400579.304,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "navigation.push",
+                "description": "https://url-example.com",
+                "startTimestamp": 1756400579.304,
+                "endTimestamp": 1756400579.304,
+                "data": {"previous": "https://url-example-prev.com"},
             },
         },
-    )
-    assert as_log_message(event) == "User navigated to: https://url-example.com at 1756400579304"
+    }
+    assert as_log_message(event) == "User navigated to: https://url-example.com at 1756400579304.0"
 
 
 def test_as_log_message_long_console_message() -> None:
