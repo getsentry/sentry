@@ -4,6 +4,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import RequestError from 'sentry/utils/requestError/requestError';
 import {
   LOGS_AGGREGATE_FN_KEY,
   LOGS_AGGREGATE_PARAM_KEY,
@@ -14,11 +15,9 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import * as useLogsQueryModule from 'sentry/views/explore/logs/useLogsQuery';
+import {type useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
 
 import {LogsAggregateTable} from './logsAggregateTable';
-
-jest.mock('sentry/views/explore/logs/useLogsQuery');
 
 describe('LogsAggregateTable', () => {
   const {organization, project} = initializeOrg({
@@ -26,13 +25,17 @@ describe('LogsAggregateTable', () => {
       features: ['ourlogs-enabled'],
     },
   });
-  function LogsAggregateTableWithParamsProvider() {
+  function LogsAggregateTableWithParamsProvider({
+    aggregatesTableResult,
+  }: {
+    aggregatesTableResult: ReturnType<typeof useLogsAggregatesQuery>;
+  }) {
     return (
       <LogsQueryParamsProvider source="location">
         <LogsPageParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         >
-          <LogsAggregateTable />
+          <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
         </LogsPageParamsProvider>
       </LogsQueryParamsProvider>
     );
@@ -77,52 +80,70 @@ describe('LogsAggregateTable', () => {
   });
 
   it('renders loading state', () => {
-    (useLogsQueryModule.useLogsAggregatesQuery as jest.Mock).mockReturnValue({
-      isLoading: true,
-      error: null,
-      data: null,
-      pageLinks: undefined,
-    });
-    render(<LogsAggregateTableWithParamsProvider />, {initialRouterConfig});
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={
+          {
+            isLoading: true,
+            error: null,
+            data: undefined,
+            pageLinks: undefined,
+          } as any
+        }
+      />,
+      {initialRouterConfig}
+    );
     expect(screen.getByLabelText('Aggregates')).toBeInTheDocument();
   });
 
   it('renders error state', () => {
-    (useLogsQueryModule.useLogsAggregatesQuery as jest.Mock).mockReturnValue({
-      isLoading: false,
-      error: 'Error!',
-      data: null,
-      pageLinks: undefined,
-    });
-    render(<LogsAggregateTableWithParamsProvider />, {initialRouterConfig});
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={
+          {
+            isLoading: false,
+            error: new RequestError('GET', '/', new Error('Error!')),
+            data: undefined,
+            pageLinks: undefined,
+          } as any
+        }
+      />,
+      {initialRouterConfig}
+    );
     expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
   });
 
   it('renders data rows', () => {
-    (useLogsQueryModule.useLogsAggregatesQuery as jest.Mock).mockReturnValue({
-      isLoading: false,
-      error: null,
-      data: {
-        data: [
+    render(
+      <LogsAggregateTableWithParamsProvider
+        aggregatesTableResult={
           {
-            'message.template': 'Fetching the latest item id failed.',
-            'p99(severity_number)': 17.0,
-          },
-          {
-            'message.template':
-              '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
-            'p99(severity_number)': 13.0,
-          },
-          {
-            'message.template':
-              '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp',
-            'p99(severity_number)': 12.0,
-          },
-        ],
-      },
-      pageLinks: undefined,
-    });
-    render(<LogsAggregateTableWithParamsProvider />, {initialRouterConfig});
+            isLoading: false,
+            error: null,
+            data: {
+              data: [
+                {
+                  'message.template': 'Fetching the latest item id failed.',
+                  'p99(severity_number)': 17.0,
+                },
+                {
+                  'message.template':
+                    '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: derp',
+                  'p99(severity_number)': 13.0,
+                },
+                {
+                  'message.template':
+                    '/usr/src/sentry/src/sentry/db/models/manager/base.py:282: herp',
+                  'p99(severity_number)': 12.0,
+                },
+              ],
+            },
+            pageLinks: undefined,
+          } as any
+        }
+      />,
+      {initialRouterConfig}
+    );
     const rows = screen.getAllByTestId('grid-body-row');
     expect(rows).toHaveLength(3);
     const expected = [

@@ -500,13 +500,12 @@ export function getDefaultExploreRoute(organization: Organization) {
 }
 
 export function computeVisualizeSampleTotals(
-  visualizes: Visualize[],
+  yAxes: string[],
   data: ReturnType<typeof useSortedTimeSeries>['data'],
   isTopN: boolean
 ) {
-  return visualizes.map(visualize => {
-    const dedupedYAxes = [visualize.yAxis];
-    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
+  return yAxes.map(yAxis => {
+    const series = data?.[yAxis]?.filter(defined) ?? [];
     const {sampleCount} = determineSeriesSampleCountAndIsSampled(series, isTopN);
     return sampleCount;
   });

@@ -91,6 +91,11 @@ export function useSetQueryParamsMode() {
   );
 }
 
+export function useQueryParamsSortBys(): readonly Sort[] {
+  const queryParams = useQueryParams();
+  return queryParams.sortBys;
+}
+
 export function useQueryParamsVisualizes(): readonly Visualize[] {
   const queryParams = useQueryParams();
   return queryParams.visualizes;
