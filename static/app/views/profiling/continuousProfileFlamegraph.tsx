@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -29,83 +29,30 @@ import {useProfiles} from './profilesProvider';
 
 function ContinuousProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
-  const profiles = useProfiles();
-  const params = useParams();
 
-  const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
-    FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
-    {
-      preferences: {
-        layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
-        view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
-        colorCoding: DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
-        sorting: DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
-      },
-    }
-  );
+  const {colorCoding, sorting, view} = useFlamegraphPreferences();
 
   const currentProject = useCurrentProjectFromRouteParam();
+  const initial = useRef(true);
 
   useEffect(() => {
+    if (!currentProject?.platform) {
+      return;
+    }
+
     trackAnalytics('profiling_views.profile_flamegraph', {
       organization,
-      project_platform: currentProject?.platform,
+      project_platform: currentProject.platform,
+      colorCoding,
+      sorting,
+      view,
+      render: initial.current ? 'initial' : 're-render',
     });
-    // ignore  currentProject so we don't block the analytics event
-    // or fire more than once unnecessarily
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organization]);
 
-  const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
-    const queryStringState = decodeFlamegraphStateFromQueryParams(
-      qs.parse(window.location.search)
-    );
+    initial.current = false;
+  }, [organization, currentProject?.platform, colorCoding, sorting, view]);
 
-    return {
-      ...queryStringState,
-      preferences: {
-        ...storedPreferences.preferences,
-        ...queryStringState.preferences,
-        timelines: {
-          ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
-          ...storedPreferences?.preferences?.timelines,
-        },
-        layout:
-          storedPreferences?.preferences?.layout ??
-          queryStringState.preferences?.layout ??
-          DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
-      },
-    };
-    // We only want to decode this when our component mounts
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <SentryDocumentTitle
-      title={t('Profiling \u2014 Flamechart')}
-      orgSlug={organization.slug}
-    >
-      <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
-        <ProfileGroupTypeProvider
-          input={profiles.type === 'resolved' ? profiles.data : null}
-          traceID={params.eventId!}
-        >
-          <FlamegraphThemeProvider>
-            <FlamegraphStateQueryParamSync />
-            <FlamegraphStateLocalStorageSync />
-            <FlamegraphContainer>
-              {profiles.type === 'loading' ? (
-                <LoadingIndicatorContainer>
-                  <LoadingIndicator />
-                </LoadingIndicatorContainer>
-              ) : null}
-              <ContinuousFlamegraph />
-            </FlamegraphContainer>
-          </FlamegraphThemeProvider>
-        </ProfileGroupTypeProvider>
-      </FlamegraphStateProvider>
-    </SentryDocumentTitle>
-  );
+  return <ContinuousFlamegraph />;
 }
 
 // This only exists because we need to call useFlamegraphPreferences
@@ -157,4 +104,71 @@ const FlamegraphContainer = styled('div')`
   }
 `;
 
-export default ContinuousProfileFlamegraph;
+export default function ContinuousProfileFlamegraphWrapper() {
+  const organization = useOrganization();
+  const profiles = useProfiles();
+  const params = useParams();
+
+  const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
+    FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
+    {
+      preferences: {
+        layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
+        view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+        colorCoding: DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
+        sorting: DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
+      },
+    }
+  );
+
+  const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
+    const queryStringState = decodeFlamegraphStateFromQueryParams(
+      qs.parse(window.location.search)
+    );
+
+    return {
+      ...queryStringState,
+      preferences: {
+        ...storedPreferences.preferences,
+        ...queryStringState.preferences,
+        timelines: {
+          ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
+          ...storedPreferences?.preferences?.timelines,
+        },
+        layout:
+          storedPreferences?.preferences?.layout ??
+          queryStringState.preferences?.layout ??
+          DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
+      },
+    };
+    // We only want to decode this when our component mounts
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <SentryDocumentTitle
+      title={t('Profiling \u2014 Flamechart')}
+      orgSlug={organization.slug}
+    >
+      <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
+        <ProfileGroupTypeProvider
+          input={profiles.type === 'resolved' ? profiles.data : null}
+          traceID={params.eventId!}
+        >
+          <FlamegraphThemeProvider>
+            <FlamegraphStateQueryParamSync />
+            <FlamegraphStateLocalStorageSync />
+            <FlamegraphContainer>
+              {profiles.type === 'loading' ? (
+                <LoadingIndicatorContainer>
+                  <LoadingIndicator />
+                </LoadingIndicatorContainer>
+              ) : null}
+              <ContinuousProfileFlamegraph />
+            </FlamegraphContainer>
+          </FlamegraphThemeProvider>
+        </ProfileGroupTypeProvider>
+      </FlamegraphStateProvider>
+    </SentryDocumentTitle>
+  );
+}
