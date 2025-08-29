@@ -338,6 +338,44 @@ describe('ExploreToolbar', () => {
     expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
   });
 
+  it('supports multi-argument aggregate count_if', async () => {
+    let visualizes: any;
+    const user = userEvent.setup();
+    function Component() {
+      visualizes = useExploreVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(
+      <Wrapper>
+        <Component />
+      </Wrapper>
+    );
+
+    const section = screen.getByTestId('section-visualizes');
+
+    expect(visualizes).toEqual([new Visualize('count(span.duration)')]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count_if'}));
+
+    expect(visualizes).toEqual([new Visualize('count_if(span.op,equals,300)')]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'span.op'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.duration'}));
+
+    await userEvent.click(within(section).getByRole('button', {name: 'is equal to'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'is greater than'}));
+
+    const inputs = within(section).getAllByRole('textbox');
+    const valueInput = inputs[inputs.length - 1]!;
+    await userEvent.tripleClick(valueInput);
+    await user.keyboard('400');
+    await user.keyboard('[Enter]');
+
+    expect(visualizes).toEqual([new Visualize('count_if(span.duration,greater,400)')]);
+  });
+
   it('switches to aggregates mode when modifying group bys', async () => {
     let groupBys: any;
     let mode: any;
