@@ -79,17 +79,15 @@ const SPECIAL_FIELDS: SpecialFields = {
       };
 
       return (
-        <Container>
-          <QuickContextHoverWrapper
-            dataRow={data}
-            contextType={ContextType.ISSUE}
-            organization={organization}
-          >
-            <OverflowLink to={target} aria-label={issueID}>
-              <FieldShortId shortId={`${data.issue}`} />
-            </OverflowLink>
-          </QuickContextHoverWrapper>
-        </Container>
+        <QuickContextHoverWrapper
+          dataRow={data}
+          contextType={ContextType.ISSUE}
+          organization={organization}
+        >
+          <OverflowLink to={target} aria-label={issueID}>
+            <FieldShortId shortId={`${data.issue}`} />
+          </OverflowLink>
+        </QuickContextHoverWrapper>
       );
     },
   },
