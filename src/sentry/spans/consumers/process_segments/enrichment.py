@@ -52,14 +52,12 @@ class Span(SegmentSpan, total=True):
     exclusive_time_ms: float
     op: str
 
-    sentry_tags: dict[str, Any]  # type: ignore[misc]  # XXX: fix w/ TypedDict extra_items once available
-
     # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]
 
 
 def _get_span_op(span: SegmentSpan | Span) -> str:
-    return span.get("sentry_tags", {}).get("op") or DEFAULT_SPAN_OP
+    return span.get("data", {}).get("sentry.op") or DEFAULT_SPAN_OP
 
 
 def _find_segment_span(spans: list[SegmentSpan]) -> SegmentSpan | None:
