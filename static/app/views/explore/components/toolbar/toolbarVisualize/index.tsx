@@ -9,7 +9,9 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
+import {BufferedInput} from 'sentry/views/discover/table/queryField';
 import {
+  AggregateSelectorRow,
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarLabel,
@@ -36,7 +38,7 @@ interface ToolbarVisualizeDropdownProps {
   canDelete: boolean;
   fieldOptions: Array<SelectOption<SelectKey>>;
   onChangeAggregate: (option: SelectOption<SelectKey>) => void;
-  onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
+  onChangeArgument: (index: number, value: string) => void;
   onDelete: () => void;
   parsedFunction: ParsedFunction | null;
 }
@@ -51,39 +53,97 @@ export function ToolbarVisualizeDropdown({
   parsedFunction,
 }: ToolbarVisualizeDropdownProps) {
   const aggregateFunc = parsedFunction?.name;
+  const aggregateFuncArgs = parsedFunction?.arguments;
   const aggregateDefinition = aggregateFunc
     ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
 
   return (
     <ToolbarRow>
-      <AggregateCompactSelect
-        searchable
-        options={aggregateOptions}
-        value={parsedFunction?.name ?? ''}
-        onChange={onChangeAggregate}
-      />
-      {aggregateDefinition?.parameters?.map((param, index) => {
-        return (
+      <AggregateSelectorRow>
+        <AggregateCompactSelect
+          searchable
+          options={aggregateOptions}
+          value={parsedFunction?.name ?? ''}
+          onChange={onChangeAggregate}
+        />
+        {aggregateDefinition?.parameters?.map((param, index) => {
+          if (param.kind === 'value') {
+            const inputProps = {
+              required: param.required,
+              value: aggregateFuncArgs?.[index] || param.defaultValue || '',
+              onUpdate: (value: string) => {
+                onChangeArgument(index, value);
+              },
+              placeholder: param.placeholder,
+            };
+            switch (param.dataType) {
+              case 'number':
+                return (
+                  <Input
+                    name="refinement"
+                    key={`parameter:number:${index}`}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*(\.[0-9]*)?"
+                    {...inputProps}
+                  />
+                );
+              case 'integer':
+                return (
+                  <Input
+                    name="refinement"
+                    key={`parameter:integer:${index}`}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    {...inputProps}
+                  />
+                );
+              default:
+                return (
+                  <Input
+                    name="refinement"
+                    key={`parameter:text:${index}`}
+                    type="text"
+                    {...inputProps}
+                  />
+                );
+            }
+          }
+          if (param.kind === 'dropdown') {
+            return (
+              <FieldCompactSelect
+                key={param.name}
+                searchable
+                options={param.options}
+                value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+                onChange={option => onChangeArgument(index, option.value as string)}
+                disabled={fieldOptions.length === 1}
+              />
+            );
+          }
+          return (
+            <FieldCompactSelect
+              key={param.name}
+              searchable
+              options={fieldOptions}
+              value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+              onChange={option => onChangeArgument(index, option.value as string)}
+              disabled={fieldOptions.length === 1}
+            />
+          );
+        })}
+        {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
           <FieldCompactSelect
-            key={param.name}
             searchable
             options={fieldOptions}
-            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
-            onChange={option => onChangeArgument(index, option)}
-            disabled={fieldOptions.length === 1}
+            value={parsedFunction?.arguments[0] ?? ''}
+            onChange={option => onChangeArgument(0, option.value as string)}
+            disabled
           />
-        );
-      })}
-      {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
-        <FieldCompactSelect
-          searchable
-          options={fieldOptions}
-          value={parsedFunction?.arguments[0] ?? ''}
-          onChange={option => onChangeArgument(0, option)}
-          disabled
-        />
-      )}
+        )}
+      </AggregateSelectorRow>
       {canDelete ? (
         <Button
           borderless
@@ -149,4 +209,8 @@ const FieldCompactSelect = styled(CompactSelect)`
   > button {
     width: 100%;
   }
+`;
+
+const Input = styled(BufferedInput)`
+  flex: 1 1;
 `;

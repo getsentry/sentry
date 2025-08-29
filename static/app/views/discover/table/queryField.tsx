@@ -786,6 +786,16 @@ export class BufferedInput extends Component<BufferedInputProps, InputState> {
     value: this.props.value,
   };
 
+  componentDidUpdate(prevProps: BufferedInputProps) {
+    // Sync internal state when the parent updates the value prop externally.
+    if (prevProps.value !== this.props.value) {
+      const isFocused = this.input.current === document.activeElement;
+      if (!isFocused) {
+        this.setState({value: this.props.value});
+      }
+    }
+  }
+
   private input: React.RefObject<HTMLInputElement | null>;
 
   get isValid() {
@@ -823,6 +833,12 @@ export class BufferedInput extends Component<BufferedInputProps, InputState> {
         value={this.state.value}
         onChange={this.handleChange}
         onBlur={this.handleBlur}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            this.input.current?.blur();
+            e.stopPropagation();
+          }
+        }}
       />
     );
   }

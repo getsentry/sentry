@@ -53,3 +53,29 @@ export const ToolbarRow = styled('div')`
     margin-bottom: ${space(0.5)};
   }
 `;
+
+export const AggregateSelectorRow = styled('div')`
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: ${space(1)};
+  row-gap: ${space(0.5)};
+  flex: 1;
+  ${p =>
+    p.theme.isChonk &&
+    css`
+      align-items: center;
+    `};
+  margin-bottom: ${space(0.5)};
+
+  /* Fixed width for aggregate select (matches AggregateCompactSelect width) */
+  > :first-child {
+    flex: 0 0 100px;
+    min-width: 100px;
+  }
+
+  /* Two parameter selectors per row, growing to fill available space */
+  > :not(:first-child) {
+    flex: 1 1 calc((100% - 100px - ${space(1)}) / 2);
+    min-width: 0;
+  }
+`;

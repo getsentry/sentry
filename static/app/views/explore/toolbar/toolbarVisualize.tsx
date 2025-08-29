@@ -169,17 +169,15 @@ function VisualizeDropdown({
   );
 
   const onChangeArgument = useCallback(
-    (index: number, option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        let args = cloneDeep(parsedFunction?.arguments);
-        if (args) {
-          args[index] = option.value;
-        } else {
-          args = [option.value];
-        }
-        const yAxis = `${parsedFunction?.name}(${args.join(',')})`;
-        onReplace(visualize.replace({yAxis}));
+    (index: number, value: string) => {
+      let args = cloneDeep(parsedFunction?.arguments);
+      if (args) {
+        args[index] = value;
+      } else {
+        args = [value];
       }
+      const yAxis = `${parsedFunction?.name}(${args.join(',')})`;
+      onReplace(visualize.replace({yAxis}));
     },
     [onReplace, parsedFunction, visualize]
   );
