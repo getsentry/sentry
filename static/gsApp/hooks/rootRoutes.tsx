@@ -19,6 +19,11 @@ const rootRoutes = (): SentryRouteObject => ({
           component: make(() => import('../views/decideCheckout')),
           deprecatedRouteProps: true,
         },
+        {
+          path: 'success/',
+          component: make(() => import('../views/amCheckout/checkoutSuccess')),
+          deprecatedRouteProps: true,
+        },
       ],
     },
   ],

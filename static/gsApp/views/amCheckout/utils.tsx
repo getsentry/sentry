@@ -17,6 +17,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {
   DEFAULT_TIER,
@@ -631,6 +632,7 @@ export function useSubmitCheckout({
   referrer?: string;
 }) {
   const api = useApi({});
+  const navigate = useNavigate();
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
@@ -646,7 +648,7 @@ export function useSubmitCheckout({
         }
       );
     },
-    onSuccess: (_, _variables) => {
+    onSuccess: (response, _variables) => {
       recordAnalytics(
         organization,
         subscription,
@@ -670,13 +672,16 @@ export function useSubmitCheckout({
       fetchOrganizationDetails(new Client(), organization.slug);
       SubscriptionStore.loadData(organization.slug);
 
-      // TODO(checkout v3): This should be changed to redirect to the success page
-      browserHistory.push(
-        normalizeUrl(
-          `/settings/${organization.slug}/billing/overview/?referrer=${referrer}${
-            justBoughtSeer ? '&showSeerAutomationAlert=true' : ''
-          }`
-        )
+      const {invoice} = response;
+
+      navigate(
+        `/checkout-v3/success/?referrer=${referrer}&justBoughtSeer=${justBoughtSeer}`,
+        {
+          state: {
+            invoice,
+            justBoughtSeer,
+          },
+        }
       );
     },
     onError: (error: RequestError, _variables) => {

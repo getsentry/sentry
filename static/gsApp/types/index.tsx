@@ -641,6 +641,7 @@ export enum InvoiceItemType {
   RESERVED_PROFILE_DURATION = 'reserved_profile_duration',
   RESERVED_SEER_AUTOFIX = 'reserved_seer_autofix',
   RESERVED_SEER_SCANNER = 'reserved_seer_scanner',
+  RESERVED_SEER_BUDGET = 'reserved_seer_budget',
 }
 
 export enum InvoiceStatus {
