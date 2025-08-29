@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -35,7 +35,11 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
-import {useWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
+import {
+  POLL_INTERVAL,
+  useInvalidateWebVitalsIssuesQuery,
+  useWebVitalsIssuesQuery,
+} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
@@ -67,7 +71,14 @@ export function PageOverviewSidebar({
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
 
-  const {mutate: createIssue} = useCreateIssue();
+  const invalidateWebVitalsIssuesQuery = useInvalidateWebVitalsIssuesQuery({
+    transaction,
+  });
+
+  const {mutateAsync: createIssueAsync} = useCreateIssue();
+  const [isCreatingIssues, setIsCreatingIssues] = useState(false);
+  // Event IDs of issues created by the user on this page. Used to control polling logic.
+  const [issueEventIds, setIssueEventIds] = useState<string[] | undefined>(undefined);
 
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
@@ -136,26 +147,43 @@ export function PageOverviewSidebar({
     issueTypes: [IssueType.WEB_VITALS],
     transaction,
     enabled: hasSeerWebVitalsSuggestions,
+    // We only poll for issues if we've created them in the same session, otherwise we only load issues once
+    pollInterval: issueEventIds && issueEventIds.length > 0 ? POLL_INTERVAL : undefined,
+    eventIds: issueEventIds,
   });
 
-  const runSeerAnalysis = useCallback(() => {
+  const runSeerAnalysis = useCallback(async () => {
     if (!projectScore) {
       return;
     }
-
+    setIsCreatingIssues(true);
     // Creates a new issue for each web vital that has a score under 90
-    ORDER.forEach(webVital => {
+    const underPerformingWebVitals = ORDER.filter(webVital => {
       const score = projectScore[`${webVital}Score`];
-      if (score && score < 90) {
-        createIssue({
+      return score && score < 90;
+    });
+    const promises = underPerformingWebVitals.map(async webVital => {
+      try {
+        const result = await createIssueAsync({
           issueType: IssueType.WEB_VITALS,
           vital: webVital,
-          score,
+          score: projectScore[`${webVital}Score`],
           transaction,
         });
+        return result.event_id;
+      } catch (error) {
+        // If the issue creation fails, we don't want to fail the entire operation for the rest of the vitals
+        return null;
       }
     });
-  }, [createIssue, projectScore, transaction]);
+
+    const results = await Promise.all(promises);
+    setIssueEventIds(results.filter(Boolean) as string[]);
+    setIsCreatingIssues(false);
+    invalidateWebVitalsIssuesQuery();
+  }, [createIssueAsync, projectScore, transaction, invalidateWebVitalsIssuesQuery]);
+
+  const hasProjectScore = !projectScoreIsLoading && Boolean(projectScore);
 
   return (
     <Fragment>
@@ -190,38 +218,14 @@ export function PageOverviewSidebar({
       </SidebarPerformanceScoreRingContainer>
       <SidebarSpacer />
       {hasSeerWebVitalsSuggestions && (
-        <Fragment>
-          <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
-          <Content>
-            <InsightGrid>
-              {/* Issues are still loading */}
-              {isLoadingIssues && <Placeholder height="1.5rem" />}
-              {/* Issues are done loading and they exist */}
-              {!isLoadingIssues && issues && issues.length > 0
-                ? issues.map(issue => (
-                    <IssueAutofixSuggestions key={issue.shortId} issue={issue} />
-                  ))
-                : null}
-              {/* Issues are done loading and they don't exist */}
-              {!isLoadingIssues &&
-                issues &&
-                issues.length === 0 &&
-                !projectScoreIsLoading &&
-                projectScore && (
-                  <Button
-                    size="sm"
-                    icon={<StyledIconSeer size="md" />}
-                    onClick={runSeerAnalysis}
-                    title={t(
-                      'Create an issue for each underperforming web vital and run a root cause analysis.'
-                    )}
-                  >
-                    {t('Run Seer Analysis')}
-                  </Button>
-                )}
-            </InsightGrid>
-          </Content>
-        </Fragment>
+        <SeerSuggestionsSection
+          isLoadingIssues={isLoadingIssues}
+          isCreatingIssues={isCreatingIssues}
+          hasProjectScore={hasProjectScore}
+          issues={issues}
+          issueEventIds={issueEventIds}
+          runSeerAnalysis={runSeerAnalysis}
+        />
       )}
       <SidebarSpacer />
       <SectionHeading>
@@ -311,12 +315,68 @@ export function PageOverviewSidebar({
   );
 }
 
-function IssueAutofixSuggestions({issue}: {issue: Group}) {
+function SeerSuggestionsSection({
+  isLoadingIssues,
+  isCreatingIssues,
+  hasProjectScore,
+  issues,
+  issueEventIds,
+  runSeerAnalysis,
+}: {
+  hasProjectScore: boolean;
+  isCreatingIssues: boolean;
+  isLoadingIssues: boolean;
+  issueEventIds: string[] | undefined;
+  issues: Group[] | undefined;
+  runSeerAnalysis: () => void;
+}) {
+  const issuesExist = !!issues && issues.length > 0;
+
+  return (
+    <div>
+      <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
+      <Content>
+        <InsightGrid>
+          {/* Issues are still loading, or projectScore is still loading, or seer analysis is still running */}
+          {(isLoadingIssues || isCreatingIssues || !hasProjectScore) && (
+            <Placeholder height="1.5rem" />
+          )}
+          {/* Issues are done loading and they don't exist */}
+          {!isLoadingIssues && !issuesExist && !issueEventIds && hasProjectScore && (
+            <Button
+              size="sm"
+              icon={<StyledIconSeer size="md" />}
+              onClick={runSeerAnalysis}
+              title={t(
+                'Create an issue for each underperforming web vital and run a root cause analysis.'
+              )}
+            >
+              {t('Run Seer Analysis')}
+            </Button>
+          )}
+          {/* Issues are done loading and they exist */}
+          {!isLoadingIssues &&
+            issuesExist &&
+            !isCreatingIssues &&
+            hasProjectScore &&
+            issues.map(issue => <SeerSuggestion key={issue.shortId} issue={issue} />)}
+        </InsightGrid>
+      </Content>
+    </div>
+  );
+}
+
+function SeerSuggestion({issue}: {issue: Group}) {
   const organization = useOrganization();
   const {data, isLoading: isLoadingAutofix} = useApiQuery<AutofixResponse>(
     makeAutofixQueryKey(organization.slug, issue.id),
     {
-      staleTime: Infinity,
+      staleTime: 0,
+      refetchInterval: query => {
+        const result = query.state.data?.[0];
+        const isProcessing = result?.autofix?.status === 'PROCESSING';
+        return !query.state.data?.[0]?.autofix || isProcessing ? POLL_INTERVAL : false;
+      },
     }
   );
 
