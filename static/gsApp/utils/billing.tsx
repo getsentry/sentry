@@ -6,6 +6,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import type {IconSize} from 'sentry/utils/theme';
 
 import {
   BILLION,
@@ -553,10 +554,10 @@ export function getPlanIcon(plan: Plan) {
   return <IconUser />;
 }
 
-export function getProductIcon(product: SelectableProduct) {
+export function getProductIcon(product: SelectableProduct, size?: IconSize) {
   switch (product) {
     case SelectableProduct.SEER:
-      return <IconSeer />;
+      return <IconSeer size={size} />;
     default:
       return null;
   }

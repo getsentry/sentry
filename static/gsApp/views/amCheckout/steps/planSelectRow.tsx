@@ -11,30 +11,19 @@ import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
-import {
-  OnDemandBudgetMode,
-  type Plan,
-  type Promotion,
-  type SharedOnDemandBudget,
-} from 'getsentry/types';
+import {OnDemandBudgetMode, type Plan, type Promotion} from 'getsentry/types';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
 import MoreFeaturesLink from 'getsentry/views/amCheckout/moreFeaturesLink';
-import type {PlanContent} from 'getsentry/views/amCheckout/steps/planSelect';
+import type {CheckoutFormData, PlanContent} from 'getsentry/views/amCheckout/types';
 import {
   displayUnitPrice,
   formatPrice,
   getShortInterval,
 } from 'getsentry/views/amCheckout/utils';
 
-export type PlanUpdateData = {
-  plan: string;
-  onDemandBudget?: SharedOnDemandBudget;
-  onDemandMaxSpend?: number;
-};
-
 export type PlanSelectRowProps = {
   isSelected: boolean;
-  onUpdate: (data: PlanUpdateData) => void;
+  onUpdate: (data: Partial<CheckoutFormData>) => void;
   plan: Plan;
   planContent: PlanContent;
   planName: string;
@@ -113,7 +102,7 @@ function PlanSelectRow({
               value={planValue}
               checked={isSelected}
               onClick={() => {
-                const data: PlanUpdateData = {plan: plan.id};
+                const data: Partial<CheckoutFormData> = {plan: plan.id};
                 if (shouldShowDefaultPayAsYouGo) {
                   data.onDemandMaxSpend = isBizPlanFamily(plan)
                     ? PAYG_BUSINESS_DEFAULT
