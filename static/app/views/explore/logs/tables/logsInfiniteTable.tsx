@@ -26,9 +26,7 @@ import {
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
-  useLogsFields,
   useLogsSearch,
-  useLogsSortBys,
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
@@ -54,6 +52,10 @@ import {
   getTableHeaderLabel,
   logsFieldAlignment,
 } from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsFields,
+  useQueryParamsSortBys,
+} from 'sentry/views/explore/queryParams/context';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 type LogsTableProps = {
@@ -90,7 +92,7 @@ export function LogsInfiniteTable({
   embeddedOptions,
 }: LogsTableProps) {
   const theme = useTheme();
-  const fields = useLogsFields();
+  const fields = useQueryParamsFields();
   const search = useLogsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {infiniteLogsQueryResult} = useLogsPageData();
@@ -125,13 +127,17 @@ export function LogsInfiniteTable({
   const scrollFetchDisabled = isFunctionScrolling || autorefreshEnabled;
 
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
-    minimumColumnWidth: 50,
-    prefixColumnWidth: 'min-content',
-    staticColumnWidths: {
-      [OurLogKnownFieldKey.MESSAGE]: '1fr',
-    },
-  });
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
+    fields.slice(),
+    tableRef,
+    {
+      minimumColumnWidth: 50,
+      prefixColumnWidth: 'min-content',
+      staticColumnWidths: {
+        [OurLogKnownFieldKey.MESSAGE]: '1fr',
+      },
+    }
+  );
 
   const estimateSize = useCallback(
     (index: number) => {
@@ -361,8 +367,8 @@ function LogsTableHeader({
   isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
-  const fields = useLogsFields();
-  const sortBys = useLogsSortBys();
+  const fields = useQueryParamsFields();
+  const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetLogsSortBys();
 
   const {infiniteLogsQueryResult} = useLogsPageData();

@@ -8,10 +8,10 @@ import {
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
-  useLogsFields,
   useLogsSearch,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useQueryParamsFields} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
 
@@ -28,7 +28,7 @@ export function useLogsSearchQueryBuilderProps({
 }) {
   const logsSearch = useLogsSearch();
   const oldLogsSearch = usePrevious(logsSearch);
-  const fields = useLogsFields();
+  const fields = useQueryParamsFields();
   const setLogsPageParams = useSetLogsPageParams();
   const onSearch = useCallback(
     (newQuery: string) => {

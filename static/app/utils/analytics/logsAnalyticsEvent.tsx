@@ -22,7 +22,7 @@ export type LogsAnalyticsEventParameters = {
     organization: Organization;
   };
   'logs.explorer.metadata': {
-    columns: string[];
+    columns: readonly string[];
     columns_count: number;
     confidences: string[];
     dataScanned: string;
