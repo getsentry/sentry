@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -272,7 +272,7 @@ function CartDiff({
   const currentBudgetMode = currentOnDemandBudget.budgetMode;
   const newBudgetMode = newOnDemandBudget.budgetMode;
 
-  const getPlanChanges = (): PlanChange[] => {
+  const getPlanChanges = useCallback((): PlanChange[] => {
     const changes: PlanChange[] = [];
     if (activePlan.name !== currentPlan.name) {
       changes.push({
@@ -291,9 +291,9 @@ function CartDiff({
     }
 
     return changes;
-  };
+  }, [activePlan, currentPlan]);
 
-  const getProductChanges = (): ProductChange[] => {
+  const getProductChanges = useCallback((): ProductChange[] => {
     // TODO(checkout v3): This will need to be updated to handle non-budget products
     const currentProducts =
       subscription.reservedBudgets
@@ -327,9 +327,9 @@ function CartDiff({
     });
 
     return changes;
-  };
+  }, [formData.selectedProducts, subscription.reservedBudgets]);
 
-  const getReservedChanges = (): ReservedChange[] => {
+  const getReservedChanges = useCallback((): ReservedChange[] => {
     const currentReserved: Partial<Record<DataCategory, number>> = {};
     const newReserved: Partial<Record<DataCategory, number>> = {...formData.reserved};
     const nodes: ReservedChange[] = [];
@@ -386,9 +386,9 @@ function CartDiff({
     }
 
     return nodes;
-  };
+  }, [activePlan, formData.reserved, subscription.categories]);
 
-  const getSharedOnDemandChanges = (): SharedOnDemandChange[] => {
+  const getSharedOnDemandChanges = useCallback((): SharedOnDemandChange[] => {
     const changes: SharedOnDemandChange[] = [];
     if (
       isEqual(currentOnDemandBudget, newOnDemandBudget) ||
@@ -422,14 +422,14 @@ function CartDiff({
     }
 
     return changes;
-  };
+  }, [currentOnDemandBudget, newOnDemandBudget, currentBudgetMode, newBudgetMode]);
 
-  const getPerCategoryOnDemandChanges = (): PerCategoryOnDemandChange[] => {
+  const getPerCategoryOnDemandChanges = useCallback((): PerCategoryOnDemandChange[] => {
     const changes: PerCategoryOnDemandChange[] = [];
     if (
       isEqual(currentOnDemandBudget, newOnDemandBudget) ||
-      (currentBudgetMode !== OnDemandBudgetMode.SHARED &&
-        newBudgetMode !== OnDemandBudgetMode.SHARED)
+      (currentBudgetMode !== OnDemandBudgetMode.PER_CATEGORY &&
+        newBudgetMode !== OnDemandBudgetMode.PER_CATEGORY)
     ) {
       return [];
     }
@@ -497,32 +497,45 @@ function CartDiff({
     }
 
     return changes;
-  };
+  }, [currentOnDemandBudget, newOnDemandBudget, currentBudgetMode, newBudgetMode]);
 
-  const planChanges = getPlanChanges();
-  const productChanges = getProductChanges();
-  const reservedChanges = getReservedChanges();
-  const sharedOnDemandChanges = getSharedOnDemandChanges();
-  const perCategoryOnDemandChanges = getPerCategoryOnDemandChanges();
+  const planChanges = useMemo(() => getPlanChanges(), [getPlanChanges]);
+  const productChanges = useMemo(() => getProductChanges(), [getProductChanges]);
+  const reservedChanges = useMemo(() => getReservedChanges(), [getReservedChanges]);
+  const sharedOnDemandChanges = useMemo(
+    () => getSharedOnDemandChanges(),
+    [getSharedOnDemandChanges]
+  );
+  const perCategoryOnDemandChanges = useMemo(
+    () => getPerCategoryOnDemandChanges(),
+    [getPerCategoryOnDemandChanges]
+  );
 
-  const allChanges = [
-    ...planChanges,
-    ...productChanges,
-    ...reservedChanges,
-    ...sharedOnDemandChanges,
-    ...perCategoryOnDemandChanges,
-  ];
+  const allChanges = useMemo(
+    () => [
+      ...planChanges,
+      ...productChanges,
+      ...reservedChanges,
+      ...sharedOnDemandChanges,
+      ...perCategoryOnDemandChanges,
+    ],
+    [
+      planChanges,
+      productChanges,
+      reservedChanges,
+      sharedOnDemandChanges,
+      perCategoryOnDemandChanges,
+    ]
+  );
 
-  const numChanges = allChanges.length;
-
-  if (numChanges === 0 || isNewPayingCustomer(subscription, organization)) {
+  if (allChanges.length === 0 || isNewPayingCustomer(subscription, organization)) {
     return null;
   }
 
   return (
     <CartDiffContainer data-test-id="cart-diff">
       <Flex justify="between" align="center">
-        <Title>{tct('Changes ([numChanges])', {numChanges})}</Title>
+        <Title>{tct('Changes ([numChanges])', {numChanges: allChanges.length})}</Title>
         <Button
           aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
           onClick={() => onToggle(!isOpen)}
