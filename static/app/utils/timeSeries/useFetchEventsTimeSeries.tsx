@@ -1,4 +1,5 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -20,7 +21,12 @@ interface UseFetchEventsTimeSeriesOptions<Field> {
   yAxis: Field | Field[];
   enabled?: boolean;
   groupBy?: Field[];
-  query?: MutableSearch;
+  interval?: string;
+  /**
+   * NOTE: If `pageFilters` are passed in, the implication is that these filters are ready, and have valid data. If present, the query is enabled immediately!
+   */
+  pageFilters?: PageFilters;
+  query?: MutableSearch | string;
   sampling?: SamplingMode;
   sort?: Sort;
   topEvents?: number;
@@ -33,18 +39,23 @@ export function useFetchEventsTimeSeries<T extends string>(
   dataset: DiscoverDatasets,
   {
     yAxis,
+    enabled,
+    groupBy,
+    interval,
     query,
     sampling,
-    topEvents,
-    groupBy,
+    pageFilters,
     sort,
-    enabled,
+    topEvents,
   }: UseFetchEventsTimeSeriesOptions<T>,
   referrer: string
 ) {
   const organization = useOrganization();
 
-  const {isReady: arePageFiltersReady, selection} = usePageFilters();
+  const {isReady: arePageFiltersReady, selection: defaultSelection} = usePageFilters();
+
+  const hasCustomPageFilters = Boolean(pageFilters);
+  const selection = pageFilters ?? defaultSelection;
 
   if (!referrer) {
     throw new Error(
@@ -65,8 +76,12 @@ export function useFetchEventsTimeSeries<T extends string>(
           ...normalizeDateTimeParams(selection.datetime),
           project: selection.projects,
           environment: selection.environments,
-          interval: getIntervalForTimeSeriesQuery(yAxis, selection.datetime),
-          query: query ? query.formatString() : undefined,
+          interval: interval ?? getIntervalForTimeSeriesQuery(yAxis, selection.datetime),
+          query: query
+            ? typeof query === 'string'
+              ? query
+              : query.formatString()
+            : undefined,
           sampling: sampling ?? DEFAULT_SAMPLING_MODE,
           topEvents,
           groupBy,
@@ -79,7 +94,7 @@ export function useFetchEventsTimeSeries<T extends string>(
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       refetchOnWindowFocus: false,
-      enabled: enabled && arePageFiltersReady,
+      enabled: enabled && (hasCustomPageFilters ? true : arePageFiltersReady),
     }
   );
 }
