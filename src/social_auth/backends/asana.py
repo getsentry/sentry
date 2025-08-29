@@ -4,6 +4,8 @@ ASANA_CLIENT_ID & ASANA_CLIENT_SECRET
 and put into sentry.conf.py
 """
 
+from urllib.parse import parse_qsl, urlencode
+
 import requests
 
 from social_auth.backends import BaseOAuth2, OAuthBackend
@@ -55,6 +57,48 @@ class AsanaAuth(BaseOAuth2):
             return resp.json()["data"]
         except ValueError:
             return None
+
+    def auth_url(self):
+        if self.STATE_PARAMETER or self.REDIRECT_STATE:
+            # Store state in session for further request validation. The state
+            # value is passed as state parameter (as specified in OAuth2 spec),
+            # but also added to redirect_uri, that way we can still verify the
+            # request if the provider doesn't implement the state parameter.
+            # Reuse token if any.
+            name = self.AUTH_BACKEND.name + "_state"
+            state = self.request.session.get(name) or self.state_token()
+            self.request.session[self.AUTH_BACKEND.name + "_state"] = state
+        else:
+            state = None
+
+        params = self.auth_params(state)
+        params.update(self.get_scope_argument())
+        params.update(self.auth_extra_arguments())
+
+        query_string = self._get_safe_query_string()
+        return self.AUTHORIZATION_URL + "?" + urlencode(params) + query_string
+
+    def _get_safe_query_string(self):
+        """
+        Returns filtered query string without client_id parameter.
+        """
+
+        query_string = self.request.META.get("QUERY_STRING", "")
+        if not query_string:
+            return ""
+
+        parsed_params = parse_qsl(query_string, keep_blank_values=True)
+        safe_params = []
+
+        for param_name, param_value in parsed_params:
+            # Remove client_id parameter
+            if param_name.lower() != "client_id":
+                safe_params.append((param_name, param_value))
+
+        if safe_params:
+            return "&" + urlencode(safe_params)
+        else:
+            return ""
 
     def auth_complete(self, *args, **kwargs):
         """Completes logging process, must return user instance"""
