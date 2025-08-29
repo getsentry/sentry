@@ -20,7 +20,7 @@ class RuleValidator:
         # middleware spans. Strip those prefixes so that validation only
         # considers the trailing URL/path.
         match = re.match(
-            "(middleware )?(GET|POST|PUT|DELETE|HEAD|OPTIONS) (.*)", rule, re.IGNORECASE
+            "(middleware )?(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS) (.*)", rule, re.IGNORECASE
         )
         if match:
             return ReplacementRule(match.groups()[2])
