@@ -69,7 +69,6 @@ import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/ne
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
-import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
@@ -107,6 +106,17 @@ export const UNSAVED_FILTERS_MESSAGE = t(
 );
 
 const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
+
+const DATA_SET_TO_WIDGET_TYPE = {
+  [DataSet.EVENTS]: WidgetType.DISCOVER,
+  [DataSet.ISSUES]: WidgetType.ISSUE,
+  [DataSet.RELEASES]: WidgetType.RELEASE,
+  [DataSet.METRICS]: WidgetType.METRICS,
+  [DataSet.ERRORS]: WidgetType.ERRORS,
+  [DataSet.TRANSACTIONS]: WidgetType.TRANSACTIONS,
+  [DataSet.SPANS]: WidgetType.SPANS,
+  [DataSet.LOGS]: WidgetType.LOGS,
+};
 
 type RouteParams = {
   dashboardId?: string;

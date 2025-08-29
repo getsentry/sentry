@@ -1438,17 +1438,6 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/dashboards/view')),
           deprecatedRouteProps: true,
         },
-        // old widget builder routes
-        {
-          path: 'widget/:widgetIndex/edit/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/new/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
       ],
     },
     {
@@ -1487,16 +1476,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'widget-builder/widget/new/',
           component: make(() => import('sentry/views/dashboards/view')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/:widgetIndex/edit/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/new/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
           deprecatedRouteProps: true,
         },
         {
