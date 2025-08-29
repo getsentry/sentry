@@ -290,13 +290,12 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return serialized
 
         render_pre_built_dashboard = True
-        if (
-            filter_by
-            and filter_by in {"onlyFavorites", "owned"}
-            or pin_by
-            and pin_by == "favorites"
-        ):
+        if filter_by and filter_by in {"onlyFavorites", "owned"}:
             render_pre_built_dashboard = False
+        elif pin_by and pin_by == "favorites":
+            # Only hide prebuilt dashboard when pinning favorites if there are actual dashboards to show
+            # This allows the prebuilt dashboard to appear when users have no dashboards yet
+            render_pre_built_dashboard = not dashboards.exists()
 
         return self.paginate(
             request=request,

@@ -48,7 +48,7 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
             onChange={setMethod}
             choices={[
               ['pip', t('Using pip (for Python users)')],
-              ['binary', t('Using a Binary')],
+              ['binary', t('By downloading and installing a binary')],
             ]}
           />
           {method === 'pip' ? (
