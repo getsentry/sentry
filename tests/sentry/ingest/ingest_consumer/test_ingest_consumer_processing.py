@@ -281,7 +281,6 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
                     "chunk_index": 0,
                 }
             )
-
             process_attachment_chunk(
                 {
                     "payload": b"World!",
@@ -307,6 +306,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
                             "name": "lol.txt",
                             "content_type": "text/plain",
                             "attachment_type": "custom.attachment",
+                            "size": len(b"Hello World!"),
                             "chunks": 2,
                         }
                     ],
@@ -368,10 +368,11 @@ def test_deobfuscate_view_hierarchy(
                 }
             ],
         }
+        attachment_payload = orjson.dumps(obfuscated_view_hierarchy)
 
         process_attachment_chunk(
             {
-                "payload": orjson.dumps(obfuscated_view_hierarchy),
+                "payload": attachment_payload,
                 "event_id": event_id,
                 "project_id": project_id,
                 "id": attachment_id,
@@ -395,6 +396,7 @@ def test_deobfuscate_view_hierarchy(
                             "content_type": "application/json",
                             "attachment_type": "event.view_hierarchy",
                             "chunks": 1,
+                            "size": len(attachment_payload),
                         }
                     ],
                 },
@@ -448,11 +450,11 @@ def test_individual_attachments(
 
         chunks, attachment_type, content_type = attachment
         attachment_meta = {
-            "attachment_type": attachment_type,
-            "chunks": len(chunks),
-            "content_type": content_type,
             "id": attachment_id,
             "name": "foo.txt",
+            "content_type": content_type,
+            "attachment_type": attachment_type,
+            "chunks": len(chunks),
         }
         if isinstance(chunks, bytes):
             attachment_meta["data"] = chunks
@@ -469,6 +471,7 @@ def test_individual_attachments(
                     }
                 )
             expected_content = b"".join(chunks)
+        attachment_meta["size"] = len(expected_content)
 
         process_individual_attachment(
             {
