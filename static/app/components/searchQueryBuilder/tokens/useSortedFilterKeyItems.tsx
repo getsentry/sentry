@@ -4,7 +4,6 @@ import type Fuse from 'fuse.js';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {
   KeySectionItem,
-  RawSearchFilterHasValueItem,
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
@@ -12,7 +11,6 @@ import {
   createAskSeerItem,
   createFilterValueItem,
   createItem,
-  createRawSearchFilterHasValueItem,
   createRawSearchFilterIsValueItem,
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
@@ -21,7 +19,6 @@ import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type FilterKeySearchItem = {
   description: string;
@@ -143,10 +140,6 @@ export function useSortedFilterKeyItems({
     enableAISearch,
     gaveSeerConsent,
   } = useSearchQueryBuilder();
-  const organization = useOrganization();
-  const hasWildcardSearch = organization.features.includes(
-    'search-query-builder-wildcard-operators'
-  );
 
   const flatKeys = useMemo(() => Object.values(filterKeys), [filterKeys]);
 
@@ -225,14 +218,6 @@ export function useSortedFilterKeyItems({
         (!keyItems.length || inputValue.trim().includes(' ')) &&
         !replaceRawSearchKeys?.length;
 
-      let rawSearchFilterHasValueItems: RawSearchFilterHasValueItem[] = [];
-      if (hasWildcardSearch) {
-        rawSearchFilterHasValueItems =
-          replaceRawSearchKeys?.map(key => {
-            return createRawSearchFilterHasValueItem(key, inputValue);
-          }) ?? [];
-      }
-
       const rawSearchFilterIsValueItems =
         replaceRawSearchKeys?.map(key => {
           const value = inputValue?.includes(' ')
@@ -246,7 +231,7 @@ export function useSortedFilterKeyItems({
         key: 'raw-search-filter-values',
         value: 'raw-search-filter-values',
         label: '',
-        options: [...rawSearchFilterHasValueItems, ...rawSearchFilterIsValueItems],
+        options: [...rawSearchFilterIsValueItems],
         type: 'section',
       };
 
@@ -312,7 +297,6 @@ export function useSortedFilterKeyItems({
     flatKeys,
     gaveSeerConsent,
     getFieldDefinition,
-    hasWildcardSearch,
     includeSuggestions,
     inputValue,
     matchKeySuggestions,

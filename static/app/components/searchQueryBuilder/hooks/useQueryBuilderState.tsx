@@ -7,11 +7,8 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
-  isWildcardOperator,
-  WildcardOperators,
   type FieldDefinitionGetter,
   type FocusOverride,
-  type SearchQueryBuilderOperators,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
@@ -27,7 +24,6 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type QueryBuilderState = {
   /**
@@ -102,7 +98,7 @@ type UpdateFilterKeyAction = {
 };
 
 type UpdateFilterOpAction = {
-  op: SearchQueryBuilderOperators;
+  op: TermOperator;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
 };
@@ -173,117 +169,29 @@ function deleteQueryTokens(
   };
 }
 
-export function addWildcardToToken(
-  token: TokenResult<Token.VALUE_TEXT>,
-  isContains: boolean,
-  isStartsWith: boolean,
-  isEndsWith: boolean
-) {
-  let newTokenValue = token.value;
-  if ((isContains || isEndsWith) && !token.value.startsWith('*')) {
-    newTokenValue = `*${newTokenValue}`;
-  }
-
-  if ((isContains || isStartsWith) && !token.value.endsWith('*')) {
-    newTokenValue = `${newTokenValue}*`;
-  }
-
-  return newTokenValue;
-}
-
-export function removeWildcardFromToken(
-  token: TokenResult<Token.VALUE_TEXT>,
-  isContains: boolean,
-  isStartsWith: boolean,
-  isEndsWith: boolean
-) {
-  let newTokenValue = token.value;
-  if (!isEndsWith && !isContains && token.value.startsWith('*')) {
-    newTokenValue = newTokenValue.slice(1);
-  }
-
-  if (!isStartsWith && !isContains && token.value.endsWith('*')) {
-    newTokenValue = newTokenValue.slice(0, -1);
-  }
-
-  return newTokenValue;
-}
-
 function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: SearchQueryBuilderOperators,
-  hasWildcardOperators: boolean
+  newOperator: TermOperator
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
   }
 
-  const isNotEqual =
-    newOperator === TermOperator.NOT_EQUAL ||
-    newOperator === WildcardOperators.DOES_NOT_CONTAIN;
+  const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
   const newToken: TokenResult<Token.FILTER> = {...token};
   newToken.negated = isNotEqual;
 
-  if (isWildcardOperator(newOperator)) {
-    // whenever we have a wildcard operator, we want to set the operator to the default,
-    // because there is no special characters for the wildcard operators just the asterisk
-    newToken.operator = TermOperator.DEFAULT;
-  } else {
-    newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
-  }
-
-  const isContains =
-    newOperator === WildcardOperators.CONTAINS ||
-    newOperator === WildcardOperators.DOES_NOT_CONTAIN;
-  const isStartsWith = newOperator === WildcardOperators.STARTS_WITH;
-  const isEndsWith = newOperator === WildcardOperators.ENDS_WITH;
-
-  if (hasWildcardOperators && newToken.value.type === Token.VALUE_TEXT) {
-    newToken.value.value = addWildcardToToken(
-      newToken.value,
-      isContains,
-      isStartsWith,
-      isEndsWith
-    );
-    newToken.value.value = removeWildcardFromToken(
-      newToken.value,
-      isContains,
-      isStartsWith,
-      isEndsWith
-    );
-  } else if (hasWildcardOperators && newToken.value.type === Token.VALUE_TEXT_LIST) {
-    newToken.value.items.forEach(item => {
-      if (!item.value) return;
-      item.value.value = addWildcardToToken(
-        item.value,
-        isContains,
-        isStartsWith,
-        isEndsWith
-      );
-      item.value.value = removeWildcardFromToken(
-        item.value,
-        isContains,
-        isStartsWith,
-        isEndsWith
-      );
-    });
-  }
+  newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
 }
 
 function modifyFilterOperator(
   state: QueryBuilderState,
-  action: UpdateFilterOpAction,
-  hasWildcardOperators: boolean
+  action: UpdateFilterOpAction
 ): QueryBuilderState {
-  const newQuery = modifyFilterOperatorQuery(
-    state.query,
-    action.token,
-    action.op,
-    hasWildcardOperators
-  );
+  const newQuery = modifyFilterOperatorQuery(state.query, action.token, action.op);
 
   if (newQuery === state.query) {
     return state;
@@ -299,7 +207,7 @@ function modifyFilterOperator(
 function modifyFilterOperatorDate(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: SearchQueryBuilderOperators
+  newOperator: TermOperator
 ): string {
   switch (newOperator) {
     case TermOperator.GREATER_THAN:
@@ -643,10 +551,6 @@ export function useQueryBuilderState({
   initialQuery: string;
   setDisplayAskSeerFeedback: (value: boolean) => void;
 }) {
-  const hasWildcardOperators = useOrganization().features.includes(
-    'search-query-builder-wildcard-operators'
-  );
-
   const initialState: QueryBuilderState = {
     query: initialQuery,
     committedQuery: initialQuery,
@@ -724,7 +628,7 @@ export function useQueryBuilderState({
         case 'UPDATE_FILTER_KEY':
           return updateFilterKey(state, action);
         case 'UPDATE_FILTER_OP':
-          return modifyFilterOperator(state, action, hasWildcardOperators);
+          return modifyFilterOperator(state, action);
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
@@ -740,7 +644,7 @@ export function useQueryBuilderState({
           return state;
       }
     },
-    [disabled, displayAskSeerFeedback, getFieldDefinition, hasWildcardOperators]
+    [disabled, displayAskSeerFeedback, getFieldDefinition]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);
