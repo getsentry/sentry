@@ -82,7 +82,7 @@ function ProductSelect({
 
   return (
     <Fragment>
-      <Separator />
+      {!isNewCheckout && <Separator />}
       {availableProducts.map(productInfo => {
         const checkoutInfo =
           PRODUCT_CHECKOUT_INFO[productInfo.apiName as string as SelectableProduct];
@@ -91,7 +91,8 @@ function ProductSelect({
         }
 
         const productIcon = getProductIcon(
-          productInfo.apiName as string as SelectableProduct
+          productInfo.apiName as string as SelectableProduct,
+          'lg'
         );
 
         // how much the customer is paying for the product
@@ -133,6 +134,7 @@ function ProductSelect({
               aria-label={ariaLabel}
               data-test-id={`product-option-${productInfo.apiName}`}
               onClick={toggleProductOption}
+              isNewCheckout={isNewCheckout}
             >
               <ProductOptionContent isSelected={isSelected} isNewCheckout>
                 <Column>
@@ -329,8 +331,8 @@ const Separator = styled('div')`
   margin: 0;
 `;
 
-const ProductOption = styled(PanelItem)<{isSelected?: boolean}>`
-  margin: ${p => p.theme.space.lg};
+const ProductOption = styled(PanelItem)<{isNewCheckout?: boolean; isSelected?: boolean}>`
+  margin: ${p => (p.isNewCheckout ? '0' : p.theme.space.lg)};
   padding: 0;
   display: inherit;
   cursor: pointer;
@@ -346,6 +348,14 @@ const ProductOptionContent = styled('div')<{
   justify-content: ${p => (p.isNewCheckout ? 'space-between' : 'flex-start')};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.innerBorder};
+  width: 100%;
+
+  ${p =>
+    p.isNewCheckout &&
+    !p.isSelected &&
+    css`
+      background-color: ${p.theme.background};
+    `}
 
   ${p =>
     p.isNewCheckout &&
