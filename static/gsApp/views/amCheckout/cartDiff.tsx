@@ -149,7 +149,7 @@ function ReservedDiff({
                 <ChangedCategory>
                   {getPlanCategoryName({
                     category: key,
-                    plan: currentValue === null ? newPlan : currentPlan,
+                    plan: newValue === null ? currentPlan : newPlan,
                     title: true,
                   })}
                 </ChangedCategory>
@@ -228,7 +228,7 @@ function OnDemandDiff({
                     <ChangedCategory>
                       {getPlanCategoryName({
                         category: key,
-                        plan: currentValue === null ? newPlan : currentPlan,
+                        plan: newValue === null ? currentPlan : newPlan,
                         title: true,
                       })}
                     </ChangedCategory>
