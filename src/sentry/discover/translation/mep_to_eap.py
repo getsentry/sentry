@@ -291,7 +291,6 @@ def translate_orderbys(orderbys, equations, dropped_equations, new_equations):
     """
     This is used to translate orderbys to EAP compatible orderbys.
     It ideally takes in orderbys with equation notation, function notation or fields and returns the EAP orderby with the same notation.
-    @param orderbys: list of orderbys to translate
     @return: (translated_orderbys, dropped_orderbys)
     """
     if orderbys is None:
