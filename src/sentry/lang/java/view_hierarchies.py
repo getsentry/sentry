@@ -40,8 +40,7 @@ class ViewHierarchies:
 
     def deobfuscate_and_save(self, class_names: dict[str, str]):
         """
-        Deobfuscates all view hierarchies by applying the `deobfuscation_fn` to
-        them in-place and persists any changes made.
+        Deobfuscates all view hierarchies in-place and persists any changes made.
         """
         if not self._view_hierarchies:
             return
