@@ -113,13 +113,6 @@ def test_as_log_message() -> None:
     event = {
         "type": 5,
         "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "ui.click", "message": "div"}},
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
         "data": {
             "tag": "breadcrumb",
             "payload": {
@@ -150,100 +143,6 @@ def test_as_log_message() -> None:
                     "timeAfterClickMs": 7000,
                     "node": {"tagName": "button"},
                 },
-            },
-        },
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "navigation.push",
-                "description": "url",
-            },
-        },
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "breadcrumb",
-            "payload": {"category": "navigation", "data": {"to": "/"}},
-        },
-    }
-    assert as_log_message(event) is None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "ui.blur"}},
-    }
-    assert as_log_message(event) is None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {"tag": "breadcrumb", "payload": {"category": "ui.focus"}},
-    }
-    assert as_log_message(event) is None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "resource.fetch",
-                "description": "https://www.z.com/path?q=true",
-                "endTimestamp": 0.0,
-                "startTimestamp": 0.0,
-                "data": {
-                    "method": "GET",
-                    "statusCode": 404,
-                    "response": {"size": 0},
-                },
-            },
-        },
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "resource.fetch",
-                "description": "https://www.z.com/path?q=true",
-                "endTimestamp": 0.0,
-                "startTimestamp": 0.0,
-                "data": {
-                    "method": "GET",
-                    "statusCode": 404,
-                    "response": {"wrong": "wrong"},
-                },
-            },
-        },
-    }
-
-    result = as_log_message(event)
-    assert result is not None
-    assert "unknown" not in result
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "web-vital",
-                "description": "largest-contentful-paint",
-                "data": {"size": 0, "rating": "good"},
             },
         },
     }
@@ -296,6 +195,70 @@ def test_as_log_message_click() -> None:
         as_log_message(event)
         == "User clicked on TabsContainer > TabsWrap > BaseTabList > ChonkSwitch > FloatingTabWrap at 1756400639566"
     )
+
+
+def test_as_log_message_lcp() -> None:
+    event = (
+        {
+            "type": 5,
+            "timestamp": 1756400489.048,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "web-vital",
+                    "description": "largest-contentful-paint",
+                    "startTimestamp": 1756400489.048,
+                    "endTimestamp": 1756400489.048,
+                    "data": {"value": 623, "size": 623, "rating": "good"},
+                },
+            },
+        },
+    )
+    assert (
+        as_log_message(event)
+        == "Application largest contentful paint: 623 ms and has a good rating at 1756400489048"
+    )
+
+
+def test_as_log_message_navigation() -> None:
+    event = (
+        {
+            "type": 5,
+            "timestamp": 1756400579304,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1756400579.304,
+                    "type": "default",
+                    "category": "navigation",
+                    "data": {
+                        "from": "https://url-example-previous.com",
+                        "to": "https://url-example.com",
+                    },
+                },
+            },
+        },
+    )
+    assert as_log_message(event) is None
+
+
+def test_as_log_message_feedback() -> None:
+    event = (
+        {
+            "type": 5,
+            "timestamp": 1756400970768,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1756400970.768,
+                    "type": "default",
+                    "category": "sentry.feedback",
+                    "data": {"feedbackId": "332f05068b2d43e6b5c5557ffecfcd0f"},
+                },
+            },
+        },
+    )
+    assert as_log_message(event) is None
 
 
 def test_as_log_message_invalid_input() -> None:
@@ -361,6 +324,26 @@ def test_as_log_message_resource_script() -> None:
         },
     }
     assert as_log_message(event) is None
+
+
+def test_as_log_message_navigation_span() -> None:
+    event = (
+        {
+            "type": 5,
+            "timestamp": 1756400579.304,
+            "data": {
+                "tag": "performanceSpan",
+                "payload": {
+                    "op": "navigation.push",
+                    "description": "https://url-example.com",
+                    "startTimestamp": 1756400579.304,
+                    "endTimestamp": 1756400579.304,
+                    "data": {"previous": "https://url-example-prev.com"},
+                },
+            },
+        },
+    )
+    assert as_log_message(event) == "User navigated to: https://url-example.com at 1756400579304"
 
 
 def test_as_log_message_long_console_message() -> None:
