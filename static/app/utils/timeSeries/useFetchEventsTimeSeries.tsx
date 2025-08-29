@@ -20,8 +20,8 @@ interface UseFetchEventsTimeSeriesOptions<Field> {
   yAxis: Field | Field[];
   enabled?: boolean;
   groupBy?: Field[];
-  query?: MutableSearch;
   interval?: string;
+  query?: MutableSearch | string;
   sampling?: SamplingMode;
   sort?: Sort;
   topEvents?: number;
@@ -68,7 +68,11 @@ export function useFetchEventsTimeSeries<T extends string>(
           project: selection.projects,
           environment: selection.environments,
           interval: interval ?? getIntervalForTimeSeriesQuery(yAxis, selection.datetime),
-          query: query ? query.formatString() : undefined,
+          query: query
+            ? typeof query === 'string'
+              ? query
+              : query.formatString()
+            : undefined,
           sampling: sampling ?? DEFAULT_SAMPLING_MODE,
           topEvents,
           groupBy,
