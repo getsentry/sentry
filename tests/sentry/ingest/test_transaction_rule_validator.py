@@ -49,6 +49,10 @@ def test_http_method_all_stars_invalid() -> None:
     assert RuleValidator(ReplacementRule("POST /*/b/**")).is_valid()
     assert RuleValidator(ReplacementRule("get /c/*/**")).is_valid()
 
+    # works for URLs too
+    assert not RuleValidator(ReplacementRule("GET http://*/*/**")).is_valid()
+    assert RuleValidator(ReplacementRule("GET http://example.com/*/**")).is_valid()
+
     # unknown HTTP methods aren't considered
     assert RuleValidator(ReplacementRule("FOO /*/*/**")).is_valid()
     assert RuleValidator(ReplacementRule("FOO /a/*/**")).is_valid()
