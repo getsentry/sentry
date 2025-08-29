@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useBlocker} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import {isProjectActive} from 'sentry/utils/projects';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -22,49 +23,59 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
   platform: Platform;
-  projectSlug: Project['slug'];
+  project: Project;
   title?: string;
 };
 
-export function PlatformDocHeader({platform, projectSlug, title}: Props) {
+export function PlatformDocHeader({platform, title, project}: Props) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const router = useRouter();
 
-  const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
+  const recentCreatedProject = useRecentCreatedProject({
     orgSlug: organization.slug,
-    projectSlug,
+    projectSlug: project.slug,
   });
 
-  const handleGoBack = useCallback(async () => {
-    if (!recentCreatedProject) {
-      return;
+  const projectState = useMemo(() => {
+    if (recentCreatedProject.project) {
+      return {
+        project: recentCreatedProject.project,
+        active: recentCreatedProject.isProjectActive,
+      };
     }
 
+    return {
+      project,
+      active: isProjectActive(project),
+    };
+  }, [recentCreatedProject.project, recentCreatedProject.isProjectActive, project]);
+
+  const handleGoBack = useCallback(async () => {
     trackAnalytics('project_creation.back_button_clicked', {
       organization,
     });
 
-    if (!isProjectActive) {
+    if (!projectState.active) {
       trackAnalytics('project_creation.data_removal_modal_confirm_button_clicked', {
         organization,
-        platform: recentCreatedProject.slug,
-        project_id: recentCreatedProject.id,
+        platform: projectState.project.slug,
+        project_id: projectState.project.id,
       });
 
       try {
         await removeProject({
           api,
           orgSlug: organization.slug,
-          projectSlug: recentCreatedProject.slug,
+          projectSlug: projectState.project.slug,
           origin: 'getting_started',
         });
 
         trackAnalytics('project_creation.data_removed', {
           organization,
-          date_created: recentCreatedProject.dateCreated,
-          platform: recentCreatedProject.slug,
-          project_id: recentCreatedProject.id,
+          date_created: projectState.project.dateCreated,
+          platform: projectState.project.slug,
+          project_id: projectState.project.id,
         });
       } catch (error) {
         handleXhrErrorResponse(
@@ -79,9 +90,9 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       makeProjectsPathname({
         path: '/new/',
         organization,
-      }) + `?referrer=getting-started&project=${recentCreatedProject.id}`
+      }) + `?referrer=getting-started&project=${projectState.project.id}`
     );
-  }, [api, recentCreatedProject, organization, isProjectActive, router]);
+  }, [api, projectState, organization, router]);
 
   useBlocker(({historyAction}) => {
     if (historyAction === 'POP') {

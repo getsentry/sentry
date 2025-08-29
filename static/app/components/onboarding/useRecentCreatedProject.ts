@@ -1,8 +1,7 @@
-import moment from 'moment-timezone';
-
 import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {isProjectActive} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 // Refetch the data every second
@@ -13,19 +12,6 @@ type Props = {
   pollUntilFirstEvent?: boolean;
   projectSlug?: Project['slug'];
 };
-
-function isProjectActive(project: Project) {
-  const olderThanOneHour = project
-    ? moment.duration(moment().diff(project.dateCreated)).asHours() > 1
-    : false;
-  return !!(
-    project?.firstTransactionEvent ||
-    project?.hasReplays ||
-    project?.hasSessions ||
-    project?.firstEvent ||
-    olderThanOneHour
-  );
-}
 
 // This hook will fetch the project details endpoint until a firstEvent (issue) is received
 export function useRecentCreatedProject({
