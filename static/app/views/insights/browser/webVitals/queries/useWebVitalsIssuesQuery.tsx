@@ -50,6 +50,7 @@ export function useInvalidateWebVitalsIssuesQuery({
   const queryClient = useQueryClient();
   const queryKey = useWebVitalsIssuesQueryKey({issueTypes, transaction});
   return useCallback(() => {
+    queryClient.setQueryData(queryKey, undefined);
     queryClient.invalidateQueries({queryKey});
   }, [queryClient, queryKey]);
 }
@@ -69,11 +70,11 @@ export function useWebVitalsIssuesQuery({
     staleTime: 0,
     enabled: Boolean(issueTypes?.length) && enabled,
     refetchInterval: query => {
+      // Only refetch if we have a pollInterval, a list of expected eventIds, and we do not have all results yet
       if (!pollInterval || !eventIds) {
         return false;
       }
       const result = query.state.data?.[0];
-      // Only refetch if we have a pollInterval and we do not have all results yet
       return result && Array.isArray(result) && result.length < eventIds.length
         ? pollInterval
         : false;

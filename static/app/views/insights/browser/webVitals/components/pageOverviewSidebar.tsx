@@ -143,12 +143,12 @@ export function PageOverviewSidebar({
   const ringSegmentColors = theme.chart.getColorPalette(4);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
-  const {data: issues, isLoading: isLoadingIssues} = useWebVitalsIssuesQuery({
+  const {data: issues} = useWebVitalsIssuesQuery({
     issueTypes: [IssueType.WEB_VITALS],
     transaction,
     enabled: hasSeerWebVitalsSuggestions,
-    // We only poll for issues if we've created them in the same session, otherwise we only load issues once
-    pollInterval: issueEventIds && issueEventIds.length > 0 ? POLL_INTERVAL : undefined,
+    // We only poll for issues if we've created them in this session, otherwise we only attempt to load any existing issues once
+    pollInterval: POLL_INTERVAL,
     eventIds: issueEventIds,
   });
 
@@ -178,7 +178,7 @@ export function PageOverviewSidebar({
     });
 
     const results = await Promise.all(promises);
-    setIssueEventIds(results.filter(Boolean) as string[]);
+    setIssueEventIds(results.filter(id => id !== null));
     setIsCreatingIssues(false);
     invalidateWebVitalsIssuesQuery();
   }, [createIssueAsync, projectScore, transaction, invalidateWebVitalsIssuesQuery]);
@@ -219,7 +219,6 @@ export function PageOverviewSidebar({
       <SidebarSpacer />
       {hasSeerWebVitalsSuggestions && (
         <SeerSuggestionsSection
-          isLoadingIssues={isLoadingIssues}
           isCreatingIssues={isCreatingIssues}
           hasProjectScore={hasProjectScore}
           issues={issues}
@@ -316,7 +315,6 @@ export function PageOverviewSidebar({
 }
 
 function SeerSuggestionsSection({
-  isLoadingIssues,
   isCreatingIssues,
   hasProjectScore,
   issues,
@@ -325,25 +323,24 @@ function SeerSuggestionsSection({
 }: {
   hasProjectScore: boolean;
   isCreatingIssues: boolean;
-  isLoadingIssues: boolean;
   issueEventIds: string[] | undefined;
   issues: Group[] | undefined;
   runSeerAnalysis: () => void;
 }) {
-  const issuesExist = !!issues && issues.length > 0;
+  const issuesFullyLoaded =
+    !!issues && (issueEventIds ? issues.length === issueEventIds.length : true);
+  const loading = !(issuesFullyLoaded && hasProjectScore && !isCreatingIssues);
 
   return (
     <div>
       <SectionHeading>{t('Seer Suggestions')}</SectionHeading>
       <Content>
-        <InsightGrid>
+        <SeerSuggestionGrid>
           {/* Issues are still loading, or projectScore is still loading, or seer analysis is still running */}
-          {(isLoadingIssues || isCreatingIssues || !hasProjectScore) && (
-            <Placeholder height="1.5rem" />
-          )}
+          {loading && <Placeholder height="1.5rem" width="100%" />}
           {/* Issues are done loading and they don't exist */}
-          {!isLoadingIssues && !issuesExist && !issueEventIds && hasProjectScore && (
-            <Button
+          {!loading && issues.length === 0 && (
+            <RunSeerAnalysisButton
               size="sm"
               icon={<StyledIconSeer size="md" />}
               onClick={runSeerAnalysis}
@@ -352,15 +349,13 @@ function SeerSuggestionsSection({
               )}
             >
               {t('Run Seer Analysis')}
-            </Button>
+            </RunSeerAnalysisButton>
           )}
           {/* Issues are done loading and they exist */}
-          {!isLoadingIssues &&
-            issuesExist &&
-            !isCreatingIssues &&
-            hasProjectScore &&
+          {!loading &&
+            issues.length > 0 &&
             issues.map(issue => <SeerSuggestion key={issue.shortId} issue={issue} />)}
-        </InsightGrid>
+        </SeerSuggestionGrid>
       </Content>
     </div>
   );
@@ -407,12 +402,8 @@ function SeerSuggestion({issue}: {issue: Group}) {
     [autofixData]
   );
 
-  if (isLoadingAutofix) {
-    return <Placeholder height="1.5rem" />;
-  }
-
   return (
-    <InsightCard key={issue.shortId}>
+    <SeerSuggestionCard key={issue.shortId}>
       <CardTitle>
         <CardTitleIcon>
           <StyledIconSeer size="md" />
@@ -421,16 +412,20 @@ function SeerSuggestion({issue}: {issue: Group}) {
       </CardTitle>
       <CardContentContainer>
         <CardContent>
-          <AutofixSummary
-            group={issue}
-            rootCauseDescription={rootCauseDescription}
-            solutionDescription={solutionDescription}
-            codeChangesDescription={null}
-            codeChangesIsLoading={false}
-            rootCauseCopyText={rootCauseCopyText}
-            solutionCopyText={solutionCopyText}
-            solutionIsLoading={solutionIsLoading}
-          />
+          {isLoadingAutofix || autofixData === undefined ? (
+            <Placeholder height="1.5rem" width="100%" />
+          ) : (
+            <AutofixSummary
+              group={issue}
+              rootCauseDescription={rootCauseDescription}
+              solutionDescription={solutionDescription}
+              codeChangesDescription={null}
+              codeChangesIsLoading={false}
+              rootCauseCopyText={rootCauseCopyText}
+              solutionCopyText={solutionCopyText}
+              solutionIsLoading={solutionIsLoading}
+            />
+          )}
           <ViewIssueButtonContainer>
             <LinkButton
               to={`/organizations/${organization.slug}/issues/${issue.id}?seerDrawer=true`}
@@ -441,7 +436,7 @@ function SeerSuggestion({issue}: {issue: Group}) {
           </ViewIssueButtonContainer>
         </CardContent>
       </CardContentContainer>
-    </InsightCard>
+    </SeerSuggestionCard>
   );
 }
 
@@ -541,13 +536,15 @@ const Content = styled(Flex)`
   margin: ${p => p.theme.space.md} 0;
 `;
 
-const InsightGrid = styled('div')`
+const SeerSuggestionGrid = styled('div')`
+  min-height: 40px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xs};
 `;
 
-const InsightCard = styled('div')`
+const SeerSuggestionCard = styled('div')`
   display: flex;
   flex-direction: column;
   border-radius: ${p => p.theme.borderRadius};
@@ -600,4 +597,8 @@ const StyledIconSeer = styled(IconSeer)`
 
 const ViewIssueButtonContainer = styled('div')`
   margin: ${p => p.theme.space.lg} 0;
+`;
+
+const RunSeerAnalysisButton = styled(Button)`
+  align-self: flex-start;
 `;
