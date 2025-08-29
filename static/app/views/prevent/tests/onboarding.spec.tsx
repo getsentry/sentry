@@ -1,17 +1,32 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {PreventContext} from 'sentry/components/prevent/context/preventContext';
 import TestsOnboardingPage from 'sentry/views/prevent/tests/onboarding';
+
+const mockPreventContext = {
+  repository: 'test-repo',
+  changeContextValue: jest.fn(),
+  preventPeriod: '7d',
+  branch: 'main',
+  integratedOrgId: '123',
+  lastVisitedOrgId: '123',
+};
 
 describe('TestsOnboardingPage', () => {
   it('renders with GitHub Actions selected by default if no query param is provided', () => {
-    render(<TestsOnboardingPage />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/prevent/tests/new',
-          query: {},
+    render(
+      <PreventContext.Provider value={mockPreventContext}>
+        <TestsOnboardingPage />
+      </PreventContext.Provider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/prevent/tests/new',
+            query: {},
+          },
         },
-      },
-    });
+      }
+    );
 
     const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
     expect(githubRadio).toBeChecked();
@@ -23,14 +38,19 @@ describe('TestsOnboardingPage', () => {
   });
 
   it('renders with GitHub Actions selected by default if empty opt query param is provided', () => {
-    render(<TestsOnboardingPage />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/prevent/tests/new',
-          query: {opt: ''},
+    render(
+      <PreventContext.Provider value={mockPreventContext}>
+        <TestsOnboardingPage />
+      </PreventContext.Provider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/prevent/tests/new',
+            query: {opt: ''},
+          },
         },
-      },
-    });
+      }
+    );
 
     const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
     expect(githubRadio).toBeChecked();
@@ -42,14 +62,19 @@ describe('TestsOnboardingPage', () => {
   });
 
   it('renders with CLI selected when opt=cli in URL', () => {
-    render(<TestsOnboardingPage />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/prevent/tests/new',
-          query: {opt: 'cli'},
+    render(
+      <PreventContext.Provider value={mockPreventContext}>
+        <TestsOnboardingPage />
+      </PreventContext.Provider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/prevent/tests/new',
+            query: {opt: 'cli'},
+          },
         },
-      },
-    });
+      }
+    );
 
     const cliRadio = screen.getByLabelText(
       "Use Sentry Prevent's CLI to upload testing reports"
@@ -61,14 +86,19 @@ describe('TestsOnboardingPage', () => {
   });
 
   it('updates URL when GitHub Actions option is selected', async () => {
-    const {router} = render(<TestsOnboardingPage />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/prevent/tests/new',
-          query: {opt: 'cli'},
+    const {router} = render(
+      <PreventContext.Provider value={mockPreventContext}>
+        <TestsOnboardingPage />
+      </PreventContext.Provider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/prevent/tests/new',
+            query: {opt: 'cli'},
+          },
         },
-      },
-    });
+      }
+    );
 
     const githubRadio = screen.getByLabelText('Use GitHub Actions to run my CI');
     expect(githubRadio).not.toBeChecked();
@@ -79,14 +109,19 @@ describe('TestsOnboardingPage', () => {
   });
 
   it('updates URL when CLI option is selected', async () => {
-    const {router} = render(<TestsOnboardingPage />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/prevent/tests/new',
-          query: {opt: ''},
+    const {router} = render(
+      <PreventContext.Provider value={mockPreventContext}>
+        <TestsOnboardingPage />
+      </PreventContext.Provider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/prevent/tests/new',
+            query: {opt: ''},
+          },
         },
-      },
-    });
+      }
+    );
 
     const cliRadio = screen.getByLabelText(
       "Use Sentry Prevent's CLI to upload testing reports"
