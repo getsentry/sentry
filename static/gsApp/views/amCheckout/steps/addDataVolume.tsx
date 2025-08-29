@@ -13,7 +13,6 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {PlanTier} from 'getsentry/types';
 import {isAmPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import ReserveAdditionalVolume from 'getsentry/views/amCheckout/reserveAdditionalVolume';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import VolumeSliders from 'getsentry/views/amCheckout/steps/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
@@ -30,7 +29,6 @@ function AddDataVolume({
   onEdit,
   onUpdate,
   onCompleteStep,
-  isNewCheckout,
 }: StepProps) {
   useEffect(() => {
     if (organization && isActive) {
@@ -105,24 +103,12 @@ function AddDataVolume({
         isCompleted={isCompleted}
         onEdit={onEdit}
       />
-      {/* TODO(checkout-v3): Remove this once the new plan step has been built */}
-      {isNewCheckout && isActive ? (
-        <ReserveAdditionalVolume
-          organization={organization}
-          subscription={subscription}
-          activePlan={activePlan}
-          checkoutTier={checkoutTier}
-          formData={formData}
-          onUpdate={onUpdate}
-        />
-      ) : (
-        isActive && (
-          <Fragment>
-            {renderInfo()}
-            {renderBody()}
-            {renderFooter()}
-          </Fragment>
-        )
+      {isActive && (
+        <Fragment>
+          {renderInfo()}
+          {renderBody()}
+          {renderFooter()}
+        </Fragment>
       )}
     </Panel>
   );

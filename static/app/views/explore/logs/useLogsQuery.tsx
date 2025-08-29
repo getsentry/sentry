@@ -20,9 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
-  useLogsAggregateCursor,
   useLogsBaseSearch,
-  useLogsCursor,
   useLogsFields,
   useLogsLimitToTraceId,
   useLogsProjectIds,
@@ -47,7 +45,9 @@ import {
 } from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
 import {
+  useQueryParamsAggregateCursor,
   useQueryParamsAggregateSortBys,
+  useQueryParamsCursor,
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -88,7 +88,7 @@ function useLogsAggregatesQueryKey({
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
-  const aggregateCursor = useLogsAggregateCursor();
+  const aggregateCursor = useQueryParamsAggregateCursor();
   const fields: string[] = [];
   fields.push(...groupBys.filter(Boolean));
   fields.push(...visualizes.map(visualize => visualize.yAxis));
@@ -162,7 +162,7 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const organization = useOrganization();
   const _search = useLogsSearch();
   const baseSearch = useLogsBaseSearch();
-  const cursor = useLogsCursor();
+  const cursor = useQueryParamsCursor();
   const _fields = useLogsFields();
   const sortBys = useLogsSortBys();
   const limitToTraceId = useLogsLimitToTraceId();
