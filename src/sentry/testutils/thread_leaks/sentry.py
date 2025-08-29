@@ -42,6 +42,9 @@ def get_scope() -> sentry_sdk.scope.Scope:
         repo = "unknown"
         environment = "local"
 
+    # Force environment:master for thread leak data collection
+    environment = "master"
+
     client = sentry_sdk.Client(
         # proj-thread-leaks
         dsn="https://447e81e71c1aa0da0d52f3eaba37a703@o1.ingest.us.sentry.io/4509798820085760",
