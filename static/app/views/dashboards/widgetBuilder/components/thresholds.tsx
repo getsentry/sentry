@@ -64,7 +64,7 @@ function ThresholdsSection({
               nextMaxValue => !defined(nextMaxValue)
             )
           ) {
-            newThresholds = undefined;
+            newThresholds = null;
           }
 
           setError?.({...error, thresholds: {[maxKey]: ''}});
