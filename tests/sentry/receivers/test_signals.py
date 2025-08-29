@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
+from sentry.analytics.events.issue_assigned import IssueAssignedEvent
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.models.groupassignee import GroupAssignee
 from sentry.signals import (
@@ -188,12 +189,14 @@ class SignalsTest(TestCase, SnubaTestCase):
             transition_type="manual",
             sender=type(self.project),
         )
-        mock_record.assert_called_once_with(
-            "issue.assigned",
-            user_id=None,
-            default_user_id=self.organization.default_owner_id,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
+        assert_last_analytics_event(
+            mock_record,
+            IssueAssignedEvent(
+                user_id=None,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                group_id=self.group.id,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -213,10 +216,12 @@ class SignalsTest(TestCase, SnubaTestCase):
             transition_type="manual",
             sender=type(project),
         )
-        mock_record.assert_called_once_with(
-            "issue.assigned",
-            user_id=None,
-            default_user_id="unknown",
-            organization_id=organization.id,
-            group_id=group.id,
+        assert_last_analytics_event(
+            mock_record,
+            IssueAssignedEvent(
+                user_id=None,
+                default_user_id="unknown",
+                organization_id=organization.id,
+                group_id=group.id,
+            ),
         )

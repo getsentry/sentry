@@ -1,17 +1,14 @@
 from sentry import analytics
 
 
+@analytics.eventclass("alert.edited")
 class AlertEditedEvent(analytics.Event):
-    type = "alert.edited"
-
-    attributes = (
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("default_user_id"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("rule_id"),
-        analytics.Attribute("rule_type"),
-        analytics.Attribute("is_api_token"),
-    )
+    user_id: int | None = None
+    default_user_id: int
+    organization_id: int
+    rule_id: int
+    rule_type: str
+    is_api_token: bool
 
 
 analytics.register(AlertEditedEvent)

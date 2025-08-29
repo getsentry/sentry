@@ -16,8 +16,10 @@ from sentry.analytics.events.first_feedback_sent import FirstFeedbackSentEvent
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
 from sentry.analytics.events.first_insight_span_sent import FirstInsightSpanSentEvent
 from sentry.analytics.events.first_log_sent import FirstLogSentEvent
+from sentry.analytics.events.first_new_feedback_sent import FirstNewFeedbackSentEvent
 from sentry.analytics.events.first_profile_sent import FirstProfileSentEvent
 from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
+from sentry.analytics.events.first_sourcemaps_sent import FirstSourcemapsSentEvent
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.analytics.events.member_invited import MemberInvitedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
@@ -262,11 +264,12 @@ def record_first_feedback(project, **kwargs):
 )
 def record_first_new_feedback(project, **kwargs):
     analytics.record(
-        "first_new_feedback.sent",
-        user_id=get_owner_id(project),
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        FirstNewFeedbackSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 
@@ -426,13 +429,14 @@ def record_sourcemaps_received(project, event, **kwargs):
             )
             return
         analytics.record(
-            "first_sourcemaps.sent",
-            user_id=owner_id,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=event.platform,
-            project_platform=project.platform,
-            url=dict(event.tags).get("url", None),
+            FirstSourcemapsSentEvent(
+                user_id=owner_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=event.platform,
+                project_platform=project.platform,
+                url=dict(event.tags).get("url", None),
+            )
         )
 
 
