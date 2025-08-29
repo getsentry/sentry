@@ -391,6 +391,11 @@ function AggregateSelector({
             onUpdate: (value: string) => {
               handleArgumentChange(index, value);
             },
+            onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+              if (e.key === 'Enter') {
+                handleArgumentChange(index, e.currentTarget.value);
+              }
+            },
             placeholder: param.placeholder,
           };
           switch (param.dataType) {

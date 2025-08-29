@@ -833,12 +833,6 @@ export class BufferedInput extends Component<BufferedInputProps, InputState> {
         value={this.state.value}
         onChange={this.handleChange}
         onBlur={this.handleBlur}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            this.input.current?.blur();
-            e.stopPropagation();
-          }
-        }}
       />
     );
   }

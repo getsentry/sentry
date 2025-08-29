@@ -75,6 +75,11 @@ export function ToolbarVisualizeDropdown({
               onUpdate: (value: string) => {
                 onChangeArgument(index, value);
               },
+              onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                if (e.key === 'Enter') {
+                  onChangeArgument(index, e.currentTarget.value);
+                }
+              },
               placeholder: param.placeholder,
             };
             switch (param.dataType) {
