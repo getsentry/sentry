@@ -114,10 +114,11 @@ export function WizardProjectSelection({
   const canUserCreateProject = orgDetailsRequest.data
     ? canCreateProject(orgDetailsRequest.data, selectableTeams)
     : false;
-
-  const isCreationEnabled = isOrgMemberWithNoAccess
-    ? canUserCreateProject && platformParam
-    : canUserCreateProject && platformParam && (selectableTeams ?? []).length > 0;
+  const hasSelectableTeams = (selectableTeams ?? []).length > 0;
+  const isCreationEnabled =
+    canUserCreateProject &&
+    platformParam &&
+    (isOrgMemberWithNoAccess || hasSelectableTeams);
 
   const updateWizardCacheMutation = useUpdateWizardCache(hash);
   const createProjectMutation = useCreateProjectFromWizard();
