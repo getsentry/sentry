@@ -131,6 +131,7 @@ function RelatedIssues({
           customStatsPeriod={timePeriod}
           useTintRow={false}
           source="alerts-related-issues"
+          numPlaceholderRows={queryParams.limit}
         />
       </TableWrapper>
     </Fragment>

@@ -120,6 +120,7 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
             canSelectGroups={false}
             withChart={false}
             withColumns={['event']}
+            numPlaceholderRows={4}
           />
         </Fragment>
       ) : null}
