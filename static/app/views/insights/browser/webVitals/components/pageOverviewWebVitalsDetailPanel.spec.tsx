@@ -3,12 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -29,7 +24,6 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
       transaction: 'test-transaction',
     },
   });
-  let userIssueEndpoint: jest.Mock;
 
   beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue(location);
@@ -74,12 +68,6 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
         ],
       },
     });
-
-    userIssueEndpoint = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/user-issue/`,
-      method: 'POST',
-      body: {},
-    });
   });
 
   afterEach(() => {
@@ -99,28 +87,5 @@ describe('PageOverviewWebVitalsDetailPanel', () => {
     expect(screen.getByText('Replay')).toBeInTheDocument();
     expect(screen.getByText('lcp')).toBeInTheDocument();
     expect(screen.getByText('lcp Score')).toBeInTheDocument();
-  });
-
-  it('renders create issue button and calls endpoint to create issue when clicked', async () => {
-    render(<PageOverviewWebVitalsDetailPanel webVital="lcp" />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-
-    expect(screen.getByText('Create Issue')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Create Issue'));
-
-    expect(userIssueEndpoint).toHaveBeenCalledWith(
-      '/projects/org-slug/project-slug/user-issue/',
-      expect.objectContaining({
-        data: expect.objectContaining({
-          issueType: 'web_vitals',
-          vital: 'lcp',
-          score: 80,
-          transaction: 'test-transaction',
-        }),
-      })
-    );
   });
 });

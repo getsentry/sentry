@@ -1,15 +1,10 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import type {PageFilters} from 'sentry/types/core';
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
-
-jest.mock('sentry/utils/useLocation');
-jest.mock('sentry/utils/usePageFilters');
 
 const TRANSACTION_NAME = 'transaction';
 
@@ -19,9 +14,18 @@ describe('PageOverviewSidebar', () => {
   });
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
-
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    // Initialize the page filters store instead of mocking hooks
+    const pageFilters: PageFilters = {
+      projects: [1],
+      environments: [],
+      datetime: {
+        period: '14d',
+        start: null,
+        end: null,
+        utc: null,
+      },
+    };
+    PageFiltersStore.onInitializeUrlState(pageFilters, new Set());
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
@@ -99,13 +103,26 @@ describe('PageOverviewSidebar', () => {
   it('should render seer suggestions for LCP', async () => {
     render(<PageOverviewSidebar transaction={TRANSACTION_NAME} />, {organization});
 
+    // Wait for the Seer Suggestions section to appear
     expect(await screen.findByText('Seer Suggestions')).toBeInTheDocument();
-    expect(screen.getByText('LCP score needs improvement')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Unoptimized screenshot images are directly embedded, causing large downloads and delaying Largest Contentful Paint on issue detail pages.'
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByText('View Suggestion')).toBeInTheDocument();
+
+    // Wait for the issue title to appear (this depends on both issues and autofix data)
+    await waitFor(() => {
+      expect(screen.getByText('LCP score needs improvement')).toBeInTheDocument();
+    });
+
+    // Wait for the root cause description to appear
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'Unoptimized screenshot images are directly embedded, causing large downloads and delaying Largest Contentful Paint on issue detail pages.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    // Wait for the view suggestion button to appear
+    await waitFor(() => {
+      expect(screen.getByText('View Suggestion')).toBeInTheDocument();
+    });
   });
 });
