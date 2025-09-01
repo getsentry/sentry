@@ -77,21 +77,10 @@ def get_arroyo_producer(
     **kafka_producer_kwargs,
 ) -> KafkaProducer | None:
     """
-    Factory function for creating Arroyo Kafka producers with consistent configuration
-    and metrics tracking.
-
-    This function provides a centralized way to create Kafka producers with:
-    - Automatic cluster configuration based on the topic
-    - Consistent client.id naming for metrics
-    - Support for config customization and exclusion
-    - Feature flag-based rollout control for safe migration
-
-    The rollout is controlled via the "arroyo.producer.factory-rollout" option, which
-    should be a dictionary mapping producer names to booleans indicating rollout status.
-    When disabled, returns None to allow callers to fall back to legacy producer creation.
+    Get an arroyo producer for a given topic.
 
     Args:
-        name: Unique identifier for this producer (used as client.id and for rollout control)
+        name: Unique identifier for this producer (used as client.id, for metrics and killswitches)
         topic: The Kafka topic this producer will write to
         additional_config: Additional Kafka configuration to merge with defaults
         exclude_config_keys: List of config keys to exclude from the default configuration
