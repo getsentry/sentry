@@ -195,7 +195,7 @@
     "@types/gettext-parser": "8.0.0",
     "@types/node": "^22.9.1",
     "babel-jest": "30.0.4",
-    "eslint": "github:eslint/eslint#2aba68b25b3aeba070da493c7d9689fda796c7aa",
+    "eslint": "9.34.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "^3.8.3",
     "eslint-plugin-boundaries": "^5.0.1",
