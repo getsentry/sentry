@@ -890,8 +890,41 @@ def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
     return main_exception_id
 
 
+JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES = ["OnErrorNotImplementedException", "CompositeException"]
+
+
+def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int | None:
+    if len(exceptions) < 2:
+        return None
+
+    # find the wrapped RxJava exception
+    rxjava_exception_id = None
+    for exception in exceptions:
+        if (
+            exception.module == "io.reactivex.rxjava3.exceptions"
+            and exception.type in JAVA_RXJAVA_FRAMEWORK_EXCEPTION_TYPES
+            and exception.mechanism
+            and exception.mechanism.type == "UncaughtExceptionHandler"
+        ):
+            rxjava_exception_id = exception.mechanism.exception_id
+            break
+
+    # return the inner exception, if any
+    if rxjava_exception_id is not None:
+        for exception in exceptions:
+            if (
+                exception.mechanism
+                and exception.mechanism.parent_id == rxjava_exception_id
+                and exception.mechanism.exception_id is not None
+            ):
+                return exception.mechanism.exception_id
+
+    return None
+
+
 MAIN_EXCEPTION_ID_FUNCS = [
     react_error_with_cause,
+    java_rxjava_framework_exceptions,
 ]
 
 
