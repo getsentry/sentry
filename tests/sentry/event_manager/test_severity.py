@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import uuid
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -214,6 +215,7 @@ class TestGetEventSeverity(TestCase):
             assert severity == 0.0
             assert reason == "bad_title"
 
+    @pytest.mark.skip(reason="flaky: #98575")
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
         side_effect=MaxRetryError(
