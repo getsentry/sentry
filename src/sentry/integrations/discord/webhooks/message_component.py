@@ -3,10 +3,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import cached_property
 
+import sentry_sdk
 from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.helpers.group_index.update import update_groups
+from sentry.integrations.discord.analytics import DiscordIntegrationStatus
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.component import (
     DiscordComponentCustomIds as CustomIds,
@@ -240,12 +242,17 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
 
     def update_group(self, data: Mapping[str, object]) -> None:
         if self.group:
-            analytics.record(
-                "integrations.discord.status",
-                organization_id=self.group.organization.id,
-                user_id=self.user.id,
-                status=data,
-            )
+            try:
+                analytics.record(
+                    DiscordIntegrationStatus(
+                        organization_id=self.group.organization.id,
+                        user_id=self.user.id,
+                        status=str(data),
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
             update_groups(
                 request=self.request.request, groups=[self.group], user=self.user, data=data
             )
