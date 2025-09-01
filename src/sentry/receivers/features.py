@@ -218,14 +218,17 @@ def record_issue_assigned(project, group, user, **kwargs):
     else:
         user_id = None
         default_user_id = project.organization.default_owner_id or UNKNOWN_DEFAULT_USER_ID
-    analytics.record(
-        IssueAssignedEvent(
-            user_id=user_id,
-            default_user_id=default_user_id,
-            organization_id=project.organization_id,
-            group_id=group.id,
+    try:
+        analytics.record(
+            IssueAssignedEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=project.organization_id,
+                group_id=group.id,
+            )
         )
-    )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @issue_resolved.connect(weak=False)
@@ -301,13 +304,16 @@ def record_advanced_search_feature_gated(user, organization, **kwargs):
         user_id = None
         default_user_id = organization.get_default_owner().id
 
-    analytics.record(
-        AdvancedSearchFeatureGateEvent(
-            user_id=user_id,
-            default_user_id=default_user_id,
-            organization_id=organization.id,
+    try:
+        analytics.record(
+            AdvancedSearchFeatureGateEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=organization.id,
+            )
         )
-    )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 # XXX(epurkhiser): This was originally used in project saved searches, but
@@ -401,28 +407,35 @@ def record_alert_rule_edited(
         user_id = None
         default_user_id = project.organization.get_default_owner().id
 
-    analytics.record(
-        AlertEditedEvent(
-            user_id=user_id,
-            default_user_id=default_user_id,
-            organization_id=project.organization_id,
-            rule_id=rule.id,
-            rule_type=rule_type,
-            is_api_token=is_api_token,
+    try:
+        analytics.record(
+            AlertEditedEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=project.organization_id,
+                rule_id=rule.id,
+                rule_type=rule_type,
+                is_api_token=is_api_token,
+            )
         )
-    )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @plugin_enabled.connect(weak=False)
 def record_plugin_enabled(plugin, project, user: User | None, **kwargs):
-    analytics.record(
-        PluginEnabledEvent(
-            user_id=user.id if user else None,
-            organization_id=project.organization_id,
-            project_id=project.id,
-            plugin=plugin.slug,
+    try:
+        analytics.record(
+            PluginEnabledEvent(
+                user_id=user.id if user else None,
+                organization_id=project.organization_id,
+                project_id=project.id,
+                plugin=plugin.slug,
+            )
         )
-    )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+
     if isinstance(plugin, (IssueTrackingPlugin, IssueTrackingPlugin2)):
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,
@@ -474,15 +487,18 @@ def record_repo_linked(repo, user, **kwargs):
         user_id = None
         default_user_id = Organization.objects.get(id=repo.organization_id).get_default_owner().id
 
-    analytics.record(
-        RepoLinkedEvent(
-            user_id=user_id,
-            default_user_id=default_user_id,
-            organization_id=repo.organization_id,
-            repository_id=repo.id,
-            provider=repo.provider,
+    try:
+        analytics.record(
+            RepoLinkedEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=repo.organization_id,
+                repository_id=repo.id,
+                provider=repo.provider,
+            )
         )
-    )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @release_created.connect(weak=False)
@@ -562,15 +578,18 @@ def record_issue_escalating(
     was_until_escalating: bool,
     **kwargs,
 ):
-    analytics.record(
-        IssueEscalatingEvent(
-            organization_id=project.organization_id,
-            project_id=project.id,
-            group_id=group.id,
-            event_id=event.event_id if event else None,
-            was_until_escalating=was_until_escalating,
+    try:
+        analytics.record(
+            IssueEscalatingEvent(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                group_id=group.id,
+                event_id=event.event_id if event else None,
+                was_until_escalating=was_until_escalating,
+            )
         )
-    )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @issue_update_priority.connect(weak=False)
@@ -604,15 +623,18 @@ def record_issue_unignored(project, user_id, group, transition_type, **kwargs):
     else:
         default_user_id = project.organization.get_default_owner().id
 
-    analytics.record(
-        IssueUnignoredEvent(
-            user_id=user_id,
-            default_user_id=default_user_id,
-            organization_id=project.organization_id,
-            group_id=group.id,
-            transition_type=transition_type,
+    try:
+        analytics.record(
+            IssueUnignoredEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=project.organization_id,
+                group_id=group.id,
+                transition_type=transition_type,
+            )
         )
-    )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @issue_mark_reviewed.connect(weak=False)
@@ -623,14 +645,17 @@ def record_issue_reviewed(project: Project, user: RpcUser | User | None, group: 
         user_id = None
         default_user_id = project.organization.get_default_owner().id
 
-    analytics.record(
-        IssueMarkReviewedEvent(
-            user_id=user_id,
-            default_user_id=default_user_id,
-            organization_id=project.organization_id,
-            group_id=group.id,
+    try:
+        analytics.record(
+            IssueMarkReviewedEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=project.organization_id,
+                group_id=group.id,
+            )
         )
-    )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @team_created.connect(weak=False)
@@ -737,16 +762,19 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
     else:
         user_id = None
         default_user_id = group.project.organization.get_default_owner().id
-    analytics.record(
-        IssueDeletedEvent(
-            user_id=user_id,
-            default_user_id=default_user_id,
-            organization_id=group.project.organization_id,
-            group_id=group.id,
-            project_id=group.project_id,
-            delete_type=delete_type,
+    try:
+        analytics.record(
+            IssueDeletedEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=group.project.organization_id,
+                group_id=group.id,
+                project_id=group.project_id,
+                delete_type=delete_type,
+            )
         )
-    )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @monitor_environment_failed.connect(weak=False)

@@ -263,14 +263,17 @@ def record_first_feedback(project, **kwargs):
     weak=False, dispatch_uid="onboarding.record_first_new_feedback"
 )
 def record_first_new_feedback(project, **kwargs):
-    analytics.record(
-        FirstNewFeedbackSentEvent(
-            user_id=get_owner_id(project),
-            organization_id=project.organization_id,
-            project_id=project.id,
-            platform=project.platform,
+    try:
+        analytics.record(
+            FirstNewFeedbackSentEvent(
+                user_id=get_owner_id(project),
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=project.platform,
+            )
         )
-    )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @first_cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_first_cron_monitor")
@@ -428,16 +431,19 @@ def record_sourcemaps_received(project, event, **kwargs):
                 project.organization_id,
             )
             return
-        analytics.record(
-            FirstSourcemapsSentEvent(
-                user_id=owner_id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                platform=event.platform,
-                project_platform=project.platform,
-                url=dict(event.tags).get("url", None),
+        try:
+            analytics.record(
+                FirstSourcemapsSentEvent(
+                    user_id=owner_id,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    platform=event.platform,
+                    project_platform=project.platform,
+                    url=dict(event.tags).get("url", None),
+                )
             )
-        )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 @event_processed.connect(

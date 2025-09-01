@@ -5,7 +5,7 @@ from sentry import analytics
 class AdvancedSearchFeatureGateEvent(analytics.Event):
     user_id: int | None = None
     default_user_id: int
-    organization_id: str
+    organization_id: int
 
 
 analytics.register(AdvancedSearchFeatureGateEvent)

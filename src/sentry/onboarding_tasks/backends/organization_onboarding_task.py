@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.forms import model_to_dict
@@ -103,13 +104,17 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
                         key="onboarding:complete",
                         value={"updated": json.datetime_to_str(timezone.now())},
                     )
-                analytics.record(
-                    OnboardingCompleteEvent(
-                        user_id=organization.default_owner_id,
-                        organization_id=organization_id,
-                        referrer="onboarding_tasks",
+                try:
+                    analytics.record(
+                        OnboardingCompleteEvent(
+                            user_id=organization.default_owner_id,
+                            organization_id=organization_id,
+                            referrer="onboarding_tasks",
+                        )
                     )
-                )
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+
             except IntegrityError:
                 pass
 
