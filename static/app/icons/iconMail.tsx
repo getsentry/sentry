@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconMail(props: SVGIconProps) {
+export function IconMail(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -38,7 +38,3 @@ function IconMail(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconMail.displayName = 'IconMail';
-
-export {IconMail};

@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconArchive(props: SVGIconProps) {
+export function IconArchive(props: SVGIconProps) {
   const theme = useTheme();
 
   return (
@@ -25,7 +25,3 @@ function IconArchive(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconArchive.displayName = 'IconArchive';
-
-export {IconArchive};

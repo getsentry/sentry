@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconTelescope(props: SVGIconProps) {
+export function IconTelescope(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -42,7 +42,3 @@ function IconTelescope(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconTelescope.displayName = 'IconTelescope';
-
-export {IconTelescope};

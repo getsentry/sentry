@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconDashboard(props: SVGIconProps) {
+export function IconDashboard(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -24,7 +24,3 @@ function IconDashboard(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconDashboard.displayName = 'IconDashboard';
-
-export {IconDashboard};

@@ -34,5 +34,3 @@ export function IconAdd({isCircled = false, ...props}: IconAddProps) {
     </SvgIcon>
   );
 }
-
-IconAdd.displayName = 'IconAdd';

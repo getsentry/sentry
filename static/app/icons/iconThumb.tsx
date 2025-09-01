@@ -8,7 +8,7 @@ interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
 }
 
-function IconThumb({direction = 'up', ...props}: Props) {
+export function IconThumb({direction = 'up', ...props}: Props) {
   const theme = useTheme();
 
   return (
@@ -38,7 +38,3 @@ function IconThumb({direction = 'up', ...props}: Props) {
     </SvgIcon>
   );
 }
-
-IconThumb.displayName = 'IconThumb';
-
-export {IconThumb};

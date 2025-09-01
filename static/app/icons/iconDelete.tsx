@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconDelete(props: SVGIconProps) {
+export function IconDelete(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -29,5 +29,3 @@ function IconDelete(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-export {IconDelete};

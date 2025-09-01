@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconCommit(props: SVGIconProps) {
+export function IconCommit(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -24,7 +24,3 @@ function IconCommit(props: SVGIconProps) {
     </SvgIcon>
   );
 }
-
-IconCommit.displayName = 'IconCommit';
-
-export {IconCommit};

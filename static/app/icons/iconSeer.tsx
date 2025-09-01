@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconSeer({
+export function IconSeer({
   ref,
   variant = 'default',
   ...props
@@ -268,10 +268,6 @@ function IconSeer({
     </SvgIcon>
   );
 }
-
-IconSeer.displayName = 'IconSeer';
-
-export {IconSeer};
 
 const rockLeft = keyframes`
   0% {

@@ -8,7 +8,7 @@ interface IconEllipsisProps extends SVGIconProps {
   compact?: boolean;
 }
 
-function IconEllipsis({compact = false, ...props}: IconEllipsisProps) {
+export function IconEllipsis({compact = false, ...props}: IconEllipsisProps) {
   const theme = useTheme();
   const circleRadius = compact ? 1.11 : 1.31;
   const circleSpacing = compact ? 5.5 : 6.69;
@@ -30,7 +30,3 @@ function IconEllipsis({compact = false, ...props}: IconEllipsisProps) {
     </SvgIcon>
   );
 }
-
-IconEllipsis.displayName = 'IconEllipsis';
-
-export {IconEllipsis};
