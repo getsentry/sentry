@@ -84,6 +84,30 @@ def assert_any_analytics_event(
     raise AssertionError(f"Event {expected_event} not found")
 
 
+def assert_not_analytics_event(
+    mock_record: MagicMock,
+    watched_event: Event | type[Event],
+    check_uuid: bool = False,
+    check_datetime: bool = False,
+    exclude_fields: list[str] | None = None,
+) -> None:
+    """Assert that an analytics event (either specific instance or type) was not recorded"""
+    recorded_events = [call.args[0] for call in mock_record.call_args_list]
+    for recorded_event in recorded_events:
+        if isinstance(watched_event, type):
+            if isinstance(recorded_event, watched_event):
+                raise AssertionError(f"Event {recorded_event} should not have been recorded")
+        else:
+            try:
+                assert_event_equal(
+                    watched_event, recorded_event, check_uuid, check_datetime, exclude_fields
+                )
+            except AssertionError:
+                pass
+            else:
+                raise AssertionError(f"Event {recorded_event} should not have been recorded")
+
+
 @contextlib.contextmanager
 def assert_analytics_events(
     expected_events: list[Event],
