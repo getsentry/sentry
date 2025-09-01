@@ -31,16 +31,6 @@ interface Props {
   preliminaryDescription?: string;
 }
 
-export function SpanDescription(props: Props) {
-  const {op, preliminaryDescription} = props;
-
-  if (op.startsWith('db')) {
-    return <DatabaseSpanDescription {...props} />;
-  }
-
-  return <WordBreak>{preliminaryDescription ?? ''}</WordBreak>;
-}
-
 const formatter = new SQLishFormatter();
 
 export function DatabaseSpanDescription({
@@ -184,7 +174,7 @@ function QueryClippedBox(props: any) {
   return <StyledClippedBox {...props} />;
 }
 
-export const Frame = styled('div')`
+const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
@@ -193,10 +183,6 @@ export const Frame = styled('div')`
 const WithPadding = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-`;
-
-const WordBreak = styled('div')`
-  word-break: break-word;
 `;
 
 const StyledClippedBox = styled(ClippedBox)`

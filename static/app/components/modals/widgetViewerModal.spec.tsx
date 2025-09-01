@@ -733,12 +733,6 @@ describe('Modals -> WidgetViewerModal', () => {
         const eventsMock = mockEvents();
         const {rerender} = await renderModal({initialData, widget: mockWidget});
         await userEvent.click(await screen.findByText('count()'));
-        expect(initialData.router.push).toHaveBeenCalledWith(
-          expect.objectContaining({
-            pathname: '/mock-pathname/',
-            query: {sort: '-count()'},
-          })
-        );
         // Need to manually set the new router location and rerender to simulate the sortable column click
         initialData.router.location.query = {sort: '-count()'};
         rerender(
@@ -813,7 +807,9 @@ describe('Modals -> WidgetViewerModal', () => {
         await userEvent.click(screen.getByRole('button', {name: 'Next'}));
         expect(initialData.router.replace).toHaveBeenCalledWith(
           expect.objectContaining({
-            query: {cursor: '0:10:0'},
+            pathname: '/mock-pathname/',
+            query: {cursor: '0:10:0', page: 1},
+            state: undefined,
           })
         );
         // Need to manually set the new router location and rerender to simulate the next page click
@@ -1156,12 +1152,6 @@ describe('Modals -> WidgetViewerModal', () => {
     it('sorts table when a sortable column header is clicked', async () => {
       const {rerender} = await renderModal({initialData, widget: mockWidget});
       await userEvent.click(screen.getByText('events'));
-      expect(initialData.router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/mock-pathname/',
-          query: {sort: 'freq'},
-        })
-      );
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: ['freq']};
       rerender(
@@ -1242,19 +1232,6 @@ describe('Modals -> WidgetViewerModal', () => {
     it('uses provided tableData and does not make an issues requests', async () => {
       await renderModal({initialData, widget: mockWidget, tableData: []});
       expect(issuesMock).not.toHaveBeenCalled();
-    });
-
-    it('makes issues requests when table is sorted', async () => {
-      await renderModal({
-        initialData,
-        widget: mockWidget,
-        tableData: [],
-      });
-      expect(issuesMock).not.toHaveBeenCalled();
-      await userEvent.click(screen.getByText('events'));
-      await waitFor(() => {
-        expect(issuesMock).toHaveBeenCalled();
-      });
     });
   });
 
@@ -1364,12 +1341,6 @@ describe('Modals -> WidgetViewerModal', () => {
       });
       expect(metricsMock).toHaveBeenCalledTimes(1);
       await userEvent.click(await screen.findByText(`sum(session)`), {delay: null});
-      expect(initialData.router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pathname: '/mock-pathname/',
-          query: {sort: '-sum(session)'},
-        })
-      );
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: '-sum(session)'};
       rerender(

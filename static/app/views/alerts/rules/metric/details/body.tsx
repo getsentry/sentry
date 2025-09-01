@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Panel from 'sentry/components/panels/panel';
@@ -196,7 +196,12 @@ export default function MetricDetailsBody({
                 }
               >
                 {tctCode(
-                  'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter.'
+                  'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter. Please read these [FAQLink:FAQs] for more information.',
+                  {
+                    FAQLink: (
+                      <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/40366087871515-FAQ-Transactions-Spans-Migration" />
+                    ),
+                  }
                 )}
               </Alert>
             </Alert.Container>

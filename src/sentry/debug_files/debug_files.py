@@ -12,7 +12,7 @@ from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 
 
-def maybe_renew_debug_files(debug_files: Sequence[ProjectDebugFile]):
+def maybe_renew_debug_files(debug_files: Sequence[ProjectDebugFile]) -> None:
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.

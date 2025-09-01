@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -37,7 +37,7 @@ describe('logsTableRow', () => {
   let releaseMock: jest.Mock;
   let rowDetailsMock: jest.Mock;
   const organization = OrganizationFixture({
-    features: ['ourlogs-enabled', 'ourlogs-infinite-scroll'],
+    features: ['ourlogs-enabled'],
   });
   const project = ProjectFixture();
   const projects = [project];
@@ -85,6 +85,14 @@ describe('logsTableRow', () => {
     [OurLogKnownFieldKey.RELEASE]: release.version, // Needed otherwise stacktrace link will also not load
   });
 
+  const rowDataWithScrubbedFields = LogFixture({
+    [OurLogKnownFieldKey.ID]: '3',
+    [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+    [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    password: '[Filtered]',
+    not_zzz_not_exact_match: 'redacted2',
+  });
+
   const initialRouterConfig = {
     location: {
       pathname: `/organizations/${organization.slug}/explore/logs/`,
@@ -102,6 +110,22 @@ describe('logsTableRow', () => {
       ...initialRouterConfig.location,
       query: {
         [LOGS_FIELDS_KEY]: ['timestamp', 'message', OurLogKnownFieldKey.CODE_FILE_PATH],
+        [LOGS_SORT_BYS_KEY]: '-timestamp',
+      },
+    },
+  };
+
+  const initialRouterConfigWithScrubbedFields = {
+    ...initialRouterConfig,
+    location: {
+      ...initialRouterConfig.location,
+      query: {
+        [LOGS_FIELDS_KEY]: [
+          'timestamp',
+          'message',
+          'password',
+          'not_zzz_not_exact_match',
+        ],
         [LOGS_SORT_BYS_KEY]: '-timestamp',
       },
     },
@@ -173,6 +197,21 @@ describe('logsTableRow', () => {
         ),
       },
     });
+
+    // Mock for project details needed by AnnotatedAttributeTooltip (pii config)
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'GET',
+      body: {
+        ...project,
+        relayPiiConfig: JSON.stringify({
+          rules: {
+            0: {type: 'mac', redaction: {method: 'replace', text: 'ITS_GONE'}},
+          },
+          applications: {not_zzz_not_exact_match: ['0']},
+        }),
+      },
+    });
   });
 
   it('hovering the row causes prefetching of the row details', async () => {
@@ -200,7 +239,10 @@ describe('logsTableRow', () => {
     expect(rowDetailsMock).toHaveBeenCalledTimes(0);
     expect(screen.getByLabelText('Toggle trace details')).toBeInTheDocument(); // Real button immediately rendered
 
-    jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+    // Wrap timer advancement in act to avoid warnings
+    act(() => {
+      jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+    });
 
     await waitFor(() => {
       // Prefetching is triggered after the hover timeout
@@ -446,12 +488,109 @@ describe('logsTableRow', () => {
       message: 'test log body',
       trace: '7b91699f',
       severity: 'info',
-      item_id: '1',
+      [OurLogKnownFieldKey.ID]: '1',
     });
 
     // Verify the JSON structure matches what ourlogToJson produces
-    expect(parsedData).toHaveProperty('item_id', '1');
+    expect(parsedData).toHaveProperty(OurLogKnownFieldKey.ID, '1');
     expect(parsedData[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBeDefined();
     expect(parsedData).not.toHaveProperty('sentry.item_id');
+  });
+
+  it('renders fields with data scrubbing meta information', async () => {
+    const traceItemMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithScrubbedFields[OurLogKnownFieldKey.ID]}/`,
+      method: 'GET',
+      body: {
+        itemId: rowDataWithScrubbedFields[OurLogKnownFieldKey.ID],
+        links: null,
+        timestamp: rowDataWithScrubbedFields[OurLogKnownFieldKey.TIMESTAMP],
+        attributes: Object.entries(rowDataWithScrubbedFields).map(
+          ([k, v]) =>
+            ({
+              name: k,
+              value: v,
+              type: typeof v === 'string' ? 'str' : 'float',
+            }) as TraceItemResponseAttribute
+        ),
+        meta: {
+          password: {
+            meta: {
+              value: {
+                '': {
+                  rem: [['@password:filter', 's', 0, 10]],
+                  len: 9,
+                },
+              },
+            },
+          },
+          not_zzz_not_exact_match: {
+            meta: {
+              value: {
+                '': {
+                  rem: [['project:0', 's', 0, 10]],
+                  len: 15,
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    render(
+      <ProviderWrapper>
+        <LogRowContent
+          dataRow={rowDataWithScrubbedFields}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowDataWithScrubbedFields)}
+          sharedHoverTimeoutRef={
+            {
+              current: null,
+            } as React.MutableRefObject<NodeJS.Timeout | null>
+          }
+          canDeferRenderElements={false}
+        />
+      </ProviderWrapper>,
+      {organization, initialRouterConfig: initialRouterConfigWithScrubbedFields}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    expect(logTableRow).toBeInTheDocument();
+
+    expect(traceItemMock).toHaveBeenCalledTimes(0);
+    await userEvent.hover(logTableRow);
+
+    await waitFor(() => {
+      expect(traceItemMock).toHaveBeenCalledTimes(1);
+    });
+
+    const passwordCell = screen.getByTestId('log-table-cell-password');
+    const customRuleCell = screen.getByTestId('log-table-cell-not_zzz_not_exact_match');
+
+    expect(passwordCell).toBeInTheDocument();
+    expect(passwordCell).toHaveTextContent('[Filtered]');
+    expect(customRuleCell).toBeInTheDocument();
+    expect(customRuleCell).toHaveTextContent('redacted2');
+
+    const filteredText = screen.getByText(/Filtered/);
+    await userEvent.hover(filteredText);
+
+    expect(
+      await screen.findByText(
+        /because of a data scrubbing rule in the settings of the project/
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.unhover(filteredText);
+
+    const redactedText = screen.getByText(/redacted2/);
+    await userEvent.hover(redactedText);
+
+    expect(
+      await screen.findByText(
+        /\[Replace\] \[MAC addresses\] with \[ITS_GONE\] from \[not_zzz_not_exact_match\]/
+      )
+    ).toBeInTheDocument();
   });
 });

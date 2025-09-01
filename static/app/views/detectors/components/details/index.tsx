@@ -31,7 +31,7 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
           <ErrorDetectorDetails detector={detector} project={project} />
         </PageFiltersContainer>
       );
-    case 'uptime_subscription':
+    case 'monitor_check_in_failure':
       return (
         <PageFiltersContainer>
           <CronDetectorDetails detector={detector} project={project} />

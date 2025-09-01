@@ -16,6 +16,14 @@ export enum ReplaySummaryStatus {
   NOT_STARTED = 'not_started',
 }
 
+export enum ReplaySummaryTemp {
+  MIN = 0,
+  LOW = 0.2,
+  MED = 0.5,
+  HIGH = 0.8,
+  MAX = 1,
+}
+
 export interface SummaryResponse {
   created_at: string | null;
   data: {

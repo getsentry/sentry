@@ -14,7 +14,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('WebVitalsLandingPage', () => {
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insight-modules'],
   });
 
   let eventsMock: jest.Mock;

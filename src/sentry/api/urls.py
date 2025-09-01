@@ -207,6 +207,9 @@ from sentry.integrations.api.endpoints.organization_code_mapping_details import 
 from sentry.integrations.api.endpoints.organization_code_mappings import (
     OrganizationCodeMappingsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_coding_agents import (
+    OrganizationCodingAgentsEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_config_integrations import (
     OrganizationConfigIntegrationsEndpoint,
 )
@@ -251,7 +254,6 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
-    GroupOpenPeriodsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
@@ -311,6 +313,8 @@ from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssue
 from sentry.issues.endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
+from sentry.issues.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
+from sentry.issues.endpoints.project_codeowners_index import ProjectCodeOwnersEndpoint
 from sentry.issues.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.issues.endpoints.project_issues_resolved_in_release import (
     ProjectIssuesResolvedInReleaseEndpoint,
@@ -590,7 +594,6 @@ from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.check_am2_compatibility import CheckAM2CompatibilityEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.codeowners import ProjectCodeOwnersDetailsEndpoint, ProjectCodeOwnersEndpoint
 from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
@@ -607,6 +610,7 @@ from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.frontend_version import FrontendVersionEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal import (
     InternalBeaconEndpoint,
@@ -803,11 +807,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/events/$",
             GroupEventsEndpoint.as_view(),
             name=f"{name_prefix}-group-events",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/open-periods/$",
-            GroupOpenPeriodsEndpoint.as_view(),
-            name=f"{name_prefix}-group-open-periods",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/events/(?P<event_id>(?:latest|oldest|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -1832,6 +1831,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/$",
         OrganizationIntegrationsEndpoint.as_view(),
         name="sentry-api-0-organization-integrations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/coding-agents/$",
+        OrganizationCodingAgentsEndpoint.as_view(),
+        name="sentry-api-0-organization-coding-agents",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/$",
@@ -3301,6 +3305,11 @@ INTERNAL_URLS = [
         r"^beacon/$",
         InternalBeaconEndpoint.as_view(),
         name="sentry-api-0-internal-beacon",
+    ),
+    re_path(
+        r"^frontend-version/$",
+        FrontendVersionEndpoint.as_view(),
+        name="sentry-api-0-internal-frontend-version",
     ),
     re_path(
         r"^quotas/$",

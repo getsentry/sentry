@@ -67,6 +67,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a_100k_ac: {
     isTestPlan: false,
@@ -123,6 +124,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a_100k_auf: {
     isTestPlan: false,
@@ -179,6 +181,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a_500k: {
     isTestPlan: false,
@@ -235,6 +238,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a_500k_ac: {
     isTestPlan: false,
@@ -291,6 +295,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a_500k_auf: {
     isTestPlan: false,
@@ -347,6 +352,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_100k: {
     isTestPlan: false,
@@ -393,6 +399,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_100k_ac: {
     isTestPlan: false,
@@ -439,6 +446,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_100k_auf: {
     isTestPlan: false,
@@ -485,6 +493,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_500k: {
     isTestPlan: false,
@@ -532,6 +541,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_500k_ac: {
     isTestPlan: false,
@@ -578,6 +588,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_b_500k_auf: {
     isTestPlan: false,
@@ -624,6 +635,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_f: {
     isTestPlan: false,
@@ -661,6 +673,7 @@ const MM2_PLANS: Record<string, Plan> = {
     features: ['advanced-search'],
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
   mm2_a: {
     id: 'mm2_a',
@@ -690,7 +703,6 @@ const MM2_PLANS: Record<string, Plan> = {
       'custom-symbol-sources',
       'data-forwarding',
       'discard-groups',
-      'dashboards-basic',
       'discover-query',
       'integrations-codeowners',
       'integrations-event-hooks',
@@ -723,6 +735,7 @@ const MM2_PLANS: Record<string, Plan> = {
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: {},
     dashboardLimit: 0,
+    metricDetectorLimit: 0,
   },
 };
 

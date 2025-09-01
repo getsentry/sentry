@@ -17,7 +17,6 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
@@ -37,7 +36,6 @@ jest.mock('sentry/stores/guideStore', () => ({
 }));
 
 function setUpTests() {
-  ModalStore.reset();
   jest.clearAllMocks();
   delete window.pendo;
 

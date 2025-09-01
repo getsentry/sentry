@@ -8,7 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.features = {
@@ -68,14 +68,14 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         assert trace_details_response.data["attributes"] == [
             {"name": "bool_attr", "type": "bool", "value": True},
             {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
-            {"name": "project_id", "type": "int", "value": str(self.project.id)},
-            {"name": "severity_number", "type": "int", "value": "0"},
-            {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
             {
-                "name": "tags[sentry.timestamp_nanos,number]",
+                "name": "observed_timestamp",
                 "type": "int",
                 "value": str(timestamp_nanos),
             },
+            {"name": "project_id", "type": "int", "value": str(self.project.id)},
+            {"name": "severity_number", "type": "int", "value": "0"},
+            {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
             {
                 "name": "timestamp_precise",
                 "type": "int",
@@ -124,14 +124,14 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             "attributes": [
                 {"name": "bool_attr", "type": "bool", "value": True},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
-                {"name": "project_id", "type": "int", "value": str(self.project.id)},
-                {"name": "severity_number", "type": "int", "value": "0"},
-                {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
                 {
-                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "name": "observed_timestamp",
                     "type": "int",
                     "value": str(timestamp_nanos),
                 },
+                {"name": "project_id", "type": "int", "value": str(self.project.id)},
+                {"name": "severity_number", "type": "int", "value": "0"},
+                {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
                 {
                     "name": "timestamp_precise",
                     "type": "int",
@@ -319,14 +319,14 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
             "attributes": [
                 {"name": "bool_attr", "type": "bool", "value": True},
                 {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
-                {"name": "project_id", "type": "int", "value": str(self.project.id)},
-                {"name": "severity_number", "type": "int", "value": "0"},
-                {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
                 {
-                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "name": "observed_timestamp",
                     "type": "int",
                     "value": str(timestamp_nanos),
                 },
+                {"name": "project_id", "type": "int", "value": str(self.project.id)},
+                {"name": "severity_number", "type": "int", "value": "0"},
+                {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
                 {
                     "name": "timestamp_precise",
                     "type": "int",
@@ -369,13 +369,13 @@ class ProjectTraceItemDetailsEndpointTest(APITestCase, SnubaTestCase, OurLogTest
         timestamp_nanos = int(self.one_min_ago.timestamp() * 1_000_000_000)
         assert trace_details_response.data == {
             "attributes": [
-                {"name": "project_id", "type": "int", "value": str(self.project.id)},
-                {"name": "severity_number", "type": "int", "value": "0"},
                 {
-                    "name": "tags[sentry.timestamp_nanos,number]",
+                    "name": "observed_timestamp",
                     "type": "int",
                     "value": str(timestamp_nanos),
                 },
+                {"name": "project_id", "type": "int", "value": str(self.project.id)},
+                {"name": "severity_number", "type": "int", "value": "0"},
                 {
                     "name": "timestamp_precise",
                     "type": "int",

@@ -259,6 +259,48 @@ describe('getWidgetExploreUrl', () => {
     expect(query2.groupBys).toEqual(['span.description']);
     expect(query2.query).toBe('is_transaction:false');
   });
+
+  it('adds referrer query parameter if provided', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          fields: [],
+          aggregates: ['avg(span.duration)'],
+          columns: ['span.description'],
+          conditions: 'span.description:test',
+          orderby: '-avg(span.duration)',
+          name: '',
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(
+      widget,
+      {},
+      selection,
+      organization,
+      undefined,
+      'test-referrer'
+    );
+
+    // Assert that the query contains the dashboard filters in its resulting URL
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/traces/',
+      params: [
+        ['field', 'span.description'],
+        ['field', 'span.duration'],
+        ['groupBy', 'span.description'],
+        ['interval', '30m'],
+        ['mode', 'aggregate'],
+        ['query', 'span.description:test'],
+        ['sort', '-avg(span.duration)'],
+        ['statsPeriod', '14d'],
+        ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['referrer', 'test-referrer'],
+      ],
+    });
+  });
 });
 
 function expectUrl(url: string) {

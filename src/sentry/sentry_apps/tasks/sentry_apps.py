@@ -103,6 +103,7 @@ retry_decorator = retry(
         NoRetriesRemainingError,
     ),
     ignore_and_capture=(),
+    raise_on_no_retries=False,
 )
 
 # We call some models by a different name, publicly, than their class name.

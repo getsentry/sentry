@@ -689,7 +689,6 @@ describe('AM2 Checkout', () => {
 
     expect(screen.getByText('Choose Your Plan')).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Business'})).toBeInTheDocument();
-    expect(screen.getByText('Cross-project visibility')).toBeInTheDocument();
 
     expect(screen.getByRole('radio', {name: 'Team'})).toBeInTheDocument();
     expect(screen.getByText('Unlimited members')).toBeInTheDocument();
@@ -724,7 +723,6 @@ describe('AM2 Checkout', () => {
 
     expect(screen.getByText('Choose Your Plan')).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Business'})).toBeInTheDocument();
-    expect(screen.getByText('Cross-project visibility')).toBeInTheDocument();
 
     expect(screen.getByRole('radio', {name: 'Team'})).toBeInTheDocument();
     expect(screen.getByText('Unlimited members')).toBeInTheDocument();
