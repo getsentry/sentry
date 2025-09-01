@@ -3,8 +3,8 @@ from sentry import analytics
 
 @analytics.eventclass("first_new_feedback.sent")
 class FirstNewFeedbackSentEvent(analytics.Event):
-    organization_id: str
-    project_id: str
+    organization_id: int
+    project_id: int
     platform: str | None = None
     user_id: int | None = None
 
