@@ -265,6 +265,17 @@ export function WizardProjectSelection({
     emptyMessage = t('No projects matching search');
   }
 
+  const projectNameField = (
+    <FieldWrapper>
+      <label>{t('Project Name')}</label>
+      <Input
+        value={newProjectName}
+        onChange={event => setNewProjectName(event.target.value)}
+        placeholder={t('Enter a project name')}
+      />
+    </FieldWrapper>
+  );
+
   return (
     <StyledForm onSubmit={handleSubmit}>
       <Heading>{t('Select your Sentry project')}</Heading>
@@ -354,24 +365,10 @@ export function WizardProjectSelection({
       </FieldWrapper>
       {isCreateProjectSelected &&
         (isOrgMemberWithNoAccess ? (
-          <FieldWrapper>
-            <label>{t('Project Name')}</label>
-            <Input
-              value={newProjectName}
-              onChange={event => setNewProjectName(event.target.value)}
-              placeholder={t('Enter a project name')}
-            />
-          </FieldWrapper>
+          projectNameField
         ) : (
           <Columns>
-            <FieldWrapper>
-              <label>{t('Project Name')}</label>
-              <Input
-                value={newProjectName}
-                onChange={event => setNewProjectName(event.target.value)}
-                placeholder={t('Enter a project name')}
-              />
-            </FieldWrapper>
+            {projectNameField}
             <FieldWrapper>
               <label>{t('Team')}</label>
               <StyledCompactSelect
