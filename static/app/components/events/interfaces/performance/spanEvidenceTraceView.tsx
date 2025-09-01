@@ -15,6 +15,7 @@ import {
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
+import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 
 const LazyIssuesTraceWaterfall = lazy(() =>
@@ -84,6 +85,13 @@ function SpanEvidenceTraceViewImpl({
     targetEventId: event.id,
   });
   const tree = useIssuesTraceTree({trace, replay: null});
+
+  useTraceStateAnalytics({
+    trace,
+    organization,
+    traceWaterfallSource: 'issue_details',
+    tree,
+  });
 
   const rootEventResults = useTraceRootEvent({
     tree,

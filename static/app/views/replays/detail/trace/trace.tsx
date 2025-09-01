@@ -16,6 +16,7 @@ import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetai
 import {getInitialTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
+import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 import EmptyState from 'sentry/views/replays/detail/emptyState';
@@ -98,6 +99,15 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
     meta,
     replay: replay ?? null,
   });
+
+  useTraceStateAnalytics({
+    trace,
+    meta,
+    organization,
+    traceWaterfallSource: 'replay_details',
+    tree,
+  });
+
   const rootEvent = useTraceRootEvent({
     tree,
     logs: undefined,
