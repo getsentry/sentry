@@ -22,6 +22,7 @@ from sentry.taskworker.task import P, R, Task
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.imports import import_string
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,15 @@ class TaskNamespace:
         if topic not in self._producers:
 
             def factory() -> KafkaProducer:
-                return get_arroyo_producer(f"sentry.taskworker.{topic.value}", topic)
+                producer = get_arroyo_producer(f"sentry.taskworker.{topic.value}", topic)
+
+                # Fallback to legacy producer creation if not rolled out
+                if producer is None:
+                    cluster_name = get_topic_definition(topic)["cluster"]
+                    producer_config = get_kafka_producer_cluster_options(cluster_name)
+                    producer = KafkaProducer(producer_config)
+
+                return producer
 
             self._producers[topic] = SingletonProducer(factory, max_futures=1000)
         return self._producers[topic]

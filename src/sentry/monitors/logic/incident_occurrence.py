@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.utils.text import get_text_list
 from django.utils.translation import gettext_lazy as _
 from sentry_kafka_schemas.codecs import Codec
@@ -42,11 +42,22 @@ MONITORS_INCIDENT_OCCURRENCES: Codec[IncidentOccurrence] = get_topic_codec(
 
 
 def _get_producer():
-    return get_arroyo_producer(
+    producer = get_arroyo_producer(
         name="sentry.monitors.logic.incident_occurrence",
         topic=Topic.MONITORS_INCIDENT_OCCURRENCES,
         exclude_config_keys=["compression.type", "message.max.bytes"],
     )
+
+    # Fallback to legacy producer creation if not rolled out
+    if producer is None:
+        cluster_name = get_topic_definition(Topic.MONITORS_INCIDENT_OCCURRENCES)["cluster"]
+        producer_config = get_kafka_producer_cluster_options(cluster_name)
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
+        producer_config["client.id"] = "sentry.monitors.logic.incident_occurrence"
+        producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+    return producer
 
 
 _incident_occurrence_producer = SingletonProducer(_get_producer)

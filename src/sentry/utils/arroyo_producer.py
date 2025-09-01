@@ -10,6 +10,7 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_produ
 from arroyo.types import BrokerValue, Partition
 from arroyo.types import Topic as ArroyoTopic
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -74,7 +75,36 @@ def get_arroyo_producer(
     additional_config: dict | None = None,
     exclude_config_keys: list[str] | None = None,
     **kafka_producer_kwargs,
-) -> KafkaProducer:
+) -> KafkaProducer | None:
+    """
+    Factory function for creating Arroyo Kafka producers with consistent configuration
+    and metrics tracking.
+
+    This function provides a centralized way to create Kafka producers with:
+    - Automatic cluster configuration based on the topic
+    - Consistent client.id naming for metrics
+    - Support for config customization and exclusion
+    - Feature flag-based rollout control for safe migration
+
+    The rollout is controlled via the "arroyo.producer.factory-rollout" option, which
+    should be a dictionary mapping producer names to booleans indicating rollout status.
+    When disabled, returns None to allow callers to fall back to legacy producer creation.
+
+    Args:
+        name: Unique identifier for this producer (used as client.id and for rollout control)
+        topic: The Kafka topic this producer will write to
+        additional_config: Additional Kafka configuration to merge with defaults
+        exclude_config_keys: List of config keys to exclude from the default configuration
+        **kafka_producer_kwargs: Additional keyword arguments passed to KafkaProducer
+
+    Returns:
+        KafkaProducer if the producer is rolled out, None otherwise
+    """
+    # Check if this producer is rolled out via feature flag
+    rollout_config = options.get("arroyo.producer.factory-rollout", {})
+    if not rollout_config.get(name, False):
+        return None
+
     topic_definition = get_topic_definition(topic)
 
     producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
