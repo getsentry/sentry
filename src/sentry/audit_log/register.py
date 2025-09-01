@@ -164,25 +164,6 @@ def render_project_edit(audit_log_entry: AuditLogEntry):
     return "edited project settings " + items_string
 
 
-@add_with_render_func(
-    event_id=178,
-    name="PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE",
-    api_name="project.change-performance-issue-detection",
-)
-def render_project_performance_issue_detection_change(audit_log_entry: AuditLogEntry):
-    from sentry.api.endpoints.project_performance_issue_settings import (
-        project_settings_to_group_map as map,
-    )
-
-    data = audit_log_entry.data
-    items_string = ", ".join(
-        f"to {'enable' if value else 'disable'} detection of {map[key].description} issue"
-        for (key, value) in data.items()
-        if key in map.keys()
-    )
-    return "edited project performance issue detector settings " + items_string
-
-
 add(
     event_id=32,
     name="PROJECT_REMOVE",
@@ -597,6 +578,27 @@ add(
     api_name="org-auth-token.remove",
     template="removed org auth token {name}",
 )
+
+
+@add_with_render_func(
+    event_id=178,
+    name="PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE",
+    api_name="project.change-performance-issue-detection",
+)
+def render_project_performance_issue_detection_change(audit_log_entry: AuditLogEntry):
+    from sentry.issues.endpoints.project_performance_issue_settings import (
+        project_settings_to_group_map as map,
+    )
+
+    data = audit_log_entry.data
+    items_string = ", ".join(
+        f"to {'enable' if value else 'disable'} detection of {map[key].description} issue"
+        for (key, value) in data.items()
+        if key in map.keys()
+    )
+    return "edited project performance issue detector settings " + items_string
+
+
 add(
     event_id=179,
     name="PROJECT_OWNERSHIPRULE_EDIT",
