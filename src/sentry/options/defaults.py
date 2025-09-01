@@ -483,6 +483,13 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Whether or not Relay replay-event publishing to Snuba is disabled.
+register(
+    "replay.relay-snuba-publishing-disabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Billing skip for mobile replay orgs.
 register(
     "replay.replay-video.billing-skip-org-ids",
@@ -625,6 +632,9 @@ register(
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("codecov.base-url", default="https://api.codecov.io")
 register("codecov.api-bridge-signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("codecov.forward-webhooks.rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# if a region is in this list, it's safe to forward to codecov
+register("codecov.forward-webhooks.regions", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -944,6 +954,14 @@ register(
 
 register(
     "issues.fixability.gpu-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout rate to route issue summary requests to the summarization URL
+register(
+    "issues.summary.summarization-url-rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1328,9 +1346,6 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Controls the rollout rate in percent (`0.0` to `1.0`) for metric stats.
-register("relay.metric-stats.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2910,6 +2925,11 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "spans.process-segments.outcome-aggregator.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "indexed-spans.agg-span-waterfall.enable",
@@ -3458,7 +3478,7 @@ register(
 register(
     "issues.suspect-commit-strategy",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3468,6 +3488,31 @@ register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR
 # Whether to use 60s granularity for the dynamic sampling query
 register(
     "dynamic-sampling.query-granularity-60s",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option used to enable/disable tracking
+# rate of potential functions metrics to
+# be written into EAP
+register(
+    "profiling.track_functions_metrics_write_rate.eap.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Whether to use 60s granularity for the dynamic sampling query
+register(
+    "dynamic-sampling.query-granularity-60s.active-orgs",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.query-granularity-60s.fetch-transaction-totals",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

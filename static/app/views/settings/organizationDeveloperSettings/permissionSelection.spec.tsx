@@ -3,7 +3,6 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import ModalStore from 'sentry/stores/modalStore';
 import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 describe('PermissionSelection', () => {
@@ -29,7 +28,6 @@ describe('PermissionSelection', () => {
         />
       </Form>
     );
-    ModalStore.reset();
   }
 
   it('renders a row for each resource', () => {

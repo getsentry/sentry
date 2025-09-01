@@ -98,6 +98,16 @@ describe('getReasonGroupName', () => {
     );
   });
 
+  it('handles abuse limit reason types', () => {
+    expect(getReasonGroupName(Outcome.ABUSE, 'project_abuse_limit')).toBe(
+      'project abuse limit'
+    );
+    expect(getReasonGroupName(Outcome.ABUSE, 'org_abuse_limit')).toBe('org abuse limit');
+    expect(getReasonGroupName(Outcome.ABUSE, 'global_abuse_limit')).toBe(
+      'global abuse limit'
+    );
+  });
+
   it('groups all dynamic sampling reason codes into "dynamic sampling" label', () => {
     const testCases: Array<[string, string]> = [
       ['Sampled:1000,1004,1500', 'dynamic sampling'],

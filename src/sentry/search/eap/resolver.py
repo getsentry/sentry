@@ -56,9 +56,9 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
+from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
@@ -127,7 +127,10 @@ class SearchResolver:
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
     ]:
-        """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
+        """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter
+
+        This is the public interface to resolver the query, for the logic see __resolve_query, this is because we
+        also append the environment before returning the final TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
         where, having, contexts = self.__resolve_query(querystring)
         span = sentry_sdk.get_current_span()
@@ -467,18 +470,65 @@ class SearchResolver:
                 resolved_column, _ = self.resolve_attribute(context_definition.filter_column)
 
         if term.value.is_wildcard():
+            is_list = False
             if term.operator == "=":
                 operator = ComparisonFilter.OP_LIKE
             elif term.operator == "!=":
                 operator = ComparisonFilter.OP_NOT_LIKE
+            elif term.operator == "IN":
+                operator = ComparisonFilter.OP_LIKE
+                is_list = True
+            elif term.operator == "NOT IN":
+                operator = ComparisonFilter.OP_NOT_LIKE
+                is_list = True
+
+            if is_list:
+                raw_value = cast(list[str], term.value.raw_value)
+                filters = [
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=resolved_column.proto_definition,
+                            op=operator,
+                            value=self._resolve_search_value(
+                                resolved_column,
+                                (
+                                    "=" if operator == ComparisonFilter.OP_LIKE else "!="
+                                ),  # tell this function the single operator since its being ORed
+                                event_search.translate_wildcard_as_clickhouse_pattern(str(value)),
+                            ),
+                        )
+                    )
+                    for value in raw_value
+                ]
+                return (
+                    (
+                        TraceItemFilter(or_filter=OrFilter(filters=filters))
+                        if term.operator == "IN"
+                        else TraceItemFilter(and_filter=AndFilter(filters=filters))
+                    ),
+                    context_definition,
+                )
             else:
-                raise InvalidSearchQuery(f"Cannot use a wildcard with a {term.operator} filter")
-            value = str(term.value.raw_value)
-            value = event_search.translate_wildcard_as_clickhouse_pattern(value)
+                value = str(term.value.raw_value)
+                value = event_search.translate_wildcard_as_clickhouse_pattern(value)
         elif term.operator in constants.OPERATOR_MAP:
             operator = constants.OPERATOR_MAP[term.operator]
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
+
+        if value is None:
+            exists_filter = TraceItemFilter(
+                exists_filter=ExistsFilter(
+                    key=resolved_column.proto_definition,
+                )
+            )
+            if term.operator == "=":
+                not_exists_filter = TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
+                return not_exists_filter, context_definition
+            elif term.operator == "!=":
+                return exists_filter, context_definition
+            else:
+                raise InvalidSearchQuery(f"Unsupported operator for None {term.operator}")
 
         if value == "" and context_definition is None:
             exists_filter = TraceItemFilter(
@@ -872,6 +922,11 @@ class SearchResolver:
 
             if column.startswith("sentry_tags"):
                 field = f"sentry.{field}"
+
+            if self.definitions.alias_to_column is not None:
+                mapped_column = self.definitions.alias_to_column(field)
+                if mapped_column is not None:
+                    field = mapped_column
 
             search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedAttribute(

@@ -323,73 +323,78 @@ export function AutofixChanges({
             ))}
           </ClippedBox>
           <BottomDivider />
-          <BottomButtonContainer>
-            {!prsMade && (
-              <ButtonBar>
-                {branchesMade ? (
-                  step.changes.length === 1 && step.changes[0] ? (
-                    <BranchButton change={step.changes[0]} />
+          <BottomButtonContainer hasTerminationReason={!!step.termination_reason}>
+            {step.termination_reason && (
+              <TerminationReasonText>{step.termination_reason}</TerminationReasonText>
+            )}
+            <ButtonContainer>
+              {!prsMade && (
+                <ButtonBar>
+                  {branchesMade ? (
+                    step.changes.length === 1 && step.changes[0] ? (
+                      <BranchButton change={step.changes[0]} />
+                    ) : (
+                      <ScrollCarousel aria-label={t('Check out branches')}>
+                        {step.changes.map(
+                          (change, idx) =>
+                            change.branch_name && (
+                              <BranchButton
+                                key={`${change.repo_external_id}-${idx}`}
+                                change={change}
+                              />
+                            )
+                        )}
+                      </ScrollCarousel>
+                    )
                   ) : (
-                    <ScrollCarousel aria-label={t('Check out branches')}>
-                      {step.changes.map(
-                        (change, idx) =>
-                          change.branch_name && (
-                            <BranchButton
-                              key={`${change.repo_external_id}-${idx}`}
-                              change={change}
-                            />
-                          )
-                      )}
-                    </ScrollCarousel>
-                  )
-                ) : (
-                  <SetupAndCreateBranchButton
+                    <SetupAndCreateBranchButton
+                      changes={step.changes}
+                      groupId={groupId}
+                      runId={runId}
+                      isBusy={isBusy || isPrProcessing}
+                      onProcessingChange={setIsBranchProcessing}
+                    />
+                  )}
+                  <SetupAndCreatePRsButton
                     changes={step.changes}
                     groupId={groupId}
                     runId={runId}
-                    isBusy={isBusy || isPrProcessing}
-                    onProcessingChange={setIsBranchProcessing}
+                    isBusy={isBusy || isBranchProcessing}
+                    onProcessingChange={setIsPrProcessing}
                   />
-                )}
-                <SetupAndCreatePRsButton
-                  changes={step.changes}
-                  groupId={groupId}
-                  runId={runId}
-                  isBusy={isBusy || isBranchProcessing}
-                  onProcessingChange={setIsPrProcessing}
-                />
-              </ButtonBar>
-            )}
-            {prsMade &&
-              (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
-                <LinkButton
-                  size="xs"
-                  priority="primary"
-                  icon={<IconOpen size="xs" />}
-                  href={step.changes[0].pull_request.pr_url}
-                  external
-                >
-                  View PR in {step.changes[0].repo_name}
-                </LinkButton>
-              ) : (
-                <ScrollCarousel aria-label={t('View pull requests')}>
-                  {step.changes.map(
-                    (change, idx) =>
-                      change.pull_request?.pr_url && (
-                        <LinkButton
-                          key={`${change.repo_external_id}-${idx}`}
-                          size="xs"
-                          priority="primary"
-                          icon={<IconOpen size="xs" />}
-                          href={change.pull_request.pr_url}
-                          external
-                        >
-                          View PR in {change.repo_name}
-                        </LinkButton>
-                      )
-                  )}
-                </ScrollCarousel>
-              ))}
+                </ButtonBar>
+              )}
+              {prsMade &&
+                (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
+                  <LinkButton
+                    size="xs"
+                    priority="primary"
+                    icon={<IconOpen size="xs" />}
+                    href={step.changes[0].pull_request.pr_url}
+                    external
+                  >
+                    View PR in {step.changes[0].repo_name}
+                  </LinkButton>
+                ) : (
+                  <ScrollCarousel aria-label={t('View pull requests')}>
+                    {step.changes.map(
+                      (change, idx) =>
+                        change.pull_request?.pr_url && (
+                          <LinkButton
+                            key={`${change.repo_external_id}-${idx}`}
+                            size="xs"
+                            priority="primary"
+                            icon={<IconOpen size="xs" />}
+                            href={change.pull_request.pr_url}
+                            external
+                          >
+                            View PR in {change.repo_name}
+                          </LinkButton>
+                        )
+                    )}
+                  </ScrollCarousel>
+                ))}
+            </ButtonContainer>
           </BottomButtonContainer>
         </ChangesContainer>
       </AnimationWrapper>
@@ -488,7 +493,21 @@ const BottomDivider = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const BottomButtonContainer = styled('div')`
+const BottomButtonContainer = styled('div')<{hasTerminationReason?: boolean}>`
+  display: flex;
+  justify-content: ${p => (p.hasTerminationReason ? 'space-between' : 'flex-end')};
+  align-items: center;
+  gap: ${p => p.theme.space.xl};
+`;
+
+const TerminationReasonText = styled('div')`
+  color: ${p => p.theme.errorText};
+  font-size: ${p => p.theme.fontSize.sm};
+  flex: 1;
+  min-width: 0;
+`;
+
+const ButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
 `;

@@ -71,6 +71,10 @@ describe('DetectorDetails', () => {
       url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d',
       body: [GroupFixture()],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [],
+    });
   });
 
   describe('metric detectors', () => {
@@ -105,7 +109,7 @@ describe('DetectorDetails', () => {
         await screen.findByRole('heading', {name: snubaQueryDetector.name})
       ).toBeInTheDocument();
       // Displays the snuba query
-      expect(screen.getByText(dataSource.queryObj!.snubaQuery.query)).toBeInTheDocument();
+      expect(screen.getByText('event.type:error test')).toBeInTheDocument();
       // Displays the environment
       expect(
         screen.getByText(dataSource.queryObj!.snubaQuery.environment!)

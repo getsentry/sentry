@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import (
@@ -18,6 +20,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import features, quotas, roles
 from sentry.api.api_owners import ApiOwner
@@ -45,6 +48,10 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
 from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.users.services.user.service import user_service
 
 MAX_RETRIES = 2
@@ -58,7 +65,12 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
 
-    def has_object_permission(self, request: Request, view, obj):
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        obj: Organization | RpcOrganization | RpcUserOrganizationContext | Dashboard,
+    ) -> bool:
         if isinstance(obj, Organization):
             return super().has_object_permission(request, view, obj)
 
@@ -252,7 +264,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         list_serializer = DashboardListSerializer()
 
-        def handle_results(results):
+        def handle_results(results: list[Dashboard | dict[str, Any]]) -> list[dict[str, Any]]:
             serialized = []
             dashboards = []
             for item in results:
@@ -278,13 +290,12 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             return serialized
 
         render_pre_built_dashboard = True
-        if (
-            filter_by
-            and filter_by in {"onlyFavorites", "owned"}
-            or pin_by
-            and pin_by == "favorites"
-        ):
+        if filter_by and filter_by in {"onlyFavorites", "owned"}:
             render_pre_built_dashboard = False
+        elif pin_by and pin_by == "favorites":
+            # Only hide prebuilt dashboard when pinning favorites if there are actual dashboards to show
+            # This allows the prebuilt dashboard to appear when users have no dashboards yet
+            render_pre_built_dashboard = not dashboards.exists()
 
         return self.paginate(
             request=request,
@@ -306,7 +317,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         },
         examples=DashboardExamples.DASHBOARD_POST_RESPONSE,
     )
-    def post(self, request: Request, organization, retry=0) -> Response:
+    def post(self, request: Request, organization: Organization, retry: int = 0) -> Response:
         """
         Create a new dashboard for the given Organization
         """

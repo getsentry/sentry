@@ -1,7 +1,10 @@
+from collections.abc import Sequence
+
 from sentry.models.group import Group, GroupStatus
+from sentry.models.userreport import UserReport
 
 
-def user_reports_filter_to_unresolved(user_reports):
+def user_reports_filter_to_unresolved(user_reports: Sequence[UserReport]) -> list[UserReport]:
     group_ids = {ur.group_id for ur in user_reports if ur.group_id}
     unresolved_group_ids = set()
     if group_ids:

@@ -54,8 +54,7 @@ function FeedbackButton() {
 
 export default function LogsContent() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} =
-    logsPickableDays(organization);
+  const {defaultPeriod, maxPickableDays, relativeOptions} = logsPickableDays();
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
 
@@ -119,15 +118,7 @@ function LogsHeader() {
 
         <Layout.Title>
           {title ? title : t('Logs')}
-          <FeatureBadge
-            type="beta"
-            tooltipProps={{
-              title: t(
-                "This feature is currently in beta and we're actively working on it"
-              ),
-              isHoverable: true,
-            }}
-          />
+          <FeatureBadge type="new" />
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>

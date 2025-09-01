@@ -34,7 +34,7 @@ class DummyNotification(BaseNotification):
     def determine_recipients(self) -> list[Actor]:
         return []
 
-    def build_attachment_title(self, *args):
+    def build_attachment_title(self, *args) -> str:
         return "My Title"
 
     def get_title_link(self, *args):
@@ -87,10 +87,10 @@ class DummyNotificationWithMoreFields(DummyNotification):
         some_value = context["some_field"]
         return f"Notification Title with {some_value}"
 
-    def build_notification_footer(self, *args):
+    def build_notification_footer(self, *args) -> str:
         return "Notification Footer"
 
-    def get_message_description(self, recipient: Actor, provider: ExternalProviders):
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> str:
         return "Message Description"
 
     def get_title_link(self, *args):

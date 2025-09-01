@@ -40,7 +40,7 @@ def test_save_event_feedback_no_associated_event(
     ["number", "iso"],
 )
 def test_save_event_feedback_with_associated_event(
-    default_project, mock_create_feedback_issue, timestamp_format
+    default_project, mock_create_feedback_issue, timestamp_format: str
 ):
     environment = Factories.create_environment(default_project, name="production")
     assoc_event = Factories.store_event(

@@ -10,8 +10,6 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
-
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
@@ -116,8 +114,6 @@ describe('OnDemandBudgets', () => {
 
     await userEvent.click(screen.getByTestId('add-cc-card'));
     expect(await screen.findByText('Stripe')).toBeInTheDocument();
-
-    ModalStore.reset();
   });
 
   it('allows VC partner accounts to set up on-demand budget without credit card', () => {
@@ -701,7 +697,7 @@ describe('OnDemandBudgets', () => {
     // When logs-billing is enabled, should show the logs warning
     expect(
       screen.getByText(
-        'Logs and additional Seer usage require a shared on-demand budget. Individual budgets cannot be used for these products.'
+        'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
       )
     ).toBeInTheDocument();
 
@@ -720,7 +716,7 @@ describe('OnDemandBudgets', () => {
     // When both features are enabled
     expect(
       screen.getByText(
-        'Logs and additional Seer usage require a shared on-demand budget. Individual budgets cannot be used for these products.'
+        'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
       )
     ).toBeInTheDocument();
   });

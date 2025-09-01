@@ -148,7 +148,7 @@ class OrganizationEventsEndpointTest(APITestCase):
 
         query = {
             "field": ["user"],
-            "referrer": "api.performance.invalid",
+            "referrer": "api.insights.invalid",
             "project": [self.project.id],
         }
         self.do_request(query)
@@ -199,12 +199,12 @@ class OrganizationEventsEndpointTest(APITestCase):
 
         query = {
             "field": ["user"],
-            "referrer": "api.performance.transaction-summary",
+            "referrer": "api.insights.transaction-summary",
             "project": [self.project.id],
         }
         self.do_request(query)
         _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], "api.performance.transaction-summary")
+        self.assertEqual(kwargs["referrer"], "api.insights.transaction-summary")
 
     @pytest.mark.skip(reason="flaky: #95995")
     @override_settings(SENTRY_SELF_HOSTED=False)

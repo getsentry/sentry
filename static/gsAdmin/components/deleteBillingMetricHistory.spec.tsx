@@ -8,7 +8,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import ModalStore from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 
 import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
@@ -18,7 +17,6 @@ describe('DeleteBillingMetricHistory', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.restoreAllMocks();
-    ModalStore.reset();
   });
 
   const organization = OrganizationFixture({

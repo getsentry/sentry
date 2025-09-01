@@ -28,10 +28,12 @@ from sentry.spans.consumers.process_segments.enrichment import Enricher, Span, c
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
-from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 
 logger = logging.getLogger(__name__)
+
+outcome_aggregator = OutcomeAggregator()
 
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
@@ -51,9 +53,7 @@ def process_segment(unprocessed_spans: list[SegmentSpan], skip_produce: bool = F
         # If the project does not exist then it might have been deleted during ingestion.
         return []
 
-    segment_span.setdefault("measurements", {}).update(
-        compute_breakdowns(unprocessed_spans, project.get_option("sentry:breakdowns"))
-    )
+    _compute_breakdowns(segment_span, spans, project)
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
     _record_signals(segment_span, spans, project)
@@ -87,6 +87,13 @@ def _enrich_spans(unprocessed_spans: list[SegmentSpan]) -> tuple[Span | None, li
     return segment, spans
 
 
+@metrics.wraps("spans.consumers.process_segments.compute_breakdowns")
+def _compute_breakdowns(segment: Span, spans: list[Span], project: Project) -> None:
+    config = project.get_option("sentry:breakdowns")
+    breakdowns = compute_breakdowns(spans, config)
+    segment.setdefault("measurements", {}).update(breakdowns)
+
+
 @metrics.wraps("spans.consumers.process_segments.create_models")
 def _create_models(segment: Span, project: Project) -> None:
     """
@@ -109,7 +116,8 @@ def _create_models(segment: Span, project: Project) -> None:
     try:
         release = Release.get_or_create(project=project, version=release_name, date_added=date)
     except ValidationError:
-        logger.exception(
+        # Avoid catching a stacktrace here, the codepath is very hot
+        logger.warning(
             "Failed creating Release due to ValidationError",
             extra={"project": project, "version": release_name},
         )
@@ -126,11 +134,12 @@ def _create_models(segment: Span, project: Project) -> None:
         project=project, release=release, environment=environment, datetime=date
     )
 
-    # Record the release for dynamic sampling
-    record_latest_release(project, release, environment)
+    with metrics.timer("spans.consumers.process_segments.create_models.record_release"):
+        # Record the release for dynamic sampling
+        record_latest_release(project, release, environment)
 
-    # Record onboarding signals
-    record_release_received(project, release.version)
+        # Record onboarding signals
+        record_release_received(project, release.version)
 
 
 @metrics.wraps("spans.consumers.process_segments.detect_performance_problems")
@@ -261,18 +270,26 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
 
 @metrics.wraps("spans.consumers.process_segments.record_outcomes")
 def _track_outcomes(segment_span: Span, spans: list[Span]) -> None:
-    """
-    Record outcomes for all spans in the segment.
-    """
-
-    track_outcome(
-        org_id=segment_span["organization_id"],
-        project_id=segment_span["project_id"],
-        key_id=cast(int | None, segment_span.get("key_id", None)),
-        outcome=Outcome.ACCEPTED,
-        reason=None,
-        timestamp=to_datetime(segment_span["received"]),
-        event_id=None,
-        category=DataCategory.SPAN_INDEXED,
-        quantity=len(spans),
-    )
+    if options.get("spans.process-segments.outcome-aggregator.enable"):
+        outcome_aggregator.track_outcome_aggregated(
+            org_id=segment_span["organization_id"],
+            project_id=segment_span["project_id"],
+            key_id=cast(int | None, segment_span.get("key_id", None)),
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(segment_span["received"]),
+            category=DataCategory.SPAN_INDEXED,
+            quantity=len(spans),
+        )
+    else:
+        track_outcome(
+            org_id=segment_span["organization_id"],
+            project_id=segment_span["project_id"],
+            key_id=cast(int | None, segment_span.get("key_id", None)),
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=to_datetime(segment_span["received"]),
+            event_id=None,
+            category=DataCategory.SPAN_INDEXED,
+            quantity=len(spans),
+        )

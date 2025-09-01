@@ -83,7 +83,7 @@ export interface CronSubscriptionDataSource extends BaseDataSource {
 export type DetectorType =
   | 'error'
   | 'metric_issue'
-  | 'uptime_subscription'
+  | 'monitor_check_in_failure'
   | 'uptime_domain_failure';
 
 interface BaseMetricDetectorConfig {
@@ -160,7 +160,7 @@ export interface UptimeDetector extends BaseDetector {
 export interface CronDetector extends BaseDetector {
   readonly config: CronDetectorConfig;
   readonly dataSources: [CronSubscriptionDataSource];
-  readonly type: 'uptime_subscription';
+  readonly type: 'monitor_check_in_failure';
 }
 
 export interface ErrorDetector extends BaseDetector {
@@ -227,5 +227,5 @@ export interface MetricDetectorUpdatePayload extends BaseDetectorUpdatePayload {
 export interface CronDetectorUpdatePayload extends BaseDetectorUpdatePayload {
   config: CronDetectorConfig;
   dataSource: UpdateCronDataSourcePayload;
-  type: 'uptime_subscription';
+  type: 'monitor_check_in_failure';
 }

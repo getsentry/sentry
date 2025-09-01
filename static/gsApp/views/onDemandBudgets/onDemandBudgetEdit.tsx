@@ -178,7 +178,7 @@ class OnDemandBudgetEdit extends Component<Props> {
               <Alert type="warning">
                 {organization.features.includes('logs-billing')
                   ? t(
-                      'Logs and additional Seer usage require a shared on-demand budget. Individual budgets cannot be used for these products.'
+                      'Additional logs and Seer usage are only available through a shared on-demand budget. To enable on-demand usage switch to a shared on-demand budget.'
                     )
                   : t(
                       "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."

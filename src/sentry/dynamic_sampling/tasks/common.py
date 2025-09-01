@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import math
 import time
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 import sentry_sdk
 from snuba_sdk import (
@@ -21,8 +23,7 @@ from snuba_sdk import (
 )
 
 from sentry import quotas
-from sentry.dynamic_sampling.rules.utils import OrganizationId
-from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY, MAX_SECONDS
+from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
 from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
@@ -34,6 +35,12 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
+if TYPE_CHECKING:
+    from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
+        FetchProjectTransactionTotals,
+        FetchProjectTransactionVolumes,
+    )
+
 ACTIVE_ORGS_DEFAULT_TIME_INTERVAL = timedelta(hours=1)
 ACTIVE_ORGS_DEFAULT_GRANULARITY = Granularity(3600)
 
@@ -42,7 +49,7 @@ ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
 
 
 class TimeoutException(Exception):
-    def __init__(self, task_context: TaskContext, *args):
+    def __init__(self, task_context: TaskContext, *args: Any) -> None:
         super().__init__(
             [task_context, *args],
         )
@@ -60,20 +67,20 @@ class LogStateCallable(Protocol):
 
     """
 
-    def __call__(self, state: DynamicSamplingLogState, *args, **kwargs) -> Any: ...
+    def __call__(self, state: DynamicSamplingLogState, *args: Any, **kwargs: Any) -> Any: ...
 
     __name__: str
 
 
-def timed_function(name=None):
-    def timed_function_decorator(inner: LogStateCallable):
+def timed_function(name: str | None = None) -> Callable[[LogStateCallable], Callable[..., Any]]:
+    def timed_function_decorator(inner: LogStateCallable) -> Callable[..., Any]:
         if name is not None:
             func_name = name
         else:
             func_name = inner.__name__
 
         @wraps(inner)
-        def wrapped(context: TaskContext, *args, **kwargs):
+        def wrapped(context: TaskContext, *args: Any, **kwargs: Any) -> Any:
             if time.monotonic() > context.expiration_time:
                 raise TimeoutException(context)
             timer = context.get_timer(func_name)
@@ -94,9 +101,9 @@ class ContextIterator(Protocol):
     An iterator that also can return its current state ( used for logging)
     """
 
-    def __iter__(self): ...
+    def __iter__(self) -> Iterator[Any]: ...
 
-    def __next__(self): ...
+    def __next__(self) -> Any: ...
 
     def get_current_state(self) -> DynamicSamplingLogState:
         """
@@ -121,10 +128,10 @@ class _SimpleContextIterator(Iterator[Any]):
         self.inner = inner
         self.log_state = DynamicSamplingLogState()
 
-    def __iter__(self):
+    def __iter__(self) -> _SimpleContextIterator:
         return self
 
-    def __next__(self):
+    def __next__(self) -> Any:
         return next(self.inner)
 
     def get_current_state(self) -> DynamicSamplingLogState:
@@ -134,7 +141,7 @@ class _SimpleContextIterator(Iterator[Any]):
         self.log_state = state
 
 
-def to_context_iterator(inner: Iterator[Any]) -> ContextIterator:
+def to_context_iterator(inner: Iterator[Any]) -> _SimpleContextIterator:
     """
     Adds a LogState to a simple iterator turning it into a ContextIterator
 
@@ -154,9 +161,14 @@ class TimedIterator(Iterator[Any]):
     def __init__(
         self,
         context: TaskContext,
-        inner: ContextIterator,
+        inner: (
+            ContextIterator
+            | GetActiveOrgs
+            | FetchProjectTransactionTotals
+            | FetchProjectTransactionVolumes
+        ),
         name: str | None = None,
-    ):
+    ) -> None:
         self.context = context
         self.inner = inner
 
@@ -168,10 +180,10 @@ class TimedIterator(Iterator[Any]):
         # pick up where you last left of
         inner.set_current_state(context.get_function_state(name))
 
-    def __iter__(self):
+    def __iter__(self) -> TimedIterator:
         return self
 
-    def __next__(self):
+    def __next__(self) -> Any:
         if time.monotonic() > self.context.expiration_time:
             raise TimeoutException(self.context)
         timer = self.context.get_timer(self.name)
@@ -210,7 +222,7 @@ class GetActiveOrgs:
         max_projects: int | None = None,
         time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
-    ):
+    ) -> None:
 
         self.metric_id = indexer.resolve_shared_org(
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
@@ -224,7 +236,7 @@ class GetActiveOrgs:
         self.time_interval = time_interval
         self.granularity = granularity
 
-    def __iter__(self):
+    def __iter__(self) -> GetActiveOrgs:
         return self
 
     def __next__(self) -> list[int]:
@@ -288,7 +300,7 @@ class GetActiveOrgs:
             # nothing left in the DB or cache
             raise StopIteration()
 
-    def get_current_state(self):
+    def get_current_state(self) -> DynamicSamplingLogState:
         """
         Returns the current state of the iterator (how many orgs and projects it has iterated over)
 
@@ -297,10 +309,10 @@ class GetActiveOrgs:
         """
         return self.log_state
 
-    def set_current_state(self, log_state: DynamicSamplingLogState):
+    def set_current_state(self, log_state: DynamicSamplingLogState) -> None:
         self.log_state = log_state
 
-    def _enough_results_cached(self):
+    def _enough_results_cached(self) -> bool:
         """
         Return true if we have enough data to return a full batch in the cache (i.e. last_result)
         """
@@ -315,13 +327,13 @@ class GetActiveOrgs:
                     return True
         return False
 
-    def _get_orgs(self, orgs_and_counts):
+    def _get_orgs(self, orgs_and_counts: list[tuple[int, int]]) -> list[int]:
         """
         Extracts the orgs from last_result
         """
         return [org for org, _ in orgs_and_counts]
 
-    def _get_from_cache(self):
+    def _get_from_cache(self) -> list[int]:
         """
         Returns a batch from cache and removes the elements returned from the cache
         """
@@ -372,9 +384,9 @@ class GetActiveOrgsVolumes:
         max_orgs: int = MAX_ORGS_PER_QUERY,
         time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
-        include_keep=True,
+        include_keep: bool = True,
         orgs: list[int] | None = None,
-    ):
+    ) -> None:
         self.include_keep = include_keep
         self.orgs = orgs
         self.metric_id = indexer.resolve_shared_org(
@@ -407,7 +419,7 @@ class GetActiveOrgsVolumes:
         self.granularity = granularity
         self.time_interval = time_interval
 
-    def __iter__(self):
+    def __iter__(self) -> GetActiveOrgsVolumes:
         return self
 
     def __next__(self) -> list[OrganizationDataVolume]:
@@ -481,7 +493,7 @@ class GetActiveOrgsVolumes:
             # nothing left in the DB or cache
             raise StopIteration()
 
-    def get_current_state(self):
+    def get_current_state(self) -> DynamicSamplingLogState:
         """
         Returns the current state of the iterator (how many orgs and projects it has iterated over)
 
@@ -490,10 +502,10 @@ class GetActiveOrgsVolumes:
         """
         return self.log_state
 
-    def set_current_state(self, log_state: DynamicSamplingLogState):
+    def set_current_state(self, log_state: DynamicSamplingLogState) -> None:
         self.log_state = log_state
 
-    def _enough_results_cached(self):
+    def _enough_results_cached(self) -> bool:
         """
         Return true if we have enough data to return a full batch in the cache (i.e. last_result)
         """
@@ -511,72 +523,6 @@ class GetActiveOrgsVolumes:
             self.last_result = []
         self.log_state.num_orgs += len(ret_val)
         return ret_val
-
-
-def fetch_orgs_with_total_root_transactions_count(
-    org_ids: list[int], window_size: int
-) -> Mapping[OrganizationId, int]:
-    """
-    Fetches for each org the total root transaction count.
-    """
-    query_interval = timedelta(hours=window_size)
-    granularity = Granularity(3600)
-
-    count_per_root_metric_id = indexer.resolve_shared_org(
-        str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-    )
-    where = [
-        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-        Condition(Column("metric_id"), Op.EQ, count_per_root_metric_id),
-        Condition(Column("org_id"), Op.IN, list(org_ids)),
-    ]
-
-    start_time = time.time()
-    offset = 0
-    aggregated_projects = {}
-    while (time.time() - start_time) < MAX_SECONDS:
-        query = (
-            Query(
-                match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                select=[
-                    Function("sum", [Column("value")], "root_count_value"),
-                    Column("org_id"),
-                ],
-                where=where,
-                groupby=[Column("org_id")],
-                orderby=[
-                    OrderBy(Column("org_id"), Direction.ASC),
-                ],
-                granularity=granularity,
-            )
-            .set_limit(CHUNK_SIZE + 1)
-            .set_offset(offset)
-        )
-
-        request = Request(
-            dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
-        )
-
-        data = raw_snql_query(
-            request,
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_ORGS_WITH_COUNT_PER_ROOT.value,
-        )["data"]
-
-        count = len(data)
-        more_results = count > CHUNK_SIZE
-        offset += CHUNK_SIZE
-
-        if more_results:
-            data = data[:-1]
-
-        for row in data:
-            aggregated_projects[row["org_id"]] = row["root_count_value"]
-
-        if not more_results:
-            break
-
-    return aggregated_projects
 
 
 def get_organization_volume(
@@ -647,7 +593,11 @@ def compute_guarded_sliding_window_sample_rate(
 
 
 def compute_sliding_window_sample_rate(
-    org_id: int, project_id: int | None, total_root_count: int, window_size: int, context
+    org_id: int,
+    project_id: int | None,
+    total_root_count: int,
+    window_size: int,
+    context: TaskContext,
 ) -> float | None:
     """
     Computes the actual sample rate for the sliding window given the total root count and the size of the

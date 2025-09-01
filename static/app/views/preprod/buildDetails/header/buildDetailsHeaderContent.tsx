@@ -1,3 +1,6 @@
+import {Link} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Alert} from 'sentry/components/core/alert';
@@ -6,18 +9,22 @@ import {Flex} from 'sentry/components/core/layout';
 import {Heading} from 'sentry/components/core/text';
 import Placeholder from 'sentry/components/placeholder';
 import {IconEllipsis, IconTelescope} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 interface BuildDetailsHeaderContentProps {
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
+  projectId: string;
 }
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
-  const {buildDetailsQuery} = props;
-
+  const organization = useOrganization();
+  const {buildDetailsQuery, projectId} = props;
+  const theme = useTheme();
   const {
     data: buildDetailsData,
     isPending: isBuildDetailsPending,
@@ -27,7 +34,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   if (isBuildDetailsPending) {
     return (
-      <Flex direction="column" style={{padding: `0 0 ${space(2)} 0`}}>
+      <Flex direction="column" style={{padding: `0 0 ${theme.space.lg} 0`}}>
         <Placeholder height="20px" width="200px" style={{marginBottom: space(2)}} />
         <Flex align="center" justify="between" gap="md">
           <Heading as="h1">
@@ -65,32 +72,26 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     },
   ];
 
-  const handleCompareBuild = () => {
-    // TODO: Implement compare build functionality
-    addErrorMessage('Not implemented (coming soon)');
-  };
-
   const handleMoreActions = () => {
     // TODO: Implement more actions menu
     addErrorMessage('Not implemented (coming soon)');
   };
 
   return (
-    <Flex direction="column" style={{padding: `0 0 ${space(2)} 0`}}>
+    <Flex direction="column" style={{padding: `0 0 ${theme.space.lg} 0`}}>
       <Breadcrumbs crumbs={breadcrumbs} />
       <Flex align="center" justify="between" gap="md">
         <Heading as="h1">
           v{buildDetailsData.app_info.version} ({buildDetailsData.app_info.build_number})
         </Heading>
         <Flex align="center" gap="sm" style={{flexShrink: 0}}>
-          <Button
-            size="sm"
-            priority="default"
-            icon={<IconTelescope />}
-            onClick={handleCompareBuild}
+          <Link
+            to={`/organizations/${organization.slug}/preprod/${projectId}/compare/${buildDetailsData.id}/`}
           >
-            {'Compare Build'}
-          </Button>
+            <Button size="sm" priority="default" icon={<IconTelescope />}>
+              {t('Compare Build')}
+            </Button>
+          </Link>
           {/* TODO: Actions dropdown */}
           <Button
             size="sm"

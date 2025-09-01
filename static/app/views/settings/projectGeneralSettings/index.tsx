@@ -331,6 +331,12 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
 
         <JsonForm
           {...jsonFormProps}
+          title={t('Membership')}
+          fields={[fields.debugFilesRole]}
+        />
+
+        <JsonForm
+          {...jsonFormProps}
           title={t('Client Security')}
           fields={[
             fields.allowedDomains,

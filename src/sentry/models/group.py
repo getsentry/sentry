@@ -730,7 +730,7 @@ class Group(Model):
                 teams=[],
             )
 
-        def _cache_key(issue_id):
+        def _cache_key(issue_id) -> str:
             return f"group:has_replays:{issue_id}"
 
         from sentry.replays.usecases.replay_counts import get_replay_counts
@@ -1006,7 +1006,7 @@ class Group(Model):
         warnings.warn("Group.checksum is no longer used", DeprecationWarning)
         return ""
 
-    def get_email_subject(self):
+    def get_email_subject(self) -> str:
         return f"{self.qualified_short_id} - {self.title}"
 
     def count_users_seen(

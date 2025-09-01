@@ -263,6 +263,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
     event_type = which(event)
     timestamp = get_replay_event_timestamp_ms(event, event_type)
 
+    trunc_length = 200  # used for CONSOLE logs and RESOURCE_* urls.
+
     try:
         match event_type:
             case EventType.CLICK:
@@ -278,8 +280,10 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 to = event["data"]["payload"]["description"]
                 return f"User navigated to: {to} at {timestamp}"
             case EventType.CONSOLE:
-                message = event["data"]["payload"]["message"]
-                return f"Logged: {message} at {timestamp}"
+                message = str(event["data"]["payload"]["message"])
+                if len(message) > trunc_length:
+                    message = message[:trunc_length] + " [truncated]"
+                return f"Logged: '{message}' at {timestamp}"
             case EventType.UI_BLUR:
                 return None
             case EventType.UI_FOCUS:
@@ -290,12 +294,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 status_code = payload["data"]["statusCode"]
                 description = payload["description"]
 
-                # Parse URL path
-                parsed_url = urlparse(description)
-                path_part = parsed_url.path.lstrip("/")
-                path = f"{parsed_url.netloc}/{path_part}"
-                if parsed_url.query:
-                    path += f"?{parsed_url.query}"
+                # Format URL
+                url = _parse_url(description, trunc_length)
 
                 # Check if the tuple is valid and response size exists
                 sizes_tuple = parse_network_content_lengths(event)
@@ -309,10 +309,10 @@ def as_log_message(event: dict[str, Any]) -> str | None:
 
                 if response_size is None:
                     return (
-                        f'Fetch request "{method} {path}" failed with {status_code} at {timestamp}'
+                        f'Fetch request "{method} {url}" failed with {status_code} at {timestamp}'
                     )
                 else:
-                    return f'Fetch request "{method} {path}" failed with {status_code} ({response_size} bytes) at {timestamp}'
+                    return f'Fetch request "{method} {url}" failed with {status_code} ({response_size} bytes) at {timestamp}'
             case EventType.LCP:
                 duration = event["data"]["payload"]["data"]["size"]
                 rating = event["data"]["payload"]["data"]["rating"]
@@ -325,12 +325,8 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 status_code = payload["data"]["statusCode"]
                 description = payload["description"]
 
-                # Parse URL path
-                parsed_url = urlparse(description)
-                path_part = parsed_url.path.lstrip("/")
-                path = f"{parsed_url.netloc}/{path_part}"
-                if parsed_url.query:
-                    path += f"?{parsed_url.query}"
+                # Format URL
+                url = _parse_url(description, trunc_length)
 
                 # Check if the tuple is valid and response size exists
                 sizes_tuple = parse_network_content_lengths(event)
@@ -343,9 +339,9 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                     return None
 
                 if response_size is None:
-                    return f'XHR request "{method} {path}" failed with {status_code} at {timestamp}'
+                    return f'XHR request "{method} {url}" failed with {status_code} at {timestamp}'
                 else:
-                    return f'XHR request "{method} {path}" failed with {status_code} ({response_size} bytes) at {timestamp}'
+                    return f'XHR request "{method} {url}" failed with {status_code} ({response_size} bytes) at {timestamp}'
             case EventType.MUTATIONS:
                 return None
             case EventType.UNKNOWN:
@@ -368,7 +364,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 return None
             case EventType.NAVIGATION:
                 return None  # we favor NAVIGATION_SPAN since the frontend favors navigation span events in the breadcrumb tab
-    except (KeyError, ValueError):
+    except (KeyError, ValueError, TypeError):
         logger.exception(
             "Error parsing event in replay AI summary",
             extra={
@@ -376,3 +372,25 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             },
         )
         return None
+
+
+def _parse_url(s: str, trunc_length: int) -> str:
+    """
+    Attempt to validate and return a formatted URL from a string (netloc/path?query).
+    If validation fails, return the raw string truncated to trunc_length.
+    """
+    try:
+        parsed_url = urlparse(s)
+        if parsed_url.netloc:
+            path = parsed_url.path.lstrip("/")
+            url = f"{parsed_url.netloc}/{path}"
+            if parsed_url.query:
+                url += f"?{parsed_url.query}"
+            return url
+
+    except ValueError:
+        pass
+
+    if len(s) > trunc_length:
+        return s[:trunc_length] + " [truncated]"
+    return s

@@ -22,8 +22,8 @@ class BuildDetailsAppInfo(BaseModel):
     build_number: int | None = None
     date_added: str | None = None
     date_built: str | None = None
-    artifact_type: PreprodArtifact.ArtifactType
-    platform: Platform
+    artifact_type: PreprodArtifact.ArtifactType | None = None
+    platform: Platform | None = None
     is_installable: bool
     # build_configuration: Optional[str] = None  # Uncomment when available
     # icon: Optional[str] = None  # Uncomment when available
@@ -54,15 +54,15 @@ class BuildDetailsApiResponse(BaseModel):
 
 
 def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:
-    if artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
-        return Platform.IOS
-    elif (
-        artifact_type == PreprodArtifact.ArtifactType.AAB
-        or artifact_type == PreprodArtifact.ArtifactType.APK
-    ):
-        return Platform.ANDROID
-    else:
-        raise ValueError(f"Unknown artifact type: {artifact_type}")
+    match artifact_type:
+        case PreprodArtifact.ArtifactType.XCARCHIVE:
+            return Platform.IOS
+        case PreprodArtifact.ArtifactType.AAB:
+            return Platform.ANDROID
+        case PreprodArtifact.ArtifactType.APK:
+            return Platform.ANDROID
+        case _:
+            raise ValueError(f"Unknown artifact type: {artifact_type}")
 
 
 def transform_preprod_artifact_to_build_details(
@@ -91,7 +91,9 @@ def transform_preprod_artifact_to_build_details(
         date_added=(artifact.date_added.isoformat() if artifact.date_added else None),
         date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
         artifact_type=artifact.artifact_type,
-        platform=platform_from_artifact_type(artifact.artifact_type),
+        platform=(
+            platform_from_artifact_type(artifact.artifact_type) if artifact.artifact_type else None
+        ),
         is_installable=is_installable_artifact(artifact),
     )
 

@@ -4,6 +4,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
 import docs from './celery';
 
 describe('celery onboarding docs', () => {
@@ -47,7 +49,7 @@ describe('celery onboarding docs', () => {
 
     // Does render transaction profiling config
     expect(
-      screen.getByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+      screen.getAllByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))[0]
     ).toBeInTheDocument();
   });
 
@@ -76,5 +78,25 @@ describe('celery onboarding docs', () => {
     expect(
       screen.getByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).toBeInTheDocument();
+  });
+
+  it('renders with logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    const logMatches = screen.getAllByText(textWithMarkupMatcher(/enable_logs=True,/));
+    expect(logMatches.length).toBeGreaterThan(0);
+    logMatches.forEach(match => expect(match).toBeInTheDocument());
+  });
+
+  it('renders without logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+    ).not.toBeInTheDocument();
   });
 });

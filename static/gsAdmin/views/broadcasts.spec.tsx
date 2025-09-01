@@ -10,7 +10,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
 
 import Broadcasts from 'admin/views/broadcasts';
 
@@ -26,7 +25,6 @@ describe('Broadcasts', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
   });
 
   it('renders', async () => {

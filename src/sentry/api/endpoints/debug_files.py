@@ -70,7 +70,11 @@ def has_download_permission(request: Request, project: Project):
         return False
 
     organization = project.organization
-    required_role = organization.get_option("sentry:debug_files_role") or DEBUG_FILES_ROLE_DEFAULT
+    required_role = (
+        project.get_option("sentry:debug_files_role")
+        or organization.get_option("sentry:debug_files_role")
+        or DEBUG_FILES_ROLE_DEFAULT
+    )
 
     if request.user.is_sentry_app:
         if organization_roles.can_manage("member", required_role):

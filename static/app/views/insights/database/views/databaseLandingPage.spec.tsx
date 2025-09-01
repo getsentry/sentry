@@ -16,7 +16,7 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('DatabaseLandingPage', () => {
-  const organization = OrganizationFixture({features: ['insights-initial-modules']});
+  const organization = OrganizationFixture({features: ['insight-modules']});
 
   let spanListRequestMock: jest.Mock;
   let spanChartsRequestMock: jest.Mock;

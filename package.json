@@ -118,7 +118,7 @@
     "echarts": "5.4.0",
     "echarts-for-react": "3.0.2",
     "esbuild": "0.25.3",
-    "focus-trap": "^7.3.1",
+    "focus-trap": "7.6.5",
     "framer-motion": "12.23.12",
     "fuse.js": "^6.6.2",
     "gettext-parser": "7.0.1",

@@ -10,6 +10,7 @@ import {
   isAmEnterprisePlan,
   isBizPlanFamily,
   isDeveloperPlan,
+  isTeamPlanFamily,
 } from 'getsentry/utils/billing';
 
 type RenderProps = {
@@ -117,6 +118,16 @@ function PlanFeature({subscription, features, organization, children}: Props) {
     if (isBizPlanFamily(plan) || isAmEnterprisePlan(plan.id)) {
       if (!plan.features.includes('global-views')) {
         plan.features.push('global-views');
+      }
+    }
+    if (isBizPlanFamily(plan)) {
+      if (!plan.features.includes('dashboards-edit')) {
+        plan.features.push('dashboards-edit');
+      }
+    }
+    if (isTeamPlanFamily(plan) || isBizPlanFamily(plan)) {
+      if (!plan.features.includes('dashboards-basic')) {
+        plan.features.push('dashboards-basic');
       }
     }
   }

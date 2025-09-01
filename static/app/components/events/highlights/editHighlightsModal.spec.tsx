@@ -14,7 +14,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import EditHighlightsModal, {
   type EditHighlightsModalProps,
 } from 'sentry/components/events/highlights/editHighlightsModal';
-import ModalStore from 'sentry/stores/modalStore';
 import type {Project} from 'sentry/types/project';
 import * as analytics from 'sentry/utils/analytics';
 
@@ -77,7 +76,6 @@ describe('EditHighlightsModal', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
-    ModalStore.reset();
   });
 
   it('should renders with basic functions', async () => {
