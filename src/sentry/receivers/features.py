@@ -469,9 +469,12 @@ def record_sso_enabled(organization_id, user_id, provider, **kwargs):
         organization_id=organization_id, feature_slug="sso", complete=True
     )
 
-    analytics.record(
-        SSOEnabledEvent(user_id=user_id, organization_id=organization_id, provider=provider)
-    )
+    try:
+        analytics.record(
+            SSOEnabledEvent(user_id=user_id, organization_id=organization_id, provider=provider)
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @data_scrubber_enabled.connect(weak=False)

@@ -5,7 +5,7 @@ from sentry import analytics
 class IssueSearchEndpointQueriedEvent(analytics.Event):
     user_id: int | None
     organization_id: int
-    project_ids: str  # This is a list of project ids
+    project_ids: str  # This is a stringified list of project ids
     full_query_params: str
     query: str
 
