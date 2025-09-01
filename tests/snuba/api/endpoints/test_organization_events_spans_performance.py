@@ -20,7 +20,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
         "organizations:global-views",
     ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

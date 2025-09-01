@@ -2,13 +2,13 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationRepositoriesContainer from 'sentry/views/settings/organizationRepositories';
 
-describe('OrganizationRepositoriesContainer', function () {
-  beforeEach(function () {
+describe('OrganizationRepositoriesContainer', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  describe('without any providers', function () {
-    beforeEach(function () {
+  describe('without any providers', () => {
+    beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/repos/',
         body: [],
@@ -19,7 +19,7 @@ describe('OrganizationRepositoriesContainer', function () {
       });
     });
 
-    it('is loading when initially rendering', function () {
+    it('is loading when initially rendering', () => {
       render(<OrganizationRepositoriesContainer />);
     });
   });

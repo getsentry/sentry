@@ -867,7 +867,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/organizationStats/teamInsights/issues')
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: 'health/',
@@ -967,6 +966,12 @@ function buildRoutes(): RouteObject[] {
           ),
         },
       ],
+    },
+    {
+      path: 'rate-limits/',
+      name: t('Rate Limits'),
+      component: make(() => import('sentry/views/settings/organizationRateLimits')),
+      deprecatedRouteProps: true,
     },
     {
       path: 'relay/',
@@ -1387,7 +1392,7 @@ function buildRoutes(): RouteObject[] {
 
   const traceView: SentryRouteObject = {
     path: 'trace/:traceSlug/',
-    component: make(() => import('sentry/views/performance/traceDetails')),
+    component: make(() => import('sentry/views/performance/newTraceDetails/index')),
     deprecatedRouteProps: true,
   };
 
@@ -1433,17 +1438,6 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/dashboards/view')),
           deprecatedRouteProps: true,
         },
-        // old widget builder routes
-        {
-          path: 'widget/:widgetIndex/edit/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/new/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
       ],
     },
     {
@@ -1482,16 +1476,6 @@ function buildRoutes(): RouteObject[] {
         {
           path: 'widget-builder/widget/new/',
           component: make(() => import('sentry/views/dashboards/view')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/:widgetIndex/edit/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
-          deprecatedRouteProps: true,
-        },
-        {
-          path: 'widget/new/',
-          component: make(() => import('sentry/views/dashboards/widgetBuilder')),
           deprecatedRouteProps: true,
         },
         {
@@ -1810,11 +1794,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'results/',
       component: make(() => import('sentry/views/discover/results')),
-      deprecatedRouteProps: true,
-    },
-    {
-      path: ':eventSlug/',
-      component: make(() => import('sentry/views/discover/eventDetails')),
       deprecatedRouteProps: true,
     },
   ];
@@ -2215,10 +2194,6 @@ function buildRoutes(): RouteObject[] {
       path: 'browser/pageloads',
       redirectTo: `/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.VITAL]}/`,
     },
-    {
-      path: ':eventSlug/',
-      component: make(() => import('sentry/views/performance/transactionDetails')),
-    },
   ];
   const performanceRoutes: SentryRouteObject = {
     path: '/performance/',
@@ -2497,14 +2472,33 @@ function buildRoutes(): RouteObject[] {
 
   const preprodChildren: SentryRouteObject[] = [
     {
-      index: true,
+      path: 'builds/',
+      component: make(() => import('sentry/views/preprod/buildList/buildList')),
+      deprecatedRouteProps: true,
+    },
+    {
+      path: ':artifactId/',
       component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
+      deprecatedRouteProps: true,
+    },
+    {
+      path: 'compare/:headArtifactId/',
+      component: make(
+        () => import('sentry/views/preprod/buildComparison/buildComparison')
+      ),
+      deprecatedRouteProps: true,
+    },
+    {
+      path: 'compare/:headArtifactId/:baseArtifactId/',
+      component: make(
+        () => import('sentry/views/preprod/buildComparison/buildComparison')
+      ),
       deprecatedRouteProps: true,
     },
   ];
   const preprodRoutes: SentryRouteObject = {
-    path: '/preprod/:projectId/:artifactId/',
-    component: make(() => import('sentry/views/preprod/buildDetails/index')),
+    path: '/preprod/:projectId/',
+    component: make(() => import('sentry/views/preprod/index')),
     withOrgPath: true,
     children: preprodChildren,
     deprecatedRouteProps: true,

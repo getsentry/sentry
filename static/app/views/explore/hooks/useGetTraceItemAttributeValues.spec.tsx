@@ -31,7 +31,7 @@ describe('useGetTraceItemAttributeValues', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
   const attributeKey = 'test.attribute';
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
 

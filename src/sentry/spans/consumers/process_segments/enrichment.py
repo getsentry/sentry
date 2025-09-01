@@ -54,11 +54,11 @@ class Span(SegmentSpan, total=True):
 
     sentry_tags: dict[str, Any]  # type: ignore[misc]  # XXX: fix w/ TypedDict extra_items once available
 
-    # XXX: unclear where this comes from as it's not from enrichment!
+    # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]
 
 
-def _get_span_op(span: SegmentSpan) -> str:
+def _get_span_op(span: SegmentSpan | Span) -> str:
     return span.get("sentry_tags", {}).get("op") or DEFAULT_SPAN_OP
 
 
@@ -210,7 +210,7 @@ def _timestamp_by_op(spans: list[SegmentSpan], op: str) -> float | None:
     return None
 
 
-def _span_interval(span: SegmentSpan) -> tuple[int, int]:
+def _span_interval(span: SegmentSpan | Span) -> tuple[int, int]:
     """Get the start and end timestamps of a span in microseconds."""
     return _us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"])
 
@@ -221,9 +221,8 @@ def _us(timestamp: float) -> int:
     return int(timestamp * 1_000_000)
 
 
-def segment_span_measurement_updates(
-    segment: Span,
-    spans: list[SegmentSpan],
+def compute_breakdowns(
+    spans: list[Span],
     breakdowns_config: dict[str, dict[str, Any]],
 ) -> dict[str, MeasurementValue]:
     """
@@ -249,7 +248,7 @@ def segment_span_measurement_updates(
     return ret
 
 
-def _compute_span_ops(spans: list[SegmentSpan], config: Any) -> dict[str, MeasurementValue]:
+def _compute_span_ops(spans: list[Span], config: Any) -> dict[str, MeasurementValue]:
     matches = config.get("matches")
     if not matches:
         return {}

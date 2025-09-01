@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import abc
-from typing import NotRequired, TypedDict, _TypedDict
+from collections.abc import Mapping
+from typing import Any, NotRequired, TypedDict, _TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -20,6 +21,7 @@ from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.helper import AuthHelper
 from sentry.auth.provider import Provider
 from sentry.auth.store import FLOW_LOGIN
 from sentry.auth.view import AuthView
@@ -58,7 +60,7 @@ def get_provider(organization_slug: str) -> SAML2Provider | None:
 
 
 class SAML2LoginView(AuthView):
-    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         if "SAMLResponse" in request.POST:
             return pipeline.next_step()
 
@@ -128,7 +130,7 @@ class SAML2AcceptACSView(BaseView):
 
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         provider = pipeline.provider
 
         # If we're authenticating during the setup pipeline the provider will
@@ -164,7 +166,7 @@ class SAML2SLSView(BaseView):
         # No need to logout an anonymous user.
         should_logout = request.user.is_authenticated
 
-        def force_logout():
+        def force_logout() -> None:
             logout(request)
 
         redirect_to = auth.process_slo(
@@ -266,7 +268,7 @@ class SAML2Provider(Provider, abc.ABC):
         state.
         """
 
-    def attribute_mapping(self):
+    def attribute_mapping(self) -> Mapping[str, Any]:
         """
         Returns the default Attribute Key -> IdP attribute key mapping.
 
@@ -276,7 +278,7 @@ class SAML2Provider(Provider, abc.ABC):
         """
         return {}
 
-    def build_config(self, state):
+    def build_config(self, state: dict[str, Any]) -> dict[str, Any]:
         config = state
 
         # Default attribute mapping if none bound
@@ -285,7 +287,7 @@ class SAML2Provider(Provider, abc.ABC):
 
         return config
 
-    def build_identity(self, state):
+    def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         raw_attributes = state["auth_attributes"]
         attributes = {}
 
@@ -358,7 +360,7 @@ class SamlConfig(TypedDict):
     idp: NotRequired[_SamlConfigIdp]
 
 
-def build_saml_config(provider_config, org: str) -> SamlConfig:
+def build_saml_config(provider_config: Mapping[str, Any], org: str) -> SamlConfig:
     """
     Construct the SAML configuration dict to be passed into the OneLogin SAML
     library.

@@ -13,6 +13,8 @@ import {
   type SearchItem,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
 import {DeviceName} from 'sentry/components/deviceName';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
   SearchQueryBuilderCombobox,
@@ -51,7 +53,6 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -842,9 +843,16 @@ export function SearchQueryBuilderValueCombobox({
     useMemo(() => {
       if (!showDatePicker) {
         return function (props) {
+          // Removing the ask seer options from the value list box props as we don't
+          // display and ask seer option in this list box.
+          const hiddenOptions = new Set(props.hiddenOptions);
+          hiddenOptions.delete(ASK_SEER_ITEM_KEY);
+          hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
+
           return (
             <ValueListBox
               {...props}
+              hiddenOptions={hiddenOptions}
               wrapperRef={topLevelWrapperRef}
               isMultiSelect={canSelectMultipleValues}
               items={items}
@@ -957,7 +965,7 @@ const TrailingWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const CheckWrap = styled('div')<{visible: boolean}>`
@@ -965,5 +973,8 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   justify-content: center;
   align-items: center;
   opacity: ${p => (p.visible ? 1 : 0)};
-  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+  padding-top: ${p => p.theme.space['2xs']};
+  padding-right: 0;
+  padding-bottom: ${p => p.theme.space['2xs']};
+  padding-left: ${p => p.theme.space['2xs']};
 `;

@@ -92,6 +92,7 @@ export enum SpanFields {
 
   // AI fields
   GEN_AI_AGENT_NAME = 'gen_ai.agent.name',
+  GEN_AI_FUNCTION_ID = 'gen_ai.function_id',
   GEN_AI_REQUEST_MODEL = 'gen_ai.request.model',
   GEN_AI_RESPONSE_MODEL = 'gen_ai.response.model',
   GEN_AI_TOOL_NAME = 'gen_ai.tool.name',
@@ -507,6 +508,38 @@ export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
   is_transaction?: 'true' | 'false';
   [SpanFields.PROJECT_ID]?: string;
 };
+
+export enum ErrorField {
+  ISSUE = 'issue',
+  ID = 'id',
+  ISSUE_ID = 'issue.id',
+  TITLE = 'title',
+}
+
+enum ErrorFunction {
+  COUNT = 'count',
+  EPM = 'epm',
+  LAST_SEEN = 'last_seen',
+}
+
+type ErrorStringFields = ErrorField.TITLE | ErrorField.ID | ErrorField.ISSUE_ID;
+type ErrorNumberFields = ErrorField.ISSUE;
+
+type NoArgErrorFunction =
+  | ErrorFunction.COUNT
+  | ErrorFunction.EPM
+  | ErrorFunction.LAST_SEEN;
+
+type ErrorResponseRaw = {
+  [Property in ErrorStringFields as `${Property}`]: string;
+} & {
+  [Property in ErrorNumberFields as `${Property}`]: number;
+} & {
+  [Property in NoArgErrorFunction as `${Property}()`]: number;
+};
+
+export type ErrorResponse = Flatten<ErrorResponseRaw>;
+export type ErrorProperty = keyof ErrorResponse;
 
 // Maps the subregion code to the subregion name according to UN m49 standard
 // We also define this in relay in `country_subregion.rs`

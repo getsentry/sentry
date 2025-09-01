@@ -9,7 +9,7 @@ import type {TitleableModuleNames} from 'sentry/views/insights/common/components
 import {InsightsUpsellPage} from 'getsentry/components/features/insightsUpsellPage';
 import {PlanTier} from 'getsentry/types';
 
-describe('InsightsUpsellPage', function () {
+describe('InsightsUpsellPage', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     organization,
@@ -28,11 +28,8 @@ describe('InsightsUpsellPage', function () {
     subscription.planDetails.features = [];
   });
 
-  it('renders module if plan includes feature', async function () {
-    subscription.planDetails.features = [
-      'insights-initial-modules',
-      'insights-addon-modules',
-    ];
+  it('renders module if plan includes feature', async () => {
+    subscription.planDetails.features = ['insight-modules'];
 
     render(
       <InsightsUpsellPage
@@ -47,7 +44,7 @@ describe('InsightsUpsellPage', function () {
     expect(await screen.findByText('db module content')).toBeInTheDocument();
   });
 
-  it('renders upselling if feature is not included in plan', function () {
+  it('renders upselling if feature is not included in plan', () => {
     render(
       <InsightsUpsellPage
         organization={organization}
@@ -61,7 +58,7 @@ describe('InsightsUpsellPage', function () {
     expect(screen.queryByText('db module content')).not.toBeInTheDocument();
   });
 
-  it('renders module if no upselling exists', async function () {
+  it('renders module if no upselling exists', async () => {
     // let's assume there's a module in sentry, which has no upselling content in getsentry
     const unknownModuleName = 'new-fancy-feature' as TitleableModuleNames;
 

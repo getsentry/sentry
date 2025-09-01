@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
-describe('OrganizationMemberRow', function () {
+describe('OrganizationMemberRow', () => {
   const member = MemberFixture({
     id: '1',
     email: '',
@@ -66,8 +66,8 @@ describe('OrganizationMemberRow', function () {
     return screen.queryByRole('button', {name: 'Remove'});
   }
 
-  describe('two factor', function () {
-    it('does not have 2fa warning if user has 2fa', function () {
+  describe('two factor', () => {
+    it('does not have 2fa warning if user has 2fa', () => {
       render(
         <OrganizationMemberRow
           {...defaultProps}
@@ -82,7 +82,7 @@ describe('OrganizationMemberRow', function () {
       expect(screen.queryByText('2FA Not Enabled')).not.toBeInTheDocument();
     });
 
-    it('has 2fa warning if user does not have 2fa enabled', function () {
+    it('has 2fa warning if user does not have 2fa enabled', () => {
       render(
         <OrganizationMemberRow
           {...defaultProps}
@@ -98,27 +98,27 @@ describe('OrganizationMemberRow', function () {
     });
   });
 
-  describe('Pending user', function () {
+  describe('Pending user', () => {
     const props = {
       ...defaultProps,
       member: {...member, pending: true},
     };
 
-    it('has "Invited" status, no "Resend Invite"', function () {
+    it('has "Invited" status, no "Resend Invite"', () => {
       render(<OrganizationMemberRow {...props} />);
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Invited Member');
       expect(resendButton()).toBeDisabled();
     });
 
-    it('has "Resend Invite" button if `canAddMembers` is true', function () {
+    it('has "Resend Invite" button if `canAddMembers` is true', () => {
       render(<OrganizationMemberRow {...props} canAddMembers />);
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Invited Member');
       expect(resendButton()).toBeEnabled();
     });
 
-    it('has "Resend Invite" button if invite was sent from curr user and feature is on', function () {
+    it('has "Resend Invite" button if invite was sent from curr user and feature is on', () => {
       const org = OrganizationFixture({
         access: ['member:invite'],
       });
@@ -128,7 +128,7 @@ describe('OrganizationMemberRow', function () {
       expect(resendButton()).toBeEnabled();
     });
 
-    it('does not have "Resend Invite" button if invite was sent from other user and feature is on', function () {
+    it('does not have "Resend Invite" button if invite was sent from other user and feature is on', () => {
       const org = OrganizationFixture({
         access: ['member:invite'],
       });
@@ -144,13 +144,13 @@ describe('OrganizationMemberRow', function () {
       expect(resendButton()).toBeDisabled();
     });
 
-    it('has the right inviting states', function () {
+    it('has the right inviting states', () => {
       render(<OrganizationMemberRow {...props} canAddMembers />);
 
       expect(resendButton()).toBeInTheDocument();
     });
 
-    it('has loading state', function () {
+    it('has loading state', () => {
       render(<OrganizationMemberRow {...props} canAddMembers status="loading" />);
 
       // Should have loader
@@ -160,7 +160,7 @@ describe('OrganizationMemberRow', function () {
       expect(resendButton()).not.toBeInTheDocument();
     });
 
-    it('has success status', function () {
+    it('has success status', () => {
       render(<OrganizationMemberRow {...props} canAddMembers status="success" />);
 
       // Should not have loader
@@ -171,7 +171,7 @@ describe('OrganizationMemberRow', function () {
       expect(screen.getByTestId('member-status')).toHaveTextContent('Sent!');
     });
 
-    it('has Remove button if invite was sent from curr user and feature is on', function () {
+    it('has Remove button if invite was sent from curr user and feature is on', () => {
       const org = OrganizationFixture({
         access: ['member:invite'],
       });
@@ -180,7 +180,7 @@ describe('OrganizationMemberRow', function () {
       expect(removeButton()).toBeEnabled();
     });
 
-    it('has disabled Remove button if invite was sent from other user and feature is on', function () {
+    it('has disabled Remove button if invite was sent from other user and feature is on', () => {
       const org = OrganizationFixture({
         access: ['member:invite'],
       });
@@ -196,8 +196,8 @@ describe('OrganizationMemberRow', function () {
     });
   });
 
-  describe('Expired user', function () {
-    it('has "Expired" status', function () {
+  describe('Expired user', () => {
+    it('has "Expired" status', () => {
       render(
         <OrganizationMemberRow
           {...defaultProps}
@@ -211,14 +211,14 @@ describe('OrganizationMemberRow', function () {
     });
   });
 
-  describe('Requires SSO Link', function () {
+  describe('Requires SSO Link', () => {
     const props = {
       ...defaultProps,
       flags: {'sso:link': false},
       requireLink: true,
     };
 
-    it('shows "Invited" status if user has not registered and not linked', function () {
+    it('shows "Invited" status if user has not registered and not linked', () => {
       render(
         <OrganizationMemberRow
           {...props}
@@ -231,20 +231,20 @@ describe('OrganizationMemberRow', function () {
       expect(resendButton()).toBeEnabled();
     });
 
-    it('shows "missing SSO link" message if user is registered and needs link', function () {
+    it('shows "missing SSO link" message if user is registered and needs link', () => {
       render(<OrganizationMemberRow {...props} />);
 
       expect(screen.getByTestId('member-role')).toHaveTextContent('Member');
       expect(resendSsoButton()).toBeDisabled();
     });
 
-    it('has "Resend SSO link" button only if `canAddMembers` is true and no link', function () {
+    it('has "Resend SSO link" button only if `canAddMembers` is true and no link', () => {
       render(<OrganizationMemberRow {...props} canAddMembers />);
 
       expect(resendSsoButton()).toBeEnabled();
     });
 
-    it('has 2fa warning if user is linked does not have 2fa enabled', function () {
+    it('has 2fa warning if user is linked does not have 2fa enabled', () => {
       render(
         <OrganizationMemberRow
           {...defaultProps}
@@ -268,20 +268,20 @@ describe('OrganizationMemberRow', function () {
     });
   });
 
-  describe('Is Current User', function () {
+  describe('Is Current User', () => {
     const props = {
       ...defaultProps,
       member: {...member, email: 'currentUser@email.com'},
     };
 
-    it('has button to leave organization and no button to remove', function () {
+    it('has button to leave organization and no button to remove', () => {
       render(<OrganizationMemberRow {...props} memberCanLeave />);
 
       expect(leaveButton()).toBeInTheDocument();
       expect(removeButton()).not.toBeInTheDocument();
     });
 
-    it('has disabled button to leave organization and no button to remove when member can not leave', function () {
+    it('has disabled button to leave organization and no button to remove when member can not leave', () => {
       render(<OrganizationMemberRow {...props} memberCanLeave={false} />);
 
       expect(leaveButton()).toBeDisabled();
@@ -289,9 +289,9 @@ describe('OrganizationMemberRow', function () {
     });
   });
 
-  describe('IDP flags permissions', function () {
+  describe('IDP flags permissions', () => {
     member.flags['idp:provisioned'] = true;
-    it('current user cannot leave if idp:provisioned', function () {
+    it('current user cannot leave if idp:provisioned', () => {
       const props = {
         ...defaultProps,
         member: {...member, email: 'currentUser@email.com'},
@@ -307,25 +307,25 @@ describe('OrganizationMemberRow', function () {
       expect(leaveButton()).toBeDisabled();
     });
 
-    it('cannot remove member if member is idp:provisioned', function () {
+    it('cannot remove member if member is idp:provisioned', () => {
       render(<OrganizationMemberRow {...defaultProps} />);
 
       expect(removeButton()).toBeDisabled();
     });
   });
 
-  describe('Not Current User', function () {
+  describe('Not Current User', () => {
     const props = {
       ...defaultProps,
     };
 
-    it('does not have Leave button', function () {
+    it('does not have Leave button', () => {
       render(<OrganizationMemberRow {...props} memberCanLeave />);
 
       expect(leaveButton()).not.toBeInTheDocument();
     });
 
-    it('has Remove disabled button when `canRemoveMembers` is false', function () {
+    it('has Remove disabled button when `canRemoveMembers` is false', () => {
       member.flags['idp:provisioned'] = false;
 
       render(<OrganizationMemberRow {...props} />);
@@ -333,7 +333,7 @@ describe('OrganizationMemberRow', function () {
       expect(removeButton()).toBeDisabled();
     });
 
-    it('has Remove button when `canRemoveMembers` is true', function () {
+    it('has Remove button when `canRemoveMembers` is true', () => {
       member.flags['idp:provisioned'] = false;
 
       render(<OrganizationMemberRow {...props} canRemoveMembers />);

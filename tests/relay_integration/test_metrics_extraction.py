@@ -1,4 +1,3 @@
-import time
 import uuid
 
 import confluent_kafka as kafka
@@ -82,8 +81,8 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             self.post_and_retrieve_event(event_data)
 
             strings_emitted = set()
-            for _ in range(1000):
-                message = consumer.poll(timeout=1.0)
+            for attempt in range(1000):
+                message = consumer.poll(timeout=5.0 if attempt == 0 else 0.1)
                 if message is None:
                     break
                 message = json.loads(message.value())
@@ -150,9 +149,9 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
 
             histogram_outlier_tags = {}
             buckets = []
-            t0 = time.monotonic()
+
             for attempt in range(1000):
-                message = consumer.poll(timeout=1.0)
+                message = consumer.poll(timeout=5.0 if attempt == 0 else 0.1)
                 if message is None:
                     break
                 bucket = json.loads(message.value())
@@ -167,8 +166,4 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                 "d:transactions/duration@millisecond": "inlier",
                 "d:transactions/measurements.fcp@millisecond": "outlier",
                 "d:transactions/measurements.lcp@millisecond": "inlier",
-            }, {
-                "attempts": attempt,
-                "time_elapsed": time.monotonic() - t0,
-                "bucket_count": len(buckets),
             }

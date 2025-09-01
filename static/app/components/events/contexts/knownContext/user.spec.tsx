@@ -34,8 +34,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('UserContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('UserContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getUserContextData({data: MOCK_USER_CONTEXT})).toEqual([
       {
         key: 'email',
@@ -67,7 +67,7 @@ describe('UserContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {user: MOCK_REDACTION}},
     });

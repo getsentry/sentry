@@ -577,20 +577,40 @@ export function useSetExploreGroupBys() {
   return useCallback(
     (groupBys: string[], mode?: Mode) => {
       const aggregateFields = [];
-      let i = 0;
+
+      let seenVisualizes = false;
+      let groupByAfterVisualizes = false;
+
+      for (const aggregateField of pageParams.aggregateFields) {
+        if (isGroupBy(aggregateField) && seenVisualizes) {
+          groupByAfterVisualizes = true;
+          break;
+        } else if (isVisualize(aggregateField)) {
+          seenVisualizes = true;
+        }
+      }
+
+      const iter = groupBys[Symbol.iterator]();
+
       for (const aggregateField of pageParams.aggregateFields) {
         if (isGroupBy(aggregateField)) {
-          if (i < groupBys.length) {
-            const groupBy: GroupBy = {groupBy: groupBys[i++]!};
-            aggregateFields.push(groupBy);
+          const {value: groupBy, done} = iter.next();
+          if (!done) {
+            aggregateFields.push({groupBy});
           }
         } else {
+          if (!groupByAfterVisualizes) {
+            // no existing group by appears after a visualize, so any additional
+            // group bys will be inserted before any visualizes as well
+            for (const groupBy of iter) {
+              aggregateFields.push({groupBy});
+            }
+          }
           aggregateFields.push(aggregateField.toJSON());
         }
       }
-      for (; i < groupBys.length; i++) {
-        const groupBy = {groupBy: groupBys[i]!};
-        aggregateFields.push(groupBy);
+      for (const groupBy of iter) {
+        aggregateFields.push({groupBy});
       }
 
       setPageParams({aggregateFields, mode});

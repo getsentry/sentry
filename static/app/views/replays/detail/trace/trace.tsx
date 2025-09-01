@@ -95,6 +95,7 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
   const meta = useReplayTraceMeta(replay);
   const tree = useTraceTree({
     trace,
+    meta,
     replay: replay ?? null,
   });
   const rootEvent = useTraceRootEvent({

@@ -6,16 +6,36 @@ import {
   transformEventsStatsComparisonSeries,
   transformEventsStatsToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
+import {
+  BASE_DYNAMIC_INTERVALS,
+  BASE_INTERVALS,
+  getEapTimePeriodsForInterval,
+  MetricDetectorInterval,
+} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
 import type {DetectorDatasetConfig} from './base';
+import {parseEventTypesFromQuery} from './eventTypes';
 
 type SpansSeriesResponse = EventsStats;
 
+const DEFAULT_EVENT_TYPES = ['trace_item_span'];
+
 export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
+  SearchBar: TraceSearchBar,
+  defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: SpansConfig.defaultField,
   getAggregateOptions: SpansConfig.getTableFieldOptions,
-  SearchBar: TraceSearchBar,
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
+  getIntervals: ({detectionType}) => {
+    const intervals =
+      detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
+    // EAP does not support minute intervals
+    return intervals.filter(interval => interval > MetricDetectorInterval.ONE_MINUTE);
+  },
+  getTimePeriods: interval => getEapTimePeriodsForInterval(interval),
+  separateEventTypesFromQuery: query =>
+    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
+  toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
   },
@@ -24,4 +44,5 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
   },
   fromApiAggregate: aggregate => aggregate,
   toApiAggregate: aggregate => aggregate,
+  supportedDetectionTypes: ['static', 'percent', 'dynamic'],
 };

@@ -1,11 +1,12 @@
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import cast
+from typing import Any, cast
 
 import sentry_sdk
 from django.utils import timezone
 
-from sentry import analytics, options
+from sentry import analytics
 from sentry.analytics.events.groupowner_assignment import GroupOwnerAssignment
 from sentry.locks import locks
 from sentry.models.commit import Commit
@@ -33,8 +34,17 @@ logger = logging.getLogger(__name__)
 
 
 def _process_suspect_commits(
-    event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
+    event_id,
+    event_platform,
+    event_frames: Sequence[Mapping[str, Any]],
+    group_id,
+    project_id,
+    sdk_name=None,
+    **kwargs,
 ):
+    """
+    This is the logic behind SuspectCommitStrategy.RELEASE_BASED
+    """
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
 
@@ -81,33 +91,23 @@ def _process_suspect_commits(
                     sorted(owner_scores.items(), reverse=True, key=lambda item: item[1])
                 )[:PREFERRED_GROUP_OWNERS]:
                     try:
-                        if options.get("issues.suspect-commit-strategy"):
-                            group_owner, created = (
-                                GroupOwner.objects.update_or_create_and_preserve_context(
-                                    lookup_kwargs={
-                                        "group_id": group_id,
-                                        "type": GroupOwnerType.SUSPECT_COMMIT.value,
-                                        "user_id": owner_id,
-                                        "project_id": project.id,
-                                        "organization_id": project.organization_id,
-                                    },
-                                    defaults={
-                                        "date_added": timezone.now(),
-                                    },
-                                    context_defaults={
-                                        "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
-                                    },
-                                )
+                        group_owner, created = (
+                            GroupOwner.objects.update_or_create_and_preserve_context(
+                                lookup_kwargs={
+                                    "group_id": group_id,
+                                    "type": GroupOwnerType.SUSPECT_COMMIT.value,
+                                    "user_id": owner_id,
+                                    "project_id": project.id,
+                                    "organization_id": project.organization_id,
+                                },
+                                defaults={
+                                    "date_added": timezone.now(),
+                                },
+                                context_defaults={
+                                    "suspectCommitStrategy": SuspectCommitStrategy.RELEASE_BASED,
+                                },
                             )
-                        else:
-                            group_owner, created = GroupOwner.objects.update_or_create(
-                                group_id=group_id,
-                                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                                user_id=owner_id,
-                                project=project,
-                                organization_id=project.organization_id,
-                                defaults={"date_added": timezone.now()},
-                            )
+                        )
 
                         if created:
                             owner_count += 1
@@ -196,12 +196,15 @@ def _process_suspect_commits(
 def process_suspect_commits(
     event_id,
     event_platform,
-    event_frames,
+    event_frames: Sequence[Mapping[str, Any]],
     group_id,
     project_id,
     sdk_name=None,
     **kwargs,
 ):
+    """
+    This is the task behind SuspectCommitStrategy.RELEASE_BASED
+    """
     lock = locks.get(
         f"process-suspect-commits:{group_id}", duration=10, name="process_suspect_commits"
     )

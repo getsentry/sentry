@@ -181,11 +181,9 @@ class EventAttachment(Model):
             blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
 
             storage = get_storage()
-            compressed_blob = zstandard.compress(data)
-
-            with measure_storage_operation(
-                "put", "attachments", size, len(compressed_blob), "zstd"
-            ):
+            with measure_storage_operation("put", "attachments", size) as metric_emitter:
+                compressed_blob = zstandard.compress(data)
+                metric_emitter.record_compressed_size(len(compressed_blob), "zstd")
                 storage.save(blob_path, BytesIO(compressed_blob))
 
         else:

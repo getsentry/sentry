@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -18,7 +19,7 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -85,22 +86,34 @@ export function NewMetricDetectorForm() {
   );
 }
 
-function DetectionType() {
-  const options: Array<[MetricDetectorFormData['detectionType'], string, string]> = [
-    ['static', t('Threshold'), t('Absolute-valued thresholds, for non-seasonal data.')],
-    ['percent', t('Change'), t('Percentage changes over defined time windows.')],
-    [
-      'dynamic',
-      t('Dynamic'),
-      t('Auto-detect anomalies and mean deviation, for seasonal/noisy data.'),
-    ],
-  ];
+const DETECTION_TYPE_MAP: Record<
+  MetricDetectorConfig['detectionType'],
+  {description: string; label: string}
+> = {
+  static: {
+    label: t('Threshold'),
+    description: t('Absolute-valued thresholds, for non-seasonal data.'),
+  },
+  percent: {
+    label: t('Change'),
+    description: t('Percentage changes over defined time windows.'),
+  },
+  dynamic: {
+    label: t('Dynamic'),
+    description: t('Auto-detect anomalies and mean deviation, for seasonal/noisy data.'),
+  },
+};
 
+function DetectionType() {
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
-  // Disable choices for releases dataset, does not support
-  if (dataset === DetectorDataset.RELEASES) {
-    return null;
-  }
+  const datasetConfig = getDatasetConfig(dataset);
+  const options: RadioOption[] = datasetConfig.supportedDetectionTypes.map(
+    detectionType => [
+      detectionType,
+      DETECTION_TYPE_MAP[detectionType].label,
+      DETECTION_TYPE_MAP[detectionType].description,
+    ]
+  );
 
   return (
     <DetectionTypeField
@@ -190,8 +203,8 @@ function IntervalPicker() {
     METRIC_DETECTOR_FORM_FIELDS.detectionType
   );
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
-  const intervalChoices = useIntervalChoices({dataset, detectionType});
   const interval = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.interval);
+  const intervalChoices = useIntervalChoices({dataset, detectionType});
 
   useEffect(() => {
     if (!intervalChoices.some(choice => choice[0] === interval)) {
@@ -242,7 +255,7 @@ function useDatasetChoices() {
             {
               value: DetectorDataset.LOGS,
               label: t('Logs'),
-              trailingItems: <FeatureBadge type="beta" />,
+              trailingItems: <FeatureBadge type="new" />,
             },
           ]
         : []),
@@ -293,11 +306,11 @@ function DetectSection() {
                 defaultAggregate
               );
 
-              // Reset detection type to static for releases dataset
-              if (newDataset === DetectorDataset.RELEASES) {
+              const supportedDetectionTypes = datasetConfig.supportedDetectionTypes;
+              if (!supportedDetectionTypes.includes(detectionType)) {
                 formContext.form?.setValue(
                   METRIC_DETECTOR_FORM_FIELDS.detectionType,
-                  'static'
+                  supportedDetectionTypes[0]
                 );
               }
             }}

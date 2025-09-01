@@ -3,7 +3,7 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {getKeyCode} from 'sentry/utils/getKeyCode';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
-describe('useHotkeys', function () {
+describe('useHotkeys', () => {
   let events: Record<string, (evt: EventListenerOrEventListenerObject) => void> = {};
 
   function makeKeyEventFixture(keyCode: any, options: any) {
@@ -28,7 +28,7 @@ describe('useHotkeys', function () {
     });
   });
 
-  it('handles a simple match', function () {
+  it('handles a simple match', () => {
     const callback = jest.fn();
 
     renderHook(p => useHotkeys(p), {
@@ -45,7 +45,7 @@ describe('useHotkeys', function () {
     expect(callback).toHaveBeenCalled();
   });
 
-  it('handles multiple matches', function () {
+  it('handles multiple matches', () => {
     const callback = jest.fn();
 
     renderHook(p => useHotkeys(p), {
@@ -65,7 +65,7 @@ describe('useHotkeys', function () {
     expect(callback).toHaveBeenCalled();
   });
 
-  it('handles a complex match', function () {
+  it('handles a complex match', () => {
     const callback = jest.fn();
 
     renderHook(p => useHotkeys(p), {
@@ -87,7 +87,7 @@ describe('useHotkeys', function () {
     expect(callback).toHaveBeenCalled();
   });
 
-  it('does not match when extra modifiers are pressed', function () {
+  it('does not match when extra modifiers are pressed', () => {
     const callback = jest.fn();
 
     renderHook(p => useHotkeys(p), {
@@ -109,7 +109,7 @@ describe('useHotkeys', function () {
     expect(callback).not.toHaveBeenCalled();
   });
 
-  it('updates with rerender', function () {
+  it('updates with rerender', () => {
     const callback = jest.fn();
 
     const {rerender} = renderHook(p => useHotkeys([{match: p.match, callback}]), {
@@ -133,7 +133,7 @@ describe('useHotkeys', function () {
     expect(callback).toHaveBeenCalled();
   });
 
-  it('skips input and textarea', function () {
+  it('skips input and textarea', () => {
     const callback = jest.fn();
 
     renderHook(p => useHotkeys(p), {
@@ -145,7 +145,7 @@ describe('useHotkeys', function () {
     expect(callback).not.toHaveBeenCalled();
   });
 
-  it('does not skips input and textarea with includesInputs', function () {
+  it('does not skips input and textarea with includesInputs', () => {
     const callback = jest.fn();
 
     renderHook(p => useHotkeys(p), {
@@ -157,7 +157,7 @@ describe('useHotkeys', function () {
     expect(callback).toHaveBeenCalled();
   });
 
-  it('skips preventDefault', function () {
+  it('skips preventDefault', () => {
     const callback = jest.fn();
 
     renderHook(p => useHotkeys(p), {

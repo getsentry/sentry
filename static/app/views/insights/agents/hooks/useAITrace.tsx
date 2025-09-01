@@ -39,12 +39,13 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
     timestamp: queryParams.timestamp,
     additionalAttributes: [
       SpanFields.GEN_AI_AGENT_NAME,
+      SpanFields.GEN_AI_FUNCTION_ID,
       SpanFields.GEN_AI_REQUEST_MODEL,
       SpanFields.GEN_AI_RESPONSE_MODEL,
-      'sum(gen_ai.usage.total_tokens)',
-      'sum(gen_ai.usage.total_cost)',
+      SpanFields.GEN_AI_USAGE_TOTAL_TOKENS,
+      SpanFields.GEN_AI_USAGE_TOTAL_COST,
       SpanFields.GEN_AI_TOOL_NAME,
-      'span.status',
+      SpanFields.SPAN_STATUS,
     ],
   });
 
@@ -65,6 +66,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
           meta: meta.data,
           replay: null,
           preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
+          organization,
         });
 
         tree.build();

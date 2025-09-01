@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import cast
 from unittest.mock import patch
 
@@ -35,7 +35,7 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 @freeze_time(MOCK_DATETIME)
 class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     @property
-    def now(self):
+    def now(self) -> datetime:
         return MOCK_DATETIME
 
     def test_simple_one_org_one_project(self) -> None:

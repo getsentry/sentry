@@ -17,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
-import ReplayIndexTable from 'sentry/views/replays/list/replayIndexTable';
+import ReplayIndexContainer from 'sentry/views/replays/list/replayIndexContainer';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplaysSearch from 'sentry/views/replays/list/search';
 import ReplayTabs from 'sentry/views/replays/tabs';
@@ -71,7 +71,7 @@ export default function ReplaysListContainer() {
               <Grid gap="xl">
                 <ReplayListPageHeaderHook />
                 {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
-                  <ReplayIndexTable />
+                  <ReplayIndexContainer />
                 ) : (
                   <Fragment>
                     <Flex gap="xl" wrap="wrap">

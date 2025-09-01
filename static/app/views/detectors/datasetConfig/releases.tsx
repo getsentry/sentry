@@ -1,16 +1,26 @@
 import type {SelectValue} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionField} from 'sentry/types/sessions';
-import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
+import type {
+  AggregationKeyWithAlias,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {ReleaseSearchBar} from 'sentry/views/detectors/datasetConfig/components/releaseSearchBar';
 import {
   getReleasesSeriesQueryOptions,
   transformMetricsResponseToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/releasesSeries';
+import {
+  BASE_DYNAMIC_INTERVALS,
+  BASE_INTERVALS,
+  getStandardTimePeriodsForInterval,
+  MetricDetectorInterval,
+} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import type {DetectorDatasetConfig} from './base';
+import {parseEventTypesFromQuery} from './eventTypes';
 
 type ReleasesSeriesResponse = SessionApiResponse;
 
@@ -63,6 +73,18 @@ const AGGREGATE_FUNCTION_MAP: Record<string, string> = {
     'percentage(users_crashed, users) AS _crash_rate_alert_aggregate',
 };
 
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: [
+    'crash_free_rate' as AggregationKeyWithAlias,
+    SessionField.SESSION,
+    undefined,
+    undefined,
+  ],
+  kind: FieldValueKind.FUNCTION,
+};
+
+const DEFAULT_EVENT_TYPES: string[] = [];
+
 const fromApiAggregate = (aggregate: string) => {
   return (
     Object.keys(AGGREGATE_FUNCTION_MAP).find(
@@ -76,12 +98,28 @@ const toApiAggregate = (aggregate: string) => {
 };
 
 export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesResponse> = {
-  defaultField: ReleasesConfig.defaultField,
+  defaultField: DEFAULT_FIELD,
+  defaultEventTypes: DEFAULT_EVENT_TYPES,
   getAggregateOptions: () => AGGREGATE_OPTIONS,
   SearchBar: ReleaseSearchBar,
   getSeriesQueryOptions: getReleasesSeriesQueryOptions,
+  getIntervals: ({detectionType}) => {
+    let intervals = detectionType === 'dynamic' ? BASE_DYNAMIC_INTERVALS : BASE_INTERVALS;
+    // Crash-free (releases) does not support sub-hour intervals
+    intervals = intervals.filter(interval => interval >= MetricDetectorInterval.ONE_HOUR);
+    return intervals;
+  },
+  getTimePeriods: interval => {
+    if (interval < MetricDetectorInterval.ONE_HOUR) {
+      return [];
+    }
+    return getStandardTimePeriodsForInterval(interval);
+  },
   toApiAggregate,
   fromApiAggregate,
+  toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
+  separateEventTypesFromQuery: query =>
+    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
   transformSeriesQueryData: (data, aggregate) => {
     return [transformMetricsResponseToSeries(data, aggregate)];
   },
@@ -89,4 +127,5 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
     // Releases cannot have a comparison series currently
     return [];
   },
+  supportedDetectionTypes: ['static'],
 };

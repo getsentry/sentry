@@ -7,11 +7,11 @@ import PreventAIOnboarding from './onboarding';
 
 jest.mock('sentry-images/features/prevent-hero.svg', () => 'prevent-hero-mock.svg');
 jest.mock(
-  'sentry-images/features/prevent-pr-comment.png',
-  () => 'prevent-pr-comment-mock.png'
+  'sentry-images/features/prevent-pr-comments.png',
+  () => 'prevent-pr-comments-mock.png'
 );
 
-describe('PreventAIOnboarding', function () {
+describe('PreventAIOnboarding', () => {
   const organization = OrganizationFixture({
     slug: 'test-org',
   });
@@ -20,7 +20,7 @@ describe('PreventAIOnboarding', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders the main onboarding content', function () {
+  it('renders the main onboarding content', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
@@ -38,7 +38,7 @@ describe('PreventAIOnboarding', function () {
     expect(screen.getByText('How to use Prevent AI', {exact: false})).toBeInTheDocument();
   });
 
-  it('renders all three onboarding steps', function () {
+  it('renders all three onboarding steps', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(screen.getByText('1')).toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('PreventAIOnboarding', function () {
     expect(screen.getByRole('heading', {name: 'Setup Seer'})).toBeInTheDocument();
   });
 
-  it('renders external links with correct hrefs', function () {
+  it('renders external links with correct hrefs', () => {
     render(<PreventAIOnboarding />, {organization});
 
     const orgSettingsLink = screen.getByRole('link', {name: 'organization settings'});
@@ -79,7 +79,7 @@ describe('PreventAIOnboarding', function () {
     );
   });
 
-  it('renders feature list items', function () {
+  it('renders feature list items', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
@@ -93,7 +93,7 @@ describe('PreventAIOnboarding', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders how to use feature descriptions', function () {
+  it('renders how to use feature descriptions', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
@@ -111,7 +111,7 @@ describe('PreventAIOnboarding', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with @sentry review.'
+          'It predicts which errors your code will cause. This happens automatically when you mark a PR ready for review, and when you trigger a PR review with @sentry review.'
         )
       )
     ).toBeInTheDocument();
@@ -125,18 +125,18 @@ describe('PreventAIOnboarding', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders images with correct alt text', function () {
+  it('renders images with correct alt text', () => {
     render(<PreventAIOnboarding />, {organization});
 
     const heroImage = screen.getByAltText('Prevent AI Hero');
     expect(heroImage).toBeInTheDocument();
 
-    const prCommentImage = screen.getByAltText('Prevent PR Comment');
-    expect(prCommentImage).toBeInTheDocument();
-    expect(prCommentImage).toHaveAttribute('src', 'prevent-pr-comment-mock.png');
+    const prCommentsImage = screen.getByAltText('Prevent PR Comments');
+    expect(prCommentsImage).toBeInTheDocument();
+    expect(prCommentsImage).toHaveAttribute('src', 'prevent-pr-comments-mock.png');
   });
 
-  it('renders admin notice text', function () {
+  it('renders admin notice text', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
@@ -146,7 +146,7 @@ describe('PreventAIOnboarding', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders sentry error prediction notice', function () {
+  it('renders sentry error prediction notice', () => {
     render(<PreventAIOnboarding />, {organization});
 
     expect(
@@ -157,7 +157,7 @@ describe('PreventAIOnboarding', function () {
     ).toBeInTheDocument();
   });
 
-  it('has proper semantic structure with headings', function () {
+  it('has proper semantic structure with headings', () => {
     render(<PreventAIOnboarding />, {organization});
 
     const stepHeadings = screen.getAllByRole('heading', {level: 3});
@@ -168,8 +168,8 @@ describe('PreventAIOnboarding', function () {
     expect(stepHeadings[2]).toHaveTextContent('Setup Seer');
   });
 
-  describe('step descriptions', function () {
-    it('renders step 1 description with organization link', function () {
+  describe('step descriptions', () => {
+    it('renders step 1 description with organization link', () => {
       render(<PreventAIOnboarding />, {organization});
 
       expect(
@@ -181,7 +181,7 @@ describe('PreventAIOnboarding', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders step 2 description with GitHub instructions', function () {
+    it('renders step 2 description with GitHub instructions', () => {
       render(<PreventAIOnboarding />, {organization});
 
       expect(
@@ -193,7 +193,7 @@ describe('PreventAIOnboarding', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders step 3 description with Seer app link', function () {
+    it('renders step 3 description with Seer app link', () => {
       render(<PreventAIOnboarding />, {organization});
 
       expect(

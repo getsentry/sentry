@@ -8,7 +8,6 @@ from django.db.models.functions import StrIndex
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Entity, Function, Op, Query
 from snuba_sdk import Request as SnubaRequest
 
-from sentry import eventstore
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.models.event import EventSerializerResponse
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -25,6 +24,7 @@ from sentry.seer.fetch_issues.more_parsing import (
     patch_parsers_more,
     simple_function_name_conditions,
 )
+from sentry.services import eventstore
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query

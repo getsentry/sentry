@@ -10,12 +10,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers.rest_framework import DummyRuleSerializer
-from sentry.eventstore.models import GroupEvent
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule
 from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.rules.processing.processor import activate_downstream_actions
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.utils.samples import create_sample_event
 from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action

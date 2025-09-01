@@ -6,12 +6,9 @@ from unittest import mock
 
 import pytest
 
-from sentry import eventstore
 from sentry.attachments import attachment_cache
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
-from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.models.activity import Activity
@@ -22,6 +19,9 @@ from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing2 import is_group_finished
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers.datetime import before_now
@@ -95,7 +95,7 @@ def register_event_preprocessor(register_plugin):
             def get_event_preprocessors(self, data):
                 return [f]
 
-            def is_enabled(self, project=None):
+            def is_enabled(self, project=None) -> bool:
                 return True
 
         register_plugin(globals(), ReprocessingTestPlugin)

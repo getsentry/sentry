@@ -10,8 +10,6 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
-from sentry.eventstore import backend as eventstore
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -29,6 +27,8 @@ from sentry.seer.sentry_data_models import (
     Transaction,
     TransactionIssues,
 )
+from sentry.services.eventstore import backend as eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
@@ -209,7 +209,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
                     span_id=span_id,
                     parent_span_id=parent_span_id,
                     span_op=span_op,
-                    span_description=normalize_description(span_description or ""),
+                    span_description=span_description or "",
                 )
             )
 
@@ -417,6 +417,9 @@ def get_profiles_for_trace(trace_id: str, project_id: int) -> TraceProfiles | No
                     transaction_name=transaction_name,
                     execution_tree=execution_tree,
                     project_id=project_id,
+                    start_ts=start_ts,
+                    end_ts=end_ts,
+                    is_continuous=is_continuous,
                 )
             )
         else:

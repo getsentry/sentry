@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from jsonschema import ValidationError
 
-from sentry.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action

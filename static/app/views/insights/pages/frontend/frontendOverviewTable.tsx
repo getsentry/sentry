@@ -25,13 +25,14 @@ import {SPAN_OP_QUERY_PARAM} from 'sentry/views/insights/pages/frontend/settings
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-type Row = Pick<
+export type Row = Pick<
   SpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
   | 'project'
   | 'tpm()'
   | 'p50_if(span.duration,is_transaction,equals,true)'
+  | 'p75_if(span.duration,is_transaction,equals,true)'
   | 'p95_if(span.duration,is_transaction,equals,true)'
   | 'failure_rate_if(is_transaction,equals,true)'
   | 'count_unique(user)'
@@ -45,6 +46,7 @@ type Column = GridColumnHeader<
   | 'project'
   | 'tpm()'
   | 'p50_if(span.duration,is_transaction,equals,true)'
+  | 'p75_if(span.duration,is_transaction,equals,true)'
   | 'p95_if(span.duration,is_transaction,equals,true)'
   | 'failure_rate_if(is_transaction,equals,true)'
   | 'count_unique(user)'
@@ -71,6 +73,11 @@ const COLUMN_ORDER: Column[] = [
   {
     key: `p50_if(span.duration,is_transaction,equals,true)`,
     name: t('p50()'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `p75_if(span.duration,is_transaction,equals,true)`,
+    name: t('p75()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -108,6 +115,7 @@ const SORTABLE_FIELDS = [
   'project',
   'tpm()',
   'p50_if(span.duration,is_transaction,equals,true)',
+  'p75_if(span.duration,is_transaction,equals,true)',
   'p95_if(span.duration,is_transaction,equals,true)',
   'failure_rate_if(is_transaction,equals,true)',
   'count_unique(user)',

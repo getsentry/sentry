@@ -6,8 +6,8 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 
 import docs from './bun';
 
-describe('bun onboarding docs', function () {
-  it('renders doc correctly', function () {
+describe('bun onboarding docs', () => {
+  it('renders doc correctly', () => {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
@@ -21,7 +21,7 @@ describe('bun onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders without tracing', function () {
+  it('renders without tracing', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });

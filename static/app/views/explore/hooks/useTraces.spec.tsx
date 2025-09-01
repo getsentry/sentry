@@ -42,7 +42,7 @@ function createWrapper(organization: Organization) {
   };
 }
 
-describe('useTraces', function () {
+describe('useTraces', () => {
   const project = ProjectFixture();
   const organization = OrganizationFixture();
   const context = initializeOrg({
@@ -57,7 +57,7 @@ describe('useTraces', function () {
     },
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     act(() => {
       ProjectsStore.loadInitialData([project]);
@@ -78,7 +78,7 @@ describe('useTraces', function () {
     });
   });
 
-  it('handles querying the api', async function () {
+  it('handles querying the api', async () => {
     const trace = createTraceResult();
 
     const body = {

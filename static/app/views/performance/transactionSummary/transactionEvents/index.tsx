@@ -164,7 +164,7 @@ function EventsContentWrapper(props: ChildProps) {
       eventView={percentilesView}
       orgSlug={organization.slug}
       location={location}
-      referrer="api.performance.transaction-events"
+      referrer="api.insights.transaction-events"
     >
       {({isLoading, tableData}) => {
         if (isLoading) {

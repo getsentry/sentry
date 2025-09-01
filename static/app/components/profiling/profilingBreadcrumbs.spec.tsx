@@ -3,8 +3,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 
-describe('Breadcrumb', function () {
-  it('renders the profiling link', function () {
+describe('Breadcrumb', () => {
+  it('renders the profiling link', () => {
     const {organization} = initializeOrg();
     render(
       <ProfilingBreadcrumbs

@@ -113,12 +113,12 @@ class LogContextTest(TestCase):
         context_ids = set()
 
         @log_context.root()
-        def first_context():
+        def first_context() -> None:
             context = log_context._log_context_state.get()
             context_ids.add(context.extra["context_id"])
 
         @log_context.root()
-        def second_context():
+        def second_context() -> None:
             context = log_context._log_context_state.get()
             context_ids.add(context.extra["context_id"])
 

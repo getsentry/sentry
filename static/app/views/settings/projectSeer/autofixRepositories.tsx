@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -16,8 +16,9 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconAdd, IconGithub} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,8 +46,8 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   const [repoSettings, setRepoSettings] = useState<Record<string, RepoSettings>>({});
   const [showSaveNotice, setShowSaveNotice] = useState(false);
   const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
-    'solution' | 'code_changes' | 'open_pr'
-  >('solution');
+    'root_cause' | 'solution' | 'code_changes' | 'open_pr'
+  >('root_cause');
 
   useEffect(() => {
     if (repositories) {
@@ -76,7 +77,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
 
         setRepoSettings(initialSettings);
         setAutomatedRunStoppingPoint(
-          preference.automated_run_stopping_point || 'solution'
+          preference.automated_run_stopping_point || 'root_cause'
         );
       } else if (codeMappingRepos?.length) {
         // Set default settings using codeMappingRepos when no preferences exist
@@ -93,7 +94,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         });
 
         setRepoSettings(initialSettings);
-        setAutomatedRunStoppingPoint('solution');
+        setAutomatedRunStoppingPoint('root_cause');
       }
     }
   }, [preference, repositories, codeMappingRepos, updateProjectSeerPreferences]);
@@ -102,7 +103,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     (
       updatedIds?: string[],
       updatedSettings?: Record<string, RepoSettings>,
-      newStoppingPoint?: 'solution' | 'code_changes' | 'open_pr'
+      newStoppingPoint?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr'
     ) => {
       if (!repositories) {
         return;
@@ -238,14 +239,32 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
           />
         </Flex>
         <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
-          <LinkButton
+          <DropdownMenu
             size="sm"
-            icon={<IconGithub />}
-            to={`/settings/${organization.slug}/integrations/github/`}
-            style={{textTransform: 'none'}}
-          >
-            {t('Manage Integration')}
-          </LinkButton>
+            triggerLabel={t('Manage Integration')}
+            items={[
+              {
+                key: 'github',
+                label: (
+                  <Flex gap="sm" align="center">
+                    <PluginIcon pluginId="github" size={16} />
+                    <div>{t('GitHub')}</div>
+                  </Flex>
+                ),
+                to: `/settings/${organization.slug}/integrations/github/`,
+              },
+              {
+                key: 'github_enterprise',
+                label: (
+                  <Flex gap="sm" align="center">
+                    <PluginIcon pluginId="github_enterprise" size={16} />
+                    <div>{t('GitHub Enterprise')}</div>
+                  </Flex>
+                ),
+                to: `/settings/${organization.slug}/integrations/github_enterprise/`,
+              },
+            ]}
+          />
           <Tooltip
             isHoverable
             title={

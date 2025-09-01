@@ -11,16 +11,17 @@ import smallStarLight from 'sentry-images/spot/product-select-star-s.svg';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {IconAdd, IconCheckmark, IconSeer} from 'sentry/icons';
+import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 
+import {getProductIcon} from 'getsentry/utils/billing';
 import {getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {SelectableProduct, type StepProps} from 'getsentry/views/amCheckout/types';
@@ -30,7 +31,8 @@ function ProductSelect({
   activePlan,
   formData,
   onUpdate,
-}: Pick<StepProps, 'activePlan' | 'onUpdate' | 'formData'>) {
+  isNewCheckout,
+}: Pick<StepProps, 'activePlan' | 'onUpdate' | 'formData' | 'isNewCheckout'>) {
   const availableProducts = Object.values(activePlan.availableReservedBudgetTypes)
     .filter(
       productInfo =>
@@ -45,20 +47,21 @@ function ProductSelect({
   const theme = useTheme();
   const PRODUCT_CHECKOUT_INFO = {
     [SelectableProduct.SEER]: {
-      icon: <IconSeer size="lg" color="pink400" />,
       color: theme.pink400 as Color,
       gradientEndColor: theme.pink100 as Color,
       buttonBorderColor: theme.pink200 as Color,
       getProductDescription: (includedBudget: string) =>
-        tct(
-          'Detect and fix issues faster with [includedBudget]/mo in credits towards our AI agent',
-          {
-            includedBudget,
-          }
-        ),
+        isNewCheckout
+          ? t('Detect and fix issues faster with our AI agent')
+          : tct(
+              'Detect and fix issues faster with [includedBudget]/mo in credits towards our AI agent',
+              {
+                includedBudget,
+              }
+            ),
       categoryInfo: {
         [DataCategory.SEER_AUTOFIX]: {
-          perEventNameOverride: 'fix',
+          perEventNameOverride: isNewCheckout ? 'run' : 'fix',
           description: t(
             'Uses the latest AI models with Sentry data to find root causes & proposes PRs'
           ),
@@ -79,13 +82,18 @@ function ProductSelect({
 
   return (
     <Fragment>
-      <Separator />
+      {!isNewCheckout && <Separator />}
       {availableProducts.map(productInfo => {
         const checkoutInfo =
           PRODUCT_CHECKOUT_INFO[productInfo.apiName as string as SelectableProduct];
         if (!checkoutInfo) {
           return null;
         }
+
+        const productIcon = getProductIcon(
+          productInfo.apiName as string as SelectableProduct,
+          'lg'
+        );
 
         // how much the customer is paying for the product
         const priceInCents = utils.getReservedPriceForReservedBudgetCategory({
@@ -102,39 +110,132 @@ function ProductSelect({
           productInfo.defaultBudget ?? priceInCents
         );
 
+        const isSelected =
+          formData.selectedProducts?.[productInfo.apiName as string as SelectableProduct]
+            ?.enabled;
+
+        const ariaLabel = t('Add %s to plan', productInfo.productCheckoutName);
+
+        const toggleProductOption = () => {
+          onUpdate({
+            selectedProducts: {
+              ...formData.selectedProducts,
+              [productInfo.apiName]: {
+                enabled: !isSelected,
+              },
+            },
+          });
+        };
+
+        if (isNewCheckout) {
+          return (
+            <ProductOption
+              key={productInfo.apiName}
+              aria-label={ariaLabel}
+              data-test-id={`product-option-${productInfo.apiName}`}
+              onClick={toggleProductOption}
+              isNewCheckout={isNewCheckout}
+            >
+              <ProductOptionContent isSelected={isSelected} isNewCheckout>
+                <Column>
+                  {productIcon}
+                  <ProductLabel>
+                    <ProductName>
+                      {toTitleCase(productInfo.productCheckoutName, {
+                        allowInnerUpperCase: true,
+                      })}
+                    </ProductName>
+                  </ProductLabel>
+                  <ProductDescription
+                    isNewCheckout
+                    colorOverride={isSelected ? undefined : theme.subText}
+                  >
+                    {checkoutInfo.getProductDescription(formattedMonthlyBudget)}
+                  </ProductDescription>
+                  <div>
+                    <Amount isNewCheckout>{`+$${priceInDollars}`}</Amount>
+                    <BillingInterval
+                      isNewCheckout
+                    >{`/${billingInterval}`}</BillingInterval>
+                  </div>
+                  <Separator />
+                  <FeatureItem data-test-id={`product-option-feature-credits`}>
+                    <IconContainer>
+                      <IconCheckmark color={theme.activeText as Color} />
+                    </IconContainer>
+                    <span>
+                      {tct('Includes [includedBudget]/mo in credits', {
+                        includedBudget: formattedMonthlyBudget,
+                      })}
+                    </span>
+                  </FeatureItem>
+                  {Object.entries(checkoutInfo.categoryInfo).map(([category, info]) => {
+                    const pricingInfo =
+                      activePlan.planCategories[category as DataCategory];
+                    const eventPrice = pricingInfo ? pricingInfo[1]?.onDemandPrice : null;
+                    return (
+                      <FeatureItem
+                        key={category}
+                        data-test-id={`product-option-feature-${category}`}
+                      >
+                        <IconContainer>
+                          <IconCheckmark color={theme.activeText as Color} />
+                        </IconContainer>
+                        <div>
+                          <FeatureItemCategory>
+                            {getSingularCategoryName({
+                              plan: activePlan,
+                              category: category as DataCategory,
+                              hadCustomDynamicSampling: false,
+                              title: true,
+                            })}
+                            {':'}
+                          </FeatureItemCategory>
+                          <span>
+                            {info.description}.{' '}
+                            {eventPrice &&
+                              `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${info.perEventNameOverride ?? getSingularCategoryName({plan: activePlan, category: category as DataCategory, hadCustomDynamicSampling: false, capitalize: false})}`}
+                          </span>
+                        </div>
+                      </FeatureItem>
+                    );
+                  })}
+                </Column>
+                <Column>
+                  <Checkbox
+                    aria-label={ariaLabel}
+                    aria-checked={isSelected}
+                    checked={isSelected}
+                    onChange={toggleProductOption}
+                    onKeyDown={({key}) => {
+                      if (key === 'Enter') {
+                        toggleProductOption();
+                      }
+                    }}
+                  />
+                </Column>
+              </ProductOptionContent>
+            </ProductOption>
+          );
+        }
+
         return (
           <ProductOption
             key={productInfo.apiName}
-            aria-label={productInfo.productName}
+            aria-label={productInfo.productCheckoutName}
             data-test-id={`product-option-${productInfo.apiName}`}
-            onClick={() =>
-              onUpdate({
-                selectedProducts: {
-                  ...formData.selectedProducts,
-                  [productInfo.apiName]: {
-                    enabled:
-                      !formData.selectedProducts?.[
-                        productInfo.apiName as string as SelectableProduct
-                      ]?.enabled,
-                  },
-                },
-              })
-            }
+            onClick={toggleProductOption}
           >
-            <ProductOptionContent
+            <AnimatedProductOptionContent
               gradientColor={checkoutInfo.gradientEndColor}
               buttonBorderColor={checkoutInfo.buttonBorderColor}
-              enabled={
-                formData.selectedProducts?.[
-                  productInfo.apiName as string as SelectableProduct
-                ]?.enabled
-              }
+              isSelected={isSelected}
               prefersDarkMode={prefersDarkMode}
             >
               <Row>
                 <Column>
                   <ProductLabel productColor={checkoutInfo.color}>
-                    {checkoutInfo.icon}
+                    {productIcon}
                     <ProductName>
                       {toTitleCase(productInfo.productCheckoutName, {
                         allowInnerUpperCase: true,
@@ -215,7 +316,7 @@ function ProductSelect({
                 <Star2 src={prefersDarkMode ? mediumStarDark : mediumStarLight} />
                 <Star3 src={prefersDarkMode ? smallStarDark : smallStarLight} />
               </IllustrationContainer>
-            </ProductOptionContent>
+            </AnimatedProductOptionContent>
           </ProductOption>
         );
       })}
@@ -230,29 +331,54 @@ const Separator = styled('div')`
   margin: 0;
 `;
 
-const ProductOption = styled(PanelItem)<{isSelected?: boolean}>`
-  margin: ${space(1.5)};
+const ProductOption = styled(PanelItem)<{isNewCheckout?: boolean; isSelected?: boolean}>`
+  margin: ${p => (p.isNewCheckout ? '0' : p.theme.space.lg)};
   padding: 0;
   display: inherit;
   cursor: pointer;
 `;
 
 const ProductOptionContent = styled('div')<{
+  isNewCheckout?: boolean;
+  isSelected?: boolean;
+}>`
+  padding: ${p => p.theme.space.xl};
+  display: flex;
+  flex-direction: ${p => (p.isNewCheckout ? 'row' : 'column')};
+  justify-content: ${p => (p.isNewCheckout ? 'space-between' : 'flex-start')};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.innerBorder};
+  width: 100%;
+
+  ${p =>
+    p.isNewCheckout &&
+    !p.isSelected &&
+    css`
+      background-color: ${p.theme.background};
+    `}
+
+  ${p =>
+    p.isNewCheckout &&
+    p.isSelected &&
+    css`
+      color: ${p.theme.activeText};
+      border-color: ${p.theme.active};
+      background-color: ${p.theme.active}05;
+    `}
+`;
+
+const AnimatedProductOptionContent = styled(ProductOptionContent)<{
   buttonBorderColor: string;
   gradientColor: string;
   prefersDarkMode: boolean;
-  enabled?: boolean;
 }>`
-  padding: ${space(2)};
-  background-color: ${p => (p.enabled ? p.gradientColor : p.theme.backgroundSecondary)};
-  display: flex;
-  flex-direction: column;
-  border: 1px solid ${p => (p.enabled ? p.gradientColor : p.theme.innerBorder)};
-  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p =>
+    p.isSelected ? p.gradientColor : p.theme.backgroundSecondary};
+  border: 1px solid ${p => (p.isSelected ? p.gradientColor : p.theme.innerBorder)};
 
   button {
-    border-color: ${p => (p.enabled ? p.buttonBorderColor : p.theme.innerBorder)};
-    background-color: ${p => (p.enabled ? 'transparent' : p.theme.background)};
+    border-color: ${p => (p.isSelected ? p.buttonBorderColor : p.theme.innerBorder)};
+    background-color: ${p => (p.isSelected ? 'transparent' : p.theme.background)};
   }
 
   @keyframes gradient {
@@ -269,7 +395,7 @@ const ProductOptionContent = styled('div')<{
   --star-3-translate: 0, 0;
 
   ${p =>
-    p.enabled &&
+    p.isSelected &&
     css`
       --star-1-translate: -3px, 7px;
       --star-2-translate: 6px, -2px;
@@ -293,7 +419,7 @@ const ProductOptionContent = styled('div')<{
   }
 
   ${p =>
-    !p.enabled &&
+    !p.isSelected &&
     css`
       &:hover {
         background: linear-gradient(
@@ -328,33 +454,45 @@ const ProductOptionContent = styled('div')<{
 const Column = styled('div')<{alignItems?: string}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: ${p => p.alignItems};
 `;
 
 const Row = styled('div')`
   display: flex;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
   justify-content: space-between;
 `;
 
-const ProductLabel = styled('div')<{productColor: string}>`
+const ProductLabel = styled('div')<{productColor?: string}>`
   display: flex;
   align-items: center;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: ${space(1)};
-  color: ${p => p.productColor};
+  gap: ${p => p.theme.space.md};
+
+  ${p =>
+    p.productColor &&
+    css`
+      color: ${p.productColor};
+    `}
 `;
 
 const ProductName = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
-const ProductDescription = styled('p')`
-  margin: ${space(0.5)} 0 ${space(2)};
-  font-weight: 600;
+const ProductDescription = styled('p')<{colorOverride?: string; isNewCheckout?: boolean}>`
+  margin: ${p => (p.isNewCheckout ? `0` : `${p.theme.space.xs} 0 ${p.theme.space.xl}`)};
+  font-weight: ${p =>
+    p.isNewCheckout ? p.theme.fontWeight.normal : p.theme.fontWeight.bold};
+
+  ${p =>
+    p.colorOverride &&
+    css`
+      color: ${p.colorOverride};
+    `}
   text-wrap: balance;
 `;
 
@@ -376,18 +514,20 @@ const Price = styled('div')`
 `;
 
 const Currency = styled('span')`
-  padding-top: ${space(0.5)};
+  padding-top: ${p => p.theme.space.xs};
 `;
 
-const Amount = styled('span')`
-  font-size: 24px;
-  align-self: end;
+const Amount = styled('span')<{isNewCheckout?: boolean}>`
+  font-size: ${p => (p.isNewCheckout ? p.theme.fontSize['2xl'] : '24px')};
+  align-self: ${p => (p.isNewCheckout ? 'start' : 'end')};
+  font-weight: ${p =>
+    p.isNewCheckout ? p.theme.fontWeight.bold : p.theme.fontWeight.normal};
 `;
 
-const BillingInterval = styled('span')`
-  font-size: ${p => p.theme.fontSize.md};
-  align-self: end;
-  padding-bottom: ${space(0.25)};
+const BillingInterval = styled('span')<{isNewCheckout?: boolean}>`
+  font-size: ${p => (p.isNewCheckout ? p.theme.fontSize.lg : p.theme.fontSize.md)};
+  align-self: ${p => (p.isNewCheckout ? 'start' : 'end')};
+  padding-bottom: ${p => p.theme.space['2xs']};
 `;
 
 const EventPriceTag = styled(Tag)`
@@ -399,27 +539,27 @@ const EventPriceTag = styled(Tag)`
 `;
 
 const IconContainer = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   display: flex;
   align-items: center;
 `;
 
 const StyledButton = styled(Button)`
   width: 100%;
-  margin: ${space(1.5)} 0 ${space(0.5)};
+  margin: ${p => p.theme.space.lg} 0 ${p => p.theme.space.xs};
 `;
 
 const ButtonContent = styled('div')<{color: string}>`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   color: ${p => p.color};
 `;
 
 const Features = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  column-gap: ${space(2)};
+  column-gap: ${p => p.theme.space.xl};
 `;
 
 const Feature = styled(Column)`
@@ -433,14 +573,14 @@ const FeatureHeader = styled(Row)`
   align-items: center;
 
   > span {
-    margin-right: ${space(0.75)};
+    margin-right: ${p => p.theme.space.sm};
     font-weight: 600;
   }
 `;
 
 const FeatureDescription = styled('div')`
   text-wrap: balance;
-  margin-left: ${space(3)};
+  margin-left: ${p => p.theme.space['2xl']};
   max-width: unset;
 
   @media (max-width: 700px) or ((min-width: 1200px) and (max-width: 1300px)) or ((min-width: 1400px) and (max-width: 1500px)) {
@@ -462,6 +602,19 @@ const IllustrationContainer = styled('div')`
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
     pointer-events: none;
   }
+`;
+
+const FeatureItem = styled('div')`
+  font-size: ${p => p.theme.fontSize.sm};
+  display: grid;
+  grid-template-columns: min-content 1fr;
+  align-items: start;
+  color: ${p => p.theme.textColor};
+`;
+
+const FeatureItemCategory = styled('span')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const Star1 = styled('img')`

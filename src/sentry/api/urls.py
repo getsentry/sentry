@@ -21,6 +21,10 @@ from sentry.api.endpoints.organization_member_invite.index import (
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
+from sentry.api.endpoints.organization_releases import (
+    OrganizationReleasesEndpoint,
+    OrganizationReleasesStatsEndpoint,
+)
 from sentry.api.endpoints.organization_sampling_admin_metrics import (
     OrganizationDynamicSamplingAdminMetricsEndpoint,
 )
@@ -203,6 +207,9 @@ from sentry.integrations.api.endpoints.organization_code_mapping_details import 
 from sentry.integrations.api.endpoints.organization_code_mappings import (
     OrganizationCodeMappingsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization_coding_agents import (
+    OrganizationCodingAgentsEndpoint,
+)
 from sentry.integrations.api.endpoints.organization_config_integrations import (
     OrganizationConfigIntegrationsEndpoint,
 )
@@ -247,7 +254,6 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
-    GroupOpenPeriodsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
@@ -275,6 +281,9 @@ from sentry.issues.endpoints import (
     TeamGroupsOldEndpoint,
 )
 from sentry.issues.endpoints.browser_reporting_collector import BrowserReportingCollectorEndpoint
+from sentry.issues.endpoints.event_grouping_info import EventGroupingInfoEndpoint
+from sentry.issues.endpoints.event_owners import EventOwnersEndpoint
+from sentry.issues.endpoints.event_reprocessable import EventReprocessableEndpoint
 from sentry.issues.endpoints.group_attachments import GroupAttachmentsEndpoint
 from sentry.issues.endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from sentry.issues.endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
@@ -304,6 +313,17 @@ from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssue
 from sentry.issues.endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
+from sentry.issues.endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
+from sentry.issues.endpoints.project_codeowners_index import ProjectCodeOwnersEndpoint
+from sentry.issues.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
+from sentry.issues.endpoints.project_issues_resolved_in_release import (
+    ProjectIssuesResolvedInReleaseEndpoint,
+)
+from sentry.issues.endpoints.project_ownership import ProjectOwnershipEndpoint
+from sentry.issues.endpoints.project_performance_issue_settings import (
+    ProjectPerformanceIssueSettingsEndpoint,
+)
+from sentry.issues.endpoints.project_user_issue import ProjectUserIssueEndpoint
 from sentry.issues.endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
 from sentry.issues.endpoints.team_issue_breakdown import TeamIssueBreakdownEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
@@ -370,6 +390,33 @@ from sentry.notifications.api.endpoints.user_notification_settings_providers imp
     UserNotificationSettingsProvidersEndpoint,
 )
 from sentry.preprod.api.endpoints import urls as preprod_urls
+from sentry.releases.endpoints.organization_release_assemble import (
+    OrganizationReleaseAssembleEndpoint,
+)
+from sentry.releases.endpoints.organization_release_commits import (
+    OrganizationReleaseCommitsEndpoint,
+)
+from sentry.releases.endpoints.organization_release_details import (
+    OrganizationReleaseDetailsEndpoint,
+)
+from sentry.releases.endpoints.organization_release_file_details import (
+    OrganizationReleaseFileDetailsEndpoint,
+)
+from sentry.releases.endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
+from sentry.releases.endpoints.organization_release_health_data import (
+    OrganizationReleaseHealthDataEndpoint,
+)
+from sentry.releases.endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
+from sentry.releases.endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
+from sentry.releases.endpoints.project_release_details import ProjectReleaseDetailsEndpoint
+from sentry.releases.endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
+from sentry.releases.endpoints.project_release_files import ProjectReleaseFilesEndpoint
+from sentry.releases.endpoints.project_release_repositories import ProjectReleaseRepositories
+from sentry.releases.endpoints.project_release_setup import ProjectReleaseSetupCompletionEndpoint
+from sentry.releases.endpoints.project_release_stats import ProjectReleaseStatsEndpoint
+from sentry.releases.endpoints.project_releases import ProjectReleasesEndpoint
+from sentry.releases.endpoints.project_releases_token import ProjectReleasesTokenEndpoint
+from sentry.releases.endpoints.release_deploys import ReleaseDeploysEndpoint
 from sentry.relocation.api.endpoints.abort import RelocationAbortEndpoint
 from sentry.relocation.api.endpoints.artifacts.details import RelocationArtifactDetailsEndpoint
 from sentry.relocation.api.endpoints.artifacts.index import RelocationArtifactIndexEndpoint
@@ -547,7 +594,6 @@ from .endpoints.builtin_symbol_sources import BuiltinSymbolSourcesEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.check_am2_compatibility import CheckAM2CompatibilityEndpoint
 from .endpoints.chunk import ChunkUploadEndpoint
-from .endpoints.codeowners import ProjectCodeOwnersDetailsEndpoint, ProjectCodeOwnersEndpoint
 from .endpoints.custom_rules import CustomRulesEndpoint
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
@@ -563,10 +609,8 @@ from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
-from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
-from .endpoints.event_owners import EventOwnersEndpoint
-from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.frontend_version import FrontendVersionEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal import (
     InternalBeaconEndpoint,
@@ -657,17 +701,6 @@ from .endpoints.organization_projects_sent_first_event import (
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
-from .endpoints.organization_release_assemble import OrganizationReleaseAssembleEndpoint
-from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
-from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
-from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
-from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
-from .endpoints.organization_release_health_data import OrganizationReleaseHealthDataEndpoint
-from .endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
-from .endpoints.organization_releases import (
-    OrganizationReleasesEndpoint,
-    OrganizationReleasesStatsEndpoint,
-)
 from .endpoints.organization_sampling_project_rates import OrganizationSamplingProjectRatesEndpoint
 from .endpoints.organization_sdk_deprecations import OrganizationSdkDeprecationsEndpoint
 from .endpoints.organization_sdk_updates import (
@@ -696,14 +729,10 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
-from .endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
-from .endpoints.project_issues_resolved_in_release import ProjectIssuesResolvedInReleaseEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
-from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
 )
-from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_profiling_profile import (
@@ -711,15 +740,6 @@ from .endpoints.project_profiling_profile import (
     ProjectProfilingRawChunkEndpoint,
     ProjectProfilingRawProfileEndpoint,
 )
-from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
-from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
-from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
-from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
-from .endpoints.project_release_repositories import ProjectReleaseRepositories
-from .endpoints.project_release_setup import ProjectReleaseSetupCompletionEndpoint
-from .endpoints.project_release_stats import ProjectReleaseStatsEndpoint
-from .endpoints.project_releases import ProjectReleasesEndpoint
-from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_actions import ProjectRuleActionsEndpoint
@@ -754,7 +774,6 @@ from .endpoints.relay import (
     RelayRegisterChallengeEndpoint,
     RelayRegisterResponseEndpoint,
 )
-from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.system_health import SystemHealthEndpoint
@@ -788,11 +807,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/events/$",
             GroupEventsEndpoint.as_view(),
             name=f"{name_prefix}-group-events",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/open-periods/$",
-            GroupOpenPeriodsEndpoint.as_view(),
-            name=f"{name_prefix}-group-open-periods",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/events/(?P<event_id>(?:latest|oldest|recommended|\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -1817,6 +1831,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/$",
         OrganizationIntegrationsEndpoint.as_view(),
         name="sentry-api-0-organization-integrations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/integrations/coding-agents/$",
+        OrganizationCodingAgentsEndpoint.as_view(),
+        name="sentry-api-0-organization-coding-agents",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/$",
@@ -3079,6 +3098,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectSeerPreferencesEndpoint.as_view(),
         name="sentry-api-0-project-seer-preferences",
     ),
+    # User Issue
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/user-issue/$",
+        ProjectUserIssueEndpoint.as_view(),
+        name="sentry-api-0-project-user-issue",
+    ),
     *preprod_urls.preprod_urlpatterns,
 ]
 
@@ -3280,6 +3305,11 @@ INTERNAL_URLS = [
         r"^beacon/$",
         InternalBeaconEndpoint.as_view(),
         name="sentry-api-0-internal-beacon",
+    ),
+    re_path(
+        r"^frontend-version/$",
+        FrontendVersionEndpoint.as_view(),
+        name="sentry-api-0-internal-frontend-version",
     ),
     re_path(
         r"^quotas/$",

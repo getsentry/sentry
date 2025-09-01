@@ -8,7 +8,8 @@ export const FRONTEND_LANDING_SUB_PATH = 'frontend';
 export const FRONTEND_LANDING_TITLE = t('Frontend');
 export const FRONTEND_SIDEBAR_LABEL = t('Frontend');
 
-export const EAP_OVERVIEW_PAGE_ALLOWED_OPS = [
+// span.ops required to compute web vitals score
+export const WEB_VITALS_OPS = [
   'ui.render',
   'interaction',
   'ui.interaction',
@@ -18,6 +19,7 @@ export const EAP_OVERVIEW_PAGE_ALLOWED_OPS = [
   'ui.interaction.press',
   'ui.webvital.cls',
   'ui.webvital.fcp',
+  'pageload',
 ];
 
 export const OVERVIEW_PAGE_ALLOWED_OPS = [

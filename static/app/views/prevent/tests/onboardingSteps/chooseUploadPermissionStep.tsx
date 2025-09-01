@@ -3,19 +3,22 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
+export enum UploadPermission {
+  OIDC = 'oidc',
+  UPLOAD_TOKEN = 'token',
+}
+
 interface ChooseUploadPermissionStepProps {
   selectedUploadPermission: UploadPermission;
   setSelectedUploadPermission: (permission: UploadPermission) => void;
   step: string;
 }
 
-export type UploadPermission = 'oidc' | 'token';
-
 const CHOICE_OPTIONS: Array<
   [UploadPermission, string | React.ReactNode, string | React.ReactNode]
 > = [
   [
-    'oidc',
+    UploadPermission.OIDC,
     t('Use OpenID Connect (OIDC)'),
     tct(
       'Recommended option, it does not require repo admin privileges to get started. Learn more about [OIDC].',
@@ -29,7 +32,7 @@ const CHOICE_OPTIONS: Array<
     ),
   ],
   [
-    'token',
+    UploadPermission.UPLOAD_TOKEN,
     t('Use Sentry Prevent Upload Token'),
     t(
       'You will need to generate an upload token, and store it securely in your GitHub repository secret.'
@@ -50,15 +53,17 @@ export function ChooseUploadPermissionStep({
 
   return (
     <OnboardingStep.Container>
-      <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
-      <OnboardingStep.Content>
-        <RadioGroup
-          label="Choose an upload permission"
-          value={selectedUploadPermission}
-          onChange={handleRadioChange}
-          choices={CHOICE_OPTIONS}
-        />
-      </OnboardingStep.Content>
+      <OnboardingStep.Body>
+        <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
+        <OnboardingStep.Content>
+          <RadioGroup
+            label="Choose an upload permission"
+            value={selectedUploadPermission}
+            onChange={handleRadioChange}
+            choices={CHOICE_OPTIONS}
+          />
+        </OnboardingStep.Content>
+      </OnboardingStep.Body>
     </OnboardingStep.Container>
   );
 }

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -23,10 +23,10 @@ from sentry.utils.audit import get_api_key_for_audit_log
 from ... import get_allowed_org_roles, save_team_assignments
 
 
-class ApproveInviteRequestSerializer(serializers.Serializer):
+class ApproveInviteRequestSerializer(serializers.Serializer[dict[str, Any]]):
     approve = serializers.BooleanField(required=True, write_only=True)
 
-    def validate_approve(self, approve):
+    def validate_approve(self, approve: bool) -> bool:
         request = self.context["request"]
         member = self.context["member"]
         allowed_roles = self.context["allowed_roles"]

@@ -16,6 +16,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
   OurLogsResponseItem,
@@ -51,13 +52,15 @@ describe('useInfiniteLogsQuery', () => {
     return function ({children}: {children?: React.ReactNode}) {
       return (
         <QueryClientProvider client={queryClient}>
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          >
-            <OrganizationContext.Provider value={organization}>
-              {children}
-            </OrganizationContext.Provider>
-          </LogsPageParamsProvider>
+          <LogsQueryParamsProvider source="location">
+            <LogsPageParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            >
+              <OrganizationContext.Provider value={organization}>
+                {children}
+              </OrganizationContext.Provider>
+            </LogsPageParamsProvider>
+          </LogsQueryParamsProvider>
         </QueryClientProvider>
       );
     };
@@ -188,7 +191,7 @@ describe('useInfiniteLogsQuery', () => {
           const query = options?.query || {};
           return (
             query.query.startsWith(
-              'tags[sentry.timestamp_precise,number]:<=400 !sentry.item_id:4'
+              `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=400 !${OurLogKnownFieldKey.ID}:4`
             ) && query.sort === '-timestamp'
           );
         },
@@ -304,7 +307,7 @@ function createDescendingMocks(organization: Organization) {
         const query = options?.query || {};
         return (
           query.query.startsWith(
-            'tags[sentry.timestamp_precise,number]:>=600 !sentry.item_id:6'
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=600 !${OurLogKnownFieldKey.ID}:6`
           ) && query.sort === 'timestamp' // ASC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
@@ -326,7 +329,7 @@ function createDescendingMocks(organization: Organization) {
         const query = options?.query || {};
         return (
           query.query.startsWith(
-            'tags[sentry.timestamp_precise,number]:<=400 !sentry.item_id:4'
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=400 !${OurLogKnownFieldKey.ID}:4`
           ) && query.sort === '-timestamp' // DESC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
@@ -377,7 +380,7 @@ function createAscendingMocks(organization: Organization) {
         const query = options?.query || {};
         return (
           query.query.startsWith(
-            'tags[sentry.timestamp_precise,number]:>=400 !sentry.item_id:4'
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=400 !${OurLogKnownFieldKey.ID}:4`
           ) && query.sort === '-timestamp' // DESC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
@@ -399,7 +402,7 @@ function createAscendingMocks(organization: Organization) {
         const query = options?.query || {};
         return (
           query.query.startsWith(
-            'tags[sentry.timestamp_precise,number]:>=600 !sentry.item_id:6'
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=600 !${OurLogKnownFieldKey.ID}:6`
           ) && query.sort === 'timestamp' // ASC. Timestamp is aliased to sort both timestamp_precise and timestamp
         );
       },
@@ -424,17 +427,19 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     return function ({children}: {children?: React.ReactNode}) {
       return (
         <QueryClientProvider client={queryClient}>
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            _testContext={{
-              autoRefresh,
-              refreshInterval: 5, // Fast refresh for testing
-            }}
-          >
-            <OrganizationContext.Provider value={organization}>
-              {children}
-            </OrganizationContext.Provider>
-          </LogsPageParamsProvider>
+          <LogsQueryParamsProvider source="location">
+            <LogsPageParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+              _testContext={{
+                autoRefresh,
+                refreshInterval: 5, // Fast refresh for testing
+              }}
+            >
+              <OrganizationContext.Provider value={organization}>
+                {children}
+              </OrganizationContext.Provider>
+            </LogsPageParamsProvider>
+          </LogsQueryParamsProvider>
         </QueryClientProvider>
       );
     };
@@ -526,9 +531,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
         (_, options) => {
           const query = options?.query || {};
           // TODO: Fix space in query
-          return (
-            query.query === ' tags[sentry.timestamp_precise,number]:<=1508208040000000000'
-          );
+          return query.query === ' timestamp_precise:<=1508208040000000000';
         },
       ],
       headers: linkHeaders,
@@ -547,7 +550,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
         (_, options) => {
           const query = options?.query || {};
           return query.query.startsWith(
-            'tags[sentry.timestamp_precise,number]:>=6000000000 !sentry.item_id:6'
+            `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=6000000000 !${OurLogKnownFieldKey.ID}:6`
           );
         },
       ],
@@ -610,7 +613,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       match: [
         (_, options) => {
           const query = options?.query || {};
-          return query.query.includes('tags[sentry.timestamp_precise,number]:<=1000');
+          return query.query.includes('timestamp_precise:<=1000');
         },
       ],
       headers: linkHeaders,

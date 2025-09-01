@@ -39,55 +39,58 @@ export function InstallPreventCLIStep({step}: InstallPreventCLIStepProps) {
 
   return (
     <OnboardingStep.Container>
-      <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
-      <OnboardingStep.Content>
-        <RadioGroup
-          label="install method"
-          value={method}
-          onChange={setMethod}
-          choices={[
-            ['pip', t('Using pip (for Python users)')],
-            ['binary', t('Using a Binary')],
-          ]}
-        />
-        {method === 'pip' ? (
-          <Fragment>
-            <Paragraph>
-              {t(
-                'If you have Python installed already, you can run the script below to install the Sentry Prevent CLI.'
-              )}
-            </Paragraph>
-            <CodeSnippet dark language="bash">
-              {SNIPPET}
-            </CodeSnippet>
-            {CLILink}
-          </Fragment>
-        ) : null}
-        {method === 'binary' ? (
-          <Fragment>
-            <Paragraph>
-              {t(
-                'Select a platform, and following snippet instructs the CLI to upload your reports to Sentry Prevent.'
-              )}
-            </Paragraph>
-            <StyledSelectControl
-              size="md"
-              options={[
-                {label: 'macOS', value: 'macOS'},
-                {label: 'Linux', value: 'linux'},
-                {label: 'Windows', value: 'windows'},
-              ]}
-              value={selectedPlatform}
-              onChange={(option: {value: Platform}) => setSelectedPlatform(option.value)}
-            />
-            <CodeSnippet dark language="bash">
-              {SNIPPET}
-            </CodeSnippet>
-            {CLILink}
-          </Fragment>
-        ) : null}
-        {/* TODO: add dropdown expansion */}
-      </OnboardingStep.Content>
+      <OnboardingStep.Body>
+        <OnboardingStep.Header>{headerText}</OnboardingStep.Header>
+        <OnboardingStep.Content>
+          <RadioGroup
+            label="install method"
+            value={method}
+            onChange={setMethod}
+            choices={[
+              ['pip', t('Using pip (for Python users)')],
+              ['binary', t('By downloading and installing a binary')],
+            ]}
+          />
+          {method === 'pip' ? (
+            <Fragment>
+              <Paragraph>
+                {t(
+                  'If you have Python installed already, you can run the script below to install the Sentry Prevent CLI.'
+                )}
+              </Paragraph>
+              <CodeSnippet dark language="bash">
+                {SNIPPET}
+              </CodeSnippet>
+              {CLILink}
+            </Fragment>
+          ) : null}
+          {method === 'binary' ? (
+            <Fragment>
+              <Paragraph>
+                {t(
+                  'Select a platform, and following snippet instructs the CLI to upload your reports to Sentry Prevent.'
+                )}
+              </Paragraph>
+              <StyledSelectControl
+                size="md"
+                options={[
+                  {label: 'macOS', value: 'macOS'},
+                  {label: 'Linux', value: 'linux'},
+                  {label: 'Windows', value: 'windows'},
+                ]}
+                value={selectedPlatform}
+                onChange={(option: {value: Platform}) =>
+                  setSelectedPlatform(option.value)
+                }
+              />
+              <CodeSnippet dark language="bash">
+                {SNIPPET}
+              </CodeSnippet>
+              {CLILink}
+            </Fragment>
+          ) : null}
+        </OnboardingStep.Content>
+      </OnboardingStep.Body>
     </OnboardingStep.Container>
   );
 }

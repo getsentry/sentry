@@ -35,6 +35,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues import grouptype
 from sentry.issues.issue_search import convert_actor_or_none_value
+from sentry.models.group import GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -98,6 +99,8 @@ SORT_MAP = {
     "-connectedWorkflows": "-connected_workflows",
     "latestGroup": F("latest_group_date_added").asc(nulls_first=True),
     "-latestGroup": F("latest_group_date_added").desc(nulls_last=True),
+    "openIssues": F("open_issues_count").asc(nulls_first=True),
+    "-openIssues": F("open_issues_count").desc(nulls_last=True),
 }
 
 DETECTOR_TYPE_ALIASES = {
@@ -263,6 +266,13 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.annotate(
                 latest_group_date_added=Subquery(latest_detector_group_subquery)
             )
+        elif sort_by_field == "openIssues":
+            queryset = queryset.annotate(
+                open_issues_count=Count(
+                    "detectorgroup__group",
+                    filter=Q(detectorgroup__group__status=GroupStatus.UNRESOLVED),
+                )
+            )
 
         order_by_field = [SORT_MAP[sort_by]]
 
@@ -314,7 +324,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not detector_type:
             raise ValidationError({"type": ["This field is required."]})
 
-        # restrict creating metric issue detectors by plan type
+        # Restrict creating metric issue detectors by plan type
         if detector_type == MetricIssue.slug and not features.has(
             "organizations:incidents", organization, actor=request.user
         ):

@@ -69,7 +69,7 @@ export default function PerformanceScoreBreakdownChartWidget(
       ],
       transformAliasToInputFormat: true,
     },
-    'api.performance.browser.web-vitals.timeseries-scores2',
+    'api.insights.web-vitals.timeseries-scores2',
     props.pageFilters
   );
 

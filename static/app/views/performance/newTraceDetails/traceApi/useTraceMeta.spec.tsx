@@ -33,7 +33,7 @@ const mockedReplayTraces: ReplayTrace[] = [
 ];
 
 describe('useTraceMeta', () => {
-  beforeEach(function () {
+  beforeEach(() => {
     jest.mocked(useSyncedLocalStorageState).mockReturnValue(['non-eap', jest.fn()]);
     queryClient.clear();
     jest.clearAllMocks();
@@ -143,6 +143,7 @@ describe('useTraceMeta', () => {
         span_count_map: {
           op1: 1,
         },
+        uptime_checks: 0,
         transaction_child_count_map: [{'transaction.id': '1', count: 1}],
       },
     });
@@ -158,6 +159,7 @@ describe('useTraceMeta', () => {
           op1: 1,
           op2: 1,
         },
+        uptime_checks: 0,
         transaction_child_count_map: [{'transaction.id': '2', count: 2}],
       },
     });
@@ -172,6 +174,7 @@ describe('useTraceMeta', () => {
         span_count_map: {
           op3: 1,
         },
+        uptime_checks: 1,
         transaction_child_count_map: [{'transaction.id': '3', count: 1}],
       },
     });
@@ -208,6 +211,7 @@ describe('useTraceMeta', () => {
           '2': 2,
           '3': 1,
         },
+        uptime_checks: 0,
       },
       errors: [],
       status: 'success',

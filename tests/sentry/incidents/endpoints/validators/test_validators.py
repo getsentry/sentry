@@ -1,8 +1,9 @@
 from unittest import mock
 
-from rest_framework.exceptions import ErrorDetail
+from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from sentry import audit_log
+from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import (
     MetricIssueComparisonConditionValidator,
@@ -23,6 +24,8 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
+from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -320,7 +323,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert not validator.is_valid()
         assert validator.errors.get("type") == [
             ErrorDetail(
-                string="Unknown detector type 'invalid_type'. Must be one of: error", code="invalid"
+                string=get_unknown_detector_type_error("invalid_type", self.organization),
+                code="invalid",
             )
         ]
 
@@ -358,3 +362,48 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert validator.errors.get("nonFieldErrors") == [
             ErrorDetail(string="Too many conditions", code="invalid")
         ]
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    def test_enforce_quota_feature_disabled(self, mock_get_limit: mock.MagicMock) -> None:
+        mock_get_limit.return_value = 0
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid()
+        assert validator.save()
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_enforce_quota_within_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        mock_get_limit.return_value = 1
+
+        # Create a not-metric detector
+        self.create_detector(
+            project_id=self.project.id,
+            name="Error Detector",
+            status=ObjectStatus.ACTIVE,
+        )
+        # Create 3 inactive detectors
+        for status in [
+            ObjectStatus.DISABLED,
+            ObjectStatus.PENDING_DELETION,
+            ObjectStatus.DELETION_IN_PROGRESS,
+        ]:
+            self.create_detector(
+                project_id=self.project.id,
+                name=f"Inactive Detector {status}",
+                type=MetricIssue.slug,
+                status=status,
+            )
+
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid()
+        assert validator.save()
+        mock_get_limit.assert_called_once_with(self.project.organization.id)
+
+        validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
+        validator.is_valid()
+        with self.assertRaisesMessage(
+            ValidationError,
+            expected_message="Used 1/1 of allowed metric_issue monitors.",
+        ):
+            validator.save()

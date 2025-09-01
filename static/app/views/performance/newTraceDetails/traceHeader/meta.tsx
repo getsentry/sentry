@@ -74,15 +74,12 @@ export function Meta(props: MetaProps) {
   const traceNode = props.tree.root.children[0];
   const {timestamp} = useTraceQueryParams();
 
-  if (!traceNode) {
-    return null;
-  }
+  const spansCount =
+    traceNode && isEAPTraceNode(traceNode)
+      ? props.tree.eap_spans_count
+      : (props.meta?.span_count ?? 0);
 
-  const spansCount = isEAPTraceNode(traceNode)
-    ? props.tree.eap_spans_count
-    : (props.meta?.span_count ?? 0);
-
-  const uniqueIssuesCount = TraceTree.UniqueIssues(traceNode).length;
+  const uniqueIssuesCount = traceNode ? TraceTree.UniqueIssues(traceNode).length : 0;
 
   // If there is no trace data, use the timestamp from the query params as an approximation for
   // the age of the trace.
@@ -97,14 +94,12 @@ export function Meta(props: MetaProps) {
       <MetaSection
         headingText={t('Issues')}
         bodyText={
-          uniqueIssuesCount > 0 ? (
+          uniqueIssuesCount && traceNode ? (
             <TraceDrawerComponents.IssuesLink node={traceNode}>
               {uniqueIssuesCount}
             </TraceDrawerComponents.IssuesLink>
-          ) : uniqueIssuesCount === 0 ? (
-            0
           ) : (
-            '\u2014'
+            uniqueIssuesCount
           )
         }
       />

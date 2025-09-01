@@ -29,7 +29,7 @@ function renderComponent(
   );
 }
 
-describe('TransactionThresholdButton', function () {
+describe('TransactionThresholdButton', () => {
   const organization = OrganizationFixture({features: ['performance-view']});
   const project = ProjectFixture();
   const eventView = new EventView({
@@ -50,12 +50,12 @@ describe('TransactionThresholdButton', function () {
   });
   const onChangeThreshold = jest.fn();
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
   });
 
-  it('renders element correctly', async function () {
+  it('renders element correctly', async () => {
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
@@ -81,7 +81,7 @@ describe('TransactionThresholdButton', function () {
     expect(getProjectThresholdMock).not.toHaveBeenCalled();
   });
 
-  it('gets project threshold if transaction threshold does not exist', async function () {
+  it('gets project threshold if transaction threshold does not exist', async () => {
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
@@ -105,7 +105,7 @@ describe('TransactionThresholdButton', function () {
     expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
   });
 
-  it('mounts modal with the right values', async function () {
+  it('mounts modal with the right values', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',

@@ -1,12 +1,12 @@
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
 from sentry import nodestore
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.models.workflow import Workflow
@@ -46,6 +46,12 @@ def fetch_event(event_id: str, project_id: int) -> Event | None:
     )
 
 
+class EventNotFoundError(Exception):
+    def __init__(self, event_id: str, project_id: int):
+        msg = f"Event not found: event_id={event_id}, project_id={project_id}"
+        super().__init__(msg)
+
+
 def build_workflow_event_data_from_event(
     project_id: int,
     event_id: str,
@@ -59,11 +65,12 @@ def build_workflow_event_data_from_event(
     """
     Build a WorkflowEventData object from individual parameters.
     This method handles all the database fetching and object construction logic.
+    Raises EventNotFoundError if the event is not found.
     """
 
     event = fetch_event(event_id, project_id)
     if event is None:
-        raise ValueError(f"Event not found: event_id={event_id}, project_id={project_id}")
+        raise EventNotFoundError(event_id, project_id)
 
     occurrence = IssueOccurrence.fetch(occurrence_id, project_id) if occurrence_id else None
     # TODO(iamrajjoshi): Should we use get_from_cache here?

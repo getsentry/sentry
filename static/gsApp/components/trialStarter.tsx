@@ -66,7 +66,7 @@ class TrialStarter extends Component<Props, State> {
         data,
       });
     } catch (err) {
-      onTrialFailed?.(err);
+      onTrialFailed?.(err as Error);
       this.setState({trialStarting: false, trialFailed: true});
       return;
     }

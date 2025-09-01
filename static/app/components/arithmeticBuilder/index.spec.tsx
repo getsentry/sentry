@@ -30,8 +30,8 @@ function ArithmeticBuilderWrapper({expression}: {expression: string}) {
   );
 }
 
-describe('ArithmeticBuilder', function () {
-  it('navigates between tokens with arrow keys', async function () {
+describe('ArithmeticBuilder', () => {
+  it('navigates between tokens with arrow keys', async () => {
     const expression = '( sum(span.duration) + count(span.self_time) )';
     render(<ArithmeticBuilderWrapper expression={expression} />);
 
@@ -89,7 +89,7 @@ describe('ArithmeticBuilder', function () {
     await waitFor(() => expect(screen.queryAllByRole('row')).toHaveLength(1));
   }, 20_000);
 
-  it('can delete tokens with backspace', async function () {
+  it('can delete tokens with backspace', async () => {
     const expression = '( sum(span.duration) + count(span.self_time) )';
     render(<ArithmeticBuilderWrapper expression={expression} />);
 
@@ -147,7 +147,7 @@ describe('ArithmeticBuilder', function () {
     expect(screen.getAllByRole('row')).toHaveLength(1);
   });
 
-  it('can delete tokens with delete', async function () {
+  it('can delete tokens with delete', async () => {
     const expression = '( sum(span.duration) + count(span.self_time) )';
     render(<ArithmeticBuilderWrapper expression={expression} />);
 

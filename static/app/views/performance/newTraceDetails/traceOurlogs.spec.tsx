@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   TraceViewLogsDataProvider,
   TraceViewLogsSection,
@@ -19,18 +20,18 @@ function Component({traceSlug}: {traceSlug: string}) {
   );
 }
 
-describe('TraceViewLogsSection', function () {
-  beforeEach(function () {
+describe('TraceViewLogsSection', () => {
+  beforeEach(() => {
     // the search query combobox is firing updates and causing console.errors
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  afterEach(function () {
+  afterEach(() => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty logs', async function () {
+  it('renders empty logs', async () => {
     const organization = OrganizationFixture({features: ['ourlogs-enabled']});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
@@ -56,7 +57,7 @@ describe('TraceViewLogsSection', function () {
     expect(screen.getByText(/No logs found/)).toBeInTheDocument();
   });
 
-  it('renders some logs', async function () {
+  it('renders some logs', async () => {
     const now = new Date();
     const organization = OrganizationFixture({features: ['ourlogs-enabled']});
     const mockRequest = MockApiClient.addMockResponse({
@@ -70,7 +71,7 @@ describe('TraceViewLogsSection', function () {
             severity_number: 0,
             severity: 'info',
             timestamp: now.toISOString(),
-            'tags[sentry.timestamp_precise,number]': now.getTime() * 1e6,
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: now.getTime() * 1e6,
             message: 'i am a log',
           },
         ],

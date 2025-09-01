@@ -184,7 +184,6 @@ function NPlusOneDBQueriesSpanEvidence({
     );
   const evidenceData = event?.occurrence?.evidenceData ?? {};
   const patternSize = evidenceData.patternSize ?? 0;
-  const patternSpanIds = (evidenceData.patternSpanIds ?? []).join(', ');
 
   return (
     <PresortedKeyValueList
@@ -197,9 +196,6 @@ function NPlusOneDBQueriesSpanEvidence({
             : null,
           ...repeatingSpanRows,
           patternSize > 0 ? makeRow(t('Pattern Size'), patternSize) : null,
-          patternSpanIds.length > 0
-            ? makeRow(t('Pattern Span IDs'), patternSpanIds)
-            : null,
         ].filter(Boolean) as KeyValueListData
       }
     />
@@ -370,6 +366,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
   [IssueType.QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
+  [IssueType.WEB_VITALS]: WebVitalsEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -500,6 +497,17 @@ function UncompressedAssetSpanEvidence({
         ),
       ]}
     />
+  );
+}
+
+function WebVitalsEvidence({event}: SpanEvidenceKeyValueListProps) {
+  const transactionRow = makeRow(
+    t('Transaction'),
+    <pre>{event.tags.find(tag => tag.key === 'transaction')?.value}</pre>
+  );
+
+  return (
+    <PresortedKeyValueList data={[transactionRow].filter(Boolean) as KeyValueListData} />
   );
 }
 
