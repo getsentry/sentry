@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import pytest
 import uuid
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
 from django.core.cache import cache
 from django.test import override_settings
 from urllib3 import HTTPResponse
