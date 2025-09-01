@@ -218,3 +218,17 @@ class TestSpansTask(TestCase):
 
         # Verify track_outcome was called once
         mock_track_outcome.assert_called_once()
+
+    @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
+    def test_record_signals(self, mock_track):
+        span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            span_op="http.client",
+            sentry_tags={"category": "http"},
+        )
+        spans = process_segment([span])
+        assert len(spans) == 1
+
+        signals = [args[0][1] for args in mock_track.call_args_list]
+        assert signals == ["has_transactions", "has_insights_http"]
