@@ -94,8 +94,9 @@ def assert_not_analytics_event(
     """Assert that an analytics event (either specific instance or type) was not recorded"""
     recorded_events = [call.args[0] for call in mock_record.call_args_list]
     for recorded_event in recorded_events:
-        if isinstance(watched_event, type) and isinstance(recorded_event, watched_event):
-            raise AssertionError(f"Event {recorded_event} should not have been recorded")
+        if isinstance(watched_event, type):
+            if isinstance(recorded_event, watched_event):
+                raise AssertionError(f"Event {recorded_event} should not have been recorded")
         else:
             try:
                 assert_event_equal(
