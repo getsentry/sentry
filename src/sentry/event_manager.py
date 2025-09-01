@@ -35,7 +35,6 @@ from sentry import (
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
-    INSIGHT_MODULE_FILTERS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     PLACEHOLDER_EVENT_TITLES,
@@ -77,6 +76,8 @@ from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     record_transaction_name as record_transaction_name_for_clustering,
 )
+from sentry.insights import ClassifiableSpan
+from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -2624,15 +2625,23 @@ def _record_transaction_info(
                     event=event,
                 )
 
-            spans = job["data"]["spans"]
-            for module, is_module in INSIGHT_MODULE_FILTERS.items():
-                if is_module(spans):
-                    set_project_flag_and_signal(
-                        project,
-                        INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
-                        first_insight_span_received,
-                        module=module,
-                    )
+            spans = [
+                ClassifiableSpan(
+                    op=span.get("op"),
+                    category=span.get("sentry_tags", {}).get("category"),
+                    description=span.get("description"),
+                    transaction_op=span.get("sentry_tags", {}).get("transaction.op"),
+                )
+                for span in job["data"]["spans"]
+            ]
+
+            for module in insights_modules(spans):
+                set_project_flag_and_signal(
+                    project,
+                    INSIGHT_MODULE_TO_PROJECT_FLAG_NAME[module],
+                    first_insight_span_received,
+                    module=module,
+                )
 
             if job["release"]:
                 environment = job["data"].get("environment") or None  # coorce "" to None
