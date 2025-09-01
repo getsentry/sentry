@@ -240,13 +240,13 @@ def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, A
 
 @metrics.wraps("spans.consumers.process_segments.record_signals")
 def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> None:
-    sentry_tags = segment_span.get("sentry_tags", {})
+    data = segment_span.get("data", {})
 
     record_generic_event_processed(
         project,
-        platform=sentry_tags.get("platform"),
-        release=sentry_tags.get("release"),
-        environment=sentry_tags.get("environment"),
+        platform=data.get("sentry.platform"),
+        release=data.get("sentry.release"),
+        environment=data.get("sentry.environment"),
     )
 
     # signal expects an event like object with a datetime attribute
