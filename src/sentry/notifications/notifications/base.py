@@ -186,65 +186,43 @@ class BaseNotification(abc.ABC):
             project: Project | None = getattr(self, "project", None)
             group: Group | None = getattr(self, "group", None)
 
-            if provider == ExternalProviders.EMAIL:
-                event = EmailNotificationSent(
-                    organization_id=self.organization.id,
-                    project_id=project.id if project else None,
-                    category=self.metrics_key,
-                    actor_id=recipient.id if recipient.is_user else None,
-                    user_id=recipient.id if recipient.is_user else None,
-                    group_id=group.id if group else None,
-                    id=recipient.id,
-                    actor_type=recipient.actor_type,
-                    notification_uuid=self.notification_uuid,
-                    alert_id=self.alert_id if self.alert_id else None,
-                )
-            elif provider == ExternalProviders.SLACK:
-                event = SlackIntegrationNotificationSent(
-                    organization_id=self.organization.id,
-                    project_id=project.id if project else None,
-                    category=self.metrics_key,
-                    actor_id=recipient.id if recipient.is_user else None,
-                    user_id=recipient.id if recipient.is_user else None,
-                    group_id=group.id if group else None,
-                    notification_uuid=self.notification_uuid,
-                    alert_id=self.alert_id if self.alert_id else None,
-                    actor_type=recipient.actor_type,
-                )
-            elif provider == ExternalProviders.PAGERDUTY:
-                event = PagerdutyIntegrationNotificationSent(
-                    organization_id=self.organization.id,
-                    project_id=project.id if project else None,
-                    category=self.metrics_key,
-                    group_id=group.id if group else None,
-                    notification_uuid=self.notification_uuid,
-                    alert_id=self.alert_id if self.alert_id else None,
-                )
-            elif provider == ExternalProviders.DISCORD:
-                event = DiscordIntegrationNotificationSent(
-                    organization_id=self.organization.id,
-                    project_id=project.id if project else None,
-                    category=self.metrics_key,
-                    group_id=group.id if group else None,
-                    notification_uuid=self.notification_uuid,
-                    alert_id=self.alert_id if self.alert_id else None,
-                )
-            elif provider == ExternalProviders.OPSGENIE:
-                event = OpsgenieIntegrationNotificationSent(
-                    organization_id=self.organization.id,
-                    project_id=self.project.id if self.project else None,
-                    category=self.metrics_key,
-                    group_id=group.id if group else None,
-                    notification_uuid=self.notification_uuid,
-                    alert_id=self.alert_id if self.alert_id else None,
+            event_classes = {
+                ExternalProviders.EMAIL: EmailNotificationSent,
+                ExternalProviders.SLACK: SlackIntegrationNotificationSent,
+                ExternalProviders.PAGERDUTY: PagerdutyIntegrationNotificationSent,
+                ExternalProviders.OPSGENIE: OpsgenieIntegrationNotificationSent,
+                ExternalProviders.DISCORD: DiscordIntegrationNotificationSent,
+            }
+
+            try:
+                event = (
+                    event_classes[provider](
+                        organization_id=self.organization.id,
+                        project_id=project.id if project else None,
+                        category=self.metrics_key,
+                        actor_id=recipient.id if recipient.is_user else None,
+                        user_id=recipient.id if recipient.is_user else None,
+                        group_id=group.id if group else None,
+                        id=recipient.id,
+                        actor_type=recipient.actor_type,
+                        notification_uuid=self.notification_uuid,
+                        alert_id=self.alert_id if self.alert_id else None,
+                    )
+                    if provider in event_classes
+                    else None
                 )
 
-            if event is not None:
-                analytics.record(event)
+                if event is not None:
+                    analytics.record(event)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
             # record an optional second event
             if notification_event := self.get_specific_analytics_event(provider):
-                analytics.record(notification_event)
+                try:
+                    analytics.record(notification_event)
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
 
     def get_referrer(self, provider: ExternalProviders, recipient: Actor | None = None) -> str:
         # referrer needs the provider and recipient

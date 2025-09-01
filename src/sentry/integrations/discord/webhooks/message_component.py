@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import cached_property
 
+import sentry_sdk
 from rest_framework.response import Response
 
 from sentry import analytics
@@ -241,13 +242,17 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
 
     def update_group(self, data: Mapping[str, object]) -> None:
         if self.group:
-            analytics.record(
-                DiscordIntegrationStatus(
-                    organization_id=self.group.organization.id,
-                    user_id=self.user.id,
-                    status=str(data),
+            try:
+                analytics.record(
+                    DiscordIntegrationStatus(
+                        organization_id=self.group.organization.id,
+                        user_id=self.user.id,
+                        status=str(data),
+                    )
                 )
-            )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
             update_groups(
                 request=self.request.request, groups=[self.group], user=self.user, data=data
             )

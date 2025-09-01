@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Any, cast
 
 import orjson
+import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
@@ -484,6 +485,14 @@ class MsTeamsWebhookEndpoint(Endpoint):
         ACTION_TYPE.UNASSIGN: ("unassign", MessagingInteractionType.UNASSIGN),
     }
 
+    _EVENT_TYPES: dict[str, type[MsTeamsIntegrationAnalytics]] = {
+        "assign": MsTeamsIntegrationAssign,
+        "resolve": MsTeamsIntegrationResolve,
+        "archive": MsTeamsIntegrationArchive,
+        "unresolve": MsTeamsIntegrationUnresolve,
+        "unassign": MsTeamsIntegrationUnassign,
+    }
+
     def _issue_state_change(self, group: Group, identity: RpcIdentity, data) -> Response:
         event_write_key = ApiKey(
             organization_id=group.project.organization_id, scope_list=["event:write"]
@@ -492,24 +501,15 @@ class MsTeamsWebhookEndpoint(Endpoint):
         action_data = self._make_action_data(data, identity.user_id)
         status, interaction_type = self._ACTION_TYPES[data["payload"]["actionType"]]
 
-        event_type: type[MsTeamsIntegrationAnalytics]
-        if status == "assign":
-            event_type = MsTeamsIntegrationAssign
-        elif status == "resolve":
-            event_type = MsTeamsIntegrationResolve
-        elif status == "archive":
-            event_type = MsTeamsIntegrationArchive
-        elif status == "unresolve":
-            event_type = MsTeamsIntegrationUnresolve
-        elif status == "unassign":
-            event_type = MsTeamsIntegrationUnassign
-
-        analytics.record(
-            event_type(
-                actor_id=identity.user_id,
-                organization_id=group.project.organization.id,
-            ),
-        )
+        try:
+            analytics.record(
+                self._EVENT_TYPES[status](
+                    actor_id=identity.user_id,
+                    organization_id=group.project.organization.id,
+                ),
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         with MessagingInteractionEvent(
             interaction_type, MsTeamsMessagingSpec()

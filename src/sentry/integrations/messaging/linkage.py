@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
@@ -489,13 +490,16 @@ class LinkTeamView(TeamLinkageView, ABC):
             ),
         )
 
-        analytics.record(
-            IntegrationIdentityLinked(
-                provider=self.provider_slug,
-                actor_id=team.id,
-                actor_type="team",
+        try:
+            analytics.record(
+                IntegrationIdentityLinked(
+                    provider=self.provider_slug,
+                    actor_id=team.id,
+                    actor_type="team",
+                )
             )
-        )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if not created:
             self.capture_metric("failure.team_already_linked")
