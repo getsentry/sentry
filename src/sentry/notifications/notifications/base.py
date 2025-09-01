@@ -10,6 +10,7 @@ import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
+from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.environment import Environment
@@ -192,6 +193,7 @@ class BaseNotification(abc.ABC):
                 ExternalProviders.PAGERDUTY: PagerdutyIntegrationNotificationSent,
                 ExternalProviders.OPSGENIE: OpsgenieIntegrationNotificationSent,
                 ExternalProviders.DISCORD: DiscordIntegrationNotificationSent,
+                ExternalProviders.MSTEAMS: MSTeamsIntegrationNotificationSent,
             }
 
             try:
