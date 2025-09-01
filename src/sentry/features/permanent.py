@@ -9,7 +9,7 @@ from sentry.features.manager import FeatureManager
 # XXX: See `features/__init__.py` for documentation on how to use feature flags
 
 
-def register_permanent_features(manager: FeatureManager):
+def register_permanent_features(manager: FeatureManager) -> None:
     """
     These flags are permanent.
 

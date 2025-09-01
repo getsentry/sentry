@@ -1064,7 +1064,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         return self._cached_count_and_weighted
 
     @cached_property
-    def _zscore(self):
+    def _zscore(self) -> float | int:
         """Defaults to 1.96, based on a z score for a confidence level of 95%"""
         return options.get("performance.extrapolation.confidence.z-score")
 

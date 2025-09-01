@@ -342,7 +342,9 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     )
 
 
-def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
+def total_opportunity_score(
+    _: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
     vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
     vital_score_columns: list[Column] = []
 

@@ -10,7 +10,7 @@ from sentry_plugins.bitbucket.testutils import COMMIT_DIFF_PATCH, COMPARE_COMMIT
 
 class BitbucketPluginTest(TestCase):
     @cached_property
-    def provider(self):
+    def provider(self) -> BitbucketRepositoryProvider:
         return BitbucketRepositoryProvider("bitbucket")
 
     @responses.activate

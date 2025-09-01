@@ -60,7 +60,7 @@ class OrganizationEventsEndpointTestBase(
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
@@ -68,7 +68,7 @@ class OrganizationEventsEndpointTestBase(
         self.eleven_mins_ago = before_now(minutes=11)
         self.eleven_mins_ago_iso = self.eleven_mins_ago.isoformat()
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
-        self.features = {}
+        self.features: dict[str, bool] = {}
 
     def client_get(self, *args, **kwargs):
         return self.client.get(*args, **kwargs)

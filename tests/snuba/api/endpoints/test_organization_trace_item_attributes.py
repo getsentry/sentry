@@ -26,7 +26,7 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
 
     viewname = "sentry-api-0-organization-trace-item-attributes"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -596,7 +596,7 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
 
     viewname = "sentry-api-0-organization-trace-item-attribute-values"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 

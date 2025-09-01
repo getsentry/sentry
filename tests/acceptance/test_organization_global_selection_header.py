@@ -15,7 +15,7 @@ event_time = before_now(days=3)
 
 @no_silo_test
 class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -48,7 +48,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.issues_list = IssueListPage(self.browser, self.client)
         self.issue_details = IssueDetailsPage(self.browser, self.client)
 
-    def create_issues(self):
+    def create_issues(self) -> None:
         self.issue_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -375,8 +375,8 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_issue_details_to_stream_with_initial_env_no_project_with_multi_project_feature(
-        self, mock_now
-    ):
+        self, mock_now: MagicMock
+    ) -> None:
         """
         Visiting issue details directly with no project but with an environment defined in URL.
         When navigating back to issues stream, should keep environment and project in context.

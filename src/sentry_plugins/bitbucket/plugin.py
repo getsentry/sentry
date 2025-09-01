@@ -87,7 +87,7 @@ class BitbucketPlugin(CorePluginMixin, IssuePlugin2):
             )
         ]
 
-    def get_url_module(self):
+    def get_url_module(self) -> str:
         return "sentry_plugins.bitbucket.urls"
 
     def is_configured(self, project) -> bool:
