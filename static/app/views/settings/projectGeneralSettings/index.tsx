@@ -308,6 +308,25 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
     help: t('The unique identifier for this project. It cannot be modified.'),
   };
 
+  const consolePlatforms: ReadonlySet<string> = new Set([
+    'nintendo-switch',
+    'playstation',
+    'xbox',
+  ] as const);
+
+  // Create filtered platform field without mutating the shared fields object
+  const platformField = {
+    ...fields.platform,
+    options: fields.platform.options.filter(({value}) => {
+      if (!consolePlatforms.has(value)) return true;
+
+      return (
+        organization.features?.includes('project-creation-games-tab') &&
+        organization.enabledConsolePlatforms?.includes(value)
+      );
+    }),
+  };
+
   return (
     <div>
       <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
@@ -317,7 +336,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
         <JsonForm
           {...jsonFormProps}
           title={t('Project Details')}
-          fields={[fields.name, projectIdField, fields.platform]}
+          fields={[fields.name, projectIdField, platformField]}
         />
         <JsonForm {...jsonFormProps} title={t('Email')} fields={[fields.subjectPrefix]} />
       </Form>
