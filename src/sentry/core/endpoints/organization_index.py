@@ -1,5 +1,6 @@
 import logging
 
+import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Count, Q
@@ -10,6 +11,10 @@ from rest_framework.response import Response
 
 from sentry import analytics, audit_log, features, options
 from sentry import ratelimits as ratelimiter
+from sentry.analytics.events.data_consent_org_creation import (
+    AggregatedDataConsentOrganizationCreatedEvent,
+)
+from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
@@ -275,11 +280,17 @@ class OrganizationIndexEndpoint(Endpoint):
                 data=org.get_audit_log_data(),
             )
 
-            analytics.record(
-                "organization.created",
-                org,
-                actor_id=request.user.id if request.user.is_authenticated else None,
-            )
+            try:
+                analytics.record(
+                    OrganizationCreatedEvent(
+                        id=org.id,
+                        name=org.name,
+                        slug=org.slug,
+                        actor_id=request.user.id if request.user.is_authenticated else None,
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
         # TODO(hybrid-cloud): We'll need to catch a more generic error
         # when the internal RPC is implemented.
@@ -300,10 +311,14 @@ class OrganizationIndexEndpoint(Endpoint):
         if result.get("aggregatedDataConsent"):
             org.update_option("sentry:aggregated_data_consent", True)
 
-            analytics.record(
-                "aggregated_data_consent.organization_created",
-                organization_id=org.id,
-            )
+            try:
+                analytics.record(
+                    AggregatedDataConsentOrganizationCreatedEvent(
+                        organization_id=org.id,
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
         # New organizations should not see the legacy UI
         org.update_option("sentry:streamline_ui_only", True)

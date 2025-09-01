@@ -20,8 +20,8 @@ class AnalyticsTest(TestCase):
         event = provider.events.pop(0)
         assert event.type == "organization.created"
         assert event.datetime_
-        assert event.data["slug"] == organization.slug
-        assert not event.data["actor_id"]
+        assert event.serialize()["data"]["slug"] == organization.slug
+        assert not event.serialize()["data"]["actor_id"]
 
     def test_record_with_attrs(self) -> None:
         organization = self.create_organization()
@@ -31,5 +31,5 @@ class AnalyticsTest(TestCase):
         event = provider.events.pop(0)
         assert event.type == "organization.created"
         assert event.datetime_
-        assert event.data["slug"] == organization.slug
-        assert event.data["actor_id"] == "1"
+        assert event.serialize()["data"]["slug"] == organization.slug
+        assert event.serialize()["data"]["actor_id"] == 1
