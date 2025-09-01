@@ -24,7 +24,7 @@ function getPlayStationRequestButtonAccessDescription(platform?: string) {
   switch (platform) {
     case 'unity':
       return tct(
-        'We offer an SDK for PlayStation built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations that can be used in combination with the Sentry SDK for Unity. Request access below:',
+        'We offer an SDK for PlayStation built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations that can be used in combination with the Sentry SDK for Unity.',
         {
           sentryNativeRepoLink: (
             <ExternalLink href="https://github.com/getsentry/sentry-native" />
@@ -33,7 +33,7 @@ function getPlayStationRequestButtonAccessDescription(platform?: string) {
       );
     case 'unreal':
       return tct(
-        'We offer an SDK for PlayStation built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations that can be used in combination with the Sentry SDK for Unreal. Request access below:',
+        'We offer an SDK for PlayStation built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations that can be used in combination with the Sentry SDK for Unreal.',
         {
           sentryNativeRepoLink: (
             <ExternalLink href="https://github.com/getsentry/sentry-native" />
@@ -42,7 +42,7 @@ function getPlayStationRequestButtonAccessDescription(platform?: string) {
       );
     default:
       return tct(
-        'We offer an SDK for PlayStation built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations. Use it as a standalone SDK for custom/proprietary engines, or extend your Native, Unreal, or Unity setup. Request access below:',
+        'We offer an SDK for PlayStation built on top of [sentryNativeRepoLink:sentry-native], featuring NDA-protected, PlayStation-specific implementations. Use it as a standalone SDK for custom/proprietary engines, or extend your Native, Unreal, or Unity setup.',
         {
           sentryNativeRepoLink: (
             <ExternalLink href="https://github.com/getsentry/sentry-native" />
@@ -80,11 +80,26 @@ function getEnabledPlayStationContent(params: DocsParams): ContentBlock[] {
       text: getPlayStationRequestButtonAccessDescription(params.project.platform),
     },
     {
+      type: 'text',
+      text: tct(
+        "Even though crash dump collection doesn't require a Sentry SDK, if you add it, you can get additional context in your crash dumps, as well as capture non-fatal events. This allows you to add context such as [breadcrumbsLink:breadcrumbs] and [tagsLink:tags].",
+        {
+          breadcrumbsLink: (
+            <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/breadcrumbs/" />
+          ),
+          tagsLink: (
+            <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/#tags" />
+          ),
+        }
+      ),
+    },
+    {
       type: 'custom',
       content: (
         <RequestSdkAccessButton
           organization={params.organization}
           project={params.project}
+          origin={params.newOrg ? 'onboarding' : 'project-creation'}
         />
       ),
     },
@@ -102,7 +117,7 @@ function getEnabledNintendoSwitchContent(params: DocsParams): ContentBlock[] {
     },
     {
       type: 'text',
-      text: <strong>{t('Nintendo Switch SDK')}</strong>,
+      text: <strong>{t('Nintendo Switch SDK (Optional)')}</strong>,
     },
     {
       type: 'text',
@@ -111,6 +126,20 @@ function getEnabledNintendoSwitchContent(params: DocsParams): ContentBlock[] {
         {
           sentryNativeRepositoryLink: (
             <ExternalLink href="https://github.com/getsentry/sentry-native" />
+          ),
+        }
+      ),
+    },
+    {
+      type: 'text',
+      text: tct(
+        "Even though crash dump collection doesn't require a Sentry SDK, if you add it, you can get additional context in your crash dumps, as well as capture non-fatal events. This allows you to add context such as [breadcrumbsLink:breadcrumbs] and [tagsLink:tags].",
+        {
+          breadcrumbsLink: (
+            <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/breadcrumbs/" />
+          ),
+          tagsLink: (
+            <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/#tags" />
           ),
         }
       ),
@@ -128,6 +157,7 @@ function getEnabledNintendoSwitchContent(params: DocsParams): ContentBlock[] {
               projectSlug: params.project.slug,
               sdkName: metadata.displayName,
               gamingPlatform: 'nintendo-switch',
+              origin: params.newOrg ? 'onboarding' : 'project-creation',
             })
           }
         >
@@ -184,6 +214,7 @@ function getEnabledXboxContent(params: DocsParams): ContentBlock[] {
               projectSlug: params.project.slug,
               sdkName: metadata.displayName,
               gamingPlatform: 'xbox',
+              origin: params.newOrg ? 'onboarding' : 'project-creation',
             })
           }
         >
@@ -264,13 +295,16 @@ function ConsoleExtensionsContent(params: DocsParams) {
     />
   );
 }
-export function getConsoleExtensions(params: DocsParams): OnboardingStep {
+export function getConsoleExtensions(params: DocsParams): OnboardingStep | null {
+  if (!params.organization.features.includes('project-creation-games-tab')) {
+    return null;
+  }
+
   const platformData = platforms.find(p => p.id === params.platformKey);
   const platformName = platformData?.name ?? params.platformKey;
 
   return {
     title: t('Console Extensions'),
-    collapsible: true,
     content: [
       {
         type: 'text',

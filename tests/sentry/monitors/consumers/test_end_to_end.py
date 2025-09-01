@@ -47,7 +47,7 @@ def create_consumer():
     return factory.create_with_partitions(commit, {partition: 0})
 
 
-@thread_leaks.allowlist(reason="monitors", issue=97032)
+@thread_leaks.thread_leak_allowlist(reason="monitors", issue=97032)
 class MonitorsClockTickEndToEndTest(TestCase):
     def send_checkin(
         self,

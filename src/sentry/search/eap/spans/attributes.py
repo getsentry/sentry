@@ -34,6 +34,8 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
     for column in COMMON_COLUMNS
     + [
+        simple_sentry_field("client_sample_rate", search_type="number"),
+        simple_sentry_field("server_sample_rate", search_type="number"),
         ResolvedAttribute(
             public_alias="id",
             internal_name="sentry.item_id",

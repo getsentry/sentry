@@ -24,7 +24,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 const ALL_AVAILABLE_FEATURES = [
-  'insights-entry-points',
+  'insight-modules',
   'discover',
   'discover-basic',
   'discover-query',
