@@ -5,9 +5,7 @@ from django.db.models.signals import post_save
 
 from sentry import analytics
 from sentry.adoption import manager
-from sentry.analytics.events.advanced_search_feature_gated import (
-    AdvancedSearchFeatureGateEvent,
-)
+from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.alert_created import AlertCreatedEvent
 from sentry.analytics.events.alert_edited import AlertEditedEvent
 from sentry.analytics.events.issue_archived import IssueArchivedEvent
