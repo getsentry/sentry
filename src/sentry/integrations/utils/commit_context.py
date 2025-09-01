@@ -346,7 +346,7 @@ def _record_commit_context_all_frames_analytics(
     selected_provider: str | None,
     platform: str,
     sdk_name: str | None,
-):
+) -> None:
     if not selected_blame:
         reason = _get_failure_reason(
             num_successfully_mapped_frames=num_successfully_mapped_frames,
@@ -376,7 +376,7 @@ def _record_commit_context_all_frames_analytics(
                 reason=reason,
             )
         )
-        return
+        return None
 
     unique_commit_ids = {blame.commit.commitId for blame in file_blames}
     unique_author_emails = {blame.commit.commitAuthorEmail for blame in file_blames}
@@ -413,7 +413,7 @@ def _record_commit_context_all_frames_analytics(
     )
 
 
-def _get_failure_reason(num_successfully_mapped_frames: int, has_old_blames: bool):
+def _get_failure_reason(num_successfully_mapped_frames: int, has_old_blames: bool) -> str:
     if num_successfully_mapped_frames < 1:
         return "no_successful_code_mapping"
     if has_old_blames:

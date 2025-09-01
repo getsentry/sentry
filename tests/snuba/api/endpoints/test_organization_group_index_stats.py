@@ -9,7 +9,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     endpoint = "sentry-api-0-organization-group-index-stats"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
 

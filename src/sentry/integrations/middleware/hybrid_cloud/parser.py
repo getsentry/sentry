@@ -164,7 +164,7 @@ class BaseRequestParser(ABC):
         regions: list[Region],
         identifier: int | str | None = None,
         integration_id: int | None = None,
-    ):
+    ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.

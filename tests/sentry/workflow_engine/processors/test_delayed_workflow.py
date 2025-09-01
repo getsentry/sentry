@@ -122,7 +122,7 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project.id)
         buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project2.id)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.mock_redis_buffer.__exit__(None, None, None)
 
     def create_project_event_freq_workflow(
@@ -512,7 +512,7 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
 
 @freeze_time(FROZEN_TIME)
 class TestGetSnubaResults(BaseWorkflowTest):
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
 
     def create_events(self, comparison_type: ComparisonType) -> Event:

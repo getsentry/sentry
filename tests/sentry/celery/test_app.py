@@ -35,7 +35,7 @@ def test_validate_scheduled_task_parameters(name: str, entry_data: dict[str, Any
         if parameter.kind in (parameter.VAR_POSITIONAL, parameter.VAR_KEYWORD):
             continue
         # The dynamic sampling tasks splice in a TaskContext via a decorator :(
-        if parameter.annotation == TaskContext:
+        if parameter.annotation == TaskContext.__name__:
             continue
         if parameter.default == parameter.empty:
             raise AssertionError(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from typing import Any
 
 from django.http.request import HttpRequest
 
@@ -23,7 +24,7 @@ class FlyOAuth2Provider(OAuth2Provider):
     access_token_url = ACCESS_TOKEN_URL
     authorize_url = AUTHORIZE_URL
 
-    def __init__(self, org=None, **config) -> None:
+    def __init__(self, org: RpcOrganization | None = None, **config: Any) -> None:
         self.org = org
         super().__init__(**config)
 
@@ -35,7 +36,9 @@ class FlyOAuth2Provider(OAuth2Provider):
 
     def get_configure_view(
         self,
-    ) -> Callable[[HttpRequest, RpcOrganization, RpcAuthProvider], DeferredResponse]:
+    ) -> Callable[
+        [HttpRequest, RpcOrganization | dict[str, Any], RpcAuthProvider], DeferredResponse
+    ]:
         # Utilized from organization_auth_settings.py when configuring the app
         # Injected into the configuration form
         return fly_configure_view
@@ -55,7 +58,7 @@ class FlyOAuth2Provider(OAuth2Provider):
         return ACCESS_TOKEN_URL
 
     @classmethod
-    def build_config(self, resource):
+    def build_config(self, resource: dict[str, Any]) -> dict[str, dict[str, Any]]:
         """
         On configuration, we determine which provider organization to configure sentry SSO for.
         This configuration is then stored and passed into the pipeline instances during SSO
@@ -63,7 +66,7 @@ class FlyOAuth2Provider(OAuth2Provider):
         """
         return {"org": {"id": resource.get("id")}}
 
-    def build_identity(self, state):
+    def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         """
         ex Response:
         {

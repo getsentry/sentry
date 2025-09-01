@@ -13,7 +13,7 @@ pytestmark = [requires_snuba]
 
 # TODO: move these into the tests/sentry/auth directory and remove deprecated logic
 class AuthenticationTest(AuthProviderTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.organization = self.create_organization(name="foo")
         self.user = self.create_user("foobar@example.com", is_superuser=False)
         team = self.create_team(name="bar", organization=self.organization)

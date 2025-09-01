@@ -2684,7 +2684,7 @@ class TestMigrations(TransactionTestCase):
         super().tearDownClass()
         cls._project_state_cache = None
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         # Add code here that will run before we roll back the database to the `migrate_from`
         # migration. This can be useful to allow us to use the various `self.create_*` convenience
         # methods.
@@ -2692,7 +2692,7 @@ class TestMigrations(TransactionTestCase):
         # database operations are required.
         pass
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps) -> None:
         # Add code here to run after we have rolled the database back to the `migrate_from`
         # migration. This code must use `apps` to create any database models, and not directly
         # access Django models.

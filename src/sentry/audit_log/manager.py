@@ -74,7 +74,7 @@ class AuditLogEvent:
         self.api_name = api_name
         self.template = template
 
-    def render(self, audit_log_entry: AuditLogEntry):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
         if not self.template:
             return ""
         elif callable(self.template):

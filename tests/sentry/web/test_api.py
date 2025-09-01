@@ -22,7 +22,7 @@ from sentry.utils import json
 
 class CrossDomainXmlTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-api-crossdomain-xml", kwargs={"project_id": self.project.id})
 
     def test_inaccessible_in_control_silo(self) -> None:
@@ -74,7 +74,7 @@ class CrossDomainXmlTest(TestCase):
 
 class RobotsTxtTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-robots-txt")
 
     def test_robots(self) -> None:
@@ -141,7 +141,7 @@ Disallow: /
 @region_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)
 class ClientConfigViewTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-api-client-config")
 
     def test_cookie_names(self) -> None:
@@ -724,7 +724,7 @@ class ClientConfigViewTest(TestCase):
 
 class McpJsonTest(TestCase):
     @cached_property
-    def path(self):
+    def path(self) -> str:
         return reverse("sentry-mcp-json")
 
     def test_mcp_json_saas_mode(self) -> None:

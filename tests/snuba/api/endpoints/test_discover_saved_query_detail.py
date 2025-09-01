@@ -13,7 +13,7 @@ from sentry.testutils.helpers.datetime import before_now
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     feature_name = "organizations:discover"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
@@ -504,7 +504,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
 
 class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
