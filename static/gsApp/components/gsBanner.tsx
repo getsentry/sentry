@@ -68,6 +68,7 @@ import {
   getContractDaysLeft,
   getProductTrial,
   getTrialLength,
+  hasPartnerMigrationFeature,
   hasPerformance,
   isBusinessTrial,
   partnerPlanEndingModalIsDismissed,
@@ -456,9 +457,7 @@ class GSBanner extends Component<Props, State> {
 
   async tryTriggerPartnerPlanEndingModal() {
     const {organization, subscription, api} = this.props;
-    const hasPartnerMigrationFeature = organization.features.includes(
-      'partner-billing-migration'
-    );
+    const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
     const hasPendingUpgrade =
       subscription.pendingChanges !== null &&
       subscription.pendingChanges?.planDetails.price > 0;
@@ -470,7 +469,7 @@ class GSBanner extends Component<Props, State> {
       daysLeft >= 0 &&
       daysLeft <= 30 &&
       subscription.partner.isActive &&
-      hasPartnerMigrationFeature;
+      hasEndingPartnerPlan;
 
     if (!showPartnerPlanEndingNotice) {
       return;

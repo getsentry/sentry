@@ -33,7 +33,7 @@ export default function MailboxPicker({onChange, value}: Props) {
     <Flex justify="end" flex="1 0 auto">
       <SegmentedControl
         size="xs"
-        aria-label={t('Filter feedbacks')}
+        aria-label={t('Filter feedback')}
         value={value}
         onChange={onChange}
       >
