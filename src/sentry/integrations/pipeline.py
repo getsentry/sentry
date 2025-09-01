@@ -9,7 +9,8 @@ from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from sentry import features
+from sentry import analytics, features
+from sentry.analytics.events.integration_pipeline_step import IntegrationPipelineStep
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
 from sentry.constants import ObjectStatus
@@ -27,7 +28,6 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.store import PipelineSessionStore
-from sentry.pipeline.types import PipelineAnalyticsEntry
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
@@ -116,9 +116,15 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
     ]:
         return self.provider.get_pipeline_views()
 
-    def get_analytics_entry(self) -> PipelineAnalyticsEntry | None:
+    def get_analytics_event(self) -> analytics.Event | None:
         pipeline_type = "reauth" if self.fetch_state("integration_id") else "install"
-        return PipelineAnalyticsEntry("integrations.pipeline_step", pipeline_type)
+        return IntegrationPipelineStep(
+            user_id=self.request.user.id,
+            organization_id=self.organization.id,
+            integration=self.provider.key,
+            step_index=self.step_index,
+            pipeline_type=pipeline_type,
+        )
 
     def initialize(self) -> None:
         super().initialize()
