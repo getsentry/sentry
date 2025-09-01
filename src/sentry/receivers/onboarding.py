@@ -108,16 +108,19 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
             # XXX(dcramer): we cannot setup onboarding tasks without a user
             return
 
-    analytics.record(
-        ProjectCreatedEvent(
-            user_id=user_id,
-            default_user_id=default_user_id,
-            organization_id=project.organization_id,
-            origin=origin,
-            project_id=project.id,
-            platform=project.platform,
+    try:
+        analytics.record(
+            ProjectCreatedEvent(
+                user_id=user_id,
+                default_user_id=default_user_id,
+                organization_id=project.organization_id,
+                origin=origin,
+                project_id=project.id,
+                platform=project.platform,
+            )
         )
-    )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
     completed = complete_onboarding_task(
         organization=project.organization,

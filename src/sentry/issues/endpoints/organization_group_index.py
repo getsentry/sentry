@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -289,17 +290,20 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
         # record analytics for search query
         if request.user:
-            analytics.record(
-                IssueSearchEndpointQueriedEvent(
-                    user_id=request.user.id,
-                    organization_id=organization.id,
-                    project_ids=",".join(map(str, project_ids)),
-                    full_query_params=",".join(
-                        f"{key}={value}" for key, value in request.GET.items()
-                    ),
-                    query=query,
+            try:
+                analytics.record(
+                    IssueSearchEndpointQueriedEvent(
+                        user_id=request.user.id,
+                        organization_id=organization.id,
+                        project_ids=",".join(map(str, project_ids)),
+                        full_query_params=",".join(
+                            f"{key}={value}" for key, value in request.GET.items()
+                        ),
+                        query=query,
+                    )
                 )
-            )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
         if query:
             # check to see if we've got an event ID
