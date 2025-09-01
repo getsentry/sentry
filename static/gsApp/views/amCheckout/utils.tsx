@@ -25,17 +25,24 @@ import {
   SUPPORTED_TIERS,
 } from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import type {
-  EventBucket,
-  OnDemandBudgets,
-  Plan,
+import {
+  InvoiceItemType,
   PlanTier,
-  PreviewData,
-  ReservedBudgetCategoryType,
-  Subscription,
+  type EventBucket,
+  type OnDemandBudgets,
+  type Plan,
+  type PreviewData,
+  type ReservedBudgetCategoryType,
+  type Subscription,
 } from 'getsentry/types';
-import {InvoiceItemType} from 'getsentry/types';
-import {getSlot, isTrialPlan} from 'getsentry/utils/billing';
+import {
+  getAmPlanTier,
+  getSlot,
+  hasPartnerMigrationFeature,
+  isBizPlanFamily,
+  isTeamPlanFamily,
+  isTrialPlan,
+} from 'getsentry/utils/billing';
 import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
@@ -43,6 +50,7 @@ import {
   SelectableProduct,
   type CheckoutAPIData,
   type CheckoutFormData,
+  type PlanContent,
   type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
@@ -626,9 +634,7 @@ export function useSubmitCheckout({
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
-  const isMigratingPartnerAccount = organization.features.includes(
-    'partner-billing-migration'
-  );
+  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
 
   return useMutation({
     mutationFn: ({data}: {data: CheckoutAPIData}) => {
@@ -744,9 +750,7 @@ export async function submitCheckout(
 
   // this is necessary for recording partner billing migration-specific analytics after
   // the migration is successful (during which the flag is flipped off)
-  const isMigratingPartnerAccount = organization.features.includes(
-    'partner-billing-migration'
-  );
+  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
 
   const data = normalizeAndGetCheckoutAPIData({
     formData,
@@ -848,4 +852,50 @@ export function getToggleTier(checkoutTier: PlanTier | undefined) {
 
 export function hasCheckoutV3(organization: Organization) {
   return organization.features.includes('checkout-v3');
+}
+
+export function getContentForPlan(plan: Plan): PlanContent {
+  if (isBizPlanFamily(plan)) {
+    return {
+      description: t(
+        'Everything in the Team plan + deeper insight into your application health.'
+      ),
+      features: {
+        discover: t('Advanced analytics with Discover'),
+        enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
+        dashboard: t('Unlimited custom dashboards'),
+        ...(getAmPlanTier(plan.id) === PlanTier.AM3 && {
+          application_insights: t('Application Insights'),
+        }),
+        advanced_filtering: t('Advanced server-side filtering'),
+        saml: t('SAML support'),
+      },
+      hasMoreLink: true,
+    };
+  }
+
+  if (isTeamPlanFamily(plan)) {
+    return {
+      description: t('Resolve errors and track application performance as a team.'),
+      features: {
+        unlimited_members: t('Unlimited members'),
+        integrations: t('Third-party integrations'),
+        metric_alerts: t('Metric alerts'),
+      },
+    };
+  }
+
+  // TODO(checkout v3): update copy
+  return {
+    description: t('For solo devs working on small projects'),
+    features: {
+      errors: t('5K Errors'),
+      replays: t('50 Replays'),
+      spans: t('5M Spans'),
+      attachments: t('1GB Attachments'),
+      monitorSeats: t('1 Cron Monitor'),
+      uptime: t('1 Uptime Monitor'),
+      logBytes: t('5GB Logs'),
+    },
+  };
 }
