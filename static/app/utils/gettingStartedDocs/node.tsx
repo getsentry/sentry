@@ -370,7 +370,7 @@ export const getNodeAgentMonitoringOnboarding = ({
     {
       type: StepType.INSTALL,
       description: tct(
-        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.2.0].',
+        'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [code:10.6.0].',
         {
           code: <code />,
         }
