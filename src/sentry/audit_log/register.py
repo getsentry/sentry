@@ -235,7 +235,7 @@ def render_project_enable(audit_log_entry: AuditLogEntry):
     name="PROJECT_DISABLE",
     api_name="project.disable",
 )
-def render_project_enable_disable(audit_log_entry: AuditLogEntry):
+def render_project_disable(audit_log_entry: AuditLogEntry):
     return render_project_action(audit_log_entry, "disable")
 
 
