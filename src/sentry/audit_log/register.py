@@ -507,6 +507,12 @@ add(
     template="removed the invite request for {email}",
 )
 add(
+    event_id=142,
+    name="INVITE_REMOVE",
+    api_name="invite.remove",
+    template="removed the invite for {email}",
+)
+add(
     event_id=160,
     name="ALERT_RULE_ADD",
     api_name="alertrule.create",
