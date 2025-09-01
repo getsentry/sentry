@@ -10,7 +10,6 @@ import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
-from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.environment import Environment
@@ -177,6 +176,7 @@ class BaseNotification(abc.ABC):
 
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent
+        from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
         from sentry.integrations.opsgenie.analytics import OpsgenieIntegrationNotificationSent
         from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotificationSent
         from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
