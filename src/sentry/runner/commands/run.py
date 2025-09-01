@@ -333,6 +333,15 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     help="The name of the processing pool being used",
     default="unknown",
 )
+@click.option(
+    "--health-check-file-path",
+    help="Full path of the health check file if health check is to be enabled",
+)
+@click.option(
+    "--health-check-req-per-touch",
+    help="The number of gRPC requests before touching the health check file",
+    default=taskworker_constants.DEFAULT_WORKER_HEALTH_CHECK_REQ_PER_TOUCH,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -355,6 +364,8 @@ def run_taskworker(
     result_queue_maxsize: int,
     rebalance_after: int,
     processing_pool_name: str,
+    health_check_file_path: str | None,
+    health_check_req_per_touch: int,
     **options: Any,
 ) -> None:
     """
@@ -375,6 +386,8 @@ def run_taskworker(
             result_queue_maxsize=result_queue_maxsize,
             rebalance_after=rebalance_after,
             processing_pool_name=processing_pool_name,
+            health_check_file_path=health_check_file_path,
+            health_check_req_per_touch=health_check_req_per_touch,
             **options,
         )
         exitcode = worker.start()
