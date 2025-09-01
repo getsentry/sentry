@@ -13,6 +13,7 @@ from sentry.analytics.events.first_event_sent import (
 from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
 from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
 from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.onboarding_complete import OnboardingCompleteEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.integrations.analytics import IntegrationAddedEvent
 from sentry.models.options.organization_option import OrganizationOption
@@ -1148,11 +1149,13 @@ class OrganizationOnboardingTaskTest(TestCase):
             ).count()
             == 1
         )
-        record_analytics.assert_called_with(
-            "onboarding.complete",
-            user_id=self.user.id,
-            organization_id=self.organization.id,
-            referrer="onboarding_tasks",
+        assert_last_analytics_event(
+            record_analytics,
+            OnboardingCompleteEvent(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                referrer="onboarding_tasks",
+            ),
         )
 
     @patch("sentry.analytics.record", wraps=record)
