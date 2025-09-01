@@ -84,7 +84,7 @@ class SystemOptionsEndpoint(Endpoint):
 
         return True
 
-    def put(self, request: Request) -> Response:
+    def put(self, request: Request):
         if not self.has_permission(request):
             return Response(status=403)
 

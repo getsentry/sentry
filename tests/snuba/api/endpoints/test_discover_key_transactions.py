@@ -14,7 +14,7 @@ from sentry.utils.samples import load_data
 
 
 class TeamKeyTransactionTestBase(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
 
         self.login_as(user=self.user, superuser=False)
@@ -32,7 +32,7 @@ class ClientCallable(Protocol):
 
 
 class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
 
@@ -673,7 +673,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
 
 
 class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.url = reverse("sentry-api-0-organization-key-transactions-list", args=[self.org.slug])
 

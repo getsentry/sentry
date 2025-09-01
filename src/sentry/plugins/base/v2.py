@@ -78,10 +78,10 @@ class IPlugin2(local, PluginConfigMixin):
     # used by queries to determine if the plugin is configured
     required_field: str | None = None
 
-    def _get_option_key(self, key) -> str:
+    def _get_option_key(self, key):
         return f"{self.get_conf_key()}:{key}"
 
-    def get_plugin_type(self) -> str:
+    def get_plugin_type(self):
         return "default"
 
     def is_enabled(self, project=None):

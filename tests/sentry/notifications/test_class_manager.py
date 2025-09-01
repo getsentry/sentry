@@ -11,7 +11,7 @@ from sentry.testutils.helpers.notifications import AnotherDummyNotification
 
 
 class ClassManagerTest(TestCase):
-    def tearDown(self) -> None:
+    def tearDown(self):
         manager.classes.pop("AnotherDummyNotification", None)
 
     def test_register(self) -> None:

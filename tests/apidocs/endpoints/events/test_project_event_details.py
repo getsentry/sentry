@@ -7,7 +7,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 class ProjectEventDetailsDocs(APIDocsTestCase):
     endpoint = "sentry-api-0-project-event-details"
 
-    def setUp(self) -> None:
+    def setUp(self):
         self.create_event("a")
         event = self.create_event("b")
         self.create_event("c")

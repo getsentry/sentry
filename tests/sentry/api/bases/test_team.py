@@ -1,12 +1,9 @@
 from rest_framework.views import APIView
 
 from sentry.api.bases.team import TeamPermission
-from sentry.models.apitoken import ApiToken
-from sentry.models.team import Team
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.requests import drf_request_from_request
-from sentry.users.models.user import User
 
 
 class TeamPermissionBase(TestCase):
@@ -15,14 +12,7 @@ class TeamPermissionBase(TestCase):
         self.team = self.create_team(organization=self.org)
         super().setUp()
 
-    def has_object_perm(
-        self,
-        method: str,
-        obj: Team,
-        auth: ApiToken | None = None,
-        user: User | None = None,
-        is_superuser: bool | None = None,
-    ) -> bool:
+    def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None):
         perm = TeamPermission()
         request = self.make_request(user=user, auth=auth, method=method)
         if is_superuser:

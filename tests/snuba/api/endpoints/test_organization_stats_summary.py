@@ -16,7 +16,7 @@ from sentry.utils.outcomes import Outcome
 class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
     _now = datetime.now(UTC).replace(hour=12, minute=27, second=28, microsecond=0)
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
 
         self.login_as(user=self.user)

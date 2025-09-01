@@ -66,9 +66,9 @@ def test_sdk_crash_is_reported_development_paths(
     mock_random,
     store_event,
     configs,
-    filename: str,
-    expected_stripped_filename: str,
-    detected: bool,
+    filename,
+    expected_stripped_filename,
+    detected,
 ):
     event = store_event(data=get_crash_event(filename=filename))
 
@@ -161,7 +161,7 @@ def test_sdk_crash_is_reported_development_paths(
 )
 @decorators
 def test_sdk_crash_is_reported_production_paths(
-    mock_sdk_crash_reporter, mock_random, store_event, configs, package_name: str, detected: bool
+    mock_sdk_crash_reporter, mock_random, store_event, configs, package_name, detected
 ):
     expected_stripped_filename = f"{package_name}dist/js/integrations/reactnativeerrorhandlers.js"
     # Remove the first / from the path because the module is not prefixed with /.

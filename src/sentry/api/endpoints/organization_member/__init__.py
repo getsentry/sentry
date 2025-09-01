@@ -24,7 +24,7 @@ def save_team_assignments(
     organization_member: OrganizationMember,
     teams: list[Team] | None,
     teams_with_roles: list[tuple[Team, str]] | None = None,
-) -> None:
+):
     # https://github.com/getsentry/sentry/pull/6054/files/8edbdb181cf898146eda76d46523a21d69ab0ec7#r145798271
     lock = locks.get(
         f"org:member:{organization_member.id}", duration=5, name="save_team_assignment"

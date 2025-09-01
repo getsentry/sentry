@@ -10,7 +10,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
     As a developer, I can create an integration, install it, and uninstall it
     """
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.team = self.create_team(organization=self.organization, name="Tesla Motors")
         self.project = self.create_project(
@@ -20,7 +20,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.org_developer_settings_path = f"/settings/{self.organization.slug}/developer-settings/"
 
-    def load_page(self, url: str) -> None:
+    def load_page(self, url):
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
@@ -58,7 +58,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
     As a developer, I can edit an existing integration
     """
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Tesla", owner=self.user)
@@ -75,7 +75,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
             f"/settings/{self.org.slug}/developer-settings/{self.sentry_app.slug}"
         )
 
-    def load_page(self, url: str) -> None:
+    def load_page(self, url):
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 

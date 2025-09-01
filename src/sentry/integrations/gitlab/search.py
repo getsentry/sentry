@@ -17,7 +17,7 @@ T = TypeVar("T", bound=SourceCodeIssueIntegration)
 @control_silo_endpoint
 class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
     @property
-    def repository_field(self) -> str:
+    def repository_field(self):
         return "project"
 
     @property

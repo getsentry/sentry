@@ -17,7 +17,7 @@ READONLY_SCOPES = frozenset(
 )
 
 
-def is_demo_mode_enabled() -> bool:
+def is_demo_mode_enabled():
     return options.get("demo-mode.enabled")
 
 
@@ -29,7 +29,7 @@ def is_demo_user(user: User | AnonymousUser | None) -> bool:
     return user.id in options.get("demo-mode.users")
 
 
-def is_demo_org(organization: Organization | None) -> bool:
+def is_demo_org(organization: Organization | None):
 
     if not organization:
         return False
@@ -37,7 +37,7 @@ def is_demo_org(organization: Organization | None) -> bool:
     return organization.id in options.get("demo-mode.orgs")
 
 
-def get_demo_org() -> Organization | None:
+def get_demo_org():
     if not is_demo_mode_enabled():
         return None
 
@@ -45,7 +45,7 @@ def get_demo_org() -> Organization | None:
     return Organization.objects.get(id=org_id)
 
 
-def get_demo_user() -> User | None:
+def get_demo_user():
     if not is_demo_mode_enabled():
         return None
 

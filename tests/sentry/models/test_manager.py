@@ -8,7 +8,7 @@ class GetFromCacheTest(TestCase):
     def setUp(self) -> None:
         self.clear()
 
-    def clear(self) -> None:
+    def clear(self):
         cache.clear()
         flush_manager_local_cache()
 

@@ -50,9 +50,7 @@ class CompareTableResultDict(TypedDict):
     query: str | None
 
 
-def compare_table_results(
-    metrics_query_result: EventsResponse, eap_result: EAPResponse
-) -> tuple[bool, list[str], CompareTableResult]:
+def compare_table_results(metrics_query_result: EventsResponse, eap_result: EAPResponse):
     eap_data_row = eap_result["data"][0] if len(eap_result["data"]) > 0 else {}
     metrics_data_row = (
         metrics_query_result["data"][0] if len(metrics_query_result["data"]) > 0 else {}

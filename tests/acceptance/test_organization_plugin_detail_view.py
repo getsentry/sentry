@@ -11,17 +11,17 @@ from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 @no_silo_test
 class OrganizationPluginDetailedView(AcceptanceTestCase):
     @cached_property
-    def plugin(self) -> OpsGeniePlugin:
+    def plugin(self):
         return OpsGeniePlugin()
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         # need at least two projects
         self.project = self.create_project(organization=self.organization, name="Back end")
         self.create_project(organization=self.organization, name="Front End")
         self.login_as(self.user)
 
-    def load_page(self, slug: str, configuration_tab: bool = False) -> None:
+    def load_page(self, slug, configuration_tab=False):
         url = f"/settings/{self.organization.slug}/plugins/{slug}/"
         if configuration_tab:
             url += "?tab=configurations"

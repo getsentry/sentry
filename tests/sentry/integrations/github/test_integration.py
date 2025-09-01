@@ -118,7 +118,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self._stub_github()
         plugins.register(GitHubPlugin)
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         responses.reset()
         plugins.unregister(GitHubPlugin)
         super().tearDown()

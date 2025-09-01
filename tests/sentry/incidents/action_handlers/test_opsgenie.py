@@ -13,7 +13,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -174,7 +174,7 @@ class OpsgenieActionHandlerTest(FireTest):
         )
 
     @responses.activate
-    def run_test(self, incident: Incident, method: str) -> None:
+    def run_test(self, incident, method):
         from sentry.integrations.opsgenie.utils import (
             attach_custom_priority,
             build_incident_attachment,

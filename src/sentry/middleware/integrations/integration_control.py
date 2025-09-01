@@ -40,14 +40,14 @@ class IntegrationControlMiddleware:
         return SiloMode.get_current_mode() == SiloMode.CONTROL
 
     @classmethod
-    def register_classifications(cls, classifications: list[type[BaseClassification]]) -> None:
+    def register_classifications(cls, classifications: list[type[BaseClassification]]):
         """
         Add new classifications for middleware to determine request parsing dynamically.
         Used in getsentry to expand scope of parsing.
         """
         cls.classifications += classifications
 
-    def __call__(self, request: HttpRequest) -> HttpResponseBase:
+    def __call__(self, request: HttpRequest):
         if not self._should_operate(request):
             return self.get_response(request)
 

@@ -9,7 +9,7 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-stats"
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.start = self.day_ago = before_now(days=1).replace(

@@ -10,7 +10,7 @@ from sentry.users.models.identity import Identity
 
 
 class ExampleIntegration(IntegrationInstallation):
-    def get_client(self) -> None:
+    def get_client(self):
         raise NotImplementedError
 
 

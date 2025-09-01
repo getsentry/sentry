@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
 from typing import Any
 
 import orjson
@@ -21,7 +20,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models.files.file import File
 from sentry.users.services.user.service import user_service
 
 from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
@@ -56,7 +54,7 @@ class ExportedData(Model):
             return ExportStatus.Valid
 
     @property
-    def payload(self) -> dict[str, Any]:
+    def payload(self):
         payload = self.query_info.copy()
         payload["export_type"] = ExportQueryType.as_str(self.query_type)
         return payload
@@ -69,7 +67,7 @@ class ExportedData(Model):
         return f"{export_type}_{date}_{self.id}.csv"
 
     @staticmethod
-    def format_date(date: datetime | None) -> str | None:
+    def format_date(date) -> str | None:
         # Example: 12:21 PM on July 21, 2020 (UTC)
         return None if date is None else date.strftime("%-I:%M %p on %B %d, %Y (%Z)")
 
@@ -78,11 +76,11 @@ class ExportedData(Model):
         if file:
             file.delete()
 
-    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, Any]]:
+    def delete(self, *args, **kwargs):
         self.delete_file()
         return super().delete(*args, **kwargs)
 
-    def finalize_upload(self, file: File, expiration: timedelta = DEFAULT_EXPIRATION) -> None:
+    def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION) -> None:
         self.delete_file()  # If a file is present, remove it
         current_time = timezone.now()
         expire_time = current_time + expiration
@@ -141,7 +139,9 @@ class ExportedData(Model):
         msg.send_async([user.email])
         self.delete()
 
-    def _get_file(self) -> File | None:
+    def _get_file(self):
+        from sentry.models.files.file import File
+
         if self.file_id:
             try:
                 return File.objects.get(pk=self.file_id)

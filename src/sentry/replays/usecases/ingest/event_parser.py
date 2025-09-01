@@ -269,7 +269,7 @@ def get_timestamp_ms(event: dict[str, Any], event_type: EventType) -> float:
 
 class EAPEventsBuilder:
 
-    def __init__(self, context: EventContext) -> None:
+    def __init__(self, context: EventContext):
         self.context = context
         self.events: list[TraceItem] = []
 
@@ -584,7 +584,7 @@ class HighlightedEvents(TypedDict, total=False):
 
 class HighlightedEventsBuilder:
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.events: HighlightedEvents = {
             "canvas_sizes": [],
             "clicks": [],

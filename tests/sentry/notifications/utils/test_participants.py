@@ -654,7 +654,7 @@ class GetOwnersCase(_ParticipantsTest):
         self.rule_2 = Rule(Matcher("path", "*.js"), [Owner("team", self.team_2.slug)])
         self.rule_3 = Rule(Matcher("path", "*.js"), [Owner("user", self.user_1.email)])
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         cache.delete(ProjectOwnership.get_cache_key(self.project.id))
         super().tearDown()
 

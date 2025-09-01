@@ -99,7 +99,7 @@ def get_integration_link(
     )
 
 
-def get_issue_replay_link(group: Group, sentry_query_params: str = "") -> str:
+def get_issue_replay_link(group: Group, sentry_query_params: str = ""):
     return str(group.get_absolute_url() + "replays/" + sentry_query_params)
 
 
@@ -123,7 +123,7 @@ def get_rules(
     ]
 
 
-def _fetch_rule_id(rule: Rule, type_id: int | None = None) -> int:
+def _fetch_rule_id(rule: Rule, type_id: int | None = None):
     # Try to fetch the legacy rule id, if it fails, return the rule id
     # This allows us to support both legacy and new rule ids
     try:

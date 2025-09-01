@@ -1,12 +1,10 @@
 from unittest.mock import Mock
 
-from arroyo.backends.kafka import KafkaProducer
-
 from sentry.utils.arroyo_producer import SingletonProducer
 
 
 def test_track_futures() -> None:
-    def dummy_producer() -> KafkaProducer:
+    def dummy_producer():
         raise AssertionError("no producer")
 
     producer = SingletonProducer(dummy_producer, max_futures=2)

@@ -1,5 +1,3 @@
-from typing import TypedDict
-
 from django.db.models import Q
 from django.http import HttpResponse
 from rest_framework import serializers
@@ -16,12 +14,7 @@ from sentry.models.organization import Organization
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 
-class ReleaseThresholdIndexGETData(TypedDict, total=False):
-    environment: list[str]
-    project: list[int]
-
-
-class ReleaseThresholdIndexGETValidator(serializers.Serializer[ReleaseThresholdIndexGETData]):
+class ReleaseThresholdIndexGETValidator(serializers.Serializer):
     environment = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField()
     )

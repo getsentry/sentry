@@ -24,9 +24,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.VISIBILITY
     permission_classes = (OrganizationDataExportPermission,)
 
-    def get(
-        self, request: Request, organization: Organization, data_export_id: str
-    ) -> Response | StreamingHttpResponse:
+    def get(self, request: Request, organization: Organization, data_export_id: str) -> Response:
         """
         Retrieve information about the temporary file record.
         Used to populate page emailed to the user.
@@ -52,10 +50,9 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
             return self.download(data_export)
         return Response(serialize(data_export, request.user))
 
-    def download(self, data_export: ExportedData) -> StreamingHttpResponse:
+    def download(self, data_export):
         metrics.incr("dataexport.download", sample_rate=1.0)
         file = data_export._get_file()
-        assert file is not None
         raw_file = file.getfile()
         response = StreamingHttpResponse(
             iter(lambda: raw_file.read(4096), b""), content_type="text/csv"

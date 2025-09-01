@@ -6,7 +6,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class AuthTest(AcceptanceTestCase):
-    def enter_auth(self, username: str, password: str) -> None:
+    def enter_auth(self, username, password):
         self.browser.get("/auth/login/")
         self.browser.driver.execute_script(
             "document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);"

@@ -6,7 +6,7 @@ from sentry.testutils.cases import SCIMTestCase
 
 
 class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         member_user = self.create_user()
         self.member = self.create_member(user=member_user, organization=self.organization)

@@ -1,9 +1,6 @@
-from __future__ import annotations
-
 import time
 from dataclasses import dataclass
-from types import TracebackType
-from typing import Any, Literal
+from typing import Any
 
 
 @dataclass
@@ -38,7 +35,7 @@ class DynamicSamplingLogState:
         num_iterations: int = 0,
         num_projects: int = 0,
         num_orgs: int = 0,
-    ) -> DynamicSamplingLogState:
+    ) -> "DynamicSamplingLogState":
         self.num_rows_total += num_rows_total
         self.num_db_calls += num_db_calls
         self.num_iterations += num_iterations
@@ -48,7 +45,7 @@ class DynamicSamplingLogState:
         return self
 
     @staticmethod
-    def from_dict(val: dict[Any, Any] | None) -> DynamicSamplingLogState:
+    def from_dict(val: dict[Any, Any] | None) -> "DynamicSamplingLogState":
         if val is not None:
             return DynamicSamplingLogState(
                 num_iterations=val.get("numIterations", 0),
@@ -77,14 +74,14 @@ class TaskContext:
     num_seconds: float
     context_data: dict[str, DynamicSamplingLogState] | None = None
 
-    def __post_init__(self) -> None:
+    def __post_init__(self):
         # always override
         self.expiration_time = time.monotonic() + self.num_seconds
         if self.context_data is None:
             self.context_data = {}
         self.timers = Timers()
 
-    def set_function_state(self, function_id: str, log_state: DynamicSamplingLogState) -> None:
+    def set_function_state(self, function_id: str, log_state: DynamicSamplingLogState):
         if self.context_data is None:
             self.context_data = {}
 
@@ -106,7 +103,7 @@ class TaskContext:
         num_iterations: int = 0,
         num_projects: int = 0,
         num_orgs: int = 0,
-    ) -> None:
+    ):
         self.set_function_state(
             function_id,
             self.get_function_state(function_id).increment(
@@ -114,7 +111,7 @@ class TaskContext:
             ),
         )
 
-    def get_timer(self, name: str) -> NamedTimer:
+    def get_timer(self, name) -> "NamedTimer":
         return self.timers.get_timer(name)
 
     def to_dict(self) -> dict[str, Any]:
@@ -157,10 +154,10 @@ class Timers:
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.timers: dict[str, TimerState] = {}
 
-    def get_timer(self, name: str) -> NamedTimer:
+    def get_timer(self, name: str) -> "NamedTimer":
         return NamedTimer(name, self)
 
     def start(self, name: str) -> float:
@@ -212,17 +209,15 @@ class NamedTimer:
         assert t.current() == 10
     """
 
-    def __init__(self, name: str, timers: Timers) -> None:
+    def __init__(self, name: str, timers: Timers):
         self.name = name
         self.timers = timers
 
-    def __enter__(self) -> NamedTimer:
+    def __enter__(self):
         self.timers.start(self.name)
         return self
 
-    def __exit__(
-        self, exc_type: type[Exception], exc_val: Exception, exc_tb: TracebackType
-    ) -> Literal[False]:
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.timers.stop(self.name)
         return False
 

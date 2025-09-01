@@ -12,9 +12,9 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
     FEATURES = ["organizations:performance-span-histogram-view"]
     URL = "sentry-api-0-organization-events-spans-histogram"
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
-        self.features: dict[str, bool] = {}
+        self.features = {}
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -58,7 +58,7 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         return self.store_event(data, project_id=self.project.id)
 
-    def format_span(self, op, group) -> str:
+    def format_span(self, op, group):
         return f"{op}:{group}"
 
     def do_request(self, query, with_feature=True):

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from django.forms import Form
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 
-from sentry.auth.helper import AuthHelper
 from sentry.auth.providers.saml2.forms import (
     AttributeMappingForm,
     SAMLForm,
@@ -52,23 +50,15 @@ def saml2_configure_view(
 
 
 class SelectIdP(AuthView):
-    def handle(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, pipeline) -> HttpResponseBase:
         op = "url"
 
-        forms: dict[str, Form | None] = {
-            "url": URLMetadataForm(),
-            "xml": XMLMetadataForm(),
-            "idp": SAMLForm(),
-        }
+        forms = {"url": URLMetadataForm(), "xml": XMLMetadataForm(), "idp": SAMLForm()}
 
         if "action_save" in request.POST:
             op = request.POST["action_save"]
-            form_from_forms = forms[op]
-            if form_from_forms is None:
-                forms[op] = None
-            else:
-                form_cls = form_from_forms.__class__
-                forms[op] = process_metadata(form_cls, request, pipeline)
+            form_cls = forms[op].__class__
+            forms[op] = process_metadata(form_cls, request, pipeline)
 
         # process_metadata will return None when the action was successful and
         # data was bound to the pipeline.
@@ -79,7 +69,7 @@ class SelectIdP(AuthView):
 
 
 class MapAttributes(AuthView):
-    def handle(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, pipeline) -> HttpResponseBase:
         if "save_mappings" not in request.POST:
             form = AttributeMappingForm()
         else:

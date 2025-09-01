@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Generator
 from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -127,7 +126,7 @@ class SetRefsTest(TestCase):
 
 class HookHandleTest(TestCase):
     @pytest.fixture(autouse=True)
-    def patch_is_valid_signature(self) -> Generator[None]:
+    def patch_is_valid_signature(self):
         with patch.object(HerokuReleaseHook, "is_valid_signature"):
             yield
 

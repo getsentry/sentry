@@ -1,5 +1,3 @@
-from typing import TypedDict
-
 from django.http import HttpResponse
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -21,27 +19,19 @@ from sentry.models.release_threshold.constants import TriggerType as ReleaseThre
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 
 
-class ReleaseThresholdPOSTData(TypedDict, total=False):
-    threshold_type: int
-    trigger_type: int
-    value: int
-    window_in_seconds: int
-    environment: object
-
-
-class ReleaseThresholdPOSTSerializer(serializers.Serializer[ReleaseThresholdPOSTData]):
+class ReleaseThresholdPOSTSerializer(serializers.Serializer):
     threshold_type = serializers.ChoiceField(choices=ReleaseThresholdType.as_str_choices())
     trigger_type = serializers.ChoiceField(choices=ReleaseThresholdTriggerType.as_str_choices())
     value = serializers.IntegerField(required=True, min_value=0)
     window_in_seconds = serializers.IntegerField(required=True, min_value=0)
     environment = EnvironmentField(required=False, allow_null=True)
 
-    def validate_threshold_type(self, threshold_type: str) -> int:
+    def validate_threshold_type(self, threshold_type: str):
         if threshold_type not in THRESHOLD_TYPE_STR_TO_INT:
             raise serializers.ValidationError("Invalid threshold type")
         return THRESHOLD_TYPE_STR_TO_INT[threshold_type]
 
-    def validate_trigger_type(self, trigger_type: str) -> int:
+    def validate_trigger_type(self, trigger_type: str):
         if trigger_type not in TRIGGER_TYPE_STRING_TO_INT:
             raise serializers.ValidationError("Invalid trigger type")
         return TRIGGER_TYPE_STRING_TO_INT[trigger_type]

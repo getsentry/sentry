@@ -1,5 +1,4 @@
 from fixtures.page_objects.issue_details import IssueDetailsPage
-from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
@@ -10,7 +9,7 @@ from sentry.utils.samples import load_data
 class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
     page: IssueDetailsPage
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -23,7 +22,7 @@ class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
         self.dismiss_assistant()
         self.event = self.create_issue()
 
-    def create_issue(self) -> Event:
+    def create_issue(self):
         event_data = load_data("javascript")
         event_data["timestamp"] = before_now(minutes=1).isoformat()
         event_data["tags"] = {"url": "http://example.org/path?key=value"}

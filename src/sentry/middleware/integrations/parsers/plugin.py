@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 from django.http import HttpResponse
-from django.http.response import HttpResponseBase
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
@@ -23,7 +22,7 @@ class PluginRequestParser(BaseRequestParser):
     def should_operate(self) -> bool:
         return self.view_class in {BitbucketPluginWebhookEndpoint, GithubPluginWebhookEndpoint}
 
-    def get_response(self) -> HttpResponseBase:
+    def get_response(self):
         """
         Used for identifying regions from Github and Bitbucket plugin webhooks
         """

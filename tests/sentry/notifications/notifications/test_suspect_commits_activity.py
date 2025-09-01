@@ -18,7 +18,7 @@ pytestmark = [requires_snuba]
 
 
 class SuspectCommitsInActivityNotificationsTest(TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(self.user)
 

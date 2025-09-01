@@ -5,7 +5,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class TeamsIndexDocs(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.create_team(organization=self.organization)
 
         self.url = reverse(

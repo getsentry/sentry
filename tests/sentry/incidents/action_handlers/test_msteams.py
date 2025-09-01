@@ -14,7 +14,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.messaging.spec import MessagingActionHandler
 from sentry.integrations.msteams.card_builder.block import (
@@ -77,7 +77,7 @@ class MsTeamsActionHandlerTest(FireTest):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def run_test(self, incident: Incident, method: str, mock_record: MagicMock) -> None:
+    def run_test(self, incident, method, mock_record):
         from sentry.integrations.msteams.card_builder.incident_attachment import (
             build_incident_attachment,
         )

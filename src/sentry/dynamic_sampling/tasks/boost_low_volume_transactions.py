@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 from collections.abc import Callable, Iterator, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, cast
 
 import sentry_sdk
 from snuba_sdk import (
@@ -74,19 +72,23 @@ class ProjectIdentity(TypedDict, total=True):
     org_id: int
 
 
-class ProjectTransactions(ProjectIdentity, total=True):
+class ProjectTransactions(TypedDict, total=True):
     """
     Information about the project transactions
     """
 
+    project_id: int
+    org_id: int
     transaction_counts: list[tuple[str, float]]
     total_num_transactions: float | None
     total_num_classes: int | None
 
 
-class ProjectTransactionsTotals(ProjectIdentity, total=True):
+class ProjectTransactionsTotals(TypedDict, total=True):
+    project_id: int
+    org_id: int
     total_num_transactions: float
-    total_num_classes: int | float
+    total_num_classes: int
 
 
 @instrumented_task(
@@ -297,10 +299,10 @@ class FetchProjectTransactionTotals:
         self.cache: list[dict[str, int | float]] = []
         self.last_org_id: int | None = None
 
-    def __iter__(self) -> FetchProjectTransactionTotals:
+    def __iter__(self):
         return self
 
-    def __next__(self) -> ProjectTransactionsTotals:
+    def __next__(self):
 
         self._ensure_log_state()
         assert self.log_state is not None
@@ -367,7 +369,7 @@ class FetchProjectTransactionTotals:
 
         return self._get_from_cache()
 
-    def _get_from_cache(self) -> ProjectTransactionsTotals:
+    def _get_from_cache(self):
 
         if self._cache_empty():
             raise StopIteration()
@@ -377,15 +379,15 @@ class FetchProjectTransactionTotals:
         assert self.log_state is not None
 
         row = self.cache.pop(0)
-        proj_id = int(row["project_id"])
-        org_id = int(row["org_id"])
+        proj_id = row["project_id"]
+        org_id = row["org_id"]
         num_transactions = row["num_transactions"]
-        num_classes = int(row["num_classes"])
+        num_classes = row["num_classes"]
 
         self.log_state.num_projects += 1
 
         if self.last_org_id != org_id:
-            self.last_org_id = org_id
+            self.last_org_id = cast(int, org_id)
             self.log_state.num_orgs += 1
 
         return {
@@ -395,14 +397,14 @@ class FetchProjectTransactionTotals:
             "total_num_classes": num_classes,
         }
 
-    def _cache_empty(self) -> bool:
+    def _cache_empty(self):
         return not self.cache
 
-    def _ensure_log_state(self) -> None:
+    def _ensure_log_state(self):
         if self.log_state is None:
             self.log_state = DynamicSamplingLogState()
 
-    def get_current_state(self) -> DynamicSamplingLogState:
+    def get_current_state(self):
         """
         Returns the current state of the iterator (how many orgs and projects it has iterated over)
 
@@ -410,13 +412,10 @@ class FetchProjectTransactionTotals:
 
         """
         self._ensure_log_state()
-        assert (
-            self.log_state is not None
-        )  # XXX: putting the assertion in _ensure_log_state doesn't satisfy mypy
 
         return self.log_state
 
-    def set_current_state(self, log_state: DynamicSamplingLogState | None) -> None:
+    def set_current_state(self, log_state: DynamicSamplingLogState) -> None:
         """
         Set the log state from outside (typically immediately after creation)
 
@@ -465,7 +464,7 @@ class FetchProjectTransactionVolumes:
         else:
             self.transaction_ordering = Direction.ASC
 
-    def __iter__(self) -> FetchProjectTransactionVolumes:
+    def __iter__(self):
         return self
 
     def __next__(self) -> ProjectTransactions:
@@ -551,7 +550,7 @@ class FetchProjectTransactionVolumes:
         # return from cache if empty stops iteration
         return self._get_from_cache()
 
-    def _add_results_to_cache(self, data: list[dict[str, int | float | str]]) -> None:
+    def _add_results_to_cache(self, data):
         transaction_counts: list[tuple[str, float]] = []
         current_org_id: int | None = None
         current_proj_id: int | None = None
@@ -560,10 +559,10 @@ class FetchProjectTransactionVolumes:
         assert self.log_state is not None
 
         for row in data:
-            proj_id = int(row["project_id"])
-            org_id = int(row["org_id"])
-            transaction_name = str(row["transaction_name"])
-            num_transactions = float(row["num_transactions"])
+            proj_id = row["project_id"]
+            org_id = row["org_id"]
+            transaction_name = row["transaction_name"]
+            num_transactions = row["num_transactions"]
             if current_proj_id != proj_id or current_org_id != org_id:
                 if (
                     transaction_counts
@@ -604,7 +603,7 @@ class FetchProjectTransactionVolumes:
                 }
             )
 
-    def _cache_empty(self) -> bool:
+    def _cache_empty(self):
         return not self.cache
 
     def _get_from_cache(self) -> ProjectTransactions:
@@ -613,11 +612,11 @@ class FetchProjectTransactionVolumes:
 
         return self.cache.pop(0)
 
-    def _ensure_log_state(self) -> None:
+    def _ensure_log_state(self):
         if self.log_state is None:
             self.log_state = DynamicSamplingLogState()
 
-    def get_current_state(self) -> DynamicSamplingLogState:
+    def get_current_state(self):
         """
         Returns the current state of the iterator (how many orgs and projects it has iterated over)
 
@@ -625,13 +624,10 @@ class FetchProjectTransactionVolumes:
 
         """
         self._ensure_log_state()
-        assert (
-            self.log_state is not None
-        )  # XXX: putting the assertion in _ensure_log_state doesn't satisfy mypy
 
         return self.log_state
 
-    def set_current_state(self, log_state: DynamicSamplingLogState | None) -> None:
+    def set_current_state(self, log_state: DynamicSamplingLogState) -> None:
         """
         Set the log state from outside (typically immediately after creation)
 
@@ -644,7 +640,7 @@ class FetchProjectTransactionVolumes:
 
 
 def merge_transactions(
-    left: ProjectTransactions | None,
+    left: ProjectTransactions,
     right: ProjectTransactions | None,
     totals: ProjectTransactionsTotals | None,
 ) -> ProjectTransactions:
@@ -661,12 +657,10 @@ def merge_transactions(
         )
 
     if totals is not None and not is_same_project(left, totals):
-        left_tuple = (left["org_id"], left["project_id"]) if left is not None else None
-        totals_tuple = (totals["org_id"], totals["project_id"]) if totals is not None else None
         raise ValueError(
             "mismatched projectTransaction and projectTransactionTotals",
-            left_tuple,
-            totals_tuple,
+            (left["org_id"], left["project_id"]),
+            (totals["org_id"], totals["project_id"]),
         )
 
     assert left is not None
@@ -685,8 +679,6 @@ def merge_transactions(
                 # not already in left, add it
                 merged_transactions.append((transaction_name, count))
 
-    total_num_classes = totals.get("total_num_classes") if totals is not None else None
-
     return {
         "org_id": left["org_id"],
         "project_id": left["project_id"],
@@ -694,7 +686,7 @@ def merge_transactions(
         "total_num_transactions": (
             totals.get("total_num_transactions") if totals is not None else None
         ),
-        "total_num_classes": int(total_num_classes) if total_num_classes is not None else None,
+        "total_num_classes": totals.get("total_num_classes") if totals is not None else None,
     }
 
 

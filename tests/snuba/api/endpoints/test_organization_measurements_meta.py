@@ -16,7 +16,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
     ]
     features = {"organizations:discover-basic": True}
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)

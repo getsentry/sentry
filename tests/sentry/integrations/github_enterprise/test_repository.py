@@ -25,7 +25,7 @@ class GitHubEnterpriseRepositoryTest(TestCase):
         )
 
     @cached_property
-    def provider(self) -> GitHubEnterpriseRepositoryProvider:
+    def provider(self):
         return GitHubEnterpriseRepositoryProvider("integrations:github_enterprise")
 
     @responses.activate
@@ -38,8 +38,8 @@ class GitHubEnterpriseRepositoryTest(TestCase):
             "external_id": "654321",
             "integration_id": self.integration.id,
         }
-        rc_data = self.provider.build_repository_config(organization, data)
-        assert rc_data == {
+        data = self.provider.build_repository_config(organization, data)
+        assert data == {
             "config": {"name": "getsentry/example-repo"},
             "external_id": "654321",
             "integration_id": self.integration.id,

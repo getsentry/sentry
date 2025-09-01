@@ -6,7 +6,7 @@ from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class ProjectReleaseFilesListDocsTest(APIDocsTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         project = self.create_project(name="foo")
         file1 = self.create_file(
             name="blah.js",

@@ -25,7 +25,7 @@ def test_time_checker_no_throw_on_timeout_no_hit() -> None:
 
 
 @pytest.mark.parametrize("timeout", (-1, 0))
-def test_time_checker_noop_on_invalid_timeout(timeout: int) -> None:
+def test_time_checker_noop_on_invalid_timeout(timeout) -> None:
     checker = TimeChecker(timedelta(seconds=timeout))
     checker.check()
 

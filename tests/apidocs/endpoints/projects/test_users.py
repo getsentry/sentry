@@ -11,7 +11,7 @@ from sentry.utils.eventuser import EventUser
 
 
 class ProjectUsersDocs(APIDocsTestCase, SnubaTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.project = self.create_project(date_added=(timezone.now() - timedelta(hours=2)))
         timestamp = before_now(hours=1).isoformat()

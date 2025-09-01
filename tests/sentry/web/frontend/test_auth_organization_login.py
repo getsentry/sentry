@@ -12,7 +12,7 @@ from sentry.auth.providers.dummy import PLACEHOLDER_TEMPLATE
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
@@ -28,11 +28,11 @@ from sentry.utils import json
 @control_silo_test
 class OrganizationAuthLoginTest(AuthProviderTestCase):
     @cached_property
-    def organization(self) -> Organization:
+    def organization(self):
         return self.create_organization(name="foo", owner=self.user)
 
     @cached_property
-    def path(self) -> str:
+    def path(self):
         return reverse("sentry-auth-organization", args=[self.organization.slug])
 
     def test_renders_basic(self) -> None:

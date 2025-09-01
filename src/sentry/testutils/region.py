@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Generator, Sequence
+from collections.abc import Collection, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -29,7 +29,7 @@ class TestEnvRegionDirectory(RegionDirectory):
         self,
         regions: Sequence[Region],
         local_region: Region | None = None,
-    ) -> Generator[None]:
+    ):
         monolith_region = regions[0]
         new_state = _TemporaryRegionDirectoryState(
             regions=self.regions if regions is None else frozenset(regions),
@@ -50,13 +50,13 @@ class TestEnvRegionDirectory(RegionDirectory):
             self._tmp_state = old_state
 
     @contextmanager
-    def swap_to_default_region(self) -> Generator[None]:
+    def swap_to_default_region(self):
         """Swap to an arbitrary region when entering region mode."""
         with override_settings(SENTRY_REGION=self._tmp_state.default_region.name):
             yield
 
     @contextmanager
-    def swap_to_region_by_name(self, region_name: str) -> Generator[None]:
+    def swap_to_region_by_name(self, region_name: str):
         """Swap to the specified region when entering region mode."""
 
         region = self.get_by_name(region_name)
@@ -84,9 +84,7 @@ def get_test_env_directory() -> TestEnvRegionDirectory:
 
 
 @contextmanager
-def override_regions(
-    regions: Sequence[Region], local_region: Region | None = None
-) -> Generator[None]:
+def override_regions(regions: Sequence[Region], local_region: Region | None = None):
     """Override the global set of existing regions.
 
     The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and

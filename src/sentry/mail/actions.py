@@ -1,6 +1,4 @@
 import logging
-from collections.abc import Generator
-from typing import Any
 
 from sentry.mail import mail_adapter
 from sentry.mail.forms.notify_email import NotifyEmailForm
@@ -12,8 +10,6 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils.participants import determine_eligible_recipients
 from sentry.rules.actions.base import EventAction
-from sentry.rules.base import CallbackFuture
-from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -25,7 +21,7 @@ class NotifyEmailAction(EventAction):
     prompt = "Send a notification"
     metrics_slug = "EmailAction"
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "targetType": {"type": "mailAction", "choices": ACTION_CHOICES},
@@ -37,11 +33,8 @@ class NotifyEmailAction(EventAction):
             self.data = {**self.data, "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value}
         return self.label.format(**self.data)
 
-    def after(
-        self, event: GroupEvent | Event, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture]:
+    def after(self, event, notification_uuid: str | None = None):
         group = event.group
-        assert group is not None
         extra = {
             "event_id": event.event_id,
             "group_id": group.id,
@@ -63,7 +56,7 @@ class NotifyEmailAction(EventAction):
             group.project, target_type, target_identifier, event, fallthrough_type
         ):
             self.logger.info("rule.fail.should_notify", extra=extra)
-            return None
+            return
 
         metrics.incr(
             "notifications.sent",

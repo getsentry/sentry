@@ -8,7 +8,7 @@ from sentry.testutils.silo import no_silo_test
 
 @no_silo_test
 class OrganizationSentryAppDetailedView(AcceptanceTestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.create_project(organization=self.organization)
         self.sentry_app = self.create_sentry_app(
@@ -19,7 +19,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-    def load_page(self, slug: str) -> None:
+    def load_page(self, slug):
         url = f"/settings/{self.organization.slug}/sentry-apps/{slug}/"
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')

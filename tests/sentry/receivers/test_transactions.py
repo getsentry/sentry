@@ -18,7 +18,7 @@ pytestmark = [requires_snuba]
 
 class RecordFirstTransactionTest(TestCase):
     @cached_property
-    def min_ago(self) -> str:
+    def min_ago(self):
         return before_now(minutes=1).isoformat()
 
     def test_transaction_processed(self) -> None:

@@ -80,7 +80,7 @@ class TimedRetryPolicyTestCase(TestCase):
         callable = mock.MagicMock(side_effect=[bomb, mock.sentinel.OK])
 
         @TimedRetryPolicy.wrap(0.3, delay=lambda i: 0.1)
-        def retrying_func() -> mock._Sentinel:
+        def retrying_func():
             return callable()
 
         retrying_func.clock = mock.Mock()

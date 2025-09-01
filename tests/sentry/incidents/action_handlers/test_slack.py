@@ -1,5 +1,4 @@
-from collections.abc import Generator
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
@@ -11,7 +10,7 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.messaging.spec import MessagingActionHandler
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
@@ -33,7 +32,7 @@ from . import FireTest
 @with_feature("organizations:metric-alert-thread-flag")
 class SlackActionHandlerTest(FireTest):
     @pytest.fixture(autouse=True)
-    def mock_chat_postEphemeral(self) -> Generator[None]:
+    def mock_chat_postEphemeral(self):
         with mock_slack_response(
             "chat_scheduleMessage",
             body={"ok": True, "channel": "chan-id", "scheduled_message_id": "Q1298393284"},
@@ -41,7 +40,7 @@ class SlackActionHandlerTest(FireTest):
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_chat_unfurl(self) -> Generator[None]:
+    def mock_chat_unfurl(self):
         with mock_slack_response(
             "chat_deleteScheduledMessage", body={"ok": True}
         ) as self.mock_delete:
@@ -85,7 +84,8 @@ class SlackActionHandlerTest(FireTest):
         )
         self.alert_rule = self.create_alert_rule()
 
-    def run_test(self, incident: Incident, method: str, **kwargs: object) -> None:
+    def run_test(self, incident, method, **kwargs):
+        chart_url = kwargs.get("chart_url")
         metric_value = 1000
         status = IncidentStatus(incident.status)
         with self.tasks():
@@ -97,9 +97,9 @@ class SlackActionHandlerTest(FireTest):
                 metric_value=metric_value,
             )
 
-    def _assert_blocks(
-        self, mock_post: Mock, incident: Incident, metric_value: float | None, chart_url: str | None
-    ) -> None:
+        return incident, chart_url
+
+    def _assert_blocks(self, mock_post, incident, metric_value, chart_url):
         slack_body = SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
             metric_issue_context=MetricIssueContext.from_legacy_models(
@@ -129,11 +129,7 @@ class SlackActionHandlerTest(FireTest):
             "status": 200,
         }
 
-        incident = self.create_incident(
-            alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
-        )
-        self.run_test(incident, "fire")
-        chart_url = None
+        incident, chart_url = self.run_fire_test()
         self._assert_blocks(mock_post, incident, 1000, chart_url)
 
         assert NotificationMessage.objects.all().count() == 1

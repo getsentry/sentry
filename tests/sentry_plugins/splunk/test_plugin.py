@@ -15,7 +15,7 @@ def test_conf_key() -> None:
 
 class SplunkPluginTest(PluginTestCase):
     @cached_property
-    def plugin(self) -> SplunkPlugin:
+    def plugin(self):
         return SplunkPlugin()
 
     @responses.activate

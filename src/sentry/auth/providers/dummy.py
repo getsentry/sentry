@@ -1,10 +1,7 @@
-from collections.abc import Mapping, Sequence
-from typing import Any
+from collections.abc import Sequence
 
-from django.http import HttpRequest
-from django.http.response import HttpResponse, HttpResponseBase
+from django.http import HttpRequest, HttpResponse
 
-from sentry.auth.helper import AuthHelper
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.auth.view import AuthView
@@ -14,7 +11,7 @@ PLACEHOLDER_TEMPLATE = '<form method="POST"><input type="email" name="email" /><
 
 
 class AskEmail(AuthView):
-    def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline) -> HttpResponse:
         if "email" in request.POST:
             if "id" in request.POST:
                 pipeline.bind_state("id", request.POST.get("id"))
@@ -33,7 +30,7 @@ class DummyProvider(Provider):
     def get_auth_pipeline(self) -> Sequence[AuthView]:
         return [AskEmail()]
 
-    def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def build_identity(self, state):
         return {
             "id": MigratingIdentityId(
                 id=state.get("id", state["email"]), legacy_id=state.get("legacy_email")
@@ -46,7 +43,7 @@ class DummyProvider(Provider):
     def refresh_identity(self, auth_identity: AuthIdentity) -> None:
         pass
 
-    def build_config(self, state: Mapping[str, Any]) -> dict[str, Any]:
+    def build_config(self, state):
         return {}
 
 
@@ -73,5 +70,5 @@ class DummySAML2Provider(SAML2Provider):
     def get_saml_setup_pipeline(self) -> list[AuthView]:
         return []
 
-    def build_config(self, state: Mapping[str, Any]) -> dict[str, Any]:
+    def build_config(self, state):
         return dummy_provider_config

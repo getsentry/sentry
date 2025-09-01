@@ -22,7 +22,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
     def do_request(self, query, features=None, **kwargs):
         return super().do_request(query, features, **kwargs)
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self.features = {
             "organizations:starfish-view": True,

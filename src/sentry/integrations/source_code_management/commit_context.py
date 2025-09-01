@@ -373,7 +373,7 @@ class CommitContextIntegration(ABC):
         metrics_base: str,
         comment_type: int = CommentType.MERGED_PR,
         language: str | None = None,
-    ) -> None:
+    ):
         client = self.get_client()
 
         pr_comment = PullRequestComment.objects.filter(

@@ -509,7 +509,7 @@ def generate_incident_trigger_email_context(
     trigger_threshold: float,
     user: User | RpcUser | None = None,
     notification_uuid: str | None = None,
-) -> dict[str, Any]:
+):
     from sentry.notifications.notification_action.utils import should_fire_workflow_actions
     from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 

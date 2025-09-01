@@ -393,7 +393,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         assert response.status_code == 400, response.content
         assert 0 == Deploy.objects.count()
 
-    def test_api_token_with_project_releases_scope(self) -> None:
+    def test_api_token_with_project_releases_scope(self):
         """
         Test that tokens with `project:releases` scope can create deploys for only one project
         when the release is associated with multiple projects.

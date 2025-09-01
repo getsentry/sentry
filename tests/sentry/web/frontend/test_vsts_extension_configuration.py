@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class VstsExtensionConfigurationTest(TestCase):
     @property
-    def path(self) -> str:
+    def path(self):
         return reverse("vsts-extension-configuration")
 
     def setUp(self) -> None:

@@ -60,18 +60,18 @@ class MemberIdField(serializers.IntegerField):
     Allow "me" in addition to integers
     """
 
-    def to_internal_value(self, data: float | int | str) -> Any:
+    def to_internal_value(self, data):
         if data == "me":
             return data
         return super().to_internal_value(data)
 
-    def run_validation(self, data: object | None = empty) -> object | None:
+    def run_validation(self, data=empty):
         if data == "me":
             return data
         return super().run_validation(data)
 
 
-class MemberSerializer(serializers.Serializer[dict[str, int | Literal["me"]]]):
+class MemberSerializer(serializers.Serializer):
     id = MemberIdField(min_value=0, max_value=BoundedAutoField.MAX_VALUE, required=True)
 
 

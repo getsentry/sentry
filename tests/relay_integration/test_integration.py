@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 import requests
-from sentry_relay.auth import SecretKey, generate_key_pair
+from sentry_relay.auth import generate_key_pair
 
 from sentry.models.eventattachment import EventAttachment
 from sentry.tasks.relay import invalidate_project_config
@@ -17,7 +17,7 @@ from sentry.testutils.skips import requires_kafka
 pytestmark = [requires_kafka]
 
 
-def create_trusted_relay_signature(secret_key: SecretKey) -> str | bytes:
+def create_trusted_relay_signature(secret_key):
     """
     Mimics how the trusted relay signature is built so we can test communication.
     """
@@ -33,7 +33,7 @@ def create_trusted_relay_signature(secret_key: SecretKey) -> str | bytes:
 
 
 class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
-    def setup_for_trusted_relay_signature(self) -> tuple[str, SecretKey]:
+    def setup_for_trusted_relay_signature(self):
         """
         sets up project config settings and returns the relay_id and the secret key which
         can be used to create the signature if required.

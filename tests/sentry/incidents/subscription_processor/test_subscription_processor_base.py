@@ -33,12 +33,12 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         with mock.patch("sentry.incidents.subscription_processor.metrics") as self.metrics:
             yield
 
-    def setUp(self) -> None:
+    def setUp(self):
         super().setUp()
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         super().tearDown()
         self._run_tasks.__exit__(None, None, None)
 

@@ -91,7 +91,7 @@ def _ensure_patched[**P](f: Callable[P, None]) -> Callable[P, None]:
     return _ensure_patched_impl
 
 
-def monkey_migrations() -> None:
+def monkey_migrations():
     from django.core.management.commands import migrate
     from django.db import models
 

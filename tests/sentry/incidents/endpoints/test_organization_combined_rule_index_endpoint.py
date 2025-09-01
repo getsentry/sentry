@@ -50,7 +50,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.login_as(self.user)
         self.combined_rules_url = f"/api/0/organizations/{self.organization.slug}/combined-rules/"
 
-    def setup_rules(self) -> None:
+    def setup_rules(self):
         self.alert_rule = self.create_alert_rule(
             name="alert rule",
             organization=self.organization,

@@ -27,7 +27,7 @@ def test_namespace_register_task() -> None:
     )
 
     @namespace.register(name="tests.simple_task")
-    def simple_task() -> None:
+    def simple_task():
         raise NotImplementedError
 
     assert namespace.default_retry is None

@@ -24,7 +24,7 @@ class FixProcessingErrorKeysTest(TestMigrations):
     app = "monitors"
     connection = "secondary"
 
-    def setup_initial_state(self) -> None:
+    def setup_initial_state(self):
         redis = _get_cluster()
         pipeline = redis.pipeline()
 
@@ -74,7 +74,7 @@ class FixProcessingErrorKeysTest(TestMigrations):
         assert project_errors[0].id != self.project_error_id
         assert monitor_errors[0].id != self.monitor_error_id
 
-    def test(self) -> None:
+    def test(self):
         monitor_errors = get_errors_for_monitor(self.monitor)
         assert monitor_errors[0].id == self.monitor_error_id
 

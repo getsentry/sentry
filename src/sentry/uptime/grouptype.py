@@ -36,7 +36,7 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
-def resolve_uptime_issue(detector: Detector) -> None:
+def resolve_uptime_issue(detector: Detector):
     """
     Sends an update to the issue platform to resolve the uptime issue for this
     monitor.

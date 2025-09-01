@@ -8,20 +8,19 @@ from rest_framework.response import Response
 
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
-from sentry.db.models.base import Model
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.avatars.control_base import ControlAvatarBase
 
 AvatarT = TypeVar("AvatarT", bound=AvatarBase)
 
 
-class AvatarSerializer(serializers.Serializer[dict[str, Any]]):
+class AvatarSerializer(serializers.Serializer):
     avatar_photo = AvatarField(required=False)
     avatar_type = serializers.ChoiceField(
         choices=(("upload", "upload"), ("gravatar", "gravatar"), ("letter_avatar", "letter_avatar"))
     )
 
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, attrs):
         attrs = super().validate(attrs)
         if attrs.get("avatar_type") == "upload":
             model_type = self.context["type"]
@@ -47,7 +46,7 @@ class AvatarSerializer(serializers.Serializer[dict[str, Any]]):
 
 class AvatarMixin(Generic[AvatarT]):
     object_type: ClassVar[str]
-    serializer_cls: ClassVar[type[serializers.Serializer[dict[str, Any]]]] = AvatarSerializer
+    serializer_cls: ClassVar[type[serializers.Serializer]] = AvatarSerializer
 
     @property
     def model(self) -> type[AvatarT]:
@@ -57,15 +56,13 @@ class AvatarMixin(Generic[AvatarT]):
         obj = kwargs.pop(self.object_type, None)
         return Response(serialize(obj, request.user, **kwargs))
 
-    def get_serializer_context(self, obj: Model, **kwargs: Any) -> dict[str, Any]:
+    def get_serializer_context(self, obj, **kwargs: Any):
         return {"type": self.model, "kwargs": {self.object_type: obj}}
 
-    def get_avatar_filename(self, obj: Model) -> str:
+    def get_avatar_filename(self, obj):
         return f"{obj.id}.png"
 
-    def parse(
-        self, request: Request, **kwargs: Any
-    ) -> tuple[Model, serializers.Serializer[dict[str, Any]]]:
+    def parse(self, request: Request, **kwargs: Any) -> tuple[Any, serializers.Serializer]:
         obj = kwargs.pop(self.object_type, None)
 
         serializer = self.serializer_cls(
@@ -73,9 +70,7 @@ class AvatarMixin(Generic[AvatarT]):
         )
         return (obj, serializer)
 
-    def save_avatar(
-        self, obj: Model, serializer: serializers.Serializer[dict[str, Any]], **kwargs: Any
-    ) -> AvatarT:
+    def save_avatar(self, obj: Any, serializer: serializers.Serializer, **kwargs: Any) -> AvatarT:
         result = serializer.validated_data
 
         return self.model.save_avatar(

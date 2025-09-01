@@ -86,7 +86,7 @@ class PageWebVitalsSummaryTest(TestCase, SnubaTestCase):
 
         cache.clear()
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         super().tearDown()
         # Clear the cache with the correct key format
         cache.delete("ai-page-web-vitals-summary:" + "-".join(sorted([self.trace_id])))

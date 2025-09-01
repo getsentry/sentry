@@ -35,5 +35,5 @@ def has_feature(instance: Integration | RpcIntegration, feature: IntegrationFeat
     return feature in instance.get_provider().features
 
 
-def get_redis_key(sentryapp: SentryApp | RpcSentryApp, org_id) -> str:
+def get_redis_key(sentryapp: SentryApp | RpcSentryApp, org_id):
     return f"sentry-app-error:{sentryapp.id}:{org_id}"

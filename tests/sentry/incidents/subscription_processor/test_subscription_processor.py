@@ -93,7 +93,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         self._run_tasks = self.tasks()
         self._run_tasks.__enter__()
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         super().tearDown()
         self.suspended_registry.restore()
         self._run_tasks.__exit__(None, None, None)

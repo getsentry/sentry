@@ -125,9 +125,9 @@ def test_sdk_crash_is_reported_with_native_paths(
     mock_random,
     store_event,
     configs,
-    sdk_frame_function: str,
-    system_frame_package: str,
-    detected: bool,
+    sdk_frame_function,
+    system_frame_package,
+    detected,
 ):
     event = store_event(
         data=get_crash_event(
@@ -200,9 +200,9 @@ def test_sdk_crash_sentry_native_keeps_sentry_package_paths(
     mock_random,
     store_event,
     configs,
-    sdk_frame_function: str,
-    sdk_frame_package: str,
-    expected_sdk_frame_package: str,
+    sdk_frame_function,
+    sdk_frame_package,
+    expected_sdk_frame_package,
 ):
     event = store_event(
         data=get_crash_event(

@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 from enum import Enum
 from typing import Literal, NotRequired, TypedDict, Union
 
 import orjson
 from django.conf import settings
-from redis import StrictRedis
+from rediscluster import RedisCluster
 
 from sentry.models.dynamicsampling import CUSTOM_RULE_START
 from sentry.relay.types import RuleCondition
@@ -176,6 +174,6 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
     return float(x / x**base_sample_rate)
 
 
-def get_redis_client_for_ds() -> StrictRedis[str]:
+def get_redis_client_for_ds() -> RedisCluster:
     cluster_key = settings.SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]

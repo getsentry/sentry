@@ -27,7 +27,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-def make_event(**kwargs: Any) -> dict[str, Any]:
+def make_event(**kwargs) -> dict[str, Any]:
     result: dict[str, Any] = {
         "event_id": uuid.uuid1().hex,
     }
@@ -362,7 +362,7 @@ class TestEventManagerSeverity(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     def test_get_severity_score_not_called_on_second_event(
         self, mock_get_severity_score: MagicMock
-    ) -> None:
+    ):
         nope_event = EventManager(
             make_event(
                 exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},

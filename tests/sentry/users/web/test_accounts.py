@@ -19,18 +19,18 @@ from sentry.users.web.accounts import recover_confirm
 @control_silo_test
 class TestAccounts(TestCase):
     @cached_property
-    def path(self) -> str:
+    def path(self):
         return reverse("sentry-account-recover")
 
-    def password_recover_path(self, user_id, hash_) -> str:
+    def password_recover_path(self, user_id, hash_):
         return reverse("sentry-account-recover-confirm", kwargs={"user_id": user_id, "hash": hash_})
 
-    def relocation_recover_path(self, user_id, hash_) -> str:
+    def relocation_recover_path(self, user_id, hash_):
         return reverse(
             "sentry-account-relocate-confirm", kwargs={"user_id": user_id, "hash": hash_}
         )
 
-    def relocation_reclaim_path(self, user_id) -> str:
+    def relocation_reclaim_path(self, user_id):
         return reverse("sentry-account-relocate-reclaim", kwargs={"user_id": user_id})
 
     def test_get_renders_form(self) -> None:

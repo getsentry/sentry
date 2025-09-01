@@ -1,7 +1,6 @@
 from contextvars import Token
 
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
     WorkflowEventContextData,
@@ -13,14 +12,14 @@ class WorkflowEventContextTestCase(TestCase):
         super().setUp()
         self.ctx_token: Token[WorkflowEventContextData] | None = None
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         if self.ctx_token:
             WorkflowEventContext.reset(self.ctx_token)
             self.ctx_token = None
 
 
 class MockContextualClass:
-    def run(self) -> Detector | None:
+    def run(self):
         return WorkflowEventContext.get().detector
 
 

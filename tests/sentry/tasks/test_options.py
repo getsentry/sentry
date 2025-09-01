@@ -11,7 +11,7 @@ from sentry.testutils.silo import all_silo_test
 class SyncOptionsTest(TestCase):
     _TEST_KEY = "foo"
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         super().tearDown()
         try:
             default_manager.unregister(self._TEST_KEY)
