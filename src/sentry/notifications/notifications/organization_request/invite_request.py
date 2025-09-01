@@ -22,7 +22,7 @@ class InviteRequestNotification(AbstractInviteRequestNotification):
             organization_id=self.organization.id,
             user_id=self.requester.id,
             target_user_id=self.pending_member.id,
-            providers=[provider.name.lower() if provider.name else ""],
+            providers=provider.name.lower() if provider.name else "",
             subtype=self.metrics_key,
             invited_member_id=self.pending_member.id,
         )

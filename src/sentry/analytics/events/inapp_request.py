@@ -8,7 +8,7 @@ class InAppRequestSentEvent(analytics.Event, abc.ABC):
     organization_id: int
     user_id: int | None = None
     target_user_id: int
-    providers: list[str]
+    providers: str
     subtype: str | None = None
 
 
