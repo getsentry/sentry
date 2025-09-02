@@ -210,14 +210,9 @@ function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
   }, [messages.length, previousMessagesLength]);
 
   const renderMessage = (message: AIMessage, index: number) => {
-    // Capitalize first letter of the role
-    const displayRole = message.role.charAt(0).toUpperCase() + message.role.slice(1);
-
     return (
       <Fragment key={index}>
-        <TraceDrawerComponents.MultilineTextLabel>
-          {displayRole}
-        </TraceDrawerComponents.MultilineTextLabel>
+        <RoleLabel>{message.role}</RoleLabel>
         {typeof message.content === 'string' ? (
           <TraceDrawerComponents.MultilineText>
             {message.content}
@@ -248,6 +243,12 @@ function MessagesArrayRenderer({messages}: {messages: AIMessage[]}) {
     </Fragment>
   );
 }
+
+const RoleLabel = styled(TraceDrawerComponents.MultilineTextLabel)`
+  &::first-letter {
+    text-transform: capitalize;
+  }
+`;
 
 const ButtonDivider = styled('div')`
   height: 1px;
