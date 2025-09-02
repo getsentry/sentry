@@ -455,6 +455,11 @@ const appConfig: Configuration = {
           to: 'entrypoints/logo-sentry.svg',
           toType: 'file',
         },
+        {
+          from: path.join(staticPrefix, 'images/spot/sandbox.jpg'),
+          to: 'entrypoints/sandbox.jpg',
+          toType: 'file',
+        },
         // Add robots.txt when deploying in preview mode so public previews do
         // not get indexed by bots.
         ...(IS_DEPLOY_PREVIEW
