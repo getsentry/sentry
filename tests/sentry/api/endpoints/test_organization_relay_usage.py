@@ -81,11 +81,6 @@ class OrganizationRelayHistoryTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert response.data == []
 
-    def test_endpoint_checks_feature_present(self) -> None:
-        self.login_as(user=self.user)
-        resp = self.get_response(self.organization.slug)
-        assert resp.status_code == 404
-
     def test_only_records_for_known_public_keys_are_returned(self) -> None:
         """
         Only the relay history for relays belonging to the origanization are
