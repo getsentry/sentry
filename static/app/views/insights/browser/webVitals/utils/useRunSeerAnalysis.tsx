@@ -12,8 +12,8 @@ export function useRunSeerAnalysis({
   projectScore,
   transaction,
 }: {
-  projectScore: ProjectScore;
   transaction: string;
+  projectScore?: ProjectScore;
 }) {
   const {mutateAsync: createIssueAsync} = useCreateIssue();
   const invalidateWebVitalsIssuesQuery = useInvalidateWebVitalsIssuesQuery({
