@@ -595,13 +595,22 @@ class MonitorConsumerTest(TestCase):
         assert "owner" not in monitor.config
 
     def test_monitor_create_owner_invalid(self) -> None:
-        bad_user = self.create_user()
+        # Use a non-existent team name to trigger invalid owner error
         self.send_checkin(
             "my-new-monitor",
             monitor_config={
                 "schedule": {"type": "crontab", "value": "13 * * * *"},
-                "owner": f"user:{bad_user.id}",
+                "owner": "team:nonexistent-team",
             },
+            expected_error=ProcessingErrorsException(
+                [
+                    {
+                        "type": 16,
+                        "reason": "Could not resolve owner 'team:nonexistent-team': Could not parse actor. Format should be `type:id` where type is `team` or `user`.",
+                    }
+                ]
+            ),
+            expected_monitor_slug="my-new-monitor",
         )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
