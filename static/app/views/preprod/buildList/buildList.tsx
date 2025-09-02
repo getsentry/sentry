@@ -9,7 +9,6 @@ import InteractionStateLayer from 'sentry/components/core/interactionStateLayer'
 import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCheckmark, IconChevron, IconCommit} from 'sentry/icons';
@@ -127,68 +126,66 @@ export default function BuildList() {
   }
 
   return (
-    <SentryDocumentTitle title="Build list">
-      <Layout.Page>
-        <Layout.Header>
-          <Layout.Title>Builds</Layout.Title>
-        </Layout.Header>
+    <Layout.Page title={t('Build List')}>
+      <Layout.Header>
+        <Layout.Title>Builds</Layout.Title>
+      </Layout.Header>
 
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <Flex direction="column" gap="md">
-              <SimpleTableWithColumns>
-                <SimpleTable.Header>
-                  <SimpleTable.HeaderCell>APP</SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>BUILD</SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>INSTALL SIZE</SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>DOWNLOAD SIZE</SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>CREATED</SimpleTable.HeaderCell>
-                </SimpleTable.Header>
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Flex direction="column" gap="md">
+            <SimpleTableWithColumns>
+              <SimpleTable.Header>
+                <SimpleTable.HeaderCell>APP</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>BUILD</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>INSTALL SIZE</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>DOWNLOAD SIZE</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>CREATED</SimpleTable.HeaderCell>
+              </SimpleTable.Header>
 
-                {tableContent}
-              </SimpleTableWithColumns>
+              {tableContent}
+            </SimpleTableWithColumns>
 
-              {pagination && (
-                <Flex
-                  direction="row"
-                  gap="md"
-                  align="center"
-                  justify="end"
-                  data-test-id="pagination"
-                >
-                  <PaginationCaption>
-                    Page {pagination.page + 1} of{' '}
-                    {Math.ceil(
-                      (typeof pagination.total_count === 'number'
-                        ? pagination.total_count
-                        : 0) / pagination.per_page
-                    )}
-                  </PaginationCaption>
-                  <ButtonBar merged gap="0">
-                    <Button
-                      icon={<IconChevron direction="left" />}
-                      aria-label={t('Previous')}
-                      size="sm"
-                      disabled={!pagination.has_prev}
-                      onClick={() => setPage(pagination.prev || 1)}
-                    />
-                    <Button
-                      icon={<IconChevron direction="right" />}
-                      aria-label={t('Next')}
-                      size="sm"
-                      disabled={!pagination.has_next}
-                      onClick={() => {
-                        setPage(pagination.next || pagination.page + 1);
-                      }}
-                    />
-                  </ButtonBar>
-                </Flex>
-              )}
-            </Flex>
-          </Layout.Main>
-        </Layout.Body>
-      </Layout.Page>
-    </SentryDocumentTitle>
+            {pagination && (
+              <Flex
+                direction="row"
+                gap="md"
+                align="center"
+                justify="end"
+                data-test-id="pagination"
+              >
+                <PaginationCaption>
+                  Page {pagination.page + 1} of{' '}
+                  {Math.ceil(
+                    (typeof pagination.total_count === 'number'
+                      ? pagination.total_count
+                      : 0) / pagination.per_page
+                  )}
+                </PaginationCaption>
+                <ButtonBar merged gap="0">
+                  <Button
+                    icon={<IconChevron direction="left" />}
+                    aria-label={t('Previous')}
+                    size="sm"
+                    disabled={!pagination.has_prev}
+                    onClick={() => setPage(pagination.prev || 1)}
+                  />
+                  <Button
+                    icon={<IconChevron direction="right" />}
+                    aria-label={t('Next')}
+                    size="sm"
+                    disabled={!pagination.has_next}
+                    onClick={() => {
+                      setPage(pagination.next || pagination.page + 1);
+                    }}
+                  />
+                </ButtonBar>
+              </Flex>
+            )}
+          </Flex>
+        </Layout.Main>
+      </Layout.Body>
+    </Layout.Page>
   );
 }
 

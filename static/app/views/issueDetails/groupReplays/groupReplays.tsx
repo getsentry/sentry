@@ -107,7 +107,7 @@ export default function GroupReplays({group}: Props) {
   if (!eventView) {
     // Shown on load and no replay data available
     return (
-      <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
+      <StyledLayoutPage title={null} withPadding hasStreamlinedUI={hasStreamlinedUI}>
         <ReplayHeader>
           {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
           <ReplayCountHeader>
@@ -134,7 +134,7 @@ export default function GroupReplays({group}: Props) {
 
   return (
     <SelectedReplayIndexProvider>
-      <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
+      <StyledLayoutPage title={null} withPadding hasStreamlinedUI={hasStreamlinedUI}>
         <ReplayHeader>
           {hasStreamlinedUI ? <ReplayFilterMessage /> : null}
           <ReplayCountHeader>
