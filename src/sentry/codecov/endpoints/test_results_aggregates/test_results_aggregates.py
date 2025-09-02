@@ -33,8 +33,8 @@ class TestResultsAggregatesEndpoint(CodecovEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             PreventParams.OWNER,
             PreventParams.REPOSITORY,
-            PreventParams.BRANCH,
             PreventParams.INTERVAL,
+            PreventParams.BRANCH,
         ],
         request=None,
         responses={
