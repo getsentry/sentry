@@ -22,11 +22,9 @@ import {
   WidgetContainer,
 } from 'sentry/views/profiling/landing/styles';
 import ExampleReplaysList from 'sentry/views/replays/selectors/exampleReplaysList';
-import {
-  ProjectInfo,
-  SelectorLink,
-  transformSelectorQuery,
-} from 'sentry/views/replays/selectors/selectorTable';
+import ProjectInfo from 'sentry/views/replays/selectors/projectInfo';
+import {SelectorLink} from 'sentry/views/replays/selectors/selectorLink';
+import {transformSelectorQuery} from 'sentry/views/replays/selectors/utils';
 
 export default function DeadRageSelectorCards() {
   return (
