@@ -4,7 +4,7 @@ from sentry.sentry_apps.services.hook import RpcServiceHook, hook_service
 from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, SentryAppResourceType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
 
 
 @all_silo_test
@@ -329,11 +329,11 @@ class TestHookService(TestCase):
         assert result == []
 
 
-@all_silo_test
+@all_silo_test(regions=create_test_regions("us", "de"))
 class TestHookServiceBulkCreate(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
+        self.org = self.create_organization(owner=self.user, region="us")
         self.project = self.create_project(name="foo", organization=self.org)
         self.sentry_app = self.create_sentry_app(
             organization_id=self.org.id, events=["issue.created"]
@@ -344,7 +344,7 @@ class TestHookServiceBulkCreate(TestCase):
         installation1 = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.org, user=self.user
         )
-        org2 = self.create_organization(name="Test Org 2")
+        org2 = self.create_organization(name="Test Org 2", region="us")
         installation2 = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=org2, user=self.user
         )
