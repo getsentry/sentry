@@ -15,8 +15,8 @@ from sentry.replays.endpoints.project_replay_summary import (
     SEER_START_TASK_ENDPOINT_PATH,
 )
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
-from sentry.replays.lib.summarize import EventDict
 from sentry.replays.testutils import mock_replay
+from sentry.replays.usecases.summarize import EventDict
 from sentry.testutils.cases import SnubaTestCase, TransactionTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -433,7 +433,7 @@ class ProjectReplaySummaryTestCase(
         assert "Invalid input" in logs[2]
         assert "User experienced an error" in logs[2]
 
-    @patch("sentry.replays.lib.summarize.fetch_feedback_details")
+    @patch("sentry.replays.usecases.summarize.fetch_feedback_details")
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_post_with_trace_errors_duplicate_feedback(
         self, mock_make_seer_api_request, mock_fetch_feedback_details
