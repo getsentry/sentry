@@ -2,7 +2,7 @@ import 'echarts/lib/component/grid';
 import 'echarts/lib/component/graphic';
 import 'echarts/lib/component/toolbox';
 import 'echarts/lib/component/brush';
-import 'echarts/theme/v5';
+import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
 
 import {useId, useMemo} from 'react';
