@@ -225,7 +225,6 @@ class TestSpansTask(TestCase):
             project_id=self.project.id,
             is_segment=True,
             span_op="http.client",
-            sentry_tags={"category": "http"},
             data={
                 "sentry.op": "http.client",
                 "sentry.category": "http",

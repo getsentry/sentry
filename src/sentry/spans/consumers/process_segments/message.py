@@ -103,7 +103,6 @@ def _create_models(segment: Span, project: Project) -> None:
     relationships between them and the Project model.
     """
 
-    # TODO: Read this from original data attributes.
     environment_name = segment["data"].get("sentry.environment")
     release_name = segment["data"].get("sentry.release")
     dist_name = segment["data"].get("sentry.dist")
