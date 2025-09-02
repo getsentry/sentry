@@ -500,7 +500,9 @@ function SpanTabContentSection({
           />
         }
         onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
-      />
+      >
+        {controlSectionExpanded ? null : t('Advanced')}
+      </ChevronButton>
       {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
       {defined(error) && (
         <Alert.Container>
