@@ -9,8 +9,9 @@ class UserSignUpEvent(analytics.Event):
     referrer: str | None = None
 
 
+@analytics.eventclass("relocation.user_signup")
 class RelocationUserSignUpEvent(UserSignUpEvent):
-    type = "relocation.user_signup"
+    pass
 
 
 analytics.register(UserSignUpEvent)
