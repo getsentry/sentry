@@ -10,9 +10,9 @@ function getJavaScriptFrame(
 ): string {
   let result = '';
   if (defined(frame.function)) {
-    result += '\tat ' + frame.function + ' (';
+    result += '    at ' + frame.function + ' (';
   } else {
-    result += '\tat ? (';
+    result += '    at ? (';
   }
   if (defined(frame.filename)) {
     result += frame.filename;
@@ -38,7 +38,7 @@ function getJavaScriptFrame(
 }
 
 function getRubyFrame(frame: Frame, includeLocation: boolean): string {
-  let result = '\tfrom ';
+  let result = '    from ';
   if (defined(frame.filename)) {
     result += frame.filename;
   } else if (defined(frame.module)) {
@@ -97,7 +97,7 @@ function getPythonFrame(frame: Frame, includeLocation: boolean): string {
 }
 
 export function getJavaFrame(frame: Frame, includeLocation: boolean): string {
-  let result = '\tat ';
+  let result = '    at ';
 
   if (defined(frame.module)) {
     result += frame.module + '.';
@@ -190,7 +190,7 @@ function getDefaultFrame(frame: Frame, includeLocation: boolean): string {
   return result;
 }
 
-export function getJavaPreamble(exception: ExceptionValue): string {
+export function getJavaExceptionSummary(exception: ExceptionValue): string {
   let result = `${exception.type}: ${exception.value}`;
   if (exception.module) {
     result = `${exception.module}.${result}`;
@@ -198,10 +198,13 @@ export function getJavaPreamble(exception: ExceptionValue): string {
   return result;
 }
 
-function getPreamble(exception: ExceptionValue, platform: string | undefined): string {
+function getExceptionSummary(
+  exception: ExceptionValue,
+  platform: string | undefined
+): string {
   switch (platform) {
     case 'java':
-      return getJavaPreamble(exception);
+      return getJavaExceptionSummary(exception);
     default:
       return exception.type + ': ' + exception.value;
   }
@@ -268,12 +271,14 @@ export default function displayRawContent(
     )
   );
 
-  if (platform !== 'python') {
-    frames.reverse();
+  if (exception) {
+    frames.push(getExceptionSummary(exception, platform));
   }
 
-  if (exception) {
-    frames.unshift(getPreamble(exception, platform));
+  if (platform === 'python') {
+    frames.unshift('Traceback (most recent call last):');
+  } else {
+    frames.reverse();
   }
 
   return frames.join('\n');
