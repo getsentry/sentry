@@ -125,7 +125,6 @@ package.json                                             @getsentry/owners-js-de
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
 ## Design
-/static/app/icons/                                       @getsentry/design
 /static/fonts/                                           @getsentry/design
 /static/images/                                          @getsentry/design
 
