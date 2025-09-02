@@ -139,7 +139,7 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
-from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
@@ -151,6 +151,8 @@ if TYPE_CHECKING:
     from sentry.services.eventstore.models import BaseEvent, Event
 
 logger = logging.getLogger("sentry.events")
+
+outcome_aggregator = OutcomeAggregator()
 
 SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 
@@ -1163,16 +1165,28 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
     for job in jobs:
         event = job["event"]
 
-        track_outcome(
-            org_id=event.project.organization_id,
-            project_id=job["project_id"],
-            key_id=job["key_id"],
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=to_datetime(job["start_time"]),
-            event_id=event.event_id,
-            category=job["category"],
-        )
+        if options.get("event-manager.use-outcome-aggregator"):
+            outcome_aggregator.track_outcome_aggregated(
+                org_id=event.project.organization_id,
+                project_id=job["project_id"],
+                key_id=job["key_id"],
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                timestamp=to_datetime(job["start_time"]),
+                category=job["category"],
+                quantity=1,
+            )
+        else:
+            track_outcome(
+                org_id=event.project.organization_id,
+                project_id=job["project_id"],
+                key_id=job["key_id"],
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                timestamp=to_datetime(job["start_time"]),
+                event_id=event.event_id,
+                category=job["category"],
+            )
 
 
 def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
