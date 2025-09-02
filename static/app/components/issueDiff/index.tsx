@@ -180,7 +180,7 @@ class IssueDiff extends Component<Props, State> {
         {loading && <LoadingIndicator />}
         {!loading &&
           DiffComponent &&
-          (this.state.newestFirst ? [...baseEvent].reverse() : baseEvent).map(
+          (this.state.newestFirst ? baseEvent.toReversed() : baseEvent).map(
             (value, i) => (
               <DiffComponent
                 key={i}
