@@ -56,9 +56,9 @@ class PullRequestDeletionTaskTest(TestCase):
             group_ids=group_ids or [],
         )
 
-    def test_filter_deletions_bulk_removes_unused_prs(self):
+    def test_query_filter_removes_unused_prs(self):
         pr_old_unused = self.create_pr("pr1", self.old_date)
-        pr_recent = self.create_pr("pr2", self.recent_date)
+        self.create_pr("pr2", self.recent_date)
         pr_with_recent_comment = self.create_pr("pr3", self.old_date)
 
         self.create_pull_request_comment(
@@ -67,13 +67,11 @@ class PullRequestDeletionTaskTest(TestCase):
             updated_at=self.old_date,
         )
 
-        instances = [pr_old_unused, pr_recent, pr_with_recent_comment]
-        filtered = self.task.filter_deletions_bulk(instances)
-
+        filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
         assert len(filtered) == 1
         assert filtered[0].id == pr_old_unused.id
 
-    def test_filter_deletions_bulk_keeps_pr_with_release_commit(self):
+    def test_query_filter_keeps_pr_with_release_commit(self):
         pr = self.create_pr("pr_release", self.old_date)
         commit = self.create_old_commit()
         self.create_pull_request_commit(pr, commit)
@@ -81,10 +79,10 @@ class PullRequestDeletionTaskTest(TestCase):
         release = self.create_release(project=self.project)
         self.create_release_commit(release, commit)
 
-        filtered = self.task.filter_deletions_bulk([pr])
+        filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
         assert len(filtered) == 0
 
-    def test_filter_deletions_bulk_keeps_pr_with_valid_group_link(self):
+    def test_query_filter_keeps_pr_with_valid_group_link(self):
         pr = self.create_pr("pr_group", self.old_date)
         group = self.create_group(project=self.project)
         GroupLink.objects.create(
@@ -95,10 +93,10 @@ class PullRequestDeletionTaskTest(TestCase):
             relationship=GroupLink.Relationship.resolves,
         )
 
-        filtered = self.task.filter_deletions_bulk([pr])
+        filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
         assert len(filtered) == 0
 
-    def test_filter_deletions_bulk_deletes_pr_with_invalid_group_link(self):
+    def test_query_filter_deletes_pr_with_invalid_group_link(self):
         pr = self.create_pr("pr_invalid_group", self.old_date)
         GroupLink.objects.create(
             group_id=999999,  # Non-existent group
@@ -108,11 +106,11 @@ class PullRequestDeletionTaskTest(TestCase):
             relationship=GroupLink.Relationship.resolves,
         )
 
-        filtered = self.task.filter_deletions_bulk([pr])
+        filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
         assert len(filtered) == 1
         assert filtered[0].id == pr.id
 
-    def test_filter_deletions_bulk_with_comment_group_ids(self):
+    def test_query_filter_with_comment_group_ids(self):
         pr_valid_group = self.create_pr("pr_valid", self.old_date)
         group = self.create_group(project=self.project)
         self.create_pull_request_comment(
@@ -126,7 +124,7 @@ class PullRequestDeletionTaskTest(TestCase):
             group_ids=[999999],  # Non-existent
         )
 
-        filtered = self.task.filter_deletions_bulk([pr_valid_group, pr_invalid_group])
+        filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
         assert len(filtered) == 1
         assert filtered[0].id == pr_invalid_group.id
 
@@ -158,14 +156,14 @@ class PullRequestDeletionTaskTest(TestCase):
         assert not PullRequestCommit.objects.filter(id=pr_commit.id).exists()
         assert Commit.objects.filter(id=commit.id).exists()
 
-    def test_filter_deletions_with_empty_list(self):
-        filtered = self.task.filter_deletions_bulk([])
+    def test_query_filter_with_no_prs(self):
+        filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
         assert filtered == []
 
     def test_cutoff_date_is_90_days(self):
-        pr_89_days = self.create_pr("pr_89", self.now - timedelta(days=89))
+        self.create_pr("pr_89", self.now - timedelta(days=89))
         pr_91_days = self.create_pr("pr_91", self.now - timedelta(days=91))
-        filtered = self.task.filter_deletions_bulk([pr_89_days, pr_91_days])
+        filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
         assert len(filtered) == 1
         assert filtered[0].id == pr_91_days.id
 

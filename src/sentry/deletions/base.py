@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from django.db import router
+from django.db.models import Q
 
 from sentry.constants import ObjectStatus
 from sentry.db.models.base import Model
@@ -207,8 +208,12 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             self.actor_id,
         )
 
-    def filter_deletions_bulk(self, instances: Sequence[ModelT]) -> Sequence[ModelT]:
-        return instances
+    def get_query_filter(self) -> None | Q:
+        """
+        Override this to add additional filters to the queryset.
+        Returns a Q object or None.
+        """
+        return None
 
     def chunk(self) -> bool:
         """
@@ -220,6 +225,11 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
 
         while remaining >= 0:
             queryset = getattr(self.model, self.manager_name).filter(**self.query)
+
+            query_filter = self.get_query_filter()
+            if query_filter is not None:
+                queryset = queryset.filter(query_filter)
+
             if self.order_by:
                 queryset = queryset.order_by(self.order_by)
 
@@ -228,10 +238,8 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             if not queryset:
                 return False
 
-            # Reduce the remaining by the prefiltered amount, so that we don't get stuck iterating for too long
-            remaining = remaining - len(queryset)
-            queryset = self.filter_deletions_bulk(queryset)
             self.delete_bulk(queryset)
+            remaining = remaining - len(queryset)
 
         # We have more work to do as we didn't run out of rows to delete.
         return True

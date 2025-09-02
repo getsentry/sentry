@@ -1,16 +1,18 @@
-from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
+
+from django.db.models import Q
 
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
 
 
 class PullRequestDeletionTask(ModelDeletionTask[PullRequest]):
-    def filter_deletions_bulk(self, instances: Sequence[PullRequest]) -> Sequence[PullRequest]:
-        # This could be inefficient for a lot of pull requests, we can attempt to convert this to a bulk
-        # function if needed. But this table won't have a high rate of deletions, so this should be ok.
+    def get_query_filter(self) -> Q:
+        """
+        Returns a Q object that filters for unused PRs.
+        """
         cutoff = datetime.now(timezone.utc) - timedelta(days=90)
-        return [instance for instance in instances if instance.is_unused(cutoff)]
+        return PullRequest.get_unused_filter(cutoff)
 
     def get_child_relations(self, instance: PullRequest) -> list[BaseRelation]:
         return [
