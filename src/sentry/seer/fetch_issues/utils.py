@@ -77,6 +77,8 @@ def get_repo_and_projects(
 
 
 def as_issue_details(group: Group | None) -> IssueDetails | None:
+    if group is None:
+        return None
     group_serialized: dict[str, Any] | None = serialize(group)
     if group_serialized is None:
         return None
@@ -91,12 +93,12 @@ def as_issue_details(group: Group | None) -> IssueDetails | None:
     )
 
 
-def bulk_serialize_for_seer(groups: list[Group]) -> list[dict[str, Any] | None]:
+def bulk_serialize_for_seer(groups: list[Group]) -> list[dict[str, Any]]:
     """
-    Returns a list of dicts matching the Seer IssueDetails model. Unserializable groups are `None`.
+    Returns a list of dicts matching the Seer IssueDetails model. Unserializable groups are filtered out.
     """
     issue_details = [as_issue_details(group) for group in groups]
-    return [issue.dict() if issue is not None else None for issue in issue_details]
+    return [issue.dict() for issue in issue_details if issue is not None]
 
 
 def get_latest_issue_event(group_id: int) -> dict[str, Any]:

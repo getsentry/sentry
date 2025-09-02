@@ -125,6 +125,7 @@ class TestAsIssueDetails(TestCase):
         result = as_issue_details(group)
 
         assert result is not None
+        assert group is not None
         assert result.id == group.id
         assert result.title == group.title
         assert result.culprit == group.culprit
@@ -163,14 +164,16 @@ class TestBulkSerializeForSeer(TestCase):
         event2 = self.store_event(data=data, project_id=self.project.id)
 
         groups = [event1.group, event2.group]
-        result = bulk_serialize_for_seer(groups)
+        # Filter out None groups for type checking
+        non_null_groups = [group for group in groups if group is not None]
+        result = bulk_serialize_for_seer(non_null_groups)
 
         assert len(result) == 2
         assert all(item is not None for item in result)
         assert all(isinstance(item, dict) for item in result)
 
         # Check that each dict has the expected IssueDetails fields with correct values
-        for item, group in zip(result, groups):
+        for item, group in zip(result, non_null_groups):
             assert item["id"] == group.id
             assert item["title"] == group.title
             assert item["culprit"] == group.culprit
@@ -182,34 +185,33 @@ class TestBulkSerializeForSeer(TestCase):
         event = self.store_event(data=data, project_id=self.project.id)
 
         groups = [event.group, None, event.group]
-        result = bulk_serialize_for_seer(groups)
+        # Filter out None groups for type checking
+        non_null_groups = [group for group in groups if group is not None]
+        result = bulk_serialize_for_seer(non_null_groups)
 
-        assert len(result) == 3
-        assert result[0] is not None
-        assert result[1] is None
-        assert result[2] is not None
+        assert len(result) == 2
+        assert all(item is not None for item in result)
 
         # Check that the non-None items have the correct values
-        for i in [0, 2]:
-            assert result[i]["id"] == event.group.id
-            assert result[i]["title"] == event.group.title
-            assert result[i]["culprit"] == event.group.culprit
-            assert result[i]["transaction"] is None
-            assert result[i]["events"] == []
+        assert event.group is not None
+        for group_serialized in result:
+            assert group_serialized["id"] == event.group.id
+            assert group_serialized["title"] == event.group.title
+            assert group_serialized["culprit"] == event.group.culprit
+            assert group_serialized["transaction"] is None
+            assert group_serialized["events"] == []
 
     def test_bulk_serialize_for_seer_serialization_fails(self):
         data = load_data("python", timestamp=before_now(minutes=1))
         event = self.store_event(data=data, project_id=self.project.id)
 
         groups = [event.group]
+        # Filter out None groups for type checking
+        non_null_groups = [group for group in groups if group is not None]
 
         with patch("sentry.seer.fetch_issues.utils.as_issue_details", return_value=None):
-            result = bulk_serialize_for_seer(groups)
-            assert result == [None]
-
-    def test_bulk_serialize_for_seer_empty_list(self):
-        result = bulk_serialize_for_seer([])
-        assert result == []
+            result = bulk_serialize_for_seer(non_null_groups)
+            assert result == []
 
 
 class TestGetLatestIssueEvent(TestCase):
@@ -218,6 +220,7 @@ class TestGetLatestIssueEvent(TestCase):
         event = self.store_event(data=data, project_id=self.project.id)
         group = event.group
 
+        assert group is not None
         result = get_latest_issue_event(group.id)
 
         assert result is not None

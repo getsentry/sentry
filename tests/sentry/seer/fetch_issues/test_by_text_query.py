@@ -18,6 +18,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             integration_id=self.integration.id,
             project=self.project,
             url="https://github.com/getsentry/sentry",
+            external_id="123456",
         )
         self.code_mapping = self.create_code_mapping(
             project=self.project,
@@ -37,6 +38,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         # Message will be something like: "hello! Error auth.py authenticate Authentication failed"
 
         # Test 1: Should find with substring from event message
+        assert self.gh_repo.external_id is not None
         result = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -47,6 +49,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         assert group.id in [r["id"] for r in result if r]
 
         # Test 2: Should find with substring from filename in message
+        assert self.gh_repo.external_id is not None
         result = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -66,6 +69,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         )
 
         # Query for something that shouldn't match anything in the message
+        assert self.gh_repo.external_id is not None
         result = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -87,6 +91,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         ).group
 
         # Query for a keyword from the culprit
+        assert self.gh_repo.external_id is not None
         result = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -109,6 +114,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
             )
 
         limit = 2
+        assert self.gh_repo.external_id is not None
         result = fetch_issues(
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -132,6 +138,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
         expected_group = event.group
 
         # Get repo projects
+        assert self.gh_repo.external_id is not None
         repo_projects = get_repo_and_projects(
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -154,6 +161,7 @@ class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
     def test_fetch_issues_from_repo_projects_empty_result(self):
         """Test that _fetch_issues_from_repo_projects returns empty list when no matches."""
         # Get repo projects but don't create any matching events
+        assert self.gh_repo.external_id is not None
         repo_projects = get_repo_and_projects(
             organization_id=self.organization.id,
             provider="integrations:github",

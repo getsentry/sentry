@@ -236,16 +236,16 @@ def _fetch_issues_from_repo_projects(
     file_projects, sentry_filenames = _get_projects_and_filenames_from_source_file(
         repo_projects.organization_id, repo_projects.repo.id, filename
     )
-    file_projects = list(file_projects)
+    file_projects_list = list(file_projects)
     if not file_projects:
         logger.warning(
             "No projects found for file. Using all projects.",
             extra={"file": filename, "run_id": run_id},
         )
-        file_projects = repo_projects.projects
+        file_projects_list = repo_projects.projects
 
     issues = _get_issues_for_file(
-        file_projects,
+        file_projects_list,
         list(sentry_filenames),
         [function_name],
         event_timestamp_start,

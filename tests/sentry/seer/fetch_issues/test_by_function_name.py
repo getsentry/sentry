@@ -54,6 +54,7 @@ class TestGetProjectsAndFilenamesFromSourceFile(IntegrationTestCase, CreateEvent
             integration_id=self.integration.id,
             project=self.project,
             url="https://github.com/getsentry/sentry",
+            external_id="123456",
         )
         self.code_mapping = self.create_code_mapping(
             project=self.project,
@@ -273,6 +274,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
             integration_id=self.integration.id,
             project=self.project,
             url="https://github.com/getsentry/sentry",
+            external_id="123456",
         )
         self.code_mapping = self.create_code_mapping(
             project=self.project,
@@ -297,6 +299,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
             ) as mock_serialize:
                 mock_serialize.return_value = [{"id": str(group.id), "title": "Test Issue"}]
 
+                assert self.gh_repo.external_id is not None
                 result = fetch_issues(
                     organization_id=self.organization.id,
                     provider="integrations:github",
@@ -325,6 +328,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
             ) as mock_serialize:
                 mock_serialize.return_value = [{"id": str(group.id)}]
 
+                assert self.gh_repo.external_id is not None
                 fetch_issues(
                     organization_id=self.organization.id,
                     provider="integrations:github",
@@ -352,6 +356,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
             ) as mock_serialize:
                 mock_serialize.return_value = [{"id": str(group.id)}]
 
+                assert self.gh_repo.external_id is not None
                 fetch_issues(
                     organization_id=self.organization.id,
                     provider="integrations:github",
@@ -377,6 +382,7 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
             integration_id=self.integration.id,
             project=self.project,
             url="https://github.com/getsentry/sentry",
+            external_id="123456",
         )
         self.code_mapping = self.create_code_mapping(
             project=self.project,
@@ -391,6 +397,7 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
         mock_get_projects.return_value = (set(), {"test.py"})
         mock_get_issues.return_value = []
 
+        assert self.gh_repo.external_id is not None
         repo_projects = RepoProjects(
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -419,6 +426,7 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
         mock_get_projects.return_value = ({self.project}, {"test.py"})
         mock_get_issues.return_value = []
 
+        assert self.gh_repo.external_id is not None
         repo_projects = RepoProjects(
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -450,6 +458,7 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
         expected_group = event.group
 
         # Get repo projects
+        assert self.gh_repo.external_id is not None
         repo_projects = get_repo_and_projects(
             organization_id=self.organization.id,
             provider="integrations:github",
@@ -473,6 +482,7 @@ class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
     def test_fetch_issues_from_repo_projects_empty_result(self):
         """Test that _fetch_issues_from_repo_projects returns empty list when no matches."""
         # Get repo projects but don't create any matching events
+        assert self.gh_repo.external_id is not None
         repo_projects = get_repo_and_projects(
             organization_id=self.organization.id,
             provider="integrations:github",
