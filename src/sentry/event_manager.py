@@ -76,7 +76,7 @@ from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     record_transaction_name as record_transaction_name_for_clustering,
 )
-from sentry.insights import ClassifiableSpan
+from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -2625,15 +2625,7 @@ def _record_transaction_info(
                     event=event,
                 )
 
-            spans = [
-                ClassifiableSpan(
-                    op=span.get("op"),
-                    category=span.get("sentry_tags", {}).get("category"),
-                    description=span.get("description"),
-                    transaction_op=span.get("sentry_tags", {}).get("transaction.op"),
-                )
-                for span in job["data"]["spans"]
-            ]
+            spans = [FilterSpan.from_span_v1(span) for span in job["data"]["spans"]]
 
             for module in insights_modules(spans):
                 set_project_flag_and_signal(

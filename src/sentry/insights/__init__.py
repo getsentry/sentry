@@ -1,9 +1,9 @@
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from sentry.constants import InsightModules
 
 
-class ClassifiableSpan(NamedTuple):
+class FilterSpan(NamedTuple):
     """Interface for detecting relevant Insights modules for a span.
 
     Spans in transactions have a different schema than spans from Kafka. Going through this interface
@@ -15,52 +15,74 @@ class ClassifiableSpan(NamedTuple):
     description: str | None
     transaction_op: str | None
 
+    @classmethod
+    def from_span_v1(cls, span: dict[str, Any]) -> "FilterSpan":
+        """Get relevant fields from a span as they appear in transaction payloads."""
+        return cls(
+            op=span.get("op"),
+            category=span.get("sentry_tags", {}).get("category"),
+            description=span.get("description"),
+            transaction_op=span.get("sentry_tags", {}).get("transaction.op"),
+        )
 
-def is_http(span: ClassifiableSpan) -> bool:
+    @classmethod
+    def from_span_data(cls, data: dict[str, Any]) -> "FilterSpan":
+        """Get relevant fields from `span.data`.
+
+        This will later be replaced by `from_span_attributes` or `from_span_v2`."""
+        return cls(
+            op=data.get("sentry.op"),
+            category=data.get("sentry.category"),
+            description=data.get("sentry.description"),
+            transaction_op=data.get("sentry.transaction_op"),
+        )
+
+
+def is_http(span: FilterSpan) -> bool:
     return span.category == "http" and span.op == "http.client"
 
 
-def is_db(span: ClassifiableSpan) -> bool:
+def is_db(span: FilterSpan) -> bool:
     return span.category == "db" and span.description is not None
 
 
-def is_assets(span: ClassifiableSpan) -> bool:
+def is_assets(span: FilterSpan) -> bool:
     return span.op in ["resource.script", "resource.css", "resource.font", "resource.img"]
 
 
-def is_app_start(span: ClassifiableSpan) -> bool:
+def is_app_start(span: FilterSpan) -> bool:
     return span.op is not None and span.op.startswith("app.start.")
 
 
-def is_screen_load(span: ClassifiableSpan) -> bool:
+def is_screen_load(span: FilterSpan) -> bool:
     return span.category == "ui" and span.transaction_op == "ui.load"
 
 
-def is_vital(span: ClassifiableSpan) -> bool:
+def is_vital(span: FilterSpan) -> bool:
     return span.transaction_op == "pageload"
 
 
-def is_cache(span: ClassifiableSpan) -> bool:
+def is_cache(span: FilterSpan) -> bool:
     return span.op in ["cache.get_item", "cache.get", "cache.put"]
 
 
-def is_queue(span: ClassifiableSpan) -> bool:
+def is_queue(span: FilterSpan) -> bool:
     return span.op in ["queue.process", "queue.publish"]
 
 
-def is_llm_monitoring(span: ClassifiableSpan) -> bool:
+def is_llm_monitoring(span: FilterSpan) -> bool:
     return span.op is not None and span.op.startswith("ai.pipeline")
 
 
-def is_agents(span: ClassifiableSpan) -> bool:
+def is_agents(span: FilterSpan) -> bool:
     return span.op is not None and span.op.startswith("gen_ai.")
 
 
-def is_mcp(span: ClassifiableSpan) -> bool:
+def is_mcp(span: FilterSpan) -> bool:
     return span.op is not None and span.op.startswith("mcp.")
 
 
-INSIGHT_MODULE_CLASSIFIERS = {
+INSIGHT_MODULE_FILTERS = {
     InsightModules.HTTP: is_http,
     InsightModules.DB: is_db,
     InsightModules.ASSETS: is_assets,
@@ -75,9 +97,9 @@ INSIGHT_MODULE_CLASSIFIERS = {
 }
 
 
-def modules(spans: list[ClassifiableSpan]) -> set[InsightModules]:
+def modules(spans: list[FilterSpan]) -> set[InsightModules]:
     return {
         module
-        for module, is_module in INSIGHT_MODULE_CLASSIFIERS.items()
+        for module, is_module in INSIGHT_MODULE_FILTERS.items()
         if any(is_module(span) for span in spans)
     }

@@ -226,6 +226,10 @@ class TestSpansTask(TestCase):
             is_segment=True,
             span_op="http.client",
             sentry_tags={"category": "http"},
+            data={
+                "sentry.op": "http.client",
+                "sentry.category": "http",
+            },
         )
         spans = process_segment([span])
         assert len(spans) == 1

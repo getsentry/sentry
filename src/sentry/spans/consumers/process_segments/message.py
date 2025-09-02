@@ -11,7 +11,7 @@ from sentry import options
 from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
-from sentry.insights import ClassifiableSpan
+from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -262,7 +262,7 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
 
     for module in insights_modules(
         [
-            ClassifiableSpan(
+            FilterSpan(
                 op=span.get("data", {}).get("sentry.op"),
                 category=span.get("data", {}).get("sentry.category"),
                 description=span.get("data", {}).get("sentry.normalized_description"),
