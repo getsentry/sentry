@@ -12,6 +12,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {
+  CronDetector,
   Detector,
   MetricDetector,
   UptimeDetector,
@@ -28,6 +29,7 @@ import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetect
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 type DetectorLinkProps = {
   detector: Detector;
@@ -170,6 +172,12 @@ function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
   );
 }
 
+function CronDetectorDetails({detector}: {detector: CronDetector}) {
+  const config = detector.dataSources[0].queryObj.config;
+
+  return <DetailItem>{scheduleAsText(config)}</DetailItem>;
+}
+
 function Details({detector}: {detector: Detector}) {
   const detectorType = detector.type;
   switch (detectorType) {
@@ -179,6 +187,7 @@ function Details({detector}: {detector: Detector}) {
       return <UptimeDetectorDetails detector={detector} />;
     // TODO: Implement details for Cron detectors
     case 'monitor_check_in_failure':
+      return <CronDetectorDetails detector={detector} />;
     case 'error':
       return null;
     default:
