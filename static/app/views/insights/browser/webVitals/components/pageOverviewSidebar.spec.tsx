@@ -114,7 +114,7 @@ describe('PageOverviewSidebar', () => {
     expect(screen.getByText('View Suggestion')).toBeInTheDocument();
   });
 
-  it('should create issues run seer analysis button is clicked', async () => {
+  it('should create issues when run seer analysis button is clicked', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       body: [],
