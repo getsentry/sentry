@@ -3,22 +3,55 @@
 
 Helpful commands:
 
-    - Run the consumer.
+    Run Sentry:
+        - `sentry devserver`
+
+    Run the recording consumer:
         - `sentry run consumer ingest-replay-recordings --consumer-group 0`
-        - `sentry run consumer ingest-replay-recordings-two-step --consumer-group 0`
-    - Check if offsets are committed correctly.
+
+    Run the Snuba consumer:
+        - https://getsentry.github.io/snuba/architecture/consumer.html
+        - `snuba rust-consumer --storage replays --consumer-group 0`
+
+    Run Relay:
+        - Update `.relay/config.yml` to a different port (or shut down devservices container).
+
+            relay:
+                upstream: http://localhost:8000/
+                port: 3001
+
+        - `cargo build --features=processing && target/debug/relay run --processing`
+
+    Check if consumers are receiving data:
         - `docker exec -it kafka-kafka-1 kafka-consumer-groups --bootstrap-server localhost:9092 --describe --group 0`
+
+            GROUP TOPIC                    PARTITION  CURRENT-OFFSET  LOG-END-OFFSET
+            0     ingest-replay-recordings 0          21              21
+            0     ingest-replay-events     0          75              75
+
+    Check ClickHouse for rows being written:
+        - `docker exec -it snuba-clickhouse-1 /usr/bin/clickhouse-client`
+        - After running type `SELECT * FROM replays_local`
+        - To see all available columns for query `SHOW CREATE TABLE replays_local`
+
+            SELECT * FROM replays_local
+
+            Query id: 390a9e8b-e80a-4232-8101-adc2c777ff29
+
+            Ok.
+            0 rows in set. Elapsed: 0.005 sec.
 """
 
+import datetime
+import json
 import logging
 import os
-import time
 import uuid
 
 import click
 import django
-from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+import urllib3
+from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
@@ -46,34 +79,58 @@ def get_producer() -> KafkaProducer:
 
 RECORDING_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 
+from sentry.replays.testutils import mock_replay
+
 
 @click.command()
-@click.option("--organization-id", type=int, required=True, help="Organization ID")
-@click.option("--project-id", type=int, required=True, help="Project ID")
-def main(organization_id: int, project_id: int) -> None:
+@click.option("--dsn", type=str, required=True)
+def main(dsn: str) -> None:
     """Produce a mock uptime result message to the INGEST_REPLAYS_RECORDINGS topic."""
-    message: ReplayRecording = {
-        "key_id": None,
-        "org_id": organization_id,
-        "payload": b'{"segment_id":0}\n[]',
-        "project_id": project_id,
-        "received": int(time.time()),
-        "replay_event": None,
-        "replay_id": uuid.uuid4().hex,
-        "replay_video": None,
-        "retention_days": 30,
-        "type": "replay_recording_not_chunked",
-        "version": 1,
-    }
+    # http://720d704cdeb70a9486831f3b35cbaffc@localhost:8000/1
 
-    producer = get_producer()
-    topic = get_topic_definition(Topic.INGEST_REPLAYS_RECORDINGS)["real_topic_name"]
-    payload = KafkaPayload(None, RECORDING_CODEC.encode(message), [])
+    replay_event_item = json.dumps(
+        mock_replay(
+            timestamp=datetime.datetime.now(),
+            project_id=1,
+            replay_id=uuid.uuid4().hex,
+            segment_id=22,
+        )["payload"]
+    ).encode()
+    recording_item = b'{"segment_id": 0}\n[]'
 
-    producer.produce(ArroyoTopic(topic), payload)
-    producer.close()
+    envelope_items = [
+        json.dumps(
+            {"event_id": uuid.uuid4().hex, "attachment_type": "replay_recording", "dsn": dsn}
+        ).encode(),
+        json.dumps(
+            {
+                "type": "replay_recording",
+                "content_type": "application/octet-stream",
+                "length": len(recording_item),
+            }
+        ).encode(),
+        recording_item,
+        json.dumps(
+            {
+                "type": "replay_event",
+                "content_type": "application/json",
+                "length": len(replay_event_item),
+            }
+        ).encode(),
+        replay_event_item,
+    ]
 
-    logger.info("Successfully produced message to %s", topic)
+    envelope = b"\n".join(envelope_items) + b"\n"
+
+    response = urllib3.PoolManager().request(
+        "POST",
+        "http://localhost:3001/api/1/envelope/",
+        body=envelope,
+        headers={"Content-Type": "application/octet-stream"},
+    )
+    assert response.status == 200, (response.status, response.data)
+
+    logger.info("Successfully produced message to %s", dsn)
 
 
 if __name__ == "__main__":
