@@ -178,7 +178,7 @@ function FeedbackItemContexts({
     cards.push(
       <ContextCard
         key={'evidence'}
-        type={'Event Occurance'}
+        type={'Event Occurrence'}
         alias={'evidence'}
         value={evidenceContext}
         event={eventData}
